@@ -1,0 +1,537 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   🍁🏒 HockeyLifeHL - Canadian Hockey Theme 🏒🍁
+   "For Fun, For Beers, For Glory"
+   ============================================ */
+
+/* === CSS Custom Properties === */
+:root {
+  /* Canadian Hockey Color Palette */
+  --canada-red: #E31837;
+  --canada-red-dark: #B71430;
+  --canada-red-light: #FF2E4D;
+
+  --ice-white: #F8FAFC;
+  --ice-blue: #E8F4F8;
+  --ice-glow: #DBEAFE;
+
+  --puck-black: #0F0F14;
+  --puck-dark: #1A1A24;
+  --puck-gray: #2A2A3A;
+
+  --rink-blue: #0066CC;
+  --rink-blue-dark: #004D99;
+  --rink-blue-light: #3399FF;
+
+  --goal-light-red: #FF4444;
+  --goal-light-glow: #FF6666;
+
+  --gold-accent: #FFD700;
+  --gold-dark: #D4AF00;
+  --gold-light: #FFE44D;
+
+  --beer-amber: #F59E0B;
+  --beer-dark: #D97706;
+
+  --success: #22C55E;
+  --success-dark: #16A34A;
+
+  --warning: var(--beer-amber);
+  --warning-dark: var(--beer-dark);
+
+  --danger: var(--goal-light-red);
+  --danger-dark: #DC2626;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
+  --shadow-glow-red: 0 0 20px rgba(227, 24, 55, 0.4);
+  --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.4);
+
+  /* shadcn/ui Light Mode (not used, we default to dark) */
+  --radius: 0.625rem;
+  --background: var(--ice-white);
+  --foreground: var(--puck-black);
+  --card: #FFFFFF;
+  --card-foreground: var(--puck-black);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--puck-black);
+  --primary: var(--canada-red);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--rink-blue);
+  --secondary-foreground: #FFFFFF;
+  --muted: var(--ice-blue);
+  --muted-foreground: #64748B;
+  --accent: var(--gold-accent);
+  --accent-foreground: var(--puck-black);
+  --destructive: var(--goal-light-red);
+  --border: rgba(0, 0, 0, 0.1);
+  --input: rgba(0, 0, 0, 0.1);
+  --ring: var(--canada-red);
+  --chart-1: var(--canada-red);
+  --chart-2: var(--rink-blue);
+  --chart-3: var(--gold-accent);
+  --chart-4: var(--success);
+  --chart-5: var(--beer-amber);
+  --sidebar: var(--ice-white);
+  --sidebar-foreground: var(--puck-black);
+  --sidebar-primary: var(--canada-red);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--ice-blue);
+  --sidebar-accent-foreground: var(--puck-black);
+  --sidebar-border: rgba(0, 0, 0, 0.1);
+  --sidebar-ring: var(--canada-red);
+}
+
+/* Dark Mode - Arena Lights (DEFAULT) */
+.dark {
+  --background: var(--puck-black);
+  --foreground: var(--ice-white);
+  --card: var(--puck-dark);
+  --card-foreground: var(--ice-white);
+  --popover: var(--puck-dark);
+  --popover-foreground: var(--ice-white);
+  --primary: var(--canada-red);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--puck-gray);
+  --secondary-foreground: var(--ice-white);
+  --muted: var(--puck-gray);
+  --muted-foreground: #94A3B8;
+  --accent: var(--gold-accent);
+  --accent-foreground: var(--puck-black);
+  --destructive: var(--goal-light-red);
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: var(--canada-red);
+  --chart-1: var(--canada-red);
+  --chart-2: var(--rink-blue);
+  --chart-3: var(--gold-accent);
+  --chart-4: var(--success);
+  --chart-5: var(--beer-amber);
+  --sidebar: var(--puck-dark);
+  --sidebar-foreground: var(--ice-white);
+  --sidebar-primary: var(--canada-red);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--puck-gray);
+  --sidebar-accent-foreground: var(--ice-white);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: var(--canada-red);
+}
+
+/* === Tailwind Theme Configuration === */
+@theme inline {
+  /* shadcn color tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Canadian Hockey Specific Colors */
+  --color-canada-red: var(--canada-red);
+  --color-canada-red-dark: var(--canada-red-dark);
+  --color-canada-red-light: var(--canada-red-light);
+  --color-ice-white: var(--ice-white);
+  --color-ice-blue: var(--ice-blue);
+  --color-puck-black: var(--puck-black);
+  --color-puck-dark: var(--puck-dark);
+  --color-puck-gray: var(--puck-gray);
+  --color-rink-blue: var(--rink-blue);
+  --color-rink-blue-dark: var(--rink-blue-dark);
+  --color-goal-light: var(--goal-light-red);
+  --color-gold: var(--gold-accent);
+  --color-gold-dark: var(--gold-dark);
+  --color-beer-amber: var(--beer-amber);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: 'Oswald', 'Impact', sans-serif;
+
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+/* === Base Styles === */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* === Custom Utility Classes === */
+
+/* Arena Spotlight Background */
+.bg-arena {
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(227, 24, 55, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 0%, rgba(0, 102, 204, 0.1), transparent),
+    var(--background);
+}
+
+/* Ice Rink Surface Effect */
+.bg-ice {
+  background: 
+    linear-gradient(180deg, var(--ice-white) 0%, var(--ice-blue) 100%);
+  position: relative;
+}
+
+.bg-ice::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 50px,
+      rgba(0, 102, 204, 0.03) 50px,
+      rgba(0, 102, 204, 0.03) 51px
+    );
+  pointer-events: none;
+}
+
+/* Goal Light Animation */
+@keyframes goal-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px var(--goal-light-red), 0 0 40px var(--goal-light-red);
+    opacity: 1;
+  }
+  50% { 
+    box-shadow: 0 0 40px var(--goal-light-red), 0 0 80px var(--goal-light-red);
+    opacity: 0.8;
+  }
+}
+
+.goal-light {
+  animation: goal-pulse 0.5s ease-in-out infinite;
+}
+
+/* Puck Spin Animation */
+@keyframes puck-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.puck-spin {
+  animation: puck-spin 1s linear infinite;
+}
+
+/* Glass Effect */
+.glass {
+  background: rgba(26, 26, 36, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Text Gradient - Canadian Flag */
+.text-gradient-canada {
+  background: linear-gradient(135deg, var(--canada-red) 0%, var(--gold-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Text Gradient - Gold */
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--gold-accent) 0%, var(--gold-light) 50%, var(--gold-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Custom Button Variants */
+.btn-hockey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-hockey-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  background: var(--canada-red);
+  color: white;
+  box-shadow: var(--shadow-glow-red);
+}
+
+.btn-hockey-primary:hover {
+  background: var(--canada-red-dark);
+  transform: translateY(-1px);
+}
+
+.btn-hockey-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  background: linear-gradient(135deg, var(--gold-accent), var(--gold-dark));
+  color: var(--puck-black);
+}
+
+.btn-hockey-gold:hover {
+  box-shadow: var(--shadow-glow-gold);
+  transform: translateY(-1px);
+}
+
+.btn-hockey-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+.btn-hockey-ghost:hover {
+  background: var(--muted);
+}
+
+/* Jersey Number Style */
+.jersey-number {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+/* Stat Box */
+.stat-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--gold-accent);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+/* Player Rating Badges */
+.rating-a {
+  background: linear-gradient(135deg, var(--gold-accent), var(--gold-dark));
+  color: var(--puck-black);
+}
+
+.rating-b {
+  background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
+  color: var(--puck-black);
+}
+
+.rating-c {
+  background: linear-gradient(135deg, #CD7F32, #B87333);
+  color: white;
+}
+
+.rating-d {
+  background: var(--puck-gray);
+  color: var(--muted-foreground);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--puck-gray);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--primary);
+  color: white;
+}
+
+/* === Responsive Typography === */
+h1, .h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+h2, .h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+h3, .h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+h4, .h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* === Loading States === */
+/* Hockey Loader Animations */
+@keyframes puck-slide {
+  0%, 100% {
+    transform: translateX(-8px);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes stick-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ice-particle {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+}
+
+.animate-puck-slide {
+  animation: puck-slide 1s ease-in-out infinite;
+}
+
+.animate-stick-rotate {
+  animation: stick-rotate 2s linear infinite;
+}
+
+.animate-ice-particle {
+  animation: ice-particle 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--puck-gray) 0%,
+    var(--muted) 50%,
+    var(--puck-gray) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}

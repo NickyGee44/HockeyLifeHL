@@ -1,0 +1,66 @@
+{
+  "name": "HockeyLifeHL - For Fun, For Beers, For Glory",
+  "short_name": "HockeyLifeHL",
+  "description": "The ultimate men's recreational hockey league management platform. Stats, drafts, standings, and glory.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F0F14",
+  "theme_color": "#E31837",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-CA",
+  "categories": ["sports", "entertainment", "social"],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "HockeyLifeHL Home"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "HockeyLifeHL Mobile"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Standings",
+      "short_name": "Standings",
+      "description": "View current standings",
+      "url": "/standings",
+      "icons": [{ "src": "/icons/standings.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Schedule",
+      "short_name": "Schedule",
+      "description": "View game schedule",
+      "url": "/schedule",
+      "icons": [{ "src": "/icons/schedule.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Stats",
+      "short_name": "Stats",
+      "description": "View player stats",
+      "url": "/stats",
+      "icons": [{ "src": "/icons/stats.png", "sizes": "96x96" }]
+    }
+  ]
+}
