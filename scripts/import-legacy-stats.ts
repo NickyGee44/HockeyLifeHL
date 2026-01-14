@@ -56,6 +56,10 @@ interface LegacyGoalieStats {
   winPercentage: number;
 }
 
+interface LegacyCombinedStats extends LegacyPlayerStats, Partial<LegacyGoalieStats> {
+  is_goalie: boolean;
+}
+
 function parsePlayerStats(html: string): LegacyPlayerStats[] {
   const root = parse(html);
   const players: LegacyPlayerStats[] = [];
@@ -216,7 +220,7 @@ async function importLegacyStats() {
   console.log(`Found ${goalieStats.length} goalies\n`);
   
   // Combine player and goalie stats (some players might be goalies too)
-  const allPlayers = new Map<string, LegacyPlayerStats & Partial<LegacyGoalieStats>>();
+  const allPlayers = new Map<string, LegacyCombinedStats>();
   
   // Add players
   for (const player of playerStats) {
@@ -279,12 +283,12 @@ async function importLegacyStats() {
     ties: p.ties || 0,
     win_percentage: p.winPercentage || 0,
     moosehead_cup_wins: p.mooseheadCupWins || 0,
-    is_goalie: (p as any).is_goalie || false,
-    goals_against: (p as any).goalsAgainst || 0,
-    saves: (p as any).saves || 0,
-    shutouts: (p as any).shutouts || 0,
-    goals_against_average: (p as any).goalsAgainstAverage || 0,
-    save_percentage: (p as any).savePercentage || 0,
+    is_goalie: p.is_goalie,
+    goals_against: p.goalsAgainst || 0,
+    saves: p.saves || 0,
+    shutouts: p.shutouts || 0,
+    goals_against_average: p.goalsAgainstAverage || 0,
+    save_percentage: p.savePercentage || 0,
   }));
   
   // Use upsert to handle duplicates
