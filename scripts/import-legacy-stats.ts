@@ -56,9 +56,10 @@ interface LegacyGoalieStats {
   winPercentage: number;
 }
 
-interface LegacyCombinedStats extends LegacyPlayerStats, Partial<LegacyGoalieStats> {
-  is_goalie: boolean;
-}
+type LegacyCombinedStats = LegacyPlayerStats &
+  Partial<LegacyGoalieStats> & {
+    is_goalie: boolean;
+  };
 
 function parsePlayerStats(html: string): LegacyPlayerStats[] {
   const root = parse(html);
