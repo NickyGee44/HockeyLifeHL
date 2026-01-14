@@ -27,13 +27,13 @@ import { getAllGames } from "@/lib/games/actions";
 import { getAllSeasons } from "@/lib/seasons/actions";
 import { getCurrentDraft } from "@/lib/draft/actions";
 import { toast } from "sonner";
-import type { Season } from "@/types/database";
+import type { Draft, Season } from "@/types/database";
 
 export default function AdminArticlesPage() {
   const [articles, setArticles] = useState<any[]>([]);
   const [games, setGames] = useState<any[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
-  const [draft, setDraft] = useState<any>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
@@ -69,8 +69,9 @@ export default function AdminArticlesPage() {
       if (activeSeason) {
         setSeasons([activeSeason]);
         const draftResult = await getCurrentDraft(activeSeason.id);
-        if (draftResult.draft && draftResult.draft.status === "completed") {
-          setDraft(draftResult.draft);
+        const currentDraft = (draftResult?.draft as Draft | undefined) || undefined;
+        if (currentDraft?.status === "completed") {
+          setDraft(currentDraft);
         }
       }
     }
