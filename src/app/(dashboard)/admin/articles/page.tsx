@@ -69,7 +69,7 @@ export default function AdminArticlesPage() {
       if (activeSeason) {
         setSeasons([activeSeason]);
         const draftResult = await getCurrentDraft(activeSeason.id);
-        const currentDraft = (draftResult?.draft as Draft | undefined) || undefined;
+        const currentDraft = draftResult?.draft ?? undefined;
         if (currentDraft?.status === "completed") {
           setDraft(currentDraft);
         }
