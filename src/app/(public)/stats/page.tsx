@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { getSeasonPlayerStats, getSeasonGoalieStats, getCareerPlayerStats, getCareerGoalieStats } from "@/lib/stats/queries";
 import { getAllSeasons, getActiveSeason } from "@/lib/seasons/actions";
 import type { Season } from "@/types/database";
@@ -35,6 +36,14 @@ export default function StatsPage() {
   const [playerStats, setPlayerStats] = useState<any[]>([]);
   const [goalieStats, setGoalieStats] = useState<any[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
+  
+  // Sorting state for players
+  const [playerSortColumn, setPlayerSortColumn] = useState<string | null>(null);
+  const [playerSortDirection, setPlayerSortDirection] = useState<"asc" | "desc" | null>(null);
+  
+  // Sorting state for goalies
+  const [goalieSortColumn, setGoalieSortColumn] = useState<string | null>(null);
+  const [goalieSortDirection, setGoalieSortDirection] = useState<"asc" | "desc" | null>(null);
 
   // Load seasons and active season
   useEffect(() => {
@@ -101,6 +110,158 @@ export default function StatsPage() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Handle player column sorting
+  const handlePlayerSort = (column: string) => {
+    if (playerSortColumn === column) {
+      if (playerSortDirection === "asc") {
+        setPlayerSortDirection("desc");
+      } else if (playerSortDirection === "desc") {
+        setPlayerSortColumn(null);
+        setPlayerSortDirection(null);
+      }
+    } else {
+      setPlayerSortColumn(column);
+      setPlayerSortDirection("asc");
+    }
+  };
+
+  // Handle goalie column sorting
+  const handleGoalieSort = (column: string) => {
+    if (goalieSortColumn === column) {
+      if (goalieSortDirection === "asc") {
+        setGoalieSortDirection("desc");
+      } else if (goalieSortDirection === "desc") {
+        setGoalieSortColumn(null);
+        setGoalieSortDirection(null);
+      }
+    } else {
+      setGoalieSortColumn(column);
+      setGoalieSortDirection("asc");
+    }
+  };
+
+  // Get sort icon for players
+  const getPlayerSortIcon = (column: string) => {
+    if (playerSortColumn !== column) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
+    }
+    if (playerSortDirection === "asc") {
+      return <ArrowUp className="ml-1 h-3 w-3" />;
+    }
+    return <ArrowDown className="ml-1 h-3 w-3" />;
+  };
+
+  // Get sort icon for goalies
+  const getGoalieSortIcon = (column: string) => {
+    if (goalieSortColumn !== column) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
+    }
+    if (goalieSortDirection === "asc") {
+      return <ArrowUp className="ml-1 h-3 w-3" />;
+    }
+    return <ArrowDown className="ml-1 h-3 w-3" />;
+  };
+
+  // Sort player stats
+  const sortedPlayerStats = [...playerStats].sort((a, b) => {
+    if (!playerSortColumn || !playerSortDirection) {
+      // Default sort by points descending
+      return (b.points || 0) - (a.points || 0);
+    }
+
+    let aValue: any;
+    let bValue: any;
+
+    switch (playerSortColumn) {
+      case "player":
+        aValue = a.player?.full_name || "";
+        bValue = b.player?.full_name || "";
+        break;
+      case "games":
+        aValue = a.games || 0;
+        bValue = b.games || 0;
+        break;
+      case "goals":
+        aValue = a.goals || 0;
+        bValue = b.goals || 0;
+        break;
+      case "assists":
+        aValue = a.assists || 0;
+        bValue = b.assists || 0;
+        break;
+      case "points":
+        aValue = a.points || 0;
+        bValue = b.points || 0;
+        break;
+      case "pointsPerGame":
+        aValue = a.games > 0 ? (a.points || 0) / a.games : 0;
+        bValue = b.games > 0 ? (b.points || 0) / b.games : 0;
+        break;
+      default:
+        return 0;
+    }
+
+    if (typeof aValue === "string") {
+      return playerSortDirection === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+
+    return playerSortDirection === "asc" ? aValue - bValue : bValue - aValue;
+  });
+
+  // Sort goalie stats
+  const sortedGoalieStats = [...goalieStats].sort((a, b) => {
+    if (!goalieSortColumn || !goalieSortDirection) {
+      // Default sort by GAA ascending (lower is better)
+      return (a.gaa || 0) - (b.gaa || 0);
+    }
+
+    let aValue: any;
+    let bValue: any;
+
+    switch (goalieSortColumn) {
+      case "goalie":
+        aValue = a.player?.full_name || "";
+        bValue = b.player?.full_name || "";
+        break;
+      case "games":
+        aValue = a.games || 0;
+        bValue = b.games || 0;
+        break;
+      case "goalsAgainst":
+        aValue = a.goalsAgainst || 0;
+        bValue = b.goalsAgainst || 0;
+        break;
+      case "saves":
+        aValue = a.saves || 0;
+        bValue = b.saves || 0;
+        break;
+      case "shutouts":
+        aValue = a.shutouts || 0;
+        bValue = b.shutouts || 0;
+        break;
+      case "gaa":
+        aValue = a.gaa || 0;
+        bValue = b.gaa || 0;
+        break;
+      case "savePercentage":
+        aValue = a.savePercentage || 0;
+        bValue = b.savePercentage || 0;
+        break;
+      default:
+        return 0;
+    }
+
+    if (typeof aValue === "string") {
+      return goalieSortDirection === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+
+    return goalieSortDirection === "asc" ? aValue - bValue : bValue - aValue;
+  });
 
   const selectedSeason = seasons.find(s => s.id === selectedSeasonId);
 
@@ -216,12 +377,60 @@ export default function StatsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">#</TableHead>
-                        <TableHead>Player</TableHead>
-                        <TableHead className="text-center">GP</TableHead>
-                        <TableHead className="text-center">G</TableHead>
-                        <TableHead className="text-center">A</TableHead>
-                        <TableHead className="text-center font-bold">PTS</TableHead>
-                        <TableHead className="text-center">PTS/G</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handlePlayerSort("player")}
+                        >
+                          <div className="flex items-center">
+                            Player
+                            {getPlayerSortIcon("player")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handlePlayerSort("games")}
+                        >
+                          <div className="flex items-center justify-center">
+                            GP
+                            {getPlayerSortIcon("games")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handlePlayerSort("goals")}
+                        >
+                          <div className="flex items-center justify-center">
+                            G
+                            {getPlayerSortIcon("goals")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handlePlayerSort("assists")}
+                        >
+                          <div className="flex items-center justify-center">
+                            A
+                            {getPlayerSortIcon("assists")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center font-bold cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handlePlayerSort("points")}
+                        >
+                          <div className="flex items-center justify-center">
+                            PTS
+                            {getPlayerSortIcon("points")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handlePlayerSort("pointsPerGame")}
+                        >
+                          <div className="flex items-center justify-center">
+                            PTS/G
+                            {getPlayerSortIcon("pointsPerGame")}
+                          </div>
+                        </TableHead>
                         {viewMode === "career" && (
                           <>
                             <TableHead className="text-center text-xs text-muted-foreground">Legacy GP</TableHead>
@@ -231,7 +440,7 @@ export default function StatsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {playerStats.map((stat, index) => {
+                      {sortedPlayerStats.map((stat, index) => {
                         if (!stat.player) {
                           return null;
                         }
@@ -350,13 +559,69 @@ export default function StatsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">#</TableHead>
-                        <TableHead>Goalie</TableHead>
-                        <TableHead className="text-center">GP</TableHead>
-                        <TableHead className="text-center">GA</TableHead>
-                        <TableHead className="text-center">Saves</TableHead>
-                        <TableHead className="text-center">SO</TableHead>
-                        <TableHead className="text-center font-bold">GAA</TableHead>
-                        <TableHead className="text-center">SV%</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleGoalieSort("goalie")}
+                        >
+                          <div className="flex items-center">
+                            Goalie
+                            {getGoalieSortIcon("goalie")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleGoalieSort("games")}
+                        >
+                          <div className="flex items-center justify-center">
+                            GP
+                            {getGoalieSortIcon("games")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleGoalieSort("goalsAgainst")}
+                        >
+                          <div className="flex items-center justify-center">
+                            GA
+                            {getGoalieSortIcon("goalsAgainst")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleGoalieSort("saves")}
+                        >
+                          <div className="flex items-center justify-center">
+                            Saves
+                            {getGoalieSortIcon("saves")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleGoalieSort("shutouts")}
+                        >
+                          <div className="flex items-center justify-center">
+                            SO
+                            {getGoalieSortIcon("shutouts")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center font-bold cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleGoalieSort("gaa")}
+                        >
+                          <div className="flex items-center justify-center">
+                            GAA
+                            {getGoalieSortIcon("gaa")}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleGoalieSort("savePercentage")}
+                        >
+                          <div className="flex items-center justify-center">
+                            SV%
+                            {getGoalieSortIcon("savePercentage")}
+                          </div>
+                        </TableHead>
                         {viewMode === "career" && (
                           <>
                             <TableHead className="text-center text-xs text-muted-foreground">Legacy GP</TableHead>
@@ -366,7 +631,7 @@ export default function StatsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {goalieStats.map((stat, index) => {
+                      {sortedGoalieStats.map((stat, index) => {
                         if (!stat.player) {
                           return null;
                         }

@@ -7,11 +7,12 @@ export async function getSeasonPlayerStats(seasonId: string) {
   const supabase = await createClient();
 
   // Get all stats for this season, then filter by verified games
+  // Note: We filter client-side because Supabase doesn't support complex nested OR conditions
   const { data: stats, error } = await supabase
     .from("player_stats")
     .select(`
       *,
-      player:profiles!player_stats_player_id_fkey(id, full_name, jersey_number, position),
+      player:profiles!player_stats_player_id_fkey(id, full_name, jersey_number, position, avatar_url),
       game:games!player_stats_game_id_fkey(
         id, 
         season_id, 
@@ -244,65 +245,99 @@ export async function getPlayerStats(playerId: string, seasonId?: string) {
 export async function getCareerPlayerStats() {
   const supabase = await createClient();
 
-  // Query the player_career_stats view which combines legacy and current stats
-  const { data: careerStats, error } = await supabase
-    .from("player_career_stats")
-    .select("*")
-    .not("total_games_played", "eq", 0) // Only players with games played
-    .order("total_points", { ascending: false });
+  // Query legacy players directly (simpler and more reliable than the view)
+  // Filter out goalies (is_goalie = false or null) for player stats
+  const { data: legacyPlayers, error: legacyError } = await supabase
+    .from("legacy_players")
+    .select("*, matched_profile:profiles!legacy_players_matched_to_profile_id_fkey(id, full_name, jersey_number, position, avatar_url)")
+    .or("is_goalie.is.null,is_goalie.eq.false") // Only non-goalies
+    .gt("games_played", 0) // Only players with games played
+    .order("points", { ascending: false })
+    .limit(1000); // Limit for performance
 
-  if (error) {
-    console.error("Error fetching career player stats:", error);
-    return { error: error.message, stats: [] };
+  if (legacyError) {
+    console.error("Error fetching legacy players:", legacyError);
+    return { error: legacyError.message, stats: [] };
   }
 
-  // Get player profiles for matched players
-  const playerIds = (careerStats || [])
-    .map((stat: any) => stat.player_id)
+  // Get current stats for matched players
+  const matchedPlayerIds = (legacyPlayers || [])
+    .map((lp: any) => lp.matched_to_profile_id)
     .filter((id: string | null) => id !== null);
 
-  let profilesMap: Record<string, any> = {};
-  if (playerIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name, jersey_number, position, avatar_url")
-      .in("id", playerIds);
+  let currentStatsMap: Record<string, any> = {};
+  if (matchedPlayerIds.length > 0) {
+    const { data: currentStats } = await supabase
+      .from("player_stats")
+      .select(`
+        player_id,
+        goals,
+        assists,
+        game:games!player_stats_game_id_fkey(
+          id,
+          status,
+          home_captain_verified,
+          away_captain_verified
+        )
+      `)
+      .in("player_id", matchedPlayerIds)
+      .eq("game.status", "completed");
 
-    if (profiles) {
-      profilesMap = profiles.reduce((acc: Record<string, any>, profile: any) => {
-        acc[profile.id] = profile;
-        return acc;
-      }, {});
-    }
+    // Aggregate current stats by player
+    (currentStats || []).forEach((stat: any) => {
+      if (stat.game?.home_captain_verified && stat.game?.away_captain_verified) {
+        if (!currentStatsMap[stat.player_id]) {
+          currentStatsMap[stat.player_id] = {
+            games: new Set(),
+            goals: 0,
+            assists: 0,
+            points: 0,
+          };
+        }
+        currentStatsMap[stat.player_id].games.add(stat.game.id);
+        currentStatsMap[stat.player_id].goals += stat.goals || 0;
+        currentStatsMap[stat.player_id].assists += stat.assists || 0;
+        currentStatsMap[stat.player_id].points += (stat.goals || 0) + (stat.assists || 0);
+      }
+    });
+
+    // Convert Set to count
+    Object.keys(currentStatsMap).forEach((playerId) => {
+      currentStatsMap[playerId].games = currentStatsMap[playerId].games.size;
+    });
   }
 
   // Transform to match the format expected by the UI
-  const stats = (careerStats || []).map((stat: any) => {
-    const playerId = stat.player_id;
-    const profile = playerId ? profilesMap[playerId] : null;
+  const stats = (legacyPlayers || []).map((lp: any) => {
+    const playerId = lp.matched_to_profile_id;
+    const profile = lp.matched_profile;
+    const currentStats = playerId ? currentStatsMap[playerId] : null;
 
     return {
       player: {
         id: playerId,
-        full_name: profile?.full_name || stat.full_name,
+        full_name: profile?.full_name || lp.full_name,
         jersey_number: profile?.jersey_number || null,
         position: profile?.position || null,
         avatar_url: profile?.avatar_url || null,
       },
-      games: stat.total_games_played || 0,
-      goals: stat.total_goals || 0,
-      assists: stat.total_assists || 0,
-      points: stat.total_points || 0,
-      legacy_games: stat.legacy_games_played || 0,
-      legacy_goals: stat.legacy_goals || 0,
-      legacy_assists: stat.legacy_assists || 0,
-      legacy_points: stat.legacy_points || 0,
-      current_games: stat.current_games_played || 0,
-      current_goals: stat.current_goals || 0,
-      current_assists: stat.current_assists || 0,
-      current_points: stat.current_points || 0,
+      games: lp.games_played + (currentStats?.games || 0),
+      goals: lp.goals + (currentStats?.goals || 0),
+      assists: lp.assists + (currentStats?.assists || 0),
+      points: lp.points + (currentStats?.points || 0),
+      legacy_games: lp.games_played || 0,
+      legacy_goals: lp.goals || 0,
+      legacy_assists: lp.assists || 0,
+      legacy_points: lp.points || 0,
+      current_games: currentStats?.games || 0,
+      current_goals: currentStats?.goals || 0,
+      current_assists: currentStats?.assists || 0,
+      current_points: currentStats?.points || 0,
     };
   });
+
+  // Sort by total points
+  stats.sort((a, b) => b.points - a.points);
 
   return { stats };
 }
@@ -490,7 +525,8 @@ export async function getCareerGoalieStats() {
   return {
     stats: Object.values(combinedMap)
       .filter((stat: any) => stat.games > 0)
-      .sort((a: any, b: any) => a.gaa - b.gaa),
+      .sort((a: any, b: any) => a.gaa - b.gaa)
+      .slice(0, 500), // Limit for performance
   };
 }
 

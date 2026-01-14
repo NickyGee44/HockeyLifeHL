@@ -196,6 +196,43 @@ export default function AdminGamesPage() {
     }
   }
 
+  async function handleCancelGame() {
+    if (!cancelGameId) return;
+    
+    setIsSaving(true);
+    const result = await cancelGame(cancelGameId, cancelReason);
+    
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Game cancelled successfully!");
+      setCancelGameId(null);
+      setCancelReason("");
+      loadData();
+    }
+    setIsSaving(false);
+  }
+
+  async function handleRescheduleGame() {
+    if (!rescheduleGameId || !newScheduledAt) return;
+    
+    setIsSaving(true);
+    const result = await rescheduleGame(
+      rescheduleGameId, 
+      new Date(newScheduledAt).toISOString()
+    );
+    
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Game rescheduled successfully!");
+      setRescheduleGameId(null);
+      setNewScheduledAt("");
+      loadData();
+    }
+    setIsSaving(false);
+  }
+
   const getStatusBadge = (status: GameStatus) => {
     switch (status) {
       case "scheduled":

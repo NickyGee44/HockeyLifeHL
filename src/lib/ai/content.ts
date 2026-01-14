@@ -178,18 +178,40 @@ export async function generateWeeklyWrap(seasonId: string, weekStart: Date, week
     .from("player_stats")
     .select(`
       *,
-      player:profiles!player_stats_player_id_fkey(id, full_name, jersey_number),
-      game:games!player_stats_game_id_fkey(id, home_captain_verified, away_captain_verified)
+      player:profiles!player_stats_player_id_fkey(id, full_name, jersey_number, position),
+      game:games!player_stats_game_id_fkey(id, home_captain_verified, away_captain_verified, home_verified_by_owner, away_verified_by_owner)
     `)
     .in("game_id", gameIds);
 
-  // Only count verified games
-  const verifiedStats = playerStats?.filter(s => 
-    s.game.home_captain_verified && s.game.away_captain_verified
-  ) || [];
+  // Get goalie stats for the week
+  const { data: goalieStats } = await supabase
+    .from("goalie_stats")
+    .select(`
+      *,
+      player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number),
+      game:games!goalie_stats_game_id_fkey(id, home_captain_verified, away_captain_verified, home_verified_by_owner, away_verified_by_owner),
+      team:teams!goalie_stats_team_id_fkey(id, name, short_name)
+    `)
+    .in("game_id", gameIds);
 
-  const topScorers = verifiedStats
-    .reduce((acc: Record<string, { player: any; goals: number; assists: number; points: number }>, stat: any) => {
+  // Only count verified games (captain verified OR owner verified)
+  const verifiedPlayerStats = playerStats?.filter(s => {
+    if (!s.game) return false;
+    const homeVerified = s.game.home_captain_verified || s.game.home_verified_by_owner;
+    const awayVerified = s.game.away_captain_verified || s.game.away_verified_by_owner;
+    return homeVerified && awayVerified;
+  }) || [];
+
+  const verifiedGoalieStats = goalieStats?.filter(s => {
+    if (!s.game) return false;
+    const homeVerified = s.game.home_captain_verified || s.game.home_verified_by_owner;
+    const awayVerified = s.game.away_captain_verified || s.game.away_verified_by_owner;
+    return homeVerified && awayVerified;
+  }) || [];
+
+  // Aggregate player stats
+  const topScorers = verifiedPlayerStats
+    .reduce((acc: Record<string, { player: any; goals: number; assists: number; points: number; games: number }>, stat: any) => {
       const playerId = stat.player_id;
       if (!acc[playerId]) {
         acc[playerId] = {
@@ -197,25 +219,101 @@ export async function generateWeeklyWrap(seasonId: string, weekStart: Date, week
           goals: 0,
           assists: 0,
           points: 0,
+          games: 0,
         };
       }
       acc[playerId].goals += stat.goals || 0;
       acc[playerId].assists += stat.assists || 0;
       acc[playerId].points += (stat.goals || 0) + (stat.assists || 0);
+      acc[playerId].games += 1;
       return acc;
     }, {});
   
   const topPerformers = Object.values(topScorers)
     .sort((a, b) => b.points - a.points)
+    .slice(0, 8);
+
+  // Aggregate goalie stats
+  const goaliePerformance = verifiedGoalieStats
+    .reduce((acc: Record<string, { player: any; games: number; goalsAgainst: number; saves: number; shutouts: number; gaa: number; savePercentage: number }>, stat: any) => {
+      const goalieId = stat.player_id;
+      if (!acc[goalieId]) {
+        acc[goalieId] = {
+          player: stat.player,
+          games: 0,
+          goalsAgainst: 0,
+          saves: 0,
+          shutouts: 0,
+          gaa: 0,
+          savePercentage: 0,
+        };
+      }
+      acc[goalieId].games += 1;
+      acc[goalieId].goalsAgainst += stat.goals_against || 0;
+      acc[goalieId].saves += stat.saves || 0;
+      if (stat.shutout) acc[goalieId].shutouts += 1;
+      return acc;
+    }, {});
+
+  // Calculate GAA and save percentage for each goalie
+  Object.values(goaliePerformance).forEach(goalie => {
+    goalie.gaa = goalie.games > 0 ? goalie.goalsAgainst / goalie.games : 0;
+    const totalShots = goalie.goalsAgainst + goalie.saves;
+    goalie.savePercentage = totalShots > 0 ? (goalie.saves / totalShots) * 100 : 0;
+  });
+
+  const topGoalies = Object.values(goaliePerformance)
+    .filter(g => g.games > 0)
+    .sort((a, b) => {
+      // Sort by shutouts first, then by GAA (lower is better)
+      if (b.shutouts !== a.shutouts) return b.shutouts - a.shutouts;
+      return a.gaa - b.gaa;
+    })
     .slice(0, 5);
 
-  const gamesContext = games.map(g => 
-    `${g.home_team?.name} ${g.home_score} - ${g.away_score} ${g.away_team?.name}`
-  ).join("\n");
+  // Identify close matches (score difference of 1-2 goals)
+  const closeMatches = games.filter(g => {
+    const diff = Math.abs(g.home_score - g.away_score);
+    return diff <= 2;
+  });
+
+  // Build detailed game context with individual player highlights
+  const gamesContext = games.map(g => {
+    const gamePlayerStats = verifiedPlayerStats.filter(s => s.game_id === g.id);
+    const gameGoalieStats = verifiedGoalieStats.filter(s => s.game_id === g.id);
+    
+    const topGameScorers = [...gamePlayerStats]
+      .sort((a, b) => ((b.goals || 0) + (b.assists || 0)) - ((a.goals || 0) + (a.assists || 0)))
+      .slice(0, 3)
+      .map(s => `${s.player?.full_name} (${s.goals || 0}G, ${s.assists || 0}A)`);
+    
+    const goalies = gameGoalieStats.map(gs => {
+      const totalShots = (gs.goals_against || 0) + (gs.saves || 0);
+      const svPct = totalShots > 0 ? ((gs.saves || 0) / totalShots * 100).toFixed(1) : "0.0";
+      return `${gs.player?.full_name} (${gs.goals_against || 0} GA, ${gs.saves || 0} saves, ${svPct}%${gs.shutout ? ", SHUTOUT" : ""})`;
+    });
+
+    const isClose = Math.abs(g.home_score - g.away_score) <= 2;
+    const closeNote = isClose ? " [CLOSE MATCH]" : "";
+    
+    return `${g.home_team?.name} ${g.home_score} - ${g.away_score} ${g.away_team?.name}${closeNote}\n  Top Scorers: ${topGameScorers.join(", ")}\n  Goalies: ${goalies.join("; ")}`;
+  }).join("\n\n");
 
   const performersContext = topPerformers.map((p, i) => 
-    `${i + 1}. ${p.player?.full_name}: ${p.goals}G, ${p.assists}A (${p.points} points)`
+    `${i + 1}. ${p.player?.full_name} (${p.player?.position || "F"}): ${p.goals}G, ${p.assists}A, ${p.points}PTS in ${p.games} game${p.games > 1 ? "s" : ""}`
   ).join("\n");
+
+  const goaliesContext = topGoalies.length > 0 
+    ? topGoalies.map((g, i) => 
+        `${i + 1}. ${g.player?.full_name}: ${g.games} GP, ${g.gaa.toFixed(2)} GAA, ${g.savePercentage.toFixed(1)}% SV%, ${g.shutouts} shutout${g.shutouts !== 1 ? "s" : ""}`
+      ).join("\n")
+    : "No goalie stats available for this week";
+
+  const closeMatchesContext = closeMatches.length > 0
+    ? closeMatches.map(g => 
+        `${g.home_team?.name} ${g.home_score} - ${g.away_score} ${g.away_team?.name} (${Math.abs(g.home_score - g.away_score)} goal difference)`
+      ).join("\n")
+    : "No close matches this week";
 
   try {
     const completion = await openai.chat.completions.create({
@@ -223,15 +321,37 @@ export async function generateWeeklyWrap(seasonId: string, weekStart: Date, week
       messages: [
         {
           role: "system",
-          content: `You are a hockey writer for HockeyLifeHL. Write engaging weekly wrap articles that recap the week's games, highlight top performers, and celebrate the competitive spirit. Use a fun, Canadian hockey theme with phrases like "For Fun, For Beers, For Glory". Keep it engaging and celebrate the players.`,
+          content: `You are a hockey writer for HockeyLifeHL, a men's recreational hockey league. Write engaging weekly wrap articles that recap the week's games with a Canadian hockey theme. Use phrases like "For Fun, For Beers, For Glory" and keep it lighthearted but exciting. 
+
+IMPORTANT: You MUST call out specific players by name when highlighting their performances. Mention individual player achievements, standout goalie performances, and close matches. Make the article personal and celebrate individual contributions. Write in a style that makes players feel recognized and celebrated.`,
         },
         {
           role: "user",
-          content: `Write a weekly wrap article for this week (${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}):\n\nGames:\n${gamesContext}\n\nTop Performers:\n${performersContext}\n\nMake it 400-600 words, engaging, and fun!`,
+          content: `Write a weekly wrap article for this week (${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}).
+
+Games with Details:
+${gamesContext}
+
+Top Weekly Performers (Players):
+${performersContext}
+
+Top Weekly Performers (Goalies):
+${goaliesContext}
+
+Close Matches (1-2 goal difference):
+${closeMatchesContext}
+
+Make it 500-700 words. Be sure to:
+- Call out specific players by name when mentioning their performances
+- Highlight standout goalie performances (shutouts, low GAA, high save %)
+- Mention close matches and the competitive nature of those games
+- Celebrate individual achievements and make players feel recognized
+- Keep it fun, engaging, and celebrate the competitive spirit
+- Use player names throughout, not just in lists`,
         },
       ],
       temperature: 0.8,
-      max_tokens: 1000,
+      max_tokens: 1500,
     });
 
     const content = completion.choices[0]?.message?.content || "";

@@ -15,6 +15,17 @@ import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env.local
+const envPath = path.join(process.cwd(), '.env.local');
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+  console.log('✅ Loaded environment variables from .env.local');
+} else {
+  console.warn('⚠️  .env.local not found, trying to use system environment variables');
+  dotenv.config(); // Try to load from .env or system env
+}
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
