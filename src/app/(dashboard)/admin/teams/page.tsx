@@ -103,8 +103,8 @@ export default function AdminTeamsPage() {
     setFormData({
       name: team.name,
       shortName: team.short_name,
-      primaryColor: team.primary_color,
-      secondaryColor: team.secondary_color,
+      primaryColor: team.primary_color || "#3b82f6",
+      secondaryColor: team.secondary_color || "#ffffff",
       captainId: team.captain_id || "none",
     });
   }
@@ -344,7 +344,7 @@ export default function AdminTeamsPage() {
             <Card key={team.id} className="overflow-hidden">
               <div 
                 className="h-2"
-                style={{ backgroundColor: team.primary_color }}
+                style={{ backgroundColor: team.primary_color || "#3b82f6" }}
               />
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -352,8 +352,8 @@ export default function AdminTeamsPage() {
                     <div 
                       className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg"
                       style={{ 
-                        backgroundColor: team.primary_color,
-                        color: team.secondary_color,
+                        backgroundColor: team.primary_color || "#3b82f6",
+                        color: team.secondary_color || "#ffffff",
                       }}
                     >
                       {team.short_name}

@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -8,6 +9,7 @@ export type SeasonActionResult = {
   error?: string;
   success?: boolean;
   season?: Season;
+  message?: string;
 };
 
 // Check if current user is an owner

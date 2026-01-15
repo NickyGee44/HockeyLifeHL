@@ -54,11 +54,16 @@ export default function CaptainDraftPage() {
     try {
       const supabase = createClient();
       
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+      
       // Get team
       const { data: teamData } = await supabase
         .from("teams")
         .select("*")
-        .eq("captain_id", user?.id)
+        .eq("captain_id", user.id)
         .single();
 
       if (!teamData) {

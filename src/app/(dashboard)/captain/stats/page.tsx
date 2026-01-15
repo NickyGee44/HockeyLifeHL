@@ -40,14 +40,14 @@ type Game = {
   scheduled_at: string;
   home_team_id: string;
   away_team_id: string;
-  home_score: number;
-  away_score: number;
-  status: string;
-  home_captain_verified: boolean;
-  away_captain_verified: boolean;
-  home_team: { id: string; name: string; short_name: string };
-  away_team: { id: string; name: string; short_name: string };
-  season: { id: string; name: string };
+  home_score: number | null;
+  away_score: number | null;
+  status: string | null;
+  home_captain_verified: boolean | null;
+  away_captain_verified: boolean | null;
+  home_team: { id: string; name: string; short_name: string } | null;
+  away_team: { id: string; name: string; short_name: string } | null;
+  season: { id: string; name: string } | null;
   hasStats: boolean;
   isHomeTeam: boolean;
 };
@@ -81,13 +81,18 @@ export default function CaptainStatsPage() {
   }, [user, isCaptain, authLoading]);
 
   async function loadData() {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    
     const supabase = createClient();
     
     // Get team where user is captain
     const { data: teamData } = await supabase
       .from("teams")
       .select("id, name")
-      .eq("captain_id", user?.id)
+      .eq("captain_id", user.id)
       .single();
 
     if (!teamData) {
@@ -102,7 +107,8 @@ export default function CaptainStatsPage() {
     if (result.error) {
       toast.error(result.error);
     } else {
-      setGames(result.games || []);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setGames((result.games || []) as any as Game[]);
     }
 
     // Get team roster for active season
@@ -127,10 +133,12 @@ export default function CaptainStatsPage() {
       if (roster) {
         const regularPlayers = roster
           .filter(r => !r.is_goalie)
-          .map(r => r.player as Player);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map(r => r.player as any as Player);
         const goaliePlayers = roster
           .filter(r => r.is_goalie)
-          .map(r => r.player as Player);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map(r => r.player as any as Player);
         
         setPlayers(regularPlayers);
         setGoalies(goaliePlayers);
@@ -314,7 +322,7 @@ export default function CaptainStatsPage() {
                   >
                     <div>
                       <p className="font-medium">
-                        vs {opponent.name}
+                        vs {opponent?.name || "TBD"}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(game.scheduled_at).toLocaleDateString("en-CA", {
@@ -362,7 +370,7 @@ export default function CaptainStatsPage() {
                   >
                     <div>
                       <p className="font-medium">
-                        vs {opponent.name}
+                        vs {opponent?.name || "TBD"}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(game.scheduled_at).toLocaleDateString("en-CA", {
@@ -409,8 +417,8 @@ export default function CaptainStatsPage() {
             <DialogDescription>
               {selectedGame && (
                 <>
-                  {selectedGame.isHomeTeam ? selectedGame.home_team.name : selectedGame.away_team.name} vs{" "}
-                  {selectedGame.isHomeTeam ? selectedGame.away_team.name : selectedGame.home_team.name}
+                  {selectedGame.isHomeTeam ? selectedGame.home_team?.name : selectedGame.away_team?.name} vs{" "}
+                  {selectedGame.isHomeTeam ? selectedGame.away_team?.name : selectedGame.home_team?.name}
                   {" • "}
                   {new Date(selectedGame.scheduled_at).toLocaleDateString("en-CA")}
                 </>

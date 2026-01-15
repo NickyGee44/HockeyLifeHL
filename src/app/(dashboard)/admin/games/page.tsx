@@ -129,9 +129,9 @@ export default function AdminGamesPage() {
       awayTeamId: game.away_team_id,
       scheduledAt: game.scheduled_at ? new Date(game.scheduled_at).toISOString().slice(0, 16) : "",
       location: game.location || "",
-      homeScore: game.home_score.toString(),
-      awayScore: game.away_score.toString(),
-      status: game.status,
+      homeScore: (game.home_score ?? 0).toString(),
+      awayScore: (game.away_score ?? 0).toString(),
+      status: game.status || "scheduled",
     });
   }
 
@@ -477,7 +477,7 @@ export default function AdminGamesPage() {
                           >
                             <div 
                               className="w-4 h-4 rounded"
-                              style={{ backgroundColor: game.home_team.primary_color }}
+                              style={{ backgroundColor: game.home_team.primary_color || "#888" }}
                             />
                             <span className="font-medium">{game.home_team.name}</span>
                           </Link>
@@ -502,7 +502,7 @@ export default function AdminGamesPage() {
                           >
                             <div 
                               className="w-4 h-4 rounded"
-                              style={{ backgroundColor: game.away_team.primary_color }}
+                              style={{ backgroundColor: game.away_team.primary_color || "#888" }}
                             />
                             <span className="font-medium">{game.away_team.name}</span>
                           </Link>
@@ -513,7 +513,7 @@ export default function AdminGamesPage() {
                       <TableCell className="text-muted-foreground">
                         {game.location || "-"}
                       </TableCell>
-                      <TableCell>{getStatusBadge(game.status)}</TableCell>
+                      <TableCell>{getStatusBadge(game.status || "scheduled")}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {game.season?.name || "-"}
                       </TableCell>

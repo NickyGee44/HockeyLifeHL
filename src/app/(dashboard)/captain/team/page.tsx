@@ -41,8 +41,8 @@ type TeamData = {
   id: string;
   name: string;
   short_name: string;
-  primary_color: string;
-  secondary_color: string;
+  primary_color: string | null;
+  secondary_color: string | null;
 };
 
 type RosterPlayer = {
@@ -61,7 +61,7 @@ type RosterPlayer = {
 type SeasonData = {
   id: string;
   name: string;
-  status: string;
+  status: string | null;
 };
 
 export default function CaptainTeamPage() {
@@ -84,13 +84,18 @@ export default function CaptainTeamPage() {
   }, [user, isCaptain, authLoading]);
 
   async function loadTeamData() {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    
     const supabase = createClient();
 
     // Get team where user is captain
     const { data: teamData } = await supabase
       .from("teams")
       .select("id, name, short_name, primary_color, secondary_color")
-      .eq("captain_id", user?.id)
+      .eq("captain_id", user.id)
       .single();
 
     if (!teamData) {
@@ -249,8 +254,8 @@ export default function CaptainTeamPage() {
           <div 
             className="w-16 h-16 rounded-lg flex items-center justify-center font-bold text-2xl shadow-lg"
             style={{ 
-              backgroundColor: team.primary_color,
-              color: team.secondary_color,
+              backgroundColor: team.primary_color || "#3b82f6",
+              color: team.secondary_color || "#ffffff",
             }}
           >
             {team.short_name}
@@ -376,7 +381,7 @@ export default function CaptainTeamPage() {
                             <AvatarImage src={rosterEntry.player.avatar_url || ""} />
                             <AvatarFallback 
                               className="text-xs"
-                              style={{ backgroundColor: team.primary_color, color: team.secondary_color }}
+                              style={{ backgroundColor: team.primary_color || "#3b82f6", color: team.secondary_color || "#ffffff" }}
                             >
                               {getInitials(rosterEntry.player.full_name)}
                             </AvatarFallback>

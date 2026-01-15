@@ -461,7 +461,7 @@ export default function DashboardLayout({
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
-              <SidebarContent />
+              <SidebarContent isCollapsed={false} />
             </SheetContent>
           </Sheet>
 

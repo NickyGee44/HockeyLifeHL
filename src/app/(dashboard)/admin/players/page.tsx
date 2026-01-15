@@ -75,7 +75,7 @@ export default function AdminPlayersPage() {
       full_name: player.full_name || "",
       jersey_number: player.jersey_number?.toString() || "",
       position: player.position || "",
-      role: player.role,
+      role: player.role || "player",
     });
   }
 
@@ -300,11 +300,11 @@ export default function AdminPlayersPage() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>{getRoleBadge(player.role)}</TableCell>
+                      <TableCell>{getRoleBadge(player.role || "player")}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Select
-                            value={player.role}
+                            value={player.role || "player"}
                             onValueChange={(value) => handleQuickRoleChange(player.id, value as UserRole)}
                             disabled={player.id === currentUser?.id}
                           >

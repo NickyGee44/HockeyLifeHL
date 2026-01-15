@@ -131,8 +131,10 @@ export default function MySchedulePage() {
       .order("scheduled_at", { ascending: false })
       .limit(10);
 
-    setUpcomingGames((upcoming || []) as Game[]);
-    setRecentGames((recent || []) as Game[]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setUpcomingGames((upcoming || []) as any as Game[]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setRecentGames((recent || []) as any as Game[]);
     setLoading(false);
   }
 

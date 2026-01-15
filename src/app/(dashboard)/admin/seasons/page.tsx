@@ -121,7 +121,10 @@ export default function AdminSeasonsPage() {
       name: season.name,
       startDate: season.start_date,
       endDate: season.end_date || "",
-      gamesPerCycle: season.games_per_cycle.toString(),
+      gamesPerCycle: (season.games_per_cycle ?? 13).toString(),
+      totalGames: (season.total_games ?? "").toString(),
+      playoffFormat: season.playoff_format || "none",
+      draftScheduledAt: season.draft_scheduled_at || "",
       setActive: false,
     });
   }
@@ -214,12 +217,14 @@ export default function AdminSeasonsPage() {
   };
 
   const getGamesProgress = (season: Season) => {
-    const percent = (season.current_game_count / season.games_per_cycle) * 100;
+    const current = season.current_game_count ?? 0;
+    const total = season.games_per_cycle ?? 13;
+    const percent = total > 0 ? (current / total) * 100 : 0;
     return {
-      current: season.current_game_count,
-      total: season.games_per_cycle,
+      current,
+      total,
       percent: Math.min(percent, 100),
-      remaining: season.games_per_cycle - season.current_game_count,
+      remaining: Math.max(0, total - current),
     };
   };
 
@@ -408,7 +413,7 @@ export default function AdminSeasonsPage() {
                   })}
                 </CardDescription>
               </div>
-              {getStatusBadge(activeSeason.status)}
+              {getStatusBadge(activeSeason.status || "active")}
             </div>
           </CardHeader>
           <CardContent>
@@ -495,7 +500,7 @@ export default function AdminSeasonsPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{season.name}</CardTitle>
-                    {getStatusBadge(season.status)}
+                    {getStatusBadge(season.status || "active")}
                   </div>
                   <CardDescription>
                     {new Date(season.start_date).toLocaleDateString("en-CA", { 
