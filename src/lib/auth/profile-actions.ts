@@ -79,5 +79,60 @@ export async function updateAvatar(avatarUrl: string): Promise<ProfileUpdateResu
   }
 
   revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard");
+  revalidatePath("/stats");
+  return { success: true };
+}
+
+export async function deleteAvatar(): Promise<ProfileUpdateResult> {
+  const supabase = await createClient();
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Get current avatar URL
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("id", user.id)
+    .single();
+
+  // If avatar is stored in Supabase storage, delete it
+  if (profile?.avatar_url && profile.avatar_url.includes("supabase")) {
+    try {
+      const url = new URL(profile.avatar_url);
+      const pathParts = url.pathname.split("/storage/v1/object/public/");
+      if (pathParts.length > 1) {
+        const fullPath = pathParts[1];
+        const [bucket, ...filePathParts] = fullPath.split("/");
+        const filePath = filePathParts.join("/");
+        
+        await supabase.storage.from(bucket).remove([filePath]);
+      }
+    } catch (e) {
+      console.error("Error deleting avatar from storage:", e);
+    }
+  }
+
+  // Update profile to remove avatar
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      avatar_url: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("Avatar delete error:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard");
+  revalidatePath("/stats");
   return { success: true };
 }

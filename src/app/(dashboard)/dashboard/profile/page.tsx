@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,20 +10,109 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
-import { updateProfile } from "@/lib/auth/profile-actions";
+import { updateProfile, updateAvatar, deleteAvatar } from "@/lib/auth/profile-actions";
 import { PaymentHistory } from "@/components/payments/PaymentHistory";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 export default function ProfilePage() {
   const { user, profile, loading, isOwner, isCaptain } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [position, setPosition] = useState(profile?.position || "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update position when profile loads
   if (profile?.position && position !== profile.position) {
     setPosition(profile.position);
   }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please upload a JPEG, PNG, GIF, or WebP image");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      const supabase = createClient();
+      
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("public")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("public")
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const result = await updateAvatar(publicUrl);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      toast.success("Profile picture updated!");
+      setAvatarDialogOpen(false);
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      toast.error("Failed to upload profile picture");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    setIsUploadingAvatar(true);
+    
+    try {
+      const result = await deleteAvatar();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      toast.success("Profile picture removed");
+      setAvatarDialogOpen(false);
+    } catch (error) {
+      console.error("Avatar delete error:", error);
+      toast.error("Failed to remove profile picture");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const getInitials = () => {
     if (profile?.full_name) {
@@ -100,12 +189,83 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-6">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={profile?.avatar_url || ""} />
-              <AvatarFallback className="bg-canada-red text-white text-2xl">
-                {getInitials()}
-              </AvatarFallback>
-            </Avatar>
+            <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="relative group cursor-pointer">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={profile?.avatar_url || ""} />
+                    <AvatarFallback className="bg-canada-red text-white text-2xl">
+                      {getInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-xs font-medium">Change</span>
+                  </div>
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Profile Picture</DialogTitle>
+                  <DialogDescription>
+                    Upload a new profile picture or remove your current one
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6">
+                  {/* Current Avatar Preview */}
+                  <div className="flex justify-center">
+                    <Avatar className="h-32 w-32">
+                      <AvatarImage src={profile?.avatar_url || ""} />
+                      <AvatarFallback className="bg-canada-red text-white text-4xl">
+                        {getInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+
+                  {/* Upload Instructions */}
+                  <div className="text-center text-sm text-muted-foreground">
+                    <p>Recommended: Square image, at least 200x200 pixels</p>
+                    <p>Max file size: 2MB (JPEG, PNG, GIF, WebP)</p>
+                  </div>
+
+                  {/* Hidden File Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="flex-1 bg-canada-red hover:bg-canada-red-dark"
+                    >
+                      {isUploadingAvatar ? (
+                        <>
+                          <span className="puck-spin inline-block mr-2">🏒</span>
+                          Uploading...
+                        </>
+                      ) : (
+                        "Upload New Picture"
+                      )}
+                    </Button>
+                    {profile?.avatar_url && (
+                      <Button
+                        variant="outline"
+                        onClick={handleDeleteAvatar}
+                        disabled={isUploadingAvatar}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <div>
               <h3 className="text-xl font-semibold">{profile?.full_name || "Unknown Player"}</h3>
               <p className="text-muted-foreground">{user?.email}</p>
@@ -124,6 +284,9 @@ export default function ProfilePage() {
                   </Badge>
                 )}
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Click your picture to change it
+              </p>
             </div>
           </div>
         </CardContent>

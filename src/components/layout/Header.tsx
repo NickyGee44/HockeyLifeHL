@@ -3,12 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -17,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "@/lib/auth/actions";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/standings", label: "Standings" },
@@ -26,11 +28,44 @@ const navLinks = [
   { href: "/news", label: "News" },
 ];
 
+// Dashboard navigation items
+const playerNav = [
+  { href: "/dashboard", label: "Overview", icon: "📊" },
+  { href: "/dashboard/team", label: "My Team", icon: "🏒" },
+  { href: "/dashboard/stats", label: "My Stats", icon: "📈" },
+  { href: "/dashboard/schedule", label: "Schedule", icon: "📅" },
+  { href: "/dashboard/profile", label: "Profile", icon: "👤" },
+];
+
+const captainNav = [
+  { href: "/captain", label: "Dashboard", icon: "🏠" },
+  { href: "/captain/team", label: "Team Management", icon: "👥" },
+  { href: "/captain/stats", label: "Enter Stats", icon: "✏️" },
+  { href: "/captain/draft", label: "Draft Board", icon: "🎯" },
+];
+
+const adminNav = [
+  { href: "/admin", label: "Dashboard", icon: "👑" },
+  { href: "/admin/teams", label: "Teams", icon: "🏆" },
+  { href: "/admin/players", label: "Players", icon: "⛸️" },
+  { href: "/admin/games", label: "Games", icon: "🎮" },
+  { href: "/admin/seasons", label: "Seasons", icon: "📆" },
+  { href: "/admin/suspensions", label: "Suspensions", icon: "🚫" },
+  { href: "/admin/articles", label: "Articles", icon: "✍️" },
+  { href: "/admin/payments", label: "Payments", icon: "💳" },
+];
+
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { user, profile, loading, isOwner, isCaptain } = useAuth();
-  const router = useRouter();
+  const pathname = usePathname();
+
+  // Check if we're in a dashboard area
+  const isInDashboard = pathname?.startsWith("/dashboard");
+  const isInCaptain = pathname?.startsWith("/captain");
+  const isInAdmin = pathname?.startsWith("/admin");
+  const isInAnyDashboard = isInDashboard || isInCaptain || isInAdmin;
 
   // Only render Sheet on client to avoid hydration mismatch
   useEffect(() => {
@@ -84,44 +119,123 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-1">
+          {/* Public Links */}
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className={cn(
+                "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                pathname === link.href 
+                  ? "bg-muted text-foreground" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )}
             >
               {link.label}
             </Link>
           ))}
-          {/* Dashboard Links for Authenticated Users */}
+          
+          {/* Dashboard Navigation for Authenticated Users */}
           {user && (
             <>
-              <div className="h-4 w-px bg-border" />
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard" className="text-sm">
-                  ⛸️ Dashboard
-                </Link>
-              </Button>
-              {isCaptain && (
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/captain" className="text-sm">
-                    🏒 Captain
-                  </Link>
-                </Button>
+              <div className="h-4 w-px bg-border mx-2" />
+              
+              {/* Player Dashboard Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant={isInDashboard ? "secondary" : "ghost"} 
+                    size="sm"
+                    className={cn(
+                      "gap-1",
+                      isInDashboard && "bg-rink-blue text-white hover:bg-rink-blue/90"
+                    )}
+                  >
+                    ⛸️ Player
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuLabel>Player Dashboard</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {playerNav.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href} className={cn(
+                        "w-full cursor-pointer",
+                        pathname === item.href && "bg-muted"
+                      )}>
+                        <span className="mr-2">{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Captain Dropdown */}
+              {(isCaptain || isOwner) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant={isInCaptain ? "secondary" : "ghost"} 
+                      size="sm"
+                      className={cn(
+                        "gap-1",
+                        isInCaptain && "bg-canada-red text-white hover:bg-canada-red/90"
+                      )}
+                    >
+                      🏒 Captain
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuLabel>Captain Tools</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {captainNav.map((item) => (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <Link href={item.href} className={cn(
+                          "w-full cursor-pointer",
+                          pathname === item.href && "bg-muted"
+                        )}>
+                          <span className="mr-2">{item.icon}</span>
+                          {item.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
+
+              {/* Admin Dropdown */}
               {isOwner && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  asChild
-                  className="opacity-20 hover:opacity-100 transition-opacity"
-                  title="Admin Panel"
-                >
-                  <Link href="/admin" className="text-sm">
-                    👑
-                  </Link>
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant={isInAdmin ? "secondary" : "ghost"} 
+                      size="sm"
+                      className={cn(
+                        "gap-1",
+                        isInAdmin && "bg-gold text-puck-black hover:bg-gold/90"
+                      )}
+                    >
+                      👑 Admin
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuLabel>League Admin</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {adminNav.map((item) => (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <Link href={item.href} className={cn(
+                          "w-full cursor-pointer",
+                          pathname === item.href && "bg-muted"
+                        )}>
+                          <span className="mr-2">{item.icon}</span>
+                          {item.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </>
           )}
@@ -214,52 +328,111 @@ export function Header() {
                   <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <nav className="flex flex-col gap-4 mt-8">
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] overflow-y-auto px-6">
+                <nav className="flex flex-col gap-2 mt-8 px-2">
+                  {/* Public Navigation */}
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">
+                    League
+                  </p>
                   {navLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsOpen(false)}
-                      className="text-lg font-medium text-foreground hover:text-canada-red transition-colors"
+                      className={cn(
+                        "px-3 py-2 rounded-md text-base font-medium transition-colors",
+                        pathname === link.href 
+                          ? "bg-muted text-foreground" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
                     >
                       {link.label}
                     </Link>
                   ))}
-                  <div className="border-t border-border pt-4 mt-4">
-                    {user ? (
-                      <>
-                        <div className="mb-4">
-                          <p className="font-medium">
-                            {getRoleBadge()} {profile?.full_name || "Player"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        </div>
+                  
+                  {user ? (
+                    <>
+                      {/* User Info */}
+                      <div className="border-t border-border pt-4 mt-4 mb-2 px-2">
+                        <p className="font-medium">
+                          {getRoleBadge()} {profile?.full_name || "Player"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+
+                      {/* Player Dashboard */}
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
+                        ⛸️ Player
+                      </p>
+                      {playerNav.map((item) => (
                         <Link
-                          href="/dashboard"
+                          key={item.href}
+                          href={item.href}
                           onClick={() => setIsOpen(false)}
-                          className="block text-lg font-medium text-foreground hover:text-canada-red transition-colors mb-4"
+                          className={cn(
+                            "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                            pathname === item.href 
+                              ? "bg-rink-blue/20 text-rink-blue" 
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          )}
                         >
-                          Dashboard
+                          <span>{item.icon}</span>
+                          {item.label}
                         </Link>
-                        {isCaptain && (
-                          <Link
-                            href="/captain"
-                            onClick={() => setIsOpen(false)}
-                            className="block text-lg font-medium text-foreground hover:text-canada-red transition-colors mb-4"
-                          >
-                            Captain Tools
-                          </Link>
-                        )}
-                        {isOwner && (
-                          <Link
-                            href="/admin"
-                            onClick={() => setIsOpen(false)}
-                            className="block text-lg font-medium text-foreground hover:text-canada-red transition-colors mb-4"
-                          >
-                            Admin Panel
-                          </Link>
-                        )}
+                      ))}
+
+                      {/* Captain Tools */}
+                      {(isCaptain || isOwner) && (
+                        <>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
+                            🏒 Captain
+                          </p>
+                          {captainNav.map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setIsOpen(false)}
+                              className={cn(
+                                "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                                pathname === item.href 
+                                  ? "bg-canada-red/20 text-canada-red" 
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                              )}
+                            >
+                              <span>{item.icon}</span>
+                              {item.label}
+                            </Link>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Admin Panel */}
+                      {isOwner && (
+                        <>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
+                            👑 Admin
+                          </p>
+                          {adminNav.map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setIsOpen(false)}
+                              className={cn(
+                                "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                                pathname === item.href 
+                                  ? "bg-gold/20 text-gold" 
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                              )}
+                            >
+                              <span>{item.icon}</span>
+                              {item.label}
+                            </Link>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Sign Out */}
+                      <div className="border-t border-border pt-4 mt-4">
                         <Button 
                           variant="destructive" 
                           className="w-full"
@@ -270,25 +443,25 @@ export function Header() {
                         >
                           Sign Out
                         </Button>
-                      </>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <Button variant="outline" asChild className="w-full">
-                          <Link href="/login" onClick={() => setIsOpen(false)}>
-                            Sign In
-                          </Link>
-                        </Button>
-                        <Button
-                          className="w-full bg-canada-red hover:bg-canada-red-dark"
-                          asChild
-                        >
-                          <Link href="/register" onClick={() => setIsOpen(false)}>
-                            Join League
-                          </Link>
-                        </Button>
                       </div>
-                    )}
-                  </div>
+                    </>
+                  ) : (
+                    <div className="border-t border-border pt-4 mt-4 flex flex-col gap-2">
+                      <Button variant="outline" asChild className="w-full">
+                        <Link href="/login" onClick={() => setIsOpen(false)}>
+                          Sign In
+                        </Link>
+                      </Button>
+                      <Button
+                        className="w-full bg-canada-red hover:bg-canada-red-dark"
+                        asChild
+                      >
+                        <Link href="/register" onClick={() => setIsOpen(false)}>
+                          Join League
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                 </nav>
               </SheetContent>
             </Sheet>
