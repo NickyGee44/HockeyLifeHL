@@ -27,32 +27,38 @@ export default function DashboardPage() {
   async function loadDashboardData() {
     const supabase = createClient();
 
-    // Get active season
-    const { data: activeSeason } = await supabase
-      .from("seasons")
-      .select("id, name, status")
-      .in("status", ["active", "playoffs"])
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .single();
+    try {
+      // Get active season first (needed for other queries)
+      const { data: activeSeason } = await supabase
+        .from("seasons")
+        .select("id, name, status")
+        .in("status", ["active", "playoffs"])
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .single();
 
-    if (activeSeason) {
-      // Get player stats
-      const statsResult = await getPlayerStats(user?.id || "", activeSeason.id);
+      if (!activeSeason) {
+        setLoading(false);
+        return;
+      }
+
+      // Run stats and roster queries in parallel
+      const [statsResult, rosterResult] = await Promise.all([
+        getPlayerStats(user?.id || "", activeSeason.id),
+        supabase
+          .from("team_rosters")
+          .select("team_id")
+          .eq("player_id", user?.id)
+          .eq("season_id", activeSeason.id)
+          .single()
+      ]);
+
       if (statsResult.totals) {
         setStats(statsResult.totals);
       }
 
-      // Get player's team
-      const { data: rosterEntry } = await supabase
-        .from("team_rosters")
-        .select("team_id")
-        .eq("player_id", user?.id)
-        .eq("season_id", activeSeason.id)
-        .single();
-
-      if (rosterEntry) {
-        // Get next game
+      // If player has a team, get next game
+      if (rosterResult.data) {
         const now = new Date().toISOString();
         const { data: nextGameData } = await supabase
           .from("games")
@@ -64,7 +70,7 @@ export default function DashboardPage() {
             away_team:teams!games_away_team_id_fkey(name, short_name)
           `)
           .eq("season_id", activeSeason.id)
-          .or(`home_team_id.eq.${rosterEntry.team_id},away_team_id.eq.${rosterEntry.team_id}`)
+          .or(`home_team_id.eq.${rosterResult.data.team_id},away_team_id.eq.${rosterResult.data.team_id}`)
           .gte("scheduled_at", now)
           .in("status", ["scheduled", "in_progress"])
           .order("scheduled_at", { ascending: true })
@@ -73,6 +79,8 @@ export default function DashboardPage() {
 
         setNextGame(nextGameData);
       }
+    } catch (error) {
+      console.error("Dashboard data error:", error);
     }
 
     setLoading(false);

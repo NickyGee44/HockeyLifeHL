@@ -72,53 +72,57 @@ export default function CaptainDashboardPage() {
     
     const supabase = createClient();
     
-    // Get team where user is captain
-    const { data: teamData } = await supabase
-      .from("teams")
-      .select("id, name, short_name, logo_url, primary_color, secondary_color")
-      .eq("captain_id", user.id)
-      .single();
+    try {
+      // Get team and season in parallel
+      const [teamResult, seasonResult] = await Promise.all([
+        supabase
+          .from("teams")
+          .select("id, name, short_name, logo_url, primary_color, secondary_color")
+          .eq("captain_id", user.id)
+          .single(),
+        supabase
+          .from("seasons")
+          .select("id, name, status")
+          .in("status", ["active", "playoffs"])
+          .order("start_date", { ascending: false })
+          .limit(1)
+          .single()
+      ]);
 
-    if (!teamData) {
-      setLoading(false);
-      return;
-    }
+      const teamData = teamResult.data;
+      const seasonData = seasonResult.data;
 
-    setTeam(teamData);
+      if (!teamData) {
+        setLoading(false);
+        return;
+      }
 
-    // Get active season
-    const { data: seasonData } = await supabase
-      .from("seasons")
-      .select("id, name, status")
-      .in("status", ["active", "playoffs"])
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .single();
+      setTeam(teamData);
+      setSeason(seasonData);
 
-    setSeason(seasonData);
+      // Get roster, pending stats, and team stats in parallel
+      if (seasonData) {
+        const [rosterResult, pendingResult, statsResult] = await Promise.all([
+          supabase
+            .from("team_rosters")
+            .select(`
+              id,
+              is_goalie,
+              player:profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, jersey_number, position)
+            `)
+            .eq("team_id", teamData.id)
+            .eq("season_id", seasonData.id),
+          getPendingVerificationsCount(teamData.id, seasonData.id),
+          getTeamStatsSummary(teamData.id, seasonData.id)
+        ]);
 
-    // Get roster for active season
-    if (seasonData) {
-      const { data: rosterData } = await supabase
-        .from("team_rosters")
-        .select(`
-          id,
-          is_goalie,
-          player:profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, jersey_number, position)
-        `)
-        .eq("team_id", teamData.id)
-        .eq("season_id", seasonData.id);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setRoster((rosterData || []) as any as RosterPlayer[]);
-
-      // Get pending verifications count
-      const pendingResult = await getPendingVerificationsCount(teamData.id, seasonData.id);
-      setPendingStats(pendingResult.count);
-
-      // Get team stats summary
-      const statsResult = await getTeamStatsSummary(teamData.id, seasonData.id);
-      setTeamStats(statsResult);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setRoster((rosterResult.data || []) as any as RosterPlayer[]);
+        setPendingStats(pendingResult.count);
+        setTeamStats(statsResult);
+      }
+    } catch (error) {
+      console.error("Captain data error:", error);
     }
 
     setLoading(false);

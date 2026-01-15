@@ -135,3 +135,109 @@ export async function deletePlayer(playerId: string): Promise<AdminActionResult>
   revalidatePath("/admin/players");
   return { success: true };
 }
+
+export async function updatePlayerAvatar(
+  playerId: string,
+  avatarUrl: string | null
+): Promise<AdminActionResult> {
+  const auth = await requireOwner();
+  if (auth.error) return { error: auth.error };
+
+  const supabase = await createClient();
+
+  // If removing avatar and it's stored in Supabase, delete the file
+  if (avatarUrl === null) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", playerId)
+      .single();
+
+    if (profile?.avatar_url && profile.avatar_url.includes("supabase")) {
+      try {
+        const url = new URL(profile.avatar_url);
+        const pathParts = url.pathname.split("/storage/v1/object/public/");
+        if (pathParts.length > 1) {
+          const fullPath = pathParts[1];
+          const [bucket, ...filePathParts] = fullPath.split("/");
+          const filePath = filePathParts.join("/");
+          await supabase.storage.from(bucket).remove([filePath]);
+        }
+      } catch (e) {
+        console.error("Error deleting avatar from storage:", e);
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      avatar_url: avatarUrl,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", playerId);
+
+  if (error) {
+    console.error("Error updating player avatar:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/players");
+  revalidatePath("/stats");
+  revalidatePath(`/stats/${playerId}`);
+  return { success: true };
+}
+
+export async function updateTeamLogoAdmin(
+  teamId: string,
+  logoUrl: string | null
+): Promise<AdminActionResult> {
+  const auth = await requireOwner();
+  if (auth.error) return { error: auth.error };
+
+  const supabase = await createClient();
+
+  // If removing logo and it's stored in Supabase, delete the file
+  if (logoUrl === null) {
+    const { data: team } = await supabase
+      .from("teams")
+      .select("logo_url")
+      .eq("id", teamId)
+      .single();
+
+    if (team?.logo_url && team.logo_url.includes("supabase")) {
+      try {
+        const url = new URL(team.logo_url);
+        const pathParts = url.pathname.split("/storage/v1/object/public/");
+        if (pathParts.length > 1) {
+          const fullPath = pathParts[1];
+          const [bucket, ...filePathParts] = fullPath.split("/");
+          const filePath = filePathParts.join("/");
+          await supabase.storage.from(bucket).remove([filePath]);
+        }
+      } catch (e) {
+        console.error("Error deleting logo from storage:", e);
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from("teams")
+    .update({
+      logo_url: logoUrl,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", teamId);
+
+  if (error) {
+    console.error("Error updating team logo:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/teams");
+  revalidatePath("/teams");
+  revalidatePath(`/teams/${teamId}`);
+  revalidatePath("/standings");
+  revalidatePath("/schedule");
+  return { success: true };
+}

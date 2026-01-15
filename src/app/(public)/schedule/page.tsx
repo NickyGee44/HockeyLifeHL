@@ -2,6 +2,9 @@ import { getUpcomingGames, getRecentGames } from "@/lib/games/actions";
 import { getAllTeams } from "@/lib/teams/actions";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
 
+// Cache this page for 60 seconds
+export const revalidate = 60;
+
 export default async function SchedulePage() {
   const [upcomingResult, recentResult, teamsResult] = await Promise.all([
     getUpcomingGames(50),

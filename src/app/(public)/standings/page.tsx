@@ -11,10 +11,13 @@ import {
 import { TeamLogo } from "@/components/ui/team-logo";
 import { createClient } from "@/lib/supabase/server";
 
+// Cache this page for 60 seconds
+export const revalidate = 60;
+
 async function getStandings() {
   const supabase = await createClient();
   
-  // Get active season
+  // Get active season first
   const { data: activeSeason } = await supabase
     .from("seasons")
     .select("id, name, status, current_game_count, games_per_cycle")
@@ -27,21 +30,24 @@ async function getStandings() {
     return { activeSeason: null, standings: [] };
   }
 
-  // Get all teams
-  const { data: teams } = await supabase
-    .from("teams")
-    .select("id, name, short_name, logo_url, primary_color, secondary_color");
+  // Run teams and games queries in parallel
+  const [teamsResult, gamesResult] = await Promise.all([
+    supabase
+      .from("teams")
+      .select("id, name, short_name, logo_url, primary_color, secondary_color"),
+    supabase
+      .from("games")
+      .select("home_team_id, away_team_id, home_score, away_score, status")
+      .eq("season_id", activeSeason.id)
+      .eq("status", "completed")
+  ]);
+
+  const teams = teamsResult.data;
+  const games = gamesResult.data;
 
   if (!teams || teams.length === 0) {
     return { activeSeason, standings: [] };
   }
-
-  // Get all completed games for this season
-  const { data: games } = await supabase
-    .from("games")
-    .select("home_team_id, away_team_id, home_score, away_score, status")
-    .eq("season_id", activeSeason.id)
-    .eq("status", "completed");
 
   // Calculate standings
   const teamStats: Record<string, {

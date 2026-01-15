@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAllPlayers, updatePlayerRole, updatePlayerProfile } from "@/lib/admin/actions";
+import { getAllPlayers, updatePlayerRole, updatePlayerProfile, updatePlayerAvatar } from "@/lib/admin/actions";
+import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Profile, UserRole } from "@/types/database";
@@ -53,6 +54,8 @@ export default function AdminPlayersPage() {
     role: "" as UserRole,
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadPlayers();
@@ -111,6 +114,95 @@ export default function AdminPlayersPage() {
     setEditingPlayer(null);
     setIsSaving(false);
     loadPlayers();
+  }
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editingPlayer) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please upload a JPEG, PNG, GIF, or WebP image");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      const supabase = createClient();
+      
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${editingPlayer.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("public")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("public")
+        .getPublicUrl(filePath);
+
+      // Update player avatar via admin action
+      const result = await updatePlayerAvatar(editingPlayer.id, publicUrl);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Update local state
+      setEditingPlayer({ ...editingPlayer, avatar_url: publicUrl });
+      toast.success("Avatar updated!");
+      loadPlayers();
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      toast.error("Failed to upload avatar");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    if (!editingPlayer) return;
+    
+    setIsUploadingAvatar(true);
+    
+    try {
+      const result = await updatePlayerAvatar(editingPlayer.id, null);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setEditingPlayer({ ...editingPlayer, avatar_url: null });
+      toast.success("Avatar removed");
+      loadPlayers();
+    } catch (error) {
+      console.error("Avatar remove error:", error);
+      toast.error("Failed to remove avatar");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   }
 
   async function handleQuickRoleChange(playerId: string, newRole: UserRole) {
@@ -337,14 +429,60 @@ export default function AdminPlayersPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingPlayer} onOpenChange={() => setEditingPlayer(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Player</DialogTitle>
             <DialogDescription>
-              Update player information and role
+              Update player information, avatar, and role
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Avatar Section */}
+            <div className="space-y-2">
+              <Label>Profile Picture</Label>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={editingPlayer?.avatar_url || ""} />
+                  <AvatarFallback className="bg-canada-red text-white text-xl">
+                    {getInitials(editingPlayer?.full_name || null)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-2">
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                  >
+                    {isUploadingAvatar ? "Uploading..." : "Upload Photo"}
+                  </Button>
+                  {editingPlayer?.avatar_url && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRemoveAvatar}
+                      disabled={isUploadingAvatar}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Max 2MB, JPEG/PNG/GIF/WebP
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="edit-name">Full Name</Label>
               <Input

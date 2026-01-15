@@ -6,6 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { createClient } from "@/lib/supabase/server";
 
+// Cache this page for 60 seconds
+export const revalidate = 60;
+
 async function getTeamsWithRosters() {
   const supabase = await createClient();
   

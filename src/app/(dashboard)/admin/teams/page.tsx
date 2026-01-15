@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,8 @@ import {
   deleteTeam,
   getAvailableCaptains 
 } from "@/lib/teams/actions";
+import { updateTeamLogoAdmin } from "@/lib/admin/actions";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Team, Profile } from "@/types/database";
 
@@ -48,6 +51,8 @@ export default function AdminTeamsPage() {
   const [editingTeam, setEditingTeam] = useState<TeamWithCaptain | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -162,6 +167,95 @@ export default function AdminTeamsPage() {
       toast.success("Team deleted successfully!");
       setDeleteConfirm(null);
       loadData();
+    }
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editingTeam) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please upload a JPEG, PNG, GIF, WebP, or SVG image");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setIsUploadingLogo(true);
+
+    try {
+      const supabase = createClient();
+      
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${editingTeam.id}-${Date.now()}.${fileExt}`;
+      const filePath = `team-logos/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("public")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("public")
+        .getPublicUrl(filePath);
+
+      // Update team logo via admin action
+      const result = await updateTeamLogoAdmin(editingTeam.id, publicUrl);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Update local state
+      setEditingTeam({ ...editingTeam, logo_url: publicUrl });
+      toast.success("Logo updated!");
+      loadData();
+    } catch (error) {
+      console.error("Logo upload error:", error);
+      toast.error("Failed to upload logo");
+    } finally {
+      setIsUploadingLogo(false);
+      if (logoInputRef.current) {
+        logoInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleRemoveLogo() {
+    if (!editingTeam) return;
+    
+    setIsUploadingLogo(true);
+    
+    try {
+      const result = await updateTeamLogoAdmin(editingTeam.id, null);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setEditingTeam({ ...editingTeam, logo_url: null });
+      toast.success("Logo removed");
+      loadData();
+    } catch (error) {
+      console.error("Logo remove error:", error);
+      toast.error("Failed to remove logo");
+    } finally {
+      setIsUploadingLogo(false);
     }
   }
 
@@ -413,14 +507,75 @@ export default function AdminTeamsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingTeam} onOpenChange={() => { setEditingTeam(null); resetForm(); }}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Team</DialogTitle>
             <DialogDescription>
-              Update team information
+              Update team information and logo
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Logo Section */}
+            <div className="space-y-2">
+              <Label>Team Logo</Label>
+              <div className="flex items-center gap-4">
+                {editingTeam?.logo_url ? (
+                  <div className="w-16 h-16 rounded-lg overflow-hidden border">
+                    <Image
+                      src={editingTeam.logo_url}
+                      alt={editingTeam.name}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div 
+                    className="w-16 h-16 rounded-lg flex items-center justify-center font-bold text-xl"
+                    style={{ 
+                      backgroundColor: formData.primaryColor,
+                      color: formData.secondaryColor,
+                    }}
+                  >
+                    {formData.shortName || "TEAM"}
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={isUploadingLogo}
+                  >
+                    {isUploadingLogo ? "Uploading..." : "Upload Logo"}
+                  </Button>
+                  {editingTeam?.logo_url && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRemoveLogo}
+                      disabled={isUploadingLogo}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Max 2MB, JPEG/PNG/GIF/WebP/SVG
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="edit-name">Team Name</Label>
               <Input
