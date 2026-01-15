@@ -41,8 +41,8 @@ export async function getAllGames(seasonId?: string) {
     .select(`
       *,
       season:seasons!games_season_id_fkey(id, name, status),
-      home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, secondary_color),
-      away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, secondary_color)
+      home_team:teams!games_home_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color),
+      away_team:teams!games_away_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color)
     `)
     .order("scheduled_at", { ascending: false });
 
@@ -68,8 +68,8 @@ export async function getGameById(gameId: string) {
     .select(`
       *,
       season:seasons!games_season_id_fkey(id, name, status),
-      home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, secondary_color, captain_id),
-      away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, secondary_color, captain_id)
+      home_team:teams!games_home_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color, captain_id),
+      away_team:teams!games_away_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color, captain_id)
     `)
     .eq("id", gameId)
     .single();
@@ -236,8 +236,8 @@ export async function getUpcomingGames(limit: number = 10) {
     .select(`
       *,
       season:seasons!games_season_id_fkey(id, name),
-      home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color),
-      away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color)
+      home_team:teams!games_home_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color),
+      away_team:teams!games_away_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color)
     `)
     .in("status", ["scheduled", "in_progress"])
     .gte("scheduled_at", new Date().toISOString())
@@ -261,8 +261,8 @@ export async function getRecentGames(limit: number = 10) {
     .select(`
       *,
       season:seasons!games_season_id_fkey(id, name),
-      home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color),
-      away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color)
+      home_team:teams!games_home_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color),
+      away_team:teams!games_away_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color)
     `)
     .eq("status", "completed")
     .order("scheduled_at", { ascending: false })

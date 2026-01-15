@@ -271,3 +271,118 @@ export async function getAvailableCaptains() {
 
   return { players: players || [] };
 }
+
+// Check if current user is the captain of a team
+async function requireCaptainOfTeam(teamId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { error: "Not authenticated", isCaptain: false };
+  }
+
+  // Check if user is owner (owners can do anything)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.role === "owner") {
+    return { isCaptain: true, userId: user.id, isOwner: true };
+  }
+
+  // Check if user is captain of this specific team
+  const { data: team } = await supabase
+    .from("teams")
+    .select("captain_id")
+    .eq("id", teamId)
+    .single();
+
+  if (!team || team.captain_id !== user.id) {
+    return { error: "Not authorized - you are not the captain of this team", isCaptain: false };
+  }
+
+  return { isCaptain: true, userId: user.id };
+}
+
+// Update team logo - accessible by team captain or owner
+export async function updateTeamLogo(teamId: string, logoUrl: string): Promise<TeamActionResult> {
+  const auth = await requireCaptainOfTeam(teamId);
+  if (auth.error) return { error: auth.error };
+
+  const supabase = await createClient();
+
+  const { data: team, error } = await supabase
+    .from("teams")
+    .update({
+      logo_url: logoUrl,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", teamId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating team logo:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/captain/team");
+  revalidatePath("/teams");
+  revalidatePath(`/teams/${teamId}`);
+  revalidatePath("/standings");
+  revalidatePath("/schedule");
+  return { success: true, team };
+}
+
+// Delete team logo - accessible by team captain or owner
+export async function deleteTeamLogo(teamId: string): Promise<TeamActionResult> {
+  const auth = await requireCaptainOfTeam(teamId);
+  if (auth.error) return { error: auth.error };
+
+  const supabase = await createClient();
+
+  // Get current logo URL to delete from storage
+  const { data: currentTeam } = await supabase
+    .from("teams")
+    .select("logo_url")
+    .eq("id", teamId)
+    .single();
+
+  // Delete from storage if it's a Supabase storage URL
+  if (currentTeam?.logo_url && currentTeam.logo_url.includes("supabase")) {
+    try {
+      const url = new URL(currentTeam.logo_url);
+      const pathParts = url.pathname.split("/storage/v1/object/public/");
+      if (pathParts.length > 1) {
+        const [bucket, ...filePath] = pathParts[1].split("/");
+        await supabase.storage.from(bucket).remove([filePath.join("/")]);
+      }
+    } catch (e) {
+      console.error("Error deleting logo from storage:", e);
+    }
+  }
+
+  const { data: team, error } = await supabase
+    .from("teams")
+    .update({
+      logo_url: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", teamId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error deleting team logo:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/captain/team");
+  revalidatePath("/teams");
+  revalidatePath(`/teams/${teamId}`);
+  revalidatePath("/standings");
+  revalidatePath("/schedule");
+  return { success: true, team };
+}

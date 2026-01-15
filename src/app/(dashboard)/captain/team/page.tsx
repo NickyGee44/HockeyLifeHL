@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -35,12 +37,15 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
 import { getTeamRoster, getPlayersNotOnTeam, addPlayerToRoster, removePlayerFromRoster, updatePlayerGoalieStatus } from "@/lib/teams/roster-actions";
+import { updateTeamLogo, deleteTeamLogo } from "@/lib/teams/actions";
 import { toast } from "sonner";
+import { Upload, Trash2, Camera } from "lucide-react";
 
 type TeamData = {
   id: string;
   name: string;
   short_name: string;
+  logo_url: string | null;
   primary_color: string | null;
   secondary_color: string | null;
 };
@@ -74,6 +79,9 @@ export default function CaptainTeamPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("none");
   const [isGoalie, setIsGoalie] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user && isCaptain) {
@@ -94,7 +102,7 @@ export default function CaptainTeamPage() {
     // Get team where user is captain
     const { data: teamData } = await supabase
       .from("teams")
-      .select("id, name, short_name, primary_color, secondary_color")
+      .select("id, name, short_name, logo_url, primary_color, secondary_color")
       .eq("captain_id", user.id)
       .single();
 
@@ -182,6 +190,94 @@ export default function CaptainTeamPage() {
     }
   }
 
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !team) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please upload a valid image file (JPEG, PNG, GIF, WebP, or SVG)");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setIsUploadingLogo(true);
+
+    try {
+      const supabase = createClient();
+      
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${team.id}-${Date.now()}.${fileExt}`;
+      const filePath = `team-logos/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("public")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("public")
+        .getPublicUrl(filePath);
+
+      // Update team with new logo URL
+      const result = await updateTeamLogo(team.id, publicUrl);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      toast.success("Team logo updated successfully!");
+      setIsLogoDialogOpen(false);
+      loadTeamData();
+    } catch (error: any) {
+      console.error("Error uploading logo:", error);
+      toast.error(error.message || "Failed to upload logo");
+    } finally {
+      setIsUploadingLogo(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleDeleteLogo() {
+    if (!team) return;
+    if (!confirm("Are you sure you want to remove the team logo?")) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const result = await deleteTeamLogo(team.id);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      toast.success("Team logo removed successfully!");
+      setIsLogoDialogOpen(false);
+      loadTeamData();
+    } catch (error: any) {
+      console.error("Error deleting logo:", error);
+      toast.error(error.message || "Failed to remove logo");
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  }
+
   const getInitials = (name: string | null) => {
     if (!name) return "??";
     return name
@@ -251,15 +347,120 @@ export default function CaptainTeamPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div 
-            className="w-16 h-16 rounded-lg flex items-center justify-center font-bold text-2xl shadow-lg"
-            style={{ 
-              backgroundColor: team.primary_color || "#3b82f6",
-              color: team.secondary_color || "#ffffff",
-            }}
-          >
-            {team.short_name}
-          </div>
+          {/* Team Logo with Edit Option */}
+          <Dialog open={isLogoDialogOpen} onOpenChange={setIsLogoDialogOpen}>
+            <DialogTrigger asChild>
+              <button
+                className="relative group cursor-pointer"
+                title="Click to change team logo"
+              >
+                {team.logo_url ? (
+                  <Image
+                    src={team.logo_url}
+                    alt={team.name}
+                    width={64}
+                    height={64}
+                    className="w-16 h-16 rounded-lg object-contain shadow-lg"
+                  />
+                ) : (
+                  <div 
+                    className="w-16 h-16 rounded-lg flex items-center justify-center font-bold text-2xl shadow-lg"
+                    style={{ 
+                      backgroundColor: team.primary_color || "#3b82f6",
+                      color: team.secondary_color || "#ffffff",
+                    }}
+                  >
+                    {team.short_name}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Team Logo</DialogTitle>
+                <DialogDescription>
+                  Upload a custom logo for your team. Recommended size: 256x256 pixels.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                {/* Current Logo Preview */}
+                <div className="flex justify-center">
+                  {team.logo_url ? (
+                    <Image
+                      src={team.logo_url}
+                      alt={team.name}
+                      width={128}
+                      height={128}
+                      className="w-32 h-32 rounded-lg object-contain border-2 border-muted"
+                    />
+                  ) : (
+                    <div 
+                      className="w-32 h-32 rounded-lg flex items-center justify-center font-bold text-4xl border-2 border-muted"
+                      style={{ 
+                        backgroundColor: team.primary_color || "#3b82f6",
+                        color: team.secondary_color || "#ffffff",
+                      }}
+                    >
+                      {team.short_name}
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Instructions */}
+                <div className="text-center text-sm text-muted-foreground">
+                  <p>Supported formats: JPEG, PNG, GIF, WebP, SVG</p>
+                  <p>Maximum file size: 2MB</p>
+                </div>
+
+                {/* Upload Button */}
+                <div className="flex flex-col gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingLogo}
+                    className="w-full bg-canada-red hover:bg-canada-red-dark"
+                  >
+                    {isUploadingLogo ? (
+                      <>Uploading...</>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        {team.logo_url ? "Upload New Logo" : "Upload Logo"}
+                      </>
+                    )}
+                  </Button>
+
+                  {team.logo_url && (
+                    <Button
+                      variant="outline"
+                      onClick={handleDeleteLogo}
+                      disabled={isUploadingLogo}
+                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remove Logo
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsLogoDialogOpen(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <div>
             <Link href={`/teams/${team.id}`}>
               <h1 className="text-3xl font-bold hover:underline cursor-pointer">{team.name}</h1>

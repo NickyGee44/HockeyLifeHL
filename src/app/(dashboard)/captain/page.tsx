@@ -15,15 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TeamLogo } from "@/components/ui/team-logo";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
 import { getPendingVerificationsCount, getTeamStatsSummary } from "@/lib/captain/stats-queries";
-import { toast } from "sonner";
 
 type TeamData = {
   id: string;
   name: string;
   short_name: string;
+  logo_url: string | null;
   primary_color: string | null;
   secondary_color: string | null;
 };
@@ -74,7 +75,7 @@ export default function CaptainDashboardPage() {
     // Get team where user is captain
     const { data: teamData } = await supabase
       .from("teams")
-      .select("id, name, short_name, primary_color, secondary_color")
+      .select("id, name, short_name, logo_url, primary_color, secondary_color")
       .eq("captain_id", user.id)
       .single();
 
@@ -195,15 +196,7 @@ export default function CaptainDashboardPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">
-        <div 
-          className="w-16 h-16 rounded-lg flex items-center justify-center font-bold text-2xl shadow-lg"
-          style={{ 
-            backgroundColor: team.primary_color || "#3b82f6",
-            color: team.secondary_color || "#ffffff",
-          }}
-        >
-          {team.short_name}
-        </div>
+        <TeamLogo team={team} size="xl" />
         <div>
           <Link href={`/teams/${team.id}`}>
             <h1 className="text-3xl font-bold hover:underline cursor-pointer">{team.name}</h1>

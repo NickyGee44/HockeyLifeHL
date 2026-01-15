@@ -1,19 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -32,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TeamLogo } from "@/components/ui/team-logo";
 import { 
   getAllTeams, 
   createTeam, 
@@ -349,17 +343,11 @@ export default function AdminTeamsPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div 
-                      className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg"
-                      style={{ 
-                        backgroundColor: team.primary_color || "#3b82f6",
-                        color: team.secondary_color || "#ffffff",
-                      }}
-                    >
-                      {team.short_name}
-                    </div>
+                    <TeamLogo team={team} size="lg" clickable={false} />
                     <div>
-                      <CardTitle className="text-lg">{team.name}</CardTitle>
+                      <Link href={`/teams/${team.id}`}>
+                        <CardTitle className="text-lg hover:underline cursor-pointer">{team.name}</CardTitle>
+                      </Link>
                       <CardDescription>{team.short_name}</CardDescription>
                     </div>
                   </div>

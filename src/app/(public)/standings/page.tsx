@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TeamLogo } from "@/components/ui/team-logo";
 import { createClient } from "@/lib/supabase/server";
 
 async function getStandings() {
@@ -30,7 +30,7 @@ async function getStandings() {
   // Get all teams
   const { data: teams } = await supabase
     .from("teams")
-    .select("id, name, short_name, primary_color, secondary_color");
+    .select("id, name, short_name, logo_url, primary_color, secondary_color");
 
   if (!teams || teams.length === 0) {
     return { activeSeason, standings: [] };
@@ -207,21 +207,11 @@ export default async function StandingsPage() {
                             {index + 1}
                           </TableCell>
                           <TableCell>
-                            <Link 
-                              href={`/teams/${standing.team.id}`}
-                              className="flex items-center gap-3 hover:underline"
-                            >
-                              <div 
-                                className="w-8 h-8 rounded flex items-center justify-center font-bold text-xs"
-                                style={{ 
-                                  backgroundColor: standing.team.primary_color,
-                                  color: standing.team.secondary_color,
-                                }}
-                              >
-                                {standing.team.short_name}
-                              </div>
-                              <span className="font-medium">{standing.team.name}</span>
-                            </Link>
+                            <TeamLogo 
+                              team={standing.team} 
+                              size="md" 
+                              showName 
+                            />
                           </TableCell>
                           <TableCell className="text-center">{standing.gp}</TableCell>
                           <TableCell className="text-center text-green-500 font-medium">{standing.w}</TableCell>

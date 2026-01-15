@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -13,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TeamLogo } from "@/components/ui/team-logo";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
@@ -137,15 +137,12 @@ export default async function TeamDetailPage({ params }: Props) {
         />
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center gap-6">
-            <div 
-              className="w-24 h-24 rounded-xl flex items-center justify-center font-bold text-3xl shadow-lg"
-              style={{ 
-                backgroundColor: team.primary_color,
-                color: team.secondary_color,
-              }}
-            >
-              {team.short_name}
-            </div>
+            <TeamLogo 
+              team={team} 
+              size="xl" 
+              clickable={false} 
+              className="w-24 h-24 rounded-xl shadow-lg text-3xl"
+            />
             <div className="flex-1">
               <CardTitle className="text-3xl mb-2">{team.name}</CardTitle>
               <CardDescription className="text-base">

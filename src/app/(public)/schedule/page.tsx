@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TeamLogo } from "@/components/ui/team-logo";
 import { getUpcomingGames, getRecentGames } from "@/lib/games/actions";
 
 export default async function SchedulePage() {
@@ -94,18 +94,14 @@ export default async function SchedulePage() {
 
                       {/* Teams & Score */}
                       <div className="flex-1 flex items-center gap-4">
-                        <div className="flex-1 flex items-center justify-end gap-3">
+                        <div className="flex-1 flex items-center justify-end gap-2">
                           {game.home_team ? (
-                            <Link 
-                              href={`/teams/${game.home_team.id}`}
-                              className="font-semibold text-lg hover:underline flex items-center gap-2"
-                            >
-                              <span>{game.home_team.name}</span>
-                              <div 
-                                className="w-6 h-6 rounded"
-                                style={{ backgroundColor: game.home_team.primary_color }}
-                              />
-                            </Link>
+                            <TeamLogo 
+                              team={game.home_team} 
+                              size="sm" 
+                              showName 
+                              nameClassName="text-lg font-semibold"
+                            />
                           ) : (
                             <span className="font-semibold text-lg">TBD</span>
                           )}
@@ -121,18 +117,14 @@ export default async function SchedulePage() {
                           )}
                         </div>
 
-                        <div className="flex-1 flex items-center gap-3">
+                        <div className="flex-1 flex items-center gap-2">
                           {game.away_team ? (
-                            <Link 
-                              href={`/teams/${game.away_team.id}`}
-                              className="font-semibold text-lg hover:underline flex items-center gap-2"
-                            >
-                              <div 
-                                className="w-6 h-6 rounded"
-                                style={{ backgroundColor: game.away_team.primary_color }}
-                              />
-                              <span>{game.away_team.name}</span>
-                            </Link>
+                            <TeamLogo 
+                              team={game.away_team} 
+                              size="sm" 
+                              showName 
+                              nameClassName="text-lg font-semibold"
+                            />
                           ) : (
                             <span className="font-semibold text-lg">TBD</span>
                           )}
@@ -180,18 +172,14 @@ export default async function SchedulePage() {
 
                       {/* Teams & Score */}
                       <div className="flex-1 flex items-center gap-4">
-                        <div className="flex-1 flex items-center justify-end gap-3">
+                        <div className="flex-1 flex items-center justify-end gap-2">
                           {game.home_team ? (
-                            <Link 
-                              href={`/teams/${game.home_team.id}`}
-                              className="font-semibold text-lg hover:underline flex items-center gap-2"
-                            >
-                              <span>{game.home_team.name}</span>
-                              <div 
-                                className="w-6 h-6 rounded"
-                                style={{ backgroundColor: game.home_team.primary_color }}
-                              />
-                            </Link>
+                            <TeamLogo 
+                              team={game.home_team} 
+                              size="sm" 
+                              showName 
+                              nameClassName="text-lg font-semibold"
+                            />
                           ) : (
                             <span className="font-semibold text-lg">TBD</span>
                           )}
@@ -206,18 +194,14 @@ export default async function SchedulePage() {
                           </div>
                         </div>
 
-                        <div className="flex-1 flex items-center gap-3">
+                        <div className="flex-1 flex items-center gap-2">
                           {game.away_team ? (
-                            <Link 
-                              href={`/teams/${game.away_team.id}`}
-                              className="font-semibold text-lg hover:underline flex items-center gap-2"
-                            >
-                              <div 
-                                className="w-6 h-6 rounded"
-                                style={{ backgroundColor: game.away_team.primary_color }}
-                              />
-                              <span>{game.away_team.name}</span>
-                            </Link>
+                            <TeamLogo 
+                              team={game.away_team} 
+                              size="sm" 
+                              showName 
+                              nameClassName="text-lg font-semibold"
+                            />
                           ) : (
                             <span className="font-semibold text-lg">TBD</span>
                           )}

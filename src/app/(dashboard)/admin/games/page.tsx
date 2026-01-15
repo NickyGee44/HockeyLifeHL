@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TeamLogo } from "@/components/ui/team-logo";
 import { 
   getAllGames, 
   createGame, 
@@ -471,16 +471,7 @@ export default function AdminGamesPage() {
                       </TableCell>
                       <TableCell>
                         {game.home_team ? (
-                          <Link 
-                            href={`/teams/${game.home_team.id}`}
-                            className="flex items-center gap-2 hover:underline"
-                          >
-                            <div 
-                              className="w-4 h-4 rounded"
-                              style={{ backgroundColor: game.home_team.primary_color || "#888" }}
-                            />
-                            <span className="font-medium">{game.home_team.name}</span>
-                          </Link>
+                          <TeamLogo team={game.home_team} size="xs" showName />
                         ) : (
                           <span className="text-muted-foreground">TBD</span>
                         )}
@@ -496,16 +487,7 @@ export default function AdminGamesPage() {
                       </TableCell>
                       <TableCell>
                         {game.away_team ? (
-                          <Link 
-                            href={`/teams/${game.away_team.id}`}
-                            className="flex items-center gap-2 hover:underline"
-                          >
-                            <div 
-                              className="w-4 h-4 rounded"
-                              style={{ backgroundColor: game.away_team.primary_color || "#888" }}
-                            />
-                            <span className="font-medium">{game.away_team.name}</span>
-                          </Link>
+                          <TeamLogo team={game.away_team} size="xs" showName />
                         ) : (
                           <span className="text-muted-foreground">TBD</span>
                         )}

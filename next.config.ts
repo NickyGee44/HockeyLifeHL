@@ -18,6 +18,23 @@ const nextConfig: NextConfig = {
   // Add empty turbopack config to silence error during development
   // PWA will work in production builds with webpack
   turbopack: {},
+  // Configure image domains for team logos
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'upload.wikimedia.org',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.in',
+      },
+    ],
+  },
 };
 
 export default withPWA(nextConfig);

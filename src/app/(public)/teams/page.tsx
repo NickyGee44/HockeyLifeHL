@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TeamLogo } from "@/components/ui/team-logo";
 import { createClient } from "@/lib/supabase/server";
 
 async function getTeamsWithRosters() {
@@ -91,15 +92,7 @@ export default async function TeamsPage() {
                 />
                 <CardHeader>
                   <div className="flex items-center gap-4">
-                    <div 
-                      className="w-16 h-16 rounded-lg flex items-center justify-center font-bold text-xl shadow-lg"
-                      style={{ 
-                        backgroundColor: team.primary_color,
-                        color: team.secondary_color,
-                      }}
-                    >
-                      {team.short_name}
-                    </div>
+                    <TeamLogo team={team} size="xl" clickable={false} />
                     <div>
                       <CardTitle>{team.name}</CardTitle>
                       <CardDescription className="flex items-center gap-2 mt-1">
