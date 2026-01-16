@@ -2,17 +2,39 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
 
-// Use placeholder values during build time to prevent build errors
-// These will never be used at runtime since env vars will be set
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+// Check if we're in build/prerender phase
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
 
 export async function createClient() {
   const cookieStore = await cookies()
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // During build, use placeholder values (won't actually be called)
+  // At runtime, require real values
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (isBuildPhase) {
+      // Return a dummy client that won't be used during static generation
+      return createServerClient<Database>(
+        'https://placeholder.supabase.co',
+        'placeholder-key',
+        {
+          cookies: {
+            getAll() { return [] },
+            setAll() {},
+          },
+        }
+      )
+    }
+    throw new Error(
+      'Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your Vercel project settings.'
+    )
+  }
+
   return createServerClient<Database>(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
