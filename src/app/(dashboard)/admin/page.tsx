@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
 import { getLeagueStats } from "@/lib/admin/stats-actions";
 import { generateTestData, removeAllTestData, makeCurrentUserOwner } from "@/lib/admin/test-data-actions";
 import { toast } from "sonner";
 
 export default function AdminDashboardPage() {
+  const { user, profile, loading: authLoading, isOwner, error: authError, refreshProfile } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -27,10 +31,39 @@ export default function AdminDashboardPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
+    // Wait for auth to load
+    if (authLoading) return;
+
+    // If no user, redirect will happen via middleware
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    // If profile failed to load, try refreshing
+    if (!profile && !authError) {
+      refreshProfile();
+      return;
+    }
+
+    // If profile is null and we have an error, show error
+    if (!profile && authError) {
+      setLoading(false);
+      return;
+    }
+
+    // Check if user is owner
+    if (!isOwner) {
+      toast.error("Access denied. Owner privileges required.");
+      router.push("/dashboard");
+      return;
+    }
+
+    // User is owner, load stats
     loadStats();
-    // Make current user owner on mount
+    // Make current user owner on mount (for development)
     makeCurrentUserOwner();
-  }, []);
+  }, [user, profile, authLoading, isOwner, authError, refreshProfile, router]);
 
   async function loadStats() {
     const result = await getLeagueStats();
@@ -66,6 +99,67 @@ export default function AdminDashboardPage() {
   const gamesUntilDraft = stats?.activeSeason 
     ? (stats.activeSeason.games_per_cycle || 13) - (stats.activeSeason.current_game_count || 0)
     : null;
+
+  // Show loading state
+  if (authLoading || (loading && !stats)) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <Skeleton className="h-9 w-64 mb-2" />
+          <Skeleton className="h-5 w-48" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-16" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if profile failed to load
+  if (authError || !profile) {
+    return (
+      <div className="space-y-8">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              {authError || "Failed to load your profile. Please try refreshing the page."}
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show access denied if not owner
+  if (!isOwner) {
+    return (
+      <div className="space-y-8">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              Access denied. Owner privileges required.
+            </p>
+            <Link href="/dashboard">
+              <Button variant="outline">Go to Dashboard</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

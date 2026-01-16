@@ -57,12 +57,29 @@ export default function CaptainDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for auth to load
+    if (authLoading) return;
+
+    // If no user, stop loading
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    // If profile is still loading, wait
+    if (!profile && !authLoading) {
+      // Profile might be loading, give it a moment
+      return;
+    }
+
+    // Check if user is captain
     if (user && isCaptain) {
       loadCaptainData();
-    } else if (!authLoading && !isCaptain) {
+    } else if (!authLoading) {
+      // Not a captain or profile failed to load
       setLoading(false);
     }
-  }, [user, isCaptain, authLoading]);
+  }, [user, profile, isCaptain, authLoading]);
 
   async function loadCaptainData() {
     if (!user?.id) {

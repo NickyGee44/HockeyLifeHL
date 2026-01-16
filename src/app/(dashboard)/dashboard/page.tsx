@@ -11,16 +11,26 @@ import { getPlayerStats } from "@/lib/stats/queries";
 import { RecentActivityFeed } from "@/components/dashboard/RecentActivityFeed";
 
 export default function DashboardPage() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, error: authError } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [nextGame, setNextGame] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for auth to load
+    if (authLoading) return;
+
+    // If no user, stop loading
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    // If we have a user, load dashboard data
+    // Don't wait for profile - it's not critical for basic dashboard
     if (user) {
       loadDashboardData();
-    } else if (!authLoading) {
-      setLoading(false);
     }
   }, [user, authLoading]);
 
@@ -28,62 +38,111 @@ export default function DashboardPage() {
     const supabase = createClient();
 
     try {
-      // Get active season first (needed for other queries)
-      const { data: activeSeason } = await supabase
-        .from("seasons")
-        .select("id, name, status")
-        .in("status", ["active", "playoffs"])
-        .order("start_date", { ascending: false })
-        .limit(1)
-        .single();
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Request timeout")), 30000) // 30 second timeout
+      );
 
-      if (!activeSeason) {
-        setLoading(false);
-        return;
-      }
-
-      // Run stats and roster queries in parallel
-      const [statsResult, rosterResult] = await Promise.all([
-        getPlayerStats(user?.id || "", activeSeason.id),
-        supabase
-          .from("team_rosters")
-          .select("team_id")
-          .eq("player_id", user?.id)
-          .eq("season_id", activeSeason.id)
-          .single()
-      ]);
-
-      if (statsResult.totals) {
-        setStats(statsResult.totals);
-      }
-
-      // If player has a team, get next game
-      if (rosterResult.data) {
-        const now = new Date().toISOString();
-        const { data: nextGameData } = await supabase
-          .from("games")
-          .select(`
-            id,
-            scheduled_at,
-            location,
-            home_team:teams!games_home_team_id_fkey(name, short_name),
-            away_team:teams!games_away_team_id_fkey(name, short_name)
-          `)
-          .eq("season_id", activeSeason.id)
-          .or(`home_team_id.eq.${rosterResult.data.team_id},away_team_id.eq.${rosterResult.data.team_id}`)
-          .gte("scheduled_at", now)
-          .in("status", ["scheduled", "in_progress"])
-          .order("scheduled_at", { ascending: true })
+      const dataPromise = (async () => {
+        // Get active season first (needed for other queries)
+        const { data: activeSeason, error: seasonError } = await supabase
+          .from("seasons")
+          .select("id, name, status")
+          .in("status", ["active", "playoffs"])
+          .order("start_date", { ascending: false })
           .limit(1)
           .single();
 
-        setNextGame(nextGameData);
-      }
-    } catch (error) {
-      console.error("Dashboard data error:", error);
-    }
+        if (seasonError || !activeSeason) {
+          console.warn("No active season found:", seasonError);
+          setLoading(false);
+          return;
+        }
 
-    setLoading(false);
+        // Run stats and roster queries in parallel with timeout
+        const [statsResult, rosterResult] = await Promise.all([
+          getPlayerStats(user?.id || "", activeSeason.id).catch(err => {
+            console.error("Stats query error:", err);
+            return { error: err.message, stats: [], totals: null };
+          }),
+          supabase
+            .from("team_rosters")
+            .select("team_id")
+            .eq("player_id", user?.id)
+            .eq("season_id", activeSeason.id)
+            .single()
+            .catch(err => {
+              console.error("Roster query error:", err);
+              return { data: null, error: err };
+            })
+        ]);
+
+        if (statsResult?.totals) {
+          setStats(statsResult.totals);
+        } else if (statsResult?.error) {
+          console.error("Failed to load stats:", statsResult.error);
+          // Set empty stats so page still renders
+          setStats({ games: 0, goals: 0, assists: 0, points: 0 });
+        }
+
+        // If player has a team, get next game
+        if (rosterResult.data) {
+          const now = new Date().toISOString();
+          const { data: nextGameData, error: gameError } = await supabase
+            .from("games")
+            .select(`
+              id,
+              scheduled_at,
+              location,
+              home_team:teams!games_home_team_id_fkey(name, short_name),
+              away_team:teams!games_away_team_id_fkey(name, short_name)
+            `)
+            .eq("season_id", activeSeason.id)
+            .or(`home_team_id.eq.${rosterResult.data.team_id},away_team_id.eq.${rosterResult.data.team_id}`)
+            .gte("scheduled_at", now)
+            .in("status", ["scheduled", "in_progress"])
+            .order("scheduled_at", { ascending: true })
+            .limit(1)
+            .single();
+
+          if (!gameError && nextGameData) {
+            setNextGame(nextGameData);
+          }
+        }
+      })();
+
+      // Race between data loading and timeout
+      await Promise.race([dataPromise, timeoutPromise]);
+    } catch (error: any) {
+      console.error("Dashboard data error:", error);
+      setError(error.message || "Failed to load dashboard data");
+      // Set empty stats so page still renders even on error
+      setStats({ games: 0, goals: 0, assists: 0, points: 0 });
+    } finally {
+      // Always set loading to false, even on error or timeout
+      setLoading(false);
+    }
+  }
+
+  // Show error if auth failed
+  if (authError) {
+    return (
+      <div className="space-y-8">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              {authError}
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-canada-red text-white rounded-md hover:bg-canada-red-dark"
+            >
+              Refresh Page
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (authLoading || loading) {
@@ -121,6 +180,13 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-2">
           Here&apos;s what&apos;s happening in the league.
         </p>
+        {error && (
+          <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+            <p className="text-sm text-yellow-600 dark:text-yellow-400">
+              ⚠️ {error}. Some data may not be available.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Quick Stats */}

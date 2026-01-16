@@ -7,38 +7,47 @@ import { createClient } from "@/lib/supabase/server";
 export async function getSeasonPlayerStats(seasonId: string) {
   const supabase = await createClient();
 
-  // Get all stats for this season, then filter by verified games
-  // Note: We filter client-side because Supabase doesn't support complex nested OR conditions
+  // OPTIMIZED: Get completed games first (smaller dataset), then filter verified ones
+  // This is much faster than fetching all stats and filtering client-side
+  const { data: completedGames, error: gameError } = await supabase
+    .from("games")
+    .select("id, home_captain_verified, away_captain_verified, home_verified_by_owner, away_verified_by_owner")
+    .eq("season_id", seasonId)
+    .eq("status", "completed")
+    .limit(1000); // Safety limit
+
+  if (gameError) {
+    console.error("Error fetching verified games:", gameError);
+    return { error: gameError.message, stats: [] };
+  }
+
+  if (!verifiedGameIds || verifiedGameIds.length === 0) {
+    return { stats: [] };
+  }
+
+  const gameIds = verifiedGameIds.map(g => g.id);
+
+  // Now fetch stats only for verified games
+  // Use aggregation to reduce data transfer
   const { data: stats, error } = await supabase
     .from("player_stats")
     .select(`
-      *,
-      player:profiles!player_stats_player_id_fkey(id, full_name, jersey_number, position, avatar_url),
-      game:games!player_stats_game_id_fkey(
-        id, 
-        season_id, 
-        status, 
-        home_captain_verified, 
-        away_captain_verified,
-        home_verified_by_owner,
-        away_verified_by_owner
-      )
+      player_id,
+      goals,
+      assists,
+      game_id,
+      player:profiles!player_stats_player_id_fkey(id, full_name, jersey_number, position, avatar_url)
     `)
     .eq("season_id", seasonId)
-    .eq("game.status", "completed");
+    .in("game_id", gameIds)
+    .limit(10000); // Safety limit
 
   if (error) {
     console.error("Error fetching player stats:", error);
     return { error: error.message, stats: [] };
   }
 
-  // Filter to only verified games (captain verified OR owner verified for each side)
-  const verifiedStats = (stats || []).filter((stat: any) => {
-    if (!stat.game) return false;
-    const homeVerified = stat.game.home_captain_verified || stat.game.home_verified_by_owner;
-    const awayVerified = stat.game.away_captain_verified || stat.game.away_verified_by_owner;
-    return homeVerified && awayVerified;
-  });
+  const verifiedStats = stats || [];
 
   // Aggregate stats by player
   const playerStatsMap: Record<string, {
@@ -91,37 +100,51 @@ export async function getSeasonPlayerStats(seasonId: string) {
 export async function getSeasonGoalieStats(seasonId: string) {
   const supabase = await createClient();
 
-  // Get all stats for this season, then filter by verified games
+  // OPTIMIZED: Get completed games first, then filter verified ones
+  const { data: completedGames, error: gameError } = await supabase
+    .from("games")
+    .select("id, home_captain_verified, away_captain_verified, home_verified_by_owner, away_verified_by_owner")
+    .eq("season_id", seasonId)
+    .eq("status", "completed")
+    .limit(1000); // Safety limit
+
+  if (gameError) {
+    console.error("Error fetching completed games:", gameError);
+    return { error: gameError.message, stats: [] };
+  }
+
+  // Filter to only verified games (both sides verified)
+  const verifiedGameIds = (completedGames || []).filter((game: any) => {
+    const homeVerified = game.home_captain_verified || game.home_verified_by_owner;
+    const awayVerified = game.away_captain_verified || game.away_verified_by_owner;
+    return homeVerified && awayVerified;
+  }).map((g: any) => g.id);
+
+  if (verifiedGameIds.length === 0) {
+    return { stats: [] };
+  }
+
+  // Fetch stats only for verified games
   const { data: stats, error } = await supabase
     .from("goalie_stats")
     .select(`
-      *,
-      player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number),
-      game:games!goalie_stats_game_id_fkey(
-        id, 
-        season_id, 
-        status, 
-        home_captain_verified, 
-        away_captain_verified,
-        home_verified_by_owner,
-        away_verified_by_owner
-      )
+      player_id,
+      goals_against,
+      saves,
+      shutout,
+      game_id,
+      player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number)
     `)
     .eq("season_id", seasonId)
-    .eq("game.status", "completed");
+    .in("game_id", gameIds)
+    .limit(5000); // Safety limit
 
   if (error) {
     console.error("Error fetching goalie stats:", error);
     return { error: error.message, stats: [] };
   }
 
-  // Filter to only verified games (captain verified OR owner verified for each side)
-  const verifiedStats = (stats || []).filter((stat: any) => {
-    if (!stat.game) return false;
-    const homeVerified = stat.game.home_captain_verified || stat.game.home_verified_by_owner;
-    const awayVerified = stat.game.away_captain_verified || stat.game.away_verified_by_owner;
-    return homeVerified && awayVerified;
-  });
+  const verifiedStats = stats || [];
 
   // Aggregate stats by goalie
   const goalieStatsMap: Record<string, {
@@ -185,6 +208,34 @@ export async function getSeasonGoalieStats(seasonId: string) {
 export async function getPlayerStats(playerId: string, seasonId?: string) {
   const supabase = await createClient();
 
+  // OPTIMIZED: Get completed games first, then filter verified ones
+  let gameQuery = supabase
+    .from("games")
+    .select("id, home_captain_verified, away_captain_verified, home_verified_by_owner, away_verified_by_owner")
+    .eq("status", "completed");
+
+  if (seasonId) {
+    gameQuery = gameQuery.eq("season_id", seasonId);
+  }
+
+  const { data: completedGames } = await gameQuery.limit(1000);
+
+  if (!completedGames || completedGames.length === 0) {
+    return { stats: [], totals: { games: 0, goals: 0, assists: 0, points: 0 } };
+  }
+
+  // Filter to only verified games (both sides verified)
+  const verifiedGameIds = completedGames.filter((game: any) => {
+    const homeVerified = game.home_captain_verified || game.home_verified_by_owner;
+    const awayVerified = game.away_captain_verified || game.away_verified_by_owner;
+    return homeVerified && awayVerified;
+  }).map((g: any) => g.id);
+
+  if (verifiedGameIds.length === 0) {
+    return { stats: [], totals: { games: 0, goals: 0, assists: 0, points: 0 } };
+  }
+
+  // Now fetch stats only for verified games
   let query = supabase
     .from("player_stats")
     .select(`
@@ -197,21 +248,14 @@ export async function getPlayerStats(playerId: string, seasonId?: string) {
         home_score,
         away_score,
         status,
-        home_captain_verified,
-        away_captain_verified,
-        home_verified_by_owner,
-        away_verified_by_owner,
         home_team:teams!games_home_team_id_fkey(id, name, short_name),
         away_team:teams!games_away_team_id_fkey(id, name, short_name),
         season:seasons!games_season_id_fkey(id, name)
       )
     `)
     .eq("player_id", playerId)
-    .eq("game.status", "completed");
-
-  if (seasonId) {
-    query = query.eq("game.season_id", seasonId);
-  }
+    .in("game_id", verifiedGameIds)
+    .limit(500); // Limit per player
 
   const { data: stats, error } = await query.order("game.scheduled_at", { ascending: false });
 
@@ -220,12 +264,8 @@ export async function getPlayerStats(playerId: string, seasonId?: string) {
     return { error: error.message, stats: [] };
   }
 
-  // Filter to only verified games (captain verified OR owner verified for each side)
-  const verifiedStats = (stats || []).filter((s: any) => {
-    const homeVerified = s.game.home_captain_verified || s.game.home_verified_by_owner;
-    const awayVerified = s.game.away_captain_verified || s.game.away_verified_by_owner;
-    return homeVerified && awayVerified;
-  });
+  // All stats are already from verified games
+  const verifiedStats = stats || [];
 
   // Calculate totals
   const totals = verifiedStats.reduce((acc, stat: any) => {
@@ -268,25 +308,32 @@ export async function getCareerPlayerStats() {
 
   let currentStatsMap: Record<string, any> = {};
   if (matchedPlayerIds.length > 0) {
-    const { data: currentStats } = await supabase
-      .from("player_stats")
-      .select(`
-        player_id,
-        goals,
-        assists,
-        game:games!player_stats_game_id_fkey(
-          id,
-          status,
-          home_captain_verified,
-          away_captain_verified
-        )
-      `)
-      .in("player_id", matchedPlayerIds)
-      .eq("game.status", "completed");
+    // OPTIMIZED: Get verified game IDs first
+    const { data: verifiedGameIds } = await supabase
+      .from("games")
+      .select("id")
+      .eq("status", "completed")
+      .or("home_captain_verified.eq.true,home_verified_by_owner.eq.true")
+      .or("away_captain_verified.eq.true,away_verified_by_owner.eq.true")
+      .limit(10000);
 
-    // Aggregate current stats by player
-    (currentStats || []).forEach((stat: any) => {
-      if (stat.game?.home_captain_verified && stat.game?.away_captain_verified) {
+    if (verifiedGameIds && verifiedGameIds.length > 0) {
+      const gameIds = verifiedGameIds.map(g => g.id);
+
+      const { data: currentStats } = await supabase
+        .from("player_stats")
+        .select(`
+          player_id,
+          goals,
+          assists,
+          game_id
+        `)
+        .in("player_id", matchedPlayerIds)
+        .in("game_id", verifiedGameIds)
+        .limit(50000); // Safety limit
+
+      // Aggregate current stats by player
+      (currentStats || []).forEach((stat: any) => {
         if (!currentStatsMap[stat.player_id]) {
           currentStatsMap[stat.player_id] = {
             games: new Set(),
@@ -295,12 +342,12 @@ export async function getCareerPlayerStats() {
             points: 0,
           };
         }
-        currentStatsMap[stat.player_id].games.add(stat.game.id);
+        currentStatsMap[stat.player_id].games.add(stat.game_id);
         currentStatsMap[stat.player_id].goals += stat.goals || 0;
         currentStatsMap[stat.player_id].assists += stat.assists || 0;
         currentStatsMap[stat.player_id].points += (stat.goals || 0) + (stat.assists || 0);
-      }
-    });
+      });
+    }
 
     // Convert Set to count
     Object.keys(currentStatsMap).forEach((playerId) => {
@@ -358,34 +405,48 @@ export async function getCareerGoalieStats() {
     console.error("Error fetching legacy goalie stats:", legacyError);
   }
 
-  // Get current goalie stats (aggregated across all seasons)
+  // OPTIMIZED: Get completed games first, then filter verified ones
+  const { data: completedGames } = await supabase
+    .from("games")
+    .select("id, home_captain_verified, away_captain_verified, home_verified_by_owner, away_verified_by_owner")
+    .eq("status", "completed")
+    .limit(10000); // Safety limit
+
+  if (!completedGames || completedGames.length === 0) {
+    return { stats: [] };
+  }
+
+  // Filter to only verified games (both sides verified)
+  const verifiedGameIds = completedGames.filter((game: any) => {
+    const homeVerified = game.home_captain_verified || game.home_verified_by_owner;
+    const awayVerified = game.away_captain_verified || game.away_verified_by_owner;
+    return homeVerified && awayVerified;
+  }).map((g: any) => g.id);
+
+  if (verifiedGameIds.length === 0) {
+    return { stats: [] };
+  }
+
+  // Get current goalie stats (aggregated across all seasons) - only for verified games
   const { data: currentStats, error: currentError } = await supabase
     .from("goalie_stats")
     .select(`
-      *,
-      player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number, avatar_url),
-      game:games!goalie_stats_game_id_fkey(
-        id,
-        status,
-        home_captain_verified,
-        away_captain_verified,
-        home_verified_by_owner,
-        away_verified_by_owner
-      )
+      player_id,
+      goals_against,
+      saves,
+      shutout,
+      game_id,
+      player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number, avatar_url)
     `)
-    .eq("game.status", "completed");
+    .in("game_id", gameIds)
+    .limit(10000); // Safety limit
 
   if (currentError) {
     console.error("Error fetching current goalie stats:", currentError);
   }
 
-  // Filter verified games
-  const verifiedStats = (currentStats || []).filter((stat: any) => {
-    if (!stat.game) return false;
-    const homeVerified = stat.game.home_captain_verified || stat.game.home_verified_by_owner;
-    const awayVerified = stat.game.away_captain_verified || stat.game.away_verified_by_owner;
-    return homeVerified && awayVerified;
-  });
+  // Stats are already filtered to verified games
+  const verifiedStats = currentStats || [];
 
   // Aggregate current goalie stats by player
   const currentGoalieMap: Record<string, {
@@ -535,6 +596,40 @@ export async function getCareerGoalieStats() {
 export async function getGoalieStats(goalieId: string, seasonId?: string) {
   const supabase = await createClient();
 
+  // OPTIMIZED: Get completed games first, then filter verified ones
+  let gameQuery = supabase
+    .from("games")
+    .select("id, home_captain_verified, away_captain_verified, home_verified_by_owner, away_verified_by_owner")
+    .eq("status", "completed");
+
+  if (seasonId) {
+    gameQuery = gameQuery.eq("season_id", seasonId);
+  }
+
+  const { data: completedGames } = await gameQuery.limit(1000);
+
+  if (!completedGames || completedGames.length === 0) {
+    return { 
+      stats: [], 
+      totals: { games: 0, goalsAgainst: 0, saves: 0, shutouts: 0, gaa: 0, savePercentage: 0 } 
+    };
+  }
+
+  // Filter to only verified games (both sides verified)
+  const verifiedGameIds = completedGames.filter((game: any) => {
+    const homeVerified = game.home_captain_verified || game.home_verified_by_owner;
+    const awayVerified = game.away_captain_verified || game.away_verified_by_owner;
+    return homeVerified && awayVerified;
+  }).map((g: any) => g.id);
+
+  if (verifiedGameIds.length === 0) {
+    return { 
+      stats: [], 
+      totals: { games: 0, goalsAgainst: 0, saves: 0, shutouts: 0, gaa: 0, savePercentage: 0 } 
+    };
+  }
+
+  // Now fetch stats only for verified games
   let query = supabase
     .from("goalie_stats")
     .select(`
@@ -547,21 +642,14 @@ export async function getGoalieStats(goalieId: string, seasonId?: string) {
         home_score,
         away_score,
         status,
-        home_captain_verified,
-        away_captain_verified,
-        home_verified_by_owner,
-        away_verified_by_owner,
         home_team:teams!games_home_team_id_fkey(id, name, short_name),
         away_team:teams!games_away_team_id_fkey(id, name, short_name),
         season:seasons!games_season_id_fkey(id, name)
       )
     `)
     .eq("player_id", goalieId)
-    .eq("game.status", "completed");
-
-  if (seasonId) {
-    query = query.eq("game.season_id", seasonId);
-  }
+    .in("game_id", gameIds)
+    .limit(500); // Limit per goalie
 
   const { data: stats, error } = await query.order("game.scheduled_at", { ascending: false });
 
@@ -570,12 +658,8 @@ export async function getGoalieStats(goalieId: string, seasonId?: string) {
     return { error: error.message, stats: [] };
   }
 
-  // Filter to only verified games (captain verified OR owner verified for each side)
-  const verifiedStats = (stats || []).filter((s: any) => {
-    const homeVerified = s.game.home_captain_verified || s.game.home_verified_by_owner;
-    const awayVerified = s.game.away_captain_verified || s.game.away_verified_by_owner;
-    return homeVerified && awayVerified;
-  });
+  // All stats are already from verified games
+  const verifiedStats = stats || [];
 
   // Calculate totals
   const totals = verifiedStats.reduce((acc, stat: any) => {
