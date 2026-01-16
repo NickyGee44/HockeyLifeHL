@@ -65,16 +65,20 @@ export default function DashboardPage() {
             console.error("Stats query error:", err);
             return { error: err.message, stats: [], totals: null };
           }),
-          supabase
-            .from("team_rosters")
-            .select("team_id")
-            .eq("player_id", user?.id)
-            .eq("season_id", activeSeason.id)
-            .single()
-            .catch(err => {
+          (async () => {
+            try {
+              const result = await supabase
+                .from("team_rosters")
+                .select("team_id")
+                .eq("player_id", user?.id)
+                .eq("season_id", activeSeason.id)
+                .single();
+              return result;
+            } catch (err) {
               console.error("Roster query error:", err);
               return { data: null, error: err };
-            })
+            }
+          })()
         ]);
 
         if (statsResult?.totals) {
