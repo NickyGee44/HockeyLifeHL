@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
 
 type Team = {
   id: string;
@@ -44,11 +45,51 @@ type ScheduleViewProps = {
 };
 
 export function ScheduleView({ upcomingGames, recentGames, teams }: ScheduleViewProps) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string>("all");
+  const [userTeamId, setUserTeamId] = useState<string | null>(null);
   
-  // Get user's team if logged in
-  const userTeamId = profile?.team_id;
+  // Fetch user's team from roster for active season
+  useEffect(() => {
+    async function fetchUserTeam() {
+      if (!user?.id) {
+        setUserTeamId(null);
+        return;
+      }
+
+      const supabase = createClient();
+      
+      // Get active season
+      const { data: activeSeason } = await supabase
+        .from("seasons")
+        .select("id")
+        .in("status", ["active", "playoffs"])
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!activeSeason) {
+        setUserTeamId(null);
+        return;
+      }
+
+      // Get user's team for active season
+      const { data: rosterEntry } = await supabase
+        .from("team_rosters")
+        .select("team_id")
+        .eq("player_id", user.id)
+        .eq("season_id", activeSeason.id)
+        .single();
+
+      if (rosterEntry) {
+        setUserTeamId(rosterEntry.team_id);
+      } else {
+        setUserTeamId(null);
+      }
+    }
+
+    fetchUserTeam();
+  }, [user?.id]);
 
   // Filter games based on selection
   const filteredUpcoming = useMemo(() => {
