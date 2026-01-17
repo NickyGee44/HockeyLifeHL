@@ -198,7 +198,7 @@ export default function AdminTeamsPage() {
       const filePath = `team-logos/${fileName}`;
 
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from("public")
         .upload(filePath, file, {
           cacheControl: "3600",
@@ -206,7 +206,12 @@ export default function AdminTeamsPage() {
         });
 
       if (uploadError) {
-        throw uploadError;
+        console.error("Storage upload error:", uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      if (!uploadData) {
+        throw new Error("Upload succeeded but no data returned");
       }
 
       // Get public URL
@@ -225,9 +230,9 @@ export default function AdminTeamsPage() {
       setEditingTeam({ ...editingTeam, logo_url: publicUrl });
       toast.success("Logo updated!");
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Logo upload error:", error);
-      toast.error("Failed to upload logo");
+      toast.error(error.message || "Failed to upload logo. Make sure storage is configured in Supabase.");
     } finally {
       setIsUploadingLogo(false);
       if (logoInputRef.current) {
