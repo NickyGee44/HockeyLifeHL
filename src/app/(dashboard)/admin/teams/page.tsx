@@ -190,29 +190,8 @@ export default function AdminTeamsPage() {
     setIsUploadingLogo(true);
     console.log("Starting upload for file:", file.name, "size:", file.size, "type:", file.type);
 
-    // Create abort controller for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      console.error("Upload timed out after 30 seconds");
-    }, 30000); // 30 second timeout
-
     try {
       const supabase = createClient();
-      
-      // Check if bucket exists by listing files (this also verifies connection)
-      console.log("Checking storage connection...");
-      const { error: listError } = await supabase.storage
-        .from("public")
-        .list("team-logos", { limit: 1 });
-      
-      if (listError) {
-        console.error("Storage list error:", listError);
-        // Bucket might not exist or no permission
-        if (listError.message.includes("not found") || listError.message.includes("does not exist")) {
-          throw new Error("Storage bucket 'public' not found. Please run the storage setup SQL in Supabase.");
-        }
-      }
       
       // Generate unique filename
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
@@ -220,19 +199,29 @@ export default function AdminTeamsPage() {
       const filePath = `team-logos/${fileName}`;
       
       console.log("Uploading to path:", filePath);
+      console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 
-      // Upload to Supabase Storage
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      // Upload to Supabase Storage with timeout
+      const uploadPromise = supabase.storage
         .from("public")
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: true,
         });
 
-      clearTimeout(timeoutId);
+      // Race between upload and timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Upload timed out after 60 seconds")), 60000);
+      });
+
+      const { error: uploadError, data: uploadData } = await Promise.race([
+        uploadPromise,
+        timeoutPromise
+      ]) as Awaited<typeof uploadPromise>;
 
       if (uploadError) {
         console.error("Storage upload error:", uploadError);
+        console.error("Error details:", JSON.stringify(uploadError, null, 2));
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
@@ -261,13 +250,17 @@ export default function AdminTeamsPage() {
       toast.success("Logo updated!");
       loadData();
     } catch (error: any) {
-      clearTimeout(timeoutId);
       console.error("Logo upload error:", error);
+      console.error("Error stack:", error.stack);
       
-      if (error.name === "AbortError" || error.message?.includes("abort")) {
-        toast.error("Upload timed out. Please try again with a smaller image.");
+      if (error.message?.includes("timed out")) {
+        toast.error("Upload timed out. Check your Supabase storage configuration.");
+      } else if (error.message?.includes("Bucket not found")) {
+        toast.error("Storage bucket 'public' not found. Run the storage setup SQL.");
+      } else if (error.message?.includes("not allowed") || error.message?.includes("policy")) {
+        toast.error("Upload permission denied. Check storage policies in Supabase.");
       } else {
-        toast.error(error.message || "Failed to upload logo. Check browser console for details.");
+        toast.error(error.message || "Failed to upload logo.");
       }
     } finally {
       setIsUploadingLogo(false);
