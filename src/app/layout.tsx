@@ -27,6 +27,17 @@ export const metadata: Metadata = {
   keywords: ["hockey", "league", "stats", "draft", "recreational", "Canada"],
   authors: [{ name: "HockeyLifeHL" }],
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icons/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -41,11 +52,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_CA",
     siteName: "HockeyLifeHL",
+    images: ["/logo.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "HockeyLifeHL | For Fun, For Beers, For Glory",
     description: "The ultimate men's recreational hockey league management platform.",
+    images: ["/logo.png"],
   },
 };
 
