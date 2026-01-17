@@ -10,7 +10,13 @@ export type AuthResult = {
 };
 
 export async function signUp(formData: FormData): Promise<AuthResult> {
-  const supabase = await createClient();
+  let supabase;
+  try {
+    supabase = await createClient();
+  } catch (err: any) {
+    console.error("Failed to create Supabase client:", err);
+    return { error: "Configuration error. Please contact support." };
+  }
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -25,6 +31,12 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
     return { error: "Email and password are required" };
   }
 
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { error: "Please enter a valid email address" };
+  }
+
   if (password !== confirmPassword) {
     return { error: "Passwords do not match" };
   }
@@ -35,13 +47,24 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
 
   // Validate invite code if provided (before signup)
   if (inviteCode) {
-    const { validateInviteCode } = await import("../teams/invite-actions");
-    const validation = await validateInviteCode(inviteCode);
-    
-    if (!validation.isValid) {
-      return { error: validation.message || "Invalid invite code" };
+    try {
+      const { validateInviteCode } = await import("../teams/invite-actions");
+      const validation = await validateInviteCode(inviteCode);
+      
+      if (!validation.isValid) {
+        return { error: validation.message || "Invalid invite code" };
+      }
+    } catch (err) {
+      console.error("Error validating invite code:", err);
+      // Continue without invite code validation
     }
   }
+
+  // Determine redirect URL
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+    (typeof window !== 'undefined' ? window.location.origin : "http://localhost:3000");
+
+  console.log("Signup attempt for:", email, "with redirect to:", siteUrl);
 
   const { data: signUpData, error } = await supabase.auth.signUp({
     email,
@@ -52,14 +75,33 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
         jersey_number: jerseyNumber ? parseInt(jerseyNumber) : null,
         position: position || null,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   });
 
   if (error) {
     console.error("Signup error:", error);
+    
+    // Provide more user-friendly error messages
+    if (error.message.includes("already registered")) {
+      return { error: "This email is already registered. Try signing in instead." };
+    }
+    if (error.message.includes("invalid")) {
+      return { error: "Invalid email or password format." };
+    }
+    if (error.message.includes("rate limit")) {
+      return { error: "Too many signup attempts. Please try again later." };
+    }
+    
     return { error: error.message };
   }
+
+  if (!signUpData.user) {
+    console.error("Signup returned no user");
+    return { error: "Failed to create account. Please try again." };
+  }
+
+  console.log("User created successfully:", signUpData.user.id);
 
   // If invite code provided and user was created, use the invite code
   // Note: Profile is created by trigger, so we need to wait a moment or check
@@ -99,28 +141,51 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
 }
 
 export async function signIn(formData: FormData): Promise<AuthResult> {
-  const supabase = await createClient();
+  let supabase;
+  try {
+    supabase = await createClient();
+  } catch (err: any) {
+    console.error("Failed to create Supabase client:", err);
+    return { error: "Configuration error. Please contact support." };
+  }
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const rememberMe = formData.get("rememberMe") === "on";
 
   if (!email || !password) {
     return { error: "Email and password are required" };
   }
 
+  console.log("Sign in attempt for:", email);
+
   // Sign in with password
-  // Note: Supabase automatically persists sessions via cookies
-  // The rememberMe checkbox is for UX - sessions persist by default
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
     console.error("Signin error:", error);
+    
+    // Provide user-friendly error messages
+    if (error.message.includes("Invalid login credentials")) {
+      return { error: "Invalid email or password. Please try again." };
+    }
+    if (error.message.includes("Email not confirmed")) {
+      return { error: "Please confirm your email before signing in. Check your inbox." };
+    }
+    if (error.message.includes("rate limit")) {
+      return { error: "Too many login attempts. Please try again later." };
+    }
+    
     return { error: error.message };
   }
+
+  if (!data.user) {
+    return { error: "Failed to sign in. Please try again." };
+  }
+
+  console.log("User signed in successfully:", data.user.id);
 
   revalidatePath("/", "layout");
   redirect("/dashboard");
