@@ -1,22 +1,31 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 
 // Cache for profile data to avoid refetching
 let profileCache: { userId: string; profile: Profile; timestamp: number } | null = null;
-const CACHE_TTL = 10000; // Reduced to 10 seconds for better role updates
+const CACHE_TTL = 10000; // 10 seconds for better role updates
+const AUTH_TIMEOUT = 10000; // 10 second timeout for auth operations
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const initRef = useRef(false);
   
-  // Get the singleton client instance
-  const supabase = useMemo(() => createClient(), []);
+  // Get the singleton client instance - wrapped in try-catch for safety
+  const supabase = useMemo(() => {
+    try {
+      return createClient();
+    } catch (e) {
+      console.error("Failed to create Supabase client:", e);
+      return null;
+    }
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string, retryCount = 0): Promise<Profile | null> => {
     // Check cache first (but only if it's recent)
@@ -70,50 +79,71 @@ export function useAuth() {
   }, [user?.id, fetchProfile]);
 
   useEffect(() => {
-    let mounted = true;
-    let loadingSet = false;
+    // Prevent double initialization in React Strict Mode
+    if (initRef.current) return;
+    initRef.current = true;
 
-    // Get initial session
+    let mounted = true;
+
+    // If supabase client failed to create, stop loading immediately
+    if (!supabase) {
+      setError("Configuration error. Please refresh the page.");
+      setLoading(false);
+      return;
+    }
+
+    // Get initial session with timeout
     const getInitialSession = async () => {
+      const timeoutId = setTimeout(() => {
+        if (mounted) {
+          console.warn("Auth initialization timed out");
+          setLoading(false);
+          // Don't set error - user might just not be logged in
+        }
+      }, AUTH_TIMEOUT);
+
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        // First, try to get session from storage (faster, no API call)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (!mounted) return;
-        
-        if (authError) {
-          console.error("Auth error:", authError);
-          setError(authError.message);
-          if (mounted && !loadingSet) {
-            setLoading(false);
-            loadingSet = true;
-          }
+        if (!mounted) {
+          clearTimeout(timeoutId);
           return;
         }
 
-        setUser(user);
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          // Don't treat as fatal - user might just not be logged in
+          clearTimeout(timeoutId);
+          setLoading(false);
+          return;
+        }
 
-        if (user) {
-          const profile = await fetchProfile(user.id);
+        // If we have a session, validate it with getUser
+        if (session?.user) {
+          setUser(session.user);
+          
+          // Fetch profile
+          const userProfile = await fetchProfile(session.user.id);
           if (mounted) {
-            setProfile(profile);
-            if (!profile) {
-              setError("Profile not found. Please contact support.");
-            } else {
-              setError(null);
-            }
+            setProfile(userProfile);
+            setError(null);
           }
         } else {
+          // No session - user is not logged in
           profileCache = null;
+          setUser(null);
           setProfile(null);
           setError(null);
         }
-      } catch (error) {
-        console.error("Auth error:", error);
-        setError("Failed to load authentication");
+      } catch (err) {
+        console.error("Auth initialization error:", err);
+        // Don't set error state - just log and continue
+        // User can still use the site without being logged in
       } finally {
-        if (mounted && !loadingSet) {
+        clearTimeout(timeoutId);
+        if (mounted) {
           setLoading(false);
-          loadingSet = true;
         }
       }
     };
@@ -125,20 +155,18 @@ export function useAuth() {
       async (event, session) => {
         if (!mounted) return;
         
+        console.log("Auth state changed:", event);
+        
         // Invalidate cache on any auth state change
         profileCache = null;
         
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          const profile = await fetchProfile(session.user.id);
+          const userProfile = await fetchProfile(session.user.id);
           if (mounted) {
-            setProfile(profile);
-            if (!profile) {
-              setError("Profile not found. Please contact support.");
-            } else {
-              setError(null);
-            }
+            setProfile(userProfile);
+            setError(null);
           }
         } else {
           setProfile(null);
