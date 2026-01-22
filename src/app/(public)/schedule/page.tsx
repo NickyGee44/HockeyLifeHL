@@ -1,14 +1,20 @@
 import { getUpcomingGames, getRecentGames } from "@/lib/games/actions";
 import { getAllTeams } from "@/lib/teams/actions";
+import { getActiveSeason } from "@/lib/seasons/actions";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
 
 // Cache this page for 60 seconds
 export const revalidate = 60;
 
 export default async function SchedulePage() {
+  // Get active season first
+  const activeSeasonResult = await getActiveSeason();
+  const activeSeason = activeSeasonResult.season;
+  const activeSeasonId = activeSeason?.id;
+
   const [upcomingResult, recentResult, teamsResult] = await Promise.all([
-    getUpcomingGames(50),
-    getRecentGames(50),
+    getUpcomingGames(50, activeSeasonId),
+    getRecentGames(50, activeSeasonId),
     getAllTeams(),
   ]);
 
@@ -24,7 +30,9 @@ export default async function SchedulePage() {
           <span className="text-canada-red">Schedule</span>
         </h1>
         <p className="text-muted-foreground">
-          View upcoming games and recent results
+          {activeSeason 
+            ? `${activeSeason.name} - View upcoming games and recent results`
+            : "View upcoming games and recent results"}
         </p>
       </div>
 

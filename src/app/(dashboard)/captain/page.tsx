@@ -47,6 +47,16 @@ type SeasonData = {
   status: string | null;
 };
 
+type ActiveDraft = {
+  id: string;
+  status: string;
+  current_pick: number;
+  draft_link: string | null;
+  season: {
+    name: string;
+  };
+};
+
 export default function CaptainDashboardPage() {
   const { user, profile, loading: authLoading, isCaptain } = useAuth();
   const [team, setTeam] = useState<TeamData | null>(null);
@@ -54,6 +64,7 @@ export default function CaptainDashboardPage() {
   const [season, setSeason] = useState<SeasonData | null>(null);
   const [pendingStats, setPendingStats] = useState<number>(0);
   const [teamStats, setTeamStats] = useState<any>(null);
+  const [activeDraft, setActiveDraft] = useState<ActiveDraft | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -116,6 +127,25 @@ export default function CaptainDashboardPage() {
 
       setTeam(teamData);
       setSeason(seasonData);
+
+      // Check for active draft (regardless of season)
+      const { data: draftData } = await supabase
+        .from("drafts")
+        .select(`
+          id,
+          status,
+          current_pick,
+          draft_link,
+          season:seasons!drafts_season_id_fkey(name)
+        `)
+        .in("status", ["pending", "in_progress"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (draftData) {
+        setActiveDraft(draftData as unknown as ActiveDraft);
+      }
 
       // Get roster, pending stats, and team stats in parallel
       if (seasonData) {
@@ -299,6 +329,54 @@ export default function CaptainDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Active Draft Banner */}
+      {activeDraft && (
+        <Card className="border-rink-blue bg-rink-blue/10 animate-pulse-slow">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🎯</span>
+                <div>
+                  <CardTitle className="text-rink-blue">Draft In Progress!</CardTitle>
+                  <CardDescription>
+                    {activeDraft.season?.name} • Pick #{activeDraft.current_pick}
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge 
+                className={activeDraft.status === "in_progress" 
+                  ? "bg-green-600 animate-pulse" 
+                  : "bg-yellow-600"
+                }
+              >
+                {activeDraft.status === "in_progress" ? "LIVE" : "Pending"}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {activeDraft.status === "in_progress" 
+                  ? "The draft is active! Make your picks now."
+                  : "The draft is set up and waiting to begin."}
+              </p>
+              <Button 
+                className="bg-rink-blue hover:bg-rink-blue/90 w-full sm:w-auto"
+                size="lg"
+                asChild
+              >
+                <Link href={activeDraft.draft_link 
+                  ? `/captain/draft?draft=${activeDraft.draft_link}` 
+                  : "/captain/draft"
+                }>
+                  🏒 Go to Draft Board →
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Captain Actions */}
       <Card>

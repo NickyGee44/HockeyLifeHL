@@ -45,7 +45,7 @@ type ScheduleViewProps = {
 };
 
 export function ScheduleView({ upcomingGames, recentGames, teams }: ScheduleViewProps) {
-  const { profile, user } = useAuth();
+  const { user } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string>("all");
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
   

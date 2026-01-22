@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +34,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 
 export default function AdminDraftPage() {
   const router = useRouter();
@@ -49,6 +50,15 @@ export default function AdminDraftPage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
   const [isMakingPick, setIsMakingPick] = useState(false);
   const [localDraft, setLocalDraft] = useState<any>(null); // Local draft state to avoid timing issues
+  
+  // Autodraft state - tracks which teams have autodraft enabled
+  const [autodraftTeams, setAutodraftTeams] = useState<Record<string, boolean>>({});
+  const [isAutodrafting, setIsAutodrafting] = useState(false);
+  
+  // Ref to prevent duplicate autodrafts (more reliable than state for async operations)
+  const autodraftInProgress = useRef(false);
+  const lastAutodraftPick = useRef<number | null>(null);
+  const lastPickedPlayerId = useRef<string | null>(null);
 
   // Use real-time hook for draft updates
   const { draft: realtimeDraft, picks, isConnected } = useDraftRealtime(draftId);
@@ -196,11 +206,12 @@ export default function AdminDraftPage() {
   }
 
   async function handleMakePick(playerId?: string, teamId?: string) {
-    const targetTeamId = teamId || selectedTeamId;
+    // Auto-use current team on clock if no team specified
+    const targetTeamId = teamId || currentTeamTurn?.id;
     const targetPlayerId = playerId || selectedPlayerId;
     
     if (!draft || !targetTeamId || !targetPlayerId) {
-      toast.error("Please select both a team and a player");
+      toast.error("No team on the clock or no player selected");
       return;
     }
 
@@ -210,9 +221,9 @@ export default function AdminDraftPage() {
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success("Pick made successfully!");
+      const teamName = currentTeamTurn?.name || "Team";
+      toast.success(`Pick made for ${teamName}!`);
       setIsPickDialogOpen(false);
-      setSelectedTeamId("");
       setSelectedPlayerId("");
       // Real-time hook will update automatically
     }
@@ -244,6 +255,137 @@ export default function AdminDraftPage() {
       .sort((a, b) => a.pick_position - b.pick_position)
       .map((order) => order.team);
   }, [draftOrder]);
+
+  // Toggle autodraft for a team
+  function toggleAutodraft(teamId: string) {
+    setAutodraftTeams(prev => ({
+      ...prev,
+      [teamId]: !prev[teamId]
+    }));
+    const team = teams.find(t => t.id === teamId);
+    if (team) {
+      const newState = !autodraftTeams[teamId];
+      toast.success(`Autodraft ${newState ? "enabled" : "disabled"} for ${team.name}`);
+    }
+  }
+
+  // Get the best available player (highest rated, or first alphabetically if no ratings)
+  const getBestAvailablePlayer = useCallback(() => {
+    if (!availablePlayers || availablePlayers.length === 0) return null;
+    
+    // Sort by rating (A+ is best, D- is worst), then by name
+    const ratingOrder = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-"];
+    
+    const sorted = [...availablePlayers].sort((a, b) => {
+      const aRatingIndex = ratingOrder.indexOf(a.rating || "C");
+      const bRatingIndex = ratingOrder.indexOf(b.rating || "C");
+      
+      if (aRatingIndex !== bRatingIndex) {
+        return aRatingIndex - bRatingIndex; // Lower index = better rating
+      }
+      
+      // If same rating, sort alphabetically
+      const aName = a.player?.full_name || a.full_name || "";
+      const bName = b.player?.full_name || b.full_name || "";
+      return aName.localeCompare(bName);
+    });
+    
+    const best = sorted[0];
+    if (!best) return null;
+    
+    // Return a normalized player object with the correct ID
+    // availablePlayers can have player_id (from ratings) or player.id (nested)
+    const playerId = best.player_id || best.player?.id || best.id;
+    const playerName = best.player?.full_name || best.full_name || "Unknown";
+    const playerRating = best.rating || "C";
+    
+    if (!playerId) {
+      console.error("Could not determine player ID from:", best);
+      return null;
+    }
+    
+    return {
+      id: playerId,
+      full_name: playerName,
+      rating: playerRating,
+    };
+  }, [availablePlayers]);
+
+  // Clear lastPickedPlayerId when availablePlayers updates (realtime propagated)
+  useEffect(() => {
+    // If the last picked player is no longer in the available list, clear the ref
+    if (lastPickedPlayerId.current) {
+      const stillAvailable = availablePlayers.some(p => {
+        const playerId = p.player_id || p.player?.id || p.id;
+        return playerId === lastPickedPlayerId.current;
+      });
+      if (!stillAvailable) {
+        lastPickedPlayerId.current = null;
+      }
+    }
+  }, [availablePlayers]);
+
+  // Autodraft effect - triggers when it's an autodraft team's turn
+  useEffect(() => {
+    async function performAutodraft() {
+      // Guard conditions
+      if (!draft || draft.status !== "in_progress") return;
+      if (!currentTeamTurn) return;
+      if (!autodraftTeams[currentTeamTurn.id]) return;
+      if (availablePlayers.length === 0) return;
+      
+      // Prevent duplicate autodrafts using ref (more reliable than state)
+      if (autodraftInProgress.current) return;
+      if (lastAutodraftPick.current === draft.current_pick) return;
+      
+      const bestPlayer = getBestAvailablePlayer();
+      if (!bestPlayer) return;
+      
+      // Skip if this player was just picked (realtime hasn't updated yet)
+      if (lastPickedPlayerId.current === bestPlayer.id) {
+        console.log("Skipping autodraft - waiting for available players to update");
+        return;
+      }
+      
+      // Mark as in progress
+      autodraftInProgress.current = true;
+      lastAutodraftPick.current = draft.current_pick;
+      setIsAutodrafting(true);
+      
+      try {
+        // Small delay to make it visible that autodraft is happening
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        toast.info(`🤖 Autodrafting for ${currentTeamTurn.name}...`);
+        
+        const result = await makeDraftPick(draft.id, currentTeamTurn.id, bestPlayer.id);
+        
+        if (result.error) {
+          toast.error(`Autodraft failed: ${result.error}`);
+          // Reset so it can retry
+          lastAutodraftPick.current = null;
+          lastPickedPlayerId.current = null;
+        } else {
+          toast.success(`🤖 ${currentTeamTurn.name} autodrafted ${bestPlayer.full_name} (${bestPlayer.rating || "Unrated"})`);
+          // Track the picked player to avoid duplicate attempts
+          lastPickedPlayerId.current = bestPlayer.id;
+          
+          // Wait for realtime to propagate before allowing next autodraft
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } catch (error) {
+        console.error("Autodraft error:", error);
+        toast.error("Autodraft failed unexpectedly");
+        lastAutodraftPick.current = null;
+        lastPickedPlayerId.current = null;
+      } finally {
+        setIsAutodrafting(false);
+        autodraftInProgress.current = false;
+      }
+    }
+    
+    performAutodraft();
+  }, [currentTeamTurn, draft, autodraftTeams, availablePlayers.length, getBestAvailablePlayer]);
 
   if (loading) {
     return <Skeleton className="h-64 w-full" />;
@@ -325,8 +467,80 @@ export default function AdminDraftPage() {
 
           {/* Main Draft Layout - Side by Side */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* Left Sidebar - Team Roster */}
+            {/* Left Sidebar - Team Roster & Autodraft */}
             <div className="lg:col-span-1 space-y-4">
+              {/* Autodraft Controls */}
+              {draft?.status === "in_progress" && (
+                <Card className="border-orange-500/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      🤖 Autodraft Settings
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Enable for absent captains
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {teamsInOrder.map((team) => {
+                        const isOnClock = currentTeamTurn?.id === team.id;
+                        const isAutodraftEnabled = autodraftTeams[team.id] || false;
+                        
+                        return (
+                          <div 
+                            key={team.id}
+                            className={`flex items-center justify-between p-2 rounded-lg border transition-all ${
+                              isOnClock 
+                                ? "border-2 bg-yellow-500/10" 
+                                : "border-muted"
+                            }`}
+                            style={isOnClock ? { borderColor: team.primary_color } : {}}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold"
+                                style={{ backgroundColor: team.primary_color }}
+                              >
+                                {team.short_name?.slice(0, 2) || team.name?.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium truncate max-w-[100px]">
+                                  {team.name}
+                                </span>
+                                {isOnClock && (
+                                  <span className="text-[10px] text-orange-600 font-semibold">
+                                    ON CLOCK
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {isAutodraftEnabled && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 bg-orange-500/10 text-orange-600 border-orange-500/30">
+                                  AUTO
+                                </Badge>
+                              )}
+                              <Switch
+                                checked={isAutodraftEnabled}
+                                onCheckedChange={() => toggleAutodraft(team.id)}
+                                className="scale-75"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {Object.values(autodraftTeams).some(v => v) && (
+                      <div className="mt-3 p-2 bg-orange-500/10 rounded-lg border border-orange-500/30">
+                        <p className="text-xs text-orange-700 dark:text-orange-400">
+                          🤖 Autodraft will pick the <strong>best available player</strong> (by rating) when it&apos;s an enabled team&apos;s turn.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Team Selector for Admin */}
               <Card>
                 <CardHeader className="pb-3">
@@ -412,21 +626,59 @@ export default function AdminDraftPage() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">🎮 Owner Draft Control Panel</CardTitle>
                     <CardDescription className="text-xs">
-                      Make picks for any team
+                      Click a player to draft them for the team on the clock
                       {isConnected && (
                         <Badge className="ml-2 bg-green-600 text-xs">
                           <span className="w-2 h-2 bg-white rounded-full inline-block mr-1 animate-pulse" />
                           Live
                         </Badge>
                       )}
-                      {currentTeamTurn && (
-                        <span className="block mt-1 text-xs font-medium">
-                          Current turn: <span className="text-blue-600">{currentTeamTurn.name}</span>
-                        </span>
-                      )}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
+                    {/* Prominent Team On Clock Indicator */}
+                    {currentTeamTurn && (
+                      <div 
+                        className={`p-4 rounded-lg border-2 flex items-center justify-between ${
+                          isAutodrafting ? "animate-pulse" : ""
+                        }`}
+                        style={{ 
+                          backgroundColor: `${currentTeamTurn.primary_color}15`,
+                          borderColor: currentTeamTurn.primary_color 
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+                            style={{ backgroundColor: currentTeamTurn.primary_color }}
+                          >
+                            {currentTeamTurn.short_name || currentTeamTurn.name?.slice(0, 3).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Drafting for:</div>
+                            <div className="text-xl font-bold">{currentTeamTurn.name}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground">Pick #{draft.current_pick}</div>
+                          {isAutodrafting ? (
+                            <div className="text-lg font-semibold text-orange-600 flex items-center gap-2">
+                              <span className="inline-block w-3 h-3 bg-orange-600 rounded-full animate-bounce" />
+                              AUTODRAFTING...
+                            </div>
+                          ) : autodraftTeams[currentTeamTurn.id] ? (
+                            <div className="text-lg font-semibold text-orange-600">
+                              🤖 AUTODRAFT ON
+                            </div>
+                          ) : (
+                            <div className="text-lg font-semibold" style={{ color: currentTeamTurn.primary_color }}>
+                              ON THE CLOCK
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <LiveDraftBoard
                       draft={draft}
                       availablePlayers={availablePlayers}
@@ -434,21 +686,20 @@ export default function AdminDraftPage() {
                       isMyTurn={true}
                       currentTeamTurn={currentTeamTurn}
                       onPick={(playerId) => {
-                        // For owner, show team selector dialog
-                        setSelectedPlayerId(playerId);
-                        setIsPickDialogOpen(true);
+                        // Auto-pick for current team on clock
+                        handleMakePick(playerId, currentTeamTurn?.id);
                       }}
                       isOwner={true}
-                      selectedTeamId={selectedTeamId}
+                      selectedTeamId={currentTeamTurn?.id || selectedTeamId}
                     />
                     
-                    {/* Team Selector Dialog for Owner */}
+                    {/* Confirmation Dialog (only shown if needed) */}
                     <Dialog open={isPickDialogOpen} onOpenChange={setIsPickDialogOpen}>
                       <DialogContent className="max-w-md">
                         <DialogHeader>
-                          <DialogTitle>Select Team</DialogTitle>
+                          <DialogTitle>Confirm Pick</DialogTitle>
                           <DialogDescription>
-                            Which team should draft this player?
+                            Draft this player for a different team?
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">

@@ -228,10 +228,10 @@ export async function deleteGame(gameId: string): Promise<GameActionResult> {
 }
 
 // Get upcoming games (for schedule page)
-export async function getUpcomingGames(limit: number = 10) {
+export async function getUpcomingGames(limit: number = 10, seasonId?: string) {
   const supabase = await createClient();
   
-  const { data: games, error } = await supabase
+  let query = supabase
     .from("games")
     .select(`
       *,
@@ -243,6 +243,12 @@ export async function getUpcomingGames(limit: number = 10) {
     .gte("scheduled_at", new Date().toISOString())
     .order("scheduled_at", { ascending: true })
     .limit(limit);
+  
+  if (seasonId) {
+    query = query.eq("season_id", seasonId);
+  }
+
+  const { data: games, error } = await query;
 
   if (error) {
     console.error("Error fetching upcoming games:", error);
@@ -253,10 +259,10 @@ export async function getUpcomingGames(limit: number = 10) {
 }
 
 // Get recent games (for schedule page)
-export async function getRecentGames(limit: number = 10) {
+export async function getRecentGames(limit: number = 10, seasonId?: string) {
   const supabase = await createClient();
   
-  const { data: games, error } = await supabase
+  let query = supabase
     .from("games")
     .select(`
       *,
@@ -267,6 +273,12 @@ export async function getRecentGames(limit: number = 10) {
     .eq("status", "completed")
     .order("scheduled_at", { ascending: false })
     .limit(limit);
+  
+  if (seasonId) {
+    query = query.eq("season_id", seasonId);
+  }
+
+  const { data: games, error } = await query;
 
   if (error) {
     console.error("Error fetching recent games:", error);

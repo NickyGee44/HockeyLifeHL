@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,9 +31,18 @@ import {
   updateSeason, 
   updateSeasonStatus,
   deleteSeason,
-  fixMultipleActiveSeasons
+  fixMultipleActiveSeasons,
+  endSeason,
+  getSeasonEndStatus,
 } from "@/lib/seasons/actions";
 import { generateSeasonSchedule } from "@/lib/seasons/schedule-generator";
+import {
+  getPreviousSeasonPlayerCount,
+  bulkOptInPreviousSeasonPlayers,
+  sendSeasonInviteEmails,
+} from "@/lib/seasons/season-invite-actions";
+import { startPlayoffs } from "@/lib/seasons/playoff-generator";
+import { getCurrentDraft } from "@/lib/draft/actions";
 import { toast } from "sonner";
 import type { Season, SeasonStatus } from "@/types/database";
 
@@ -43,6 +53,31 @@ export default function AdminSeasonsPage() {
   const [editingSeason, setEditingSeason] = useState<Season | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // End season dialog state
+  const [endSeasonConfirm, setEndSeasonConfirm] = useState<Season | null>(null);
+  const [endSeasonStatus, setEndSeasonStatus] = useState<{
+    totalGames: number;
+    completedGames: number;
+    verifiedGames: number;
+    incompleteGames: number;
+    unverifiedGames: number;
+    canEnd: boolean;
+  } | null>(null);
+  const [loadingEndStatus, setLoadingEndStatus] = useState(false);
+  
+  // Playoff dialog state
+  const [playoffConfirm, setPlayoffConfirm] = useState<Season | null>(null);
+  const [playoffTeamCount, setPlayoffTeamCount] = useState<string>("all");
+  
+  // Previous season player info
+  const [previousSeasonInfo, setPreviousSeasonInfo] = useState<{
+    count: number;
+    seasonName: string | null;
+  }>({ count: 0, seasonName: null });
+  
+  // Active draft state
+  const [activeDraft, setActiveDraft] = useState<any>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -51,14 +86,21 @@ export default function AdminSeasonsPage() {
     endDate: "",
     gamesPerCycle: "13",
     totalGames: "",
-    playoffFormat: "none",
+    playoffFormat: "round_robin", // Default to round_robin per user preference
     draftScheduledAt: "",
     setActive: false,
+    playerInviteOption: "none" as "none" | "email" | "bulk", // New field
   });
 
   useEffect(() => {
     loadSeasons();
+    loadPreviousSeasonInfo();
   }, []);
+
+  async function loadPreviousSeasonInfo() {
+    const info = await getPreviousSeasonPlayerCount();
+    setPreviousSeasonInfo(info);
+  }
 
   async function loadSeasons() {
     setLoading(true);
@@ -83,6 +125,21 @@ export default function AdminSeasonsPage() {
         } else if (fixResult.error) {
           toast.error(fixResult.error);
         }
+      }
+      
+      // Check for active draft
+      const draftSeason = result.seasons.find((s: Season) => 
+        s.status === "draft" || s.status === "active" || s.status === "playoffs"
+      );
+      if (draftSeason) {
+        const draftResult = await getCurrentDraft(draftSeason.id);
+        if (draftResult.draft && (draftResult.draft.status === "pending" || draftResult.draft.status === "in_progress")) {
+          setActiveDraft(draftResult.draft);
+        } else {
+          setActiveDraft(null);
+        }
+      } else {
+        setActiveDraft(null);
       }
     }
     
@@ -109,9 +166,10 @@ export default function AdminSeasonsPage() {
       endDate: "",
       gamesPerCycle: "13",
       totalGames: "",
-      playoffFormat: "none",
+      playoffFormat: "round_robin",
       draftScheduledAt: "",
       setActive: false,
+      playerInviteOption: "none",
     });
   }
 
@@ -123,9 +181,10 @@ export default function AdminSeasonsPage() {
       endDate: season.end_date || "",
       gamesPerCycle: (season.games_per_cycle ?? 13).toString(),
       totalGames: (season.total_games ?? "").toString(),
-      playoffFormat: season.playoff_format || "none",
+      playoffFormat: season.playoff_format || "round_robin",
       draftScheduledAt: season.draft_scheduled_at || "",
       setActive: false,
+      playerInviteOption: "none",
     });
   }
 
@@ -146,12 +205,38 @@ export default function AdminSeasonsPage() {
     
     if (result.error) {
       toast.error(result.error);
-    } else {
-      toast.success("Season created successfully!");
-      setIsCreateOpen(false);
-      resetForm();
-      loadSeasons();
+      setIsSaving(false);
+      return;
     }
+    
+    toast.success("Season created successfully!");
+    
+    // Handle player invitation based on selected option
+    if (result.season && formData.playerInviteOption !== "none") {
+      const seasonId = result.season.id;
+      
+      if (formData.playerInviteOption === "bulk") {
+        // Bulk opt-in all previous season players
+        const bulkResult = await bulkOptInPreviousSeasonPlayers(seasonId);
+        if (bulkResult.error) {
+          toast.error(`Failed to bulk opt-in players: ${bulkResult.error}`);
+        } else {
+          toast.success(bulkResult.message || `Opted in ${bulkResult.count} players`);
+        }
+      } else if (formData.playerInviteOption === "email") {
+        // Send email invites to previous season players
+        const emailResult = await sendSeasonInviteEmails(seasonId);
+        if (emailResult.error) {
+          toast.error(`Failed to send invites: ${emailResult.error}`);
+        } else {
+          toast.success(emailResult.message || `Sent invites to ${emailResult.count} players`);
+        }
+      }
+    }
+    
+    setIsCreateOpen(false);
+    resetForm();
+    loadSeasons();
     setIsSaving(false);
   }
 
@@ -187,6 +272,48 @@ export default function AdminSeasonsPage() {
       toast.success(`Season ${status === "active" ? "activated" : status}!`);
       loadSeasons();
     }
+  }
+
+  async function openEndSeasonDialog(season: Season) {
+    setEndSeasonConfirm(season);
+    setLoadingEndStatus(true);
+    const status = await getSeasonEndStatus(season.id);
+    setEndSeasonStatus(status);
+    setLoadingEndStatus(false);
+  }
+
+  async function handleEndSeason(forceEnd: boolean = false) {
+    if (!endSeasonConfirm) return;
+    
+    setIsSaving(true);
+    const result = await endSeason(endSeasonConfirm.id, forceEnd);
+    
+    if (result.error && !result.warnings) {
+      toast.error(result.error);
+    } else if (result.success) {
+      toast.success(result.message || "Season ended successfully!");
+      setEndSeasonConfirm(null);
+      setEndSeasonStatus(null);
+      loadSeasons();
+    }
+    setIsSaving(false);
+  }
+
+  async function handleStartPlayoffs() {
+    if (!playoffConfirm) return;
+    
+    setIsSaving(true);
+    const teamsToInclude = playoffTeamCount === "all" ? undefined : parseInt(playoffTeamCount);
+    const result = await startPlayoffs(playoffConfirm.id, teamsToInclude);
+    
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(`Playoffs started! ${result.gamesCreated} games created.`);
+      setPlayoffConfirm(null);
+      loadSeasons();
+    }
+    setIsSaving(false);
   }
 
   async function handleDelete(seasonId: string) {
@@ -250,6 +377,41 @@ export default function AdminSeasonsPage() {
 
   return (
     <div className="space-y-8">
+      {/* Active Draft Banner */}
+      {activeDraft && (
+        <Card className="border-2 border-rink-blue bg-gradient-to-r from-rink-blue/10 to-canada-red/10">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="text-4xl">🎯</div>
+                <div>
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    Draft {activeDraft.status === "in_progress" ? "In Progress" : "Ready to Start"}
+                    {activeDraft.status === "in_progress" && (
+                      <Badge className="bg-green-600 animate-pulse">LIVE</Badge>
+                    )}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {activeDraft.status === "in_progress" 
+                      ? `Pick #${activeDraft.current_pick} • Cycle ${activeDraft.cycle_number}`
+                      : "Click below to manage the draft"}
+                  </p>
+                </div>
+              </div>
+              <Button 
+                asChild
+                size="lg"
+                className="bg-rink-blue hover:bg-rink-blue/90 text-white font-bold"
+              >
+                <Link href="/admin/draft">
+                  🎯 Go to Draft Board →
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {hasMultipleActive && (
         <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
           <CardContent className="pt-6">
@@ -369,6 +531,73 @@ export default function AdminSeasonsPage() {
                   When the draft will take place. Can be set later.
                 </p>
               </div>
+              
+              {/* Player Invitation Options */}
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
+                <Label className="text-base font-semibold">Player Invitations</Label>
+                {previousSeasonInfo.seasonName ? (
+                  <p className="text-sm text-muted-foreground">
+                    {previousSeasonInfo.count} players from &quot;{previousSeasonInfo.seasonName}&quot; can be invited
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No previous season found
+                  </p>
+                )}
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="invite-none"
+                      name="playerInvite"
+                      checked={formData.playerInviteOption === "none"}
+                      onChange={() => setFormData({ ...formData, playerInviteOption: "none" })}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="invite-none" className="text-sm font-normal cursor-pointer">
+                      Start fresh (players opt in manually)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="invite-email"
+                      name="playerInvite"
+                      checked={formData.playerInviteOption === "email"}
+                      onChange={() => setFormData({ ...formData, playerInviteOption: "email" })}
+                      disabled={!previousSeasonInfo.seasonName}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="invite-email" className="text-sm font-normal cursor-pointer">
+                      📧 Send email invites to previous season players
+                      <span className="block text-xs text-muted-foreground">
+                        Players receive an email and must click to opt in
+                      </span>
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="invite-bulk"
+                      name="playerInvite"
+                      checked={formData.playerInviteOption === "bulk"}
+                      onChange={() => setFormData({ ...formData, playerInviteOption: "bulk" })}
+                      disabled={!previousSeasonInfo.seasonName}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="invite-bulk" className="text-sm font-normal cursor-pointer">
+                      ⚡ Bulk opt-in all previous season players
+                      <span className="block text-xs text-muted-foreground">
+                        All players are immediately added (admin override)
+                      </span>
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -439,8 +668,8 @@ export default function AdminSeasonsPage() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => handleStatusChange(activeSeason.id, "playoffs")}
-                  disabled={activeSeason.status === "playoffs"}
+                  onClick={() => setPlayoffConfirm(activeSeason)}
+                  disabled={activeSeason.status === "playoffs" || activeSeason.playoff_format === "none"}
                 >
                   🏆 Start Playoffs
                 </Button>
@@ -471,7 +700,7 @@ export default function AdminSeasonsPage() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => handleStatusChange(activeSeason.id, "completed")}
+                  onClick={() => openEndSeasonDialog(activeSeason)}
                 >
                   ✓ End Season
                 </Button>
@@ -481,26 +710,67 @@ export default function AdminSeasonsPage() {
         </Card>
       )}
 
-      {/* All Seasons */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">All Seasons</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          {seasons.length === 0 ? (
-            <Card className="col-span-full">
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground mb-4">No seasons yet. Create your first season!</p>
-                <Button onClick={() => setIsCreateOpen(true)}>
-                  + Create Season
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            seasons.map((season) => (
-              <Card key={season.id} className={season.status === "active" || season.status === "playoffs" ? "border-green-600/30" : ""}>
+      {/* Draft/Upcoming Seasons */}
+      {seasons.filter(s => s.status === "draft").length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4">🎯 Seasons in Draft</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {seasons.filter(s => s.status === "draft").map((season) => (
+              <Card key={season.id} className="border-rink-blue/30">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{season.name}</CardTitle>
-                    {getStatusBadge(season.status || "active")}
+                    {getStatusBadge(season.status || "draft")}
+                  </div>
+                  <CardDescription>
+                    {new Date(season.start_date).toLocaleDateString("en-CA", { 
+                      year: "numeric", month: "short", day: "numeric" 
+                    })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openEditDialog(season)}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        asChild
+                      >
+                        <a href="/admin/draft">Go to Draft →</a>
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Past Seasons */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">📜 Past Seasons</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {seasons.filter(s => s.status === "completed").length === 0 ? (
+            <Card className="col-span-full">
+              <CardContent className="py-8 text-center">
+                <p className="text-muted-foreground">No completed seasons yet</p>
+              </CardContent>
+            </Card>
+          ) : (
+            seasons.filter(s => s.status === "completed").map((season) => (
+              <Card key={season.id} className="opacity-80 hover:opacity-100 transition-opacity">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{season.name}</CardTitle>
+                    {getStatusBadge(season.status || "completed")}
                   </div>
                   <CardDescription>
                     {new Date(season.start_date).toLocaleDateString("en-CA", { 
@@ -520,32 +790,37 @@ export default function AdminSeasonsPage() {
                       <span className="font-medium">{season.games_per_cycle}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Current progress:</span>
-                      <span className="font-medium">
-                        {season.current_game_count} / {season.games_per_cycle}
+                      <span className="text-muted-foreground">Playoff format:</span>
+                      <span className="font-medium capitalize">
+                        {(season.playoff_format || "none").replace("_", " ")}
                       </span>
                     </div>
                     <Separator />
-                    <div className="flex gap-2">
-                      {season.status !== "active" && season.status !== "playoffs" && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleStatusChange(season.id, "active")}
-                        >
-                          Activate
-                        </Button>
-                      )}
+                    <div className="flex gap-2 flex-wrap">
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => openEditDialog(season)}
+                        asChild
                       >
-                        Edit
+                        <a href={`/standings?season=${season.id}`}>View Standings</a>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        asChild
+                      >
+                        <a href={`/stats?season=${season.id}`}>View Stats</a>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleStatusChange(season.id, "active")}
+                      >
+                        Reactivate
                       </Button>
                       <Dialog open={deleteConfirm === season.id} onOpenChange={(open) => setDeleteConfirm(open ? season.id : null)}>
                         <DialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
                             Delete
                           </Button>
                         </DialogTrigger>
@@ -637,6 +912,183 @@ export default function AdminSeasonsPage() {
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Start Playoffs Dialog */}
+      <Dialog open={!!playoffConfirm} onOpenChange={() => setPlayoffConfirm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>🏆 Start Playoffs</DialogTitle>
+            <DialogDescription>
+              Generate playoff bracket for {playoffConfirm?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Playoff Format:</span>
+                <Badge variant="outline">
+                  {playoffConfirm?.playoff_format === "round_robin" && "Round Robin"}
+                  {playoffConfirm?.playoff_format === "single_elimination" && "Single Elimination"}
+                  {playoffConfirm?.playoff_format === "double_elimination" && "Double Elimination"}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="playoff-teams">Teams to Include</Label>
+              <Select value={playoffTeamCount} onValueChange={setPlayoffTeamCount}>
+                <SelectTrigger id="playoff-teams">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teams</SelectItem>
+                  <SelectItem value="8">Top 8 Teams</SelectItem>
+                  <SelectItem value="6">Top 6 Teams</SelectItem>
+                  <SelectItem value="4">Top 4 Teams</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Teams are seeded based on current standings
+              </p>
+            </div>
+
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                ⚠️ Starting playoffs will:
+              </p>
+              <ul className="text-sm text-yellow-600 dark:text-yellow-500 list-disc pl-5 mt-2">
+                <li>Change season status to &quot;Playoffs&quot;</li>
+                <li>Generate playoff games based on standings</li>
+                <li>Regular season standings will be locked</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPlayoffConfirm(null)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleStartPlayoffs}
+              disabled={isSaving}
+              className="bg-gold text-puck-black hover:bg-gold/90"
+            >
+              {isSaving ? "Starting..." : "🏆 Start Playoffs"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* End Season Dialog */}
+      <Dialog open={!!endSeasonConfirm} onOpenChange={() => { setEndSeasonConfirm(null); setEndSeasonStatus(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>End Season: {endSeasonConfirm?.name}</DialogTitle>
+            <DialogDescription>
+              Review the season status before ending
+            </DialogDescription>
+          </DialogHeader>
+          
+          {loadingEndStatus ? (
+            <div className="py-8 text-center">
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4 mx-auto" />
+            </div>
+          ) : endSeasonStatus && (
+            <div className="space-y-4 py-4">
+              {/* Status Summary */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-muted rounded-lg text-center">
+                  <div className="text-2xl font-bold">{endSeasonStatus.totalGames}</div>
+                  <div className="text-sm text-muted-foreground">Total Games</div>
+                </div>
+                <div className="p-4 bg-green-500/10 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-green-600">{endSeasonStatus.verifiedGames}</div>
+                  <div className="text-sm text-muted-foreground">Verified</div>
+                </div>
+              </div>
+
+              {/* Warnings */}
+              {endSeasonStatus.incompleteGames > 0 && (
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex items-start gap-2">
+                  <span className="text-yellow-600">⚠️</span>
+                  <div>
+                    <p className="font-medium text-yellow-700 dark:text-yellow-400">
+                      {endSeasonStatus.incompleteGames} incomplete game(s)
+                    </p>
+                    <p className="text-sm text-yellow-600 dark:text-yellow-500">
+                      These games are still scheduled or in progress
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {endSeasonStatus.unverifiedGames > 0 && (
+                <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-start gap-2">
+                  <span className="text-orange-600">⚠️</span>
+                  <div>
+                    <p className="font-medium text-orange-700 dark:text-orange-400">
+                      {endSeasonStatus.unverifiedGames} unverified game(s)
+                    </p>
+                    <p className="text-sm text-orange-600 dark:text-orange-500">
+                      Completed games with stats not verified by both captains
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {endSeasonStatus.canEnd && (
+                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-start gap-2">
+                  <span className="text-green-600">✓</span>
+                  <div>
+                    <p className="font-medium text-green-700 dark:text-green-400">
+                      Ready to end
+                    </p>
+                    <p className="text-sm text-green-600 dark:text-green-500">
+                      All games are complete and verified
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+
+              <p className="text-sm text-muted-foreground">
+                Ending the season will:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                <li>Lock in final standings and stats</li>
+                <li>Set the end date to today</li>
+                <li>Mark the season as completed</li>
+                <li>Make the season available for archiving</li>
+              </ul>
+            </div>
+          )}
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => { setEndSeasonConfirm(null); setEndSeasonStatus(null); }}>
+              Cancel
+            </Button>
+            {endSeasonStatus && !endSeasonStatus.canEnd && (
+              <Button 
+                variant="destructive"
+                onClick={() => handleEndSeason(true)}
+                disabled={isSaving}
+              >
+                {isSaving ? "Ending..." : "Force End Season"}
+              </Button>
+            )}
+            {endSeasonStatus?.canEnd && (
+              <Button 
+                onClick={() => handleEndSeason(false)}
+                disabled={isSaving}
+                className="bg-canada-red hover:bg-canada-red-dark"
+              >
+                {isSaving ? "Ending..." : "End Season"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -445,3 +445,137 @@ export async function incrementGameCount(seasonId: string): Promise<SeasonAction
   revalidatePath("/admin/seasons");
   return { success: true };
 }
+
+// End a season with validation
+export async function endSeason(seasonId: string, forceEnd: boolean = false): Promise<SeasonActionResult & { 
+  warnings?: string[];
+  incompleteGames?: number;
+  unverifiedGames?: number;
+}> {
+  const auth = await requireOwner();
+  if (auth.error) return { error: auth.error };
+
+  const supabase = await createClient();
+
+  // Get season
+  const { data: season, error: seasonError } = await supabase
+    .from("seasons")
+    .select("*")
+    .eq("id", seasonId)
+    .single();
+
+  if (seasonError || !season) {
+    return { error: "Season not found" };
+  }
+
+  if (season.status === "completed") {
+    return { error: "Season is already completed" };
+  }
+
+  // Check for incomplete games
+  const { data: scheduledGames, error: gamesError } = await supabase
+    .from("games")
+    .select("id, status, home_captain_verified, away_captain_verified")
+    .eq("season_id", seasonId)
+    .in("status", ["scheduled", "in_progress"]);
+
+  if (gamesError) {
+    return { error: `Failed to check games: ${gamesError.message}` };
+  }
+
+  // Check for unverified completed games
+  const { data: unverifiedGames, error: unverifiedError } = await supabase
+    .from("games")
+    .select("id")
+    .eq("season_id", seasonId)
+    .eq("status", "completed")
+    .or("home_captain_verified.eq.false,away_captain_verified.eq.false");
+
+  if (unverifiedError) {
+    return { error: `Failed to check verifications: ${unverifiedError.message}` };
+  }
+
+  const incompleteCount = scheduledGames?.length || 0;
+  const unverifiedCount = unverifiedGames?.length || 0;
+  const warnings: string[] = [];
+
+  if (incompleteCount > 0) {
+    warnings.push(`${incompleteCount} game(s) are still scheduled or in progress`);
+  }
+  if (unverifiedCount > 0) {
+    warnings.push(`${unverifiedCount} completed game(s) have unverified stats`);
+  }
+
+  // If there are issues and not forcing, return with warnings
+  if (!forceEnd && (incompleteCount > 0 || unverifiedCount > 0)) {
+    return {
+      error: "Season has incomplete items. Use force end to override.",
+      warnings,
+      incompleteGames: incompleteCount,
+      unverifiedGames: unverifiedCount,
+    };
+  }
+
+  // End the season
+  const { data: updatedSeason, error: updateError } = await supabase
+    .from("seasons")
+    .update({
+      status: "completed" as SeasonStatus,
+      end_date: new Date().toISOString().split("T")[0],
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", seasonId)
+    .select()
+    .single();
+
+  if (updateError) {
+    console.error("Error ending season:", updateError);
+    return { error: updateError.message };
+  }
+
+  revalidatePath("/admin/seasons");
+  revalidatePath("/standings");
+  revalidatePath("/schedule");
+  revalidatePath("/stats");
+
+  return { 
+    success: true, 
+    season: updatedSeason,
+    message: `Season "${season.name}" has been completed.${warnings.length > 0 ? ` (${warnings.join(", ")})` : ""}`,
+    warnings: warnings.length > 0 ? warnings : undefined,
+  };
+}
+
+// Get season end status (for UI display)
+export async function getSeasonEndStatus(seasonId: string) {
+  const supabase = await createClient();
+
+  // Get game counts
+  const { data: games } = await supabase
+    .from("games")
+    .select("id, status, home_captain_verified, away_captain_verified")
+    .eq("season_id", seasonId);
+
+  if (!games) {
+    return { totalGames: 0, completedGames: 0, verifiedGames: 0, incompleteGames: 0, unverifiedGames: 0, canEnd: true };
+  }
+
+  const totalGames = games.length;
+  const completedGames = games.filter(g => g.status === "completed").length;
+  const incompleteGames = games.filter(g => g.status === "scheduled" || g.status === "in_progress").length;
+  const unverifiedGames = games.filter(g => 
+    g.status === "completed" && (!g.home_captain_verified || !g.away_captain_verified)
+  ).length;
+  const verifiedGames = games.filter(g => 
+    g.status === "completed" && g.home_captain_verified && g.away_captain_verified
+  ).length;
+
+  return {
+    totalGames,
+    completedGames,
+    verifiedGames,
+    incompleteGames,
+    unverifiedGames,
+    canEnd: incompleteGames === 0 && unverifiedGames === 0,
+  };
+}
