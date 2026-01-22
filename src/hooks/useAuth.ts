@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 
-// Cache for profile data to avoid refetching
-let profileCache: { userId: string; profile: Profile; timestamp: number } | null = null;
-const CACHE_TTL = 10000; // 10 seconds for better role updates
 const AUTH_TIMEOUT = 10000; // 10 second timeout for auth operations
 
 export function useAuth() {
@@ -15,7 +12,6 @@ export function useAuth() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const initRef = useRef(false);
   
   // Get the singleton client instance - wrapped in try-catch for safety
   const supabase = useMemo(() => {
@@ -27,14 +23,10 @@ export function useAuth() {
     }
   }, []);
 
+  // Always fetch fresh profile data - no caching
   const fetchProfile = useCallback(async (userId: string, retryCount = 0): Promise<Profile | null> => {
-    // Check cache first (but only if it's recent)
-    if (profileCache && 
-        profileCache.userId === userId && 
-        Date.now() - profileCache.timestamp < CACHE_TTL) {
-      return profileCache.profile;
-    }
-
+    if (!supabase) return null;
+    
     try {
       const { data, error: fetchError } = await supabase
         .from("profiles")
@@ -52,12 +44,7 @@ export function useAuth() {
         return null;
       }
       
-      if (data) {
-        profileCache = { userId, profile: data, timestamp: Date.now() };
-        return data;
-      }
-      
-      return null;
+      return data || null;
     } catch (err) {
       console.error("Profile fetch exception:", err);
       // Retry once on exception
@@ -69,20 +56,15 @@ export function useAuth() {
     }
   }, [supabase]);
 
-  // Function to invalidate cache and refetch profile
+  // Function to refetch profile
   const refreshProfile = useCallback(async () => {
     if (!user?.id) return;
-    profileCache = null;
     const freshProfile = await fetchProfile(user.id);
     setProfile(freshProfile);
     return freshProfile;
   }, [user?.id, fetchProfile]);
 
   useEffect(() => {
-    // Prevent double initialization in React Strict Mode
-    if (initRef.current) return;
-    initRef.current = true;
-
     let mounted = true;
 
     // If supabase client failed to create, stop loading immediately
@@ -98,12 +80,11 @@ export function useAuth() {
         if (mounted) {
           console.warn("Auth initialization timed out");
           setLoading(false);
-          // Don't set error - user might just not be logged in
         }
       }, AUTH_TIMEOUT);
 
       try {
-        // First, try to get session from storage (faster, no API call)
+        // Get session from storage
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (!mounted) {
@@ -113,17 +94,15 @@ export function useAuth() {
 
         if (sessionError) {
           console.error("Session error:", sessionError);
-          // Don't treat as fatal - user might just not be logged in
           clearTimeout(timeoutId);
           setLoading(false);
           return;
         }
 
-        // If we have a session, validate it with getUser
         if (session?.user) {
           setUser(session.user);
           
-          // Fetch profile
+          // Always fetch fresh profile on load
           const userProfile = await fetchProfile(session.user.id);
           if (mounted) {
             setProfile(userProfile);
@@ -131,15 +110,12 @@ export function useAuth() {
           }
         } else {
           // No session - user is not logged in
-          profileCache = null;
           setUser(null);
           setProfile(null);
           setError(null);
         }
       } catch (err) {
         console.error("Auth initialization error:", err);
-        // Don't set error state - just log and continue
-        // User can still use the site without being logged in
       } finally {
         clearTimeout(timeoutId);
         if (mounted) {
@@ -157,12 +133,10 @@ export function useAuth() {
         
         console.log("Auth state changed:", event);
         
-        // Invalidate cache on any auth state change
-        profileCache = null;
-        
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          // Always fetch fresh profile on auth change
           const userProfile = await fetchProfile(session.user.id);
           if (mounted) {
             setProfile(userProfile);

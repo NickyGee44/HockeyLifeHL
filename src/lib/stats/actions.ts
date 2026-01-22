@@ -126,6 +126,267 @@ export async function enterPlayerStats(
   return { success: true };
 }
 
+// Submit complete game stats (score + player/goalie stats)
+// First captain to submit locks in the game score
+export async function submitCompleteGameStats(
+  gameId: string,
+  teamId: string,
+  data: {
+    homeScore: number;
+    awayScore: number;
+    playerStats: Array<{ playerId: string; goals: number; assists: number }>;
+    goalieStats?: { goalieId: string; saves: number; goalsAgainst: number };
+  }
+): Promise<StatActionResult & { isFirstSubmission?: boolean }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Check if user is captain of this team or owner
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isOwner = profile?.role === "owner";
+  
+  if (!isOwner) {
+    const { data: team } = await supabase
+      .from("teams")
+      .select("captain_id")
+      .eq("id", teamId)
+      .single();
+
+    if (team?.captain_id !== user.id) {
+      return { error: "Not authorized - must be team captain" };
+    }
+  }
+
+  // Get full game details
+  const { data: game } = await supabase
+    .from("games")
+    .select("*, home_team:teams!games_home_team_id_fkey(id, captain_id), away_team:teams!games_away_team_id_fkey(id, captain_id)")
+    .eq("id", gameId)
+    .single();
+
+  if (!game) {
+    return { error: "Game not found" };
+  }
+
+  if (game.home_team_id !== teamId && game.away_team_id !== teamId) {
+    return { error: "Team is not part of this game" };
+  }
+
+  const isHomeTeam = game.home_team_id === teamId;
+  const isFirstSubmission = !game.stats_submitted_by;
+
+  // If this is the first submission, captain sets the game score
+  if (isFirstSubmission) {
+    const { error: scoreError } = await supabase
+      .from("games")
+      .update({
+        home_score: data.homeScore,
+        away_score: data.awayScore,
+        status: "completed",
+        stats_submitted_by: user.id,
+        stats_submitted_at: new Date().toISOString(),
+        [isHomeTeam ? "home_captain_verified" : "away_captain_verified"]: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", gameId);
+
+    if (scoreError) {
+      console.error("Error setting game score:", scoreError);
+      return { error: scoreError.message };
+    }
+  } else {
+    // Second captain can only mark their verification, not change the score
+    const { error: verifyError } = await supabase
+      .from("games")
+      .update({
+        [isHomeTeam ? "home_captain_verified" : "away_captain_verified"]: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", gameId);
+
+    if (verifyError) {
+      console.error("Error verifying game:", verifyError);
+      return { error: verifyError.message };
+    }
+  }
+
+  // Delete existing player stats for this team
+  await supabase
+    .from("player_stats")
+    .delete()
+    .eq("game_id", gameId)
+    .eq("team_id", teamId);
+
+  // Insert player stats (only those with goals or assists)
+  const statsToInsert = data.playerStats
+    .filter(s => s.goals > 0 || s.assists > 0)
+    .map(s => ({
+      game_id: gameId,
+      player_id: s.playerId,
+      team_id: teamId,
+      season_id: game.season_id,
+      goals: s.goals || 0,
+      assists: s.assists || 0,
+    }));
+
+  if (statsToInsert.length > 0) {
+    const { error: playerError } = await supabase
+      .from("player_stats")
+      .insert(statsToInsert);
+
+    if (playerError) {
+      console.error("Error inserting player stats:", playerError);
+      return { error: playerError.message };
+    }
+  }
+
+  // Insert goalie stats if provided
+  if (data.goalieStats && data.goalieStats.goalieId) {
+    // Delete existing goalie stats for this team
+    await supabase
+      .from("goalie_stats")
+      .delete()
+      .eq("game_id", gameId)
+      .eq("team_id", teamId);
+
+    const { error: goalieError } = await supabase
+      .from("goalie_stats")
+      .insert({
+        game_id: gameId,
+        player_id: data.goalieStats.goalieId,
+        team_id: teamId,
+        season_id: game.season_id,
+        goals_against: data.goalieStats.goalsAgainst,
+        saves: data.goalieStats.saves,
+        shutout: data.goalieStats.goalsAgainst === 0,
+      });
+
+    if (goalieError) {
+      console.error("Error inserting goalie stats:", goalieError);
+      // Don't fail the whole submission for goalie stats
+    }
+  }
+
+  // Check if both captains have verified
+  const { data: updatedGame } = await supabase
+    .from("games")
+    .select("home_captain_verified, away_captain_verified, season_id")
+    .eq("id", gameId)
+    .single();
+
+  if (updatedGame?.home_captain_verified && updatedGame?.away_captain_verified) {
+    // Both verified - increment season game count
+    const { incrementGameCount } = await import("../seasons/actions");
+    await incrementGameCount(updatedGame.season_id);
+  }
+
+  revalidatePath("/captain/stats");
+  revalidatePath("/captain");
+  revalidatePath("/dashboard");
+  revalidatePath("/standings");
+  revalidatePath("/stats");
+  revalidatePath(`/games/${gameId}`);
+
+  return { success: true, isFirstSubmission };
+}
+
+// Get game details with both team rosters for stat entry
+export async function getGameForStatEntry(gameId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Get game with teams
+  const { data: game, error } = await supabase
+    .from("games")
+    .select(`
+      *,
+      home_team:teams!games_home_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color, captain_id),
+      away_team:teams!games_away_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color, captain_id)
+    `)
+    .eq("id", gameId)
+    .single();
+
+  if (error || !game) {
+    return { error: "Game not found" };
+  }
+
+  // Get which team the user is captain of (or owner)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isOwner = profile?.role === "owner";
+  const isHomeCaptain = game.home_team?.captain_id === user.id;
+  const isAwayCaptain = game.away_team?.captain_id === user.id;
+
+  if (!isOwner && !isHomeCaptain && !isAwayCaptain) {
+    return { error: "Not authorized - must be team captain or owner" };
+  }
+
+  const userTeamId = isHomeCaptain ? game.home_team_id : isAwayCaptain ? game.away_team_id : game.home_team_id;
+
+  // Get rosters for both teams
+  const { data: homeRoster } = await supabase
+    .from("team_rosters")
+    .select(`
+      id,
+      is_goalie,
+      player:profiles!team_rosters_player_id_fkey(id, full_name, jersey_number, position, avatar_url)
+    `)
+    .eq("team_id", game.home_team_id)
+    .eq("season_id", game.season_id);
+
+  const { data: awayRoster } = await supabase
+    .from("team_rosters")
+    .select(`
+      id,
+      is_goalie,
+      player:profiles!team_rosters_player_id_fkey(id, full_name, jersey_number, position, avatar_url)
+    `)
+    .eq("team_id", game.away_team_id)
+    .eq("season_id", game.season_id);
+
+  // Get existing stats if any
+  const { data: existingPlayerStats } = await supabase
+    .from("player_stats")
+    .select("*")
+    .eq("game_id", gameId);
+
+  const { data: existingGoalieStats } = await supabase
+    .from("goalie_stats")
+    .select("*")
+    .eq("game_id", gameId);
+
+  return {
+    game,
+    homeRoster: homeRoster || [],
+    awayRoster: awayRoster || [],
+    existingPlayerStats: existingPlayerStats || [],
+    existingGoalieStats: existingGoalieStats || [],
+    userTeamId,
+    isHomeCaptain,
+    isAwayCaptain,
+    isOwner,
+    isFirstSubmission: !game.stats_submitted_by,
+    canEditScore: !game.stats_submitted_by || game.stats_submitted_by === user.id || isOwner,
+  };
+}
+
 // Enter goalie stats for a game
 export async function enterGoalieStats(
   gameId: string,
@@ -416,28 +677,58 @@ export async function getGamesNeedingStats(teamId: string) {
     return { error: "Not authenticated", games: [] };
   }
 
-  // Get games where this team played and stats haven't been entered
+  // First, get active/playoffs seasons only (not completed or archived)
+  const { data: activeSeasons } = await supabase
+    .from("seasons")
+    .select("id")
+    .in("status", ["active", "playoffs"]);
+
+  const activeSeasonIds = (activeSeasons || []).map(s => s.id);
+
+  if (activeSeasonIds.length === 0) {
+    return { games: [] }; // No active seasons, no games to show
+  }
+
+  // Get today's date range for finding today's games
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+  // Get completed games OR today's games (scheduled/in_progress) for this team
+  // Only from active/playoffs seasons
   const { data: games, error } = await supabase
     .from("games")
     .select(`
       *,
       home_team:teams!games_home_team_id_fkey(id, name, short_name),
       away_team:teams!games_away_team_id_fkey(id, name, short_name),
-      season:seasons!games_season_id_fkey(id, name)
+      season:seasons!games_season_id_fkey(id, name, status)
     `)
     .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
-    .eq("status", "completed")
+    .in("season_id", activeSeasonIds)
     .order("scheduled_at", { ascending: false })
-    .limit(20);
+    .limit(30);
 
   if (error) {
     console.error("Error fetching games needing stats:", error);
     return { error: error.message, games: [] };
   }
 
+  // Filter to show:
+  // 1. Completed games (for stat entry/verification)
+  // 2. Today's games (scheduled or in_progress - so captain can see upcoming games)
+  const relevantGames = (games || []).filter(game => {
+    const gameDate = new Date(game.scheduled_at);
+    const isToday = gameDate >= startOfDay && gameDate < endOfDay;
+    const isCompleted = game.status === "completed";
+    const isInProgress = game.status === "in_progress";
+    
+    return isCompleted || isToday || isInProgress;
+  });
+
   // Check which games have stats entered
   const gamesWithStats = await Promise.all(
-    (games || []).map(async (game) => {
+    relevantGames.map(async (game) => {
       const { data: stats } = await supabase
         .from("player_stats")
         .select("id")

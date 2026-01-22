@@ -34,6 +34,8 @@ import {
   fixMultipleActiveSeasons,
   endSeason,
   getSeasonEndStatus,
+  archiveSeason,
+  unarchiveSeason,
 } from "@/lib/seasons/actions";
 import { generateSeasonSchedule } from "@/lib/seasons/schedule-generator";
 import {
@@ -328,6 +330,34 @@ export default function AdminSeasonsPage() {
     }
   }
 
+  async function handleArchiveSeason(seasonId: string) {
+    if (!confirm("Archive this season? It will be hidden from normal views but can be restored later.")) return;
+    
+    setIsSaving(true);
+    const result = await archiveSeason(seasonId);
+    
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(result.message || "Season archived");
+      loadSeasons();
+    }
+    setIsSaving(false);
+  }
+
+  async function handleUnarchiveSeason(seasonId: string) {
+    setIsSaving(true);
+    const result = await unarchiveSeason(seasonId);
+    
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(result.message || "Season restored");
+      loadSeasons();
+    }
+    setIsSaving(false);
+  }
+
   const getStatusBadge = (status: SeasonStatus) => {
     switch (status) {
       case "active":
@@ -338,6 +368,8 @@ export default function AdminSeasonsPage() {
         return <Badge className="bg-rink-blue">🎯 Draft Mode</Badge>;
       case "completed":
         return <Badge variant="outline">✓ Completed</Badge>;
+      case "archived":
+        return <Badge variant="secondary" className="opacity-60">📦 Archived</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -647,24 +679,56 @@ export default function AdminSeasonsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Draft Cycle Progress</span>
-                  <span className="font-medium">
-                    {getGamesProgress(activeSeason).current} / {getGamesProgress(activeSeason).total} games
-                  </span>
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Progress */}
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Draft Cycle Progress</span>
+                    <span className="font-medium">
+                      {getGamesProgress(activeSeason).current} / {getGamesProgress(activeSeason).total} games
+                    </span>
+                  </div>
+                  <div className="h-3 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-canada-red transition-all"
+                      style={{ width: `${getGamesProgress(activeSeason).percent}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {getGamesProgress(activeSeason).remaining} games until next draft
+                  </p>
                 </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-canada-red transition-all"
-                    style={{ width: `${getGamesProgress(activeSeason).percent}%` }}
-                  />
+                
+                {/* Schedule Status */}
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Schedule Status</span>
+                    {activeSeason.schedule_generated ? (
+                      <Badge className="bg-green-600">✓ Generated</Badge>
+                    ) : activeSeason.total_games ? (
+                      <Badge className="bg-yellow-600">⏳ Ready to Generate</Badge>
+                    ) : (
+                      <Badge variant="destructive">❌ Set Total Games First</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {activeSeason.total_games 
+                      ? `${activeSeason.total_games} total games configured`
+                      : "Configure total games in season settings"
+                    }
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {getGamesProgress(activeSeason).remaining} games until next draft
-                </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {activeSeason.schedule_generated && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    asChild
+                  >
+                    <a href="/admin/games">📅 View Schedule</a>
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -682,10 +746,13 @@ export default function AdminSeasonsPage() {
                 </Button>
                 {activeSeason.total_games && !activeSeason.schedule_generated && (
                   <Button 
-                    variant="outline" 
+                    variant="default"
                     size="sm"
+                    className="bg-rink-blue hover:bg-rink-blue/90"
                     onClick={async () => {
+                      setIsSaving(true);
                       const result = await generateSeasonSchedule(activeSeason.id, "random");
+                      setIsSaving(false);
                       if (result.error) {
                         toast.error(result.error);
                       } else {
@@ -693,8 +760,30 @@ export default function AdminSeasonsPage() {
                         loadSeasons();
                       }
                     }}
+                    disabled={isSaving}
                   >
-                    📅 Generate Schedule
+                    📅 Generate Full Season Schedule
+                  </Button>
+                )}
+                {activeSeason.schedule_generated && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={async () => {
+                      if (!confirm("This will delete all SCHEDULED games and regenerate the schedule. Games that are completed or in progress will not be affected. Continue?")) return;
+                      setIsSaving(true);
+                      const result = await generateSeasonSchedule(activeSeason.id, "random", undefined, true);
+                      setIsSaving(false);
+                      if (result.error) {
+                        toast.error(result.error);
+                      } else {
+                        toast.success(`Schedule regenerated! ${result.gamesCreated} games created.`);
+                        loadSeasons();
+                      }
+                    }}
+                    disabled={isSaving}
+                  >
+                    🔄 Regenerate Schedule
                   </Button>
                 )}
                 <Button 
@@ -818,6 +907,14 @@ export default function AdminSeasonsPage() {
                       >
                         Reactivate
                       </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleArchiveSeason(season.id)}
+                        disabled={isSaving}
+                      >
+                        📦 Archive
+                      </Button>
                       <Dialog open={deleteConfirm === season.id} onOpenChange={(open) => setDeleteConfirm(open ? season.id : null)}>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
@@ -850,6 +947,85 @@ export default function AdminSeasonsPage() {
           )}
         </div>
       </div>
+
+      {/* Archived Seasons */}
+      {seasons.filter(s => s.status === "archived").length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4 text-muted-foreground">📦 Archived Seasons</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {seasons.filter(s => s.status === "archived").map((season) => (
+              <Card key={season.id} className="opacity-50 hover:opacity-80 transition-opacity border-dashed">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{season.name}</CardTitle>
+                    {getStatusBadge(season.status || "archived")}
+                  </div>
+                  <CardDescription>
+                    {new Date(season.start_date).toLocaleDateString("en-CA", { 
+                      year: "numeric", month: "short", day: "numeric" 
+                    })}
+                    {season.end_date && (
+                      <> — {new Date(season.end_date).toLocaleDateString("en-CA", { 
+                        year: "numeric", month: "short", day: "numeric" 
+                      })}</>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Games per cycle:</span>
+                      <span className="font-medium">{season.games_per_cycle}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex gap-2 flex-wrap">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        asChild
+                      >
+                        <a href={`/standings?season=${season.id}`}>View Standings</a>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleUnarchiveSeason(season.id)}
+                        disabled={isSaving}
+                      >
+                        ↩ Restore
+                      </Button>
+                      <Dialog open={deleteConfirm === season.id} onOpenChange={(open) => setDeleteConfirm(open ? season.id : null)}>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            Delete
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Season?</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to delete <strong>{season.name}</strong>? 
+                              This cannot be undone. Seasons with games cannot be deleted.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+                              Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={() => handleDelete(season.id)}>
+                              Delete Season
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={!!editingSeason} onOpenChange={() => { setEditingSeason(null); resetForm(); }}>

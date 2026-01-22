@@ -585,6 +585,106 @@ export async function getSeasonEndStatus(seasonId: string) {
   };
 }
 
+// Archive a completed season
+export async function archiveSeason(seasonId: string): Promise<SeasonActionResult> {
+  const auth = await requireOwner();
+  if (auth.error) return { error: auth.error };
+
+  const supabase = await createClient();
+
+  // Get season
+  const { data: season, error: seasonError } = await supabase
+    .from("seasons")
+    .select("*")
+    .eq("id", seasonId)
+    .single();
+
+  if (seasonError || !season) {
+    return { error: "Season not found" };
+  }
+
+  if (season.status !== "completed") {
+    return { error: "Only completed seasons can be archived. End the season first." };
+  }
+
+  // Update status to archived
+  const { data: updatedSeason, error: updateError } = await supabase
+    .from("seasons")
+    .update({
+      status: "archived" as SeasonStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", seasonId)
+    .select()
+    .single();
+
+  if (updateError) {
+    console.error("Error archiving season:", updateError);
+    return { error: updateError.message };
+  }
+
+  revalidatePath("/admin/seasons");
+  revalidatePath("/standings");
+  revalidatePath("/schedule");
+  revalidatePath("/stats");
+
+  return { 
+    success: true, 
+    season: updatedSeason,
+    message: `Season "${season.name}" has been archived.`,
+  };
+}
+
+// Unarchive a season (restore to completed)
+export async function unarchiveSeason(seasonId: string): Promise<SeasonActionResult> {
+  const auth = await requireOwner();
+  if (auth.error) return { error: auth.error };
+
+  const supabase = await createClient();
+
+  // Get season
+  const { data: season, error: seasonError } = await supabase
+    .from("seasons")
+    .select("*")
+    .eq("id", seasonId)
+    .single();
+
+  if (seasonError || !season) {
+    return { error: "Season not found" };
+  }
+
+  if (season.status !== "archived") {
+    return { error: "Only archived seasons can be unarchived" };
+  }
+
+  // Update status to completed
+  const { data: updatedSeason, error: updateError } = await supabase
+    .from("seasons")
+    .update({
+      status: "completed" as SeasonStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", seasonId)
+    .select()
+    .single();
+
+  if (updateError) {
+    console.error("Error unarchiving season:", updateError);
+    return { error: updateError.message };
+  }
+
+  revalidatePath("/admin/seasons");
+  revalidatePath("/standings");
+  revalidatePath("/schedule");
+  revalidatePath("/stats");
+
+  return { 
+    success: true, 
+    season: updatedSeason,
+    message: `Season "${season.name}" has been restored.`,
+  };
+}
+
 // Sync all team captains to their team rosters for the active season
 // This ensures captains are always on their teams
 export async function syncCaptainsToRosters(seasonId?: string): Promise<{ success: boolean; added: number; error?: string }> {

@@ -280,7 +280,13 @@ export default function CaptainStatsPage() {
     );
   }
 
-  const gamesNeedingEntry = games.filter(g => !g.hasStats);
+  // Filter games by status
+  const completedGamesNeedingEntry = games.filter(g => g.status === "completed" && !g.hasStats);
+  const todaysGames = games.filter(g => {
+    const gameDate = new Date(g.scheduled_at);
+    const today = new Date();
+    return gameDate.toDateString() === today.toDateString() && g.status !== "completed";
+  });
   const gamesNeedingVerify = games.filter(g => {
     if (g.isHomeTeam) {
       return g.hasStats && !g.home_captain_verified && g.away_captain_verified;
@@ -288,6 +294,7 @@ export default function CaptainStatsPage() {
       return g.hasStats && !g.away_captain_verified && g.home_captain_verified;
     }
   });
+  const gamesNeedingEntry = completedGamesNeedingEntry;
 
   return (
     <div className="space-y-8">
@@ -297,6 +304,54 @@ export default function CaptainStatsPage() {
           Enter stats for {team.name} games
         </p>
       </div>
+
+      {/* Today's Games */}
+      {todaysGames.length > 0 && (
+        <Card className="border-rink-blue">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">🏒</span>
+              Today&apos;s Games
+            </CardTitle>
+            <CardDescription>
+              Games scheduled for today - enter stats after the game
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {todaysGames.map((game) => {
+                const opponent = game.isHomeTeam ? game.away_team : game.home_team;
+                const gameTime = new Date(game.scheduled_at).toLocaleTimeString("en-CA", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                });
+                
+                return (
+                  <div
+                    key={game.id}
+                    className="flex items-center justify-between p-4 border border-rink-blue/30 bg-rink-blue/5 rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        vs {opponent?.name || "TBD"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Today at {gameTime}
+                        {game.status === "in_progress" && (
+                          <Badge className="ml-2 bg-green-600 animate-pulse">LIVE</Badge>
+                        )}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-rink-blue border-rink-blue">
+                      {game.status === "in_progress" ? "In Progress" : "Upcoming"}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Games Needing Stats Entry */}
       {gamesNeedingEntry.length > 0 && (
@@ -397,11 +452,14 @@ export default function CaptainStatsPage() {
         </Card>
       )}
 
-      {gamesNeedingEntry.length === 0 && gamesNeedingVerify.length === 0 && (
+      {gamesNeedingEntry.length === 0 && gamesNeedingVerify.length === 0 && todaysGames.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
               No games need stats entry or verification right now.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Games will appear here once they&apos;re completed or scheduled for today.
             </p>
           </CardContent>
         </Card>

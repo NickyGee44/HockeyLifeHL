@@ -142,6 +142,8 @@ export type Database = {
         Row: {
           away_captain_verified: boolean | null
           away_score: number | null
+          away_subs_requested: boolean | null
+          away_subs_requested_at: string | null
           away_team_id: string
           away_verified_by_owner: boolean | null
           cancellation_reason: string | null
@@ -149,6 +151,8 @@ export type Database = {
           created_at: string | null
           home_captain_verified: boolean | null
           home_score: number | null
+          home_subs_requested: boolean | null
+          home_subs_requested_at: string | null
           home_team_id: string
           home_verified_by_owner: boolean | null
           id: string
@@ -156,12 +160,16 @@ export type Database = {
           original_scheduled_at: string | null
           scheduled_at: string
           season_id: string
+          stats_submitted_at: string | null
+          stats_submitted_by: string | null
           status: Database["public"]["Enums"]["game_status"] | null
           updated_at: string | null
         }
         Insert: {
           away_captain_verified?: boolean | null
           away_score?: number | null
+          away_subs_requested?: boolean | null
+          away_subs_requested_at?: string | null
           away_team_id: string
           away_verified_by_owner?: boolean | null
           cancellation_reason?: string | null
@@ -169,6 +177,8 @@ export type Database = {
           created_at?: string | null
           home_captain_verified?: boolean | null
           home_score?: number | null
+          home_subs_requested?: boolean | null
+          home_subs_requested_at?: string | null
           home_team_id: string
           home_verified_by_owner?: boolean | null
           id?: string
@@ -176,12 +186,16 @@ export type Database = {
           original_scheduled_at?: string | null
           scheduled_at: string
           season_id: string
+          stats_submitted_at?: string | null
+          stats_submitted_by?: string | null
           status?: Database["public"]["Enums"]["game_status"] | null
           updated_at?: string | null
         }
         Update: {
           away_captain_verified?: boolean | null
           away_score?: number | null
+          away_subs_requested?: boolean | null
+          away_subs_requested_at?: string | null
           away_team_id?: string
           away_verified_by_owner?: boolean | null
           cancellation_reason?: string | null
@@ -189,6 +203,8 @@ export type Database = {
           created_at?: string | null
           home_captain_verified?: boolean | null
           home_score?: number | null
+          home_subs_requested?: boolean | null
+          home_subs_requested_at?: string | null
           home_team_id?: string
           home_verified_by_owner?: boolean | null
           id?: string
@@ -196,6 +212,8 @@ export type Database = {
           original_scheduled_at?: string | null
           scheduled_at?: string
           season_id?: string
+          stats_submitted_at?: string | null
+          stats_submitted_by?: string | null
           status?: Database["public"]["Enums"]["game_status"] | null
           updated_at?: string | null
         }
@@ -347,6 +365,7 @@ export type Database = {
       }
       player_availability: {
         Row: {
+          checked_in_at: string | null
           created_at: string | null
           game_id: string
           id: string
@@ -358,6 +377,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          checked_in_at?: string | null
           created_at?: string | null
           game_id: string
           id?: string
@@ -369,6 +389,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          checked_in_at?: string | null
           created_at?: string | null
           game_id?: string
           id?: string
@@ -771,7 +792,7 @@ export type Database = {
         | "D+"
         | "D"
         | "D-"
-      season_status: "active" | "playoffs" | "completed" | "draft"
+      season_status: "active" | "playoffs" | "completed" | "draft" | "archived"
       user_role: "owner" | "captain" | "player"
     }
     CompositeTypes: {

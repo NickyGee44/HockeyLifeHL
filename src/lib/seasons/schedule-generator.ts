@@ -149,7 +149,8 @@ async function generateAISchedule(
 export async function generateSeasonSchedule(
   seasonId: string,
   method: ScheduleGenerationMethod = "random",
-  location?: string
+  location?: string,
+  forceRegenerate: boolean = false
 ): Promise<ScheduleGenerationResult> {
   const supabase = await createClient();
 
@@ -169,8 +170,22 @@ export async function generateSeasonSchedule(
   }
 
   // Check if schedule already generated
-  if (season.schedule_generated) {
-    return { error: "Schedule has already been generated for this season" };
+  if (season.schedule_generated && !forceRegenerate) {
+    return { error: "Schedule has already been generated for this season. Use 'Regenerate' to create a new schedule." };
+  }
+
+  // If regenerating, delete existing scheduled games (not completed/in_progress)
+  if (forceRegenerate && season.schedule_generated) {
+    const { error: deleteError } = await supabase
+      .from("games")
+      .delete()
+      .eq("season_id", seasonId)
+      .eq("status", "scheduled");
+
+    if (deleteError) {
+      console.error("Error deleting existing games:", deleteError);
+      return { error: `Failed to clear existing schedule: ${deleteError.message}` };
+    }
   }
 
   // Get all teams

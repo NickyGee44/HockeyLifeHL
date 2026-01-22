@@ -1786,6 +1786,78 @@ Upon investigation, the real-time draft sync was already fully implemented:
 
 ---
 
+## 🎮 GAME CHECK-IN & STAT ENTRY SYSTEM (January 21, 2026)
+
+### Player Game Check-In System
+
+**Database Changes:**
+- Added `home_subs_requested`, `away_subs_requested` (boolean) to games table
+- Added `home_subs_requested_at`, `away_subs_requested_at` (timestamp) to games table
+- Added `checked_in_at` (timestamp) to player_availability table
+- Added `stats_submitted_by`, `stats_submitted_at` to games table for tracking first captain submission
+
+**New Server Actions (`availability-actions.ts`):**
+1. `checkInToGame(gameId, status)` - Players check in with "available", "unavailable", "maybe"
+   - Full-time players can always check in
+   - Call-up players can only check in when captain requests subs
+2. `requestSubsForGame(gameId)` - Captains request subs when short
+3. `getUpcomingGameForCheckIn()` - Get player's next game for check-in
+
+**Player Dashboard Updates:**
+- New "Game Check-In" card with TODAY/TOMORROW badges
+- +/- style check-in buttons: "I'm In", "Maybe", "Can't Make It"
+- Call-up players see message when subs not requested yet
+
+### New Captain Stat Entry Modal
+
+**Server Actions (`stats/actions.ts`):**
+1. `submitCompleteGameStats()` - Submit score + player stats in one operation
+   - First captain to submit locks in the game score
+   - Second captain can only edit their team's individual stats
+2. `getGameForStatEntry()` - Get game details with both team rosters
+
+**New Component: `GameStatEntryModal.tsx`**
+- Shows both teams with their rosters
+- Score entry with +/- buttons (locked after first captain submits)
+- Player stats with +/- buttons for Goals and Assists
+- Goalie saves entry (optional)
+- Tabs to switch between home/away team views
+- Stats summary showing goals from stats vs game score
+
+**Captain Dashboard Updates:**
+- Inline game cards with "Enter Stats" buttons
+- Categorized sections:
+  - Today's Games (highlighted with live badge)
+  - Games Needing Stats Entry
+  - Games Needing Verification
+  - Upcoming Games
+- "Request Subs" button for each game
+
+**Stat Entry Flow:**
+1. Captain clicks "Enter Stats" on any game
+2. Modal opens showing both teams
+3. First captain:
+   - Sets final score with +/- buttons
+   - Enters their team's player goals/assists
+   - Optionally enters goalie saves
+   - Submits → Score is LOCKED
+4. Second captain:
+   - Sees locked score (cannot change)
+   - Can enter/edit their own team's player stats
+   - Can verify or dispute
+
+**Files Changed:**
+- `src/lib/stats/actions.ts` - Added submitCompleteGameStats, getGameForStatEntry
+- `src/lib/players/availability-actions.ts` - Added checkInToGame, requestSubsForGame
+- `src/components/captain/GameStatEntryModal.tsx` (NEW) - Full stat entry modal
+- `src/app/(dashboard)/captain/page.tsx` - Added inline games with Enter Stats
+- `src/app/(dashboard)/dashboard/page.tsx` - Added game check-in card
+- `src/types/database.ts` - Updated with new fields
+
+**Build Status:** ✅ PASSED
+
+---
+
 *Plan created: January 21, 2026*
 *Status: Planning complete - User clarifications received*
-*Last updated: User answers incorporated - Ready for implementation*
+*Last updated: Game check-in and stat entry modal implemented*

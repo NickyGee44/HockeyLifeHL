@@ -64,7 +64,7 @@ export default function AdminGamesPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [newScheduledAt, setNewScheduledAt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [seasonFilter, setSeasonFilter] = useState<string>("all");
+  const [seasonFilter, setSeasonFilter] = useState<string>("current");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Form state
@@ -248,9 +248,24 @@ export default function AdminGamesPage() {
     }
   };
 
+  // Get current active season
+  const currentSeason = seasons.find(s => s.status === "active" || s.status === "playoffs");
+  
+  // Separate seasons into current and previous
+  const previousSeasons = seasons.filter(s => 
+    s.status === "completed" || s.status === "archived" || s.status === "draft"
+  );
+
   // Filter games
   const filteredGames = games.filter((game) => {
-    const matchesSeason = seasonFilter === "all" || game.season_id === seasonFilter;
+    let matchesSeason = false;
+    if (seasonFilter === "current") {
+      matchesSeason = currentSeason ? game.season_id === currentSeason.id : true;
+    } else if (seasonFilter === "all") {
+      matchesSeason = true;
+    } else {
+      matchesSeason = game.season_id === seasonFilter;
+    }
     const matchesStatus = statusFilter === "all" || game.status === statusFilter;
     return matchesSeason && matchesStatus;
   });
@@ -401,18 +416,32 @@ export default function AdminGamesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 flex-wrap">
         <Select value={seasonFilter} onValueChange={setSeasonFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-[250px]">
             <SelectValue placeholder="Filter by season" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Seasons</SelectItem>
-            {seasons.map((season) => (
-              <SelectItem key={season.id} value={season.id}>
-                {season.name}
+            {currentSeason && (
+              <SelectItem value="current">
+                🏒 {currentSeason.name} (Current)
               </SelectItem>
-            ))}
+            )}
+            {previousSeasons.length > 0 && (
+              <>
+                <SelectItem value="all" className="text-muted-foreground">
+                  All Seasons
+                </SelectItem>
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
+                  Previous Seasons
+                </div>
+                {previousSeasons.map((season) => (
+                  <SelectItem key={season.id} value={season.id}>
+                    {season.name} {season.status === "archived" ? "📦" : "✓"}
+                  </SelectItem>
+                ))}
+              </>
+            )}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -432,9 +461,17 @@ export default function AdminGamesPage() {
       {/* Games Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Games</CardTitle>
+          <CardTitle>
+            {seasonFilter === "current" && currentSeason 
+              ? `${currentSeason.name} Games`
+              : seasonFilter === "all"
+                ? "All Games"
+                : `${seasons.find(s => s.id === seasonFilter)?.name || "Season"} Games`
+            }
+          </CardTitle>
           <CardDescription>
             {filteredGames.length} game{filteredGames.length !== 1 ? "s" : ""} found
+            {seasonFilter === "current" && " in current season"}
           </CardDescription>
         </CardHeader>
         <CardContent>

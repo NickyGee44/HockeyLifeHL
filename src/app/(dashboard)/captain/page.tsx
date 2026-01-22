@@ -18,7 +18,18 @@ import {
 import { TeamLogo } from "@/components/ui/team-logo";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
-import { getPendingVerificationsCount, getTeamStatsSummary } from "@/lib/captain/stats-queries";
+import { getPendingVerificationsCount, getTeamStatsSummary, getRosterWithStats, setPlayerAvailabilityAsCaptain } from "@/lib/captain/stats-queries";
+import { getGamesNeedingStats } from "@/lib/stats/actions";
+import { GameStatEntryModal } from "@/components/captain/GameStatEntryModal";
+import { requestSubsForGame } from "@/lib/players/availability-actions";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type TeamData = {
   id: string;
@@ -38,8 +49,30 @@ type RosterPlayer = {
     avatar_url: string | null;
     jersey_number: number | null;
     position: string | null;
+    shot_hand: "left" | "right" | null;
   };
+  stats: {
+    goals: number;
+    assists: number;
+    points: number;
+    gamesPlayed: number;
+    attendanceRate: number;
+  };
+  goalieStats: {
+    saves: number;
+    goalsAgainst: number;
+    gamesPlayed: number;
+  } | null;
+  availability: {
+    status: string;
+    checkedInAt: string | null;
+  } | null;
 };
+
+type UpcomingGame = {
+  id: string;
+  scheduledAt: string;
+} | null;
 
 type SeasonData = {
   id: string;
@@ -57,6 +90,26 @@ type ActiveDraft = {
   };
 };
 
+type GameForStats = {
+  id: string;
+  scheduled_at: string;
+  home_team_id: string;
+  away_team_id: string;
+  home_score: number | null;
+  away_score: number | null;
+  status: string | null;
+  home_captain_verified: boolean | null;
+  away_captain_verified: boolean | null;
+  stats_submitted_by: string | null;
+  home_subs_requested: boolean | null;
+  away_subs_requested: boolean | null;
+  home_team: { id: string; name: string; short_name: string } | null;
+  away_team: { id: string; name: string; short_name: string } | null;
+  season: { id: string; name: string } | null;
+  hasStats: boolean;
+  isHomeTeam: boolean;
+};
+
 export default function CaptainDashboardPage() {
   const { user, profile, loading: authLoading, isCaptain } = useAuth();
   const [team, setTeam] = useState<TeamData | null>(null);
@@ -65,6 +118,11 @@ export default function CaptainDashboardPage() {
   const [pendingStats, setPendingStats] = useState<number>(0);
   const [teamStats, setTeamStats] = useState<any>(null);
   const [activeDraft, setActiveDraft] = useState<ActiveDraft | null>(null);
+  const [games, setGames] = useState<GameForStats[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [requestingSubs, setRequestingSubs] = useState<string | null>(null);
+  const [upcomingGame, setUpcomingGame] = useState<UpcomingGame>(null);
+  const [updatingAvailability, setUpdatingAvailability] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -147,32 +205,61 @@ export default function CaptainDashboardPage() {
         setActiveDraft(draftData as unknown as ActiveDraft);
       }
 
-      // Get roster, pending stats, and team stats in parallel
+      // Get roster, pending stats, team stats, and games in parallel
       if (seasonData) {
-        const [rosterResult, pendingResult, statsResult] = await Promise.all([
-          supabase
-            .from("team_rosters")
-            .select(`
-              id,
-              is_goalie,
-              player:profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, jersey_number, position)
-            `)
-            .eq("team_id", teamData.id)
-            .eq("season_id", seasonData.id),
+        const [rosterResult, pendingResult, statsResult, gamesResult] = await Promise.all([
+          getRosterWithStats(teamData.id, seasonData.id),
           getPendingVerificationsCount(teamData.id, seasonData.id),
-          getTeamStatsSummary(teamData.id, seasonData.id)
+          getTeamStatsSummary(teamData.id, seasonData.id),
+          getGamesNeedingStats(teamData.id)
         ]);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setRoster((rosterResult.data || []) as any as RosterPlayer[]);
+        setRoster((rosterResult.roster || []) as any as RosterPlayer[]);
+        setUpcomingGame(rosterResult.upcomingGame || null);
         setPendingStats(pendingResult.count);
         setTeamStats(statsResult);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setGames((gamesResult.games || []) as any as GameForStats[]);
       }
     } catch (error) {
       console.error("Captain data error:", error);
     }
 
     setLoading(false);
+  }
+
+  async function handleUpdateAvailability(playerId: string, status: "available" | "unavailable" | "maybe") {
+    if (!upcomingGame || !team) return;
+    
+    setUpdatingAvailability(playerId);
+    const result = await setPlayerAvailabilityAsCaptain(
+      upcomingGame.id,
+      playerId,
+      team.id,
+      status
+    );
+    setUpdatingAvailability(null);
+    
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Attendance updated");
+      loadCaptainData();
+    }
+  }
+
+  async function handleRequestSubs(gameId: string) {
+    setRequestingSubs(gameId);
+    const result = await requestSubsForGame(gameId);
+    setRequestingSubs(null);
+    
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Sub players can now check in for this game!");
+      loadCaptainData();
+    }
   }
 
   const getInitials = (name: string | null) => {
@@ -378,30 +465,47 @@ export default function CaptainDashboardPage() {
         </Card>
       )}
 
-      {/* Captain Actions */}
+      {/* Games Section */}
+      <GamesSection 
+        games={games}
+        team={team}
+        onEnterStats={(gameId) => setSelectedGameId(gameId)}
+        onRequestSubs={handleRequestSubs}
+        requestingSubs={requestingSubs}
+        userId={user?.id}
+      />
+
+      {/* Stat Entry Modal */}
+      {selectedGameId && (
+        <GameStatEntryModal
+          gameId={selectedGameId}
+          isOpen={!!selectedGameId}
+          onClose={() => setSelectedGameId(null)}
+          onSuccess={() => {
+            setSelectedGameId(null);
+            loadCaptainData();
+          }}
+        />
+      )}
+
+      {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Captain Actions</CardTitle>
+          <CardTitle>Quick Actions</CardTitle>
           <CardDescription>Manage your team</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Button className="h-auto py-4 flex-col gap-2 bg-canada-red hover:bg-canada-red-dark" asChild>
-              <Link href="/captain/stats">
-                <span className="text-2xl">✏️</span>
-                <span>Enter Game Stats</span>
-              </Link>
-            </Button>
-            <Button className="h-auto py-4 flex-col gap-2" variant="outline" asChild>
-              <Link href="/captain/stats">
-                <span className="text-2xl">✓</span>
-                <span>Verify Stats</span>
-              </Link>
-            </Button>
+          <div className="grid gap-4 md:grid-cols-2">
             <Button className="h-auto py-4 flex-col gap-2" variant="outline" asChild>
               <Link href={`/teams/${team.id}`}>
                 <span className="text-2xl">👥</span>
                 <span>View Full Roster</span>
+              </Link>
+            </Button>
+            <Button className="h-auto py-4 flex-col gap-2" variant="outline" asChild>
+              <Link href="/captain/team">
+                <span className="text-2xl">📋</span>
+                <span>Team Management</span>
               </Link>
             </Button>
           </div>
@@ -411,10 +515,26 @@ export default function CaptainDashboardPage() {
       {/* Team Roster */}
       <Card>
         <CardHeader>
-          <CardTitle>Your Roster</CardTitle>
-          <CardDescription>
-            {season?.name || "Current"} season roster
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Your Roster</CardTitle>
+              <CardDescription>
+                {season?.name || "Current"} season roster
+                {upcomingGame && (
+                  <span className="ml-2 text-rink-blue">
+                    • Next game: {new Date(upcomingGame.scheduledAt).toLocaleDateString("en-CA", { 
+                      weekday: "short", month: "short", day: "numeric" 
+                    })}
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            {upcomingGame && (
+              <Badge variant="outline" className="text-rink-blue border-rink-blue">
+                {roster.filter(r => r.availability?.status === "available").length} / {roster.length} Available
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {roster.length === 0 ? (
@@ -422,60 +542,583 @@ export default function CaptainDashboardPage() {
               No players on your roster yet. Contact the league owner to add players.
             </p>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
                     <TableHead>Player</TableHead>
-                    <TableHead>Position</TableHead>
+                    <TableHead className="text-center">Pos</TableHead>
+                    <TableHead className="text-center">Shot</TableHead>
+                    <TableHead className="text-center">GP</TableHead>
+                    <TableHead className="text-center">G</TableHead>
+                    <TableHead className="text-center">A</TableHead>
+                    <TableHead className="text-center">Pts</TableHead>
+                    <TableHead className="text-center">Att%</TableHead>
+                    {upcomingGame && <TableHead className="text-center min-w-[120px]">Next Game</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedRoster.map((rosterEntry) => (
-                    <TableRow key={rosterEntry.id}>
-                      <TableCell className="font-mono font-bold">
-                        {rosterEntry.player.jersey_number ?? "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Link 
-                          href={`/stats/${rosterEntry.player.id}`}
-                          className="flex items-center gap-3 hover:underline"
-                        >
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={rosterEntry.player.avatar_url || ""} />
-                            <AvatarFallback 
-                              className="text-xs"
-                              style={{ backgroundColor: team.primary_color || "#3b82f6", color: team.secondary_color || "#ffffff" }}
-                            >
-                              {getInitials(rosterEntry.player.full_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">
-                            {rosterEntry.player.full_name || "Unknown"}
-                          </span>
-                          {rosterEntry.player.id === user?.id && (
-                            <Badge variant="outline" className="text-xs">You</Badge>
+                  {sortedRoster.map((rosterEntry) => {
+                    const isGoalie = rosterEntry.is_goalie;
+                    const stats = rosterEntry.stats;
+                    const goalieStats = rosterEntry.goalieStats;
+                    const availability = rosterEntry.availability;
+                    
+                    return (
+                      <TableRow key={rosterEntry.id} className={availability?.status === "unavailable" ? "opacity-50" : ""}>
+                        <TableCell className="font-mono font-bold text-lg">
+                          {rosterEntry.player.jersey_number ?? "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Link 
+                            href={`/stats/${rosterEntry.player.id}`}
+                            className="flex items-center gap-3 hover:underline"
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={rosterEntry.player.avatar_url || ""} />
+                              <AvatarFallback 
+                                className="text-xs"
+                                style={{ backgroundColor: team.primary_color || "#3b82f6", color: team.secondary_color || "#ffffff" }}
+                              >
+                                {getInitials(rosterEntry.player.full_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <span className="font-medium block">
+                                {rosterEntry.player.full_name || "Unknown"}
+                              </span>
+                              {rosterEntry.player.id === user?.id && (
+                                <Badge variant="outline" className="text-xs">Captain</Badge>
+                              )}
+                            </div>
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isGoalie ? (
+                            <Badge className="bg-rink-blue">G</Badge>
+                          ) : rosterEntry.player.position ? (
+                            <Badge variant="secondary">{rosterEntry.player.position}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
                           )}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        {rosterEntry.is_goalie ? (
-                          <Badge className="bg-rink-blue">G</Badge>
-                        ) : rosterEntry.player.position ? (
-                          <Badge variant="secondary">{rosterEntry.player.position}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {rosterEntry.player.shot_hand ? (
+                            <Badge variant="outline" className="text-xs">
+                              {rosterEntry.player.shot_hand === "left" ? "L" : "R"}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                          {isGoalie ? (goalieStats?.gamesPlayed || 0) : stats.gamesPlayed}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isGoalie ? (
+                            <span className="text-xs text-muted-foreground" title="Goals Against">
+                              {goalieStats?.goalsAgainst || 0} GA
+                            </span>
+                          ) : (
+                            <span className={stats.goals > 0 ? "font-bold text-gold" : ""}>
+                              {stats.goals}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isGoalie ? (
+                            <span className="text-xs text-muted-foreground" title="Saves">
+                              {goalieStats?.saves || 0} SV
+                            </span>
+                          ) : (
+                            <span className={stats.assists > 0 ? "font-medium" : ""}>
+                              {stats.assists}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center font-bold">
+                          {isGoalie ? (
+                            <span className="text-xs" title="Save %">
+                              {goalieStats && (goalieStats.saves + goalieStats.goalsAgainst) > 0
+                                ? `${((goalieStats.saves / (goalieStats.saves + goalieStats.goalsAgainst)) * 100).toFixed(0)}%`
+                                : "-"}
+                            </span>
+                          ) : (
+                            <span className={stats.points > 0 ? "text-gold" : ""}>
+                              {stats.points}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={
+                            stats.attendanceRate >= 80 ? "text-green-600 font-medium" :
+                            stats.attendanceRate >= 50 ? "text-yellow-600" :
+                            stats.attendanceRate > 0 ? "text-red-500" : "text-muted-foreground"
+                          }>
+                            {stats.attendanceRate > 0 ? `${stats.attendanceRate}%` : "-"}
+                          </span>
+                        </TableCell>
+                        {upcomingGame && (
+                          <TableCell className="text-center">
+                            <Select
+                              value={availability?.status || ""}
+                              onValueChange={(value) => handleUpdateAvailability(
+                                rosterEntry.player.id, 
+                                value as "available" | "unavailable" | "maybe"
+                              )}
+                              disabled={updatingAvailability === rosterEntry.player.id}
+                            >
+                              <SelectTrigger className={`w-[100px] h-8 text-xs ${
+                                availability?.status === "available" ? "border-green-500 bg-green-500/10" :
+                                availability?.status === "unavailable" ? "border-red-500 bg-red-500/10" :
+                                availability?.status === "maybe" ? "border-yellow-500 bg-yellow-500/10" :
+                                ""
+                              }`}>
+                                <SelectValue placeholder="Not set">
+                                  {availability?.status === "available" ? "✓ In" :
+                                   availability?.status === "unavailable" ? "✗ Out" :
+                                   availability?.status === "maybe" ? "? Maybe" :
+                                   "Not set"}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="available">
+                                  <span className="text-green-600">✓ In</span>
+                                </SelectItem>
+                                <SelectItem value="maybe">
+                                  <span className="text-yellow-600">? Maybe</span>
+                                </SelectItem>
+                                <SelectItem value="unavailable">
+                                  <span className="text-red-600">✗ Out</span>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
+          
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
+            <span><strong>GP</strong> = Games Played</span>
+            <span><strong>G</strong> = Goals</span>
+            <span><strong>A</strong> = Assists</span>
+            <span><strong>Pts</strong> = Points</span>
+            <span><strong>Att%</strong> = Attendance Rate</span>
+            {roster.some(r => r.is_goalie) && (
+              <>
+                <span><strong>GA</strong> = Goals Against</span>
+                <span><strong>SV</strong> = Saves</span>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// Games Section Component
+function GamesSection({
+  games,
+  team,
+  onEnterStats,
+  onRequestSubs,
+  requestingSubs,
+  userId,
+}: {
+  games: GameForStats[];
+  team: TeamData;
+  onEnterStats: (gameId: string) => void;
+  onRequestSubs: (gameId: string) => void;
+  requestingSubs: string | null;
+  userId?: string;
+}) {
+  const [showPastGames, setShowPastGames] = useState(false);
+
+  // Categorize games
+  const today = new Date();
+  const todayStr = today.toDateString();
+
+  // Today's games (scheduled, in_progress, or completed today)
+  const todaysGames = games.filter(g => {
+    const gameDate = new Date(g.scheduled_at);
+    return gameDate.toDateString() === todayStr;
+  });
+
+  // Today's games that are completed and need stats
+  const todaysCompletedNeedingStats = todaysGames.filter(g => 
+    g.status === "completed" && !g.hasStats
+  );
+
+  // Today's games that are not yet completed (upcoming/in progress)
+  const todaysUpcoming = todaysGames.filter(g => 
+    g.status !== "completed"
+  );
+
+  // Past games that still need stats (before today)
+  const pastGamesNeedingStats = games.filter(g => {
+    const gameDate = new Date(g.scheduled_at);
+    return gameDate.toDateString() !== todayStr && 
+           gameDate < today && 
+           g.status === "completed" && 
+           !g.hasStats;
+  });
+
+  // Future games (after today)
+  const upcomingGames = games.filter(g => {
+    const gameDate = new Date(g.scheduled_at);
+    return gameDate.toDateString() !== todayStr && 
+           gameDate > today && 
+           g.status === "scheduled";
+  }).slice(0, 3);
+
+  // Games needing verification (any time)
+  const needingVerification = games.filter(g => {
+    if (g.isHomeTeam) {
+      return g.status === "completed" && g.hasStats && !g.home_captain_verified && g.away_captain_verified;
+    } else {
+      return g.status === "completed" && g.hasStats && !g.away_captain_verified && g.home_captain_verified;
+    }
+  });
+
+  const getGameStatus = (game: GameForStats) => {
+    if (game.status === "in_progress") return { label: "LIVE", color: "bg-green-600 animate-pulse" };
+    if (game.status === "completed") {
+      if (!game.hasStats) return { label: "Needs Stats", color: "bg-canada-red" };
+      const needsVerify = game.isHomeTeam 
+        ? !game.home_captain_verified && game.away_captain_verified
+        : !game.away_captain_verified && game.home_captain_verified;
+      if (needsVerify) return { label: "Verify", color: "bg-yellow-600" };
+      const verified = game.isHomeTeam ? game.home_captain_verified : game.away_captain_verified;
+      if (verified) return { label: "Verified", color: "bg-green-600" };
+      return { label: "Pending", color: "bg-gray-500" };
+    }
+    return { label: "Upcoming", color: "bg-rink-blue" };
+  };
+
+  const formatGameTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" });
+  };
+
+  const formatGameDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
+  };
+
+  if (games.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Games</CardTitle>
+          <CardDescription>No games found for this season</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-center py-8">
+            Games will appear here once the schedule is created.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Today's Games - Main Focus */}
+      {todaysGames.length > 0 && (
+        <Card className="border-2 border-rink-blue bg-rink-blue/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">🏒</span>
+              Today&apos;s Game
+              <Badge className="bg-rink-blue">Game Day!</Badge>
+            </CardTitle>
+            <CardDescription>
+              {new Date().toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* Upcoming/In Progress games today */}
+              {todaysUpcoming.map((game) => {
+                const opponent = game.isHomeTeam ? game.away_team : game.home_team;
+                const status = getGameStatus(game);
+                const subsRequested = game.isHomeTeam ? game.home_subs_requested : game.away_subs_requested;
+
+                return (
+                  <div
+                    key={game.id}
+                    className="flex items-center justify-between p-4 bg-background rounded-lg border"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="text-center min-w-[60px]">
+                        <p className="text-lg font-bold">{formatGameTime(game.scheduled_at)}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">vs {opponent?.name || "TBD"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {game.isHomeTeam ? "Home" : "Away"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={status.color}>{status.label}</Badge>
+                      {!subsRequested && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onRequestSubs(game.id)}
+                          disabled={requestingSubs === game.id}
+                        >
+                          {requestingSubs === game.id ? "..." : "Request Subs"}
+                        </Button>
+                      )}
+                      {subsRequested && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Subs Requested
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Today's completed games needing stats - PRIMARY FOCUS */}
+              {todaysCompletedNeedingStats.map((game) => {
+                const opponent = game.isHomeTeam ? game.away_team : game.home_team;
+                const score = game.home_score !== null && game.away_score !== null
+                  ? game.isHomeTeam 
+                    ? `${game.home_score} - ${game.away_score}`
+                    : `${game.away_score} - ${game.home_score}`
+                  : null;
+
+                return (
+                  <div
+                    key={game.id}
+                    className="flex items-center justify-between p-4 bg-canada-red/10 rounded-lg border-2 border-canada-red"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="text-center min-w-[60px]">
+                        <p className="text-sm text-muted-foreground">{formatGameTime(game.scheduled_at)}</p>
+                        <Badge className="bg-canada-red">FINAL</Badge>
+                      </div>
+                      <div>
+                        <p className="font-semibold">vs {opponent?.name || "TBD"}</p>
+                        {score && <p className="text-lg font-bold">{score}</p>}
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => onEnterStats(game.id)}
+                      className="bg-canada-red hover:bg-canada-red-dark"
+                      size="lg"
+                    >
+                      📊 Enter Stats
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Games Needing Verification */}
+      {needingVerification.length > 0 && (
+        <Card className="border-yellow-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-yellow-600">
+              <span className="text-2xl">✓</span>
+              Verify Stats
+              <Badge className="bg-yellow-600">{needingVerification.length}</Badge>
+            </CardTitle>
+            <CardDescription>
+              Review and verify the opponent&apos;s submitted stats
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {needingVerification.map((game) => {
+                const opponent = game.isHomeTeam ? game.away_team : game.home_team;
+                const score = game.isHomeTeam 
+                  ? `${game.home_score} - ${game.away_score}`
+                  : `${game.away_score} - ${game.home_score}`;
+
+                return (
+                  <div
+                    key={game.id}
+                    className="flex items-center justify-between p-3 bg-yellow-500/10 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm text-muted-foreground min-w-[80px]">
+                        {formatGameDate(game.scheduled_at)}
+                      </div>
+                      <div>
+                        <p className="font-medium">vs {opponent?.name || "TBD"}</p>
+                        <p className="text-sm text-muted-foreground">Final: {score}</p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => onEnterStats(game.id)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Review & Verify
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Past Games Needing Stats - Collapsible */}
+      {pastGamesNeedingStats.length > 0 && (
+        <Card className={showPastGames ? "border-canada-red/50" : ""}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-muted-foreground">
+                <span className="text-xl">📁</span>
+                Past Games
+                <Badge variant="outline">{pastGamesNeedingStats.length} need stats</Badge>
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPastGames(!showPastGames)}
+              >
+                {showPastGames ? "Hide" : "View Past Games"}
+              </Button>
+            </div>
+          </CardHeader>
+          {showPastGames && (
+            <CardContent>
+              <div className="space-y-2">
+                {pastGamesNeedingStats.map((game) => {
+                  const opponent = game.isHomeTeam ? game.away_team : game.home_team;
+                  const score = game.home_score !== null && game.away_score !== null
+                    ? game.isHomeTeam 
+                      ? `${game.home_score} - ${game.away_score}`
+                      : `${game.away_score} - ${game.home_score}`
+                    : "TBD";
+
+                  return (
+                    <div
+                      key={game.id}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm text-muted-foreground min-w-[80px]">
+                          {formatGameDate(game.scheduled_at)}
+                        </div>
+                        <div>
+                          <p className="font-medium">vs {opponent?.name || "TBD"}</p>
+                          {score !== "TBD" && (
+                            <p className="text-sm text-muted-foreground">Score: {score}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => onEnterStats(game.id)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Enter Stats
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* Upcoming Games */}
+      {upcomingGames.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">📅</span>
+              Upcoming Games
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {upcomingGames.map((game) => {
+                const opponent = game.isHomeTeam ? game.away_team : game.home_team;
+                const subsRequested = game.isHomeTeam ? game.home_subs_requested : game.away_subs_requested;
+
+                return (
+                  <div
+                    key={game.id}
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm min-w-[100px]">
+                        <p className="font-medium">{formatGameDate(game.scheduled_at)}</p>
+                        <p className="text-muted-foreground">{formatGameTime(game.scheduled_at)}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium">vs {opponent?.name || "TBD"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {game.isHomeTeam ? "Home" : "Away"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {subsRequested ? (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Subs Requested
+                        </Badge>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onRequestSubs(game.id)}
+                          disabled={requestingSubs === game.id}
+                        >
+                          {requestingSubs === game.id ? "..." : "Need Subs?"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No games message */}
+      {todaysGames.length === 0 && needingVerification.length === 0 && pastGamesNeedingStats.length === 0 && upcomingGames.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground">
+              All caught up! No games need attention right now.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No game today but nothing else to do */}
+      {todaysGames.length === 0 && needingVerification.length === 0 && pastGamesNeedingStats.length === 0 && upcomingGames.length > 0 && (
+        <Card className="bg-muted/30">
+          <CardContent className="py-6 text-center">
+            <p className="text-2xl mb-2">📅</p>
+            <p className="text-muted-foreground">
+              No game today. Next game: {formatGameDate(upcomingGames[0].scheduled_at)}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
