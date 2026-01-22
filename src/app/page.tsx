@@ -4,8 +4,13 @@ import { Header, Footer } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TeamLogo } from "@/components/ui/team-logo";
+import { getPlayerOfTheWeek } from "@/lib/stats/actions";
 
-export default function Home() {
+export default async function Home() {
+  // Fetch Player of the Week data
+  const { player: playerOfTheWeek } = await getPlayerOfTheWeek();
   return (
     <div className="min-h-screen bg-arena flex flex-col">
       <Header />
@@ -58,6 +63,104 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      {/* Player of the Week Section */}
+      {playerOfTheWeek && (
+        <section className="py-16 px-4 bg-gradient-to-b from-background to-card/50">
+          <div className="container mx-auto max-w-4xl">
+            <h2 className="text-center mb-8">
+              <span className="text-foreground">Player of the </span>
+              <span className="text-gold">Week</span>
+            </h2>
+            
+            <Card className="overflow-hidden border-gold/30 bg-gradient-to-br from-card via-card to-gold/5">
+              <div className="flex flex-col md:flex-row">
+                {/* Player Photo & Info */}
+                <div className="flex-shrink-0 p-6 md:p-8 flex flex-col items-center md:items-start gap-4 md:border-r border-border/50">
+                  <div className="relative">
+                    <Avatar className="h-32 w-32 md:h-40 md:w-40 ring-4 ring-gold/30">
+                      <AvatarImage src={playerOfTheWeek.avatarUrl || ""} />
+                      <AvatarFallback className="bg-canada-red text-white text-4xl">
+                        {playerOfTheWeek.fullName?.split(" ").map(n => n[0]).join("") || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-2 -right-2 bg-gold text-black rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-lg">
+                      #{playerOfTheWeek.jerseyNumber || "?"}
+                    </div>
+                  </div>
+                  
+                  <div className="text-center md:text-left">
+                    <Link href={`/stats/${playerOfTheWeek.id}`} className="hover:underline">
+                      <h3 className="text-2xl font-bold">{playerOfTheWeek.fullName}</h3>
+                    </Link>
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-2">
+                      {playerOfTheWeek.position && (
+                        <Badge variant="outline">{playerOfTheWeek.position}</Badge>
+                      )}
+                      {playerOfTheWeek.shotHand && (
+                        <Badge variant="outline">
+                          {playerOfTheWeek.shotHand === "left" ? "L" : "R"} Shot
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Team Info */}
+                  {playerOfTheWeek.team && (
+                    <div className="flex items-center gap-3 mt-2">
+                      <TeamLogo 
+                        team={{
+                          id: playerOfTheWeek.team.id,
+                          name: playerOfTheWeek.team.name,
+                          short_name: playerOfTheWeek.team.shortName,
+                          logo_url: playerOfTheWeek.team.logoUrl,
+                          primary_color: playerOfTheWeek.team.primaryColor,
+                          secondary_color: playerOfTheWeek.team.secondaryColor,
+                        }} 
+                        size="md" 
+                        showName 
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Weekly Stats */}
+                <div className="flex-1 p-6 md:p-8 flex flex-col justify-center">
+                  <p className="text-sm text-muted-foreground mb-4 text-center md:text-left">
+                    This Week&apos;s Performance
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-background/50 rounded-lg">
+                      <div className="text-3xl md:text-4xl font-bold text-gold">{playerOfTheWeek.weeklyStats.points}</div>
+                      <div className="text-sm text-muted-foreground">Points</div>
+                    </div>
+                    <div className="text-center p-4 bg-background/50 rounded-lg">
+                      <div className="text-3xl md:text-4xl font-bold text-canada-red">{playerOfTheWeek.weeklyStats.goals}</div>
+                      <div className="text-sm text-muted-foreground">Goals</div>
+                    </div>
+                    <div className="text-center p-4 bg-background/50 rounded-lg">
+                      <div className="text-3xl md:text-4xl font-bold text-rink-blue">{playerOfTheWeek.weeklyStats.assists}</div>
+                      <div className="text-sm text-muted-foreground">Assists</div>
+                    </div>
+                    <div className="text-center p-4 bg-background/50 rounded-lg">
+                      <div className="text-3xl md:text-4xl font-bold">{playerOfTheWeek.weeklyStats.gamesPlayed}</div>
+                      <div className="text-sm text-muted-foreground">Games</div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 text-center md:text-left">
+                    <Button asChild variant="outline" className="border-gold/50 hover:bg-gold/10">
+                      <Link href={`/stats/${playerOfTheWeek.id}`}>
+                        View Full Stats
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </section>
+      )}
 
       {/* Stats Preview Section */}
       <section className="py-16 px-4">

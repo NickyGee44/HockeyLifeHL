@@ -224,7 +224,7 @@ export async function activateDraft(draftId: string): Promise<DraftActionResult>
   // Check if draft order is assigned
   const { data: draft } = await supabase
     .from("drafts")
-    .select("draft_order_assigned, status")
+    .select("draft_order_assigned, status, season_id")
     .eq("id", draftId)
     .single();
 
@@ -234,6 +234,53 @@ export async function activateDraft(draftId: string): Promise<DraftActionResult>
 
   if (!draft.draft_order_assigned) {
     return { error: "Draft order must be assigned before activating the draft" };
+  }
+
+  // Get all teams with their captains
+  const { data: teams } = await supabase
+    .from("teams")
+    .select("id, captain_id, name")
+    .not("captain_id", "is", null);
+
+  if (teams && teams.length > 0) {
+    // Clear any existing rosters for this season (fresh start)
+    await supabase
+      .from("team_rosters")
+      .delete()
+      .eq("season_id", draft.season_id);
+
+    // Add captains to their team rosters first (they're always first on roster)
+    const captainRosterEntries = [];
+    for (const team of teams) {
+      if (team.captain_id) {
+        // Check if captain is a goalie
+        const { data: captainProfile } = await supabase
+          .from("profiles")
+          .select("position")
+          .eq("id", team.captain_id)
+          .single();
+
+        captainRosterEntries.push({
+          team_id: team.id,
+          player_id: team.captain_id,
+          season_id: draft.season_id,
+          is_goalie: captainProfile?.position === "G",
+        });
+      }
+    }
+
+    if (captainRosterEntries.length > 0) {
+      const { error: rosterError } = await supabase
+        .from("team_rosters")
+        .insert(captainRosterEntries);
+
+      if (rosterError) {
+        console.error("Error adding captains to rosters:", rosterError);
+        // Don't fail the activation, just log the error
+      } else {
+        console.log(`Added ${captainRosterEntries.length} captains to their team rosters`);
+      }
+    }
   }
 
   // Update draft status to in_progress
@@ -464,6 +511,14 @@ export async function getAvailableDraftPlayers(draftId: string) {
 
   const draftedPlayerIds = draftedPlayers?.map(p => p.player_id) || [];
 
+  // Get players already on rosters (captains are added when draft activates)
+  const { data: rosterPlayers } = await supabase
+    .from("team_rosters")
+    .select("player_id")
+    .eq("season_id", draft.season_id);
+
+  const rosterPlayerIds = rosterPlayers?.map(r => r.player_id) || [];
+
   // Get ALL players who opted in as full-time for this season
   const { data: optIns } = await supabase
     .from("season_opt_ins")
@@ -477,8 +532,9 @@ export async function getAvailableDraftPlayers(draftId: string) {
     return { players: [] };
   }
 
-  // Filter out already drafted players
-  const availablePlayerIds = optedInPlayerIds.filter(id => !draftedPlayerIds.includes(id));
+  // Filter out already drafted players AND players already on rosters (captains)
+  const unavailableIds = new Set([...draftedPlayerIds, ...rosterPlayerIds]);
+  const availablePlayerIds = optedInPlayerIds.filter(id => !unavailableIds.has(id));
 
   if (availablePlayerIds.length === 0) {
     return { players: [] };
@@ -600,38 +656,44 @@ export async function completeDraft(draftId: string): Promise<DraftActionResult>
     return { error: "No picks found in draft" };
   }
 
-  // Clear existing rosters for this season
-  await supabase
+  // Get existing roster entries (captains were added when draft was activated)
+  const { data: existingRoster } = await supabase
     .from("team_rosters")
-    .delete()
+    .select("player_id")
     .eq("season_id", draft.season_id);
 
-  // Create new rosters from draft picks
-  const rosterEntries = picks.map(pick => ({
-    team_id: pick.team_id,
-    player_id: pick.player_id,
-    season_id: draft.season_id,
-    is_goalie: false, // Will need to check player position
-  }));
+  const existingPlayerIds = new Set(existingRoster?.map(r => r.player_id) || []);
+
+  // Create roster entries only for players not already on a roster (skip captains)
+  const newRosterEntries = picks
+    .filter(pick => !existingPlayerIds.has(pick.player_id))
+    .map(pick => ({
+      team_id: pick.team_id,
+      player_id: pick.player_id,
+      season_id: draft.season_id,
+      is_goalie: false, // Will be set below
+    }));
 
   // Check which players are goalies
-  for (let i = 0; i < rosterEntries.length; i++) {
+  for (let i = 0; i < newRosterEntries.length; i++) {
     const { data: player } = await supabase
       .from("profiles")
       .select("position")
-      .eq("id", rosterEntries[i].player_id)
+      .eq("id", newRosterEntries[i].player_id)
       .single();
     
-    rosterEntries[i].is_goalie = player?.position === "G";
+    newRosterEntries[i].is_goalie = player?.position === "G";
   }
 
-  const { error: rosterError } = await supabase
-    .from("team_rosters")
-    .insert(rosterEntries);
+  if (newRosterEntries.length > 0) {
+    const { error: rosterError } = await supabase
+      .from("team_rosters")
+      .insert(newRosterEntries);
 
-  if (rosterError) {
-    console.error("Error creating rosters:", rosterError);
-    return { error: rosterError.message };
+    if (rosterError) {
+      console.error("Error creating rosters:", rosterError);
+      return { error: rosterError.message };
+    }
   }
 
   // Check for existing active seasons and deactivate them (only one active at a time)

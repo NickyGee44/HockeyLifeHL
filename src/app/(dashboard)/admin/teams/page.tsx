@@ -34,6 +34,7 @@ import {
   deleteTeam,
   getAvailableCaptains 
 } from "@/lib/teams/actions";
+import { syncCaptainsToRosters } from "@/lib/seasons/actions";
 import { updateTeamLogoAdmin } from "@/lib/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -52,6 +53,7 @@ export default function AdminTeamsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
@@ -85,6 +87,24 @@ export default function AdminTeamsPage() {
     }
     
     setLoading(false);
+  }
+
+  async function handleSyncCaptains() {
+    setIsSyncing(true);
+    try {
+      const result = await syncCaptainsToRosters();
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.added > 0) {
+        toast.success(`Added ${result.added} captain(s) to their team rosters`);
+      } else {
+        toast.info("All captains are already on their team rosters");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to sync captains");
+    } finally {
+      setIsSyncing(false);
+    }
   }
 
   function resetForm() {
@@ -332,12 +352,20 @@ export default function AdminTeamsPage() {
             Create and manage league teams
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-canada-red hover:bg-canada-red-dark">
-              + New Team
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleSyncCaptains}
+            disabled={isSyncing}
+          >
+            {isSyncing ? "Syncing..." : "Sync Captains to Rosters"}
+          </Button>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-canada-red hover:bg-canada-red-dark">
+                + New Team
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Team</DialogTitle>
@@ -448,6 +476,7 @@ export default function AdminTeamsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Teams Grid */}

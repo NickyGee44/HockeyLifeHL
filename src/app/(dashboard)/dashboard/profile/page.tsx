@@ -23,11 +23,17 @@ export default function ProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [position, setPosition] = useState(profile?.position || "");
+  const [shotHand, setShotHand] = useState(profile?.shot_hand || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update position when profile loads
   if (profile?.position && position !== profile.position) {
     setPosition(profile.position);
+  }
+
+  // Update shot hand when profile loads
+  if (profile?.shot_hand && shotHand !== profile.shot_hand) {
+    setShotHand(profile.shot_hand);
   }
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,6 +141,7 @@ export default function ProfilePage() {
   async function handleSubmit(formData: FormData) {
     setIsUpdating(true);
     formData.set("position", position);
+    formData.set("shotHand", shotHand);
     
     const result = await updateProfile(formData);
     
@@ -283,6 +290,11 @@ export default function ProfilePage() {
                     {profile.position}
                   </Badge>
                 )}
+                {profile?.shot_hand && (
+                  <Badge variant="outline">
+                    {profile.shot_hand === "left" ? "L" : "R"} Shot
+                  </Badge>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 Click your picture to change it
@@ -347,6 +359,26 @@ export default function ProfilePage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="shotHand">Shot Hand</Label>
+              <Select 
+                value={shotHand} 
+                onValueChange={setShotHand}
+                disabled={isUpdating}
+              >
+                <SelectTrigger id="shotHand">
+                  <SelectValue placeholder="Select shooting hand" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Left Shot</SelectItem>
+                  <SelectItem value="right">Right Shot</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Which side do you shoot from?
+              </p>
             </div>
 
             <Separator />

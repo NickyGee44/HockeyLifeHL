@@ -455,3 +455,143 @@ export async function getGamesNeedingStats(teamId: string) {
 
   return { games: gamesWithStats };
 }
+
+// Get Player of the Week based on recent game performance
+export async function getPlayerOfTheWeek() {
+  const supabase = await createClient();
+
+  // Get games from the last 7 days
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  // Get recent completed games
+  const { data: recentGames } = await supabase
+    .from("games")
+    .select("id")
+    .eq("status", "completed")
+    .gte("scheduled_at", oneWeekAgo.toISOString())
+    .order("scheduled_at", { ascending: false });
+
+  if (!recentGames || recentGames.length === 0) {
+    // No games in the last week, try last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data: olderGames } = await supabase
+      .from("games")
+      .select("id")
+      .eq("status", "completed")
+      .gte("scheduled_at", thirtyDaysAgo.toISOString())
+      .order("scheduled_at", { ascending: false });
+
+    if (!olderGames || olderGames.length === 0) {
+      return { player: null };
+    }
+  }
+
+  const gameIds = (recentGames || []).map(g => g.id);
+
+  // Get player stats from these games, aggregated
+  const { data: playerStats } = await supabase
+    .from("player_stats")
+    .select(`
+      player_id,
+      goals,
+      assists,
+      game_id,
+      team_id
+    `)
+    .in("game_id", gameIds);
+
+  if (!playerStats || playerStats.length === 0) {
+    return { player: null };
+  }
+
+  // Aggregate stats by player
+  const playerAggregates: Record<string, { 
+    playerId: string; 
+    goals: number; 
+    assists: number; 
+    points: number; 
+    gamesPlayed: number;
+    teamId: string;
+    gameIds: string[];
+  }> = {};
+
+  for (const stat of playerStats) {
+    if (!playerAggregates[stat.player_id]) {
+      playerAggregates[stat.player_id] = {
+        playerId: stat.player_id,
+        goals: 0,
+        assists: 0,
+        points: 0,
+        gamesPlayed: 0,
+        teamId: stat.team_id,
+        gameIds: [],
+      };
+    }
+    playerAggregates[stat.player_id].goals += stat.goals || 0;
+    playerAggregates[stat.player_id].assists += stat.assists || 0;
+    playerAggregates[stat.player_id].points += (stat.goals || 0) + (stat.assists || 0);
+    if (!playerAggregates[stat.player_id].gameIds.includes(stat.game_id)) {
+      playerAggregates[stat.player_id].gamesPlayed += 1;
+      playerAggregates[stat.player_id].gameIds.push(stat.game_id);
+    }
+  }
+
+  // Find the player with the most points
+  const sortedPlayers = Object.values(playerAggregates).sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.goals !== a.goals) return b.goals - a.goals;
+    return b.gamesPlayed - a.gamesPlayed;
+  });
+
+  if (sortedPlayers.length === 0) {
+    return { player: null };
+  }
+
+  const topPlayer = sortedPlayers[0];
+
+  // Get player details
+  const { data: playerProfile } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, jersey_number, position, shot_hand")
+    .eq("id", topPlayer.playerId)
+    .single();
+
+  if (!playerProfile) {
+    return { player: null };
+  }
+
+  // Get team details
+  const { data: team } = await supabase
+    .from("teams")
+    .select("id, name, short_name, logo_url, primary_color, secondary_color")
+    .eq("id", topPlayer.teamId)
+    .single();
+
+  return {
+    player: {
+      id: playerProfile.id,
+      fullName: playerProfile.full_name,
+      avatarUrl: playerProfile.avatar_url,
+      jerseyNumber: playerProfile.jersey_number,
+      position: playerProfile.position,
+      shotHand: playerProfile.shot_hand,
+      weeklyStats: {
+        goals: topPlayer.goals,
+        assists: topPlayer.assists,
+        points: topPlayer.points,
+        gamesPlayed: topPlayer.gamesPlayed,
+      },
+      team: team ? {
+        id: team.id,
+        name: team.name,
+        shortName: team.short_name,
+        logoUrl: team.logo_url,
+        primaryColor: team.primary_color,
+        secondaryColor: team.secondary_color,
+      } : null,
+    },
+  };
+}

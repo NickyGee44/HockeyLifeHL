@@ -20,6 +20,7 @@ export async function updateProfile(formData: FormData): Promise<ProfileUpdateRe
   const fullName = formData.get("fullName") as string;
   const jerseyNumber = formData.get("jerseyNumber") as string;
   const position = formData.get("position") as string;
+  const shotHand = formData.get("shotHand") as string;
 
   // Validation
   if (!fullName || fullName.trim().length < 2) {
@@ -36,12 +37,18 @@ export async function updateProfile(formData: FormData): Promise<ProfileUpdateRe
     return { error: "Invalid position" };
   }
 
+  const validShotHands = ["left", "right", ""];
+  if (shotHand && !validShotHands.includes(shotHand)) {
+    return { error: "Invalid shot hand" };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
       full_name: fullName.trim(),
       jersey_number: jerseyNum,
       position: position || null,
+      shot_hand: (shotHand === "left" || shotHand === "right") ? shotHand : null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);

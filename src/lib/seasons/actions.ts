@@ -356,6 +356,11 @@ export async function updateSeasonStatus(seasonId: string, status: SeasonStatus)
     return { error: error.message };
   }
 
+  // Sync captains to their team rosters when season becomes active
+  if (status === "active" || status === "playoffs" || status === "draft") {
+    await syncCaptainsToRosters(seasonId);
+  }
+
   revalidatePath("/admin/seasons");
   revalidatePath("/standings");
   revalidatePath("/schedule");
@@ -578,4 +583,99 @@ export async function getSeasonEndStatus(seasonId: string) {
     unverifiedGames,
     canEnd: incompleteGames === 0 && unverifiedGames === 0,
   };
+}
+
+// Sync all team captains to their team rosters for the active season
+// This ensures captains are always on their teams
+export async function syncCaptainsToRosters(seasonId?: string): Promise<{ success: boolean; added: number; error?: string }> {
+  const supabase = await createClient();
+
+  // Get the season to sync (use provided or get active)
+  let targetSeasonId = seasonId;
+  if (!targetSeasonId) {
+    const { data: activeSeason } = await supabase
+      .from("seasons")
+      .select("id")
+      .in("status", ["active", "playoffs", "draft"])
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!activeSeason) {
+      return { success: false, added: 0, error: "No active season found" };
+    }
+    targetSeasonId = activeSeason.id;
+  }
+
+  // Get all teams with their captains
+  const { data: teams, error: teamsError } = await supabase
+    .from("teams")
+    .select("id, captain_id, name")
+    .not("captain_id", "is", null);
+
+  if (teamsError) {
+    console.error("Error fetching teams:", teamsError);
+    return { success: false, added: 0, error: teamsError.message };
+  }
+
+  if (!teams || teams.length === 0) {
+    return { success: true, added: 0 };
+  }
+
+  // Get existing roster entries for this season
+  const { data: existingRoster } = await supabase
+    .from("team_rosters")
+    .select("player_id, team_id")
+    .eq("season_id", targetSeasonId);
+
+  const existingPlayerTeams = new Map(
+    existingRoster?.map(r => [r.player_id, r.team_id]) || []
+  );
+
+  // Find captains not on their team's roster
+  const captainsToAdd = [];
+  for (const team of teams) {
+    if (!team.captain_id) continue;
+
+    const existingTeamId = existingPlayerTeams.get(team.captain_id);
+    
+    // If captain is not on any roster, or on wrong team's roster
+    if (!existingTeamId) {
+      // Check if captain is a goalie
+      const { data: captainProfile } = await supabase
+        .from("profiles")
+        .select("position")
+        .eq("id", team.captain_id)
+        .single();
+
+      captainsToAdd.push({
+        team_id: team.id,
+        player_id: team.captain_id,
+        season_id: targetSeasonId,
+        is_goalie: captainProfile?.position === "G",
+      });
+    }
+  }
+
+  if (captainsToAdd.length === 0) {
+    return { success: true, added: 0 };
+  }
+
+  // Add missing captains to rosters
+  const { error: insertError } = await supabase
+    .from("team_rosters")
+    .insert(captainsToAdd);
+
+  if (insertError) {
+    console.error("Error adding captains to rosters:", insertError);
+    return { success: false, added: 0, error: insertError.message };
+  }
+
+  console.log(`Synced ${captainsToAdd.length} captains to their team rosters for season ${targetSeasonId}`);
+  
+  revalidatePath("/teams");
+  revalidatePath("/admin/teams");
+  revalidatePath("/captain/team");
+
+  return { success: true, added: captainsToAdd.length };
 }
