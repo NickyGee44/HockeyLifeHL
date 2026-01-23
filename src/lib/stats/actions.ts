@@ -689,13 +689,8 @@ export async function getGamesNeedingStats(teamId: string) {
     return { games: [] }; // No active seasons, no games to show
   }
 
-  // Get today's date range for finding today's games
-  const today = new Date();
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-
-  // Get completed games OR today's games (scheduled/in_progress) for this team
-  // Only from active/playoffs seasons
+  // Get all games for this team from active seasons (let client filter by date)
+  // Don't filter by date on server since timezone conversions can cause issues
   const { data: games, error } = await supabase
     .from("games")
     .select(`
@@ -707,7 +702,7 @@ export async function getGamesNeedingStats(teamId: string) {
     .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
     .in("season_id", activeSeasonIds)
     .order("scheduled_at", { ascending: false })
-    .limit(30);
+    .limit(50);
 
   if (error) {
     console.error("Error fetching games needing stats:", error);
@@ -715,15 +710,13 @@ export async function getGamesNeedingStats(teamId: string) {
   }
 
   // Filter to show:
-  // 1. Completed games (for stat entry/verification)
-  // 2. Today's games (scheduled or in_progress - so captain can see upcoming games)
+  // 1. All completed games (for stat entry/verification)
+  // 2. Scheduled and in_progress games
+  // Let the client-side code handle date-based filtering with proper timezone handling
   const relevantGames = (games || []).filter(game => {
-    const gameDate = new Date(game.scheduled_at);
-    const isToday = gameDate >= startOfDay && gameDate < endOfDay;
-    const isCompleted = game.status === "completed";
-    const isInProgress = game.status === "in_progress";
-    
-    return isCompleted || isToday || isInProgress;
+    return game.status === "completed" || 
+           game.status === "in_progress" || 
+           game.status === "scheduled";
   });
 
   // Check which games have stats entered
