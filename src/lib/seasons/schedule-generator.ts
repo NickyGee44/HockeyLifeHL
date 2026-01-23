@@ -43,41 +43,73 @@ function generateRoundRobinSchedule(
   // If each team plays totalGamesPerTeam games, total matchups = (numTeams * totalGamesPerTeam) / 2
   const totalMatchups = Math.floor((numTeams * totalGamesPerTeam) / 2);
 
-  // Generate round-robin matchups ensuring balanced home/away
+  // Generate matchups ensuring each team plays exactly totalGamesPerTeam games
   const matchups: Array<{ home: string; away: string }> = [];
   const teamGameCounts = new Map<string, number>();
   teamIds.forEach(id => teamGameCounts.set(id, 0));
   
-  // Create all possible unique matchups (each pair plays each other)
-  const allPossibleMatchups: Array<{ home: string; away: string }> = [];
-  for (let i = 0; i < numTeams; i++) {
-    for (let j = i + 1; j < numTeams; j++) {
-      // Add both home/away combinations
-      allPossibleMatchups.push({ home: teamIds[i], away: teamIds[j] });
-      allPossibleMatchups.push({ home: teamIds[j], away: teamIds[i] });
-    }
-  }
-
-  // Shuffle for randomness
-  for (let i = allPossibleMatchups.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [allPossibleMatchups[i], allPossibleMatchups[j]] = [allPossibleMatchups[j], allPossibleMatchups[i]];
-  }
-
-  // Select matchups trying to balance games per team
-  for (const matchup of allPossibleMatchups) {
-    if (matchups.length >= totalMatchups) break;
+  // Keep generating matchups until all teams have their required games
+  let attempts = 0;
+  const maxAttempts = 10000; // Safety limit
+  
+  while (matchups.length < totalMatchups && attempts < maxAttempts) {
+    attempts++;
     
-    const homeCount = teamGameCounts.get(matchup.home) || 0;
-    const awayCount = teamGameCounts.get(matchup.away) || 0;
+    // Find the team with the fewest games
+    let minGames = totalGamesPerTeam;
+    let teamWithFewest: string | null = null;
     
-    // Only add if both teams haven't exceeded their game limit
-    if (homeCount < totalGamesPerTeam && awayCount < totalGamesPerTeam) {
-      matchups.push(matchup);
-      teamGameCounts.set(matchup.home, homeCount + 1);
-      teamGameCounts.set(matchup.away, awayCount + 1);
+    for (const [teamId, count] of teamGameCounts.entries()) {
+      if (count < minGames) {
+        minGames = count;
+        teamWithFewest = teamId;
+      }
     }
+    
+    if (!teamWithFewest || minGames >= totalGamesPerTeam) {
+      // All teams have reached their limit
+      break;
+    }
+    
+    // Find an opponent for this team (prefer team with fewer games)
+    let bestOpponent: string | null = null;
+    let bestOpponentGames = totalGamesPerTeam;
+    
+    for (const opponentId of teamIds) {
+      if (opponentId === teamWithFewest) continue;
+      
+      const opponentGames = teamGameCounts.get(opponentId) || 0;
+      if (opponentGames < totalGamesPerTeam && opponentGames < bestOpponentGames) {
+        bestOpponent = opponentId;
+        bestOpponentGames = opponentGames;
+      }
+    }
+    
+    if (!bestOpponent) {
+      // Can't find a valid opponent, try next team
+      teamGameCounts.set(teamWithFewest, totalGamesPerTeam); // Mark as done
+      continue;
+    }
+    
+    // Alternate home/away to balance
+    const teamFewestGames = teamGameCounts.get(teamWithFewest) || 0;
+    const isHomeGame = teamFewestGames % 2 === 0; // Alternate home/away
+    
+    matchups.push({
+      home: isHomeGame ? teamWithFewest : bestOpponent,
+      away: isHomeGame ? bestOpponent : teamWithFewest,
+    });
+    
+    teamGameCounts.set(teamWithFewest, teamFewestGames + 1);
+    teamGameCounts.set(bestOpponent, (teamGameCounts.get(bestOpponent) || 0) + 1);
   }
+  
+  // Log final game counts for debugging
+  console.log("Schedule generation summary:");
+  console.log(`  Total matchups created: ${matchups.length} (target: ${totalMatchups})`);
+  teamIds.forEach(teamId => {
+    console.log(`  Team ${teamId}: ${teamGameCounts.get(teamId)} games`);
+  });
 
   // Map day names to day numbers (0 = Sunday, 1 = Monday, etc.)
   const dayNameToNumber: Record<string, number> = {

@@ -213,10 +213,6 @@ function generateSingleEliminationBracket(
         status: "scheduled",
         home_score: 0,
         away_score: 0,
-        is_playoff: true,
-        playoff_round: 1,
-        home_seed: homeSeed,
-        away_seed: awaySeed,
       });
 
       firstRoundGames.push({
@@ -325,10 +321,6 @@ function generateRoundRobinBracket(
         status: "scheduled",
         home_score: 0,
         away_score: 0,
-        is_playoff: true,
-        playoff_round: 1,
-        home_seed: homeTeam.seed,
-        away_seed: awayTeam.seed,
       });
 
       allGames.push({
@@ -393,13 +385,12 @@ export async function startPlayoffs(
     return { error: "Season not found" };
   }
 
-  if (season.status === "playoffs") {
-    return { error: "Playoffs have already started for this season" };
-  }
-
   if (season.status === "completed") {
     return { error: "Season is already completed" };
   }
+  
+  // Allow starting playoffs from active or draft status
+  // (endSeason will call this automatically)
 
   const playoffFormat = (season.playoff_format || "round_robin") as PlayoffFormat;
   

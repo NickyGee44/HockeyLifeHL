@@ -581,7 +581,36 @@ export async function endSeason(seasonId: string, forceEnd: boolean = false): Pr
     };
   }
 
-  // End the season
+  // Check if season has playoffs configured
+  const hasPlayoffs = season.playoff_format && season.playoff_format !== "none";
+  
+  if (hasPlayoffs) {
+    // Auto-generate playoff games using startPlayoffs (it will handle status change)
+    const { startPlayoffs } = await import("@/lib/seasons/playoff-generator");
+    const playoffResult = await startPlayoffs(seasonId);
+    
+    if (playoffResult.error) {
+      console.error("Error auto-generating playoffs:", playoffResult.error);
+      return {
+        error: `Failed to start playoffs: ${playoffResult.error}`,
+        warnings: warnings.length > 0 ? warnings : undefined,
+      };
+    }
+
+    revalidatePath("/admin/seasons");
+    revalidatePath("/standings");
+    revalidatePath("/schedule");
+    revalidatePath("/stats");
+
+    return { 
+      success: true, 
+      season: playoffResult.bracket ? { ...season, status: "playoffs" as SeasonStatus } : season,
+      message: `Regular season completed! Playoffs started with ${playoffResult.gamesCreated} games created.${warnings.length > 0 ? ` (${warnings.join(", ")})` : ""}`,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
+  }
+  
+  // No playoffs - complete the season
   const { data: updatedSeason, error: updateError } = await supabase
     .from("seasons")
     .update({
