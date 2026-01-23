@@ -186,7 +186,7 @@ export default function CaptainDashboardPage() {
       setTeam(teamData);
       setSeason(seasonData);
 
-      // Check for active draft (regardless of season)
+      // Check for active draft (only from active/draft/playoffs seasons, not archived/completed)
       const { data: draftData } = await supabase
         .from("drafts")
         .select(`
@@ -194,15 +194,20 @@ export default function CaptainDashboardPage() {
           status,
           current_pick,
           draft_link,
-          season:seasons!drafts_season_id_fkey(name)
+          season:seasons!drafts_season_id_fkey(name, status)
         `)
         .in("status", ["pending", "in_progress"])
         .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+        .limit(10); // Get multiple to filter by season status
 
-      if (draftData) {
-        setActiveDraft(draftData as unknown as ActiveDraft);
+      // Filter to only show drafts from active seasons (not archived/completed)
+      const activeDrafts = (draftData || []).filter((draft: any) => 
+        draft.season?.status && 
+        ["active", "draft", "playoffs"].includes(draft.season.status)
+      );
+
+      if (activeDrafts.length > 0) {
+        setActiveDraft(activeDrafts[0] as unknown as ActiveDraft);
       }
 
       // Get roster, pending stats, team stats, and games in parallel

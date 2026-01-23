@@ -132,16 +132,16 @@ export default function AdminSeasonsPage() {
         }
       }
       
-      // Check for active draft (only show if draft is pending or in_progress)
+      // Check for active draft (only show if draft is pending or in_progress AND season is not archived/completed)
       const draftSeason = result.seasons.find((s: Season) => 
-        s.status === "draft"
+        s.status === "draft" || s.status === "active" || s.status === "playoffs"
       );
       if (draftSeason) {
         const draftResult = await getCurrentDraft(draftSeason.id);
         if (draftResult.draft && (draftResult.draft.status === "pending" || draftResult.draft.status === "in_progress")) {
           setActiveDraft(draftResult.draft);
         } else {
-          // Draft is completed but season status hasn't updated yet - clear it
+          // Draft is completed or no active draft - clear it
           setActiveDraft(null);
         }
       } else {
