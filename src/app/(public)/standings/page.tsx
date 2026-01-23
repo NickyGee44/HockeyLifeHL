@@ -10,24 +10,31 @@ import {
 } from "@/components/ui/table";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { createClient } from "@/lib/supabase/server";
+import { SeasonSelector } from "@/components/standings/SeasonSelector";
 
 // Cache this page for 60 seconds
 export const revalidate = 60;
 
-async function getStandings() {
+async function getStandings(seasonId?: string) {
   const supabase = await createClient();
   
-  // Get active season first
-  const { data: activeSeason } = await supabase
+  // Get all viewable seasons for the dropdown
+  const { data: allSeasons } = await supabase
     .from("seasons")
     .select("id, name, status, current_game_count, games_per_cycle")
-    .in("status", ["active", "playoffs"])
-    .order("start_date", { ascending: false })
-    .limit(1)
-    .single();
+    .in("status", ["active", "playoffs", "completed"])
+    .order("start_date", { ascending: false });
+  
+  // Get active season
+  const activeSeason = allSeasons?.find(s => s.status === "active" || s.status === "playoffs") || null;
+  
+  // Determine which season to show standings for
+  let selectedSeason = seasonId 
+    ? allSeasons?.find(s => s.id === seasonId) 
+    : activeSeason;
 
-  if (!activeSeason) {
-    return { activeSeason: null, standings: [] };
+  if (!selectedSeason) {
+    return { activeSeason, selectedSeason: null, allSeasons: allSeasons || [], standings: [] };
   }
 
   // Run teams and games queries in parallel
@@ -38,7 +45,7 @@ async function getStandings() {
     supabase
       .from("games")
       .select("home_team_id, away_team_id, home_score, away_score, status")
-      .eq("season_id", activeSeason.id)
+      .eq("season_id", selectedSeason.id)
       .eq("status", "completed")
   ]);
 
@@ -46,7 +53,7 @@ async function getStandings() {
   const games = gamesResult.data;
 
   if (!teams || teams.length === 0) {
-    return { activeSeason, standings: [] };
+    return { activeSeason, selectedSeason, allSeasons: allSeasons || [], standings: [] };
   }
 
   // Calculate standings
@@ -118,11 +125,16 @@ async function getStandings() {
     return bDiff - aDiff;
   });
 
-  return { activeSeason, standings };
+  return { activeSeason, selectedSeason, allSeasons: allSeasons || [], standings };
 }
 
-export default async function StandingsPage() {
-  const { activeSeason, standings } = await getStandings();
+export default async function StandingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>;
+}) {
+  const params = await searchParams;
+  const { activeSeason, selectedSeason, allSeasons, standings } = await getStandings(params.season);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -131,21 +143,48 @@ export default async function StandingsPage() {
           <span className="text-foreground">League </span>
           <span className="text-canada-red">Standings</span>
         </h1>
-        {activeSeason && (
+        {selectedSeason && (
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">{activeSeason.name}</span>
-            {activeSeason.status === "playoffs" && (
+            <span className="text-muted-foreground">{selectedSeason.name}</span>
+            {selectedSeason.status === "playoffs" && (
               <Badge className="bg-gold text-puck-black">🏆 Playoffs</Badge>
+            )}
+            {selectedSeason.status === "completed" && (
+              <Badge variant="outline">✓ Completed</Badge>
             )}
           </div>
         )}
       </div>
 
-      {!activeSeason ? (
+      {/* Season Selector */}
+      {allSeasons.length > 0 && (
+        <div className="mb-6">
+          <SeasonSelector 
+            seasons={allSeasons} 
+            currentSeasonId={selectedSeason?.id}
+            activeSeason={activeSeason}
+          />
+        </div>
+      )}
+
+      {!activeSeason && !params.season ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              No active season. Check back when the season starts!
+            </p>
+            {allSeasons.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                You can view past seasons by selecting from the dropdown above.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      ) : !selectedSeason ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              No active season. Check back when the season starts!
+              Season not found. Please select a valid season.
             </p>
           </CardContent>
         </Card>
@@ -159,25 +198,27 @@ export default async function StandingsPage() {
         </Card>
       ) : (
         <>
-          {/* Season Progress */}
-          <Card className="mb-8">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Season Progress</CardTitle>
-              <CardDescription>
-                {activeSeason.current_game_count} of {activeSeason.games_per_cycle} games until next draft
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-3 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-canada-red transition-all"
-                  style={{ 
-                    width: `${(activeSeason.current_game_count / activeSeason.games_per_cycle) * 100}%` 
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Season Progress - only show for active seasons */}
+          {selectedSeason && (selectedSeason.status === "active" || selectedSeason.status === "playoffs") && (
+            <Card className="mb-8">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Season Progress</CardTitle>
+                <CardDescription>
+                  {selectedSeason.current_game_count} of {selectedSeason.games_per_cycle} games until next draft
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-3 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-canada-red transition-all"
+                    style={{ 
+                      width: `${((selectedSeason.current_game_count || 0) / (selectedSeason.games_per_cycle || 1)) * 100}%` 
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Standings Table */}
           <Card>

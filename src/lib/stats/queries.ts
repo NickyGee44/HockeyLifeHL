@@ -412,41 +412,37 @@ export async function getCareerGoalieStats() {
     .eq("status", "completed")
     .limit(10000); // Safety limit
 
-  if (!completedGames || completedGames.length === 0) {
-    return { stats: [] };
-  }
-
   // Filter to only verified games (both sides verified)
-  const verifiedGameIds = completedGames.filter((game: any) => {
+  const verifiedGameIds = (completedGames || []).filter((game: any) => {
     const homeVerified = game.home_captain_verified || game.home_verified_by_owner;
     const awayVerified = game.away_captain_verified || game.away_verified_by_owner;
     return homeVerified && awayVerified;
   }).map((g: any) => g.id);
 
-  if (verifiedGameIds.length === 0) {
-    return { stats: [] };
-  }
-
   // Get current goalie stats (aggregated across all seasons) - only for verified games
-  const { data: currentStats, error: currentError } = await supabase
-    .from("goalie_stats")
-    .select(`
-      player_id,
-      goals_against,
-      saves,
-      shutout,
-      game_id,
-      player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number, avatar_url)
-    `)
-    .in("game_id", gameIds)
-    .limit(10000); // Safety limit
+  let currentStats: any[] = [];
+  if (verifiedGameIds.length > 0) {
+    const { data, error: currentError } = await supabase
+      .from("goalie_stats")
+      .select(`
+        player_id,
+        goals_against,
+        saves,
+        shutout,
+        game_id,
+        player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number, avatar_url)
+      `)
+      .in("game_id", verifiedGameIds)
+      .limit(10000); // Safety limit
 
-  if (currentError) {
-    console.error("Error fetching current goalie stats:", currentError);
+    if (currentError) {
+      console.error("Error fetching current goalie stats:", currentError);
+    }
+    currentStats = data || [];
   }
 
   // Stats are already filtered to verified games
-  const verifiedStats = currentStats || [];
+  const verifiedStats = currentStats;
 
   // Aggregate current goalie stats by player
   const currentGoalieMap: Record<string, {

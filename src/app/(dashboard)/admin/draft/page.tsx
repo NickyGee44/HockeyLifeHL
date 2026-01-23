@@ -613,9 +613,19 @@ export default function AdminDraftPage() {
                     )}
                   </p>
                   {draft.status === "completed" && (
-                    <Button onClick={handleCompleteDraft} className="mt-2 bg-green-600 hover:bg-green-700 text-sm">
-                      Complete Draft & Assign Players
-                    </Button>
+                    <div className="mt-3 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                      <p className="text-green-700 dark:text-green-300 font-medium mb-2">
+                        ✅ Draft Complete! Players have been assigned to rosters.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button asChild size="sm" className="bg-green-600 hover:bg-green-700">
+                          <Link href="/admin/seasons">← Back to Seasons</Link>
+                        </Button>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href="/teams">View Teams</Link>
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>

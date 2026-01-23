@@ -482,6 +482,14 @@ export async function makeDraftPick(
     return { error: updateError.message };
   }
 
+  // If draft is complete, automatically finalize it (assign players to rosters, change season to active)
+  if (isComplete) {
+    console.log("Draft complete - automatically finalizing...");
+    // Call completeDraft to assign players to rosters and transition season to active
+    // We need to do this here to avoid leaving the season in "draft" status
+    await finalizeCompletedDraft(draftId, draft.season_id);
+  }
+
   revalidatePath("/admin/draft");
   revalidatePath("/captain/draft");
   return { success: true };
@@ -624,7 +632,133 @@ export async function getAvailableDraftPlayers(draftId: string) {
   };
 }
 
-// Complete draft and assign players to teams
+// Internal function to finalize a completed draft (called automatically when last pick is made)
+async function finalizeCompletedDraft(draftId: string, seasonId: string): Promise<void> {
+  const supabase = await createClient();
+
+  // Get all draft picks
+  const { data: picks } = await supabase
+    .from("draft_picks")
+    .select("team_id, player_id")
+    .eq("draft_id", draftId);
+
+  if (!picks || picks.length === 0) {
+    console.error("No picks found in draft during finalization");
+    return;
+  }
+
+  // Get existing roster entries (captains were added when draft was activated)
+  const { data: existingRoster } = await supabase
+    .from("team_rosters")
+    .select("player_id")
+    .eq("season_id", seasonId);
+
+  const existingPlayerIds = new Set(existingRoster?.map(r => r.player_id) || []);
+
+  // Create roster entries only for players not already on a roster (skip captains)
+  const newRosterEntries = picks
+    .filter(pick => !existingPlayerIds.has(pick.player_id))
+    .map(pick => ({
+      team_id: pick.team_id,
+      player_id: pick.player_id,
+      season_id: seasonId,
+      is_goalie: false,
+    }));
+
+  // Check which players are goalies
+  for (let i = 0; i < newRosterEntries.length; i++) {
+    const { data: player } = await supabase
+      .from("profiles")
+      .select("position")
+      .eq("id", newRosterEntries[i].player_id)
+      .single();
+    
+    newRosterEntries[i].is_goalie = player?.position === "G";
+  }
+
+  if (newRosterEntries.length > 0) {
+    const { error: rosterError } = await supabase
+      .from("team_rosters")
+      .insert(newRosterEntries);
+
+    if (rosterError) {
+      console.error("Error creating rosters during finalization:", rosterError);
+    }
+  }
+
+  // Check for existing active seasons and deactivate them (only one active at a time)
+  const { data: existingActiveSeasons } = await supabase
+    .from("seasons")
+    .select("id, name")
+    .in("status", ["active", "playoffs"])
+    .neq("id", seasonId);
+  
+  if (existingActiveSeasons && existingActiveSeasons.length > 0) {
+    await supabase
+      .from("seasons")
+      .update({ status: "completed" as SeasonStatus })
+      .in("status", ["active", "playoffs"])
+      .neq("id", seasonId);
+  }
+
+  // Update season status to active (draft is done!)
+  await supabase
+    .from("seasons")
+    .update({
+      status: "active",
+      current_game_count: 0,
+    })
+    .eq("id", seasonId);
+
+  console.log(`Draft finalized: Season ${seasonId} is now active`);
+
+  // Generate schedule if season has total_games set and schedule not already generated
+  const { data: season } = await supabase
+    .from("seasons")
+    .select("total_games, schedule_generated")
+    .eq("id", seasonId)
+    .single();
+
+  if (season && season.total_games && !season.schedule_generated) {
+    const { generateSeasonSchedule } = await import("@/lib/seasons/schedule-generator");
+    const scheduleResult = await generateSeasonSchedule(seasonId, "random");
+    
+    if (scheduleResult.error) {
+      console.error("Error generating schedule:", scheduleResult.error);
+    } else {
+      console.log(`Schedule generated: ${scheduleResult.gamesCreated} games created`);
+    }
+  }
+
+  // Auto-generate draft grades article (non-blocking)
+  try {
+    const { generateAIArticle } = await import("../admin/article-actions");
+    const result = await generateAIArticle("draft_grades", draftId);
+    if (result.success && result.content) {
+      await supabase
+        .from("articles")
+        .insert({
+          title: result.title || "Draft Grades",
+          content: result.content,
+          type: "draft_grades",
+          published: true,
+          published_at: new Date().toISOString(),
+        });
+    }
+  } catch (error) {
+    console.error("Error auto-generating draft grades:", error);
+  }
+
+  // Revalidate paths
+  revalidatePath("/admin/draft");
+  revalidatePath("/captain/draft");
+  revalidatePath("/teams");
+  revalidatePath("/news");
+  revalidatePath("/schedule");
+  revalidatePath("/admin/seasons");
+}
+
+// Complete draft and assign players to teams (legacy - now called automatically)
 export async function completeDraft(draftId: string): Promise<DraftActionResult> {
   const auth = await requireOwner();
   if (auth.error) return { error: auth.error };

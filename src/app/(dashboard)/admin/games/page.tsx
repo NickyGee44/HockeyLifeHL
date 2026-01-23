@@ -415,6 +415,112 @@ export default function AdminGamesPage() {
         </Dialog>
       </div>
 
+      {/* Schedule Generation Card */}
+      {currentSeason && (
+        <Card className="border-rink-blue/30">
+          <CardHeader>
+            <CardTitle>Season Schedule Generator</CardTitle>
+            <CardDescription>
+              Generate games for {currentSeason.name}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Schedule Config Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div>
+                <div className="text-sm text-muted-foreground">Total Games</div>
+                <div className="text-lg font-semibold">
+                  {currentSeason.total_games ? `${currentSeason.total_games} per team` : "Not set"}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Game Days</div>
+                <div className="text-lg font-semibold">
+                  {currentSeason.game_days && Array.isArray(currentSeason.game_days) 
+                    ? (currentSeason.game_days as string[]).join(", ") 
+                    : "Monday"}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Time Slots</div>
+                <div className="text-lg font-semibold">
+                  {currentSeason.game_times && Array.isArray(currentSeason.game_times)
+                    ? (currentSeason.game_times as string[]).length
+                    : 1} slot{(currentSeason.game_times && Array.isArray(currentSeason.game_times) && currentSeason.game_times.length !== 1) ? "s" : ""}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Location</div>
+                <div className="text-lg font-semibold">
+                  {currentSeason.default_location || "Not set"}
+                </div>
+              </div>
+            </div>
+
+            {/* Generation Actions */}
+            {!currentSeason.total_games ? (
+              <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                  ⚠️ Please set the "Total Games" for this season in the Seasons page before generating the schedule.
+                </p>
+              </div>
+            ) : !currentSeason.schedule_generated ? (
+              <div className="flex gap-2">
+                <Button
+                  onClick={async () => {
+                    if (!currentSeason.total_games) {
+                      toast.error("Please set total games for the season first");
+                      return;
+                    }
+                    setIsSaving(true);
+                    const { generateSeasonSchedule } = await import("@/lib/seasons/schedule-generator");
+                    const result = await generateSeasonSchedule(currentSeason.id, "random");
+                    setIsSaving(false);
+                    if (result.error) {
+                      toast.error(result.error);
+                    } else {
+                      toast.success(`Schedule generated! ${result.gamesCreated} games created.`);
+                      loadData();
+                    }
+                  }}
+                  disabled={isSaving}
+                  className="bg-rink-blue hover:bg-rink-blue/90"
+                >
+                  {isSaving ? "Generating..." : "Generate Schedule"}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <div className="flex-1 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    ✓ Schedule has been generated for this season
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!confirm("This will delete all SCHEDULED games and regenerate the schedule. Games that are completed or in progress will not be affected. Continue?")) return;
+                    setIsSaving(true);
+                    const { generateSeasonSchedule } = await import("@/lib/seasons/schedule-generator");
+                    const result = await generateSeasonSchedule(currentSeason.id, "random", undefined, true);
+                    setIsSaving(false);
+                    if (result.error) {
+                      toast.error(result.error);
+                    } else {
+                      toast.success(`Schedule regenerated! ${result.gamesCreated} games created.`);
+                      loadData();
+                    }
+                  }}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Regenerating..." : "Regenerate Schedule"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
       <div className="flex gap-4 flex-wrap">
         <Select value={seasonFilter} onValueChange={setSeasonFilter}>

@@ -583,8 +583,11 @@ export type Database = {
         Row: {
           created_at: string | null
           current_game_count: number | null
+          default_location: string | null
           draft_scheduled_at: string | null
           end_date: string | null
+          game_days: Json | null
+          game_times: Json | null
           games_per_cycle: number | null
           id: string
           name: string
@@ -598,8 +601,11 @@ export type Database = {
         Insert: {
           created_at?: string | null
           current_game_count?: number | null
+          default_location?: string | null
           draft_scheduled_at?: string | null
           end_date?: string | null
+          game_days?: Json | null
+          game_times?: Json | null
           games_per_cycle?: number | null
           id?: string
           name: string
@@ -613,8 +619,11 @@ export type Database = {
         Update: {
           created_at?: string | null
           current_game_count?: number | null
+          default_location?: string | null
           draft_scheduled_at?: string | null
           end_date?: string | null
+          game_days?: Json | null
+          game_times?: Json | null
           games_per_cycle?: number | null
           id?: string
           name?: string

@@ -299,6 +299,43 @@ export default function CaptainDraftPage() {
     );
   }
 
+  // Show completion screen if draft is finished
+  if (draft.status === "completed") {
+    return (
+      <div className="space-y-8">
+        <Card className="border-green-600/50 bg-gradient-to-r from-green-600/10 to-gold/10">
+          <CardContent className="py-12 text-center">
+            <div className="text-6xl mb-4">🏆</div>
+            <h1 className="text-3xl font-bold mb-2">Draft Complete!</h1>
+            <p className="text-muted-foreground mb-6">
+              The {season?.name} draft has finished. Your team roster is now set!
+            </p>
+            <div className="flex justify-center gap-4">
+              <Button asChild className="bg-canada-red hover:bg-canada-red-dark">
+                <Link href="/captain">View Your Team Roster →</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/teams">View All Teams</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Show final team roster */}
+        {team && (
+          <div className="max-w-2xl mx-auto">
+            <MyTeamRoster
+              teamId={team.id}
+              picks={picks}
+              availablePlayers={[]}
+              draftId={draftId || undefined}
+              seasonId={season?.id}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

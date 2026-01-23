@@ -99,6 +99,30 @@ export async function createSeason(formData: FormData): Promise<SeasonActionResu
   const playoffFormat = formData.get("playoffFormat") as string || "none";
   const draftScheduledAt = formData.get("draftScheduledAt") as string || null;
   const setActive = formData.get("setActive") === "true";
+  
+  // New schedule config fields
+  const gameDaysJson = formData.get("gameDays") as string;
+  const gameTimesJson = formData.get("gameTimes") as string;
+  const defaultLocation = formData.get("defaultLocation") as string || null;
+  
+  let gameDays = ["Monday"]; // default
+  let gameTimes = ["21:15"]; // default
+  
+  try {
+    if (gameDaysJson) {
+      gameDays = JSON.parse(gameDaysJson);
+    }
+  } catch (e) {
+    console.error("Error parsing game_days:", e);
+  }
+  
+  try {
+    if (gameTimesJson) {
+      gameTimes = JSON.parse(gameTimesJson);
+    }
+  } catch (e) {
+    console.error("Error parsing game_times:", e);
+  }
   const newStatus = setActive ? "active" as SeasonStatus : "draft" as SeasonStatus;
 
   // Validation
@@ -145,6 +169,9 @@ export async function createSeason(formData: FormData): Promise<SeasonActionResu
       status: newStatus,
       current_game_count: 0,
       schedule_generated: false,
+      game_days: gameDays,
+      game_times: gameTimes,
+      default_location: defaultLocation,
     })
     .select()
     .single();
@@ -182,21 +209,54 @@ export async function updateSeason(seasonId: string, formData: FormData): Promis
   const startDate = formData.get("startDate") as string;
   const endDate = formData.get("endDate") as string || null;
   const gamesPerCycle = parseInt(formData.get("gamesPerCycle") as string) || 13;
+  
+  // New schedule config fields (optional for update)
+  const gameDaysJson = formData.get("gameDays") as string;
+  const gameTimesJson = formData.get("gameTimes") as string;
+  const defaultLocation = formData.get("defaultLocation") as string;
+  
+  let gameDays = null;
+  let gameTimes = null;
+  
+  try {
+    if (gameDaysJson) {
+      gameDays = JSON.parse(gameDaysJson);
+    }
+  } catch (e) {
+    console.error("Error parsing game_days:", e);
+  }
+  
+  try {
+    if (gameTimesJson) {
+      gameTimes = JSON.parse(gameTimesJson);
+    }
+  } catch (e) {
+    console.error("Error parsing game_times:", e);
+  }
 
   // Validation
   if (!name || name.trim().length < 2) {
     return { error: "Season name must be at least 2 characters" };
   }
 
+  const updateData: any = {
+    name: name.trim(),
+    start_date: startDate,
+    end_date: endDate,
+    games_per_cycle: gamesPerCycle,
+    updated_at: new Date().toISOString(),
+  };
+  
+  // Only include schedule config if provided
+  if (gameDays !== null) updateData.game_days = gameDays;
+  if (gameTimes !== null) updateData.game_times = gameTimes;
+  if (defaultLocation !== null && defaultLocation !== undefined) {
+    updateData.default_location = defaultLocation || null;
+  }
+
   const { data: season, error } = await supabase
     .from("seasons")
-    .update({
-      name: name.trim(),
-      start_date: startDate,
-      end_date: endDate,
-      games_per_cycle: gamesPerCycle,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("id", seasonId)
     .select()
     .single();

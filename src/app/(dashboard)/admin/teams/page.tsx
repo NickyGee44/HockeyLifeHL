@@ -435,14 +435,16 @@ export default function AdminTeamsPage() {
                   value={formData.captainId}
                   onValueChange={(value) => setFormData({ ...formData, captainId: value })}
                 >
-                  <SelectTrigger id="create-captain">
+                  <SelectTrigger id="create-captain" className="w-full">
                     <SelectValue placeholder="Select captain" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" className="max-h-[300px] w-full">
                     <SelectItem value="none">No Captain</SelectItem>
                     {players.map((player) => (
-                      <SelectItem key={player.id} value={player.id}>
-                        {player.full_name || player.email}
+                      <SelectItem key={player.id} value={player.id} className="py-2">
+                        <span className="block truncate" title={player.full_name || player.email || ""}>
+                          {(player.full_name || player.email || "").trim() || "Unknown Player"}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -698,14 +700,16 @@ export default function AdminTeamsPage() {
                 value={formData.captainId}
                 onValueChange={(value) => setFormData({ ...formData, captainId: value })}
               >
-                <SelectTrigger id="edit-captain">
+                <SelectTrigger id="edit-captain" className="w-full">
                   <SelectValue placeholder="Select captain" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="max-h-[300px] w-full">
                   <SelectItem value="none">No Captain</SelectItem>
                   {players.map((player) => (
-                    <SelectItem key={player.id} value={player.id}>
-                      {player.full_name || player.email}
+                    <SelectItem key={player.id} value={player.id} className="py-2">
+                      <span className="block truncate" title={player.full_name || player.email || ""}>
+                        {(player.full_name || player.email || "").trim() || "Unknown Player"}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

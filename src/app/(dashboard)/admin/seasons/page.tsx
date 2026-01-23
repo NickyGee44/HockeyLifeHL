@@ -92,6 +92,9 @@ export default function AdminSeasonsPage() {
     draftScheduledAt: "",
     setActive: false,
     playerInviteOption: "none" as "none" | "email" | "bulk", // New field
+    gameDays: ["Monday"] as string[],
+    gameTimes: ["21:15"] as string[],
+    defaultLocation: "",
   });
 
   useEffect(() => {
@@ -129,15 +132,16 @@ export default function AdminSeasonsPage() {
         }
       }
       
-      // Check for active draft
+      // Check for active draft (only show if draft is pending or in_progress)
       const draftSeason = result.seasons.find((s: Season) => 
-        s.status === "draft" || s.status === "active" || s.status === "playoffs"
+        s.status === "draft"
       );
       if (draftSeason) {
         const draftResult = await getCurrentDraft(draftSeason.id);
         if (draftResult.draft && (draftResult.draft.status === "pending" || draftResult.draft.status === "in_progress")) {
           setActiveDraft(draftResult.draft);
         } else {
+          // Draft is completed but season status hasn't updated yet - clear it
           setActiveDraft(null);
         }
       } else {
@@ -172,11 +176,34 @@ export default function AdminSeasonsPage() {
       draftScheduledAt: "",
       setActive: false,
       playerInviteOption: "none",
+      gameDays: ["Monday"],
+      gameTimes: ["21:15"],
+      defaultLocation: "",
     });
   }
 
   function openEditDialog(season: Season) {
     setEditingSeason(season);
+    
+    let gameDays = ["Monday"];
+    let gameTimes = ["21:15"];
+    
+    try {
+      if (season.game_days && Array.isArray(season.game_days)) {
+        gameDays = season.game_days as string[];
+      }
+    } catch (e) {
+      console.error("Error parsing game_days:", e);
+    }
+    
+    try {
+      if (season.game_times && Array.isArray(season.game_times)) {
+        gameTimes = season.game_times as string[];
+      }
+    } catch (e) {
+      console.error("Error parsing game_times:", e);
+    }
+    
     setFormData({
       name: season.name,
       startDate: season.start_date,
@@ -187,6 +214,9 @@ export default function AdminSeasonsPage() {
       draftScheduledAt: season.draft_scheduled_at || "",
       setActive: false,
       playerInviteOption: "none",
+      gameDays: gameDays,
+      gameTimes: gameTimes,
+      defaultLocation: season.default_location || "",
     });
   }
 
@@ -202,6 +232,9 @@ export default function AdminSeasonsPage() {
       form.set("draftScheduledAt", formData.draftScheduledAt);
     }
     form.set("setActive", formData.setActive.toString());
+    form.set("gameDays", JSON.stringify(formData.gameDays));
+    form.set("gameTimes", JSON.stringify(formData.gameTimes));
+    form.set("defaultLocation", formData.defaultLocation);
 
     const result = await createSeason(form);
     
@@ -251,6 +284,9 @@ export default function AdminSeasonsPage() {
     form.set("startDate", formData.startDate);
     form.set("endDate", formData.endDate);
     form.set("gamesPerCycle", formData.gamesPerCycle);
+    form.set("gameDays", JSON.stringify(formData.gameDays));
+    form.set("gameTimes", JSON.stringify(formData.gameTimes));
+    form.set("defaultLocation", formData.defaultLocation);
 
     const result = await updateSeason(editingSeason.id, form);
     
@@ -564,6 +600,93 @@ export default function AdminSeasonsPage() {
                 </p>
               </div>
               
+              {/* Game Schedule Configuration */}
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
+                <Label className="text-base font-semibold">Game Schedule Configuration</Label>
+                
+                <div className="space-y-2">
+                  <Label>Game Days</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                      <div key={day} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`day-${day}`}
+                          checked={formData.gameDays.includes(day)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, gameDays: [...formData.gameDays, day] });
+                            } else {
+                              setFormData({ ...formData, gameDays: formData.gameDays.filter(d => d !== day) });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <Label htmlFor={`day-${day}`} className="text-sm font-normal cursor-pointer">
+                          {day}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Time Slots</Label>
+                  <div className="space-y-2">
+                    {formData.gameTimes.map((time, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          type="time"
+                          value={time}
+                          onChange={(e) => {
+                            const newTimes = [...formData.gameTimes];
+                            newTimes[index] = e.target.value;
+                            setFormData({ ...formData, gameTimes: newTimes });
+                          }}
+                          className="flex-1"
+                        />
+                        {formData.gameTimes.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newTimes = formData.gameTimes.filter((_, i) => i !== index);
+                              setFormData({ ...formData, gameTimes: newTimes });
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData({ ...formData, gameTimes: [...formData.gameTimes, "21:15"] });
+                      }}
+                    >
+                      + Add Time Slot
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="create-location">Default Location</Label>
+                  <Input
+                    id="create-location"
+                    value={formData.defaultLocation}
+                    onChange={(e) => setFormData({ ...formData, defaultLocation: e.target.value })}
+                    placeholder="e.g., Hespeler Arena"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Arena or rink where games will be played
+                  </p>
+                </div>
+              </div>
+              
               {/* Player Invitation Options */}
               <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
                 <Label className="text-base font-semibold">Player Invitations</Label>
@@ -799,8 +922,8 @@ export default function AdminSeasonsPage() {
         </Card>
       )}
 
-      {/* Draft/Upcoming Seasons */}
-      {seasons.filter(s => s.status === "draft").length > 0 && (
+      {/* Draft/Upcoming Seasons - only show if there's an active draft (pending or in_progress) */}
+      {activeDraft && seasons.filter(s => s.status === "draft").length > 0 && (
         <div>
           <h2 className="text-xl font-semibold mb-4">🎯 Seasons in Draft</h2>
           <div className="grid gap-4 md:grid-cols-2">
@@ -1075,6 +1198,90 @@ export default function AdminSeasonsPage() {
                 value={formData.gamesPerCycle}
                 onChange={(e) => setFormData({ ...formData, gamesPerCycle: e.target.value })}
               />
+            </div>
+            
+            {/* Game Schedule Configuration */}
+            <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
+              <Label className="text-base font-semibold">Game Schedule Configuration</Label>
+              
+              <div className="space-y-2">
+                <Label>Game Days</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                    <div key={day} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`edit-day-${day}`}
+                        checked={formData.gameDays.includes(day)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({ ...formData, gameDays: [...formData.gameDays, day] });
+                          } else {
+                            setFormData({ ...formData, gameDays: formData.gameDays.filter(d => d !== day) });
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <Label htmlFor={`edit-day-${day}`} className="text-sm font-normal cursor-pointer">
+                        {day}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Time Slots</Label>
+                <div className="space-y-2">
+                  {formData.gameTimes.map((time, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        value={time}
+                        onChange={(e) => {
+                          const newTimes = [...formData.gameTimes];
+                          newTimes[index] = e.target.value;
+                          setFormData({ ...formData, gameTimes: newTimes });
+                        }}
+                        className="flex-1"
+                      />
+                      {formData.gameTimes.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newTimes = formData.gameTimes.filter((_, i) => i !== index);
+                            setFormData({ ...formData, gameTimes: newTimes });
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData({ ...formData, gameTimes: [...formData.gameTimes, "21:15"] });
+                    }}
+                  >
+                    + Add Time Slot
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-location">Default Location</Label>
+                <Input
+                  id="edit-location"
+                  value={formData.defaultLocation}
+                  onChange={(e) => setFormData({ ...formData, defaultLocation: e.target.value })}
+                  placeholder="e.g., Hespeler Arena"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

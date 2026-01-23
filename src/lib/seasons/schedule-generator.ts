@@ -13,13 +13,15 @@ export type ScheduleGenerationResult = {
 };
 
 /**
- * Generate a round-robin schedule for all teams with proper bye week handling
- * Each team plays every other team at least once, with bye weeks for odd number of teams
+ * Generate a round-robin schedule for all teams with customizable days and times
+ * Each team plays the configured number of games (totalGamesPerTeam)
  */
 function generateRoundRobinSchedule(
   teamIds: string[],
-  totalGames: number,
+  totalGamesPerTeam: number,
   startDate: Date,
+  gameDays: string[],
+  gameTimes: string[],
   location?: string
 ): Array<{
   homeTeamId: string;
@@ -37,85 +39,116 @@ function generateRoundRobinSchedule(
     return games;
   }
 
-  // Calculate how many games can be played per week
-  // With odd number of teams, we can play (numTeams - 1) / 2 games per week (one team on bye)
-  // With even number of teams, we can play numTeams / 2 games per week
-  const maxGamesPerWeek = numTeams % 2 === 0 ? numTeams / 2 : (numTeams - 1) / 2;
-  
-  // Calculate number of weeks needed
-  const weeks = Math.ceil(totalGames / maxGamesPerWeek);
-  const gamesPerWeek = Math.ceil(totalGames / weeks);
+  // Calculate total matchups needed (each game involves 2 teams)
+  // If each team plays totalGamesPerTeam games, total matchups = (numTeams * totalGamesPerTeam) / 2
+  const totalMatchups = Math.floor((numTeams * totalGamesPerTeam) / 2);
 
-  // Generate round-robin matchups
+  // Generate round-robin matchups ensuring balanced home/away
   const matchups: Array<{ home: string; away: string }> = [];
+  const teamGameCounts = new Map<string, number>();
+  teamIds.forEach(id => teamGameCounts.set(id, 0));
   
-  // Create all possible unique matchups (each pair only once)
+  // Create all possible unique matchups (each pair plays each other)
+  const allPossibleMatchups: Array<{ home: string; away: string }> = [];
   for (let i = 0; i < numTeams; i++) {
     for (let j = i + 1; j < numTeams; j++) {
-      matchups.push({ home: teamIds[i], away: teamIds[j] });
+      // Add both home/away combinations
+      allPossibleMatchups.push({ home: teamIds[i], away: teamIds[j] });
+      allPossibleMatchups.push({ home: teamIds[j], away: teamIds[i] });
     }
   }
 
-  // If we need more games than unique matchups, add reverse matchups
-  if (totalGames > matchups.length) {
-    const reverseMatchups: Array<{ home: string; away: string }> = [];
-    for (let i = 0; i < numTeams; i++) {
-      for (let j = i + 1; j < numTeams; j++) {
-        reverseMatchups.push({ home: teamIds[j], away: teamIds[i] });
+  // Shuffle for randomness
+  for (let i = allPossibleMatchups.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allPossibleMatchups[i], allPossibleMatchups[j]] = [allPossibleMatchups[j], allPossibleMatchups[i]];
+  }
+
+  // Select matchups trying to balance games per team
+  for (const matchup of allPossibleMatchups) {
+    if (matchups.length >= totalMatchups) break;
+    
+    const homeCount = teamGameCounts.get(matchup.home) || 0;
+    const awayCount = teamGameCounts.get(matchup.away) || 0;
+    
+    // Only add if both teams haven't exceeded their game limit
+    if (homeCount < totalGamesPerTeam && awayCount < totalGamesPerTeam) {
+      matchups.push(matchup);
+      teamGameCounts.set(matchup.home, homeCount + 1);
+      teamGameCounts.set(matchup.away, awayCount + 1);
+    }
+  }
+
+  // Map day names to day numbers (0 = Sunday, 1 = Monday, etc.)
+  const dayNameToNumber: Record<string, number> = {
+    'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+    'Thursday': 4, 'Friday': 5, 'Saturday': 6
+  };
+
+  const gameDayNumbers = gameDays.map(day => dayNameToNumber[day] || 1).sort();
+  
+  // Create a schedule slot iterator (week -> day -> time slot)
+  let weekOffset = 0;
+  let dayIndex = 0;
+  let timeIndex = 0;
+  
+  // Track which teams are playing in each week/day/time slot to avoid conflicts
+  const slotTeams = new Map<string, Set<string>>(); // key: "week-day-time" -> Set of team IDs
+  
+  for (const matchup of matchups) {
+    let scheduled = false;
+    let attempts = 0;
+    const maxAttempts = 1000; // Prevent infinite loops
+    
+    while (!scheduled && attempts < maxAttempts) {
+      attempts++;
+      
+      // Calculate the date for this slot
+      const currentDate = new Date(startDate);
+      currentDate.setDate(currentDate.getDate() + (weekOffset * 7));
+      
+      // Find the next occurrence of the target game day
+      const targetDay = gameDayNumbers[dayIndex];
+      const currentDay = currentDate.getDay();
+      const daysUntilTarget = (targetDay - currentDay + 7) % 7;
+      currentDate.setDate(currentDate.getDate() + daysUntilTarget);
+      
+      // Set the time
+      const [hours, minutes] = gameTimes[timeIndex].split(':').map(Number);
+      currentDate.setHours(hours, minutes, 0, 0);
+      
+      // Check if either team is already playing in this slot
+      const slotKey = `${weekOffset}-${dayIndex}-${timeIndex}`;
+      const teamsInSlot = slotTeams.get(slotKey) || new Set();
+      
+      if (!teamsInSlot.has(matchup.home) && !teamsInSlot.has(matchup.away)) {
+        // Slot is available!
+        games.push({
+          homeTeamId: matchup.home,
+          awayTeamId: matchup.away,
+          scheduledAt: currentDate,
+        });
+        
+        teamsInSlot.add(matchup.home);
+        teamsInSlot.add(matchup.away);
+        slotTeams.set(slotKey, teamsInSlot);
+        scheduled = true;
+      }
+      
+      // Move to next slot
+      timeIndex++;
+      if (timeIndex >= gameTimes.length) {
+        timeIndex = 0;
+        dayIndex++;
+        if (dayIndex >= gameDayNumbers.length) {
+          dayIndex = 0;
+          weekOffset++;
+        }
       }
     }
-    matchups.push(...reverseMatchups);
-  }
-
-  // Shuffle matchups for randomness
-  for (let i = matchups.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [matchups[i], matchups[j]] = [matchups[j], matchups[i]];
-  }
-
-  // Take only the number of games needed
-  const selectedMatchups = matchups.slice(0, totalGames);
-
-  // Distribute games across weeks with proper bye week handling
-  let currentDate = new Date(startDate);
-  let gamesThisWeek = 0;
-  let teamsUsedThisWeek = new Set<string>();
-
-  for (const matchup of selectedMatchups) {
-    // Check if either team already has a game this week (for bye week logic)
-    // If odd number of teams, ensure we don't exceed max games per week
-    if (gamesThisWeek >= maxGamesPerWeek || 
-        teamsUsedThisWeek.has(matchup.home) || 
-        teamsUsedThisWeek.has(matchup.away)) {
-      // Move to next week
-      currentDate.setDate(currentDate.getDate() + 7);
-      gamesThisWeek = 0;
-      teamsUsedThisWeek.clear();
-    }
-
-    // Schedule game on Saturday evening (7 PM) by default
-    const gameDate = new Date(currentDate);
-    // Make it Saturday (day 6 of week, where 0 = Sunday)
-    const dayOfWeek = gameDate.getDay();
-    const daysUntilSaturday = dayOfWeek === 0 ? 6 : (6 - dayOfWeek);
-    gameDate.setDate(gameDate.getDate() + daysUntilSaturday);
-    gameDate.setHours(19, 0, 0, 0); // 7 PM
-
-    games.push({
-      homeTeamId: matchup.home,
-      awayTeamId: matchup.away,
-      scheduledAt: gameDate,
-    });
-
-    gamesThisWeek++;
-    teamsUsedThisWeek.add(matchup.home);
-    teamsUsedThisWeek.add(matchup.away);
     
-    // If we've filled the week, move to next week
-    if (gamesThisWeek >= maxGamesPerWeek) {
-      currentDate.setDate(currentDate.getDate() + 7);
-      gamesThisWeek = 0;
-      teamsUsedThisWeek.clear();
+    if (!scheduled) {
+      console.warn(`Could not schedule matchup ${matchup.home} vs ${matchup.away} after ${maxAttempts} attempts`);
     }
   }
 
@@ -131,6 +164,8 @@ async function generateAISchedule(
   teamIds: string[],
   totalGames: number,
   startDate: Date,
+  gameDays: string[],
+  gameTimes: string[],
   location?: string
 ): Promise<Array<{
   homeTeamId: string;
@@ -140,7 +175,7 @@ async function generateAISchedule(
   // TODO: Implement AI-based schedule generation using OpenAI
   // Could consider team strength, previous matchups, venue availability, etc.
   // For now, use random generation
-  return generateRoundRobinSchedule(teamIds, totalGames, startDate, location);
+  return generateRoundRobinSchedule(teamIds, totalGames, startDate, gameDays, gameTimes, location);
 }
 
 /**
@@ -176,6 +211,29 @@ export async function generateSeasonSchedule(
 
   // If regenerating, delete existing scheduled games (not completed/in_progress)
   if (forceRegenerate && season.schedule_generated) {
+    // First, get the IDs of scheduled games that will be deleted
+    const { data: scheduledGames } = await supabase
+      .from("games")
+      .select("id")
+      .eq("season_id", seasonId)
+      .eq("status", "scheduled");
+
+    if (scheduledGames && scheduledGames.length > 0) {
+      const gameIds = scheduledGames.map(g => g.id);
+      
+      // Delete related player_availability records first
+      const { error: availabilityDeleteError } = await supabase
+        .from("player_availability")
+        .delete()
+        .in("game_id", gameIds);
+
+      if (availabilityDeleteError) {
+        console.error("Error deleting player availability:", availabilityDeleteError);
+        return { error: `Failed to clear player availability: ${availabilityDeleteError.message}` };
+      }
+    }
+
+    // Now delete the scheduled games
     const { error: deleteError } = await supabase
       .from("games")
       .delete()
@@ -201,6 +259,29 @@ export async function generateSeasonSchedule(
   const startDate = new Date(season.start_date);
   startDate.setDate(startDate.getDate() + 1); // Start day after season start
 
+  // Extract schedule configuration from season (with defaults)
+  let gameDays = ["Monday"];
+  let gameTimes = ["21:15"];
+  
+  try {
+    if (season.game_days && Array.isArray(season.game_days)) {
+      gameDays = season.game_days as string[];
+    }
+  } catch (e) {
+    console.error("Error parsing game_days from season:", e);
+  }
+  
+  try {
+    if (season.game_times && Array.isArray(season.game_times)) {
+      gameTimes = season.game_times as string[];
+    }
+  } catch (e) {
+    console.error("Error parsing game_times from season:", e);
+  }
+  
+  // Use season's default_location if no location parameter provided
+  const finalLocation = location || season.default_location || null;
+
   // Generate schedule
   let games: Array<{
     homeTeamId: string;
@@ -209,9 +290,9 @@ export async function generateSeasonSchedule(
   }>;
 
   if (method === "ai") {
-    games = await generateAISchedule(seasonId, teamIds, season.total_games, startDate, location);
+    games = await generateAISchedule(seasonId, teamIds, season.total_games, startDate, gameDays, gameTimes, finalLocation);
   } else {
-    games = generateRoundRobinSchedule(teamIds, season.total_games, startDate, location);
+    games = generateRoundRobinSchedule(teamIds, season.total_games, startDate, gameDays, gameTimes, finalLocation);
   }
 
   // Insert games into database
@@ -220,7 +301,7 @@ export async function generateSeasonSchedule(
     home_team_id: game.homeTeamId,
     away_team_id: game.awayTeamId,
     scheduled_at: game.scheduledAt.toISOString(),
-    location: location || null,
+    location: finalLocation,
     status: "scheduled" as const,
     home_score: 0,
     away_score: 0,

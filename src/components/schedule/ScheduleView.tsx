@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,13 +39,32 @@ type Game = {
   away_team: Team | null;
 };
 
+type Season = {
+  id: string;
+  name: string;
+  status: string;
+};
+
 type ScheduleViewProps = {
   upcomingGames: Game[];
   recentGames: Game[];
   teams: Team[];
+  seasons?: Season[];
+  currentSeasonId?: string;
+  activeSeason?: Season | null;
+  showSeasonSelector?: boolean;
 };
 
-export function ScheduleView({ upcomingGames, recentGames, teams }: ScheduleViewProps) {
+export function ScheduleView({ 
+  upcomingGames, 
+  recentGames, 
+  teams,
+  seasons = [],
+  currentSeasonId,
+  activeSeason,
+  showSeasonSelector = false,
+}: ScheduleViewProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string>("all");
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
@@ -303,11 +323,58 @@ export function ScheduleView({ upcomingGames, recentGames, teams }: ScheduleView
     );
   };
 
+  // Handle season change
+  const handleSeasonChange = (seasonId: string) => {
+    if (seasonId === "current" && activeSeason) {
+      router.push("/schedule");
+    } else {
+      router.push(`/schedule?season=${seasonId}`);
+    }
+  };
+
   return (
     <>
       {/* Filter Controls */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        <span className="text-sm text-muted-foreground">Filter by:</span>
+        {/* Season Selector */}
+        {showSeasonSelector && seasons.length > 0 && (
+          <>
+            <span className="text-sm text-muted-foreground">Season:</span>
+            <Select 
+              value={currentSeasonId || "current"} 
+              onValueChange={handleSeasonChange}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select Season" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeSeason && (
+                  <SelectItem value="current">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-600 text-[10px] px-1">Active</Badge>
+                      {activeSeason.name}
+                    </div>
+                  </SelectItem>
+                )}
+                {seasons.filter(s => s.id !== activeSeason?.id).map((season) => (
+                  <SelectItem key={season.id} value={season.id}>
+                    <div className="flex items-center gap-2">
+                      {season.status === "completed" && (
+                        <Badge variant="outline" className="text-[10px] px-1">Past</Badge>
+                      )}
+                      {season.status === "playoffs" && (
+                        <Badge className="bg-gold text-puck-black text-[10px] px-1">Playoffs</Badge>
+                      )}
+                      {season.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+
+        <span className="text-sm text-muted-foreground">Team:</span>
         
         {/* My Schedule Button - only show if user has a team */}
         {userTeamId && (
