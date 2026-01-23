@@ -428,9 +428,9 @@ export default function AdminGamesPage() {
             {/* Schedule Config Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
               <div>
-                <div className="text-sm text-muted-foreground">Total Games</div>
+                <div className="text-sm text-muted-foreground">Games Per Team</div>
                 <div className="text-lg font-semibold">
-                  {currentSeason.total_games ? `${currentSeason.total_games} per team` : "Not set"}
+                  {currentSeason.total_games || "Not set"}
                 </div>
               </div>
               <div>

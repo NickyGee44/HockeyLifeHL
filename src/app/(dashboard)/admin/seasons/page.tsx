@@ -557,17 +557,22 @@ export default function AdminSeasonsPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="create-total-games">Total Games in Season</Label>
+                <Label htmlFor="create-total-games">Games Per Team</Label>
                 <Input
                   id="create-total-games"
                   type="number"
                   min="1"
                   value={formData.totalGames}
                   onChange={(e) => setFormData({ ...formData, totalGames: e.target.value })}
-                  placeholder="e.g., 20"
+                  placeholder="e.g., 13"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Total number of games to be played. Schedule will be auto-generated after draft.
+                  How many games each team will play. Schedule will be auto-generated after draft.
+                  {formData.totalGames && (
+                    <span className="block mt-1 font-medium text-foreground">
+                      With 4 teams: {Math.floor((4 * parseInt(formData.totalGames || "0")) / 2)} total games will be created
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="space-y-2">

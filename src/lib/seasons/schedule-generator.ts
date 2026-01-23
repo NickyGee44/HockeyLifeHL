@@ -210,6 +210,28 @@ async function generateAISchedule(
   return generateRoundRobinSchedule(teamIds, totalGames, startDate, gameDays, gameTimes, location);
 }
 
+// Check if current user is an owner
+async function requireOwner() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { error: "Not authenticated", isOwner: false };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.role !== "owner") {
+    return { error: "Not authorized - owner access required", isOwner: false };
+  }
+
+  return { isOwner: true, userId: user.id };
+}
+
 /**
  * Generate and save schedule for a season
  */
@@ -219,6 +241,10 @@ export async function generateSeasonSchedule(
   location?: string,
   forceRegenerate: boolean = false
 ): Promise<ScheduleGenerationResult> {
+  // Verify admin/owner access
+  const auth = await requireOwner();
+  if (auth.error) return { error: auth.error };
+  
   const supabase = await createClient();
 
   // Get season details
