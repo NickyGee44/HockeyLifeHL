@@ -191,11 +191,22 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   redirect("/dashboard");
 }
 
-export async function signOut(): Promise<void> {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  revalidatePath("/", "layout");
-  redirect("/");
+export async function signOut(): Promise<{ error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error("Sign out error:", error);
+      return { error: error.message };
+    }
+    
+    revalidatePath("/", "layout");
+    return {};
+  } catch (error: any) {
+    console.error("Sign out error:", error);
+    return { error: error.message || "Failed to sign out" };
+  }
 }
 
 export async function getUser() {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -60,6 +60,7 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const { user, profile, loading, isOwner, isCaptain } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Check if we're in a dashboard area
   const isInDashboard = pathname?.startsWith("/dashboard");
@@ -73,11 +74,15 @@ export function Header() {
   }, []);
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
+    const result = await signOut();
+    
+    if (result?.error) {
+      toast.error(result.error);
+    } else {
       toast.success("Signed out successfully");
-    } catch {
-      toast.error("Failed to sign out");
+      // Navigate to home page after successful sign out
+      router.push("/");
+      router.refresh();
     }
   };
 
