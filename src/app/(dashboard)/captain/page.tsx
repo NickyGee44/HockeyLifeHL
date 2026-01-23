@@ -750,6 +750,7 @@ function GamesSection({
   // Categorize games
   const today = new Date();
   const todayStr = today.toDateString();
+  const now = new Date();
 
   // Today's games (scheduled, in_progress, or completed today)
   const todaysGames = games.filter(g => {
@@ -757,23 +758,32 @@ function GamesSection({
     return gameDate.toDateString() === todayStr;
   });
 
-  // Today's games that are completed and need stats
-  const todaysCompletedNeedingStats = todaysGames.filter(g => 
-    g.status === "completed" && !g.hasStats
-  );
+  // Today's games that need stats (completed OR past scheduled time)
+  const todaysCompletedNeedingStats = todaysGames.filter(g => {
+    const gameDate = new Date(g.scheduled_at);
+    const isPastScheduledTime = gameDate < now;
+    
+    // Show if completed without stats OR if past scheduled time without stats
+    return (g.status === "completed" && !g.hasStats) || 
+           (isPastScheduledTime && !g.hasStats && g.status !== "cancelled");
+  });
 
-  // Today's games that are not yet completed (upcoming/in progress)
-  const todaysUpcoming = todaysGames.filter(g => 
-    g.status !== "completed"
-  );
+  // Today's games that are upcoming (future scheduled time, not completed)
+  const todaysUpcoming = todaysGames.filter(g => {
+    const gameDate = new Date(g.scheduled_at);
+    const isPastScheduledTime = gameDate < now;
+    
+    return !isPastScheduledTime && g.status !== "completed";
+  });
 
-  // Past games that still need stats (before today)
+  // Past games that still need stats (before today OR past scheduled time)
   const pastGamesNeedingStats = games.filter(g => {
     const gameDate = new Date(g.scheduled_at);
-    return gameDate.toDateString() !== todayStr && 
-           gameDate < today && 
-           g.status === "completed" && 
-           !g.hasStats;
+    const isNotToday = gameDate.toDateString() !== todayStr;
+    const isPast = gameDate < now;
+    
+    // Show if it's a past game (not today) and needs stats
+    return isNotToday && isPast && !g.hasStats && g.status !== "cancelled";
   });
 
   // Future games (after today)
@@ -903,6 +913,10 @@ function GamesSection({
                     ? `${game.home_score} - ${game.away_score}`
                     : `${game.away_score} - ${game.home_score}`
                   : null;
+                
+                const isCompleted = game.status === "completed";
+                const gameDate = new Date(game.scheduled_at);
+                const isPastTime = gameDate < now;
 
                 return (
                   <div
@@ -912,11 +926,16 @@ function GamesSection({
                     <div className="flex items-center gap-4">
                       <div className="text-center min-w-[60px]">
                         <p className="text-sm text-muted-foreground">{formatGameTime(game.scheduled_at)}</p>
-                        <Badge className="bg-canada-red">FINAL</Badge>
+                        <Badge className="bg-canada-red">
+                          {isCompleted ? "FINAL" : "READY"}
+                        </Badge>
                       </div>
                       <div>
                         <p className="font-semibold">vs {opponent?.name || "TBD"}</p>
                         {score && <p className="text-lg font-bold">{score}</p>}
+                        {!isCompleted && isPastTime && (
+                          <p className="text-xs text-muted-foreground">Game time passed - enter stats</p>
+                        )}
                       </div>
                     </div>
                     <Button
