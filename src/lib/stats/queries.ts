@@ -7,8 +7,43 @@ import { createClient } from "@/lib/supabase/server";
 export async function getSeasonPlayerStats(seasonId: string) {
   const supabase = await createClient();
 
+  // First, get all players from rosters for this season (non-goalies)
+  const { data: rosterPlayers, error: rosterError } = await supabase
+    .from("team_rosters")
+    .select(`
+      player_id,
+      player:profiles!team_rosters_player_id_fkey(id, full_name, jersey_number, position, avatar_url)
+    `)
+    .eq("season_id", seasonId)
+    .or("is_goalie.is.null,is_goalie.eq.false"); // Only non-goalies
+
+  if (rosterError) {
+    console.error("Error fetching roster players:", rosterError);
+    return { error: rosterError.message, stats: [] };
+  }
+
+  // Initialize stats map with all roster players (0 stats)
+  const playerStatsMap: Record<string, {
+    player: any;
+    games: number;
+    goals: number;
+    assists: number;
+    points: number;
+  }> = {};
+
+  (rosterPlayers || []).forEach((roster: any) => {
+    if (roster.player_id && roster.player) {
+      playerStatsMap[roster.player_id] = {
+        player: roster.player,
+        games: 0,
+        goals: 0,
+        assists: 0,
+        points: 0,
+      };
+    }
+  });
+
   // OPTIMIZED: Get completed games first (smaller dataset), then filter verified ones
-  // This is much faster than fetching all stats and filtering client-side
   const { data: completedGames, error: gameError } = await supabase
     .from("games")
     .select("id, home_captain_verified, away_captain_verified, home_verified_by_owner, away_verified_by_owner")
@@ -18,17 +53,27 @@ export async function getSeasonPlayerStats(seasonId: string) {
 
   if (gameError) {
     console.error("Error fetching verified games:", gameError);
-    return { error: gameError.message, stats: [] };
+    // Still return roster players even if we can't get games
+    return {
+      stats: Object.values(playerStatsMap).sort((a, b) => b.points - a.points),
+    };
   }
 
-  if (!verifiedGameIds || verifiedGameIds.length === 0) {
-    return { stats: [] };
-  }
+  // Filter to only verified games (both sides verified)
+  const verifiedGameIds = (completedGames || []).filter((game: any) => {
+    const homeVerified = game.home_captain_verified || game.home_verified_by_owner;
+    const awayVerified = game.away_captain_verified || game.away_verified_by_owner;
+    return homeVerified && awayVerified;
+  }).map((g: any) => g.id);
 
-  const gameIds = verifiedGameIds.map(g => g.id);
+  // If no verified games, return roster players with 0 stats
+  if (verifiedGameIds.length === 0) {
+    return {
+      stats: Object.values(playerStatsMap).sort((a, b) => b.points - a.points),
+    };
+  }
 
   // Now fetch stats only for verified games
-  // Use aggregation to reduce data transfer
   const { data: stats, error } = await supabase
     .from("player_stats")
     .select(`
@@ -39,28 +84,27 @@ export async function getSeasonPlayerStats(seasonId: string) {
       player:profiles!player_stats_player_id_fkey(id, full_name, jersey_number, position, avatar_url)
     `)
     .eq("season_id", seasonId)
-    .in("game_id", gameIds)
+    .in("game_id", verifiedGameIds)
     .limit(10000); // Safety limit
 
   if (error) {
     console.error("Error fetching player stats:", error);
-    return { error: error.message, stats: [] };
+    // Still return roster players even if we can't get stats
+    return {
+      stats: Object.values(playerStatsMap).sort((a, b) => b.points - a.points),
+    };
   }
 
   const verifiedStats = stats || [];
 
-  // Aggregate stats by player
-  const playerStatsMap: Record<string, {
-    player: any;
-    games: number;
-    goals: number;
-    assists: number;
-    points: number;
-  }> = {};
+  // Count unique games per player
+  const gameCounts: Record<string, Set<string>> = {};
 
-  // Process verified stats
+  // Process verified stats and merge with roster players
   verifiedStats.forEach((stat: any) => {
     const playerId = stat.player_id;
+    
+    // Initialize if not already in map (shouldn't happen, but safety check)
     if (!playerStatsMap[playerId]) {
       playerStatsMap[playerId] = {
         player: stat.player,
@@ -71,20 +115,19 @@ export async function getSeasonPlayerStats(seasonId: string) {
       };
     }
 
+    // Update stats
     playerStatsMap[playerId].goals += stat.goals || 0;
     playerStatsMap[playerId].assists += stat.assists || 0;
     playerStatsMap[playerId].points += (stat.goals || 0) + (stat.assists || 0);
-  });
 
-  // Count unique games per player
-  const gameCounts: Record<string, Set<string>> = {};
-  verifiedStats.forEach((stat: any) => {
-    if (!gameCounts[stat.player_id]) {
-      gameCounts[stat.player_id] = new Set();
+    // Track games
+    if (!gameCounts[playerId]) {
+      gameCounts[playerId] = new Set();
     }
-    gameCounts[stat.player_id].add(stat.game_id);
+    gameCounts[playerId].add(stat.game_id);
   });
 
+  // Update game counts
   Object.keys(gameCounts).forEach(playerId => {
     if (playerStatsMap[playerId]) {
       playerStatsMap[playerId].games = gameCounts[playerId].size;
@@ -100,6 +143,46 @@ export async function getSeasonPlayerStats(seasonId: string) {
 export async function getSeasonGoalieStats(seasonId: string) {
   const supabase = await createClient();
 
+  // First, get all goalies from rosters for this season
+  const { data: rosterGoalies, error: rosterError } = await supabase
+    .from("team_rosters")
+    .select(`
+      player_id,
+      player:profiles!team_rosters_player_id_fkey(id, full_name, jersey_number, avatar_url)
+    `)
+    .eq("season_id", seasonId)
+    .eq("is_goalie", true);
+
+  if (rosterError) {
+    console.error("Error fetching roster goalies:", rosterError);
+    return { error: rosterError.message, stats: [] };
+  }
+
+  // Initialize stats map with all roster goalies (0 stats)
+  const goalieStatsMap: Record<string, {
+    player: any;
+    games: number;
+    goalsAgainst: number;
+    saves: number;
+    shutouts: number;
+    gaa: number;
+    savePercentage: number;
+  }> = {};
+
+  (rosterGoalies || []).forEach((roster: any) => {
+    if (roster.player_id && roster.player) {
+      goalieStatsMap[roster.player_id] = {
+        player: roster.player,
+        games: 0,
+        goalsAgainst: 0,
+        saves: 0,
+        shutouts: 0,
+        gaa: 0,
+        savePercentage: 0,
+      };
+    }
+  });
+
   // OPTIMIZED: Get completed games first, then filter verified ones
   const { data: completedGames, error: gameError } = await supabase
     .from("games")
@@ -110,7 +193,10 @@ export async function getSeasonGoalieStats(seasonId: string) {
 
   if (gameError) {
     console.error("Error fetching completed games:", gameError);
-    return { error: gameError.message, stats: [] };
+    // Still return roster goalies even if we can't get games
+    return {
+      stats: Object.values(goalieStatsMap).sort((a, b) => a.gaa - b.gaa),
+    };
   }
 
   // Filter to only verified games (both sides verified)
@@ -120,8 +206,11 @@ export async function getSeasonGoalieStats(seasonId: string) {
     return homeVerified && awayVerified;
   }).map((g: any) => g.id);
 
+  // If no verified games, return roster goalies with 0 stats
   if (verifiedGameIds.length === 0) {
-    return { stats: [] };
+    return {
+      stats: Object.values(goalieStatsMap).sort((a, b) => a.gaa - b.gaa),
+    };
   }
 
   // Fetch stats only for verified games
@@ -133,35 +222,28 @@ export async function getSeasonGoalieStats(seasonId: string) {
       saves,
       shutout,
       game_id,
-      player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number)
+      player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number, avatar_url)
     `)
     .eq("season_id", seasonId)
-    .in("game_id", gameIds)
+    .in("game_id", verifiedGameIds)
     .limit(5000); // Safety limit
 
   if (error) {
     console.error("Error fetching goalie stats:", error);
-    return { error: error.message, stats: [] };
+    // Still return roster goalies even if we can't get stats
+    return {
+      stats: Object.values(goalieStatsMap).sort((a, b) => a.gaa - b.gaa),
+    };
   }
 
   const verifiedStats = stats || [];
-
-  // Aggregate stats by goalie
-  const goalieStatsMap: Record<string, {
-    player: any;
-    games: number;
-    goalsAgainst: number;
-    saves: number;
-    shutouts: number;
-    gaa: number;
-    savePercentage: number;
-  }> = {};
-
   const gameCounts: Record<string, Set<string>> = {};
 
-  // Process verified stats
+  // Process verified stats and merge with roster goalies
   verifiedStats.forEach((stat: any) => {
     const goalieId = stat.player_id;
+    
+    // Initialize if not already in map (shouldn't happen, but safety check)
     if (!goalieStatsMap[goalieId]) {
       goalieStatsMap[goalieId] = {
         player: stat.player,
@@ -174,12 +256,14 @@ export async function getSeasonGoalieStats(seasonId: string) {
       };
     }
 
+    // Update stats
     goalieStatsMap[goalieId].goalsAgainst += stat.goals_against || 0;
     goalieStatsMap[goalieId].saves += stat.saves || 0;
     if (stat.shutout) {
       goalieStatsMap[goalieId].shutouts += 1;
     }
 
+    // Track games
     if (!gameCounts[goalieId]) {
       gameCounts[goalieId] = new Set();
     }
@@ -644,7 +728,7 @@ export async function getGoalieStats(goalieId: string, seasonId?: string) {
       )
     `)
     .eq("player_id", goalieId)
-    .in("game_id", gameIds)
+    .in("game_id", verifiedGameIds)
     .limit(500); // Limit per goalie
 
   const { data: stats, error } = await query.order("game.scheduled_at", { ascending: false });

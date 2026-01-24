@@ -321,21 +321,36 @@ export async function sendSeasonInviteEmails(
     console.log(`   - ${player.full_name || "Unknown"} <${player.email}>`);
   });
 
-  // TODO: Implement actual email sending with Resend, SendGrid, etc.
-  // Example with Resend:
-  // for (const player of playersWithEmails) {
-  //   await resend.emails.send({
-  //     from: 'HockeyLifeHL <noreply@hockeylifehl.com>',
-  //     to: player.email,
-  //     subject: emailSubject,
-  //     html: emailBody,
-  //   });
-  // }
+  // Use new email notification system
+  const { sendSeasonInviteEmail } = await import("@/lib/email/notifications");
+  
+  // Extract player IDs from the players array
+  const playerIds = playersWithEmails
+    .map((p) => (typeof p === "object" && "id" in p ? p.id : null))
+    .filter((id): id is string => !!id);
+  
+  if (playerIds.length === 0) {
+    return {
+      success: true,
+      message: "No players with valid IDs found",
+      count: 0,
+    };
+  }
 
-  return { 
-    success: true, 
-    message: `Email invites prepared for ${playersWithEmails.length} players. Check server logs for details.`,
-    count: playersWithEmails.length
+  const result = await sendSeasonInviteEmail(newSeasonId, playerIds);
+
+  if (result.error) {
+    return {
+      success: false,
+      error: result.error,
+      count: 0,
+    };
+  }
+
+  return {
+    success: true,
+    message: `Email invites sent to ${result.sent || playersWithEmails.length} players.`,
+    count: result.sent || playersWithEmails.length,
   };
 }
 

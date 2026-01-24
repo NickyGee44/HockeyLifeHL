@@ -35,6 +35,9 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 # OpenAI API (Optional - for AI article generation)
 OPENAI_API_KEY=your_openai_api_key_here
 
+# Resend API (Optional - for email notifications)
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+
 # Stripe Configuration (Optional - for payment features)
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here

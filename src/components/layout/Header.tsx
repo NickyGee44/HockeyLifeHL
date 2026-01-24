@@ -50,6 +50,7 @@ const adminNav = [
   { href: "/admin/players", label: "Players", icon: "⛸️" },
   { href: "/admin/games", label: "Games", icon: "🎮" },
   { href: "/admin/seasons", label: "Seasons", icon: "📆" },
+  { href: "/admin/emails", label: "Emails", icon: "📧" },
   { href: "/admin/suspensions", label: "Suspensions", icon: "🚫" },
   { href: "/admin/articles", label: "Articles", icon: "✍️" },
   { href: "/admin/payments", label: "Payments", icon: "💳" },

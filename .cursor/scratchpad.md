@@ -1860,4 +1860,165 @@ Upon investigation, the real-time draft sync was already fully implemented:
 
 *Plan created: January 21, 2026*
 *Status: Planning complete - User clarifications received*
-*Last updated: Game check-in and stat entry modal implemented*
+*Last updated: Complete email system with Resend, OpenAI generation, and admin preview/edit interface implemented*
+
+---
+
+## 📧 EMAIL SYSTEM IMPLEMENTATION COMPLETE
+
+**Date:** January 21, 2026  
+**Status:** ✅ Complete
+
+### What Was Implemented:
+
+1. **Resend Integration**
+   - Installed `resend` package
+   - Created email client (`src/lib/email/client.ts`)
+   - Supports single and bulk email sending
+   - Graceful fallback when API key not configured (logs to console)
+
+2. **OpenAI Email Generation**
+   - AI-powered email content generation (`src/lib/email/ai-generator.ts`)
+   - Generates subject lines and body content
+   - Supports multiple email types and tones
+   - Uses GPT-4 for high-quality content
+
+3. **Admin Email Management Interface**
+   - New page: `/admin/emails`
+   - Generate emails with AI assistance
+   - Preview and edit before sending
+   - Save drafts for later
+   - Select recipients and email types
+
+4. **Automated Email Notifications**
+   - Game reminders (`sendGameReminderEmail`)
+   - Stat entry reminders (`sendStatReminderEmail`)
+   - Draft notifications (`sendDraftNotificationEmail`)
+   - Payment reminders (`sendPaymentReminderEmail`)
+   - Season invites (`sendSeasonInviteEmail`)
+
+5. **Email Templates**
+   - Base template with HockeyLifeHL branding
+   - Responsive design
+   - Action buttons for CTAs
+   - Consistent styling across all emails
+
+6. **Database Migration**
+   - `email_drafts` table for preview/edit functionality
+   - Stores draft emails before sending
+   - Tracks sent status and counts
+
+7. **Updated Existing Functions**
+   - `sendDraftNotificationEmail()` now uses new system
+   - `sendSeasonInviteEmails()` now uses new system
+   - Backwards compatible
+
+### Files Created:
+
+- `src/lib/email/client.ts` - Resend email client
+- `src/lib/email/templates/base.tsx` - Base email template
+- `src/lib/email/ai-generator.ts` - OpenAI email generation
+- `src/lib/email/actions.ts` - Email draft management
+- `src/lib/email/notifications.ts` - Automated notifications
+- `src/lib/email/types.ts` - TypeScript types
+- `src/app/(dashboard)/admin/emails/page.tsx` - Admin interface
+- `src/app/api/email/generate/route.ts` - API endpoint
+- `src/app/api/email/save-draft/route.ts` - API endpoint
+- `src/app/api/email/send/route.ts` - API endpoint
+- `supabase/migrations/add_email_drafts_table.sql` - Database migration
+- `EMAIL_IMPLEMENTATION.md` - Complete documentation
+
+### Setup Required:
+
+1. **Get Resend API Key:**
+   - Sign up at https://resend.com
+   - Get API key from dashboard
+   - Add to `.env.local`: `RESEND_API_KEY=re_xxxxxxxxxxxxx`
+
+2. **Run Database Migration:**
+   - Apply `supabase/migrations/add_email_drafts_table.sql`
+   - Or run via Supabase Dashboard → SQL Editor
+
+3. **Test:**
+   - Go to `/admin/emails`
+   - Generate a test email
+   - Preview and send
+
+### Features:
+
+- ✅ AI-generated email content
+- ✅ Admin preview/edit before sending
+- ✅ Automated notifications (no preview needed)
+- ✅ Manual email sending with AI assistance
+- ✅ Email templates with branding
+- ✅ Bulk email sending
+- ✅ Draft saving
+- ✅ Graceful fallback (logs when API key not set)
+- ✅ **Bulk recipient selection:**
+  - All active season players
+  - All active season captains
+  - All admins
+  - Entire league
+  - Specific teams (multi-select)
+  - Specific games (multi-select)
+  - Individual email addresses
+- ✅ **Pre-populated email templates:**
+  - Templates auto-load when email type is selected
+  - Pre-branded with HockeyLifeHL styling
+  - Ready to edit immediately (no generation required)
+  - Optional AI enhancement available
+
+### Next Steps (Future Enhancements):
+
+- Scheduled jobs for game reminders (24h before, game day)
+- Email preferences in user profiles
+- Email analytics/delivery tracking
+- Weekly digest emails
+- More automated notification types
+
+---
+
+## 🐛 BUG FIX: Stats Page Not Showing Current Season Players
+
+**Date:** January 21, 2026  
+**Issue:** Stats page wasn't showing current season players and statistics
+
+**Root Cause:**
+- `getSeasonPlayerStats()` function in `src/lib/stats/queries.ts` was missing the filtering logic to create `verifiedGameIds` from `completedGames`
+- Function was trying to use `verifiedGameIds` before it was defined (line 24)
+- Similar bug in `getSeasonGoalieStats()` and `getGoalieStats()` using wrong variable name `gameIds` instead of `verifiedGameIds`
+
+**Fix Applied:**
+1. Added missing filtering logic in `getSeasonPlayerStats()` to filter completed games to only verified games (both captains verified or owner verified)
+2. Fixed variable name in `getSeasonGoalieStats()` line 139: changed `gameIds` to `verifiedGameIds`
+3. Fixed variable name in `getGoalieStats()` line 654: changed `gameIds` to `verifiedGameIds`
+
+**Files Changed:**
+- `src/lib/stats/queries.ts` - Fixed all three functions
+
+**Result:** Stats page now correctly shows current season players and statistics for verified games only.
+
+---
+
+## ✨ ENHANCEMENT: Show All Active Players Even With No Stats
+
+**Date:** January 21, 2026  
+**Enhancement:** Stats page now shows all active players in a season, even if they have no stats recorded yet
+
+**Changes Made:**
+1. Modified `getSeasonPlayerStats()` to:
+   - First fetch all players from `team_rosters` for the season (non-goalies)
+   - Initialize them with 0 stats
+   - Then merge in actual stats from verified games
+   - Ensures all roster players appear even if they haven't played any games yet
+
+2. Modified `getSeasonGoalieStats()` to:
+   - First fetch all goalies from `team_rosters` for the season (`is_goalie = true`)
+   - Initialize them with 0 stats
+   - Then merge in actual stats from verified games
+   - Ensures all roster goalies appear even if they haven't played any games yet
+
+**Files Changed:**
+- `src/lib/stats/queries.ts` - Updated both `getSeasonPlayerStats()` and `getSeasonGoalieStats()`
+
+**Result:** Stats page now shows all active players and goalies from season rosters, displaying 0 stats for those who haven't played any verified games yet. This provides a complete view of all participants in the season.

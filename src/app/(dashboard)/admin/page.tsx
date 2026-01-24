@@ -239,7 +239,7 @@ export default function AdminDashboardPage() {
           <CardDescription>Common admin tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Button className="h-auto py-4 flex-col gap-2 bg-canada-red hover:bg-canada-red-dark" asChild>
               <Link href="/admin/seasons">
                 <span className="text-2xl">📆</span>
@@ -256,6 +256,12 @@ export default function AdminDashboardPage() {
               <Link href="/admin/players">
                 <span className="text-2xl">👥</span>
                 <span>Manage Players</span>
+              </Link>
+            </Button>
+            <Button className="h-auto py-4 flex-col gap-2" variant="outline" asChild>
+              <Link href="/admin/emails">
+                <span className="text-2xl">📧</span>
+                <span>Emails</span>
               </Link>
             </Button>
             <Button className="h-auto py-4 flex-col gap-2" variant="outline" asChild>
