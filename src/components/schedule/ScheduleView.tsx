@@ -163,69 +163,81 @@ export function ScheduleView({
     return (
       <Card 
         key={game.id} 
-        className={`hover:border-canada-red/50 transition-colors ${isUserGame ? "border-rink-blue ring-1 ring-rink-blue/30" : ""}`}
+        className={`hover:border-canada-red/50 transition-all ${isUserGame ? "border-rink-blue ring-1 ring-rink-blue/30 bg-rink-blue/5" : ""}`}
       >
-        <CardContent className="p-6">
+        <CardContent className="p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
-            {/* Date/Time */}
-            <div className="flex-shrink-0 text-center md:text-left md:w-28">
-              <div className="text-sm text-muted-foreground">{date}</div>
-              <div className="text-lg font-semibold">{time}</div>
-              {game.location && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  📍 {game.location}
+            {/* Date/Time - Mobile Row */}
+            <div className="flex items-center justify-between md:flex-col md:items-start md:w-28 border-b md:border-b-0 pb-3 md:pb-0">
+              <div className="text-left">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{date}</div>
+                <div className="text-lg font-bold">{time}</div>
+              </div>
+              <div className="md:mt-1">
+                {game.status !== "scheduled" ? getStatusBadge(game.status) : (
+                  game.location && (
+                    <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                      📍 {game.location}
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Teams Matchup */}
+            <div className="flex-1 flex flex-col sm:flex-row items-center gap-3 sm:gap-6 py-2 md:py-0">
+              {/* Home Team */}
+              <div className="flex-1 flex items-center justify-center sm:justify-end gap-3 w-full">
+                <span className="font-bold text-base md:text-lg sm:order-first order-last text-right sm:text-left flex-1 sm:flex-none truncate">
+                  {game.home_team?.name || "TBD"}
+                </span>
+                <TeamLogo 
+                  team={game.home_team} 
+                  size="md" 
+                />
+              </div>
+
+              {/* VS / Score Divider */}
+              <div className="flex items-center gap-4 sm:gap-2 w-full sm:w-auto">
+                <div className="h-px bg-border flex-1 sm:hidden" />
+                <div className="bg-muted px-4 py-1.5 rounded-full text-sm font-bold min-w-[60px] text-center">
+                  {game.status === "completed" ? (
+                    <span className="font-mono text-lg">{game.home_score} - {game.away_score}</span>
+                  ) : "VS"}
                 </div>
-              )}
-            </div>
-
-            {/* Teams & Score */}
-            <div className="flex-1 flex items-center gap-4">
-              <div className="flex-1 flex items-center justify-end gap-2">
-                {game.home_team ? (
-                  <TeamLogo 
-                    team={game.home_team} 
-                    size="sm" 
-                    showName 
-                    nameClassName="text-lg font-semibold"
-                  />
-                ) : (
-                  <span className="font-semibold text-lg">TBD</span>
-                )}
+                <div className="h-px bg-border flex-1 sm:hidden" />
               </div>
 
-              <div className="text-center min-w-[80px]">
-                {game.status === "completed" ? (
-                  <div className="font-mono font-bold text-xl">
-                    {game.home_score} - {game.away_score}
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground">vs</div>
-                )}
-              </div>
-
-              <div className="flex-1 flex items-center gap-2">
-                {game.away_team ? (
-                  <TeamLogo 
-                    team={game.away_team} 
-                    size="sm" 
-                    showName 
-                    nameClassName="text-lg font-semibold"
-                  />
-                ) : (
-                  <span className="font-semibold text-lg">TBD</span>
-                )}
+              {/* Away Team */}
+              <div className="flex-1 flex items-center justify-center sm:justify-start gap-3 w-full">
+                <TeamLogo 
+                  team={game.away_team} 
+                  size="md" 
+                />
+                <span className="font-bold text-base md:text-lg text-left flex-1 sm:flex-none truncate">
+                  {game.away_team?.name || "TBD"}
+                </span>
               </div>
             </div>
 
-            {/* Status */}
-            <div className="flex-shrink-0 flex items-center gap-2">
+            {/* Desktop Actions/Status */}
+            <div className="hidden md:flex flex-col items-end gap-2">
               {isUserGame && (
-                <Badge variant="secondary" className="bg-rink-blue/20 text-rink-blue">
+                <Badge variant="secondary" className="bg-rink-blue/20 text-rink-blue border-rink-blue/30">
                   My Team
                 </Badge>
               )}
-              {getStatusBadge(game.status)}
+              {game.status === "scheduled" && getStatusBadge(game.status)}
             </div>
+
+            {/* Mobile "My Team" indicator */}
+            {isUserGame && (
+              <div className="md:hidden text-center">
+                <Badge variant="secondary" className="bg-rink-blue text-white w-full py-1">
+                  Your Game
+                </Badge>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -250,73 +262,82 @@ export function ScheduleView({
     return (
       <Card 
         key={game.id} 
-        className={`hover:border-canada-red/50 transition-colors ${isUserGame ? "border-rink-blue ring-1 ring-rink-blue/30" : ""}`}
+        className={`hover:border-canada-red/50 transition-all ${isUserGame ? "border-rink-blue ring-1 ring-rink-blue/30 bg-rink-blue/5" : ""}`}
       >
-        <CardContent className="p-6">
+        <CardContent className="p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
-            {/* Date/Time */}
-            <div className="flex-shrink-0 text-center md:text-left md:w-28">
-              <div className="text-sm text-muted-foreground">{date}</div>
-              <div className="text-lg font-semibold">{time}</div>
-              {game.location && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  📍 {game.location}
-                </div>
-              )}
+            {/* Date/Time - Mobile Row */}
+            <div className="flex items-center justify-between md:flex-col md:items-start md:w-28 border-b md:border-b-0 pb-3 md:pb-0">
+              <div className="text-left">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{date}</div>
+                <div className="text-lg font-bold">{time}</div>
+              </div>
+              <div className="md:mt-1">
+                {getStatusBadge(game.status)}
+              </div>
             </div>
 
-            {/* Teams & Score */}
-            <div className="flex-1 flex items-center gap-4">
-              <div className="flex-1 flex items-center justify-end gap-2">
-                {game.home_team ? (
-                  <TeamLogo 
-                    team={game.home_team} 
-                    size="sm" 
-                    showName 
-                    nameClassName="text-lg font-semibold"
-                  />
-                ) : (
-                  <span className="font-semibold text-lg">TBD</span>
-                )}
+            {/* Teams Matchup & Score */}
+            <div className="flex-1 flex flex-col sm:flex-row items-center gap-3 sm:gap-6 py-2 md:py-0">
+              {/* Home Team */}
+              <div className="flex-1 flex items-center justify-center sm:justify-end gap-3 w-full">
+                <span className="font-bold text-base md:text-lg sm:order-first order-last text-right sm:text-left flex-1 sm:flex-none truncate">
+                  {game.home_team?.name || "TBD"}
+                </span>
+                <TeamLogo 
+                  team={game.home_team} 
+                  size="md" 
+                />
               </div>
 
-              <div className="text-center min-w-[80px]">
-                <div className="font-mono font-bold text-xl">
-                  {game.home_score} - {game.away_score}
+              {/* Score Divider */}
+              <div className="flex flex-col items-center gap-1 w-full sm:w-auto">
+                <div className="flex items-center gap-4 sm:gap-2 w-full sm:w-auto">
+                  <div className="h-px bg-border flex-1 sm:hidden" />
+                  <div className="bg-puck-black text-white px-4 py-1.5 rounded-lg text-xl font-mono font-bold min-w-[80px] text-center shadow-lg border border-white/10">
+                    {game.home_score} - {game.away_score}
+                  </div>
+                  <div className="h-px bg-border flex-1 sm:hidden" />
                 </div>
                 {isUserGame && userResult && (
-                  <div className={`text-xs font-medium mt-1 ${
-                    userResult === "W" ? "text-green-500" : 
-                    userResult === "L" ? "text-red-500" : "text-muted-foreground"
-                  }`}>
-                    {userResult === "W" ? "Win" : userResult === "L" ? "Loss" : "Tie"}
-                  </div>
+                  <Badge className={`${
+                    userResult === "W" ? "bg-green-600" : 
+                    userResult === "L" ? "bg-red-600" : "bg-slate-600"
+                  } text-[10px] h-4 px-2 uppercase font-black tracking-tighter`}>
+                    {userResult === "W" ? "Victory" : userResult === "L" ? "Loss" : "Tie"}
+                  </Badge>
                 )}
               </div>
 
-              <div className="flex-1 flex items-center gap-2">
-                {game.away_team ? (
-                  <TeamLogo 
-                    team={game.away_team} 
-                    size="sm" 
-                    showName 
-                    nameClassName="text-lg font-semibold"
-                  />
-                ) : (
-                  <span className="font-semibold text-lg">TBD</span>
-                )}
+              {/* Away Team */}
+              <div className="flex-1 flex items-center justify-center sm:justify-start gap-3 w-full">
+                <TeamLogo 
+                  team={game.away_team} 
+                  size="md" 
+                />
+                <span className="font-bold text-base md:text-lg text-left flex-1 sm:flex-none truncate">
+                  {game.away_team?.name || "TBD"}
+                </span>
               </div>
             </div>
 
-            {/* Status */}
-            <div className="flex-shrink-0 flex items-center gap-2">
+            {/* Desktop "My Team" indicator */}
+            <div className="hidden md:flex flex-col items-end gap-2">
               {isUserGame && (
-                <Badge variant="secondary" className="bg-rink-blue/20 text-rink-blue">
+                <Badge variant="secondary" className="bg-rink-blue/20 text-rink-blue border-rink-blue/30">
                   My Team
                 </Badge>
               )}
-              {getStatusBadge(game.status)}
             </div>
+
+            {/* Mobile "My Team" indicator */}
+            {isUserGame && (
+              <div className="md:hidden text-center">
+                <Badge variant="secondary" className="bg-rink-blue text-white w-full py-1">
+                  Your Game
+                </Badge>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

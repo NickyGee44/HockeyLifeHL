@@ -376,7 +376,7 @@ export default function StatsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12">#</TableHead>
+                        <TableHead className="w-10 md:w-12">#</TableHead>
                         <TableHead 
                           className="cursor-pointer hover:bg-muted/50 select-none"
                           onClick={() => handlePlayerSort("player")}
@@ -414,7 +414,7 @@ export default function StatsPage() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="text-center font-bold cursor-pointer hover:bg-muted/50 select-none"
+                          className="text-center font-bold cursor-pointer hover:bg-muted/50 select-none text-gold"
                           onClick={() => handlePlayerSort("points")}
                         >
                           <div className="flex items-center justify-center">
@@ -423,7 +423,7 @@ export default function StatsPage() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none hidden md:table-cell"
                           onClick={() => handlePlayerSort("pointsPerGame")}
                         >
                           <div className="flex items-center justify-center">
@@ -433,8 +433,8 @@ export default function StatsPage() {
                         </TableHead>
                         {viewMode === "career" && (
                           <>
-                            <TableHead className="text-center text-xs text-muted-foreground">Legacy GP</TableHead>
-                            <TableHead className="text-center text-xs text-muted-foreground">Current GP</TableHead>
+                            <TableHead className="text-center text-xs text-muted-foreground hidden lg:table-cell">Legacy GP</TableHead>
+                            <TableHead className="text-center text-xs text-muted-foreground hidden lg:table-cell">Current GP</TableHead>
                           </>
                         )}
                       </TableRow>
@@ -446,72 +446,74 @@ export default function StatsPage() {
                         }
                         return (
                           <TableRow key={stat.player.id || index}>
-                            <TableCell className="text-center font-bold">
+                            <TableCell className="text-center font-bold text-muted-foreground text-xs md:text-sm">
                               {index + 1}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-2 md:py-3">
                               {stat.player.id ? (
                                 <Link
                                   href={`/stats/${stat.player.id}`}
-                                  className="flex items-center gap-3 hover:underline"
+                                  className="flex items-center gap-2 md:gap-3 hover:underline"
                                 >
-                                  <Avatar className="h-8 w-8">
+                                  <Avatar className="h-7 w-7 md:h-8 md:w-8 shrink-0">
                                     <AvatarImage src={stat.player.avatar_url || ""} />
-                                    <AvatarFallback className="bg-canada-red text-white text-xs">
+                                    <AvatarFallback className="bg-canada-red text-white text-[10px]">
                                       {getInitials(stat.player.full_name)}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <div>
-                                    <span className="font-medium">
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-sm md:text-base truncate">
                                       {stat.player.full_name || "Unknown"}
-                                    </span>
-                                    {stat.player.jersey_number !== null && stat.player.jersey_number !== undefined && (
-                                      <span className="text-muted-foreground ml-2 font-mono">
-                                        #{stat.player.jersey_number}
-                                      </span>
-                                    )}
-                                    {stat.player.position && (
-                                      <Badge variant="outline" className="ml-2 text-xs">
-                                        {stat.player.position}
-                                      </Badge>
-                                    )}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      {stat.player.jersey_number !== null && (
+                                        <span className="text-[10px] md:text-xs text-muted-foreground font-mono">
+                                          #{stat.player.jersey_number}
+                                        </span>
+                                      )}
+                                      {stat.player.position && (
+                                        <Badge variant="outline" className="text-[9px] md:text-[10px] h-3.5 px-1 leading-none">
+                                          {stat.player.position}
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 </Link>
                               ) : (
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="bg-canada-red text-white text-xs">
+                                <div className="flex items-center gap-2 md:gap-3 opacity-70">
+                                  <Avatar className="h-7 w-7 md:h-8 md:w-8 shrink-0">
+                                    <AvatarFallback className="bg-canada-red/50 text-white text-[10px]">
                                       {getInitials(stat.player.full_name)}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div>
-                                    <span className="font-medium">
+                                    <span className="font-medium text-sm">
                                       {stat.player.full_name || "Unknown"}
                                     </span>
-                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                    <Badge variant="secondary" className="ml-2 text-[9px] h-3.5 px-1">
                                       Legacy
                                     </Badge>
                                   </div>
                                 </div>
                               )}
                             </TableCell>
-                            <TableCell className="text-center">{stat.games || 0}</TableCell>
-                            <TableCell className="text-center font-medium text-canada-red">
+                            <TableCell className="text-center text-xs md:text-sm">{stat.games || 0}</TableCell>
+                            <TableCell className="text-center font-bold text-canada-red text-sm md:text-base">
                               {stat.goals || 0}
                             </TableCell>
-                            <TableCell className="text-center">{stat.assists || 0}</TableCell>
-                            <TableCell className="text-center font-bold text-lg">
+                            <TableCell className="text-center text-xs md:text-sm">{stat.assists || 0}</TableCell>
+                            <TableCell className="text-center font-black text-base md:text-lg text-gold">
                               {stat.points || 0}
                             </TableCell>
-                            <TableCell className="text-center text-muted-foreground">
+                            <TableCell className="text-center text-muted-foreground text-xs hidden md:table-cell">
                               {stat.games > 0 ? ((stat.points || 0) / stat.games).toFixed(2) : "0.00"}
                             </TableCell>
                             {viewMode === "career" && (
                               <>
-                                <TableCell className="text-center text-xs text-muted-foreground">
+                                <TableCell className="text-center text-xs text-muted-foreground hidden lg:table-cell">
                                   {stat.legacy_games || 0}
                                 </TableCell>
-                                <TableCell className="text-center text-xs text-muted-foreground">
+                                <TableCell className="text-center text-xs text-muted-foreground hidden lg:table-cell">
                                   {stat.current_games || 0}
                                 </TableCell>
                               </>
@@ -558,7 +560,7 @@ export default function StatsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12">#</TableHead>
+                        <TableHead className="w-10 md:w-12">#</TableHead>
                         <TableHead 
                           className="cursor-pointer hover:bg-muted/50 select-none"
                           onClick={() => handleGoalieSort("goalie")}
@@ -578,7 +580,7 @@ export default function StatsPage() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none hidden sm:table-cell"
                           onClick={() => handleGoalieSort("goalsAgainst")}
                         >
                           <div className="flex items-center justify-center">
@@ -587,7 +589,7 @@ export default function StatsPage() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none hidden md:table-cell"
                           onClick={() => handleGoalieSort("saves")}
                         >
                           <div className="flex items-center justify-center">
@@ -596,7 +598,7 @@ export default function StatsPage() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none hidden lg:table-cell"
                           onClick={() => handleGoalieSort("shutouts")}
                         >
                           <div className="flex items-center justify-center">
@@ -605,7 +607,7 @@ export default function StatsPage() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="text-center font-bold cursor-pointer hover:bg-muted/50 select-none"
+                          className="text-center font-bold cursor-pointer hover:bg-muted/50 select-none text-gold"
                           onClick={() => handleGoalieSort("gaa")}
                         >
                           <div className="flex items-center justify-center">
@@ -614,7 +616,7 @@ export default function StatsPage() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                          className="text-center cursor-pointer hover:bg-muted/50 select-none text-rink-blue"
                           onClick={() => handleGoalieSort("savePercentage")}
                         >
                           <div className="flex items-center justify-center">
@@ -624,8 +626,8 @@ export default function StatsPage() {
                         </TableHead>
                         {viewMode === "career" && (
                           <>
-                            <TableHead className="text-center text-xs text-muted-foreground">Legacy GP</TableHead>
-                            <TableHead className="text-center text-xs text-muted-foreground">Current GP</TableHead>
+                            <TableHead className="text-center text-xs text-muted-foreground hidden lg:table-cell">Legacy GP</TableHead>
+                            <TableHead className="text-center text-xs text-muted-foreground hidden lg:table-cell">Current GP</TableHead>
                           </>
                         )}
                       </TableRow>
@@ -637,68 +639,70 @@ export default function StatsPage() {
                         }
                         return (
                           <TableRow key={stat.player.id || index}>
-                            <TableCell className="text-center font-bold">
+                            <TableCell className="text-center font-bold text-muted-foreground text-xs md:text-sm">
                               {index + 1}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-2 md:py-3">
                               {stat.player.id ? (
                                 <Link
                                   href={`/stats/${stat.player.id}`}
-                                  className="flex items-center gap-3 hover:underline"
+                                  className="flex items-center gap-2 md:gap-3 hover:underline"
                                 >
-                                  <Avatar className="h-8 w-8">
+                                  <Avatar className="h-7 w-7 md:h-8 md:w-8 shrink-0">
                                     <AvatarImage src={stat.player.avatar_url || ""} />
-                                    <AvatarFallback className="bg-rink-blue text-white text-xs">
+                                    <AvatarFallback className="bg-rink-blue text-white text-[10px]">
                                       {getInitials(stat.player.full_name)}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <div>
-                                    <span className="font-medium">
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-sm md:text-base truncate">
                                       {stat.player.full_name || "Unknown"}
-                                    </span>
-                                    {stat.player.jersey_number !== null && stat.player.jersey_number !== undefined && (
-                                      <span className="text-muted-foreground ml-2 font-mono">
-                                        #{stat.player.jersey_number}
-                                      </span>
-                                    )}
+                                    </div>
+                                    <div className="mt-0.5">
+                                      {stat.player.jersey_number !== null && (
+                                        <span className="text-[10px] md:text-xs text-muted-foreground font-mono">
+                                          #{stat.player.jersey_number}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </Link>
                               ) : (
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="bg-rink-blue text-white text-xs">
+                                <div className="flex items-center gap-2 md:gap-3 opacity-70">
+                                  <Avatar className="h-7 w-7 md:h-8 md:w-8 shrink-0">
+                                    <AvatarFallback className="bg-rink-blue/50 text-white text-[10px]">
                                       {getInitials(stat.player.full_name)}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div>
-                                    <span className="font-medium">
+                                    <span className="font-medium text-sm">
                                       {stat.player.full_name || "Unknown"}
                                     </span>
-                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                    <Badge variant="secondary" className="ml-2 text-[9px] h-3.5 px-1">
                                       Legacy
                                     </Badge>
                                   </div>
                                 </div>
                               )}
                             </TableCell>
-                            <TableCell className="text-center">{stat.games || 0}</TableCell>
-                            <TableCell className="text-center">{stat.goalsAgainst || 0}</TableCell>
-                            <TableCell className="text-center">{stat.saves || 0}</TableCell>
-                            <TableCell className="text-center font-medium text-gold">
+                            <TableCell className="text-center text-xs md:text-sm">{stat.games || 0}</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm hidden sm:table-cell">{stat.goalsAgainst || 0}</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm hidden md:table-cell">{stat.saves || 0}</TableCell>
+                            <TableCell className="text-center font-medium text-gold hidden lg:table-cell">
                               {stat.shutouts || 0}
                             </TableCell>
-                            <TableCell className="text-center font-bold text-lg">
+                            <TableCell className="text-center font-black text-base md:text-lg text-gold">
                               {stat.gaa ? stat.gaa.toFixed(2) : "0.00"}
                             </TableCell>
-                            <TableCell className="text-center">
+                            <TableCell className="text-center font-bold text-rink-blue text-sm md:text-base">
                               {stat.savePercentage ? stat.savePercentage.toFixed(1) : "0.0"}%
                             </TableCell>
                             {viewMode === "career" && (
                               <>
-                                <TableCell className="text-center text-xs text-muted-foreground">
+                                <TableCell className="text-center text-xs text-muted-foreground hidden lg:table-cell">
                                   {stat.legacy_games || 0}
                                 </TableCell>
-                                <TableCell className="text-center text-xs text-muted-foreground">
+                                <TableCell className="text-center text-xs text-muted-foreground hidden lg:table-cell">
                                   {stat.current_games || 0}
                                 </TableCell>
                               </>

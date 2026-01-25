@@ -84,9 +84,9 @@ export function useAuth() {
       }, AUTH_TIMEOUT);
 
       try {
-        // Get session from storage
+        // Get session from storage - this reads from localStorage
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (!mounted) {
           clearTimeout(timeoutId);
           return;
@@ -101,8 +101,8 @@ export function useAuth() {
 
         if (session?.user) {
           setUser(session.user);
-          
-          // Always fetch fresh profile on load
+
+          // Fetch profile on initial load only
           const userProfile = await fetchProfile(session.user.id);
           if (mounted) {
             setProfile(userProfile);
@@ -130,18 +130,26 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        
+
         console.log("Auth state changed:", event);
-        
+
+        // Only refetch profile on actual auth changes, not on token refresh
+        const shouldRefetchProfile = event === 'SIGNED_IN' ||
+                                     event === 'SIGNED_OUT' ||
+                                     event === 'USER_UPDATED';
+
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Always fetch fresh profile on auth change
-          const userProfile = await fetchProfile(session.user.id);
-          if (mounted) {
-            setProfile(userProfile);
-            setError(null);
+          if (shouldRefetchProfile || !profile) {
+            // Fetch profile on auth change or if we don't have one yet
+            const userProfile = await fetchProfile(session.user.id);
+            if (mounted) {
+              setProfile(userProfile);
+              setError(null);
+            }
           }
+          // On TOKEN_REFRESHED, keep existing profile (don't refetch)
         } else {
           setProfile(null);
           setError(null);
@@ -157,7 +165,7 @@ export function useAuth() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, profile]);
 
   // Memoize the return value to prevent unnecessary re-renders
   return useMemo(() => ({

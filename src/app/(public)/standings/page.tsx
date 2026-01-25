@@ -233,43 +233,44 @@ export default async function StandingsPage({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-12 text-center">#</TableHead>
+                      <TableHead className="w-10 md:w-12 text-center">#</TableHead>
                       <TableHead>Team</TableHead>
                       <TableHead className="text-center">GP</TableHead>
                       <TableHead className="text-center">W</TableHead>
                       <TableHead className="text-center">L</TableHead>
                       <TableHead className="text-center">T</TableHead>
-                      <TableHead className="text-center">GF</TableHead>
-                      <TableHead className="text-center">GA</TableHead>
-                      <TableHead className="text-center">DIFF</TableHead>
-                      <TableHead className="text-center font-bold">PTS</TableHead>
+                      <TableHead className="text-center hidden md:table-cell">GF</TableHead>
+                      <TableHead className="text-center hidden md:table-cell">GA</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">DIFF</TableHead>
+                      <TableHead className="text-center font-bold text-canada-red">PTS</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {standings.map((standing, index) => {
                       const diff = standing.gf - standing.ga;
                       return (
-                        <TableRow key={standing.team.id}>
-                          <TableCell className="text-center font-bold">
+                        <TableRow key={standing.team.id} className={standing.team.id === "your-team-id-logic" ? "bg-rink-blue/5" : ""}>
+                          <TableCell className="text-center font-bold text-muted-foreground text-xs md:text-sm">
                             {index + 1}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-3">
                             <TeamLogo 
                               team={standing.team} 
-                              size="md" 
+                              size="sm" 
                               showName 
+                              nameClassName="font-bold text-sm md:text-base"
                             />
                           </TableCell>
-                          <TableCell className="text-center">{standing.gp}</TableCell>
-                          <TableCell className="text-center text-green-500 font-medium">{standing.w}</TableCell>
-                          <TableCell className="text-center text-red-500">{standing.l}</TableCell>
-                          <TableCell className="text-center text-muted-foreground">{standing.t}</TableCell>
-                          <TableCell className="text-center">{standing.gf}</TableCell>
-                          <TableCell className="text-center">{standing.ga}</TableCell>
-                          <TableCell className={`text-center font-medium ${diff > 0 ? "text-green-500" : diff < 0 ? "text-red-500" : ""}`}>
+                          <TableCell className="text-center text-xs md:text-sm">{standing.gp}</TableCell>
+                          <TableCell className="text-center text-green-500 font-bold text-xs md:text-sm">{standing.w}</TableCell>
+                          <TableCell className="text-center text-red-500 text-xs md:text-sm">{standing.l}</TableCell>
+                          <TableCell className="text-center text-muted-foreground text-xs md:text-sm">{standing.t}</TableCell>
+                          <TableCell className="text-center hidden md:table-cell text-xs md:text-sm">{standing.gf}</TableCell>
+                          <TableCell className="text-center hidden md:table-cell text-xs md:text-sm">{standing.ga}</TableCell>
+                          <TableCell className={`text-center font-medium hidden lg:table-cell ${diff > 0 ? "text-green-500" : diff < 0 ? "text-red-500" : ""}`}>
                             {diff > 0 ? `+${diff}` : diff}
                           </TableCell>
-                          <TableCell className="text-center font-bold text-lg">{standing.pts}</TableCell>
+                          <TableCell className="text-center font-black text-base md:text-lg text-canada-red">{standing.pts}</TableCell>
                         </TableRow>
                       );
                     })}

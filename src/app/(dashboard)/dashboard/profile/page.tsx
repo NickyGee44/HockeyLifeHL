@@ -210,7 +210,7 @@ export default function ProfilePage() {
                   </div>
                 </button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Profile Picture</DialogTitle>
                   <DialogDescription>

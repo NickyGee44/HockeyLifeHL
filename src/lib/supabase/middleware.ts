@@ -27,9 +27,19 @@ export async function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // Enhanced cookie options for better mobile support
+            const enhancedOptions = {
+              ...options,
+              // Ensure cookies work on mobile browsers
+              sameSite: 'lax' as const,
+              // Use secure cookies in production
+              secure: process.env.NODE_ENV === 'production',
+              // Longer max age for persistent sessions (30 days)
+              maxAge: 60 * 60 * 24 * 30,
+            }
+            supabaseResponse.cookies.set(name, value, enhancedOptions)
+          })
         },
       },
     }
@@ -38,13 +48,14 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: Avoid writing any logic between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make your app very slow!
 
+  // This will refresh the session if needed
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   // Protected routes - redirect to login if not authenticated
   const protectedPaths = ['/dashboard', '/admin', '/captain']
-  const isProtectedPath = protectedPaths.some(path => 
+  const isProtectedPath = protectedPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   )
 
@@ -57,7 +68,7 @@ export async function updateSession(request: NextRequest) {
 
   // If user is logged in and tries to access login/register, redirect to dashboard
   const authPaths = ['/login', '/register']
-  const isAuthPath = authPaths.some(path => 
+  const isAuthPath = authPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   )
 

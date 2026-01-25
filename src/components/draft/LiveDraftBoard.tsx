@@ -135,44 +135,46 @@ export function LiveDraftBoard({
   return (
     <div className="space-y-4">
       {/* Filters and Search - Compact */}
-      <div className="flex flex-col md:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
             <Input
               placeholder="Search players by name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1"
             />
-            <select
-              value={filterRating}
-              onChange={(e) => setFilterRating(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background"
-            >
-              <option value="all">All Ratings</option>
-              <option value="A+">A+</option>
-              <option value="A">A</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B">B</option>
-              <option value="B-">B-</option>
-              <option value="C+">C+</option>
-              <option value="C">C</option>
-              <option value="C-">C-</option>
-              <option value="D+">D+</option>
-              <option value="D">D</option>
-              <option value="D-">D-</option>
-            </select>
-            <select
-              value={filterPosition}
-              onChange={(e) => setFilterPosition(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background"
-            >
-              <option value="all">All Positions</option>
-              <option value="C">Center</option>
-              <option value="LW">Left Wing</option>
-              <option value="RW">Right Wing</option>
-              <option value="D">Defense</option>
-              <option value="G">Goalie</option>
-            </select>
+            <div className="grid grid-cols-2 sm:flex gap-2">
+              <select
+                value={filterRating}
+                onChange={(e) => setFilterRating(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background w-full sm:w-auto"
+              >
+                <option value="all">All Ratings</option>
+                <option value="A+">A+</option>
+                <option value="A">A</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B">B</option>
+                <option value="B-">B-</option>
+                <option value="C+">C+</option>
+                <option value="C">C</option>
+                <option value="C-">C-</option>
+                <option value="D+">D+</option>
+                <option value="D">D</option>
+                <option value="D-">D-</option>
+              </select>
+              <select
+                value={filterPosition}
+                onChange={(e) => setFilterPosition(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background w-full sm:w-auto"
+              >
+                <option value="all">Pos</option>
+                <option value="C">Center</option>
+                <option value="LW">Left Wing</option>
+                <option value="RW">Right Wing</option>
+                <option value="D">Defense</option>
+                <option value="G">Goalie</option>
+              </select>
+            </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
@@ -186,7 +188,7 @@ export function LiveDraftBoard({
           </div>
 
       {/* Available Players Grid - Compact */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {filteredPlayers.length === 0 ? (
           <div className="col-span-full text-center py-12 text-muted-foreground">
             No players available matching your filters
@@ -215,13 +217,13 @@ export function LiveDraftBoard({
                   }
                 }}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-3 md:p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3 flex-1">
-                      <Avatar className="h-14 w-14">
+                      <Avatar className="h-12 w-12 md:h-14 md:w-14">
                         <AvatarImage src={playerData.avatar_url || ""} />
                         <AvatarFallback className={`${getRatingColor(player.rating)} flex items-center justify-center`}>
-                          <User className="h-6 w-6 text-black" />
+                          <User className="h-5 w-5 md:h-6 md:w-6 text-black" />
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
@@ -247,7 +249,7 @@ export function LiveDraftBoard({
                       </div>
                     </div>
                     <Badge
-                      className={`${getRatingColor(player.rating)} text-sm font-bold px-2 py-1 border-2`}
+                      className={`${getRatingColor(player.rating)} text-xs md:text-sm font-bold px-2 py-1 border-2`}
                     >
                       {player.rating}
                     </Badge>
@@ -286,24 +288,24 @@ export function LiveDraftBoard({
                         )}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-muted/50 rounded p-2">
-                          <div className="text-xs text-muted-foreground">PPG</div>
+                      <div className="grid grid-cols-3 gap-1 md:gap-2">
+                        <div className="bg-muted/50 rounded p-1.5 md:p-2">
+                          <div className="text-[10px] md:text-xs text-muted-foreground">PPG</div>
                           <div className="font-semibold">
                             {player.points_per_game?.toFixed(2) || "0.00"}
                           </div>
                         </div>
                         {player.goals_per_game !== undefined && (
-                          <div className="bg-muted/50 rounded p-2">
-                            <div className="text-xs text-muted-foreground">GPG</div>
+                          <div className="bg-muted/50 rounded p-1.5 md:p-2">
+                            <div className="text-[10px] md:text-xs text-muted-foreground">GPG</div>
                             <div className="font-semibold">
                               {player.goals_per_game.toFixed(2)}
                             </div>
                           </div>
                         )}
                         {player.assists_per_game !== undefined && (
-                          <div className="bg-muted/50 rounded p-2">
-                            <div className="text-xs text-muted-foreground">APG</div>
+                          <div className="bg-muted/50 rounded p-1.5 md:p-2">
+                            <div className="text-[10px] md:text-xs text-muted-foreground">APG</div>
                             <div className="font-semibold">
                               {player.assists_per_game.toFixed(2)}
                             </div>
@@ -315,7 +317,7 @@ export function LiveDraftBoard({
 
                   {canPick && draft.status === "in_progress" && (
                     <Button
-                      className="w-full mt-3 bg-canada-red hover:bg-canada-red-dark"
+                      className="w-full mt-3 h-10 md:h-10 bg-canada-red hover:bg-canada-red-dark touch-manipulation"
                       onClick={(e) => {
                         e.stopPropagation();
                         onPick(playerId);

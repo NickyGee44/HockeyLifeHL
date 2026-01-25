@@ -516,7 +516,7 @@ export default function AdminSeasonsPage() {
               + New Season
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Season</DialogTitle>
               <DialogDescription>
@@ -1157,7 +1157,7 @@ export default function AdminSeasonsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingSeason} onOpenChange={() => { setEditingSeason(null); resetForm(); }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Season</DialogTitle>
             <DialogDescription>
@@ -1306,7 +1306,7 @@ export default function AdminSeasonsPage() {
 
       {/* Start Playoffs Dialog */}
       <Dialog open={!!playoffConfirm} onOpenChange={() => setPlayoffConfirm(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🏆 Start Playoffs</DialogTitle>
             <DialogDescription>
@@ -1371,7 +1371,7 @@ export default function AdminSeasonsPage() {
 
       {/* End Season Dialog */}
       <Dialog open={!!endSeasonConfirm} onOpenChange={() => { setEndSeasonConfirm(null); setEndSeasonStatus(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>End Season: {endSeasonConfirm?.name}</DialogTitle>
             <DialogDescription>

@@ -522,8 +522,10 @@ export async function sendTeamInvite(
     return { error: error.message };
   }
 
-  // TODO: Send actual email with invite link
-  // For now, just log and return the token
+  // Future Enhancement: Automated email invitation to players
+  // Currently, team owners/captains manually notify players to register
+  // When implemented, this will send an email with the invite link:
+  // `${SITE_URL}/invite/${invite.invite_token}`
   console.log(`[Team Invite] Email would be sent to: ${normalizedEmail}`);
   console.log(`[Team Invite] Token: ${invite.invite_token}`);
   console.log(`[Team Invite] Type: ${inviteType}`);

@@ -22,6 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'),
   title: "HockeyLifeHL | For Fun, For Beers, For Glory",
   description: "The ultimate men's recreational hockey league management platform. Stats, drafts, standings, and glory.",
   keywords: ["hockey", "league", "stats", "draft", "recreational", "Canada"],

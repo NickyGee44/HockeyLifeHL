@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { currentLeague } from "@/lib/league-config";
 
 const footerLinks = {
   league: [
@@ -25,14 +26,14 @@ export function Footer() {
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <Image
-                src="/logo.png"
-                alt="HockeyLifeHL"
+                src={currentLeague.logo}
+                alt={currentLeague.name}
                 width={40}
                 height={40}
                 className="h-10 w-auto"
               />
               <span className="font-display text-2xl font-bold text-gradient-canada">
-                HockeyLifeHL
+                {currentLeague.name}
               </span>
             </Link>
             <p className="text-muted-foreground mb-4 max-w-md">
@@ -40,7 +41,7 @@ export function Footer() {
               Where legends are made, rivalries are born, and beers are earned.
             </p>
             <p className="text-gold font-semibold">
-              🍁 For Fun, For Beers, For Glory 🍺
+              🍁 {currentLeague.slogan} 🍺
             </p>
           </div>
 
@@ -82,7 +83,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} HockeyLifeHL. All rights reserved.
+            © {new Date().getFullYear()} {currentLeague.name}. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <Link href="/privacy" className="hover:text-foreground transition-colors">

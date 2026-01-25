@@ -366,7 +366,7 @@ export default function AdminTeamsPage() {
                 + New Team
               </Button>
             </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Team</DialogTitle>
               <DialogDescription>
@@ -572,7 +572,7 @@ export default function AdminTeamsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingTeam} onOpenChange={() => { setEditingTeam(null); resetForm(); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Team</DialogTitle>
             <DialogDescription>

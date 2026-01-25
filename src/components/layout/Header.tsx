@@ -20,6 +20,8 @@ import { signOut } from "@/lib/auth/actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { currentLeague } from "@/lib/league-config";
+
 const navLinks = [
   { href: "/standings", label: "Standings" },
   { href: "/schedule", label: "Schedule" },
@@ -111,8 +113,8 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/logo.png"
-            alt="HockeyLifeHL"
+            src={currentLeague.logo}
+            alt={currentLeague.name}
             width={48}
             height={48}
             className="h-12 w-auto"
@@ -120,7 +122,7 @@ export function Header() {
             priority
           />
           <span className="font-display text-xl font-bold text-gradient-canada hidden sm:inline">
-            HockeyLifeHL
+            {currentLeague.name}
           </span>
         </Link>
 

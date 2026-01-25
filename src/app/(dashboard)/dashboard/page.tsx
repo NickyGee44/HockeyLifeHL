@@ -185,17 +185,17 @@ export default function DashboardPage() {
   const playerRating = stats?.games_played >= 5 ? "A" : stats?.games_played >= 3 ? "B" : stats?.games_played >= 1 ? "C" : "D";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
           Welcome back, {profile?.full_name?.split(" ")[0] || "Player"}! 🏒
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-sm md:text-base text-muted-foreground mt-1">
           Here&apos;s what&apos;s happening in the league.
         </p>
         {error && (
           <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-            <p className="text-sm text-yellow-600 dark:text-yellow-400">
+            <p className="text-xs text-yellow-600 dark:text-yellow-400">
               ⚠️ {error}. Some data may not be available.
             </p>
           </div>
@@ -203,58 +203,58 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Your Goals</CardDescription>
-            <CardTitle className="text-3xl text-gold">{stats?.goals || 0}</CardTitle>
+      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-1 md:pb-2 p-3 md:p-6">
+            <CardDescription className="text-[10px] md:text-xs uppercase font-bold">Goals</CardDescription>
+            <CardTitle className="text-2xl md:text-3xl text-gold">{stats?.goals || 0}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
+            <p className="text-[10px] md:text-xs text-muted-foreground">
               {stats?.games_played > 0 
-                ? `${(stats.goals / stats.games_played).toFixed(2)} per game`
-                : "No games played"}
+                ? `${(stats.goals / stats.games_played).toFixed(2)} / G`
+                : "No games"}
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Your Assists</CardDescription>
-            <CardTitle className="text-3xl text-gold">{stats?.assists || 0}</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-1 md:pb-2 p-3 md:p-6">
+            <CardDescription className="text-[10px] md:text-xs uppercase font-bold">Assists</CardDescription>
+            <CardTitle className="text-2xl md:text-3xl text-gold">{stats?.assists || 0}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
+            <p className="text-[10px] md:text-xs text-muted-foreground">
               {stats?.games_played > 0 
-                ? `${(stats.assists / stats.games_played).toFixed(2)} per game`
-                : "No games played"}
+                ? `${(stats.assists / stats.games_played).toFixed(2)} / G`
+                : "No games"}
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Games Played</CardDescription>
-            <CardTitle className="text-3xl">{stats?.games_played || 0}</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-1 md:pb-2 p-3 md:p-6">
+            <CardDescription className="text-[10px] md:text-xs uppercase font-bold">Games</CardDescription>
+            <CardTitle className="text-2xl md:text-3xl">{stats?.games_played || 0}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
+            <p className="text-[10px] md:text-xs text-muted-foreground truncate">
               {stats?.points || 0} total points
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Your Rating</CardDescription>
-            <CardTitle className="text-3xl">
-              <span className={`rating-${playerRating.toLowerCase()} px-3 py-1 rounded-full text-xl`}>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-1 md:pb-2 p-3 md:p-6">
+            <CardDescription className="text-[10px] md:text-xs uppercase font-bold">Rating</CardDescription>
+            <CardTitle className="flex items-center">
+              <span className={`rating-${playerRating.toLowerCase()} px-2 md:px-3 py-0.5 md:py-1 rounded-full text-sm md:text-xl font-black`}>
                 {stats?.games_played > 0 ? playerRating : "-"}
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
+            <p className="text-[10px] md:text-xs text-muted-foreground">
               {stats?.games_played > 0 
-                ? "Based on performance"
-                : "Play to earn a rating"}
+                ? "Current Rank"
+                : "Play to rank"}
             </p>
           </CardContent>
         </Card>
@@ -262,29 +262,29 @@ export default function DashboardPage() {
 
       {/* Profile Info */}
       <Card>
-        <CardHeader>
-          <CardTitle>Your Profile</CardTitle>
-          <CardDescription>Your player information</CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg md:text-xl">Your Profile</CardTitle>
+          <CardDescription className="text-xs md:text-sm">Your player information</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium">{profile?.full_name || "Not set"}</p>
+              <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground">Name</p>
+              <p className="font-medium text-sm md:text-base truncate">{profile?.full_name || "Not set"}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Jersey Number</p>
-              <p className="font-medium jersey-number text-xl">
+              <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground">Jersey</p>
+              <p className="font-bold jersey-number text-lg md:text-xl">
                 #{profile?.jersey_number ?? "--"}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Position</p>
-              <p className="font-medium">{profile?.position || "Not set"}</p>
+              <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground">Position</p>
+              <p className="font-medium text-sm md:text-base">{profile?.position || "Not set"}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Role</p>
-              <p className="font-medium capitalize">{profile?.role || "Player"}</p>
+              <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground">Role</p>
+              <p className="font-medium text-sm md:text-base capitalize">{profile?.role || "Player"}</p>
             </div>
           </div>
         </CardContent>

@@ -204,9 +204,14 @@ async function generateAISchedule(
   awayTeamId: string;
   scheduledAt: Date;
 }>> {
-  // TODO: Implement AI-based schedule generation using OpenAI
-  // Could consider team strength, previous matchups, venue availability, etc.
-  // For now, use random generation
+  // Future Enhancement: AI-optimized schedule generation using OpenAI
+  // Current round-robin algorithm ensures fair team distribution
+  // AI enhancement could optimize for:
+  // - Balanced team strength matchups
+  // - Venue conflict avoidance
+  // - Bye week distribution
+  // - Historical rivalry matchups
+  // - Travel distance minimization (multi-venue leagues)
   return generateRoundRobinSchedule(teamIds, totalGames, startDate, gameDays, gameTimes, location);
 }
 

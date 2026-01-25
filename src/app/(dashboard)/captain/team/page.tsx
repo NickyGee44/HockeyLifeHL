@@ -479,7 +479,7 @@ export default function CaptainTeamPage() {
                 </div>
               </button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Team Logo</DialogTitle>
                 <DialogDescription>Upload a custom logo for your team. Recommended size: 256x256 pixels.</DialogDescription>
@@ -534,7 +534,7 @@ export default function CaptainTeamPage() {
                 <Mail className="w-4 h-4 mr-2" />Invite Spare
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Invite Player to Team</DialogTitle>
                 <DialogDescription>Send an email invite to a spare or sub player to join your team.</DialogDescription>
@@ -576,7 +576,7 @@ export default function CaptainTeamPage() {
                 <UserPlus className="w-4 h-4 mr-2" />Add Player
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add Player to Roster</DialogTitle>
                 <DialogDescription>Add a registered player to your team for {season?.name}</DialogDescription>
@@ -853,7 +853,7 @@ export default function CaptainTeamPage() {
 
       {/* Suspend Player Dialog */}
       <Dialog open={isSuspendOpen} onOpenChange={setIsSuspendOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Suspend Player</DialogTitle>
             <DialogDescription>
