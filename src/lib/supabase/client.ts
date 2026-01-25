@@ -18,6 +18,9 @@ export function createClient() {
     )
   }
 
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined'
+
   client = createBrowserClient<Database>(
     supabaseUrl,
     supabaseAnonKey,
@@ -25,6 +28,7 @@ export function createClient() {
       // Cookie handling for browser client (required by @supabase/ssr)
       cookies: {
         get(name: string) {
+          if (!isBrowser) return undefined
           // Read cookie from document.cookie
           const value = `; ${document.cookie}`;
           const parts = value.split(`; ${name}=`);
@@ -33,6 +37,7 @@ export function createClient() {
           }
         },
         set(name: string, value: string, options: any) {
+          if (!isBrowser) return
           // Write cookie to document.cookie
           let cookie = `${name}=${value}`;
           if (options?.maxAge) {
@@ -53,6 +58,7 @@ export function createClient() {
           document.cookie = cookie;
         },
         remove(name: string, options: any) {
+          if (!isBrowser) return
           // Remove cookie by setting expiry to past
           this.set(name, '', {
             ...options,
