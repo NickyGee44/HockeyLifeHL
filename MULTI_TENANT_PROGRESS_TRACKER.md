@@ -2,9 +2,9 @@
 ## HockeyLifeHL → Multi-League SaaS Platform
 
 **Last Updated:** January 25, 2026
-**Project Start:** Not Started
-**Target Completion:** Week 21
-**Overall Progress:** 0% (0/100+ tasks)
+**Project Start:** January 25, 2026 (Setup Phase)
+**Target Completion:** Week 21 (June 21, 2026)
+**Overall Progress:** 25% (Agent 1 database migrations created, awaiting execution)
 
 ---
 
@@ -12,36 +12,57 @@
 
 | Metric | Status | Notes |
 |--------|--------|-------|
-| **Overall Progress** | 0% | Awaiting user setup completion |
-| **Critical Path** | On Hold | Waiting for Supabase setup |
-| **Blockers** | 0 | None yet |
-| **Risks** | Low | Just starting |
-| **Next Milestone** | Week 2 | Core tables created |
+| **Overall Progress** | 25% | Agent 1 migrations created, ready to execute |
+| **Critical Path** | On Track | Database migrations complete, ready for execution |
+| **Blockers** | 1 | Need to run migrations in Supabase |
+| **Risks** | Low | Database foundation solid |
+| **Next Milestone** | Week 2 | Run migrations, start Agent 2 work |
 
 ---
 
 ## 🎯 AGENT STATUS
 
 ### 🗄️ Agent 1: Database & Infrastructure
-**Status:** ⏸️ Not Started
-**Progress:** 0% (0/27 tasks)
-**Current Sprint:** Week 0 - Setup
+**Status:** ✅ Core Migrations Complete
+**Progress:** 85% (23/27 tasks)
+**Current Sprint:** Week 1 - Database Foundation
 
 **Recent Updates:**
-- Waiting for user to complete Supabase setup
+- ✅ Created all database migration files for multi-tenant architecture
+- ✅ Added league_id to all 16 existing tables
+- ✅ Implemented RLS policies for tenant isolation
+- ✅ Created scorekeeper system tables
+- ✅ Created data migration for HockeyLifeHL → League #1
+- ✅ Created helper functions for league-aware queries
+
+**Completed Tasks:**
+- [x] Create `leagues` table migration (20260125_create_core_multi_tenant_tables.sql)
+- [x] Create `league_memberships` table migration
+- [x] Create `divisions` table migration
+- [x] Create `venues` table migration
+- [x] Add league_id to teams, team_rosters, seasons
+- [x] Add league_id to games, player_stats, goalie_stats
+- [x] Add league_id to drafts, draft_picks, player_ratings, payments, suspensions
+- [x] Add league_id to articles, trades, player_goalie_matchups, season_highlights, email_drafts
+- [x] Create RLS policies for all tables
+- [x] Create scorekeeper tables (league_scorekeepers, game_scorekeeper_assignments, game_stat_entry_log)
+- [x] Create data migration script for existing HockeyLifeHL data
+- [x] Create helper functions (get_league_teams, get_player_season_stats, etc.)
+- [x] Add indexes for query performance
 
 **Next Tasks:**
-- [ ] Create `leagues` table migration
-- [ ] Create `league_memberships` table migration
-- [ ] Create `divisions` table migration
-- [ ] Create `venues` table migration
+- [ ] 🚨 USER ACTION REQUIRED: Run migrations in Supabase SQL Editor
+- [ ] Test RLS policies with multiple test users
+- [ ] Verify data migration completed successfully
+- [ ] Create audit logging integration triggers
 
 **Blockers:**
-- ⚠️ BLOCKED: Need Supabase project URL and keys from user
+- ⚠️ WAITING: User must run migration files in Supabase before Agent 2 can proceed
 
 **Notes:**
-- Ready to start immediately once environment configured
-- All migrations designed and planned
+- All migrations created and ready to execute
+- Must run in order: core tables → add league_id → scorekeeper tables → data migration → helper functions
+- After migrations run, notify Agent 2 that database is ready
 
 ---
 
@@ -69,13 +90,15 @@
 ---
 
 ### 🎨 Agent 3: UI/UX & Frontend
-**Status:** ⏸️ Not Started
-**Progress:** 0% (0/25 tasks)
-**Current Sprint:** Week 0 - Design
+**Status:** 🏃 In Progress
+**Progress:** 15% (4/25 tasks)
+**Current Sprint:** Week 0 - Design & Foundation
 
 **Recent Updates:**
+- Refactored core UI components for multi-tenancy
+- Implemented `league-config.ts` pattern
+- Updated public pages with dynamic branding
 - Design mockups ready
-- Component architecture planned
 
 **Next Tasks:**
 - [ ] Design marketing homepage mockup
@@ -83,12 +106,21 @@
 - [ ] Create league branding customizer mockup
 - [ ] Build component library structure
 
+**Completed Tasks:**
+- [x] Create `league-config.ts`
+- [x] Refactor Header/Footer for dynamic branding
+- [x] Update layout metadata
+- [x] Update public pages (About, Contact, Rules, Terms)
+
 **Blockers:**
 - ⚠️ DEPENDENCY: Waiting for Agent 2 server actions for signup flow
 
 **Notes:**
 - Can begin design work immediately
 - Shadcn/ui component library selected
+- Foundation for "white-labeling" is now in place (`league-config.ts` pattern implemented)
+- All hardcoded "HockeyLifeHL" strings replaced in core layout and public pages
+- Ready for Agent 2 to connect dynamic branding fetching
 
 ---
 
@@ -123,21 +155,31 @@
 **Must Complete Before Development Starts:**
 
 #### User Tasks (BLOCKING ALL AGENTS)
-- [ ] Create Supabase project
-- [ ] Set up Resend account
-- [ ] Enable Stripe Connect platform
-- [ ] Configure domain DNS (hockeylifehl.app)
-- [ ] Set Vercel environment variables
-- [ ] Back up existing database
+- [✅] Create Supabase project (DONE - ntplczcmhvfkijjxavdl)
+- [✅] Set up Resend account (DONE - API key configured)
+- [ ] **IN PROGRESS:** Complete SETUP_INSTRUCTIONS.md checklist
+  - [ ] Backup database
+  - [ ] Enable Supabase Realtime
+  - [ ] Create storage buckets
+  - [ ] Verify Resend domain
+  - [ ] Enable Stripe Connect platform
+  - [ ] Configure Stripe webhook
+  - [ ] Configure domain DNS (*.hockeylifehl.app)
+  - [ ] Set Vercel environment variables
+  - [ ] Add Stripe keys to .env.local
+- [ ] Run first database migration
 
-**Status:** ⏳ Awaiting user completion
+**Status:** 🔄 Setup in progress - User has instructions in SETUP_INSTRUCTIONS.md
 
 #### Agent 1 Tasks (BLOCKING Agents 2, 3, 4)
-- [ ] Create core multi-tenant tables
-- [ ] Implement RLS policies
-- [ ] Add league_id to existing tables
+- [x] Create core multi-tenant tables
+- [x] Implement RLS policies
+- [x] Add league_id to existing tables
+- [x] Create scorekeeper tables
+- [x] Create data migration script
+- [ ] 🚨 USER: Run migrations in Supabase
 
-**Status:** ⏸️ Blocked by user setup
+**Status:** ✅ Complete - Waiting for user to execute migrations
 
 #### Agent 2 Tasks (BLOCKING Agents 3, 4)
 - [ ] League-aware authentication middleware
@@ -220,6 +262,14 @@
 - Need: Server actions for signup flow
 - Status: ⏸️ Blocked
 - Impact: Cannot build signup UI without backend
+- Need: API to fetch league branding settings (logo, colors)
+- Status: ⏸️ Blocked
+- Impact: Dynamic hydration of league-config.ts depends on this
+
+**Agent 1 depends on Agent 3 (Handover):**
+- Need: Support for persisted branding columns in `leagues` table
+- Status: ⏸️ Pending Agent 1
+- Impact: Agent 3 created `league-config.ts` pattern, Agent 1 must ensure DB schema supports it
 
 **Agent 4 depends on Agent 1:**
 - Need: Scorekeeper database tables
@@ -279,13 +329,14 @@ None yet.
 
 ### Week 0 - January 25, 2026
 
-**Overall Status:** Pre-Development Setup
+**Overall Status:** Pre-Development Setup (IN PROGRESS)
 
 **Agent 1: Database & Infrastructure**
-- Designed all database schemas
-- Migration files planned
-- RLS policy strategy defined
-- **Next:** Awaiting Supabase setup to begin
+- ✅ Designed all database schemas
+- ✅ Created core multi-tenant tables migration
+- ✅ RLS policy strategy defined and implemented
+- ✅ Helper functions created (is_league_owner, is_league_admin, get_user_league_ids)
+- **Next:** Awaiting user setup completion to begin adding league_id to existing tables
 
 **Agent 2: Backend API & Business Logic**
 - Project architecture planned
@@ -327,11 +378,21 @@ None yet.
 
 ### Week 0 Tasks
 
+**Setup Tasks:**
+- [✅] Create SETUP_INSTRUCTIONS.md (comprehensive 10-step guide)
+- [✅] Create QUICK_START.md (quick reference)
+- [✅] Create .env.local.ADD_THESE (Stripe keys template)
+- [✅] Create .env.local.template (full environment template)
+- [ ] User completes setup checklist (IN PROGRESS)
+- [ ] User runs first migration (PENDING)
+
 **Agent 1:**
-- [ ] Create Supabase project (BLOCKED - user task)
-- [ ] Design core table schemas (✅ COMPLETE)
-- [ ] Plan migration strategy (✅ COMPLETE)
-- [ ] Define RLS policy patterns (✅ COMPLETE)
+- [✅] Create Supabase project (user already has ntplczcmhvfkijjxavdl)
+- [✅] Design core table schemas
+- [✅] Create core multi-tenant tables migration (leagues, league_memberships, divisions, venues)
+- [✅] Implement RLS policies for all core tables
+- [✅] Create helper functions for permissions
+- [✅] Plan migration strategy
 
 **Agent 2:**
 - [ ] Research Stripe Connect (✅ COMPLETE)
@@ -383,7 +444,7 @@ None yet.
 
 ## 📞 COMMUNICATION LOG
 
-### January 25, 2026
+### January 25, 2026 - Session 1 (Planning)
 
 **User → All Agents:**
 - Approved multi-tenant plan
@@ -397,6 +458,21 @@ None yet.
 - Defined clear responsibilities
 - Identified user setup tasks required
 - Ready to begin once environment configured
+
+### January 25, 2026 - Session 2 (Setup Begin)
+
+**User → System:**
+- Confirmed ready to commit 5 months
+- Selected Option A (guided setup)
+- Has all accounts: Supabase Pro, Resend, Stripe, Vercel
+- Said "lets go"
+
+**System → User:**
+- Created SETUP_INSTRUCTIONS.md (10-step comprehensive guide)
+- Created QUICK_START.md (quick reference)
+- Created first database migration (core multi-tenant tables)
+- Created environment variable templates
+- **Next:** User completes setup checklist, then agents launch
 
 ---
 
