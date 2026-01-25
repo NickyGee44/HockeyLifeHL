@@ -1,26 +1,76 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn } from "@/lib/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setIsLoading(true);
-    
-    const result = await signIn(formData);
-    
-    // Only reaches here if there's an error (success redirects)
-    if (result?.error) {
-      toast.error(result.error);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    if (!email || !password) {
+      toast.error("Email and password are required");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+
+      // Sign in with password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error("Signin error:", error);
+
+        // Provide user-friendly error messages
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Invalid email or password. Please try again.");
+        } else if (error.message.includes("Email not confirmed")) {
+          toast.error("Please confirm your email before signing in. Check your inbox.");
+        } else if (error.message.includes("rate limit")) {
+          toast.error("Too many login attempts. Please try again later.");
+        } else {
+          toast.error(error.message);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data.user) {
+        toast.error("Failed to sign in. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("User signed in successfully:", data.user.id);
+
+      // Success! Redirect client-side and refresh
+      toast.success("Signed in successfully!");
+
+      // Force a hard navigation to ensure auth state updates
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      console.error("Login error:", err);
+      toast.error("An error occurred. Please try again.");
       setIsLoading(false);
     }
   }
@@ -41,7 +91,7 @@ export default function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
