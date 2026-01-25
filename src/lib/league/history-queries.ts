@@ -15,7 +15,10 @@ export interface SeasonTimeline {
   champion_team: {
     id: string;
     name: string;
+    short_name: string;
     logo_url: string | null;
+    primary_color?: string;
+    secondary_color?: string;
   } | null;
   highlights: SeasonHighlight[];
 }
@@ -50,7 +53,7 @@ export async function getLeagueTimeline(): Promise<{
       total_goals_scored,
       average_goals_per_game,
       photo_gallery_url,
-      champion_team:teams!champion_team_id(id, name, logo_url)
+      champion_team:teams!champion_team_id(id, name, short_name, logo_url, primary_color, secondary_color)
     `)
     .order("start_date", { ascending: false });
 
@@ -113,7 +116,7 @@ export async function getSeasonDetails(seasonId: string): Promise<{
     .from("seasons")
     .select(`
       *,
-      champion_team:teams!champion_team_id(id, name, logo_url)
+      champion_team:teams!champion_team_id(id, name, short_name, logo_url, primary_color, secondary_color)
     `)
     .eq("id", seasonId)
     .single();
@@ -133,7 +136,7 @@ export async function getSeasonDetails(seasonId: string): Promise<{
     .from("player_stats")
     .select(`
       player:profiles!player_id(id, full_name, avatar_url),
-      team:teams!team_id(id, name, logo_url),
+      team:teams!team_id(id, name, short_name, logo_url, primary_color, secondary_color),
       goals,
       assists,
       points,
@@ -149,7 +152,7 @@ export async function getSeasonDetails(seasonId: string): Promise<{
     .from("goalie_stats")
     .select(`
       player:profiles!player_id(id, full_name, avatar_url),
-      team:teams!team_id(id, name, logo_url),
+      team:teams!team_id(id, name, short_name, logo_url, primary_color, secondary_color),
       wins,
       shutouts,
       goals_against_average,
@@ -164,7 +167,7 @@ export async function getSeasonDetails(seasonId: string): Promise<{
   const { data: finalStandings } = await supabase
     .from("team_standings")
     .select(`
-      team:teams(id, name, logo_url),
+      team:teams(id, name, short_name, logo_url, primary_color, secondary_color),
       wins,
       losses,
       ties,
