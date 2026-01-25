@@ -3,7 +3,18 @@
 
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-load Resend client to avoid build-time errors
+// During build, env vars aren't available yet
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    // Use placeholder key during build, real key at runtime
+    const apiKey = process.env.RESEND_API_KEY || 're_placeholder_key_for_build';
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 export interface EmailOptions {
   to: string | string[];
@@ -40,6 +51,7 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
   }
 
   try {
+    const resend = getResendClient();
     const { data, error } = await resend.emails.send({
       from: options.from || "HockeyLifeHL <noreply@hockeylifehl.com>",
       to: Array.isArray(options.to) ? options.to : [options.to],
