@@ -849,31 +849,49 @@ export default function AdminSeasonsPage() {
               </div>
               <div className="flex gap-2 flex-wrap">
                 {activeSeason.schedule_generated && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     asChild
                   >
                     <a href="/admin/games">📅 View Schedule</a>
                   </Button>
                 )}
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!confirm("Opt in all players from the previous season to this season?")) return;
+                    setIsSaving(true);
+                    const result = await bulkOptInPreviousSeasonPlayers(activeSeason.id);
+                    setIsSaving(false);
+                    if (result.error) {
+                      toast.error(result.error);
+                    } else {
+                      toast.success(result.message || `Opted in ${result.count} players`);
+                    }
+                  }}
+                  disabled={isSaving || previousSeasonInfo.count === 0}
+                >
+                  ⚡ Bulk Opt-In Players
+                </Button>
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => setPlayoffConfirm(activeSeason)}
                   disabled={activeSeason.status === "playoffs" || activeSeason.playoff_format === "none"}
                 >
                   🏆 Start Playoffs
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => handleStatusChange(activeSeason.id, "draft")}
                 >
                   🎯 Trigger Draft
                 </Button>
                 {activeSeason.total_games && !activeSeason.schedule_generated && (
-                  <Button 
+                  <Button
                     variant="default"
                     size="sm"
                     className="bg-rink-blue hover:bg-rink-blue/90"
@@ -894,8 +912,8 @@ export default function AdminSeasonsPage() {
                   </Button>
                 )}
                 {activeSeason.schedule_generated && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={async () => {
                       if (!confirm("This will delete all SCHEDULED games and regenerate the schedule. Games that are completed or in progress will not be affected. Continue?")) return;
@@ -914,8 +932,8 @@ export default function AdminSeasonsPage() {
                     🔄 Regenerate Schedule
                   </Button>
                 )}
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => openEndSeasonDialog(activeSeason)}
                 >
@@ -927,8 +945,8 @@ export default function AdminSeasonsPage() {
         </Card>
       )}
 
-      {/* Draft/Upcoming Seasons - only show if there's an active draft (pending or in_progress) */}
-      {activeDraft && seasons.filter(s => s.status === "draft").length > 0 && (
+      {/* Draft/Upcoming Seasons */}
+      {seasons.filter(s => s.status === "draft").length > 0 && (
         <div>
           <h2 className="text-xl font-semibold mb-4">🎯 Seasons in Draft</h2>
           <div className="grid gap-4 md:grid-cols-2">
@@ -940,28 +958,86 @@ export default function AdminSeasonsPage() {
                     {getStatusBadge(season.status || "draft")}
                   </div>
                   <CardDescription>
-                    {new Date(season.start_date).toLocaleDateString("en-CA", { 
-                      year: "numeric", month: "short", day: "numeric" 
+                    {new Date(season.start_date).toLocaleDateString("en-CA", {
+                      year: "numeric", month: "short", day: "numeric"
                     })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => openEditDialog(season)}
                       >
                         Edit
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      {activeDraft && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                        >
+                          <a href="/admin/draft">Go to Draft →</a>
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
                         size="sm"
-                        asChild
+                        onClick={async () => {
+                          if (!confirm("Opt in all players from the previous season to this season?")) return;
+                          setIsSaving(true);
+                          const result = await bulkOptInPreviousSeasonPlayers(season.id);
+                          setIsSaving(false);
+                          if (result.error) {
+                            toast.error(result.error);
+                          } else {
+                            toast.success(result.message || `Opted in ${result.count} players`);
+                          }
+                        }}
+                        disabled={isSaving || previousSeasonInfo.count === 0}
                       >
-                        <a href="/admin/draft">Go to Draft →</a>
+                        ⚡ Bulk Opt-In Players
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleStatusChange(season.id, "active")}
+                      >
+                        Activate Season
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEndSeasonDialog(season)}
+                      >
+                        ✓ End Season
+                      </Button>
+                      <Dialog open={deleteConfirm === season.id} onOpenChange={(open) => setDeleteConfirm(open ? season.id : null)}>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            Delete
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Season?</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to delete <strong>{season.name}</strong>?
+                              This cannot be undone. Seasons with games cannot be deleted.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+                              Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={() => handleDelete(season.id)}>
+                              Delete Season
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                 </CardContent>
