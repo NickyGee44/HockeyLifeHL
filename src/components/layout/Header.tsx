@@ -17,9 +17,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "@/lib/auth/actions";
+import { createClient, resetClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { motion } from "framer-motion";
 import { currentLeague } from "@/lib/league-config";
 
 const navLinks = [
@@ -77,15 +79,30 @@ export function Header() {
   }, []);
 
   const handleSignOut = async () => {
-    const result = await signOut();
-    
-    if (result?.error) {
-      toast.error(result.error);
-    } else {
+    try {
+      // First, sign out from the client-side session (clears localStorage)
+      const supabase = createClient();
+      await supabase.auth.signOut({ scope: 'global' });
+
+      // Reset the singleton client instance
+      resetClient();
+
+      // Then call server action to clear server-side session
+      const result = await signOut();
+
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+
       toast.success("Signed out successfully");
-      // Navigate to home page after successful sign out
-      router.push("/");
+
+      // Navigate to home page and refresh in the correct order
+      await router.push("/");
       router.refresh();
+    } catch (error: any) {
+      console.error("Sign out error:", error);
+      toast.error("Failed to sign out. Please try again.");
     }
   };
 
@@ -111,17 +128,22 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src={currentLeague.logo}
-            alt={currentLeague.name}
-            width={48}
-            height={48}
-            className="h-12 w-auto"
-            style={{ width: "auto", height: "3rem" }}
-            priority
-          />
-          <span className="font-display text-xl font-bold text-gradient-canada hidden sm:inline">
+        <Link href="/" className="flex items-center gap-2 group">
+          <motion.div
+            whileHover={{ rotate: 10, scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          >
+            <Image
+              src={currentLeague.logo}
+              alt={currentLeague.name}
+              width={48}
+              height={48}
+              className="h-12 w-auto drop-shadow-lg"
+              style={{ width: "auto", height: "3rem" }}
+              priority
+            />
+          </motion.div>
+          <span className="font-display text-xl font-bold text-gradient-canada hidden sm:inline group-hover:tracking-tight transition-all">
             {currentLeague.name}
           </span>
         </Link>

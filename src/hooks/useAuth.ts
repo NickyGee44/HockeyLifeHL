@@ -165,7 +165,7 @@ export function useAuth() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase, fetchProfile, profile]);
+  }, [supabase, fetchProfile]);
 
   // Memoize the return value to prevent unnecessary re-renders
   return useMemo(() => ({

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Oswald, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeColorManager } from "@/components/layout/ThemeColorManager";
+import { QuickActionMenu } from "@/components/ui/quick-action-menu";
 import "./globals.css";
 
 const inter = Inter({
@@ -97,7 +99,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${oswald.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
+        <ThemeColorManager />
         {children}
+        <QuickActionMenu />
         <Toaster richColors position="top-right" />
       </body>
     </html>

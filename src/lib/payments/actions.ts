@@ -104,13 +104,37 @@ export async function createPayment(formData: FormData) {
 
   const playerId = formData.get("player_id") as string;
   const seasonId = formData.get("season_id") as string;
-  const amount = parseFloat(formData.get("amount") as string);
+  const amountStr = formData.get("amount") as string;
   const paymentMethod = formData.get("payment_method") as string;
   const paymentDate = formData.get("payment_date") as string;
   const notes = formData.get("notes") as string;
   const status = formData.get("status") as string || "completed";
 
-  if (!playerId || !amount || !paymentMethod || !paymentDate) {
+  // SECURITY: Validate payment amount
+  const amount = parseFloat(amountStr);
+
+  if (isNaN(amount)) {
+    return { error: "Invalid payment amount - must be a valid number" };
+  }
+
+  if (amount <= 0) {
+    return { error: "Payment amount must be greater than zero" };
+  }
+
+  if (amount > 10000) {
+    return { error: "Payment amount cannot exceed $10,000. Please contact admin for larger payments." };
+  }
+
+  // Round to 2 decimal places for currency precision
+  const validatedAmount = Math.round(amount * 100) / 100;
+
+  // SECURITY: Validate payment method is from allowed list
+  const allowedPaymentMethods = ["cash", "etransfer", "credit_card", "debit", "check", "other"];
+  if (!allowedPaymentMethods.includes(paymentMethod.toLowerCase())) {
+    return { error: "Invalid payment method" };
+  }
+
+  if (!playerId || !validatedAmount || !paymentMethod || !paymentDate) {
     return { error: "Player, amount, payment method, and date are required" };
   }
 
@@ -119,8 +143,8 @@ export async function createPayment(formData: FormData) {
     .insert({
       player_id: playerId,
       season_id: seasonId || null,
-      amount: amount,
-      payment_method: paymentMethod,
+      amount: validatedAmount,  // Use validated amount
+      payment_method: paymentMethod.toLowerCase(),  // Normalize to lowercase
       status: status,
       payment_date: paymentDate,
       notes: notes || null,
@@ -146,18 +170,48 @@ export async function updatePayment(paymentId: string, formData: FormData) {
 
   const supabase = await createClient();
 
-  const amount = formData.get("amount") ? parseFloat(formData.get("amount") as string) : undefined;
+  const amountStr = formData.get("amount") as string;
+  let validatedAmount: number | undefined = undefined;
+
+  // SECURITY: Validate payment amount if provided
+  if (amountStr) {
+    const amount = parseFloat(amountStr);
+
+    if (isNaN(amount)) {
+      return { error: "Invalid payment amount - must be a valid number" };
+    }
+
+    if (amount <= 0) {
+      return { error: "Payment amount must be greater than zero" };
+    }
+
+    if (amount > 10000) {
+      return { error: "Payment amount cannot exceed $10,000" };
+    }
+
+    // Round to 2 decimal places for currency precision
+    validatedAmount = Math.round(amount * 100) / 100;
+  }
+
   const paymentMethod = formData.get("payment_method") as string;
   const paymentDate = formData.get("payment_date") as string;
   const notes = formData.get("notes") as string;
   const status = formData.get("status") as string;
 
+  // SECURITY: Validate payment method if provided
+  if (paymentMethod) {
+    const allowedPaymentMethods = ["cash", "etransfer", "credit_card", "debit", "check", "other"];
+    if (!allowedPaymentMethods.includes(paymentMethod.toLowerCase())) {
+      return { error: "Invalid payment method" };
+    }
+  }
+
   const updateData: any = {
     updated_at: new Date().toISOString(),
   };
 
-  if (amount !== undefined) updateData.amount = amount;
-  if (paymentMethod) updateData.payment_method = paymentMethod;
+  if (validatedAmount !== undefined) updateData.amount = validatedAmount;
+  if (paymentMethod) updateData.payment_method = paymentMethod.toLowerCase();
   if (paymentDate) updateData.payment_date = paymentDate;
   if (notes !== undefined) updateData.notes = notes;
   if (status) updateData.status = status;

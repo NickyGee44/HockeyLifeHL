@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { forgotPassword } from "@/lib/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,15 +19,36 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    const result = await forgotPassword(email);
-    
-    if (result.error) {
-      toast.error(result.error);
-    } else {
+    if (!email) {
+      toast.error("Email is required");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+
+      // Get the site URL - use window.location for correct domain
+      const redirectUrl = `${window.location.origin}/reset-password`;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) {
+        console.error("Forgot password error:", error);
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
+
       toast.success("Password reset email sent! Check your inbox.");
       setIsSent(true);
+    } catch (err: any) {
+      console.error("Forgot password error:", err);
+      toast.error("An error occurred. Please try again.");
     }
-    
+
     setIsLoading(false);
   }
 

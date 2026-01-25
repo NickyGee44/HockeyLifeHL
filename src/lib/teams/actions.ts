@@ -3,6 +3,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { escape } from "html-escaper";
 import type { Team } from "@/types/database";
 
 export type TeamActionResult = {
@@ -84,13 +85,29 @@ export async function createTeam(formData: FormData): Promise<TeamActionResult> 
   const secondaryColor = formData.get("secondaryColor") as string || "#FFFFFF";
   const captainId = formData.get("captainId") as string || null;
 
-  // Validation
+  // SECURITY: Validation with length limits
   if (!name || name.trim().length < 2) {
     return { error: "Team name must be at least 2 characters" };
+  }
+  if (name.trim().length > 50) {
+    return { error: "Team name cannot exceed 50 characters" };
   }
   if (!shortName || shortName.trim().length < 2 || shortName.trim().length > 5) {
     return { error: "Short name must be 2-5 characters" };
   }
+
+  // SECURITY: Validate hex color format
+  const hexColorRegex = /^#[0-9A-F]{6}$/i;
+  if (!hexColorRegex.test(primaryColor)) {
+    return { error: "Invalid primary color format. Must be hex color (e.g., #E31837)" };
+  }
+  if (!hexColorRegex.test(secondaryColor)) {
+    return { error: "Invalid secondary color format. Must be hex color (e.g., #FFFFFF)" };
+  }
+
+  // SECURITY: HTML-escape user inputs to prevent XSS
+  const safeName = escape(name.trim());
+  const safeShortName = escape(shortName.trim());
 
   // Check for duplicate name
   const { data: existing } = await supabase
@@ -106,10 +123,10 @@ export async function createTeam(formData: FormData): Promise<TeamActionResult> 
   const { data: team, error } = await supabase
     .from("teams")
     .insert({
-      name: name.trim(),
-      short_name: shortName.trim().toUpperCase(),
-      primary_color: primaryColor,
-      secondary_color: secondaryColor,
+      name: safeName,
+      short_name: safeShortName.toUpperCase(),
+      primary_color: primaryColor.toUpperCase(),  // Normalize to uppercase
+      secondary_color: secondaryColor.toUpperCase(),
       captain_id: captainId || null,
     })
     .select()

@@ -83,3 +83,8 @@ export function createClient() {
 
   return client
 }
+
+// Reset the client instance (useful after sign out to clear singleton state)
+export function resetClient() {
+  client = null
+}

@@ -32,7 +32,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
 
-      // Sign in with password
+      // Sign in with password - this sets cookies on client side
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -41,15 +41,14 @@ export default function LoginPage() {
       if (error) {
         console.error("Signin error:", error);
 
-        // Provide user-friendly error messages
-        if (error.message.includes("Invalid login credentials")) {
-          toast.error("Invalid email or password. Please try again.");
-        } else if (error.message.includes("Email not confirmed")) {
-          toast.error("Please confirm your email before signing in. Check your inbox.");
+        // Generic error messages to prevent account enumeration
+        if (error.message.includes("Invalid login credentials") ||
+            error.message.includes("Email not confirmed")) {
+          toast.error("Unable to sign in. Please check your credentials or verify your email.");
         } else if (error.message.includes("rate limit")) {
           toast.error("Too many login attempts. Please try again later.");
         } else {
-          toast.error(error.message);
+          toast.error("Unable to sign in. Please try again or contact support.");
         }
         setIsLoading(false);
         return;
@@ -62,11 +61,12 @@ export default function LoginPage() {
       }
 
       console.log("User signed in successfully:", data.user.id);
-
-      // Success! Redirect client-side and refresh
       toast.success("Signed in successfully!");
 
-      // Force a hard navigation to ensure auth state updates
+      // Small delay to ensure cookies are set
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Use window.location for hard navigation to ensure auth state refreshes
       window.location.href = "/dashboard";
     } catch (err: any) {
       console.error("Login error:", err);
@@ -107,7 +107,7 @@ export default function LoginPage() {
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
               <Link
-                href="/auth/forgot-password"
+                href="/forgot-password"
                 className="text-sm text-muted-foreground hover:text-foreground"
               >
                 Forgot password?
@@ -121,19 +121,8 @@ export default function LoginPage() {
               disabled={isLoading}
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="rememberMe"
-              name="rememberMe"
-              className="h-4 w-4 rounded border-gray-300 text-canada-red focus:ring-canada-red"
-            />
-            <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
-              Remember me
-            </Label>
-          </div>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-canada-red hover:bg-canada-red-dark"
             disabled={isLoading}
           >
