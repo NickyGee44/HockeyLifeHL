@@ -1,9 +1,9 @@
-// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import Stripe from "stripe";
+import { logAuditEvent } from "@/lib/audit/logger";
 
 function getStripe() {
   const apiKey = process.env.STRIPE_SECRET_KEY;
@@ -163,6 +163,19 @@ export async function createPayment(formData: FormData) {
     return { error: error?.message || "Failed to create payment" };
   }
 
+  // AUDIT: Log payment creation
+  await logAuditEvent({
+    action: "payment_created",
+    resourceType: "payment",
+    resourceId: payment.id,
+    details: {
+      player_id: playerId,
+      amount: validatedAmount,
+      payment_method: paymentMethod,
+      season_id: seasonId,
+    },
+  });
+
   revalidatePath("/admin/payments");
   revalidatePath(`/dashboard/profile`);
   return { success: true, payment };
@@ -230,6 +243,18 @@ export async function updatePayment(paymentId: string, formData: FormData) {
     console.error("Error updating payment:", error);
     return { error: error.message };
   }
+
+  // AUDIT: Log payment update
+  await logAuditEvent({
+    action: "payment_updated",
+    resourceType: "payment",
+    resourceId: paymentId,
+    details: {
+      amount: validatedAmount,
+      payment_method: paymentMethod,
+      payment_date: paymentDate,
+    },
+  });
 
   revalidatePath("/admin/payments");
   return { success: true };

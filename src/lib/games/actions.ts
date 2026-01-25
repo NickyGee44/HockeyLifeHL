@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -379,7 +378,7 @@ export async function rescheduleGame(
   // Get current game data
   const { data: game } = await supabase
     .from("games")
-    .select("scheduled_at, original_scheduled_at")
+    .select("scheduled_at, original_scheduled_at, status")
     .eq("id", gameId)
     .single();
 

@@ -768,6 +768,30 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          processed_at: string | null
+          stripe_event_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          processed_at?: string | null
+          stripe_event_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          processed_at?: string | null
+          stripe_event_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -840,6 +864,7 @@ export type PlayerApproval = Tables<"player_approvals">
 export type PlayerAvailability = Tables<"player_availability">
 export type Payment = Tables<"payments">
 export type TeamMessage = Tables<"team_messages">
+export type WebhookEvent = Tables<"webhook_events">
 
 // Enum type aliases
 export type UserRole = Enums<"user_role">

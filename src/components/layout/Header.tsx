@@ -34,22 +34,17 @@ const navLinks = [
 
 // Dashboard navigation items
 const playerNav = [
-  { href: "/dashboard", label: "Overview", icon: "📊" },
   { href: "/dashboard/team", label: "My Team", icon: "🏒" },
   { href: "/dashboard/stats", label: "My Stats", icon: "📈" },
-  { href: "/dashboard/schedule", label: "Schedule", icon: "📅" },
-  { href: "/dashboard/profile", label: "Profile", icon: "👤" },
 ];
 
 const captainNav = [
-  { href: "/captain", label: "Dashboard", icon: "🏠" },
   { href: "/captain/team", label: "Team Management", icon: "👥" },
   { href: "/captain/stats", label: "Enter Stats", icon: "✏️" },
   { href: "/captain/draft", label: "Draft Board", icon: "🎯" },
 ];
 
 const adminNav = [
-  { href: "/admin", label: "Dashboard", icon: "👑" },
   { href: "/admin/teams", label: "Teams", icon: "🏆" },
   { href: "/admin/players", label: "Players", icon: "⛸️" },
   { href: "/admin/games", label: "Games", icon: "🎮" },
@@ -174,13 +169,19 @@ export function Header() {
               {/* Player Dashboard Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant={isInDashboard ? "secondary" : "ghost"} 
+                  <Button
+                    variant={isInDashboard ? "secondary" : "ghost"}
                     size="sm"
                     className={cn(
                       "gap-1",
                       isInDashboard && "bg-rink-blue text-white hover:bg-rink-blue/90"
                     )}
+                    onClick={(e) => {
+                      // Allow dropdown to open, but also navigate on direct click
+                      if (e.detail === 1) {
+                        router.push("/dashboard");
+                      }
+                    }}
                   >
                     ⛸️ Player
                   </Button>
@@ -206,13 +207,19 @@ export function Header() {
               {(isCaptain || isOwner) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant={isInCaptain ? "secondary" : "ghost"} 
+                    <Button
+                      variant={isInCaptain ? "secondary" : "ghost"}
                       size="sm"
                       className={cn(
                         "gap-1",
                         isInCaptain && "bg-canada-red text-white hover:bg-canada-red/90"
                       )}
+                      onClick={(e) => {
+                        // Allow dropdown to open, but also navigate on direct click
+                        if (e.detail === 1) {
+                          router.push("/captain");
+                        }
+                      }}
                     >
                       🏒 Captain
                     </Button>
@@ -239,13 +246,19 @@ export function Header() {
               {isOwner && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant={isInAdmin ? "secondary" : "ghost"} 
+                    <Button
+                      variant={isInAdmin ? "secondary" : "ghost"}
                       size="sm"
                       className={cn(
                         "gap-1",
                         isInAdmin && "bg-gold text-puck-black hover:bg-gold/90"
                       )}
+                      onClick={(e) => {
+                        // Allow dropdown to open, but also navigate on direct click
+                        if (e.detail === 1) {
+                          router.push("/admin");
+                        }
+                      }}
                     >
                       👑 Admin
                     </Button>
@@ -300,23 +313,10 @@ export function Header() {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </DropdownMenuItem>
-                {isCaptain && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/captain">Captain Tools</Link>
-                  </DropdownMenuItem>
-                )}
-                {isOwner && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin">Admin Panel</Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
                   <Link href="/dashboard/profile">Profile Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   className="text-destructive cursor-pointer"
                   onClick={handleSignOut}
                 >

@@ -200,8 +200,15 @@ async function requireAdmin() {
 ✅ Global sign-out (all devices)
 
 ### Rate Limiting
-⚠️ Relies on Supabase rate limiting
-⚠️ No application-level rate limiting (see TODO below)
+✅ Application-level rate limiting implemented
+✅ Configurable limits per endpoint type:
+   - Strict: 5 requests/min (auth endpoints)
+   - Standard: 10 requests/min (API endpoints)
+   - Generous: 30 requests/min (read-only endpoints)
+✅ IP-based and user-based identification
+✅ Returns 429 status with Retry-After header
+⚠️ Currently in-memory (resets on server restart)
+⚠️ For multi-instance deployments, upgrade to Redis/Vercel KV
 
 ---
 

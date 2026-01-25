@@ -1,10 +1,10 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateEmailDraft } from "@/lib/email/actions";
 import { RateLimiters, getClientIdentifier } from "@/lib/rate-limit";
 import { validateOrigin, csrfErrorResponse } from "@/lib/csrf-protection";
-import type { EmailType, EmailGenerationContext } from "@/lib/email/types";
+import type { EmailType } from "@/lib/email/types";
+import type { EmailGenerationContext } from "@/lib/email/ai-generator";
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -177,7 +176,7 @@ export async function setPlayerAvailability(
 export async function requestSubsForGame(gameId: string): Promise<AvailabilityResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     return { error: "Not authenticated" };
   }
@@ -222,7 +221,13 @@ export async function requestSubsForGame(gameId: string): Promise<AvailabilityRe
   }
 
   // Update the appropriate subs_requested field
-  const updateData: Record<string, any> = {
+  const updateData: {
+    updated_at: string;
+    home_subs_requested?: boolean;
+    home_subs_requested_at?: string;
+    away_subs_requested?: boolean;
+    away_subs_requested_at?: string;
+  } = {
     updated_at: new Date().toISOString(),
   };
 

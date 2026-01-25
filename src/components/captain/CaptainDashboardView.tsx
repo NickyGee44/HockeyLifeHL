@@ -351,11 +351,16 @@ export function CaptainDashboardView({
 
 // Internal Games Section (Enhanced)
 function GamesSection({ games, team, onEnterStats, onRequestSubs, requestingSubs }: any) {
-  const today = new Date();
-  const todayStr = today.toDateString();
   const now = new Date();
+  const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const sixHoursFromNow = new Date(now.getTime() + 6 * 60 * 60 * 1000);
 
-  const todaysGames = games.filter((g: any) => new Date(g.scheduled_at).toDateString() === todayStr);
+  // Games within 24 hours (upcoming)
+  const upcomingGames = games.filter((g: any) => {
+    const gameTime = new Date(g.scheduled_at);
+    return gameTime >= now && gameTime <= twentyFourHoursFromNow;
+  });
+
   const pendingActionGames = games.filter((g: any) => {
     if (g.status !== "completed" && new Date(g.scheduled_at) > now) return false;
     if (g.hasStats) {
@@ -364,50 +369,73 @@ function GamesSection({ games, team, onEnterStats, onRequestSubs, requestingSubs
     return true; // Needs stats
   }).slice(0, 3);
 
-  if (todaysGames.length === 0 && pendingActionGames.length === 0) return null;
+  if (upcomingGames.length === 0 && pendingActionGames.length === 0) return null;
 
   return (
     <div className="space-y-4">
-      {todaysGames.map((game: any) => (
-        <Card key={game.id} className="border-2 border-primary bg-primary/5 shadow-lg shadow-primary/10">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-6">
-                <div className="text-center">
-                   <div className="text-[10px] font-bold uppercase tracking-widest text-primary">Game Day</div>
-                   <div className="text-3xl font-display font-bold leading-none mt-1">
-                     {new Date(game.scheduled_at).toLocaleTimeString("en-CA", { hour: 'numeric', minute: '2-digit' })}
-                   </div>
-                </div>
-                <div className="h-12 w-px bg-primary/20" />
-                <div>
-                  <div className="text-xl font-bold font-display">vs {game.isHomeTeam ? game.away_team?.name : game.home_team?.name}</div>
-                  <Badge variant="outline" className="border-primary/30 text-primary uppercase text-[10px] font-bold">{game.isHomeTeam ? "Home" : "Away"} Ice</Badge>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                 <Button onClick={() => onEnterStats(game.id)} className="bg-primary hover:bg-primary-dark font-bold px-8">
-                   Enter Game Stats
-                 </Button>
-                 {!game.isHomeTeam ? (
-                    game.away_subs_requested ? <Badge className="bg-success">Subs Requested</Badge> : 
-                    <Button variant="outline" onClick={() => onRequestSubs(game.id)} disabled={requestingSubs === game.id}>
-                      {requestingSubs === game.id ? "..." : "Request Subs"}
-                    </Button>
-                 ) : (
-                    game.home_subs_requested ? <Badge className="bg-success">Subs Requested</Badge> : 
-                    <Button variant="outline" onClick={() => onRequestSubs(game.id)} disabled={requestingSubs === game.id}>
-                      {requestingSubs === game.id ? "..." : "Request Subs"}
-                    </Button>
-                 )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      {upcomingGames.map((game: any) => {
+        const gameTime = new Date(game.scheduled_at);
+        const hoursUntilGame = (gameTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        const isUrgent = hoursUntilGame < 6;
+        const subsRequested = game.isHomeTeam ? game.home_subs_requested : game.away_subs_requested;
+        const subsRequestedAt = game.isHomeTeam ? game.home_subs_requested_at : game.away_subs_requested_at;
 
-      {pendingActionGames.length > 0 && todaysGames.length === 0 && (
+        return (
+          <Card key={game.id} className="border-2 border-primary bg-primary/5 shadow-lg shadow-primary/10">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                     <div className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                       {hoursUntilGame < 24 && hoursUntilGame >= 1 ? `In ${Math.floor(hoursUntilGame)}h` : 'Game Day'}
+                     </div>
+                     <div className="text-3xl font-display font-bold leading-none mt-1">
+                       {gameTime.toLocaleTimeString("en-CA", { hour: 'numeric', minute: '2-digit' })}
+                     </div>
+                  </div>
+                  <div className="h-12 w-px bg-primary/20" />
+                  <div>
+                    <div className="text-xl font-bold font-display">vs {game.isHomeTeam ? game.away_team?.name : game.home_team?.name}</div>
+                    <Badge variant="outline" className="border-primary/30 text-primary uppercase text-[10px] font-bold">{game.isHomeTeam ? "Home" : "Away"} Ice</Badge>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 flex-col md:flex-row">
+                   <Button onClick={() => onEnterStats(game.id)} className="bg-primary hover:bg-primary-dark font-bold px-8">
+                     Enter Game Stats
+                   </Button>
+                   {subsRequested ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge className="bg-success">Subs Requested ✓</Badge>
+                        {subsRequestedAt && (
+                          <span className="text-[9px] text-muted-foreground">
+                            {new Date(subsRequestedAt).toLocaleString('en-CA', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        )}
+                      </div>
+                   ) : (
+                      <Button
+                        variant="outline"
+                        onClick={() => onRequestSubs(game.id)}
+                        disabled={requestingSubs === game.id}
+                        className={isUrgent ? "animate-pulse border-warning text-warning hover:bg-warning/10" : ""}
+                      >
+                        {requestingSubs === game.id ? "Requesting..." : "Request Subs"}
+                      </Button>
+                   )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      {pendingActionGames.length > 0 && upcomingGames.length === 0 && (
          <Card className="border-canada-red/50 bg-canada-red/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg text-canada-red flex items-center gap-2">

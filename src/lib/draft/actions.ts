@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -600,7 +599,7 @@ export async function getAvailableDraftPlayers(draftId: string) {
       },
     }));
 
-    return { 
+    return {
       players: [
         ...(ratings || []),
         ...defaultRatings,
@@ -616,12 +615,22 @@ export async function getAvailableDraftPlayers(draftId: string) {
         const bRating = b.rating || "C";
         const ratingDiff = (ratingOrder[aRating] || 99) - (ratingOrder[bRating] || 99);
         if (ratingDiff !== 0) return ratingDiff;
-        return (a.player?.full_name || "").localeCompare(b.player?.full_name || "");
+        // Type-safe player name extraction using helpers
+        const getPlayerName = (player: any): string => {
+          if (!player || typeof player !== 'object') return "";
+          if ('full_name' in player && player.full_name) {
+            return String(player.full_name);
+          }
+          return "";
+        };
+        const aName = getPlayerName(a.player);
+        const bName = getPlayerName(b.player);
+        return aName.localeCompare(bName);
       })
     };
   }
 
-  return { 
+  return {
     players: (ratings || []).sort((a, b) => {
       const ratingOrder: Record<string, number> = {
         "A+": 0, "A": 1, "A-": 2,
@@ -633,7 +642,17 @@ export async function getAvailableDraftPlayers(draftId: string) {
       const bRating = b.rating || "C";
       const ratingDiff = (ratingOrder[aRating] || 99) - (ratingOrder[bRating] || 99);
       if (ratingDiff !== 0) return ratingDiff;
-      return (a.player?.full_name || "").localeCompare(b.player?.full_name || "");
+      // Type-safe player name extraction using helpers
+      const getPlayerName = (player: any): string => {
+        if (!player || typeof player !== 'object') return "";
+        if ('full_name' in player && player.full_name) {
+          return String(player.full_name);
+        }
+        return "";
+      };
+      const aName = getPlayerName(a.player);
+      const bName = getPlayerName(b.player);
+      return aName.localeCompare(bName);
     })
   };
 }
@@ -968,9 +987,12 @@ export async function getLastPickedPlayer(draftId: string) {
       const estimatedGoals = Math.round(estimatedPoints * 0.4); // Rough estimate
       const estimatedAssists = Math.round(estimatedPoints * 0.6);
 
+      // Type guard for player object
+      const playerData = lastPick.player && typeof lastPick.player === 'object' ? lastPick.player : null;
+
       return {
         player: {
-          ...lastPick.player,
+          ...(playerData || {}),
           stats: {
             games_played: playerRating.games_played,
             goals: estimatedGoals,
@@ -984,9 +1006,12 @@ export async function getLastPickedPlayer(draftId: string) {
     }
   }
 
+  // Type guard for player object
+  const playerData = lastPick.player && typeof lastPick.player === 'object' ? lastPick.player : null;
+
   return {
     player: {
-      ...lastPick.player,
+      ...(playerData || {}),
       team: lastPick.team,
     },
   };

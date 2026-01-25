@@ -1,14 +1,17 @@
-// @ts-nocheck
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+type OwnerAuthResult =
+  | { error: string; isOwner: false; userId?: never }
+  | { error?: never; isOwner: true; userId: string };
+
 // Check if user is owner
-async function requireOwner() {
+async function requireOwner(): Promise<OwnerAuthResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     return { error: "Not authenticated", isOwner: false };
   }
@@ -51,7 +54,7 @@ export async function getAllLegacyPlayers() {
 export async function matchLegacyPlayer(
   legacyPlayerId: string,
   profileId: string
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const auth = await requireOwner();
   if (auth.error) return { error: auth.error };
 
@@ -72,19 +75,37 @@ export async function matchLegacyPlayer(
 }
 
 // Get player career stats (legacy + current combined)
-export async function getPlayerCareerStats(playerId: string) {
+export async function getPlayerCareerStats(playerId: string): Promise<{
+  error?: string;
+  stats: Record<string, unknown> | null;
+}> {
   const supabase = await createClient();
 
-  const { data: stats, error } = await supabase
-    .from("player_career_stats")
-    .select("*")
-    .eq("player_id", playerId)
-    .single();
+  // Aggregate stats manually since player_career_stats might be a view
+  // Get current season stats
+  const { data: playerStats } = await supabase
+    .from("player_stats")
+    .select("goals, assists")
+    .eq("player_id", playerId);
 
-  if (error) {
-    console.error("Error fetching career stats:", error);
-    return { error: error.message, stats: null };
-  }
+  const { data: goalieStats } = await supabase
+    .from("goalie_stats")
+    .select("goals_against, saves, shutout")
+    .eq("player_id", playerId);
+
+  // Calculate totals
+  const totalGoals = (playerStats || []).reduce((sum, s) => sum + (s.goals || 0), 0);
+  const totalAssists = (playerStats || []).reduce((sum, s) => sum + (s.assists || 0), 0);
+  const totalGames = playerStats?.length || 0;
+
+  const stats = {
+    player_id: playerId,
+    total_goals: totalGoals,
+    total_assists: totalAssists,
+    total_points: totalGoals + totalAssists,
+    games_played: totalGames,
+    goalie_stats: goalieStats || [],
+  };
 
   return { stats };
 }

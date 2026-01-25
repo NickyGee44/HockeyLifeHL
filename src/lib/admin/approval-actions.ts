@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -9,11 +8,15 @@ export type ApprovalResult = {
   success?: boolean;
 };
 
+type OwnerAuthResult =
+  | { error: string; isOwner: false; userId?: never }
+  | { error?: never; isOwner: true; userId: string };
+
 // Check if user is owner
-async function requireOwner() {
+async function requireOwner(): Promise<OwnerAuthResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     return { error: "Not authenticated", isOwner: false };
   }

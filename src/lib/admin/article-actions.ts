@@ -1,14 +1,17 @@
-// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { generateGameRecap, generateDraftGrades, generateWeeklyWrap } from "@/lib/ai/content";
 
-async function requireOwner() {
+type OwnerAuthResult =
+  | { error: string; isOwner: false; userId?: never }
+  | { error?: never; isOwner: true; userId: string };
+
+async function requireOwner(): Promise<OwnerAuthResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     return { error: "Not authenticated", isOwner: false };
   }
@@ -57,12 +60,18 @@ export async function createArticle(formData: FormData) {
     return { error: "Title, content, and type are required" };
   }
 
+  // Validate article type
+  const validTypes = ["game_recap", "weekly_wrap", "draft_grades", "announcement"] as const;
+  if (!validTypes.includes(type as typeof validTypes[number])) {
+    return { error: "Invalid article type" };
+  }
+
   const { data: article, error } = await supabase
     .from("articles")
     .insert({
       title: title.trim(),
       content: content.trim(),
-      type: type,
+      type: type as "game_recap" | "weekly_wrap" | "draft_grades" | "announcement",
       published: published,
       published_at: published ? new Date().toISOString() : null,
     })
@@ -135,7 +144,7 @@ export async function deleteArticle(articleId: string) {
 export async function generateAIArticle(
   type: "game_recap" | "draft_grades" | "weekly_wrap",
   contextId: string
-) {
+): Promise<{ error?: string; success?: boolean; content?: string; title?: string }> {
   const auth = await requireOwner();
   if (auth.error) return { error: auth.error };
 
@@ -150,10 +159,28 @@ export async function generateAIArticle(
       const supabase = await createClient();
       const { data: game } = await supabase
         .from("games")
-        .select("home_team:teams!games_home_team_id_fkey(name), away_team:teams!games_away_team_id_fkey(name)")
+        .select("id, home_team_id, away_team_id")
         .eq("id", contextId)
         .single();
-      title = `${game?.home_team?.name} vs ${game?.away_team?.name} - Game Recap`;
+
+      if (!game) {
+        title = "Game Recap";
+      } else {
+        // Get team names separately
+        const { data: homeTeam } = await supabase
+          .from("teams")
+          .select("name")
+          .eq("id", game.home_team_id)
+          .single();
+
+        const { data: awayTeam } = await supabase
+          .from("teams")
+          .select("name")
+          .eq("id", game.away_team_id)
+          .single();
+
+        title = `${homeTeam?.name || "Team"} vs ${awayTeam?.name || "Team"} - Game Recap`;
+      }
     } else if (type === "draft_grades") {
       const result = await generateDraftGrades(contextId);
       if (result.error) return { error: result.error };
@@ -166,11 +193,11 @@ export async function generateAIArticle(
         .select("id, name")
         .eq("id", contextId)
         .single();
-      
+
       const weekEnd = new Date();
       const weekStart = new Date();
       weekStart.setDate(weekEnd.getDate() - 7);
-      
+
       const result = await generateWeeklyWrap(contextId, weekStart, weekEnd);
       if (result.error) return { error: result.error };
       content = result.content || "";
@@ -180,8 +207,9 @@ export async function generateAIArticle(
     }
 
     return { success: true, content, title };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating AI article:", error);
-    return { error: error.message || "Failed to generate article" };
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate article";
+    return { error: errorMessage };
   }
 }

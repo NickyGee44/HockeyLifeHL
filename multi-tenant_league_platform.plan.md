@@ -10,6 +10,11 @@
 This plan outlines the complete transformation of HockeyLifeHL into a multi-tenant platform where:
 - Multiple independent hockey leagues can operate simultaneously
 - Each league has its own teams, players, seasons, games, and branding
+- **Leagues can have 10+ divisions with hierarchical organization (A, B1, B2, C1, etc.)**
+- **Support for 75+ teams across multiple divisions per league**
+- **Advanced venue management with multiple ice rinks and time slots**
+- **AI-powered schedule generation with complex rule constraints**
+- **Mid-season division restructuring and team movement**
 - Users can belong to multiple leagues with different roles
 - League owners manage their own subscriptions and settings
 - Data isolation ensures leagues cannot see each other's data
@@ -32,37 +37,74 @@ This plan outlines the complete transformation of HockeyLifeHL into a multi-tena
 
 ## 🎯 CORE REQUIREMENTS
 
-### 1. League Isolation
+### 1. Multi-Division Architecture
+- Support 10+ divisions per league (A, B1, B2, C1, C2, C3, D1, D2, REC, DRAFT)
+- Hierarchical tier system with ordering
+- Division-specific scheduling preferences
+- Teams can be moved between divisions mid-season
+- Divisional and interdivisional game tracking
+- Division-aware standings and playoffs
+
+### 2. Advanced Venue & Scheduling
+- Multiple venues (ice rinks) per league
+- Multi-surface facilities (Rink 1, Rink 2, etc.)
+- Granular time slot management (day, time, duration)
+- Division restrictions per time slot
+- Visual venue calendar management
+- Location details and mapping integration
+
+### 3. AI-Powered Schedule Generation
+- Constraint Satisfaction Problem (CSP) algorithm
+- Support for complex scheduling rules:
+  - Division time constraints ("B Div plays Tues/Thurs 9-11pm")
+  - Venue restrictions by division
+  - Team blackout dates
+  - Minimum rest periods
+  - Maximum games per week
+  - Home/away balance
+- Hard vs soft constraint satisfaction
+- Schedule optimization for 500+ games
+- Impact analysis and conflict detection
+
+### 4. Division Restructuring
+- Mid-season team movement between divisions
+- Impact analysis (standings, schedule, affected games)
+- Automatic schedule regeneration
+- Audit trail for all changes
+- Notifications to affected teams
+- Preserve completed games, regenerate future games
+
+### 5. League Isolation
 - Each league operates independently
 - Teams, seasons, games are scoped to a league
 - Users can join multiple leagues
 - Data is completely isolated via RLS
 
-### 2. Multi-Tenant Routing
+### 6. Multi-Tenant Routing
 - **Subdomain-based routing:** `winter-warriors.hockeylifehl.app`
 - League detection from subdomain/domain
 - Optional custom domain support
 - Fallback to path-based routing: `/leagues/winter-warriors`
 
-### 3. League Branding
+### 7. League Branding
 - Custom logos, colors, taglines
 - League-specific email templates
 - Personalized landing pages
 - White-label option (Enterprise tier)
 
-### 4. Subscription Management
+### 8. Subscription Management
 - Tiered pricing (Free, Basic, Pro, Enterprise)
 - Stripe subscription per league
 - Usage limits enforcement
 - Trial period support
 
-### 5. User League Memberships
+### 9. User League Memberships
 - Users can join multiple leagues
 - Different roles per league (Owner in one, Player in another)
 - League switcher in UI
 - Invitation system for new members
 
-### 6. Data Migration
+### 10. Data Migration
 - Migrate existing HockeyLifeHL data to first league
 - Zero downtime migration
 - Backwards compatibility during transition
@@ -97,7 +139,267 @@ This plan outlines the complete transformation of HockeyLifeHL into a multi-tena
 
 ### New Tables
 
-#### 1. `leagues` Table (Core Multi-Tenancy)
+#### 1. `divisions` Table (League Organization)
+
+```sql
+CREATE TABLE divisions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  league_id UUID NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+
+  -- Division Info
+  name TEXT NOT NULL, -- "A", "B1", "B2", "C1", "REC", "DRAFT"
+  full_name TEXT, -- "Division A", "B1 Division"
+  tier TEXT, -- "A", "B", "C", "D", "REC", "DRAFT" (for hierarchical grouping)
+  tier_order INTEGER, -- 1 for A, 2 for B1, 3 for B2, etc. (for sorting)
+
+  -- Division Rules
+  skill_level TEXT, -- "Advanced", "Intermediate", "Beginner", "Recreational"
+  min_age INTEGER,
+  max_age INTEGER,
+  description TEXT,
+
+  -- Scheduling Preferences
+  preferred_days JSONB DEFAULT '[]', -- ["Tuesday", "Thursday"]
+  preferred_times JSONB DEFAULT '[]', -- [{"start": "21:00", "end": "23:00"}]
+  blackout_dates JSONB DEFAULT '[]', -- ["2025-12-25", "2025-01-01"]
+
+  -- Status
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'archived')),
+
+  -- Metadata
+  color TEXT DEFAULT '#E31837', -- For UI differentiation
+  icon TEXT, -- Optional icon/emoji
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Constraints
+  UNIQUE(league_id, name),
+  UNIQUE(league_id, tier_order)
+);
+
+-- Indexes
+CREATE INDEX idx_divisions_league_id ON divisions(league_id);
+CREATE INDEX idx_divisions_tier_order ON divisions(league_id, tier_order);
+CREATE INDEX idx_divisions_status ON divisions(league_id, status);
+
+COMMENT ON TABLE divisions IS 'Divisions/tiers within a league (A, B1, B2, C1, etc.)';
+COMMENT ON COLUMN divisions.tier_order IS 'Defines division hierarchy - lower numbers are higher skill';
+```
+
+---
+
+#### 2. `venues` Table (Ice Rinks & Facilities)
+
+```sql
+CREATE TABLE venues (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  league_id UUID NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+
+  -- Venue Info
+  name TEXT NOT NULL, -- "Sunnybrook Arena", "Canlan Ice Sports"
+  short_name TEXT, -- "Sunnybrook", "Canlan"
+
+  -- Location
+  address TEXT,
+  city TEXT,
+  province_state TEXT,
+  postal_code TEXT,
+  country TEXT DEFAULT 'Canada',
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+
+  -- Facilities
+  num_ice_surfaces INTEGER DEFAULT 1, -- Multiple rinks at one location
+  surface_names JSONB DEFAULT '[]', -- ["Rink 1", "Rink 2", "Main Pad"]
+  locker_rooms INTEGER,
+  parking_capacity INTEGER,
+  accessibility_features JSONB DEFAULT '[]', -- ["Wheelchair accessible", "Elevator"]
+
+  -- Contact
+  contact_name TEXT,
+  contact_phone TEXT,
+  contact_email TEXT,
+  website_url TEXT,
+
+  -- Amenities
+  pro_shop BOOLEAN DEFAULT FALSE,
+  concession BOOLEAN DEFAULT FALSE,
+  viewing_area BOOLEAN DEFAULT TRUE,
+  wifi BOOLEAN DEFAULT FALSE,
+
+  -- Notes
+  notes TEXT,
+  directions TEXT,
+
+  -- Status
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance')),
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_venues_league_id ON venues(league_id);
+CREATE INDEX idx_venues_status ON venues(league_id, status);
+
+COMMENT ON TABLE venues IS 'Ice rinks and facilities where games are played';
+```
+
+---
+
+#### 3. `venue_time_slots` Table (Available Ice Times)
+
+```sql
+CREATE TABLE venue_time_slots (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+  league_id UUID NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+
+  -- Time Slot Info
+  surface_name TEXT, -- "Rink 1", "Main Pad" (which surface if multi-pad)
+  day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6), -- 0=Sunday, 6=Saturday
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+
+  -- Availability Window
+  effective_from DATE, -- When this slot becomes available
+  effective_until DATE, -- When this slot expires (null = indefinite)
+
+  -- Restrictions
+  division_ids JSONB DEFAULT '[]', -- Only these divisions can use this slot (empty = any)
+  max_games_per_slot INTEGER DEFAULT 1, -- Some slots can have multiple games
+
+  -- Cost (optional)
+  cost_per_hour DECIMAL(10, 2),
+
+  -- Status
+  status TEXT DEFAULT 'available' CHECK (status IN ('available', 'booked', 'blocked', 'maintenance')),
+
+  -- Priority (for AI scheduling)
+  priority INTEGER DEFAULT 5, -- 1=highest, 10=lowest
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_venue_time_slots_venue ON venue_time_slots(venue_id);
+CREATE INDEX idx_venue_time_slots_league ON venue_time_slots(league_id);
+CREATE INDEX idx_venue_time_slots_day ON venue_time_slots(day_of_week);
+CREATE INDEX idx_venue_time_slots_status ON venue_time_slots(status);
+
+COMMENT ON TABLE venue_time_slots IS 'Available ice time slots for each venue';
+COMMENT ON COLUMN venue_time_slots.day_of_week IS '0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday';
+```
+
+---
+
+#### 4. `scheduling_rules` Table (Advanced Scheduling Constraints)
+
+```sql
+CREATE TABLE scheduling_rules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  league_id UUID NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+
+  -- Rule Info
+  name TEXT NOT NULL, -- "B Division Tuesday Rule", "No Early Morning Games"
+  description TEXT,
+  rule_type TEXT NOT NULL CHECK (rule_type IN (
+    'division_time_constraint',
+    'team_blackout',
+    'venue_restriction',
+    'rivalry_game',
+    'minimum_rest_days',
+    'max_games_per_week',
+    'balanced_home_away',
+    'custom'
+  )),
+
+  -- Rule Scope
+  applies_to_divisions JSONB DEFAULT '[]', -- Division IDs this rule applies to
+  applies_to_teams JSONB DEFAULT '[]', -- Team IDs (for team-specific rules)
+  applies_to_venues JSONB DEFAULT '[]', -- Venue IDs
+
+  -- Rule Configuration
+  rule_config JSONB NOT NULL DEFAULT '{}',
+  -- Examples:
+  -- Division time constraint: {"days": [2], "start_time": "21:00", "end_time": "23:00"}
+  -- Minimum rest: {"min_days": 2}
+  -- Max games per week: {"max_games": 2}
+  -- Rivalry game: {"team_pairs": [["team1_id", "team2_id"]], "min_games": 2}
+
+  -- Priority & Enforcement
+  priority INTEGER DEFAULT 5, -- 1=must enforce, 10=nice to have
+  is_hard_constraint BOOLEAN DEFAULT TRUE, -- True = must satisfy, False = optimize for
+
+  -- Status
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_scheduling_rules_league ON scheduling_rules(league_id);
+CREATE INDEX idx_scheduling_rules_type ON scheduling_rules(rule_type);
+CREATE INDEX idx_scheduling_rules_status ON scheduling_rules(league_id, status);
+
+COMMENT ON TABLE scheduling_rules IS 'Advanced scheduling rules and constraints for AI schedule generation';
+COMMENT ON COLUMN scheduling_rules.is_hard_constraint IS 'If true, schedule generation must satisfy this rule. If false, AI will optimize for it but can violate if needed.';
+```
+
+---
+
+#### 5. `division_restructuring_log` Table (Audit Trail for Division Changes)
+
+```sql
+CREATE TABLE division_restructuring_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  league_id UUID NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  season_id UUID REFERENCES seasons(id) ON DELETE CASCADE,
+
+  -- Change Details
+  action_type TEXT NOT NULL CHECK (action_type IN (
+    'team_moved',
+    'division_created',
+    'division_deleted',
+    'division_renamed',
+    'schedule_regenerated'
+  )),
+
+  -- Affected Entities
+  team_id UUID REFERENCES teams(id),
+  from_division_id UUID REFERENCES divisions(id),
+  to_division_id UUID REFERENCES divisions(id),
+
+  -- Context
+  reason TEXT, -- "Team performing below division level"
+  notes TEXT,
+  affected_games_count INTEGER, -- How many games were affected
+
+  -- Who made the change
+  performed_by UUID REFERENCES profiles(id),
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_division_restructuring_league ON division_restructuring_log(league_id);
+CREATE INDEX idx_division_restructuring_season ON division_restructuring_log(season_id);
+CREATE INDEX idx_division_restructuring_team ON division_restructuring_log(team_id);
+
+COMMENT ON TABLE division_restructuring_log IS 'Audit trail for division changes and team movements';
+```
+
+---
+
+#### 6. `leagues` Table (Core Multi-Tenancy)
 
 ```sql
 CREATE TABLE leagues (
@@ -264,22 +566,32 @@ CREATE TABLE league_settings (
 
 ---
 
-### Modify Existing Tables (Add `league_id`)
+### Modify Existing Tables (Add `league_id` and Division Support)
 
-#### Tables That Need `league_id`:
+#### Tables That Need `league_id` and Division References:
 
 ```sql
--- Teams
+-- Teams (add league_id AND division_id)
 ALTER TABLE teams ADD COLUMN league_id UUID REFERENCES leagues(id) ON DELETE CASCADE;
+ALTER TABLE teams ADD COLUMN division_id UUID REFERENCES divisions(id) ON DELETE SET NULL;
+ALTER TABLE teams ADD COLUMN tier_level TEXT; -- "A", "B", "C" for quick filtering
 CREATE INDEX idx_teams_league_id ON teams(league_id);
+CREATE INDEX idx_teams_division_id ON teams(division_id);
+CREATE INDEX idx_teams_league_division ON teams(league_id, division_id);
 
 -- Seasons
 ALTER TABLE seasons ADD COLUMN league_id UUID REFERENCES leagues(id) ON DELETE CASCADE;
 CREATE INDEX idx_seasons_league_id ON seasons(league_id);
 
--- Games
+-- Games (add league_id, venue reference, and division context)
 ALTER TABLE games ADD COLUMN league_id UUID REFERENCES leagues(id) ON DELETE CASCADE;
+ALTER TABLE games ADD COLUMN venue_id UUID REFERENCES venues(id) ON DELETE SET NULL;
+ALTER TABLE games ADD COLUMN surface_name TEXT; -- Which rink/surface at the venue
+ALTER TABLE games ADD COLUMN division_id UUID REFERENCES divisions(id) ON DELETE SET NULL; -- For divisional games
+ALTER TABLE games ADD COLUMN is_interdivisional BOOLEAN DEFAULT FALSE; -- Cross-division game
 CREATE INDEX idx_games_league_id ON games(league_id);
+CREATE INDEX idx_games_venue_id ON games(venue_id);
+CREATE INDEX idx_games_division_id ON games(division_id);
 
 -- Team Rosters
 ALTER TABLE team_rosters ADD COLUMN league_id UUID REFERENCES leagues(id) ON DELETE CASCADE;
@@ -382,6 +694,248 @@ CREATE POLICY "League owners/admins can manage teams"
 2. INSERT: Owners/admins can create
 3. UPDATE: Owners/admins can modify
 4. DELETE: Owners can delete
+
+---
+
+## 🎯 ADVANCED MULTI-DIVISION ARCHITECTURE
+
+### Division Hierarchy System
+
+**Design Philosophy:**
+- Support 10+ divisions per league (A, B1, B2, C1, C2, C3, D1, D2, REC, DRAFT)
+- Hierarchical tier system (A > B > C > D > REC > DRAFT)
+- Flexible division naming and reorganization
+- Mid-season team movement between divisions
+- Division-specific scheduling rules
+
+**Division Tier Ordering:**
+```typescript
+// Division hierarchy configuration
+const DIVISION_TIERS = {
+  A: { order: 1, skillLevel: 'Elite' },
+  B1: { order: 2, skillLevel: 'Advanced' },
+  B2: { order: 3, skillLevel: 'Advanced' },
+  C1: { order: 4, skillLevel: 'Intermediate' },
+  C2: { order: 5, skillLevel: 'Intermediate' },
+  C3: { order: 6, skillLevel: 'Intermediate' },
+  D1: { order: 7, skillLevel: 'Beginner' },
+  D2: { order: 8, skillLevel: 'Beginner' },
+  REC: { order: 9, skillLevel: 'Recreational' },
+  DRAFT: { order: 10, skillLevel: 'Draft Pool' },
+};
+```
+
+### Venue & Ice Time Management
+
+**Multi-Venue Support:**
+- Leagues can have 1-20+ ice rinks
+- Each venue can have multiple surfaces (Pad 1, Pad 2, etc.)
+- Each surface has its own availability calendar
+- Location details for mapping/directions
+
+**Time Slot Matrix:**
+```
+Example: Sunnybrook Arena
+- Rink 1:
+  - Monday: 21:00-23:00 (B Division only)
+  - Tuesday: 21:00-23:00 (B Division only)
+  - Wednesday: 19:00-21:00 (Any division)
+  - Thursday: 21:00-23:00 (C Division preferred)
+
+- Rink 2:
+  - Monday: 18:00-20:00 (A Division only)
+  - Friday: 22:00-00:00 (D Division, REC)
+```
+
+### Advanced Scheduling Rules
+
+**Rule Types:**
+
+1. **Division Time Constraints**
+   - "B Division only plays Tuesdays/Thursdays 9-11pm"
+   - "A Division has priority for prime time slots"
+   - "REC Division plays weekends only"
+
+2. **Team-Specific Rules**
+   - Team blackout dates (vacations, conflicts)
+   - Preferred home venue
+   - Maximum travel distance
+   - Minimum rest days between games
+
+3. **Venue Restrictions**
+   - Certain divisions can only use certain venues
+   - Surface-specific requirements
+   - Maintenance blackout periods
+
+4. **Competitive Balance**
+   - Minimum games against division rivals
+   - Maximum games per week
+   - Balanced home/away split
+   - Ensure teams play each other at least once
+
+5. **Rivalry & Special Games**
+   - Force specific matchups (rivalries)
+   - Guarantee division championship games
+   - Playoff seeding considerations
+
+**Example Rules Configuration:**
+```typescript
+const exampleRules = [
+  {
+    name: "B Division Tuesday/Thursday Rule",
+    type: "division_time_constraint",
+    applies_to_divisions: ["b1_id", "b2_id"],
+    config: {
+      days: [2, 4], // Tuesday, Thursday
+      start_time: "21:00",
+      end_time: "23:00",
+      venues: ["sunnybrook_id", "canlan_id"]
+    },
+    is_hard_constraint: true,
+    priority: 1
+  },
+  {
+    name: "Minimum 2 Days Rest",
+    type: "minimum_rest_days",
+    applies_to_divisions: ["all"],
+    config: {
+      min_days: 2
+    },
+    is_hard_constraint: true,
+    priority: 1
+  },
+  {
+    name: "A Division Prime Time Priority",
+    type: "venue_restriction",
+    applies_to_divisions: ["a_id"],
+    config: {
+      preferred_times: ["18:00-20:00", "19:00-21:00"],
+      priority: 1
+    },
+    is_hard_constraint: false,
+    priority: 3
+  }
+];
+```
+
+### AI-Powered Schedule Generation
+
+**Algorithm Approach:**
+- **Constraint Satisfaction Problem (CSP)** with optimization
+- **Two-Phase Generation:**
+  1. Phase 1: Satisfy all hard constraints
+  2. Phase 2: Optimize for soft constraints
+
+**Input to AI:**
+```json
+{
+  "divisions": [
+    {"id": "a_id", "name": "A", "teams": 8, "tier_order": 1},
+    {"id": "b1_id", "name": "B1", "teams": 10, "tier_order": 2},
+    // ... 8 more divisions
+  ],
+  "venues": [
+    {
+      "id": "sunnybrook_id",
+      "name": "Sunnybrook Arena",
+      "time_slots": [
+        {"day": 2, "start": "21:00", "end": "23:00", "surface": "Rink 1"},
+        // ... 50+ more slots
+      ]
+    }
+  ],
+  "rules": [
+    // All scheduling rules
+  ],
+  "constraints": {
+    "games_per_team": 13,
+    "season_start": "2025-09-01",
+    "season_end": "2026-03-31",
+    "min_games_vs_division_teams": 8, // 8 games within division
+    "max_games_vs_interdivisional": 5 // 5 cross-division games
+  }
+}
+```
+
+**AI Output:**
+```json
+{
+  "schedule": [
+    {
+      "game_id": "g1",
+      "home_team": "team1",
+      "away_team": "team2",
+      "venue": "sunnybrook_id",
+      "surface": "Rink 1",
+      "date": "2025-09-08",
+      "time": "21:00",
+      "division": "b1_id",
+      "is_interdivisional": false
+    },
+    // ... 487+ games
+  ],
+  "stats": {
+    "total_games": 487,
+    "divisional_games": 390,
+    "interdivisional_games": 97,
+    "constraints_satisfied": 45,
+    "constraints_violated": 0,
+    "optimization_score": 0.94
+  },
+  "warnings": [
+    "Team 42 has 3 back-to-back weekends (unavoidable)"
+  ]
+}
+```
+
+### Division Restructuring System
+
+**Mid-Season Team Movement:**
+
+**Use Cases:**
+- Team too strong for current division → Move up
+- Team struggling badly → Move down for better competition
+- Team request for competitive balance
+- League expansion/contraction
+
+**Workflow:**
+1. Admin identifies team for movement
+2. System shows impact analysis:
+   - Games already played in current division
+   - Games scheduled against new division opponents
+   - Standings impact
+   - Schedule regeneration requirements
+
+3. Admin confirms movement
+4. System handles:
+   - Update team's division_id
+   - Log the change (audit trail)
+   - Optionally regenerate remaining schedule
+   - Update standings calculations
+   - Notify affected teams
+
+**Impact Analysis Example:**
+```typescript
+{
+  "team": "Thunder",
+  "current_division": "B2",
+  "proposed_division": "B1",
+  "analysis": {
+    "games_played_b2": 6,
+    "games_remaining_b2": 7,
+    "standings_impact": {
+      "current_rank": 1, // 1st in B2
+      "projected_rank_b1": 8 // Projected 8th in B1
+    },
+    "schedule_impact": {
+      "games_to_cancel": 7,
+      "games_to_create": 7,
+      "affected_teams": ["Team A", "Team B", ...]
+    },
+    "recommendations": "Move team at end of cycle (2 weeks) to minimize disruption"
+  }
+}
+```
 
 ---
 
@@ -504,11 +1058,14 @@ export function useLeague() {
 
 | Feature | Trial | Free | Basic | Pro | Enterprise |
 |---------|-------|------|-------|-----|------------|
-| **Price** | $0 | $0 | $29/mo | $99/mo | Custom |
+| **Price** | $0 | $0 | $49/mo | $149/mo | Custom |
 | **Duration** | 30 days | Forever | Monthly | Monthly | Annual |
 | **Seasons** | 1 | 2 | Unlimited | Unlimited | Unlimited |
 | **Players** | 50 | 100 | 300 | Unlimited | Unlimited |
-| **Teams** | 6 | 8 | 16 | Unlimited | Unlimited |
+| **Teams** | 6 | 8 | 30 | Unlimited | Unlimited |
+| **Divisions** | 1 | 2 | 5 | Unlimited | Unlimited |
+| **Venues** | 1 | 2 | 5 | Unlimited | Unlimited |
+| **Scheduling Rules** | 5 | 10 | 25 | Unlimited | Unlimited |
 | **AI Articles** | ❌ | ❌ | ✅ | ✅ | ✅ |
 | **Custom Branding** | ❌ | ❌ | ✅ | ✅ | ✅ |
 | **Payment Collection** | ❌ | ❌ | ✅ | ✅ | ✅ |
@@ -555,9 +1112,182 @@ export async function checkLeagueLimit(
 
 ## 🛠️ IMPLEMENTATION TASKS
 
-### PHASE 1: Database Migration (Week 1-2)
+### PHASE 0: Division & Venue Infrastructure (Week 1-3)
 
-#### Task 1.1: Create New Tables
+#### Task 0.1: Create Division System Tables
+**Description:** Create `divisions`, `venues`, `venue_time_slots`, `scheduling_rules`, `division_restructuring_log` tables
+
+**Success Criteria:**
+- All division/venue tables created with proper constraints
+- Indexes created for performance
+- Foreign key relationships established
+- Sample division hierarchy created
+
+**Migration File:** `supabase/migrations/000_create_division_venue_tables.sql`
+
+---
+
+#### Task 0.2: Create Venue Management System
+**Description:** Build admin UI for managing venues and ice times
+
+**Files:**
+- `src/app/(dashboard)/admin/venues/page.tsx` (NEW)
+- `src/app/(dashboard)/admin/venues/[venueId]/time-slots/page.tsx` (NEW)
+- `src/lib/venues/actions.ts` (NEW)
+- `src/components/venues/VenueForm.tsx` (NEW)
+- `src/components/venues/TimeSlotCalendar.tsx` (NEW)
+
+**Features:**
+- Add/edit/delete venues
+- Manage multiple ice surfaces per venue
+- Configure time slots with day/time/duration
+- Set division restrictions per time slot
+- Bulk import time slots (CSV/Excel)
+- Visual calendar view of availability
+- Google Maps integration for venue locations
+
+**Success Criteria:**
+- Admin can create venues with full details
+- Time slot calendar displays correctly
+- Division restrictions are enforced
+- Bulk import works for 100+ time slots
+
+---
+
+#### Task 0.3: Create Division Management System
+**Description:** Build admin UI for managing league divisions
+
+**Files:**
+- `src/app/(dashboard)/admin/divisions/page.tsx` (NEW)
+- `src/lib/divisions/actions.ts` (NEW)
+- `src/components/divisions/DivisionHierarchy.tsx` (NEW)
+- `src/components/divisions/DivisionForm.tsx` (NEW)
+
+**Features:**
+- Create/edit/delete divisions
+- Define division hierarchy (tier ordering)
+- Set division colors/icons for UI
+- Configure division-specific preferences
+- Drag-and-drop to reorder divisions
+- Preview standings by division
+
+**Success Criteria:**
+- Admin can create 10+ divisions
+- Hierarchy is visually clear
+- Divisions can be reordered
+- Teams can be assigned to divisions
+
+---
+
+#### Task 0.4: Create Scheduling Rules Engine
+**Description:** Build flexible rule system for scheduling constraints
+
+**Files:**
+- `src/app/(dashboard)/admin/scheduling-rules/page.tsx` (NEW)
+- `src/lib/scheduling/rules-engine.ts` (NEW)
+- `src/lib/scheduling/rule-validator.ts` (NEW)
+- `src/components/scheduling/RuleBuilder.tsx` (NEW)
+
+**Features:**
+- Visual rule builder (no-code interface)
+- Pre-built rule templates
+- Rule priority management
+- Hard vs soft constraint toggle
+- Rule conflict detection
+- Test rule against existing schedule
+
+**Rule Templates:**
+- "Division X plays only on days Y at times Z"
+- "Minimum N days between games for all teams"
+- "Maximum M games per week"
+- "Team blackout dates"
+- "Venue restrictions by division"
+- "Home/away balance"
+
+**Success Criteria:**
+- Admin can create 20+ rules
+- Rule conflicts are detected
+- Rules are persisted correctly
+- Rule engine validates schedules
+
+---
+
+#### Task 0.5: Build AI Schedule Generator (Core Algorithm)
+**Description:** Implement advanced constraint-satisfaction algorithm
+
+**Files:**
+- `src/lib/scheduling/ai-generator.ts` (NEW)
+- `src/lib/scheduling/constraint-solver.ts` (NEW)
+- `src/lib/scheduling/optimizer.ts` (NEW)
+
+**Algorithm Phases:**
+
+**Phase 1: Constraint Collection**
+```typescript
+async function collectConstraints(leagueId: string) {
+  // Gather all inputs:
+  // - Divisions & teams
+  // - Venues & time slots
+  // - Scheduling rules
+  // - Season parameters
+
+  return {
+    divisions: [...],
+    venues: [...],
+    rules: [...],
+    metadata: {...}
+  };
+}
+```
+
+**Phase 2: Hard Constraint Satisfaction**
+```typescript
+async function satisfyHardConstraints(constraints) {
+  // Use CSP algorithm to satisfy all hard constraints:
+  // - Division time requirements
+  // - Venue availability
+  // - Team blackouts
+  // - Minimum rest periods
+
+  // Returns: Partial schedule or error if unsatisfiable
+}
+```
+
+**Phase 3: Soft Constraint Optimization**
+```typescript
+async function optimizeSchedule(partialSchedule, softConstraints) {
+  // Optimize for:
+  // - Home/away balance
+  // - Minimize back-to-back games
+  // - Maximize prime time usage for top divisions
+  // - Travel distance minimization
+
+  // Use genetic algorithm or simulated annealing
+}
+```
+
+**Phase 4: Schedule Output**
+```typescript
+async function generateFinalSchedule(optimizedSchedule) {
+  // Format output
+  // Calculate statistics
+  // Validate completeness
+  // Return games to insert
+}
+```
+
+**Success Criteria:**
+- Generates schedule for 75 teams across 10 divisions
+- Satisfies all hard constraints
+- Optimizes soft constraints (>80% satisfaction)
+- Completes in <30 seconds for 500 games
+- Handles edge cases gracefully
+
+---
+
+### PHASE 1: Database Migration (Week 4-5)
+
+#### Task 1.1: Create Multi-Tenant Tables
 **Description:** Create `leagues`, `league_memberships`, `league_invitations`, `league_settings` tables
 
 **Success Criteria:**
@@ -666,9 +1396,111 @@ DROP POLICY IF EXISTS ... -- all existing policies
 
 ---
 
-### PHASE 2: Application Core Updates (Week 3-4)
+### PHASE 2: Division Restructuring & Team Management (Week 6-7)
 
-#### Task 2.1: Create League Context & Provider
+#### Task 2.1: Team Movement System
+**Description:** Allow admins to move teams between divisions mid-season
+
+**Files:**
+- `src/app/(dashboard)/admin/teams/[teamId]/move-division/page.tsx` (NEW)
+- `src/lib/divisions/team-movement.ts` (NEW)
+- `src/components/divisions/TeamMovementWizard.tsx` (NEW)
+- `src/components/divisions/MovementImpactAnalysis.tsx` (NEW)
+
+**Features:**
+- **Impact Analysis Dashboard:**
+  - Current division standings
+  - Games played/remaining in current division
+  - Projected standings in new division
+  - Schedule conflicts
+  - Affected teams/games
+
+- **Movement Options:**
+  - Immediate move (reschedule remaining games)
+  - End-of-cycle move (wait for natural break)
+  - Conditional move (if team wins/loses next N games)
+
+- **Schedule Regeneration:**
+  - Identify games to cancel
+  - Generate replacement games in new division
+  - Notify affected teams
+  - Update standings calculations
+
+**Workflow:**
+```
+1. Admin selects team → "Move Division"
+2. System shows impact analysis
+3. Admin selects target division
+4. System calculates schedule changes
+5. Admin reviews and confirms
+6. System executes:
+   - Updates team.division_id
+   - Logs to division_restructuring_log
+   - Cancels old games
+   - Creates new games
+   - Sends notifications
+7. Success confirmation
+```
+
+**Success Criteria:**
+- Impact analysis is accurate
+- Schedule regeneration maintains balance
+- Audit log captures all changes
+- No data loss during movement
+- Affected teams are notified
+
+---
+
+#### Task 2.2: Division-Aware Standings
+**Description:** Update standings to support divisional views
+
+**Files:**
+- `src/lib/stats/divisional-standings.ts` (NEW)
+- `src/app/(public)/standings/page.tsx` (MODIFY)
+- `src/components/standings/DivisionTabs.tsx` (NEW)
+- `src/components/standings/DivisionalStandingsTable.tsx` (NEW)
+
+**Features:**
+- Tab-based division navigation
+- League-wide standings (all divisions)
+- Per-division standings
+- Cross-division comparison
+- Playoff qualification indicators
+- Division leaders highlighted
+
+**Success Criteria:**
+- Standings calculate correctly per division
+- Division tabs work smoothly
+- Playoff qualification logic is accurate
+- Performance is good with 75 teams
+
+---
+
+#### Task 2.3: Division-Aware Schedule Display
+**Description:** Update schedule views to filter by division
+
+**Files:**
+- `src/app/(public)/schedule/page.tsx` (MODIFY)
+- `src/components/schedule/DivisionFilter.tsx` (NEW)
+- `src/components/schedule/VenueFilter.tsx` (NEW)
+
+**Features:**
+- Filter by division
+- Filter by venue
+- Filter by date range
+- Show interdivisional games
+- Venue/location on each game
+
+**Success Criteria:**
+- Filters work correctly
+- Performance with 500+ games
+- Mobile-responsive
+
+---
+
+### PHASE 3: Application Core Updates (Week 8-9)
+
+#### Task 3.1: Create League Context & Provider
 **Description:** Implement league context for React components
 
 **Files:**
@@ -684,7 +1516,7 @@ DROP POLICY IF EXISTS ... -- all existing policies
 
 ---
 
-#### Task 2.2: Update Middleware for Subdomain Routing
+#### Task 3.2: Update Middleware for Subdomain Routing
 **Description:** Detect league from subdomain and set context
 
 **Files:**
@@ -700,8 +1532,8 @@ DROP POLICY IF EXISTS ... -- all existing policies
 
 ---
 
-#### Task 2.3: Update All Database Queries
-**Description:** Add league_id filter to all queries
+#### Task 3.3: Update All Database Queries
+**Description:** Add league_id and division_id filters to all queries
 
 **Files:**
 - `src/lib/teams/actions.ts` (MODIFY)
@@ -721,18 +1553,23 @@ const teams = await supabase
 const { currentLeague } = useLeague();
 const teams = await supabase
   .from('teams')
-  .select('*')
-  .eq('league_id', currentLeague.id);
+  .select(`
+    *,
+    division:divisions(id, name, tier_order)
+  `)
+  .eq('league_id', currentLeague.id)
+  .order('division.tier_order', { ascending: true });
 ```
 
 **Success Criteria:**
 - All queries filtered by league_id
+- Division joins included where relevant
 - No cross-league data leakage
-- Tests pass with multiple leagues
+- Tests pass with multiple leagues and divisions
 
 ---
 
-#### Task 2.4: Update Server Actions for League Context
+#### Task 3.4: Update Server Actions for League Context
 **Description:** Pass league context to server actions
 
 **Files:**
@@ -757,7 +1594,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 2.5: Create League Server Utilities
+#### Task 3.5: Create League Server Utilities
 **Description:** Helper functions for league operations
 
 **Files:**
@@ -780,9 +1617,172 @@ export function useSwitchLeague(): (leagueId: string) => void
 
 ---
 
-### PHASE 3: League Management UI (Week 5-6)
+### PHASE 4: AI Schedule Generation UI (Week 10-11)
 
-#### Task 3.1: League Creation Flow
+#### Task 4.1: Schedule Generation Wizard
+**Description:** Multi-step wizard for generating league schedules
+
+**Files:**
+- `src/app/(dashboard)/admin/seasons/[seasonId]/generate-schedule/page.tsx` (NEW)
+- `src/components/scheduling/ScheduleGenerationWizard.tsx` (NEW)
+- `src/lib/scheduling/generation-actions.ts` (NEW)
+
+**Wizard Steps:**
+
+**Step 1: Division Configuration**
+- Select which divisions to include
+- Set games per team per division
+- Configure interdivisional play percentage
+
+**Step 2: Venue & Time Selection**
+- Select venues to use
+- Review time slot availability
+- Assign division priorities to time slots
+
+**Step 3: Rules Configuration**
+- Review active scheduling rules
+- Enable/disable specific rules
+- Set rule priorities
+
+**Step 4: Schedule Preferences**
+- Season start/end dates
+- Blackout dates (holidays, etc.)
+- Home/away balance preferences
+- Maximum games per week
+
+**Step 5: Generate & Preview**
+- Click "Generate Schedule" (shows loading animation)
+- AI generates schedule (30-60 seconds)
+- Preview schedule statistics:
+  - Total games
+  - Games per division
+  - Constraint satisfaction score
+  - Warnings/conflicts
+
+**Step 6: Review & Adjust**
+- Interactive calendar view
+- Filter by division/venue/date
+- Manually adjust specific games
+- Re-run optimization on subset
+
+**Step 7: Confirm & Publish**
+- Final confirmation
+- Insert games into database
+- Send notifications to teams
+- Lock schedule (or keep draft)
+
+**Success Criteria:**
+- Wizard is intuitive and guided
+- Loading states are clear
+- Preview is comprehensive
+- Manual adjustments work
+- Schedule publishes correctly
+
+---
+
+#### Task 4.2: Schedule Validation & Conflict Detection
+**Description:** Real-time validation during schedule generation
+
+**Files:**
+- `src/lib/scheduling/validator.ts` (NEW)
+- `src/components/scheduling/ConflictReport.tsx` (NEW)
+
+**Validation Checks:**
+- ✅ All teams have required number of games
+- ✅ No team plays more than max games per week
+- ✅ Minimum rest days between games
+- ✅ All hard constraints satisfied
+- ✅ Home/away balance within threshold
+- ⚠️ Soft constraints satisfaction percentage
+- ❌ Conflicts detected (with explanations)
+
+**Conflict Examples:**
+```
+❌ Division B1 Rule Violation:
+   Team "Thunder" scheduled on Monday 21:00
+   but B1 division only plays Tuesday/Thursday
+   → Suggested fix: Move to Tuesday 21:00
+
+⚠️ Optimization Warning:
+   Team "Sharks" has 3 games in 7 days (max is 2)
+   → Consider spreading games over more weeks
+
+✅ All 487 games scheduled successfully
+   Hard constraints: 45/45 satisfied
+   Soft constraints: 38/42 satisfied (90%)
+```
+
+---
+
+#### Task 4.3: Schedule Regeneration & Adjustments
+**Description:** Allow admins to regenerate schedule or adjust specific games
+
+**Files:**
+- `src/app/(dashboard)/admin/seasons/[seasonId]/schedule/page.tsx` (MODIFY)
+- `src/lib/scheduling/regeneration.ts` (NEW)
+
+**Features:**
+- **Partial Regeneration:**
+  - Regenerate specific division's games only
+  - Regenerate games after a certain date
+  - Keep completed games, regenerate future
+
+- **Manual Adjustments:**
+  - Click on game to edit
+  - Change venue/time
+  - Swap home/away teams
+  - System validates change against rules
+
+- **Bulk Operations:**
+  - Move all Division X games to different venue
+  - Shift all games forward/backward by N days
+  - Regenerate specific week
+
+**Success Criteria:**
+- Partial regeneration works correctly
+- Manual adjustments are validated
+- Bulk operations maintain integrity
+- Change history is logged
+
+---
+
+#### Task 4.4: Schedule Templates & Presets
+**Description:** Save and reuse schedule configurations
+
+**Files:**
+- `src/lib/scheduling/templates.ts` (NEW)
+- `src/components/scheduling/TemplateManager.tsx` (NEW)
+
+**Template Types:**
+
+**1. Season Template:**
+- Division configuration
+- Games per team
+- Season dates
+- Venue assignments
+
+**2. Rule Template:**
+- Pre-configured rule sets
+- "Standard League Rules"
+- "Advanced Competitive Rules"
+- "Recreational League Rules"
+
+**3. Venue Template:**
+- Common venue/time combinations
+- "Tuesday Night Hockey"
+- "Weekend Warrior Schedule"
+
+**Features:**
+- Save current configuration as template
+- Load template for new season
+- Share templates between leagues (admin)
+- Template marketplace (future)
+
+---
+
+### PHASE 5: League Management UI (Week 12-13)
+
+#### Task 5.1: League Creation Flow
 **Description:** Allow users to create new leagues
 
 **Files:**
@@ -806,7 +1806,7 @@ export function useSwitchLeague(): (leagueId: string) => void
 
 ---
 
-#### Task 3.2: League Settings Page
+#### Task 5.2: League Settings Page
 **Description:** League owner can manage settings
 
 **Files:**
@@ -824,7 +1824,7 @@ export function useSwitchLeague(): (leagueId: string) => void
 
 ---
 
-#### Task 3.3: League Switcher Component
+#### Task 5.3: League Switcher Component
 **Description:** Dropdown to switch between leagues
 
 **Files:**
@@ -840,7 +1840,7 @@ export function useSwitchLeague(): (leagueId: string) => void
 
 ---
 
-#### Task 3.4: League Invitation System
+#### Task 5.4: League Invitation System
 **Description:** Invite users to join league
 
 **Files:**
@@ -858,7 +1858,7 @@ export function useSwitchLeague(): (leagueId: string) => void
 
 ---
 
-#### Task 3.5: League Member Management
+#### Task 5.5: League Member Management
 **Description:** Manage league members and roles
 
 **Files:**
@@ -874,7 +1874,7 @@ export function useSwitchLeague(): (leagueId: string) => void
 
 ---
 
-#### Task 3.6: League Landing Page
+#### Task 5.6: League Landing Page
 **Description:** Public-facing page for each league
 
 **Files:**
@@ -890,9 +1890,9 @@ export function useSwitchLeague(): (leagueId: string) => void
 
 ---
 
-### PHASE 4: Subscription System (Week 7-8)
+### PHASE 6: Subscription System (Week 14-15)
 
-#### Task 4.1: Stripe Products & Prices Setup
+#### Task 6.1: Stripe Products & Prices Setup
 **Description:** Create Stripe products for each tier
 
 **Stripe Dashboard:**
@@ -909,7 +1909,7 @@ STRIPE_ENTERPRISE_ANNUAL_PRICE_ID=price_xxx
 
 ---
 
-#### Task 4.2: Subscription Checkout Flow
+#### Task 6.2: Subscription Checkout Flow
 **Description:** Allow league owners to subscribe
 
 **Files:**
@@ -926,7 +1926,7 @@ STRIPE_ENTERPRISE_ANNUAL_PRICE_ID=price_xxx
 
 ---
 
-#### Task 4.3: Stripe Webhook Handler
+#### Task 6.3: Stripe Webhook Handler
 **Description:** Handle subscription events
 
 **Files:**
@@ -945,7 +1945,7 @@ STRIPE_ENTERPRISE_ANNUAL_PRICE_ID=price_xxx
 
 ---
 
-#### Task 4.4: Usage Limits Enforcement
+#### Task 6.4: Usage Limits Enforcement
 **Description:** Enforce tier limits throughout app
 
 **Files:**
@@ -972,7 +1972,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 4.5: Subscription Management UI
+#### Task 6.5: Subscription Management UI
 **Description:** View and manage subscription
 
 **Files:**
@@ -988,9 +1988,9 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-### PHASE 5: Platform Pages (Week 9)
+### PHASE 7: Platform Pages (Week 16)
 
-#### Task 5.1: Platform Landing Page
+#### Task 7.1: Platform Landing Page
 **Description:** Main hockeylifehl.app homepage
 
 **Files:**
@@ -1006,7 +2006,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 5.2: Pricing Page
+#### Task 7.2: Pricing Page
 **Description:** Detailed pricing comparison
 
 **Files:**
@@ -1019,7 +2019,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 5.3: League Directory (Optional)
+#### Task 7.3: League Directory (Optional)
 **Description:** Public directory of leagues
 
 **Files:**
@@ -1032,7 +2032,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 5.4: Documentation
+#### Task 7.4: Documentation
 **Description:** Help docs for league owners
 
 **Files:**
@@ -1048,9 +2048,9 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-### PHASE 6: Testing & Polish (Week 10-11)
+### PHASE 8: Testing & Polish (Week 17-18)
 
-#### Task 6.1: Multi-League Testing
+#### Task 8.1: Multi-League Testing
 **Description:** Create test leagues and verify isolation
 
 **Test Cases:**
@@ -1062,7 +2062,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 6.2: Migration Testing
+#### Task 8.2: Migration Testing
 **Description:** Test migration with production data
 
 **Steps:**
@@ -1074,7 +2074,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 6.3: Performance Testing
+#### Task 8.3: Performance Testing
 **Description:** Ensure performance with multiple leagues
 
 **Metrics:**
@@ -1085,7 +2085,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 6.4: Security Audit
+#### Task 8.4: Security Audit
 **Description:** Verify no data leakage
 
 **Checks:**
@@ -1096,9 +2096,9 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-### PHASE 7: Deployment (Week 12)
+### PHASE 9: Deployment (Week 19)
 
-#### Task 7.1: Subdomain DNS Setup
+#### Task 9.1: Subdomain DNS Setup
 **Description:** Configure wildcard subdomain
 
 **Vercel:**
@@ -1108,7 +2108,7 @@ export async function createTeam(data: TeamData) {
 
 ---
 
-#### Task 7.2: Environment Variables
+#### Task 9.2: Environment Variables
 **Description:** Set production environment variables
 
 ```env
@@ -1127,7 +2127,7 @@ NEXT_PUBLIC_PLATFORM_DOMAIN=hockeylifehl.app
 
 ---
 
-#### Task 7.3: Database Migration (Production)
+#### Task 9.3: Database Migration (Production)
 **Description:** Run migrations on production database
 
 **Steps:**
@@ -1142,7 +2142,7 @@ NEXT_PUBLIC_PLATFORM_DOMAIN=hockeylifehl.app
 
 ---
 
-#### Task 7.4: Rollout Plan
+#### Task 9.4: Rollout Plan
 **Description:** Gradual rollout to users
 
 **Phases:**
@@ -1290,9 +2290,185 @@ NEXT_PUBLIC_PLATFORM_DOMAIN=hockeylifehl.app
 
 ---
 
+---
+
+## 🎯 DIVISION SYSTEM SUMMARY
+
+### Key Features Added
+
+**1. Multi-Division Support (10+ Divisions)**
+- Hierarchical division structure (A, B1, B2, C1, C2, C3, D1, D2, REC, DRAFT)
+- Tier ordering for skill-based organization
+- Division-specific colors, icons, and branding
+- Support for 75+ teams across multiple divisions
+
+**2. Advanced Venue Management**
+- Multiple venues (ice rinks) per league
+- Multi-surface facilities (Rink 1, Rink 2, etc.)
+- Location details with mapping integration
+- Venue amenities and accessibility features
+
+**3. Granular Time Slot Control**
+- Weekly recurring time slots per venue/surface
+- Day-of-week and time-of-day specificity
+- Division restrictions per time slot
+- Effective date ranges for seasonal availability
+- Priority ranking for AI optimization
+
+**4. Flexible Scheduling Rules Engine**
+- 8 rule types (division time constraints, team blackouts, venue restrictions, etc.)
+- Hard vs soft constraints
+- Priority-based rule system
+- Visual rule builder for non-technical admins
+- Rule conflict detection
+
+**5. AI-Powered Schedule Generation**
+- Constraint Satisfaction Problem (CSP) algorithm
+- Two-phase generation (hard constraints → optimization)
+- Handles complex multi-division scheduling
+- Respects all venue, time, and division rules
+- Generates 500+ game schedules in <30 seconds
+- Provides optimization score and warnings
+
+**6. Division Restructuring System**
+- Mid-season team movement between divisions
+- Impact analysis before changes
+- Automatic schedule regeneration
+- Audit trail for all division changes
+- Notifications to affected teams
+
+**7. Enhanced Standings & Reporting**
+- Division-specific standings
+- League-wide standings with division breakdown
+- Interdivisional game tracking
+- Playoff qualification by division
+- Division leader boards
+
+### Technical Specifications
+
+**New Database Tables:** 5
+- `divisions` (league organization)
+- `venues` (ice rink facilities)
+- `venue_time_slots` (available ice times)
+- `scheduling_rules` (constraints & preferences)
+- `division_restructuring_log` (audit trail)
+
+**Modified Tables:** 2
+- `teams` → Added `division_id`, `tier_level`
+- `games` → Added `venue_id`, `surface_name`, `division_id`, `is_interdivisional`
+
+**New Indexes:** 15+
+- Optimized for division filtering
+- Venue and time slot lookups
+- League + division composite indexes
+
+**New API Endpoints:** 20+
+- Division CRUD operations
+- Venue management
+- Time slot configuration
+- Scheduling rule management
+- AI schedule generation
+- Team movement/restructuring
+
+### Use Case: 75-Team Multi-Division League
+
+**Example Configuration:**
+
+**Divisions:**
+- A Division: 8 teams (Elite)
+- B1 Division: 10 teams (Advanced Upper)
+- B2 Division: 10 teams (Advanced Lower)
+- C1 Division: 9 teams (Intermediate Upper)
+- C2 Division: 9 teams (Intermediate Mid)
+- C3 Division: 9 teams (Intermediate Lower)
+- D1 Division: 8 teams (Beginner Upper)
+- D2 Division: 8 teams (Beginner Lower)
+- REC Division: 4 teams (Recreational)
+
+**Total: 75 teams across 9 divisions**
+
+**Venues:**
+- Sunnybrook Arena (2 rinks)
+- Canlan Ice Sports North (3 rinks)
+- Canlan Ice Sports East (2 rinks)
+- Scotiabank Pond (1 rink)
+
+**Total: 8 ice surfaces**
+
+**Schedule Configuration:**
+- Games per team: 13 regular season
+- Divisional games: 8 (within division)
+- Interdivisional games: 5 (cross-division)
+- Total games: (75 teams × 13 games) / 2 = **487 games**
+
+**Scheduling Rules:**
+- B Divisions only play Tuesday/Thursday 9-11pm
+- A Division gets prime time priority (6-8pm)
+- C/D Divisions play Monday/Wednesday 9-11pm
+- REC Division plays weekends only
+- Minimum 2 days rest between games
+- Maximum 2 games per week per team
+- Home/away balance within 60/40 split
+
+**AI Schedule Output:**
+- Total games generated: 487
+- Hard constraints satisfied: 100% (52/52)
+- Soft constraints satisfied: 92% (46/50)
+- Generation time: 24 seconds
+- Warnings: 3 (unavoidable back-to-back weekends for 2 teams)
+
+### Migration Path from Current System
+
+**Phase 1: Add Division Support (Non-Breaking)**
+1. Add new tables (divisions, venues, etc.)
+2. Create default "Main Division" for existing league
+3. Assign all existing teams to default division
+4. Keep existing schedule generator working
+
+**Phase 2: Enable Multi-Division (Opt-In)**
+1. League admins can create additional divisions
+2. Move teams to new divisions
+3. New schedule generator available (AI-powered)
+4. Old generator still works for simple leagues
+
+**Phase 3: Full Cutover**
+1. All new leagues use division system
+2. Existing leagues migrated to default division
+3. Old schedule generator deprecated
+4. Division system becomes core feature
+
+### Competitive Advantages
+
+**vs Generic League Management:**
+- ✅ Support for 75+ teams (most max out at 20)
+- ✅ Complex division hierarchies (most have 1-2 divisions max)
+- ✅ Advanced scheduling rules (most have basic round-robin)
+- ✅ AI-powered schedule generation (most are manual)
+- ✅ Mid-season restructuring (unheard of in competitors)
+
+**vs LeagueApps/TeamSnap/SportsEngine:**
+- ✅ More flexible division system
+- ✅ Better venue/time slot management
+- ✅ Smarter AI scheduling
+- ✅ Hockey-specific features (captain verification, etc.)
+- ✅ Lower cost for large leagues
+
+**Target Market Expansion:**
+- Small leagues (6-12 teams) → Already supported
+- Medium leagues (12-30 teams) → Already supported
+- **Large leagues (30-75+ teams)** → NOW SUPPORTED ✅
+- Multi-location leagues → NOW SUPPORTED ✅
+- Professional/Semi-pro leagues → Viable with Enterprise tier
+
+---
+
 **END OF PLAN**
 
 *Last Updated: January 2026*
-*Status: Ready for Implementation*
-*Estimated Timeline: 12 weeks*
+*Status: Updated with Multi-Division Architecture*
+*Estimated Timeline: 19 weeks (5 months)*
+*New Phases: 9 (was 7)*
+*New Tasks: 35+ (was 25)*
+*Additional Scope: Division System, Venue Management, AI Scheduling, Team Restructuring*
 *Estimated Cost: Development time only (no infrastructure changes needed)*
+*Recommended Team: 2-3 developers + 1 designer*

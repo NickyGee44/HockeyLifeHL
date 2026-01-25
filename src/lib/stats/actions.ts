@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -10,11 +9,15 @@ export type StatActionResult = {
   success?: boolean;
 };
 
+type CaptainAuthResult =
+  | { error: string; isCaptain: false; userId?: never }
+  | { error?: never; isCaptain: true; userId: string };
+
 // Check if user is captain of the team
-async function requireTeamCaptain(teamId: string) {
+async function requireTeamCaptain(teamId: string): Promise<CaptainAuthResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     return { error: "Not authenticated", isCaptain: false };
   }
@@ -308,20 +311,29 @@ export async function getGameForStatEntry(gameId: string) {
     return { error: "Not authenticated" };
   }
 
-  // Get game with teams
+  // Get game
   const { data: game, error } = await supabase
     .from("games")
-    .select(`
-      *,
-      home_team:teams!games_home_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color, captain_id),
-      away_team:teams!games_away_team_id_fkey(id, name, short_name, logo_url, primary_color, secondary_color, captain_id)
-    `)
+    .select("*")
     .eq("id", gameId)
     .single();
 
   if (error || !game) {
     return { error: "Game not found" };
   }
+
+  // Get team info separately
+  const { data: homeTeam } = await supabase
+    .from("teams")
+    .select("id, name, short_name, logo_url, primary_color, secondary_color, captain_id")
+    .eq("id", game.home_team_id)
+    .single();
+
+  const { data: awayTeam } = await supabase
+    .from("teams")
+    .select("id, name, short_name, logo_url, primary_color, secondary_color, captain_id")
+    .eq("id", game.away_team_id)
+    .single();
 
   // Get which team the user is captain of (or owner)
   const { data: profile } = await supabase
@@ -331,8 +343,8 @@ export async function getGameForStatEntry(gameId: string) {
     .single();
 
   const isOwner = profile?.role === "owner";
-  const isHomeCaptain = game.home_team?.captain_id === user.id;
-  const isAwayCaptain = game.away_team?.captain_id === user.id;
+  const isHomeCaptain = homeTeam?.captain_id === user.id;
+  const isAwayCaptain = awayTeam?.captain_id === user.id;
 
   if (!isOwner && !isHomeCaptain && !isAwayCaptain) {
     return { error: "Not authorized - must be team captain or owner" };
@@ -373,7 +385,11 @@ export async function getGameForStatEntry(gameId: string) {
     .eq("game_id", gameId);
 
   return {
-    game,
+    game: {
+      ...game,
+      home_team: homeTeam,
+      away_team: awayTeam,
+    },
     homeRoster: homeRoster || [],
     awayRoster: awayRoster || [],
     existingPlayerStats: existingPlayerStats || [],
@@ -549,7 +565,7 @@ export async function ownerOverrideVerification(
 ): Promise<StatActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     return { error: "Not authenticated" };
   }
@@ -582,12 +598,27 @@ export async function ownerOverrideVerification(
 
   // Update verification status with owner override flag
   const isHomeTeam = game.home_team_id === teamId;
-  const updateData: Record<string, unknown> = {
-    [isHomeTeam ? "home_captain_verified" : "away_captain_verified"]: true,
-    [isHomeTeam ? "home_verified_by_owner" : "away_verified_by_owner"]: true,
-    [isHomeTeam ? "home_verified_at" : "away_verified_at"]: new Date().toISOString(),
+  const updateData: {
+    updated_at: string;
+    home_captain_verified?: boolean;
+    home_verified_by_owner?: boolean;
+    home_verified_at?: string;
+    away_captain_verified?: boolean;
+    away_verified_by_owner?: boolean;
+    away_verified_at?: string;
+  } = {
     updated_at: new Date().toISOString(),
   };
+
+  if (isHomeTeam) {
+    updateData.home_captain_verified = true;
+    updateData.home_verified_by_owner = true;
+    updateData.home_verified_at = new Date().toISOString();
+  } else {
+    updateData.away_captain_verified = true;
+    updateData.away_verified_by_owner = true;
+    updateData.away_verified_at = new Date().toISOString();
+  }
 
   const { error } = await supabase
     .from("games")
@@ -792,15 +823,18 @@ export async function getPlayerOfTheWeek() {
   }
 
   // Aggregate stats by player
-  const playerAggregates: Record<string, { 
-    playerId: string; 
-    goals: number; 
-    assists: number; 
-    points: number; 
-    gamesPlayed: number;
-    teamId: string;
-    gameIds: string[];
-  }> = {};
+  const playerAggregates: Record<
+    string,
+    {
+      playerId: string;
+      goals: number;
+      assists: number;
+      points: number;
+      gamesPlayed: number;
+      teamId: string;
+      gameIds: string[];
+    }
+  > = {};
 
   for (const stat of playerStats) {
     if (!playerAggregates[stat.player_id]) {

@@ -1,11 +1,10 @@
-// @ts-nocheck
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 // Make current user owner
-export async function makeCurrentUserOwner() {
+export async function makeCurrentUserOwner(): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -29,7 +28,7 @@ export async function makeCurrentUserOwner() {
 
 // Generate comprehensive mid-season test data
 // 7 teams, 13 players per team, mid-season state
-export async function generateTestData() {
+export async function generateTestData(): Promise<{ error?: string; success?: boolean; message?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -609,7 +608,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
           .insert({
             player_id: playerId,
             season_id: activeSeason.id,
-            rating: rating as any,
+            rating: rating as "A" | "B+" | "B" | "C+" | "C" | "D",
             games_played: gamesPlayed,
             attendance_rate: attendance,
             points_per_game: pointsPerGame,
@@ -922,18 +921,19 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
 
     console.log("Test data generation complete!");
 
-    return { 
-      success: true, 
-      message: `Comprehensive test data generated! Created: ${teamIds.length} teams, ${allPlayerIds.length} players, ${completedGames.length} completed games, 8 upcoming games, 3 pending verification, articles, payments, and more. The site is now in a realistic mid-season state.` 
+    return {
+      success: true,
+      message: `Comprehensive test data generated! Created: ${teamIds.length} teams, ${allPlayerIds.length} players, ${completedGames.length} completed games, 8 upcoming games, 3 pending verification, articles, payments, and more. The site is now in a realistic mid-season state.`
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating test data:", error);
-    return { error: error.message || "Failed to generate test data" };
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate test data";
+    return { error: errorMessage };
   }
 }
 
 // Remove all test data
-export async function removeAllTestData() {
+export async function removeAllTestData(): Promise<{ error?: string; success?: boolean; message?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -968,7 +968,8 @@ export async function removeAllTestData() {
     await supabase.from("suspensions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("articles").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("payments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-    await supabase.from("invite_codes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    // Skip invite_codes if table doesn't exist in schema
+    // await supabase.from("invite_codes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     
     // Reset teams (remove captains but keep teams)
     await supabase.from("teams").update({ captain_id: null }).neq("id", "00000000-0000-0000-0000-000000000000");
@@ -1001,8 +1002,9 @@ export async function removeAllTestData() {
     }
 
     return { success: true, message: "All test data removed successfully!" };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error removing test data:", error);
-    return { error: error.message || "Failed to remove test data" };
+    const errorMessage = error instanceof Error ? error.message : "Failed to remove test data";
+    return { error: errorMessage };
   }
 }

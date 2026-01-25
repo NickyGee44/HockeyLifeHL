@@ -134,6 +134,9 @@ export const RateLimiters = {
   // Generous: 30 requests per minute (for read-only endpoints)
   generous: createRateLimiter({ interval: 60000, limit: 30 }),
 
+  // Very Generous: 60 requests per minute (for health checks, public endpoints)
+  veryGenerous: createRateLimiter({ interval: 60000, limit: 60 }),
+
   // Hourly: 100 requests per hour (for expensive operations)
   hourly: createRateLimiter({ interval: 3600000, limit: 100 }),
 };

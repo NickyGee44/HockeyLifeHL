@@ -1,8 +1,8 @@
-// @ts-nocheck
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { logAuditEvent } from "@/lib/audit/logger";
 
 // Check if current user is an owner
 async function requireOwner() {
@@ -94,6 +94,19 @@ export async function createSuspension(formData: FormData) {
     return { error: error.message };
   }
 
+  // AUDIT: Log suspension creation
+  await logAuditEvent({
+    action: "suspension_created",
+    resourceType: "suspension",
+    resourceId: suspension.id,
+    details: {
+      player_id: playerId,
+      reason,
+      games_remaining: gamesRemaining,
+      start_date: startDate,
+    },
+  });
+
   revalidatePath("/admin/suspensions");
   return { success: true, suspension };
 }
@@ -117,6 +130,17 @@ export async function updateSuspension(suspensionId: string, gamesRemaining: num
     return { error: error.message };
   }
 
+  // AUDIT: Log suspension update
+  await logAuditEvent({
+    action: "suspension_updated",
+    resourceType: "suspension",
+    resourceId: suspensionId,
+    details: {
+      games_remaining: gamesRemaining,
+      ended: gamesRemaining === 0,
+    },
+  });
+
   revalidatePath("/admin/suspensions");
   return { success: true };
 }
@@ -136,6 +160,14 @@ export async function deleteSuspension(suspensionId: string) {
     console.error("Error deleting suspension:", error);
     return { error: error.message };
   }
+
+  // AUDIT: Log suspension deletion
+  await logAuditEvent({
+    action: "suspension_deleted",
+    resourceType: "suspension",
+    resourceId: suspensionId,
+    details: {},
+  });
 
   revalidatePath("/admin/suspensions");
   return { success: true };

@@ -1,7 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { RateLimiters, getClientIdentifier } from '@/lib/rate-limit'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // SECURITY: Rate limiting - prevent health check abuse (60 requests per minute)
+  const identifier = getClientIdentifier(request);
+  const rateLimit = await RateLimiters.veryGenerous.check(identifier);
+
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429 }
+    );
+  }
+
   try {
     const supabase = await createClient()
     
