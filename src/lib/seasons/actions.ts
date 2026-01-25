@@ -94,31 +94,71 @@ export async function createSeason(formData: FormData): Promise<SeasonActionResu
 
   const name = formData.get("name") as string;
   const startDate = formData.get("startDate") as string;
-  const gamesPerCycle = parseInt(formData.get("gamesPerCycle") as string) || 13;
-  const totalGames = parseInt(formData.get("totalGames") as string) || null;
   const playoffFormat = formData.get("playoffFormat") as string || "none";
   const draftScheduledAt = formData.get("draftScheduledAt") as string || null;
   const setActive = formData.get("setActive") === "true";
-  
+
+  // SECURITY: Validate gamesPerCycle with bounds checking
+  const gamesPerCycleStr = formData.get("gamesPerCycle") as string;
+  let gamesPerCycle = 13; // default
+
+  if (gamesPerCycleStr) {
+    const parsed = parseInt(gamesPerCycleStr);
+    if (isNaN(parsed)) {
+      return { error: "Invalid games per cycle - must be a number" };
+    }
+    if (parsed < 1 || parsed > 50) {
+      return { error: "Games per cycle must be between 1 and 50" };
+    }
+    gamesPerCycle = parsed;
+  }
+
+  // SECURITY: Validate totalGames with bounds checking
+  const totalGamesStr = formData.get("totalGames") as string;
+  let totalGames: number | null = null;
+
+  if (totalGamesStr) {
+    const parsed = parseInt(totalGamesStr);
+    if (isNaN(parsed)) {
+      return { error: "Invalid total games - must be a number" };
+    }
+    if (parsed < 1 || parsed > 100) {
+      return { error: "Total games must be between 1 and 100" };
+    }
+    totalGames = parsed;
+  }
+
   // New schedule config fields
   const gameDaysJson = formData.get("gameDays") as string;
   const gameTimesJson = formData.get("gameTimes") as string;
   const defaultLocation = formData.get("defaultLocation") as string || null;
-  
+
   let gameDays = ["Monday"]; // default
   let gameTimes = ["21:15"]; // default
-  
+
+  // SECURITY: Validate JSON.parse results with type checking
   try {
     if (gameDaysJson) {
-      gameDays = JSON.parse(gameDaysJson);
+      const parsed = JSON.parse(gameDaysJson);
+      if (Array.isArray(parsed) && parsed.every(d => typeof d === 'string')) {
+        gameDays = parsed;
+      } else {
+        console.error("Invalid game_days format - expected array of strings");
+      }
     }
   } catch (e) {
     console.error("Error parsing game_days:", e);
   }
-  
+
+  // SECURITY: Validate JSON.parse results with type checking
   try {
     if (gameTimesJson) {
-      gameTimes = JSON.parse(gameTimesJson);
+      const parsed = JSON.parse(gameTimesJson);
+      if (Array.isArray(parsed) && parsed.every(t => typeof t === 'string')) {
+        gameTimes = parsed;
+      } else {
+        console.error("Invalid game_times format - expected array of strings");
+      }
     }
   } catch (e) {
     console.error("Error parsing game_times:", e);
@@ -208,27 +248,53 @@ export async function updateSeason(seasonId: string, formData: FormData): Promis
   const name = formData.get("name") as string;
   const startDate = formData.get("startDate") as string;
   const endDate = formData.get("endDate") as string || null;
-  const gamesPerCycle = parseInt(formData.get("gamesPerCycle") as string) || 13;
-  
+
+  // SECURITY: Validate gamesPerCycle with bounds checking
+  const gamesPerCycleStr = formData.get("gamesPerCycle") as string;
+  let gamesPerCycle = 13; // default
+
+  if (gamesPerCycleStr) {
+    const parsed = parseInt(gamesPerCycleStr);
+    if (isNaN(parsed)) {
+      return { error: "Invalid games per cycle - must be a number" };
+    }
+    if (parsed < 1 || parsed > 50) {
+      return { error: "Games per cycle must be between 1 and 50" };
+    }
+    gamesPerCycle = parsed;
+  }
+
   // New schedule config fields (optional for update)
   const gameDaysJson = formData.get("gameDays") as string;
   const gameTimesJson = formData.get("gameTimes") as string;
   const defaultLocation = formData.get("defaultLocation") as string;
-  
+
   let gameDays = null;
   let gameTimes = null;
-  
+
+  // SECURITY: Validate JSON.parse results with type checking
   try {
     if (gameDaysJson) {
-      gameDays = JSON.parse(gameDaysJson);
+      const parsed = JSON.parse(gameDaysJson);
+      if (Array.isArray(parsed) && parsed.every(d => typeof d === 'string')) {
+        gameDays = parsed;
+      } else {
+        console.error("Invalid game_days format - expected array of strings");
+      }
     }
   } catch (e) {
     console.error("Error parsing game_days:", e);
   }
-  
+
+  // SECURITY: Validate JSON.parse results with type checking
   try {
     if (gameTimesJson) {
-      gameTimes = JSON.parse(gameTimesJson);
+      const parsed = JSON.parse(gameTimesJson);
+      if (Array.isArray(parsed) && parsed.every(t => typeof t === 'string')) {
+        gameTimes = parsed;
+      } else {
+        console.error("Invalid game_times format - expected array of strings");
+      }
     }
   } catch (e) {
     console.error("Error parsing game_times:", e);

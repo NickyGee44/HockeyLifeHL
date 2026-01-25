@@ -13,13 +13,18 @@ async function requireOwner() {
     return { error: "Not authenticated", isOwner: false };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "owner") {
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
+    return { error: "Failed to verify user permissions", isOwner: false };
+  }
+
+  if (profile.role !== "owner") {
     return { error: "Not authorized - owner access required", isOwner: false };
   }
 
@@ -54,10 +59,21 @@ export async function createSuspension(formData: FormData) {
 
   const playerId = formData.get("playerId") as string;
   const reason = formData.get("reason") as string;
-  const gamesRemaining = parseInt(formData.get("gamesRemaining") as string) || 0;
   const startDate = formData.get("startDate") as string;
 
-  if (!playerId || !reason || gamesRemaining <= 0 || !startDate) {
+  // SECURITY: Validate gamesRemaining with bounds checking
+  const gamesRemainingStr = formData.get("gamesRemaining") as string;
+  const gamesRemaining = parseInt(gamesRemainingStr);
+
+  if (isNaN(gamesRemaining)) {
+    return { error: "Invalid games remaining - must be a number" };
+  }
+
+  if (gamesRemaining <= 0 || gamesRemaining > 50) {
+    return { error: "Games remaining must be between 1 and 50" };
+  }
+
+  if (!playerId || !reason || !startDate) {
     return { error: "All fields are required" };
   }
 

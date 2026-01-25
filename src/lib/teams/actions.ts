@@ -21,13 +21,18 @@ async function requireOwner() {
     return { error: "Not authenticated", isOwner: false };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "owner") {
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
+    return { error: "Failed to verify user permissions", isOwner: false };
+  }
+
+  if (profile.role !== "owner") {
     return { error: "Not authorized - owner access required", isOwner: false };
   }
 
@@ -299,24 +304,34 @@ async function requireCaptainOfTeam(teamId: string) {
   }
 
   // Check if user is owner (owners can do anything)
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role === "owner") {
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
+    return { error: "Failed to verify user permissions", isCaptain: false };
+  }
+
+  if (profile.role === "owner") {
     return { isCaptain: true, userId: user.id, isOwner: true };
   }
 
   // Check if user is captain of this specific team
-  const { data: team } = await supabase
+  const { data: team, error: teamError } = await supabase
     .from("teams")
     .select("captain_id")
     .eq("id", teamId)
     .single();
 
-  if (!team || team.captain_id !== user.id) {
+  if (teamError || !team) {
+    console.error("Error fetching team:", teamError);
+    return { error: "Team not found", isCaptain: false };
+  }
+
+  if (team.captain_id !== user.id) {
     return { error: "Not authorized - you are not the captain of this team", isCaptain: false };
   }
 

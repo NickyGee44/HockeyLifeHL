@@ -123,7 +123,7 @@ export default function RegisterPage() {
               disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
-              At least 6 characters
+              Must include: 8+ characters, uppercase, lowercase, number, and special character
             </p>
           </div>
 

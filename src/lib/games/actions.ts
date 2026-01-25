@@ -20,13 +20,18 @@ async function requireOwner() {
     return { error: "Not authenticated", isOwner: false };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "owner") {
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
+    return { error: "Failed to verify user permissions", isOwner: false };
+  }
+
+  if (profile.role !== "owner") {
     return { error: "Not authorized - owner access required", isOwner: false };
   }
 
@@ -146,9 +151,36 @@ export async function updateGame(gameId: string, formData: FormData): Promise<Ga
   const awayTeamId = formData.get("awayTeamId") as string;
   const scheduledAt = formData.get("scheduledAt") as string;
   const location = formData.get("location") as string || null;
-  const homeScore = parseInt(formData.get("homeScore") as string) || 0;
-  const awayScore = parseInt(formData.get("awayScore") as string) || 0;
   const status = formData.get("status") as GameStatus || "scheduled";
+
+  // SECURITY: Validate scores with proper bounds checking
+  const homeScoreStr = formData.get("homeScore") as string;
+  const awayScoreStr = formData.get("awayScore") as string;
+
+  let homeScore = 0;
+  let awayScore = 0;
+
+  if (homeScoreStr) {
+    const parsed = parseInt(homeScoreStr);
+    if (isNaN(parsed)) {
+      return { error: "Invalid home score - must be a number" };
+    }
+    if (parsed < 0 || parsed > 99) {
+      return { error: "Home score must be between 0 and 99" };
+    }
+    homeScore = parsed;
+  }
+
+  if (awayScoreStr) {
+    const parsed = parseInt(awayScoreStr);
+    if (isNaN(parsed)) {
+      return { error: "Invalid away score - must be a number" };
+    }
+    if (parsed < 0 || parsed > 99) {
+      return { error: "Away score must be between 0 and 99" };
+    }
+    awayScore = parsed;
+  }
 
   // Validation
   if (!seasonId) {

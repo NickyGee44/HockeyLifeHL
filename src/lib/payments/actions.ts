@@ -23,13 +23,18 @@ async function requireOwner() {
     return { error: "Not authenticated", isOwner: false };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "owner") {
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
+    return { error: "Failed to verify user permissions", isOwner: false };
+  }
+
+  if (profile.role !== "owner") {
     return { error: "Not authorized - owner access required", isOwner: false };
   }
 
@@ -153,9 +158,9 @@ export async function createPayment(formData: FormData) {
     .select()
     .single();
 
-  if (error) {
+  if (error || !payment) {
     console.error("Error creating payment:", error);
-    return { error: error.message };
+    return { error: error?.message || "Failed to create payment" };
   }
 
   revalidatePath("/admin/payments");
@@ -372,20 +377,30 @@ export async function getTeamPaymentStatus(teamId: string, seasonId: string) {
   }
 
   // Verify user is captain of this team
-  const { data: team } = await supabase
+  const { data: team, error: teamError } = await supabase
     .from("teams")
     .select("captain_id")
     .eq("id", teamId)
     .single();
 
-  const { data: profile } = await supabase
+  if (teamError || !team) {
+    console.error("Error fetching team:", teamError);
+    return { error: "Team not found", payments: [] };
+  }
+
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
+    return { error: "Failed to verify user permissions", payments: [] };
+  }
+
   // Allow owners and team captains
-  if (profile?.role !== "owner" && team?.captain_id !== user.id) {
+  if (profile.role !== "owner" && team.captain_id !== user.id) {
     return { error: "Not authorized - must be team captain", payments: [] };
   }
 

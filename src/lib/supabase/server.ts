@@ -43,12 +43,14 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              // Enhanced cookie options for better mobile support
+              // Enhanced cookie options for security and mobile support
               const enhancedOptions = {
                 ...options,
+                // Prevent client-side JavaScript access (XSS protection)
+                httpOnly: true,
                 sameSite: 'lax' as const,
                 secure: process.env.NODE_ENV === 'production',
-                maxAge: 60 * 60 * 24 * 30, // 30 days
+                maxAge: 60 * 60 * 24 * 14, // 14 days (reduced from 30 for better security)
               }
               cookieStore.set(name, value, enhancedOptions)
             })

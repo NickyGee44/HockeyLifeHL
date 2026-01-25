@@ -253,18 +253,24 @@ export async function activateDraft(draftId: string): Promise<DraftActionResult>
     const captainRosterEntries = [];
     for (const team of teams) {
       if (team.captain_id) {
-        // Check if captain is a goalie
-        const { data: captainProfile } = await supabase
+        // SECURITY: Check if captain is a goalie with proper null checking
+        const { data: captainProfile, error: profileError } = await supabase
           .from("profiles")
           .select("position")
           .eq("id", team.captain_id)
           .single();
 
+        if (profileError || !captainProfile) {
+          console.warn(`Captain profile not found for team ${team.id}, captain ${team.captain_id}`);
+          // Skip this captain if profile doesn't exist
+          continue;
+        }
+
         captainRosterEntries.push({
           team_id: team.id,
           player_id: team.captain_id,
           season_id: draft.season_id,
-          is_goalie: captainProfile?.position === "G",
+          is_goalie: captainProfile.position === "G",
         });
       }
     }

@@ -19,13 +19,18 @@ async function requireOwner() {
     return { error: "Not authenticated", isOwner: false };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "owner") {
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
+    return { error: "Failed to verify user permissions", isOwner: false };
+  }
+
+  if (profile.role !== "owner") {
     return { error: "Not authorized - owner access required", isOwner: false };
   }
 
@@ -147,11 +152,15 @@ export async function updatePlayerAvatar(
 
   // If removing avatar and it's stored in Supabase, delete the file
   if (avatarUrl === null) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("avatar_url")
       .eq("id", playerId)
       .single();
+
+    if (profileError) {
+      console.error("Error fetching profile for avatar deletion:", profileError);
+    }
 
     if (profile?.avatar_url && profile.avatar_url.includes("supabase")) {
       try {
@@ -199,11 +208,15 @@ export async function updateTeamLogoAdmin(
 
   // If removing logo and it's stored in Supabase, delete the file
   if (logoUrl === null) {
-    const { data: team } = await supabase
+    const { data: team, error: teamError } = await supabase
       .from("teams")
       .select("logo_url")
       .eq("id", teamId)
       .single();
+
+    if (teamError) {
+      console.error("Error fetching team for logo deletion:", teamError);
+    }
 
     if (team?.logo_url && team.logo_url.includes("supabase")) {
       try {

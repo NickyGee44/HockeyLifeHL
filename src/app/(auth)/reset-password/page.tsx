@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resetPassword } from "@/lib/auth/actions";
+import { validatePassword } from "@/lib/auth/password-validation";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,8 +36,10 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    // Validate password meets requirements
+    const validation = validatePassword(password);
+    if (!validation.valid) {
+      toast.error(validation.error);
       return;
     }
 

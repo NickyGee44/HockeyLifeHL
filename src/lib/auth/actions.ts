@@ -3,11 +3,47 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { withConsistentTiming } from "./timing-protection";
+import { sanitizeEmail } from "@/lib/input-sanitization";
 
 export type AuthResult = {
   error?: string;
   success?: boolean;
 };
+
+// Email validation helper - more robust than simple regex
+function validateEmail(email: string): { valid: boolean; error?: string } {
+  if (!email) {
+    return { valid: false, error: "Email is required" };
+  }
+
+  // Sanitize first
+  const sanitized = sanitizeEmail(email);
+
+  // Check basic format
+  const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+  if (!emailRegex.test(sanitized)) {
+    return { valid: false, error: "Please enter a valid email address" };
+  }
+
+  // Check for consecutive dots
+  if (sanitized.includes('..')) {
+    return { valid: false, error: "Invalid email format" };
+  }
+
+  // Check length
+  if (sanitized.length > 254) {
+    return { valid: false, error: "Email address is too long" };
+  }
+
+  // Check local part (before @) length
+  const [localPart] = sanitized.split('@');
+  if (localPart.length > 64) {
+    return { valid: false, error: "Email address is invalid" };
+  }
+
+  return { valid: true };
+}
 
 // Password validation helper
 function validatePassword(password: string): { valid: boolean; error?: string } {
@@ -60,11 +96,14 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
     return { error: "Email and password are required" };
   }
 
-  // Basic email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return { error: "Please enter a valid email address" };
+  // Validate and sanitize email
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.valid) {
+    return { error: emailValidation.error };
   }
+
+  // Use sanitized email
+  const sanitizedEmail = sanitizeEmail(email);
 
   if (password !== confirmPassword) {
     return { error: "Passwords do not match" };
@@ -95,10 +134,10 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
     (typeof window !== 'undefined' ? window.location.origin : "http://localhost:3000");
 
-  console.log("Signup attempt for:", email, "with redirect to:", siteUrl);
+  console.log("Signup attempt for:", sanitizedEmail, "with redirect to:", siteUrl);
 
   const { data: signUpData, error } = await supabase.auth.signUp({
-    email,
+    email: sanitizedEmail,
     password,
     options: {
       data: {
@@ -137,34 +176,50 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   console.log("User created successfully:", signUpData.user.id);
 
   // If invite code provided and user was created, use the invite code
-  // Note: Profile is created by trigger, so we need to wait a moment or check
+  // Note: Profile is created by trigger, so we need to wait for it
   if (inviteCode && signUpData.user) {
-    // Wait a bit for profile trigger to complete
+    console.log("Waiting for profile creation trigger to complete...");
+
+    // Initial wait for trigger to start
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if profile exists
+
+    // Poll for profile creation with increased retry count
     let profileExists = false;
     let attempts = 0;
-    while (!profileExists && attempts < 5) {
-      const { data: profile } = await supabase
+    const MAX_ATTEMPTS = 20; // 20 attempts * 500ms = 10 seconds total wait time
+
+    while (!profileExists && attempts < MAX_ATTEMPTS) {
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
         .eq("id", signUpData.user.id)
         .single();
-      
+
       if (profile) {
         profileExists = true;
+        console.log(`Profile found after ${attempts + 1} attempts`);
+
         // Use the invite code
         const { useInviteCode } = await import("../teams/invite-actions");
         const result = await useInviteCode(inviteCode);
-        
+
         if (result.error) {
           console.error("Error using invite code:", result.error);
-          // Don't fail signup if invite code fails, just log it
+          // Don't fail signup if invite code fails, log for manual review
+          console.log(`ACTION REQUIRED: Manually apply invite code ${inviteCode} to user ${signUpData.user.id}`);
+        } else {
+          console.log("Successfully applied invite code");
         }
       } else {
         attempts++;
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (attempts < MAX_ATTEMPTS) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          // Profile never created - critical error
+          console.error(`Profile creation failed after ${MAX_ATTEMPTS} attempts for user ${signUpData.user.id}`);
+          console.log(`ACTION REQUIRED: Check database trigger and manually create profile for user ${signUpData.user.id}`);
+          // Continue anyway - user is created, profile issue needs manual resolution
+        }
       }
     }
   }
@@ -174,54 +229,58 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
 }
 
 export async function signIn(formData: FormData): Promise<AuthResult> {
-  let supabase;
-  try {
-    supabase = await createClient();
-  } catch (err: any) {
-    console.error("Failed to create Supabase client:", err);
-    return { error: "Configuration error. Please contact support." };
-  }
-
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  if (!email || !password) {
-    return { error: "Email and password are required" };
-  }
-
-  console.log("Sign in attempt for:", email);
-
-  // Sign in with password
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error("Signin error:", error);
-
-    // Use generic error message to prevent account enumeration
-    // Don't reveal whether email exists, password is wrong, or email isn't confirmed
-    if (error.message.includes("Invalid login credentials") ||
-        error.message.includes("Email not confirmed")) {
-      return { error: "Unable to sign in. Please check your credentials or verify your email." };
-    }
-    if (error.message.includes("rate limit")) {
-      return { error: "Too many login attempts. Please try again later." };
+  // Use consistent timing to prevent timing attacks
+  // All login attempts take the same time regardless of whether email exists
+  return withConsistentTiming(async () => {
+    let supabase;
+    try {
+      supabase = await createClient();
+    } catch (err: any) {
+      console.error("Failed to create Supabase client:", err);
+      return { error: "Configuration error. Please contact support." };
     }
 
-    // Generic fallback error
-    return { error: "Unable to sign in. Please try again or contact support." };
-  }
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-  if (!data.user) {
-    return { error: "Failed to sign in. Please try again." };
-  }
+    if (!email || !password) {
+      return { error: "Email and password are required" };
+    }
 
-  console.log("User signed in successfully:", data.user.id);
+    console.log("Sign in attempt for:", email);
 
-  revalidatePath("/", "layout");
-  redirect("/dashboard");
+    // Sign in with password
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error("Signin error:", error);
+
+      // Use generic error message to prevent account enumeration
+      // Don't reveal whether email exists, password is wrong, or email isn't confirmed
+      if (error.message.includes("Invalid login credentials") ||
+          error.message.includes("Email not confirmed")) {
+        return { error: "Unable to sign in. Please check your credentials or verify your email." };
+      }
+      if (error.message.includes("rate limit")) {
+        return { error: "Too many login attempts. Please try again later." };
+      }
+
+      // Generic fallback error
+      return { error: "Unable to sign in. Please try again or contact support." };
+    }
+
+    if (!data.user) {
+      return { error: "Failed to sign in. Please try again." };
+    }
+
+    console.log("User signed in successfully:", data.user.id);
+
+    revalidatePath("/", "layout");
+    redirect("/dashboard");
+  }, 800, 1200); // Takes 800-1200ms regardless of outcome
 }
 
 export async function signOut(): Promise<{ error?: string }> {
@@ -253,35 +312,45 @@ export async function getUser() {
 export async function getUserProfile() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
+  if (error) {
+    console.error("Error fetching current user profile:", error);
+    return null;
+  }
+
   return profile;
 }
 
 export async function forgotPassword(email: string): Promise<AuthResult> {
-  const supabase = await createClient();
+  // Use consistent timing to prevent email enumeration
+  return withConsistentTiming(async () => {
+    const supabase = await createClient();
 
-  if (!email) {
-    return { error: "Email is required" };
-  }
+    if (!email) {
+      return { error: "Email is required" };
+    }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/reset-password`,
-  });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/reset-password`,
+    });
 
-  if (error) {
-    console.error("Forgot password error:", error);
-    return { error: error.message };
-  }
+    if (error) {
+      console.error("Forgot password error:", error);
+      // Always return success to prevent email enumeration
+      // User gets the same message whether email exists or not
+    }
 
-  return { success: true };
+    // Always return success - don't reveal if email exists
+    return { success: true };
+  }, 800, 1200); // Takes 800-1200ms regardless of outcome
 }
 
 export async function resetPassword(formData: FormData): Promise<AuthResult> {

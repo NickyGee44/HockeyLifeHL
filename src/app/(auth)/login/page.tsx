@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,35 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
+// Whitelist of allowed redirect paths (must match middleware whitelist)
+const ALLOWED_REDIRECT_PATHS = [
+  '/dashboard',
+  '/admin',
+  '/captain',
+];
+
+/**
+ * Validates that a redirect path is safe
+ * Prevents open redirect attacks
+ */
+function getSafeRedirectPath(path: string | null): string {
+  if (!path || !path.startsWith('/')) {
+    return '/dashboard';
+  }
+
+  const cleanPath = path.split('?')[0].split('#')[0];
+
+  const isAllowed = ALLOWED_REDIRECT_PATHS.some(
+    (allowedPath) => cleanPath === allowedPath || cleanPath.startsWith(allowedPath + '/')
+  );
+
+  return isAllowed ? path : '/dashboard';
+}
+
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,8 +92,13 @@ export default function LoginPage() {
       // Small delay to ensure cookies are set
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Use window.location for hard navigation to ensure auth state refreshes
-      window.location.href = "/dashboard";
+      // Get safe redirect path from URL params (set by middleware)
+      const redirectPath = getSafeRedirectPath(searchParams.get('redirect'));
+
+      // Navigate using Next.js router and refresh to update auth state
+      // This is preferred over window.location as it preserves client-side routing
+      await router.push(redirectPath);
+      router.refresh();
     } catch (err: any) {
       console.error("Login error:", err);
       toast.error("An error occurred. Please try again.");

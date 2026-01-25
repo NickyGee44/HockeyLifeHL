@@ -1,6 +1,31 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Whitelist of allowed redirect paths to prevent open redirect vulnerability
+const ALLOWED_REDIRECT_PATHS = [
+  '/dashboard',
+  '/admin',
+  '/captain',
+];
+
+/**
+ * Validates that a redirect path is safe and allowed
+ * Only allows paths that start with whitelisted prefixes
+ */
+function isValidRedirectPath(path: string): boolean {
+  if (!path || !path.startsWith('/')) {
+    return false;
+  }
+
+  // Remove query parameters and fragments
+  const cleanPath = path.split('?')[0].split('#')[0];
+
+  // Check if path starts with an allowed prefix
+  return ALLOWED_REDIRECT_PATHS.some(
+    (allowedPath) => cleanPath === allowedPath || cleanPath.startsWith(allowedPath + '/')
+  );
+}
+
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -28,15 +53,17 @@ export async function updateSession(request: NextRequest) {
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Enhanced cookie options for better mobile support
+            // Enhanced cookie options for security and mobile support
             const enhancedOptions = {
               ...options,
+              // Prevent client-side JavaScript access (XSS protection)
+              httpOnly: true,
               // Ensure cookies work on mobile browsers
               sameSite: 'lax' as const,
               // Use secure cookies in production
               secure: process.env.NODE_ENV === 'production',
-              // Longer max age for persistent sessions (30 days)
-              maxAge: 60 * 60 * 24 * 30,
+              // Session lifetime: 14 days (reduced from 30 for better security)
+              maxAge: 60 * 60 * 24 * 14, // 14 days
             }
             supabaseResponse.cookies.set(name, value, enhancedOptions)
           })
@@ -62,7 +89,14 @@ export async function updateSession(request: NextRequest) {
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    url.searchParams.set('redirect', request.nextUrl.pathname)
+
+    // Only set redirect parameter if it's a valid, safe path
+    const requestedPath = request.nextUrl.pathname;
+    if (isValidRedirectPath(requestedPath)) {
+      url.searchParams.set('redirect', requestedPath)
+    }
+    // If invalid, user will be redirected to /dashboard after login (default behavior)
+
     return NextResponse.redirect(url)
   }
 

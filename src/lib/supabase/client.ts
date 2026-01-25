@@ -18,65 +18,25 @@ export function createClient() {
     )
   }
 
-  // Check if we're in a browser environment
-  const isBrowser = typeof window !== 'undefined'
-
+  // Browser client should use localStorage for session management
+  // Cookies are managed server-side with HttpOnly flag for security
   client = createBrowserClient<Database>(
     supabaseUrl,
     supabaseAnonKey,
     {
-      // Cookie handling for browser client (required by @supabase/ssr)
-      cookies: {
-        get(name: string) {
-          if (!isBrowser) return undefined
-          // Read cookie from document.cookie
-          const value = `; ${document.cookie}`;
-          const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) {
-            return parts.pop()?.split(';').shift();
-          }
-        },
-        set(name: string, value: string, options: any) {
-          if (!isBrowser) return
-          // Write cookie to document.cookie
-          let cookie = `${name}=${value}`;
-          if (options?.maxAge) {
-            cookie += `; max-age=${options.maxAge}`;
-          }
-          if (options?.path) {
-            cookie += `; path=${options.path}`;
-          }
-          if (options?.domain) {
-            cookie += `; domain=${options.domain}`;
-          }
-          if (options?.sameSite) {
-            cookie += `; samesite=${options.sameSite}`;
-          }
-          if (options?.secure) {
-            cookie += '; secure';
-          }
-          document.cookie = cookie;
-        },
-        remove(name: string, options: any) {
-          if (!isBrowser) return
-          // Remove cookie by setting expiry to past
-          this.set(name, '', {
-            ...options,
-            maxAge: 0,
-          });
-        },
-      },
       auth: {
-        // Persist auth session in localStorage (default, but being explicit)
+        // Persist auth session in localStorage (secure client-side storage)
         persistSession: true,
-        // Automatically detect storage from environment
+        // Automatically detect session from URL (OAuth callbacks)
         detectSessionInUrl: true,
         // Auto refresh token before it expires
         autoRefreshToken: true,
-        // Storage key for the session
+        // Custom storage key to avoid conflicts
         storageKey: 'hockeylifehl-auth-token',
-        // Flow type for PKCE (more secure)
+        // Use PKCE flow for enhanced security
         flowType: 'pkce',
+        // Store in localStorage, not cookies (cookies are HttpOnly server-side)
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
       },
     }
   )
