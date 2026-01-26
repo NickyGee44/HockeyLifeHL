@@ -53,12 +53,6 @@ export function LeagueAnalytics({ analytics }: LeagueAnalyticsProps) {
     return 'text-red-600';
   };
 
-  const getHealthBgColor = (score: number) => {
-    if (score >= 80) return 'bg-green-600';
-    if (score >= 50) return 'bg-yellow-600';
-    return 'bg-red-600';
-  };
-
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
@@ -110,7 +104,6 @@ export function LeagueAnalytics({ analytics }: LeagueAnalyticsProps) {
             <Progress
               value={activity.health_score}
               className="h-2"
-              indicatorClassName={getHealthBgColor(activity.health_score)}
             />
           </CardContent>
         </Card>
