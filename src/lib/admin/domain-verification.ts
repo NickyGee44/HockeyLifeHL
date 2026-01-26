@@ -314,7 +314,16 @@ export async function getAllCustomDomains(): Promise<{
       .from('leagues')
       .select('id, name, custom_domain, custom_domain_verified, subdomain')
       .not('custom_domain', 'is', null)
-      .order('custom_domain_verified', { ascending: false });
+      .order('custom_domain_verified', { ascending: false }) as {
+        data: Array<{
+          id: string;
+          name: string;
+          custom_domain: string | null;
+          custom_domain_verified: boolean | null;
+          subdomain: string | null;
+        }> | null;
+        error: any;
+      };
 
     if (error) {
       console.error('Error fetching custom domains:', error);
