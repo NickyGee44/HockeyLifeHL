@@ -448,7 +448,7 @@ export async function createLeagueAsAdmin(data: {
     }
 
     // Create default league settings
-    const { error: settingsError } = await supabase
+    const { error: settingsError } = await (supabase as any)
       .from('league_settings')
       .insert({
         league_id: league.id,
