@@ -1,15 +1,35 @@
-# ✅ Simple Instructions - Run Migration 7
+# ✅ UPDATED: Simple Instructions - Run Migration 7
 
-I cannot execute SQL directly on your Supabase database because:
-- psql is not installed
-- Supabase CLI doesn't support arbitrary SQL execution on remote databases
-- Migration history mismatch with remote
+You're getting duplicate key errors because you have multiple NULL records with the same season name (like "2025 Winter Season").
 
-## 🚀 What You Need to Do (Very Simple)
+## 🚀 What You Need to Do (UPDATED)
+
+### OPTION A: See What Duplicates You Have (Optional)
+
+**File:** `DEBUG_SEASONS.sql`
+
+1. Open the file
+2. Copy all (Ctrl+A, Ctrl+C)
+3. Go to: https://supabase.com/dashboard/project/ntplczcmhvfkijjxavdl/sql/new
+4. Paste (Ctrl+V) and Run (Ctrl+Enter)
+5. You'll see all your season records and which ones are duplicates
+
+This is just for information - you don't need to fix anything manually.
+
+---
+
+### OPTION B: Just Fix Everything (Recommended)
+
+**File:** `MIGRATION_7_ULTIMATE_FIX.sql` ← **USE THIS ONE**
+
+This version handles ALL duplicate scenarios:
+- Multiple NULL records with the same name
+- NULL records conflicting with already-migrated records
+- For both seasons AND teams
 
 ### Step 1: Open This File
 
-Open: `MIGRATION_7_RUN_THIS.sql`
+Open: `MIGRATION_7_ULTIMATE_FIX.sql`
 
 ### Step 2: Copy Everything
 
@@ -30,15 +50,25 @@ Click this link: https://supabase.com/dashboard/project/ntplczcmhvfkijjxavdl/sql
 You'll see:
 ```
 ✅ Created League #1: HockeyLifeHL (Original)
-✅ Duplicate season names handled
-✅ Duplicate team names handled
-✅ Updated X teams
-✅ Updated X seasons
-✅ Updated X games
+🔍 Step 2A: Handling duplicate names WITHIN NULL records...
+  ⚠️ Renamed NULL duplicate: "2025 Winter Season" (id: xxx) → "2025 Winter Season (Duplicate 2)"
+  ✅ Renamed X duplicate NULL season records
+🔍 Step 2B: Handling conflicts with already-migrated seasons...
+  ✅ No conflicts with already-migrated seasons
+🔍 Step 3A: Handling duplicate names WITHIN NULL teams...
+  ✅ No duplicate names found within NULL teams
+🔍 Step 3B: Handling conflicts with already-migrated teams...
+  ✅ No conflicts with already-migrated teams
+📝 Step 4: Updating league_id for records with NULL league_id...
+  ✅ Updated X teams
+  ✅ Updated X seasons
+  ✅ Updated X games
 ... (all 18 tables)
-✅ All league_id columns are now NOT NULL
-✅ Created X admin memberships
-✅ MIGRATION 7 COMPLETE
+🔒 Step 5: Setting league_id to NOT NULL...
+  ✅ All league_id columns are now NOT NULL
+👤 Step 6: Creating admin memberships...
+  ✅ Created X admin memberships
+✅ MIGRATION 7 COMPLETE (ULTIMATE FIX)
 ```
 
 ## 📋 After Migration 7 Completes
