@@ -128,7 +128,7 @@ export async function getLeagueAnalytics(leagueId: string): Promise<AnalyticsRes
     let activeTeams = 0;
     if (activeSeason) {
       const { count } = await supabase
-        .from('rosters')
+        .from('team_rosters')
         .select('team_id', { count: 'exact', head: true })
         .eq('season_id', activeSeason.id);
       activeTeams = count || 0;
