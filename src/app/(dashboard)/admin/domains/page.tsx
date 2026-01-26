@@ -34,8 +34,10 @@ export default async function AdminDomainsPage() {
             <p className="text-muted-foreground mb-4">
               {result.error}
             </p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
+            <Button asChild>
+              <Link href="/admin/domains">
+                Try Again
+              </Link>
             </Button>
           </CardContent>
         </Card>
