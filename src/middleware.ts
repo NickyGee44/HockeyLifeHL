@@ -121,6 +121,35 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request);
   }
 
+  // ===== ADMIN SUBDOMAIN ROUTING =====
+  // If this is admin subdomain (admin.beerleaguehockey.ca), rewrite to /admin
+  if (hostname === 'admin.beerleaguehockey.ca' || hostname === 'admin.localhost') {
+    const url = request.nextUrl.clone();
+
+    // If not already accessing /admin path, rewrite to it
+    if (!pathname.startsWith('/admin')) {
+      url.pathname = `/admin${pathname}`;
+    }
+
+    // Run session update first to handle auth
+    const sessionResponse = await updateSession(request);
+
+    // If session middleware returned a redirect, respect it
+    if (sessionResponse.status >= 300 && sessionResponse.status < 400) {
+      return sessionResponse;
+    }
+
+    // Create rewrite response
+    const response = NextResponse.rewrite(url);
+
+    // Copy cookies from session response
+    sessionResponse.cookies.getAll().forEach(cookie => {
+      response.cookies.set(cookie.name, cookie.value, cookie);
+    });
+
+    return response;
+  }
+
   // ===== PLATFORM DOMAIN ROUTING =====
   // If this is a platform domain, handle normally (marketing pages, auth, etc.)
   if (isPlatformDomain(hostname)) {

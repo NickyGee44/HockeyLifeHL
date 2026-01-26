@@ -248,7 +248,7 @@ export default function AdminDashboardPage() {
           <CardDescription>Common admin tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Button className="h-auto py-4 flex-col gap-2 bg-canada-red hover:bg-canada-red-dark" asChild>
               <Link href="/admin/seasons">
                 <span className="text-2xl">📆</span>
@@ -283,6 +283,36 @@ export default function AdminDashboardPage() {
               <Link href="/admin/analytics">
                 <span className="text-2xl">📊</span>
                 <span>Analytics</span>
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Platform Management (New) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Platform Management</CardTitle>
+          <CardDescription>Multi-instance league administration</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Button className="h-auto py-4 flex-col gap-2 bg-primary hover:bg-primary/90" asChild>
+              <Link href="/admin/leagues">
+                <span className="text-2xl">🏒</span>
+                <span>League Management</span>
+              </Link>
+            </Button>
+            <Button className="h-auto py-4 flex-col gap-2" variant="outline" asChild>
+              <Link href="/admin/domains">
+                <span className="text-2xl">🌐</span>
+                <span>Domain Management</span>
+              </Link>
+            </Button>
+            <Button className="h-auto py-4 flex-col gap-2" variant="outline" asChild>
+              <Link href="/admin/leagues/create">
+                <span className="text-2xl">➕</span>
+                <span>Create New League</span>
               </Link>
             </Button>
           </div>
