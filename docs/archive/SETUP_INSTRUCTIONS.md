@@ -127,7 +127,8 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGc... (configured ✓)
 Your current `.env.local` has:
 
 ```bash
-RESEND_API_KEY=re_LpKc5LRd_NGDZHSn9StkbSZVffbfAKEYk
+# WARNING: NEVER commit real API keys to git! Get from your Resend dashboard.
+RESEND_API_KEY=re_xxxxxxxxxxxxx
 ```
 
 ### Test Resend Setup
@@ -249,7 +250,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc... (your anon key)
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc... (your service role key)
 
 # Resend (already in .env.local)
-RESEND_API_KEY=re_LpKc5LRd_NGDZHSn9StkbSZVffbfAKEYk
+# WARNING: NEVER commit real API keys to git! Get from your Resend dashboard.
+RESEND_API_KEY=re_xxxxxxxxxxxxx
 
 # Stripe (get from Step 6)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_... (or pk_live_...)
@@ -257,7 +259,8 @@ STRIPE_SECRET_KEY=sk_test_... (or sk_live_...)
 STRIPE_WEBHOOK_SECRET=whsec_...
 
 # OpenAI (already in .env.local)
-OPENAI_API_KEY=sk-proj-N-FjCwlC... (your OpenAI key)
+# WARNING: NEVER commit real API keys to git! Get from your OpenAI dashboard.
+OPENAI_API_KEY=sk-proj-xxxxx... (your OpenAI key)
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=https://hockeylifehl.app

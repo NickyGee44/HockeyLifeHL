@@ -185,10 +185,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
 # Resend (already configured)
-RESEND_API_KEY=re_LpKc5LRd_NGDZHSn9StkbSZVffbfAKEYk
+# WARNING: NEVER commit real API keys to git! Use placeholders in docs.
+RESEND_API_KEY=re_xxxxxxxxxxxxx
 
 # OpenAI (already configured)
-OPENAI_API_KEY=sk-proj-N-FjCwlC...
+# WARNING: NEVER commit real API keys to git! Use placeholders in docs.
+OPENAI_API_KEY=sk-proj-xxxxx...
 
 # Stripe (ADD THESE FROM STEP 8)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
@@ -325,11 +327,13 @@ Add these for **Production, Preview, Development:**
 NEXT_PUBLIC_SUPABASE_URL=https://ntplczcmhvfkijjxavdl.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc... (your anon key)
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc... (your service role key)
-RESEND_API_KEY=re_LpKc5LRd_NGDZHSn9StkbSZVffbfAKEYk
+# WARNING: NEVER commit real API keys to git! Get from your Resend dashboard.
+RESEND_API_KEY=re_xxxxxxxxxxxxx
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_... (use pk_live_ for production later)
 STRIPE_SECRET_KEY=sk_test_... (use sk_live_ for production later)
 STRIPE_WEBHOOK_SECRET=whsec_... (from production webhook, not local)
-OPENAI_API_KEY=sk-proj-N-FjCwlC...
+# WARNING: NEVER commit real API keys to git! Get from your OpenAI dashboard.
+OPENAI_API_KEY=sk-proj-xxxxx...
 NEXT_PUBLIC_APP_URL=https://hockeylifehl.app
 NODE_ENV=production
 ```
