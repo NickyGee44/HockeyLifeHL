@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
      *
      * We expand the default_price to get pricing information in a single request.
      */
-    const products = await stripeClient.products.list(
+    const products = await getStripeClient().products.list(
       {
         // Only show active products
         active: true,

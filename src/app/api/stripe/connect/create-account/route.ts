@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
      * - Merchant capabilities (accepting payments)
      * - Customer capabilities (being charged for subscriptions)
      */
-    const account = await stripeClient.v2.core.accounts.create({
+    const account = await getStripeClient().v2.core.accounts.create({
       // Display name shown to customers during checkout
       display_name: displayName,
 

@@ -15,7 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
      * Parse Thin Event
      * Thin events only contain the event ID, not the full event data
      */
-    const thinEvent = (stripeClient as any).parseThinEvent(body, signature, webhookSecret);
+    const thinEvent = (getStripeClient() as any).parseThinEvent(body, signature, webhookSecret);
 
     console.log('Received thin event:', thinEvent.type, 'ID:', thinEvent.id);
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
      * Fetch Full Event Data
      * We need to retrieve the full event from Stripe to get the details
      */
-    const event = await stripeClient.v2.core.events.retrieve(thinEvent.id);
+    const event = await getStripeClient().v2.core.events.retrieve(thinEvent.id);
 
     console.log('Full event type:', event.type);
 
@@ -134,7 +134,7 @@ async function handleRequirementsUpdated(event: any) {
 
   try {
     // Fetch the full account details to see what's required
-    const account = await stripeClient.v2.core.accounts.retrieve(accountId, {
+    const account = await getStripeClient().v2.core.accounts.retrieve(accountId, {
       include: ['requirements'],
     });
 
@@ -184,7 +184,7 @@ async function handleMerchantCapabilityUpdated(event: any) {
 
   try {
     // Fetch the account to get the current capability status
-    const account = await stripeClient.v2.core.accounts.retrieve(accountId, {
+    const account = await getStripeClient().v2.core.accounts.retrieve(accountId, {
       include: ['configuration.merchant'],
     });
 
@@ -229,7 +229,7 @@ async function handleCustomerCapabilityUpdated(event: any) {
 
   try {
     // Fetch the account to get the current capability status
-    const account = await stripeClient.v2.core.accounts.retrieve(accountId, {
+    const account = await getStripeClient().v2.core.accounts.retrieve(accountId, {
       include: ['configuration.customer'],
     });
 

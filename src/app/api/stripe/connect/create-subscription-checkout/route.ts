@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
      *
      * You can create this in the Stripe Dashboard or programmatically:
      *
-     * const price = await stripeClient.prices.create({
+     * const price = await getStripeClient().prices.create({
      *   product: 'prod_xxxxx', // Your platform subscription product
      *   currency: 'usd',
      *   unit_amount: 9900, // $99/month
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
      * The subscription is created on the PLATFORM account, but the connected
      * account is charged for it.
      */
-    const session = await stripeClient.checkout.sessions.create({
+    const session = await getStripeClient().checkout.sessions.create({
       /**
        * Customer Account
        * With V2 accounts, use the connected account ID as the customer_account.

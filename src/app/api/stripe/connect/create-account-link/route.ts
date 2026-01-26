@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
      * This creates a one-time use URL that allows the connected account to complete
      * or update their onboarding information. The link expires after a short period.
      */
-    const accountLink = await stripeClient.v2.core.accountLinks.create({
+    const accountLink = await getStripeClient().v2.core.accountLinks.create({
       // The connected account ID to create the link for
       account: league.stripe_account_id,
 

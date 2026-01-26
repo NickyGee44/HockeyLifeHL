@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
      * The product and price will be created on the connected account,
      * not on the platform account.
      */
-    const product = await stripeClient.products.create(
+    const product = await getStripeClient().products.create(
       {
         // Product name (e.g., "Season Registration", "Team Jersey")
         name,

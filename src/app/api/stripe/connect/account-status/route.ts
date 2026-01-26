@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
      * - configuration.merchant: Merchant capabilities (payment acceptance)
      * - requirements: Outstanding requirements and verification status
      */
-    const account = await stripeClient.v2.core.accounts.retrieve(
+    const account = await getStripeClient().v2.core.accounts.retrieve(
       league.stripe_account_id,
       {
         include: ['configuration.merchant', 'requirements'],

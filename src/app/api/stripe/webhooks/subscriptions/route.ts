@@ -26,7 +26,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
      * Construct Event from Webhook
      * This verifies the signature and parses the event
      */
-    const event = stripeClient.webhooks.constructEvent(
+    const event = getStripeClient().webhooks.constructEvent(
       body,
       signature,
       webhookSecret

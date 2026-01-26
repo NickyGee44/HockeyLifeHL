@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
      * - Cancel or reactivate subscriptions
      * - Update billing details
      */
-    const session = await stripeClient.billingPortal.sessions.create({
+    const session = await getStripeClient().billingPortal.sessions.create({
       /**
        * Customer Account
        * The connected account ID (V2 account)

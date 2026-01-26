@@ -7,25 +7,33 @@
 
 import Stripe from 'stripe';
 
-// TODO: Ensure STRIPE_SECRET_KEY is set in your .env.local file
-// Get your secret key from: https://dashboard.stripe.com/test/apikeys
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error(
-    'Missing STRIPE_SECRET_KEY environment variable. ' +
-    'Please add it to your .env.local file. ' +
-    'Get your key from: https://dashboard.stripe.com/test/apikeys'
-  );
-}
+let _stripeClient: Stripe | null = null;
 
 /**
- * Main Stripe client instance
- * Use this for all Stripe API requests throughout the application
+ * Get Stripe client instance (lazy initialization)
+ * Only initializes when actually used, not at import time
  */
-export const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  // The API version is automatically set by the SDK to the latest version
-  // No need to manually specify apiVersion
-  typescript: true,
-});
+export function getStripeClient(): Stripe {
+  if (_stripeClient) {
+    return _stripeClient;
+  }
+
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!secretKey) {
+    throw new Error(
+      'Missing STRIPE_SECRET_KEY environment variable. ' +
+      'Please add it to your .env.local file. ' +
+      'Get your key from: https://dashboard.stripe.com/test/apikeys'
+    );
+  }
+
+  _stripeClient = new Stripe(secretKey, {
+    typescript: true,
+  });
+
+  return _stripeClient;
+}
 
 /**
  * Publishable key for client-side Stripe.js
@@ -33,7 +41,7 @@ export const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
  */
 export const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-if (!STRIPE_PUBLISHABLE_KEY) {
+if (!STRIPE_PUBLISHABLE_KEY && typeof window !== 'undefined') {
   console.warn(
     'Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY. ' +
     'Client-side Stripe features will not work.'

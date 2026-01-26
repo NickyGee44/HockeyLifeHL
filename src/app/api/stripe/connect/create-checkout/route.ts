@@ -11,7 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripeClient } from '@/lib/stripe/client';
+import { getStripeClient } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the price details to calculate application fee
-    const price = await stripeClient.prices.retrieve(priceId, {
+    const price = await getStripeClient().prices.retrieve(priceId, {
       stripeAccount: league.stripe_account_id,
     });
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
      * The payment goes to the connected account, and the platform
      * receives the application fee.
      */
-    const session = await stripeClient.checkout.sessions.create(
+    const session = await getStripeClient().checkout.sessions.create(
       {
         // Line items (products being purchased)
         line_items: [
