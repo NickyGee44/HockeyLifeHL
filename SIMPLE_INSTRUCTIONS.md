@@ -20,7 +20,9 @@ This is just for information - you don't need to fix anything manually.
 
 ### OPTION B: Just Fix Everything (Recommended)
 
-**File:** `MIGRATION_7_ULTIMATE_FIX.sql` ← **USE THIS ONE**
+**File:** `MIGRATION_7_FINAL_WORKING_VERSION.sql` ← **USE THIS ONE**
+
+(Updated to fix enum error - uses correct role values)
 
 This version handles ALL duplicate scenarios:
 - Multiple NULL records with the same name
@@ -29,7 +31,7 @@ This version handles ALL duplicate scenarios:
 
 ### Step 1: Open This File
 
-Open: `MIGRATION_7_ULTIMATE_FIX.sql`
+Open: `MIGRATION_7_FINAL_WORKING_VERSION.sql`
 
 ### Step 2: Copy Everything
 
