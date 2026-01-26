@@ -271,7 +271,7 @@ export async function updateLeagueStatus(
       })
       .eq('id', leagueId)
       .select()
-      .single();
+      .single() as { data: any; error: any };
 
     if (error) {
       console.error('Error updating league status:', error);
@@ -375,7 +375,7 @@ export async function createLeagueAsAdmin(data: {
       .from('leagues')
       .select('id')
       .eq('slug', slug)
-      .single();
+      .single() as { data: any; error: any };
 
     if (existingLeague) {
       return { error: 'This league slug is already taken. Please choose a different name.' };
@@ -389,7 +389,7 @@ export async function createLeagueAsAdmin(data: {
       .from('leagues')
       .select('id')
       .eq('subdomain', subdomain)
-      .single();
+      .single() as { data: any; error: any };
 
     if (existingSubdomain) {
       return { error: 'This subdomain is already taken. Please choose a different one.' };
@@ -400,7 +400,7 @@ export async function createLeagueAsAdmin(data: {
       .from('profiles')
       .select('id')
       .eq('email', data.ownerEmail.toLowerCase())
-      .single();
+      .single() as { data: any; error: any };
 
     if (!ownerProfile) {
       return { error: 'Owner user not found. Please ensure the email is correct.' };
@@ -537,7 +537,7 @@ export async function updateLeagueAsAdmin(
         .select('id')
         .eq('subdomain', subdomain)
         .neq('id', leagueId)
-        .single();
+        .single() as { data: any; error: any };
 
       if (existingSubdomain) {
         return { error: 'This subdomain is already taken by another league' };
@@ -555,7 +555,7 @@ export async function updateLeagueAsAdmin(
       })
       .eq('id', leagueId)
       .select()
-      .single();
+      .single() as { data: any; error: any };
 
     if (error) {
       console.error('Error updating league:', error);
