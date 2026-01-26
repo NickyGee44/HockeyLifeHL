@@ -45,7 +45,7 @@ export async function movePlayerToTeam(
     }
 
     // Create trade record
-    const { data: trade, error: tradeError } = await (supabase as any)
+    const { data: trade, error: tradeError } = await supabase
       .from("trades")
       .insert({
         league_id: leagueId,
@@ -62,7 +62,7 @@ export async function movePlayerToTeam(
     }
 
     // Create trade_players record
-    const { error: tradePlayersError } = await (supabase as any)
+    const { error: tradePlayersError } = await supabase
       .from("trade_players")
       .insert({
         league_id: leagueId,
@@ -74,7 +74,7 @@ export async function movePlayerToTeam(
 
     if (tradePlayersError) {
       // Rollback trade
-      await (supabase as any).from("trades").delete().eq("id", trade.id);
+      await supabase.from("trades").delete().eq("id", trade.id);
       return { error: tradePlayersError.message };
     }
 
@@ -88,7 +88,7 @@ export async function movePlayerToTeam(
 
     if (rosterError) {
       // Rollback everything
-      await (supabase as any).from("trades").delete().eq("id", trade.id);
+      await supabase.from("trades").delete().eq("id", trade.id);
       return { error: rosterError.message };
     }
 
@@ -146,7 +146,7 @@ export async function executeTrade(
   }
 
     // Create trade record
-    const { data: trade, error: tradeError } = await (supabase as any)
+    const { data: trade, error: tradeError } = await supabase
       .from("trades")
       .insert({
         league_id: leagueId,
@@ -183,7 +183,7 @@ export async function executeTrade(
       ]);
 
     if (tradePlayersError) {
-      await (supabase as any).from("trades").delete().eq("id", trade.id);
+      await supabase.from("trades").delete().eq("id", trade.id);
       return { error: tradePlayersError.message };
     }
 
@@ -196,7 +196,7 @@ export async function executeTrade(
       .eq("season_id", seasonId);
 
     if (rosterErrorA) {
-      await (supabase as any).from("trades").delete().eq("id", trade.id);
+      await supabase.from("trades").delete().eq("id", trade.id);
       return { error: `Failed to move Player A: ${rosterErrorA.message}` };
     }
 
@@ -214,7 +214,7 @@ export async function executeTrade(
         .update({ team_id: teamAId })
         .eq("player_id", teamAPlayerId)
         .eq("season_id", seasonId);
-      await (supabase as any).from("trades").delete().eq("id", trade.id);
+      await supabase.from("trades").delete().eq("id", trade.id);
       return { error: `Failed to move Player B: ${rosterErrorB.message}` };
     }
 
@@ -255,7 +255,7 @@ export async function revertTrade(tradeId: string): Promise<TradeResult> {
 
   try {
     // Get trade details
-    const { data: trade, error: tradeError } = await (supabase as any)
+    const { data: trade, error: tradeError } = await supabase
       .from("trades")
       .select("*, trade_players(*)")
       .eq("id", tradeId)
@@ -293,7 +293,7 @@ export async function revertTrade(tradeId: string): Promise<TradeResult> {
     }
 
     // Mark trade as reverted
-    const { error: updateError } = await (supabase as any)
+    const { error: updateError } = await supabase
       .from("trades")
       .update({
         reverted_at: new Date().toISOString(),
@@ -322,7 +322,7 @@ export async function revertTrade(tradeId: string): Promise<TradeResult> {
 export async function getTradeHistory(seasonId?: string) {
   const supabase = await createClient();
 
-  const query = (supabase as any)
+  const query = supabase
     .from("trades")
     .select(`
       *,
