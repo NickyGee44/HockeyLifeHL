@@ -34,6 +34,7 @@ import {
   getGameStats 
 } from "@/lib/stats/actions";
 import { toast } from "sonner";
+import { useActiveLeague } from "@/hooks/use-league";
 
 type Game = {
   id: string;
@@ -61,6 +62,7 @@ type Player = {
 
 export default function CaptainStatsPage() {
   const { user, loading: authLoading, isCaptain } = useAuth();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [team, setTeam] = useState<{ id: string; name: string } | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,15 +75,15 @@ export default function CaptainStatsPage() {
   const [viewMode, setViewMode] = useState<"enter" | "verify">("enter");
 
   useEffect(() => {
-    if (user && isCaptain) {
+    if (user && isCaptain && leagueId) {
       loadData();
-    } else if (!authLoading && !isCaptain) {
+    } else if (!authLoading && !leagueLoading && (!isCaptain || !leagueId)) {
       setLoading(false);
     }
-  }, [user, isCaptain, authLoading]);
+  }, [user, isCaptain, authLoading, leagueId, leagueLoading]);
 
   async function loadData() {
-    if (!user?.id) {
+    if (!user?.id || !leagueId) {
       setLoading(false);
       return;
     }
@@ -93,6 +95,7 @@ export default function CaptainStatsPage() {
       .from("teams")
       .select("id, name")
       .eq("captain_id", user.id)
+      .eq("league_id", leagueId)
       .single();
 
     if (!teamData) {
@@ -115,6 +118,7 @@ export default function CaptainStatsPage() {
     const { data: seasonData } = await supabase
       .from("seasons")
       .select("id")
+      .eq("league_id", leagueId)
       .in("status", ["active", "playoffs"])
       .order("start_date", { ascending: false })
       .limit(1)

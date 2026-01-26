@@ -18,9 +18,11 @@ import { MyTeamRoster } from "@/components/draft/MyTeamRoster";
 import { getDraftOrder } from "@/lib/draft/draft-order";
 import { getLastPickedPlayer } from "@/lib/draft/actions";
 import { toast } from "sonner";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function CaptainDraftPage() {
   const { user, loading: authLoading, isCaptain } = useAuth();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [team, setTeam] = useState<any>(null);
   const [season, setSeason] = useState<any>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -34,23 +36,15 @@ export default function CaptainDraftPage() {
   const { draft, picks, isConnected } = useDraftRealtime(draftId);
 
   useEffect(() => {
-    if (user && isCaptain) {
+    if (user && isCaptain && leagueId) {
       loadData();
-    } else if (!authLoading) {
+    } else if (!authLoading && !leagueLoading && (!isCaptain || !leagueId)) {
       setLoading(false);
     }
-  }, [user, isCaptain, authLoading]);
-
-  // Load available players periodically (they don't change during draft)
-  useEffect(() => {
-    if (draftId) {
-      loadAvailablePlayers();
-      const interval = setInterval(loadAvailablePlayers, 10000); // Every 10 seconds
-      return () => clearInterval(interval);
-    }
-  }, [draftId]);
+  }, [user, isCaptain, authLoading, leagueId, leagueLoading]);
 
   async function loadData() {
+    if (!leagueId) return;
     try {
       const supabase = createClient();
       
@@ -64,6 +58,7 @@ export default function CaptainDraftPage() {
         .from("teams")
         .select("*")
         .eq("captain_id", user.id)
+        .eq("league_id", leagueId)
         .single();
 
       if (!teamData) {

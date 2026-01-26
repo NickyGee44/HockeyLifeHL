@@ -18,6 +18,11 @@ interface DashboardLayoutProps {
   onCheckIn: (status: "available" | "unavailable" | "maybe") => Promise<void>;
   loading: boolean;
   error: string | null;
+  activeLeague?: {
+    id: string;
+    name: string;
+    logo_url?: string;
+  };
 }
 
 export function DashboardView({
@@ -28,7 +33,8 @@ export function DashboardView({
   isCheckingIn,
   onCheckIn,
   loading,
-  error
+  error,
+  activeLeague
 }: DashboardLayoutProps) {
   
   if (loading) {
@@ -47,6 +53,13 @@ export function DashboardView({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6 md:space-y-8"
     >
+      {activeLeague && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg w-fit border border-border/50">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Managing:</span>
+          <span className="text-sm font-semibold text-primary">{activeLeague.name}</span>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">

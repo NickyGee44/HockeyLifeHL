@@ -304,9 +304,21 @@ export async function addSeasonHighlight(
     return { success: false, error: "Only league owners can add highlights" };
   }
 
+  // Get league_id from season
+  const { data: season } = await supabase
+    .from("seasons")
+    .select("league_id")
+    .eq("id", seasonId)
+    .single();
+
+  if (!season) {
+    return { success: false, error: "Season not found" };
+  }
+
   const { data, error } = await supabase
     .from("season_highlights")
     .insert({
+      league_id: season.league_id,
       season_id: seasonId,
       ...highlight,
     })

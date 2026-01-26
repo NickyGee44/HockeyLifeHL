@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { requireLeagueRole } from "@/lib/auth/league-context";
 
 export interface TradeResult {
   success?: boolean;
@@ -24,43 +25,32 @@ export async function movePlayerToTeam(
   seasonId: string,
   notes?: string
 ): Promise<TradeResult> {
-  const supabase = await createClient();
-
-  // Verify user is owner
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Not authenticated" };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "owner") {
-    return { error: "Only league owners can execute trades" };
-  }
-
-  // Validate the trade
-  const validation = await validatePlayerMove(
-    playerId,
-    fromTeamId,
-    toTeamId,
-    seasonId
-  );
-
-  if (!validation.valid) {
-    return { error: validation.error };
-  }
-
   try {
+    // Require owner or admin role
+    const { leagueId, userId } = await requireLeagueRole(['owner', 'admin']);
+
+    const supabase = await createClient();
+
+    // Validate the trade
+    const validation = await validatePlayerMove(
+      playerId,
+      fromTeamId,
+      toTeamId,
+      seasonId,
+      leagueId
+    );
+
+    if (!validation.valid) {
+      return { error: validation.error };
+    }
+
     // Create trade record
     const { data: trade, error: tradeError } = await supabase
       .from("trades")
       .insert({
+        league_id: leagueId,
         season_id: seasonId,
-        executed_by: user.id,
+        executed_by: userId,
         trade_type: "manual",
         notes: notes || null,
       })
@@ -75,6 +65,7 @@ export async function movePlayerToTeam(
     const { error: tradePlayersError } = await supabase
       .from("trade_players")
       .insert({
+        league_id: leagueId,
         trade_id: trade.id,
         player_id: playerId,
         from_team_id: fromTeamId,
@@ -125,37 +116,27 @@ export async function executeTrade(
   seasonId: string,
   notes?: string
 ): Promise<TradeResult> {
-  const supabase = await createClient();
+  try {
+    // Require owner or admin role
+    const { leagueId, userId } = await requireLeagueRole(['owner', 'admin']);
 
-  // Verify user is owner
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Not authenticated" };
-  }
+    const supabase = await createClient();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "owner") {
-    return { error: "Only league owners can execute trades" };
-  }
-
-  // Validate both moves
-  const validationA = await validatePlayerMove(
-    teamAPlayerId,
-    teamAId,
-    teamBId,
-    seasonId
-  );
-  const validationB = await validatePlayerMove(
-    teamBPlayerId,
-    teamBId,
-    teamAId,
-    seasonId
-  );
+    // Validate both moves
+    const validationA = await validatePlayerMove(
+      teamAPlayerId,
+      teamAId,
+      teamBId,
+      seasonId,
+      leagueId
+    );
+    const validationB = await validatePlayerMove(
+      teamBPlayerId,
+      teamBId,
+      teamAId,
+      seasonId,
+      leagueId
+    );
 
   if (!validationA.valid) {
     return { error: `Player A: ${validationA.error}` };
@@ -164,13 +145,13 @@ export async function executeTrade(
     return { error: `Player B: ${validationB.error}` };
   }
 
-  try {
     // Create trade record
     const { data: trade, error: tradeError } = await supabase
       .from("trades")
       .insert({
+        league_id: leagueId,
         season_id: seasonId,
-        executed_by: user.id,
+        executed_by: userId,
         trade_type: "player_swap",
         notes: notes || null,
       })
@@ -186,12 +167,14 @@ export async function executeTrade(
       .from("trade_players")
       .insert([
         {
+          league_id: leagueId,
           trade_id: trade.id,
           player_id: teamAPlayerId,
           from_team_id: teamAId,
           to_team_id: teamBId,
         },
         {
+          league_id: leagueId,
           trade_id: trade.id,
           player_id: teamBPlayerId,
           from_team_id: teamBId,
@@ -376,7 +359,8 @@ async function validatePlayerMove(
   playerId: string,
   fromTeamId: string,
   toTeamId: string,
-  seasonId: string
+  seasonId: string,
+  leagueId: string
 ): Promise<TradeValidation> {
   const supabase = await createClient();
 
@@ -394,7 +378,7 @@ async function validatePlayerMove(
   }
 
   // Check if player is suspended
-  const { data: suspensions } = await supabase
+  const { data: suspensions } = await (supabase as any)
     .from("suspensions")
     .select("*")
     .eq("player_id", playerId)

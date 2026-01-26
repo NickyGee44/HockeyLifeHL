@@ -31,8 +31,16 @@ BEGIN
 END $$;
 
 -- Add new unique constraint scoped to league
-ALTER TABLE teams
-ADD CONSTRAINT unique_team_name_per_league UNIQUE (league_id, name);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'unique_team_name_per_league' AND conrelid = 'teams'::regclass
+  ) THEN
+    ALTER TABLE teams
+    ADD CONSTRAINT unique_team_name_per_league UNIQUE (league_id, name);
+  END IF;
+END $$;
 
 -- ==============================================================================
 -- TABLE: seasons (Add Multi-Tenant Support)
@@ -57,8 +65,16 @@ BEGIN
 END $$;
 
 -- Add new unique constraint scoped to league
-ALTER TABLE seasons
-ADD CONSTRAINT unique_season_name_per_league UNIQUE (league_id, name);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'unique_season_name_per_league' AND conrelid = 'seasons'::regclass
+  ) THEN
+    ALTER TABLE seasons
+    ADD CONSTRAINT unique_season_name_per_league UNIQUE (league_id, name);
+  END IF;
+END $$;
 
 -- ==============================================================================
 -- TABLE: team_rosters (Add Multi-Tenant Support)

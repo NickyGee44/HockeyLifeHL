@@ -19,6 +19,7 @@ export async function updateMatchupStatsForGame(gameId: string): Promise<{
       .select(`
         id,
         season_id,
+        league_id,
         home_team_id,
         away_team_id,
         scheduled_at
@@ -37,8 +38,7 @@ export async function updateMatchupStatsForGame(gameId: string): Promise<{
         player_id,
         team_id,
         goals,
-        assists,
-        shots
+        assists
       `)
       .eq("game_id", gameId);
 
@@ -88,9 +88,10 @@ export async function updateMatchupStatsForGame(gameId: string): Promise<{
           stat.player_id,
           goalieId,
           game.season_id,
-          stat.goals,
-          stat.assists,
-          stat.shots || 0,
+          game.league_id,
+          stat.goals || 0,
+          stat.assists || 0,
+          0, // Shots not tracked in player_stats yet
           game.scheduled_at
         );
       }
@@ -110,6 +111,7 @@ async function updateOrCreateMatchup(
   playerId: string,
   goalieId: string,
   seasonId: string,
+  leagueId: string,
   goals: number,
   assists: number,
   shots: number,
@@ -144,6 +146,7 @@ async function updateOrCreateMatchup(
       player_id: playerId,
       goalie_id: goalieId,
       season_id: seasonId,
+      league_id: leagueId,
       games_played: 1,
       goals,
       assists,

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { currentLeague } from "@/lib/league-config";
 
 export default function RulesPage() {
   return (
@@ -11,7 +12,7 @@ export default function RulesPage() {
             <span className="text-canada-red">Rules</span>
           </h1>
           <p className="text-muted-foreground">
-            Rules and regulations for HockeyLifeHL
+            Rules and regulations for {currentLeague.name}
           </p>
         </div>
 
@@ -19,7 +20,7 @@ export default function RulesPage() {
           <CardHeader>
             <CardTitle>League Rules & Regulations</CardTitle>
             <CardDescription>
-              For Fun, For Beers, For Glory 🍁🏒
+              {currentLeague.slogan} 🍁🏒
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

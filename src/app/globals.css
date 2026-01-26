@@ -53,7 +53,7 @@
   --shadow-glow-red: 0 0 20px rgba(227, 24, 55, 0.4);
   --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.4);
 
-  /* shadcn/ui Light Mode (not used, we default to dark) */
+  /* shadcn/ui Light Mode (PRIMARY) */
   --radius: 0.625rem;
   --background: var(--ice-white);
   --foreground: var(--puck-black);
@@ -63,64 +63,51 @@
   --popover-foreground: var(--puck-black);
   --primary: var(--canada-red);
   --primary-foreground: #FFFFFF;
-  --secondary: var(--rink-blue);
-  --secondary-foreground: #FFFFFF;
-  --muted: var(--ice-blue);
+  --secondary: #F1F5F9;
+  --secondary-foreground: var(--puck-black);
+  --muted: #F1F5F9;
   --muted-foreground: #64748B;
-  --accent: var(--gold-accent);
+  --accent: #F1F5F9;
   --accent-foreground: var(--puck-black);
   --destructive: var(--goal-light-red);
-  --border: rgba(0, 0, 0, 0.1);
-  --input: rgba(0, 0, 0, 0.1);
+  --border: #E2E8F0;
+  --input: #E2E8F0;
   --ring: var(--canada-red);
   --chart-1: var(--canada-red);
   --chart-2: var(--rink-blue);
   --chart-3: var(--gold-accent);
   --chart-4: var(--success);
   --chart-5: var(--beer-amber);
-  --sidebar: var(--ice-white);
+  --sidebar: #FFFFFF;
   --sidebar-foreground: var(--puck-black);
   --sidebar-primary: var(--canada-red);
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: var(--ice-blue);
+  --sidebar-accent: #F1F5F9;
   --sidebar-accent-foreground: var(--puck-black);
-  --sidebar-border: rgba(0, 0, 0, 0.1);
+  --sidebar-border: #E2E8F0;
   --sidebar-ring: var(--canada-red);
 }
 
-/* Dark Mode - Arena Lights (DEFAULT) */
+/* Dark Mode - Optional */
 .dark {
-  --background: var(--puck-black);
+  --background: #0B1220;
   --foreground: var(--ice-white);
-  --card: var(--puck-dark);
+  --card: #151C2C;
   --card-foreground: var(--ice-white);
-  --popover: var(--puck-dark);
+  --popover: #151C2C;
   --popover-foreground: var(--ice-white);
   --primary: var(--canada-red);
   --primary-foreground: #FFFFFF;
-  --secondary: var(--puck-gray);
+  --secondary: #1E293B;
   --secondary-foreground: var(--ice-white);
-  --muted: var(--puck-gray);
+  --muted: #1E293B;
   --muted-foreground: #94A3B8;
-  --accent: var(--gold-accent);
-  --accent-foreground: var(--puck-black);
+  --accent: #1E293B;
+  --accent-foreground: var(--ice-white);
   --destructive: var(--goal-light-red);
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.15);
+  --border: #1E293B;
+  --input: #1E293B;
   --ring: var(--canada-red);
-  --chart-1: var(--canada-red);
-  --chart-2: var(--rink-blue);
-  --chart-3: var(--gold-accent);
-  --chart-4: var(--success);
-  --chart-5: var(--beer-amber);
-  --sidebar: var(--puck-dark);
-  --sidebar-foreground: var(--ice-white);
-  --sidebar-primary: var(--canada-red);
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: var(--puck-gray);
-  --sidebar-accent-foreground: var(--ice-white);
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: var(--canada-red);
 }
 
 /* === Tailwind Theme Configuration === */
@@ -218,8 +205,8 @@ body {
 /* Arena Spotlight Background */
 .bg-arena {
   background: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(227, 24, 55, 0.15), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 0%, rgba(0, 102, 204, 0.1), transparent),
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(227, 24, 55, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 0%, rgba(0, 102, 204, 0.05), transparent),
     var(--background);
 }
 
@@ -534,4 +521,35 @@ h4, .h4 {
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes mesh-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30%, 20%) scale(1.1); }
+  66% { transform: translate(-10%, 40%) scale(0.9); }
+}
+
+@keyframes mesh-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-20%, -30%) scale(0.9); }
+  66% { transform: translate(40%, 10%) scale(1.2); }
+}
+
+@keyframes mesh-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20%, -20%) scale(1.1); }
+  66% { transform: translate(-30%, -10%) scale(0.8); }
+}
+
+.animate-mesh-1 { animation: mesh-1 20s ease-in-out infinite; }
+.animate-mesh-2 { animation: mesh-2 25s ease-in-out infinite; }
+.animate-mesh-3 { animation: mesh-3 18s ease-in-out infinite; }
+
+@keyframes aurora {
+  from { background-position: 0 0; }
+  to { background-position: 200% 0; }
+}
+
+.animate-aurora {
+  animation: aurora linear infinite;
 }

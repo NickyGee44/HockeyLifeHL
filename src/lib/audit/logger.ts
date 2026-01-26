@@ -67,7 +67,7 @@ export async function logAuditEvent(entry: AuditLogEntry): Promise<{ success: bo
     const userAgent = headersList.get("user-agent") || "unknown";
 
     // Insert audit log
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("audit_logs")
       .insert({
         user_id: user.id,
@@ -100,7 +100,7 @@ export async function getAuditLogsForResource(
 ) {
   const supabase = await createClient();
 
-  const { data: logs, error } = await supabase
+  const { data: logs, error } = await (supabase as any)
     .from("audit_logs")
     .select(`
       *,
@@ -140,7 +140,7 @@ export async function getRecentAuditLogs() {
     return { logs: [], error: "Not authorized - owner access required" };
   }
 
-  const { data: logs, error } = await supabase
+  const { data: logs, error } = await (supabase as any)
     .from("audit_logs")
     .select(`
       *,
@@ -186,7 +186,7 @@ export async function searchAuditLogs(filters: {
     return { logs: [], error: "Not authorized - owner access required" };
   }
 
-  let query = supabase
+  let query = (supabase as any)
     .from("audit_logs")
     .select(`
       *,

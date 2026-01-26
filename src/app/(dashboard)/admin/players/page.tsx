@@ -37,9 +37,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Profile, UserRole } from "@/types/database";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function AdminPlayersPage() {
   const { profile: currentUser } = useAuth();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [players, setPlayers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,10 +60,13 @@ export default function AdminPlayersPage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    loadPlayers();
-  }, []);
+    if (leagueId) {
+      loadPlayers();
+    }
+  }, [leagueId]);
 
   async function loadPlayers() {
+    if (!leagueId) return;
     setLoading(true);
     const result = await getAllPlayers();
     if (result.error) {
@@ -268,9 +273,14 @@ export default function AdminPlayersPage() {
   return (
     <div className="space-y-8">
       <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+        </div>
         <h1 className="text-3xl font-bold">Manage Players 👥</h1>
         <p className="text-muted-foreground mt-2">
-          View and manage all players in the league
+          View and manage all players in this league
         </p>
       </div>
 

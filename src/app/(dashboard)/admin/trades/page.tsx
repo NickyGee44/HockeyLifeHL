@@ -36,9 +36,11 @@ import { HockeyLoader } from "@/components/ui/hockey-loader";
 import { toast } from "sonner";
 import { movePlayerToTeam, executeTrade, revertTrade, getTradeHistory } from "@/lib/admin/trade-actions";
 import { motion } from "framer-motion";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function TradesPage() {
   const { user, isOwner, loading: authLoading } = useAuth();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [loading, setLoading] = useState(true);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
@@ -66,21 +68,28 @@ export default function TradesPage() {
   const [swapping, setSwapping] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user || !isOwner) {
+    if (authLoading || leagueLoading) return;
+    if (!user || !isOwner || !leagueId) {
       setLoading(false);
       return;
     }
     loadData();
-  }, [user, isOwner, authLoading]);
+  }, [user, isOwner, authLoading, leagueId, leagueLoading]);
 
   async function loadData() {
+    if (!leagueId) return;
     const supabase = createClient();
 
     const [seasonsResult, teamsResult, tradesResult] = await Promise.all([
-      supabase.from("seasons").select("*").order("start_date", { ascending: false }),
-      supabase.from("teams").select("*").order("name"),
-      getTradeHistory(),
+      supabase.from("seasons")
+        .select("*")
+        .eq("league_id", leagueId)
+        .order("start_date", { ascending: false }),
+      supabase.from("teams")
+        .select("*")
+        .eq("league_id", leagueId)
+        .order("name"),
+      getTradeHistory(leagueId),
     ]);
 
     setSeasons(seasonsResult.data || []);
@@ -254,10 +263,15 @@ export default function TradesPage() {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+          </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
             Trade <span className="text-canada-red">Management</span>
           </h1>
-          <p className="text-muted-foreground mt-1">Manually reassign players between teams</p>
+          <p className="text-muted-foreground mt-1">Manually reassign players between teams for this league</p>
         </div>
 
         <Select value={selectedSeason} onValueChange={setSelectedSeason}>

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { currentLeague } from "@/lib/league-config";
 
 export default function ContactPage() {
   return (
@@ -12,7 +13,7 @@ export default function ContactPage() {
             <span className="text-canada-red">Us</span>
           </h1>
           <p className="text-muted-foreground">
-            Get in touch with HockeyLifeHL
+            Get in touch with {currentLeague.name}
           </p>
         </div>
 

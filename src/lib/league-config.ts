@@ -28,4 +28,23 @@ export const currentLeague = {
   },
 };
 
+export const platformConfig = {
+  name: "Beer League Hockey",
+  domain: "beerleaguehockey.ca",
+  slogan: "Built for the leagues we actually play in.",
+  logo: "/BLH-Logo.png",
+  fontLogo: "/BLH-Font-Logo.png",
+  icon: "/BLH-Icon.png",
+  banner: "/BLH-Banner.png",
+  colors: {
+    iceWhite: "#F7FAFC",
+    rinkBlue: "#1F4FD8",
+    goalRed: "#D72638",
+    midnight: "#0B1220",
+    slate: "#7B8794",
+    frostGrey: "#E6EBF2",
+  }
+};
+
 export type LeagueConfig = typeof currentLeague;
+export type PlatformConfig = typeof platformConfig;

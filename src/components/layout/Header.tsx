@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 
 import { motion } from "framer-motion";
 import { currentLeague } from "@/lib/league-config";
+import { LeagueSelector } from "@/components/layout/LeagueSelector";
+import { useActiveLeague } from "@/hooks/use-league";
 
 const navLinks = [
   { href: "/standings", label: "Standings" },
@@ -59,6 +61,7 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { user, profile, loading, isOwner, isCaptain } = useAuth();
+  const { leagueId, branding } = useActiveLeague();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -120,21 +123,21 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-md shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/" className="flex items-center gap-3 group">
           <motion.div
-            whileHover={{ rotate: 10, scale: 1.1 }}
+            whileHover={{ rotate: 5, scale: 1.05 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
             <Image
               src={currentLeague.logo}
               alt={currentLeague.name}
-              width={48}
-              height={48}
-              className="h-12 w-auto drop-shadow-lg"
-              style={{ width: "auto", height: "3rem" }}
+              width={40}
+              height={40}
+              className="h-10 w-auto drop-shadow-sm"
+              style={{ width: "auto", height: "2.5rem" }}
               priority
             />
           </motion.div>
@@ -151,10 +154,10 @@ export function Header() {
               key={link.href}
               href={link.href}
               className={cn(
-                "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                "px-3 py-2 text-sm font-bold uppercase tracking-wide rounded-md transition-colors",
                 pathname === link.href 
-                  ? "bg-muted text-foreground" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  ? "bg-muted text-[#0B1220]" 
+                  : "text-slate-600 hover:text-[#1F4FD8] hover:bg-slate-50"
               )}
             >
               {link.label}
@@ -189,17 +192,20 @@ export function Header() {
                 <DropdownMenuContent align="start" className="w-48">
                   <DropdownMenuLabel>Player Dashboard</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {playerNav.map((item) => (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <Link href={item.href} className={cn(
-                        "w-full cursor-pointer",
-                        pathname === item.href && "bg-muted"
-                      )}>
-                        <span className="mr-2">{item.icon}</span>
-                        {item.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  {playerNav.map((item) => {
+                    const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                    return (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <Link href={href} className={cn(
+                          "w-full cursor-pointer",
+                          pathname === href && "bg-muted"
+                        )}>
+                          <span className="mr-2">{item.icon}</span>
+                          {item.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -227,17 +233,20 @@ export function Header() {
                   <DropdownMenuContent align="start" className="w-48">
                     <DropdownMenuLabel>Captain Tools</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {captainNav.map((item) => (
-                      <DropdownMenuItem key={item.href} asChild>
-                        <Link href={item.href} className={cn(
-                          "w-full cursor-pointer",
-                          pathname === item.href && "bg-muted"
-                        )}>
-                          <span className="mr-2">{item.icon}</span>
-                          {item.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
+                    {captainNav.map((item) => {
+                      const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                      return (
+                        <DropdownMenuItem key={item.href} asChild>
+                          <Link href={href} className={cn(
+                            "w-full cursor-pointer",
+                            pathname === href && "bg-muted"
+                          )}>
+                            <span className="mr-2">{item.icon}</span>
+                            {item.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -266,17 +275,20 @@ export function Header() {
                   <DropdownMenuContent align="start" className="w-48">
                     <DropdownMenuLabel>League Admin</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {adminNav.map((item) => (
-                      <DropdownMenuItem key={item.href} asChild>
-                        <Link href={item.href} className={cn(
-                          "w-full cursor-pointer",
-                          pathname === item.href && "bg-muted"
-                        )}>
-                          <span className="mr-2">{item.icon}</span>
-                          {item.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
+                    {adminNav.map((item) => {
+                      const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                      return (
+                        <DropdownMenuItem key={item.href} asChild>
+                          <Link href={href} className={cn(
+                            "w-full cursor-pointer",
+                            pathname === href && "bg-muted"
+                          )}>
+                            <span className="mr-2">{item.icon}</span>
+                            {item.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -286,6 +298,12 @@ export function Header() {
 
         {/* Auth / User Menu */}
         <div className="flex items-center gap-4">
+          {user && (
+            <div className="hidden md:block">
+              <LeagueSelector />
+            </div>
+          )}
+
           {loading ? (
             <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
           ) : user ? (
@@ -384,6 +402,9 @@ export function Header() {
                     <>
                       {/* User Info */}
                       <div className="border-t border-border pt-4 mt-4 mb-2 px-2">
+                        <div className="mb-4">
+                          <LeagueSelector />
+                        </div>
                         <p className="font-medium">
                           {getRoleBadge()} {profile?.full_name || "Player"}
                         </p>
@@ -394,22 +415,25 @@ export function Header() {
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
                         ⛸️ Player
                       </p>
-                      {playerNav.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setIsOpen(false)}
-                          className={cn(
-                            "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
-                            pathname === item.href 
-                              ? "bg-rink-blue/20 text-rink-blue" 
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          )}
-                        >
-                          <span>{item.icon}</span>
-                          {item.label}
-                        </Link>
-                      ))}
+                      {playerNav.map((item) => {
+                        const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={href}
+                            onClick={() => setIsOpen(false)}
+                            className={cn(
+                              "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                              pathname === href 
+                                ? "bg-rink-blue/20 text-rink-blue" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )}
+                          >
+                            <span>{item.icon}</span>
+                            {item.label}
+                          </Link>
+                        );
+                      })}
 
                       {/* Captain Tools */}
                       {(isCaptain || isOwner) && (
@@ -417,22 +441,25 @@ export function Header() {
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
                             🏒 Captain
                           </p>
-                          {captainNav.map((item) => (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              onClick={() => setIsOpen(false)}
-                              className={cn(
-                                "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
-                                pathname === item.href 
-                                  ? "bg-canada-red/20 text-canada-red" 
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                              )}
-                            >
-                              <span>{item.icon}</span>
-                              {item.label}
-                            </Link>
-                          ))}
+                          {captainNav.map((item) => {
+                            const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                            return (
+                              <Link
+                                key={item.href}
+                                href={href}
+                                onClick={() => setIsOpen(false)}
+                                className={cn(
+                                  "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                                  pathname === href 
+                                    ? "bg-canada-red/20 text-canada-red" 
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                              >
+                                <span>{item.icon}</span>
+                                {item.label}
+                              </Link>
+                            );
+                          })}
                         </>
                       )}
 
@@ -442,22 +469,25 @@ export function Header() {
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
                             👑 Admin
                           </p>
-                          {adminNav.map((item) => (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              onClick={() => setIsOpen(false)}
-                              className={cn(
-                                "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
-                                pathname === item.href 
-                                  ? "bg-gold/20 text-gold" 
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                              )}
-                            >
-                              <span>{item.icon}</span>
-                              {item.label}
-                            </Link>
-                          ))}
+                          {adminNav.map((item) => {
+                            const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                            return (
+                              <Link
+                                key={item.href}
+                                href={href}
+                                onClick={() => setIsOpen(false)}
+                                className={cn(
+                                  "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                                  pathname === href 
+                                    ? "bg-gold/20 text-gold" 
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                              >
+                                <span>{item.icon}</span>
+                                {item.label}
+                              </Link>
+                            );
+                          })}
                         </>
                       )}
 

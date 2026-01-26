@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { EmailType, EmailRecipient } from "@/lib/email/types";
+import { useActiveLeague } from "@/hooks/use-league";
 
 type EmailGenerationContext = {
   type: EmailType;
@@ -47,6 +48,7 @@ type EmailGenerationContext = {
 
 export default function AdminEmailsPage() {
   const { user, isOwner, loading: authLoading } = useAuth();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
@@ -79,23 +81,23 @@ export default function AdminEmailsPage() {
   }, [authLoading, isOwner]);
 
   useEffect(() => {
-    if (isOwner) {
+    if (isOwner && leagueId) {
       loadTeamsAndGames();
     }
-  }, [isOwner]);
+  }, [isOwner, leagueId]);
 
   // Auto-populate template when email type changes
   useEffect(() => {
-    if (emailType && isOwner) {
+    if (emailType && isOwner && leagueId) {
       // Reset preview mode and load fresh template
       setPreviewMode(false);
       loadEmailTemplate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emailType, isOwner]);
+  }, [emailType, isOwner, leagueId]);
 
   async function loadEmailTemplate() {
-    if (!emailType) return;
+    if (!emailType || !leagueId) return;
 
     try {
       const response = await fetch("/api/email/template", {
@@ -103,6 +105,7 @@ export default function AdminEmailsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: emailType,
+          leagueId,
           ...context,
         }),
       });
@@ -128,10 +131,11 @@ export default function AdminEmailsPage() {
   }
 
   async function loadTeamsAndGames() {
+    if (!leagueId) return;
     try {
       const [teamsRes, gamesRes] = await Promise.all([
-        fetch("/api/email/recipients?type=list-teams"),
-        fetch("/api/email/recipients?type=list-games"),
+        fetch(`/api/email/recipients?type=list-teams&leagueId=${leagueId}`),
+        fetch(`/api/email/recipients?type=list-games&leagueId=${leagueId}`),
       ]);
 
       const teamsData = await teamsRes.json();
@@ -145,9 +149,10 @@ export default function AdminEmailsPage() {
   }
 
   async function addRecipientGroup(type: string) {
+    if (!leagueId) return;
     setLoadingRecipients(true);
     try {
-      const response = await fetch(`/api/email/recipients?type=${type}`);
+      const response = await fetch(`/api/email/recipients?type=${type}&leagueId=${leagueId}`);
       const data = await response.json();
 
       if (data.error) {
@@ -176,7 +181,7 @@ export default function AdminEmailsPage() {
   }
 
   async function addTeamRecipients() {
-    if (selectedTeams.length === 0) {
+    if (selectedTeams.length === 0 || !leagueId) {
       toast.error("Please select at least one team");
       return;
     }
@@ -184,7 +189,7 @@ export default function AdminEmailsPage() {
     setLoadingRecipients(true);
     try {
       const response = await fetch(
-        `/api/email/recipients?type=teams&teamIds=${selectedTeams.join(",")}`
+        `/api/email/recipients?type=teams&leagueId=${leagueId}&teamIds=${selectedTeams.join(",")}`
       );
       const data = await response.json();
 
@@ -214,7 +219,7 @@ export default function AdminEmailsPage() {
   }
 
   async function addGameRecipients() {
-    if (selectedGames.length === 0) {
+    if (selectedGames.length === 0 || !leagueId) {
       toast.error("Please select at least one game");
       return;
     }
@@ -222,7 +227,7 @@ export default function AdminEmailsPage() {
     setLoadingRecipients(true);
     try {
       const response = await fetch(
-        `/api/email/recipients?type=games&gameIds=${selectedGames.join(",")}`
+        `/api/email/recipients?type=games&leagueId=${leagueId}&gameIds=${selectedGames.join(",")}`
       );
       const data = await response.json();
 
@@ -256,7 +261,7 @@ export default function AdminEmailsPage() {
   }
 
   async function handleGenerate() {
-    if (!emailType) {
+    if (!emailType || !leagueId) {
       toast.error("Please select an email type");
       return;
     }
@@ -273,6 +278,7 @@ export default function AdminEmailsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: emailType,
+          leagueId,
           enhanceTemplate,
           ...context,
         }),
@@ -316,6 +322,7 @@ export default function AdminEmailsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: emailType,
+          leagueId,
           subject,
           html,
           recipients,
@@ -360,6 +367,7 @@ export default function AdminEmailsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: emailType,
+          leagueId,
           subject,
           html,
           recipients,
@@ -416,9 +424,14 @@ export default function AdminEmailsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+        </div>
         <h1 className="text-3xl font-bold mb-2">Email Management</h1>
         <p className="text-muted-foreground">
-          Generate, preview, and send emails to players and captains
+          Generate, preview, and send emails to players and captains for this league
         </p>
       </div>
 

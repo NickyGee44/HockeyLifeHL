@@ -25,8 +25,10 @@ import {
 import { getAllSuspensions, createSuspension, updateSuspension, deleteSuspension } from "@/lib/admin/suspension-actions";
 import { getAvailableCaptains } from "@/lib/teams/actions";
 import { toast } from "sonner";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function AdminSuspensionsPage() {
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [suspensions, setSuspensions] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,10 +41,13 @@ export default function AdminSuspensionsPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (leagueId) {
+      loadData();
+    }
+  }, [leagueId]);
 
   async function loadData() {
+    if (!leagueId) return;
     setLoading(true);
     const [suspensionsResult, playersResult] = await Promise.all([
       getAllSuspensions(),
@@ -59,11 +64,13 @@ export default function AdminSuspensionsPage() {
   }
 
   async function handleCreate() {
+    if (!leagueId) return;
     const form = new FormData();
     form.set("playerId", formData.playerId);
     form.set("reason", formData.reason);
     form.set("gamesRemaining", formData.gamesRemaining);
     form.set("startDate", formData.startDate);
+    form.set("league_id", leagueId);
 
     const result = await createSuspension(form);
     if (result.error) {
@@ -80,9 +87,14 @@ export default function AdminSuspensionsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+          </div>
           <h1 className="text-3xl font-bold">Suspensions 🚫</h1>
           <p className="text-muted-foreground mt-2">
-            Manage player suspensions
+            Manage player suspensions for this league
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

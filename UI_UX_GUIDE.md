@@ -47,13 +47,15 @@ To enable the "LeagueOS" vision, we are implementing a Configuration Pattern:
 *Use this section to log requests for the AI to perform UI/UX specific tasks.*
 
 ### Pending Requests
-*   **Refactor Header:** Update `src/components/layout/Header.tsx` to use `lib/league-config.ts`.
-*   **Refactor Footer:** Update `src/components/layout/Footer.tsx` to use `lib/league-config.ts`.
 *   **Mobile Polish:** Optimize `src/components/draft/LiveDraftBoard.tsx` for mobile.
 
 ### Completed Requests
+*   **Refactor Header:** Update `src/components/layout/Header.tsx` to use `lib/league-config.ts`.
+*   **Refactor Footer:** Update `src/components/layout/Footer.tsx` to use `lib/league-config.ts`.
 *   **Initial Audit:** Completed review of `globals.css` and directory structure.
 *   **Config Setup:** Created `src/lib/league-config.ts`.
+*   **Marketing Site:** Built new SaaS homepage at `/`.
+*   **Signup Wizard:** Built multi-step league creation flow at `/signup`.
 
 ## 6. Notes & Task Tracking
 

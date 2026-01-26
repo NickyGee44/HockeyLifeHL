@@ -18,6 +18,7 @@ import { MyTeamRoster } from "@/components/draft/MyTeamRoster";
 import { getDraftOrder, assignDraftOrder } from "@/lib/draft/draft-order";
 import { activateDraft, getLastPickedPlayer } from "@/lib/draft/actions";
 import { toast } from "sonner";
+import { useActiveLeague } from "@/hooks/use-league";
 import {
   Select,
   SelectContent,
@@ -38,6 +39,7 @@ import { Switch } from "@/components/ui/switch";
 
 export default function AdminDraftPage() {
   const router = useRouter();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [season, setSeason] = useState<any>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [teams, setTeams] = useState<any[]>([]);
@@ -67,10 +69,13 @@ export default function AdminDraftPage() {
   const draft = realtimeDraft || localDraft;
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (leagueId) {
+      loadData();
+    }
+  }, [leagueId]);
 
   async function loadData() {
+    if (!leagueId) return;
     setLoading(true);
     try {
       // Get season - check for active, playoffs, or draft status
@@ -119,7 +124,7 @@ export default function AdminDraftPage() {
 
   async function loadDraftData(draftIdParam?: string) {
     const id = draftIdParam || draftId;
-    if (!id) return;
+    if (!id || !leagueId) return;
     try {
       const [teamsResult, playersResult, orderResult, lastPickResult] = await Promise.all([
         getAllTeams(),
@@ -404,9 +409,14 @@ export default function AdminDraftPage() {
   return (
     <div className="space-y-8">
       <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+        </div>
         <h1 className="text-3xl font-bold">Draft Management 🎯</h1>
         <p className="text-muted-foreground mt-2">
-          Manage league drafts and player assignments
+          Manage drafts and player assignments for this league
         </p>
       </div>
 

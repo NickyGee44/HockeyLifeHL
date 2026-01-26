@@ -86,6 +86,8 @@ export function HockeyLoader({ size = "md", className, text }: HockeyLoaderProps
   );
 }
 
+import { currentLeague } from "@/lib/league-config";
+
 // Full page loader
 export function HockeyPageLoader({ text = "Loading..." }: { text?: string }) {
   return (
@@ -93,9 +95,9 @@ export function HockeyPageLoader({ text = "Loading..." }: { text?: string }) {
       <div className="flex flex-col items-center gap-6">
         <HockeyLoader size="lg" text={text} />
         <div className="flex items-center gap-2 text-muted-foreground">
-          <span className="text-sm font-medium">HockeyLifeHL</span>
+          <span className="text-sm font-medium">{currentLeague.name}</span>
           <span className="text-xs">•</span>
-          <span className="text-xs">For Fun, For Beers, For Glory</span>
+          <span className="text-xs">{currentLeague.slogan}</span>
         </div>
       </div>
     </div>

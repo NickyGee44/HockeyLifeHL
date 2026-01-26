@@ -58,6 +58,7 @@ import {
 import { updateTeamLogo, deleteTeamLogo } from "@/lib/teams/actions";
 import { toast } from "sonner";
 import { Upload, Trash2, Camera, Mail, UserPlus, Ban, Clock, AlertTriangle, X, Send } from "lucide-react";
+import { useActiveLeague } from "@/hooks/use-league";
 
 type TeamData = {
   id: string;
@@ -117,6 +118,7 @@ type TeamInvite = {
 
 export default function CaptainTeamPage() {
   const { user, loading: authLoading, isCaptain } = useAuth();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [team, setTeam] = useState<TeamData | null>(null);
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [season, setSeason] = useState<SeasonData | null>(null);
@@ -149,15 +151,15 @@ export default function CaptainTeamPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (user && isCaptain) {
+    if (user && isCaptain && leagueId) {
       loadTeamData();
-    } else if (!authLoading && !isCaptain) {
+    } else if (!authLoading && !leagueLoading && (!isCaptain || !leagueId)) {
       setLoading(false);
     }
-  }, [user, isCaptain, authLoading]);
+  }, [user, isCaptain, authLoading, leagueId, leagueLoading]);
 
   async function loadTeamData() {
-    if (!user?.id) {
+    if (!user?.id || !leagueId) {
       setLoading(false);
       return;
     }
@@ -169,6 +171,7 @@ export default function CaptainTeamPage() {
       .from("teams")
       .select("id, name, short_name, logo_url, primary_color, secondary_color")
       .eq("captain_id", user.id)
+      .eq("league_id", leagueId)
       .single();
 
     if (!teamData) {
@@ -182,6 +185,7 @@ export default function CaptainTeamPage() {
     const { data: seasonData } = await supabase
       .from("seasons")
       .select("id, name, status")
+      .eq("league_id", leagueId)
       .in("status", ["active", "playoffs"])
       .order("start_date", { ascending: false })
       .limit(1)

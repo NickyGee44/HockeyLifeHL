@@ -9,9 +9,11 @@ import { requestSubsForGame } from "@/lib/players/availability-actions";
 import { CaptainDashboardView } from "@/components/captain/CaptainDashboardView";
 import { GameStatEntryModal } from "@/components/captain/GameStatEntryModal";
 import { toast } from "sonner";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function CaptainDashboardPage() {
   const { user, profile, loading: authLoading, isCaptain } = useAuth();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [team, setTeam] = useState<any>(null);
   const [roster, setRoster] = useState<any[]>([]);
   const [season, setSeason] = useState<any>(null);
@@ -26,21 +28,31 @@ export default function CaptainDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user || !isCaptain) {
+    if (authLoading || leagueLoading) return;
+    if (!user || !isCaptain || !leagueId) {
       setLoading(false);
       return;
     }
     loadCaptainData();
-  }, [user, profile, isCaptain, authLoading]);
+  }, [user, profile, isCaptain, authLoading, leagueId, leagueLoading]);
 
   async function loadCaptainData() {
-    if (!user?.id) return;
+    if (!user?.id || !leagueId) return;
     const supabase = createClient();
     try {
       const [teamResult, seasonResult] = await Promise.all([
-        supabase.from("teams").select("*").eq("captain_id", user.id).single(),
-        supabase.from("seasons").select("*").in("status", ["active", "playoffs"]).order("start_date", { ascending: false }).limit(1).single()
+        supabase.from("teams")
+          .select("*")
+          .eq("captain_id", user.id)
+          .eq("league_id", leagueId)
+          .single(),
+        supabase.from("seasons")
+          .select("*")
+          .eq("league_id", leagueId)
+          .in("status", ["active", "playoffs"])
+          .order("start_date", { ascending: false })
+          .limit(1)
+          .single()
       ]);
 
       if (teamResult.data) {

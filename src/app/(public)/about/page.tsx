@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
+import { currentLeague } from "@/lib/league-config";
 
 export default function AboutPage() {
   return (
@@ -8,7 +9,7 @@ export default function AboutPage() {
         <div className="mb-8">
           <h1 className="mb-2">
             <span className="text-foreground">About </span>
-            <span className="text-rink-blue">HockeyLifeHL</span>
+            <span className="text-rink-blue">{currentLeague.name}</span>
           </h1>
           <p className="text-muted-foreground">
             Men&apos;s recreational hockey league
@@ -19,16 +20,16 @@ export default function AboutPage() {
           <CardHeader>
             <div className="flex items-center gap-4 mb-4">
               <Image
-                src="/logo.png"
-                alt="HockeyLifeHL"
+                src={currentLeague.logo}
+                alt={currentLeague.name}
                 width={64}
                 height={64}
                 className="h-16 w-auto"
               />
               <div>
-                <CardTitle className="text-2xl">HockeyLifeHL</CardTitle>
+                <CardTitle className="text-2xl">{currentLeague.name}</CardTitle>
                 <CardDescription className="text-lg">
-                  For Fun, For Beers, For Glory 🍁🏒
+                  {currentLeague.slogan} 🍁🏒
                 </CardDescription>
               </div>
             </div>
@@ -37,7 +38,7 @@ export default function AboutPage() {
             <div>
               <h3 className="text-lg font-semibold mb-2">Our Mission</h3>
               <p className="text-muted-foreground">
-                HockeyLifeHL is a men&apos;s recreational hockey league dedicated to bringing 
+                {currentLeague.name} is a men&apos;s recreational hockey league dedicated to bringing 
                 players together for competitive, fun hockey. We believe in the spirit of 
                 Canadian hockey - where competition meets camaraderie, and every game is 
                 played with heart.
@@ -73,7 +74,7 @@ export default function AboutPage() {
                 <a href="/register" className="text-canada-red hover:underline font-medium">
                   Join the league
                 </a>{" "}
-                and become part of the HockeyLifeHL family. Whether you&apos;re a seasoned 
+                and become part of the {currentLeague.name} family. Whether you&apos;re a seasoned 
                 veteran or new to the game, there&apos;s a place for you on the ice.
               </p>
             </div>

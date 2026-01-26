@@ -42,8 +42,10 @@ import {
 } from "@/lib/games/actions";
 import { getAllSeasons } from "@/lib/seasons/actions";
 import { getAllTeams } from "@/lib/teams/actions";
+import { getCurrentDraft } from "@/lib/draft/actions";
 import { toast } from "sonner";
 import type { Game, GameStatus, Season, Team } from "@/types/database";
+import { useActiveLeague } from "@/hooks/use-league";
 
 type GameWithRelations = Game & {
   season: Season | null;
@@ -52,6 +54,7 @@ type GameWithRelations = Game & {
 };
 
 export default function AdminGamesPage() {
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [games, setGames] = useState<GameWithRelations[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -80,10 +83,13 @@ export default function AdminGamesPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (leagueId) {
+      loadData();
+    }
+  }, [leagueId]);
 
   async function loadData() {
+    if (!leagueId) return;
     setLoading(true);
     const [gamesResult, seasonsResult, teamsResult] = await Promise.all([
       getAllGames(),
@@ -136,12 +142,14 @@ export default function AdminGamesPage() {
   }
 
   async function handleCreate() {
+    if (!leagueId) return;
     setIsSaving(true);
     const form = new FormData();
     form.set("seasonId", formData.seasonId);
     form.set("homeTeamId", formData.homeTeamId);
     form.set("awayTeamId", formData.awayTeamId);
     form.set("scheduledAt", new Date(formData.scheduledAt).toISOString());
+    form.set("league_id", leagueId);
     if (formData.location) form.set("location", formData.location);
 
     const result = await createGame(form);
@@ -304,9 +312,14 @@ export default function AdminGamesPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+          </div>
           <h1 className="text-3xl font-bold">Manage Games 🎮</h1>
           <p className="text-muted-foreground mt-2">
-            Schedule and manage league games
+            Schedule and manage games for this league
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

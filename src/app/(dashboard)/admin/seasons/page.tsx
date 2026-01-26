@@ -47,8 +47,10 @@ import { startPlayoffs } from "@/lib/seasons/playoff-generator";
 import { getCurrentDraft } from "@/lib/draft/actions";
 import { toast } from "sonner";
 import type { Season, SeasonStatus } from "@/types/database";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function AdminSeasonsPage() {
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -98,16 +100,20 @@ export default function AdminSeasonsPage() {
   });
 
   useEffect(() => {
-    loadSeasons();
-    loadPreviousSeasonInfo();
-  }, []);
+    if (leagueId) {
+      loadSeasons();
+      loadPreviousSeasonInfo();
+    }
+  }, [leagueId]);
 
   async function loadPreviousSeasonInfo() {
+    if (!leagueId) return;
     const info = await getPreviousSeasonPlayerCount();
     setPreviousSeasonInfo(info);
   }
 
   async function loadSeasons() {
+    if (!leagueId) return;
     setLoading(true);
     const result = await getAllSeasons();
     
@@ -221,6 +227,7 @@ export default function AdminSeasonsPage() {
   }
 
   async function handleCreate() {
+    if (!leagueId) return;
     setIsSaving(true);
     const form = new FormData();
     form.set("name", formData.name);
@@ -228,6 +235,7 @@ export default function AdminSeasonsPage() {
     form.set("gamesPerCycle", formData.gamesPerCycle);
     form.set("totalGames", formData.totalGames);
     form.set("playoffFormat", formData.playoffFormat);
+    form.set("league_id", leagueId);
     if (formData.draftScheduledAt) {
       form.set("draftScheduledAt", formData.draftScheduledAt);
     }
@@ -505,9 +513,14 @@ export default function AdminSeasonsPage() {
       )}
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+          </div>
           <h1 className="text-3xl font-bold">Manage Seasons 📆</h1>
           <p className="text-muted-foreground mt-2">
-            Create and manage league seasons
+            Create and manage seasons for this league
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

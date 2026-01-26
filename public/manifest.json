@@ -1,66 +1,119 @@
 {
-  "name": "HockeyLifeHL - For Fun, For Beers, For Glory",
-  "short_name": "HockeyLifeHL",
-  "description": "The ultimate men's recreational hockey league management platform. Stats, drafts, standings, and glory.",
-  "start_url": "/",
+  "name": "Hockey Stats - Scorekeeper",
+  "short_name": "Scorekeeper",
+  "description": "Live hockey stat entry for scorekeepers at the rink. iPad-optimized offline-capable stat tracking system.",
+  "start_url": "/scorekeeper/dashboard",
+  "scope": "/scorekeeper/",
   "display": "standalone",
-  "background_color": "#0F0F14",
+  "orientation": "landscape-primary",
   "theme_color": "#E31837",
-  "orientation": "portrait-primary",
-  "scope": "/",
-  "lang": "en-CA",
-  "categories": ["sports", "entertainment", "social"],
+  "background_color": "#ffffff",
+  "categories": ["sports", "productivity"],
   "icons": [
     {
-      "src": "/icons/web-app-manifest-192x192.png",
-      "sizes": "192x192",
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icons/web-app-manifest-512x512.png",
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "/screenshots/home.png",
-      "sizes": "1280x720",
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1024x768",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "HockeyLifeHL Home"
+      "label": "Scorekeeper Dashboard - View all assigned games"
     },
     {
-      "src": "/screenshots/mobile.png",
-      "sizes": "750x1334",
+      "src": "/screenshots/live-entry.png",
+      "sizes": "1024x768",
       "type": "image/png",
-      "form_factor": "narrow",
-      "label": "HockeyLifeHL Mobile"
+      "form_factor": "wide",
+      "label": "Live Stat Entry - iPad-optimized interface with large buttons"
     }
   ],
   "shortcuts": [
     {
-      "name": "Standings",
-      "short_name": "Standings",
-      "description": "View current standings",
-      "url": "/standings",
-      "icons": [{ "src": "/icons/standings.png", "sizes": "96x96" }]
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your assigned games",
+      "url": "/scorekeeper/dashboard",
+      "icons": [
+        {
+          "src": "/icons/shortcut-dashboard.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     },
     {
-      "name": "Schedule",
-      "short_name": "Schedule",
-      "description": "View game schedule",
-      "url": "/schedule",
-      "icons": [{ "src": "/icons/schedule.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Stats",
-      "short_name": "Stats",
-      "description": "View player stats",
-      "url": "/stats",
-      "icons": [{ "src": "/icons/stats.png", "sizes": "96x96" }]
+      "name": "Assignments",
+      "short_name": "Assignments",
+      "description": "View all game assignments",
+      "url": "/scorekeeper/assignments",
+      "icons": [
+        {
+          "src": "/icons/shortcut-assignments.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }

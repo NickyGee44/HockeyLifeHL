@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getActiveLeagueId } from "@/lib/auth/league-context";
 
 // Make current user owner
 export async function makeCurrentUserOwner(): Promise<{ error?: string; success?: boolean }> {
@@ -45,6 +46,12 @@ export async function generateTestData(): Promise<{ error?: string; success?: bo
 
   if (profile?.role !== "owner") {
     return { error: "Only owners can generate test data" };
+  }
+
+  // Get active league
+  const leagueId = await getActiveLeagueId();
+  if (!leagueId) {
+    return { error: "No active league found. Please select or create a league first." };
   }
 
   try {
@@ -101,6 +108,7 @@ export async function generateTestData(): Promise<{ error?: string; success?: bo
       const { data: season, error: seasonError } = await supabase
         .from("seasons")
         .insert({
+          league_id: leagueId,
           name: "2025 Winter Season",
           status: "active",
           start_date: seasonStart.toISOString(),
@@ -156,6 +164,7 @@ export async function generateTestData(): Promise<{ error?: string; success?: bo
         const { data: newTeam, error: teamError } = await supabase
           .from("teams")
           .insert({
+            league_id: leagueId,
             name: team.name,
             short_name: team.short,
             primary_color: team.primary,
@@ -264,6 +273,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
           await supabase
             .from("team_rosters")
             .insert({
+              league_id: leagueId,
               team_id: teamId,
               player_id: player.id,
               season_id: activeSeason.id,
@@ -305,6 +315,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
         await supabase
           .from("player_approvals")
           .insert({
+            league_id: leagueId,
             player_id: playerId,
             approved_by: user.id,
             approval_method: "owner",
@@ -327,6 +338,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
         await supabase
           .from("season_opt_ins")
           .insert({
+            league_id: leagueId,
             player_id: playerId,
             season_id: activeSeason.id,
             opt_in_type: "full_time",
@@ -401,6 +413,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
       const { data: game, error: gameError } = await supabase
         .from("games")
         .insert({
+          league_id: leagueId,
           season_id: activeSeason.id,
           home_team_id: homeTeamId,
           away_team_id: awayTeamId,
@@ -444,6 +457,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
               await supabase
                 .from("player_stats")
                 .insert({
+                  league_id: leagueId,
                   game_id: game.id,
                   player_id: player.player_id,
                   team_id: homeTeamId,
@@ -467,6 +481,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
               await supabase
                 .from("player_stats")
                 .insert({
+                  league_id: leagueId,
                   game_id: game.id,
                   player_id: player.player_id,
                   team_id: awayTeamId,
@@ -486,6 +501,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
             await supabase
               .from("goalie_stats")
               .insert({
+                league_id: leagueId,
                 game_id: game.id,
                 player_id: homeGoalie.player_id,
                 team_id: homeTeamId,
@@ -504,6 +520,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
             await supabase
               .from("goalie_stats")
               .insert({
+                league_id: leagueId,
                 game_id: game.id,
                 player_id: awayGoalie.player_id,
                 team_id: awayTeamId,
@@ -536,6 +553,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
       await supabase
         .from("games")
         .insert({
+          league_id: leagueId,
           season_id: activeSeason.id,
           home_team_id: homeTeamId,
           away_team_id: awayTeamId,
@@ -563,6 +581,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
       await supabase
         .from("games")
         .insert({
+          league_id: leagueId,
           season_id: activeSeason.id,
           home_team_id: homeTeamId,
           away_team_id: awayTeamId,
@@ -606,6 +625,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
         await supabase
           .from("player_ratings")
           .insert({
+            league_id: leagueId,
             player_id: playerId,
             season_id: activeSeason.id,
             rating: rating as "A" | "B+" | "B" | "C+" | "C" | "D",
@@ -631,6 +651,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
       const { data: draft, error: draftError } = await supabase
         .from("drafts")
         .insert({
+          league_id: leagueId,
           season_id: activeSeason.id,
           cycle_number: 1,
           status: "completed",
@@ -655,6 +676,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
               await supabase
                 .from("draft_picks")
                 .insert({
+                  league_id: leagueId,
                   draft_id: draftId,
                   team_id: teamId,
                   player_id: playerId,
@@ -718,14 +740,17 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
       if (!existingArticle) {
         await supabase
           .from("articles")
-          .insert(article);
+          .insert({
+            ...article,
+            league_id: leagueId,
+          });
       }
     }
 
     console.log("Created articles");
 
     // 13. Create payments (some paid, some pending)
-    const paymentMethods = ["cash", "etransfer", "credit_card", "cheque"];
+    const paymentMethods = ["cash", "e_transfer", "stripe", "check", "other"] as const;
     for (let i = 0; i < allPlayerIds.length; i++) {
       const playerId = allPlayerIds[i];
       const hasPaid = Math.random() > 0.3; // 70% have paid
@@ -745,6 +770,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
           await supabase
             .from("payments")
             .insert({
+              league_id: leagueId,
               player_id: playerId,
               season_id: activeSeason.id,
               amount: 250.00,
@@ -778,6 +804,7 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
         await supabase
           .from("suspensions")
           .insert({
+            league_id: leagueId,
             player_id: playerId,
             reason: ["Fighting", "Unsportsmanlike conduct", "Game misconduct"][i % 3],
             games_remaining: gamesRemaining,
@@ -790,10 +817,12 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
     console.log("Created suspensions");
 
     // 15. Create team messages (from captains)
+    // NOTE: team_messages table doesn't exist in schema yet - commented out
+    /*
     for (let i = 0; i < captainIds.length; i++) {
       const captainId = captainIds[i];
       const teamId = teamIds[i];
-      
+
       if (!captainId || !teamId) continue;
 
       const messages = [
@@ -818,22 +847,26 @@ For now, the system will work with ${allExistingPlayers?.length || 0} players, b
       ];
 
       for (const msg of messages) {
-        const { data: existingMsg } = await supabase
+        const result: any = await (supabase as any)
           .from("team_messages")
           .select("id")
           .eq("team_id", teamId)
           .eq("subject", msg.subject)
-          .single();
+          .maybeSingle();
 
-        if (!existingMsg) {
-          await supabase
+        if (!result.data) {
+          await (supabase as any)
             .from("team_messages")
-            .insert(msg);
+            .insert({
+              ...msg,
+              league_id: leagueId,
+            });
         }
       }
     }
+    */
 
-    console.log("Created team messages");
+    console.log("Skipped team messages (table not in schema)");
 
     // 16. Create player availability (some players marked unavailable for upcoming games)
     const { data: upcomingGames } = await supabase
@@ -955,7 +988,7 @@ export async function removeAllTestData(): Promise<{ error?: string; success?: b
   try {
     // Delete in order to respect foreign key constraints
     await supabase.from("player_availability").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-    await supabase.from("team_messages").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    // await supabase.from("team_messages").delete().neq("id", "00000000-0000-0000-0000-000000000000"); // Table doesn't exist
     await supabase.from("goalie_stats").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("player_stats").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("games").delete().neq("id", "00000000-0000-0000-0000-000000000000");

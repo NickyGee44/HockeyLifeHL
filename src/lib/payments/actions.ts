@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import Stripe from "stripe";
 import { logAuditEvent } from "@/lib/audit/logger";
+import { requireLeagueRole, getActiveLeagueId } from "@/lib/auth/league-context";
 
 function getStripe() {
   const apiKey = process.env.STRIPE_SECRET_KEY;
@@ -15,97 +16,91 @@ function getStripe() {
   });
 }
 
-async function requireOwner() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    return { error: "Not authenticated", isOwner: false };
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    console.error("Error fetching profile:", profileError);
-    return { error: "Failed to verify user permissions", isOwner: false };
-  }
-
-  if (profile.role !== "owner") {
-    return { error: "Not authorized - owner access required", isOwner: false };
-  }
-
-  return { isOwner: true, userId: user.id };
-}
-
 // Get all payments
 export async function getAllPayments(seasonId?: string) {
-  const auth = await requireOwner();
-  if (auth.error) return { error: auth.error, payments: [] };
+  try {
+    const { leagueId } = await requireLeagueRole(['owner', 'admin']);
 
-  const supabase = await createClient();
-  
-  let query = supabase
-    .from("payments")
-    .select(`
-      *,
-      player:profiles!payments_player_id_fkey(id, full_name, email, jersey_number),
-      season:seasons!payments_season_id_fkey(id, name),
-      entered_by_profile:profiles!payments_entered_by_fkey(id, full_name)
-    `)
-    .order("payment_date", { ascending: false });
+    const supabase = await createClient();
 
-  if (seasonId) {
-    query = query.eq("season_id", seasonId);
+    let query = supabase
+      .from("payments")
+      .select(`
+        *,
+        player:profiles!payments_player_id_fkey(id, full_name, email, jersey_number),
+        season:seasons!payments_season_id_fkey(id, name),
+        entered_by_profile:profiles!payments_entered_by_fkey(id, full_name)
+      `)
+      .eq('league_id', leagueId) // CRITICAL: Filter by league
+      .order("payment_date", { ascending: false });
+
+    if (seasonId) {
+      query = query.eq("season_id", seasonId);
+    }
+
+    const { data: payments, error } = await query;
+
+    if (error) {
+      console.error("Error fetching payments:", error);
+      return { error: error.message, payments: [] };
+    }
+
+    return { payments: payments || [] };
+  } catch (error: any) {
+    console.error("Error in getAllPayments:", error);
+    return { error: error.message || 'Unauthorized', payments: [] };
   }
-
-  const { data: payments, error } = await query;
-
-  if (error) {
-    console.error("Error fetching payments:", error);
-    return { error: error.message, payments: [] };
-  }
-
-  return { payments: payments || [] };
 }
 
 // Get payments for a specific player
 export async function getPlayerPayments(playerId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // Players can only see their own payments, owners can see all
-  if (user?.id !== playerId) {
-    const auth = await requireOwner();
-    if (auth.error) return { error: auth.error, payments: [] };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: 'Not authenticated', payments: [] };
+    }
+
+    // Get league context - players can see their own payments, owners/admins can see all
+    const { leagueId } = await requireLeagueRole(['owner', 'admin', 'captain', 'scorekeeper', 'player']);
+
+    // If not the player themselves and not admin/owner, deny access
+    if (user.id !== playerId) {
+      const { role } = await requireLeagueRole(['owner', 'admin']);
+      if (!role) {
+        return { error: 'Unauthorized', payments: [] };
+      }
+    }
+
+    const { data: payments, error } = await supabase
+      .from("payments")
+      .select(`
+        *,
+        season:seasons!payments_season_id_fkey(id, name)
+      `)
+      .eq("player_id", playerId)
+      .eq('league_id', leagueId) // CRITICAL: Filter by league
+      .order("payment_date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching player payments:", error);
+      return { error: error.message, payments: [] };
+    }
+
+    return { payments: payments || [] };
+  } catch (error: any) {
+    console.error("Error in getPlayerPayments:", error);
+    return { error: error.message || 'Unauthorized', payments: [] };
   }
-
-  const { data: payments, error } = await supabase
-    .from("payments")
-    .select(`
-      *,
-      season:seasons!payments_season_id_fkey(id, name)
-    `)
-    .eq("player_id", playerId)
-    .order("payment_date", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching player payments:", error);
-    return { error: error.message, payments: [] };
-  }
-
-  return { payments: payments || [] };
 }
 
 // Create payment (manual entry)
 export async function createPayment(formData: FormData) {
-  const auth = await requireOwner();
-  if (auth.error) return { error: auth.error };
+  try {
+    const { leagueId, userId } = await requireLeagueRole(['owner', 'admin']);
 
-  const supabase = await createClient();
+    const supabase = await createClient();
 
   const playerId = formData.get("player_id") as string;
   const seasonId = formData.get("season_id") as string;
@@ -146,14 +141,15 @@ export async function createPayment(formData: FormData) {
   const { data: payment, error } = await supabase
     .from("payments")
     .insert({
+      league_id: leagueId, // CRITICAL: Associate payment with league
       player_id: playerId,
       season_id: seasonId || null,
       amount: validatedAmount,  // Use validated amount
-      payment_method: paymentMethod.toLowerCase(),  // Normalize to lowercase
-      status: status,
+      payment_method: paymentMethod.toLowerCase() as any,  // Normalize to lowercase
+      status: status as any,
       payment_date: paymentDate,
       notes: notes || null,
-      entered_by: auth.userId!,
+      entered_by: userId,
     })
     .select()
     .single();
@@ -169,6 +165,7 @@ export async function createPayment(formData: FormData) {
     resourceType: "payment",
     resourceId: payment.id,
     details: {
+      league_id: leagueId,
       player_id: playerId,
       amount: validatedAmount,
       payment_method: paymentMethod,
@@ -179,12 +176,16 @@ export async function createPayment(formData: FormData) {
   revalidatePath("/admin/payments");
   revalidatePath(`/dashboard/profile`);
   return { success: true, payment };
+  } catch (error: any) {
+    console.error("Error in createPayment:", error);
+    return { error: error.message || 'Unauthorized or failed to create payment' };
+  }
 }
 
 // Update payment
 export async function updatePayment(paymentId: string, formData: FormData) {
-  const auth = await requireOwner();
-  if (auth.error) return { error: auth.error };
+  try {
+    const { leagueId, userId } = await requireLeagueRole(['owner', 'admin']);
 
   const supabase = await createClient();
 
@@ -237,7 +238,8 @@ export async function updatePayment(paymentId: string, formData: FormData) {
   const { error } = await supabase
     .from("payments")
     .update(updateData)
-    .eq("id", paymentId);
+    .eq("id", paymentId)
+    .eq('league_id', leagueId); // CRITICAL: Only update payments in this league
 
   if (error) {
     console.error("Error updating payment:", error);
@@ -250,6 +252,7 @@ export async function updatePayment(paymentId: string, formData: FormData) {
     resourceType: "payment",
     resourceId: paymentId,
     details: {
+      league_id: leagueId,
       amount: validatedAmount,
       payment_method: paymentMethod,
       payment_date: paymentDate,
@@ -258,27 +261,36 @@ export async function updatePayment(paymentId: string, formData: FormData) {
 
   revalidatePath("/admin/payments");
   return { success: true };
+  } catch (error: any) {
+    console.error("Error in updatePayment:", error);
+    return { error: error.message || 'Unauthorized or failed to update payment' };
+  }
 }
 
 // Delete payment
 export async function deletePayment(paymentId: string) {
-  const auth = await requireOwner();
-  if (auth.error) return { error: auth.error };
+  try {
+    const { leagueId, userId } = await requireLeagueRole(['owner', 'admin']);
 
-  const supabase = await createClient();
+    const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("payments")
-    .delete()
-    .eq("id", paymentId);
+    const { error } = await supabase
+      .from("payments")
+      .delete()
+      .eq("id", paymentId)
+      .eq('league_id', leagueId); // CRITICAL: Only delete payments in this league
 
-  if (error) {
-    console.error("Error deleting payment:", error);
-    return { error: error.message };
+    if (error) {
+      console.error("Error deleting payment:", error);
+      return { error: error.message };
+    }
+
+    revalidatePath("/admin/payments");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in deletePayment:", error);
+    return { error: error.message || 'Unauthorized or failed to delete payment' };
   }
-
-  revalidatePath("/admin/payments");
-  return { success: true };
 }
 
 // Create Stripe payment intent
@@ -287,14 +299,17 @@ export async function createStripePaymentIntent(
   amount: number,
   seasonId?: string
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user || user.id !== playerId) {
-    return { error: "Not authorized" };
-  }
-
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user || user.id !== playerId) {
+      return { error: "Not authorized" };
+    }
+
+    // Get league context for the player
+    const { leagueId } = await requireLeagueRole(['owner', 'admin', 'captain', 'scorekeeper', 'player']);
+
     const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
@@ -302,6 +317,7 @@ export async function createStripePaymentIntent(
       metadata: {
         player_id: playerId,
         season_id: seasonId || "",
+        league_id: leagueId, // Include league_id in metadata
       },
     });
 
@@ -320,9 +336,10 @@ export async function handleStripeWebhook(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     const playerId = paymentIntent.metadata.player_id;
     const seasonId = paymentIntent.metadata.season_id || null;
+    const leagueId = paymentIntent.metadata.league_id; // Get league_id from metadata
 
-    if (!playerId) {
-      console.error("No player_id in payment intent metadata");
+    if (!playerId || !leagueId) {
+      console.error("No player_id or league_id in payment intent metadata");
       return;
     }
 
@@ -330,6 +347,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
     const { error } = await supabase
       .from("payments")
       .insert({
+        league_id: leagueId, // CRITICAL: Associate payment with league
         player_id: playerId,
         season_id: seasonId,
         amount: paymentIntent.amount / 100, // Convert from cents
@@ -352,111 +370,139 @@ export async function handleStripeWebhook(event: Stripe.Event) {
 
 // Get payment summary for a player
 export async function getPlayerPaymentSummary(playerId: string, seasonId?: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // Players can only see their own summary, owners can see all
-  if (user?.id !== playerId) {
-    const auth = await requireOwner();
-    if (auth.error) return { error: auth.error };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    // Get league context
+    const { leagueId } = await requireLeagueRole(['owner', 'admin', 'captain', 'scorekeeper', 'player']);
+
+    // Players can only see their own summary, owners/admins can see all
+    if (user.id !== playerId) {
+      const { role } = await requireLeagueRole(['owner', 'admin']);
+      if (!role) {
+        return { error: 'Unauthorized' };
+      }
+    }
+
+    let query = supabase
+      .from("payments")
+      .select("amount, status, payment_method")
+      .eq("player_id", playerId)
+      .eq('league_id', leagueId) // CRITICAL: Filter by league
+      .eq("status", "completed");
+
+    if (seasonId) {
+      query = query.eq("season_id", seasonId);
+    }
+
+    const { data: payments, error } = await query;
+
+    if (error) {
+      console.error("Error fetching payment summary:", error);
+      return { error: error.message };
+    }
+
+    const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0) || 0;
+    const byMethod = payments?.reduce((acc: Record<string, number>, p) => {
+      const method = p.payment_method;
+      acc[method] = (acc[method] || 0) + parseFloat(p.amount.toString());
+      return acc;
+    }, {}) || {};
+
+    return {
+      totalPaid,
+      paymentCount: payments?.length || 0,
+      byMethod,
+    };
+  } catch (error: any) {
+    console.error("Error in getPlayerPaymentSummary:", error);
+    return { error: error.message || 'Unauthorized' };
   }
-
-  let query = supabase
-    .from("payments")
-    .select("amount, status, payment_method")
-    .eq("player_id", playerId)
-    .eq("status", "completed");
-
-  if (seasonId) {
-    query = query.eq("season_id", seasonId);
-  }
-
-  const { data: payments, error } = await query;
-
-  if (error) {
-    console.error("Error fetching payment summary:", error);
-    return { error: error.message };
-  }
-
-  const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0) || 0;
-  const byMethod = payments?.reduce((acc: Record<string, number>, p) => {
-    const method = p.payment_method;
-    acc[method] = (acc[method] || 0) + parseFloat(p.amount.toString());
-    return acc;
-  }, {}) || {};
-
-  return {
-    totalPaid,
-    paymentCount: payments?.length || 0,
-    byMethod,
-  };
 }
 
 // Get team payment status (for captains)
 export async function getTeamPaymentStatus(teamId: string, seasonId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    return { error: "Not authenticated", payments: [] };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: "Not authenticated", payments: [] };
+    }
+
+    // Get league context - captains can view their team's payment status
+    const { leagueId } = await requireLeagueRole(['owner', 'admin', 'captain', 'scorekeeper', 'player']);
+
+    // Verify team exists and belongs to league
+    const { data: team, error: teamError } = await supabase
+      .from("teams")
+      .select("captain_id")
+      .eq("id", teamId)
+      .eq('league_id', leagueId) // CRITICAL: Filter by league
+      .single();
+
+    if (teamError || !team) {
+      console.error("Error fetching team:", teamError);
+      return { error: "Team not found or does not belong to your league", payments: [] };
+    }
+
+    // Get user's league membership role
+    const { data: membership, error: membershipError } = await supabase
+      .from("league_memberships")
+      .select("role")
+      .eq("league_id", leagueId)
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .single();
+
+    if (membershipError || !membership) {
+      console.error("Error fetching membership:", membershipError);
+      return { error: "Failed to verify user permissions", payments: [] };
+    }
+
+    // Allow owners, admins, and team captains
+    if (membership.role !== "owner" && membership.role !== "admin" && team.captain_id !== user.id) {
+      return { error: "Not authorized - must be team captain, admin, or owner", payments: [] };
+    }
+
+    // Get all players on this team for this season
+    const { data: roster } = await supabase
+      .from("team_rosters")
+      .select("player_id")
+      .eq("team_id", teamId)
+      .eq("season_id", seasonId);
+
+    if (!roster || roster.length === 0) {
+      return { payments: [] };
+    }
+
+    const playerIds = roster.map(r => r.player_id);
+
+    // Get payments for all team players
+    const { data: payments, error } = await supabase
+      .from("payments")
+      .select(`
+        *,
+        player:profiles!payments_player_id_fkey(id, full_name, email, jersey_number)
+      `)
+      .eq("season_id", seasonId)
+      .eq('league_id', leagueId) // CRITICAL: Filter by league
+      .in("player_id", playerIds)
+      .order("payment_date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching team payments:", error);
+      return { error: error.message, payments: [] };
+    }
+
+    return { payments: payments || [] };
+  } catch (error: any) {
+    console.error("Error in getTeamPaymentStatus:", error);
+    return { error: error.message || 'Unauthorized', payments: [] };
   }
-
-  // Verify user is captain of this team
-  const { data: team, error: teamError } = await supabase
-    .from("teams")
-    .select("captain_id")
-    .eq("id", teamId)
-    .single();
-
-  if (teamError || !team) {
-    console.error("Error fetching team:", teamError);
-    return { error: "Team not found", payments: [] };
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    console.error("Error fetching profile:", profileError);
-    return { error: "Failed to verify user permissions", payments: [] };
-  }
-
-  // Allow owners and team captains
-  if (profile.role !== "owner" && team.captain_id !== user.id) {
-    return { error: "Not authorized - must be team captain", payments: [] };
-  }
-
-  // Get all players on this team for this season
-  const { data: roster } = await supabase
-    .from("team_rosters")
-    .select("player_id")
-    .eq("team_id", teamId)
-    .eq("season_id", seasonId);
-
-  if (!roster || roster.length === 0) {
-    return { payments: [] };
-  }
-
-  const playerIds = roster.map(r => r.player_id);
-
-  // Get payments for all team players
-  const { data: payments, error } = await supabase
-    .from("payments")
-    .select(`
-      *,
-      player:profiles!payments_player_id_fkey(id, full_name, email, jersey_number)
-    `)
-    .eq("season_id", seasonId)
-    .in("player_id", playerIds)
-    .order("payment_date", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching team payments:", error);
-    return { error: error.message, payments: [] };
-  }
-
-  return { payments: payments || [] };
 }

@@ -58,8 +58,8 @@ export default function ForgotPasswordPage() {
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center">
             <Image
-              src="/logo.png"
-              alt="HockeyLifeHL"
+              src="/BLH-Logo.png"
+              alt="Beer League Hockey"
               width={64}
               height={64}
               className="h-16 w-auto"

@@ -28,8 +28,10 @@ import { getAllSeasons } from "@/lib/seasons/actions";
 import { getCurrentDraft } from "@/lib/draft/actions";
 import { toast } from "sonner";
 import type { Draft, Season } from "@/types/database";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function AdminArticlesPage() {
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [articles, setArticles] = useState<any[]>([]);
   const [games, setGames] = useState<any[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -46,10 +48,13 @@ export default function AdminArticlesPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (leagueId) {
+      loadData();
+    }
+  }, [leagueId]);
 
   async function loadData() {
+    if (!leagueId) return;
     const [articlesResult, gamesResult, seasonsResult] = await Promise.all([
       getAllArticles(),
       getAllGames(),
@@ -88,11 +93,13 @@ export default function AdminArticlesPage() {
   }
 
   async function handleCreate() {
+    if (!leagueId) return;
     const form = new FormData();
     form.set("title", formData.title);
     form.set("content", formData.content);
     form.set("type", formData.type);
     form.set("published", formData.published.toString());
+    form.set("league_id", leagueId);
 
     const result = await createArticle(form);
     if (result.error) {
@@ -149,9 +156,14 @@ export default function AdminArticlesPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+          </div>
           <h1 className="text-3xl font-bold">Articles ✍️</h1>
           <p className="text-muted-foreground mt-2">
-            Manage league articles and news
+            Manage articles and news for this league
           </p>
         </div>
         <div className="flex gap-2">

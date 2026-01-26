@@ -110,15 +110,15 @@ export default function LoginPage() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <Image
-          src="/logo.png"
-          alt="HockeyLifeHL"
+          src="/BLH-Logo.png"
+          alt="Beer League Hockey"
           width={80}
           height={80}
           className="mx-auto mb-4"
         />
         <CardTitle className="text-2xl">Welcome Back</CardTitle>
         <CardDescription>
-          Sign in to access your dashboard
+          Sign in to your league dashboard
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -129,7 +129,7 @@ export default function LoginPage() {
               id="email"
               name="email"
               type="email"
-              placeholder="player@hockeylifehl.com"
+              placeholder="player@beerleaguehockey.ca"
               required
               disabled={isLoading}
             />

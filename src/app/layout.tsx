@@ -3,6 +3,7 @@ import { Inter, Oswald, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeColorManager } from "@/components/layout/ThemeColorManager";
 import { QuickActionMenu } from "@/components/ui/quick-action-menu";
+import { currentLeague, platformConfig } from "@/lib/league-config";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,44 +25,44 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'),
-  title: "HockeyLifeHL | For Fun, For Beers, For Glory",
-  description: "The ultimate men's recreational hockey league management platform. Stats, drafts, standings, and glory.",
-  keywords: ["hockey", "league", "stats", "draft", "recreational", "Canada"],
-  authors: [{ name: "HockeyLifeHL" }],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca'),
+  title: `${platformConfig.name} | ${platformConfig.slogan}`,
+  description: "Authentic infrastructure for adult hockey. Modern drafts, stats, and payments built for the leagues we actually play in.",
+  keywords: ["hockey", "beer league", "pond hockey", "league management", "stats", "draft", "Canada"],
+  authors: [{ name: platformConfig.name }],
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
+      { url: platformConfig.icon, sizes: "any" },
       { url: "/icons/favicon-96x96.png", sizes: "96x96", type: "image/png" },
       { url: "/icons/favicon.svg", type: "image/svg+xml" },
     ],
     apple: [
       { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
-    shortcut: "/favicon.ico",
+    shortcut: platformConfig.icon,
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "HockeyLifeHL",
+    title: platformConfig.name,
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
-    title: "HockeyLifeHL | For Fun, For Beers, For Glory",
-    description: "The ultimate men's recreational hockey league management platform.",
+    title: `${platformConfig.name} | ${platformConfig.slogan}`,
+    description: "Authentic infrastructure for adult hockey. Modern drafts, stats, and payments.",
     type: "website",
     locale: "en_CA",
-    siteName: "HockeyLifeHL",
-    images: ["/logo.png"],
+    siteName: platformConfig.name,
+    images: [platformConfig.banner],
   },
   twitter: {
     card: "summary_large_image",
-    title: "HockeyLifeHL | For Fun, For Beers, For Glory",
-    description: "The ultimate men's recreational hockey league management platform.",
-    images: ["/logo.png"],
+    title: `${platformConfig.name} | ${platformConfig.slogan}`,
+    description: "Authentic infrastructure for adult hockey.",
+    images: [platformConfig.banner],
   },
 };
 
@@ -71,8 +72,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#E31837" },
-    { media: "(prefers-color-scheme: dark)", color: "#0F0F14" },
+    { media: "(prefers-color-scheme: light)", color: platformConfig.colors.rinkBlue },
+    { media: "(prefers-color-scheme: dark)", color: "#0B1220" },
   ],
 };
 
@@ -82,7 +83,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="light">
       <head>
         {/* Favicon */}
         <link rel="icon" href="/favicon.ico" sizes="any" />

@@ -39,12 +39,14 @@ import { updateTeamLogoAdmin } from "@/lib/admin/actions";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Team, Profile } from "@/types/database";
+import { useActiveLeague } from "@/hooks/use-league";
 
 type TeamWithCaptain = Team & {
   captain: Pick<Profile, "id" | "full_name" | "email" | "avatar_url"> | null;
 };
 
 export default function AdminTeamsPage() {
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [teams, setTeams] = useState<TeamWithCaptain[]>([]);
   const [players, setPlayers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,10 +68,13 @@ export default function AdminTeamsPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (leagueId) {
+      loadData();
+    }
+  }, [leagueId]);
 
   async function loadData() {
+    if (!leagueId) return;
     setLoading(true);
     const [teamsResult, playersResult] = await Promise.all([
       getAllTeams(),
@@ -129,12 +134,14 @@ export default function AdminTeamsPage() {
   }
 
   async function handleCreate() {
+    if (!leagueId) return;
     setIsSaving(true);
     const form = new FormData();
     form.set("name", formData.name);
     form.set("shortName", formData.shortName);
     form.set("primaryColor", formData.primaryColor);
     form.set("secondaryColor", formData.secondaryColor);
+    form.set("league_id", leagueId);
     if (formData.captainId && formData.captainId !== "none") {
       form.set("captainId", formData.captainId);
     }
@@ -347,9 +354,14 @@ export default function AdminTeamsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+          </div>
           <h1 className="text-3xl font-bold">Manage Teams 🏆</h1>
           <p className="text-muted-foreground mt-2">
-            Create and manage league teams
+            Create and manage teams for this league
           </p>
         </div>
         <div className="flex items-center gap-2">

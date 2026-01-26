@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { generateGameRecap, generateDraftGrades, generateWeeklyWrap } from "@/lib/ai/content";
+import { getActiveLeagueId } from "@/lib/auth/league-context";
 
 type OwnerAuthResult =
   | { error: string; isOwner: false; userId?: never }
@@ -66,6 +67,11 @@ export async function createArticle(formData: FormData) {
     return { error: "Invalid article type" };
   }
 
+  const leagueId = await getActiveLeagueId();
+  if (!leagueId) {
+    return { error: "No active league found" };
+  }
+
   const { data: article, error } = await supabase
     .from("articles")
     .insert({
@@ -74,6 +80,7 @@ export async function createArticle(formData: FormData) {
       type: type as "game_recap" | "weekly_wrap" | "draft_grades" | "announcement",
       published: published,
       published_at: published ? new Date().toISOString() : null,
+      league_id: leagueId,
     })
     .select()
     .single();

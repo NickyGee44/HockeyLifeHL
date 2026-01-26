@@ -43,13 +43,13 @@ export default function RegisterPage() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <Image
-          src="/logo.png"
-          alt="HockeyLifeHL"
+          src="/BLH-Logo.png"
+          alt="Beer League Hockey"
           width={80}
           height={80}
           className="mx-auto mb-4"
         />
-        <CardTitle className="text-2xl">Join the League</CardTitle>
+        <CardTitle className="text-2xl">Join Beer League Hockey</CardTitle>
         <CardDescription>
           Create your account to get started
         </CardDescription>
@@ -73,7 +73,7 @@ export default function RegisterPage() {
               id="email"
               name="email"
               type="email"
-              placeholder="player@hockeylifehl.com"
+              placeholder="player@beerleaguehockey.ca"
               required
               disabled={isLoading}
             />

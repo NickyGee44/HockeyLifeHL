@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { currentLeague } from "@/lib/league-config";
 
 export default function TermsPage() {
   return (
@@ -18,14 +19,14 @@ export default function TermsPage() {
           <CardHeader>
             <CardTitle>Terms of Service</CardTitle>
             <CardDescription>
-              Rules and guidelines for using HockeyLifeHL
+              Rules and guidelines for using {currentLeague.name}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Acceptance of Terms</h3>
               <p className="text-muted-foreground">
-                By accessing and using HockeyLifeHL, you agree to be bound by these 
+                By accessing and using {currentLeague.name}, you agree to be bound by these 
                 Terms of Service and all applicable laws and regulations.
               </p>
             </div>
@@ -83,7 +84,7 @@ export default function TermsPage() {
             <div>
               <h3 className="text-lg font-semibold mb-2">Limitation of Liability</h3>
               <p className="text-muted-foreground">
-                HockeyLifeHL is provided &quot;as is&quot; without warranties. The league 
+                {currentLeague.name} is provided &quot;as is&quot; without warranties. The league 
                 is not responsible for injuries, damages, or losses incurred during 
                 participation. Players participate at their own risk.
               </p>

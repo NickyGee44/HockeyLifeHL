@@ -8,9 +8,11 @@ import { getUpcomingGameForCheckIn, checkInToGame } from "@/lib/players/availabi
 import { DashboardView } from "@/components/dashboard/DashboardView";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function DashboardPage() {
   const { user, profile, loading: authLoading, error: authError } = useAuth();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [stats, setStats] = useState<any>(null);
   const [nextGame, setNextGame] = useState<any>(null);
   const [checkInData, setCheckInData] = useState<any>(null);
@@ -19,15 +21,16 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
+    if (authLoading || leagueLoading) return;
+    if (!user || !leagueId) {
       setLoading(false);
       return;
     }
     loadDashboardData();
-  }, [user, authLoading]);
+  }, [user, authLoading, leagueId, leagueLoading]);
 
   async function loadDashboardData() {
+    if (!leagueId) return;
     const supabase = createClient();
     try {
       const timeoutPromise = new Promise((_, reject) => 
@@ -38,6 +41,7 @@ export default function DashboardPage() {
         const { data: activeSeason } = await supabase
           .from("seasons")
           .select("id, name, status")
+          .eq("league_id", leagueId)
           .in("status", ["active", "playoffs"])
           .order("start_date", { ascending: false })
           .limit(1)
@@ -125,16 +129,32 @@ export default function DashboardPage() {
     );
   }
 
-  return (
-    <DashboardView 
-      profile={profile}
-      stats={stats}
-      nextGame={nextGame}
-      checkInData={checkInData}
-      isCheckingIn={isCheckingIn}
-      onCheckIn={handleCheckIn}
-      loading={authLoading || loading}
-      error={error}
-    />
-  );
-}
+    return (
+
+      <DashboardView 
+
+        profile={profile}
+
+        stats={stats}
+
+        nextGame={nextGame}
+
+        checkInData={checkInData}
+
+        isCheckingIn={isCheckingIn}
+
+        onCheckIn={handleCheckIn}
+
+        loading={authLoading || loading || leagueLoading}
+
+        error={error}
+
+        activeLeague={leagueId ? { id: leagueId, name: branding?.name || "League" } : undefined}
+
+      />
+
+    );
+
+  }
+
+  

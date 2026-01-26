@@ -20,9 +20,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { getLeagueStats } from "@/lib/admin/stats-actions";
 import { generateTestData, removeAllTestData, makeCurrentUserOwner } from "@/lib/admin/test-data-actions";
 import { toast } from "sonner";
+import { useActiveLeague } from "@/hooks/use-league";
 
 export default function AdminDashboardPage() {
   const { user, profile, loading: authLoading, isOwner, error: authError, refreshProfile } = useAuth();
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -60,12 +62,15 @@ export default function AdminDashboardPage() {
     }
 
     // User is owner, load stats
-    loadStats();
+    if (leagueId) {
+      loadStats();
+    }
     // Make current user owner on mount (for development)
     makeCurrentUserOwner();
-  }, [user, profile, authLoading, isOwner, authError, refreshProfile, router]);
+  }, [user, profile, authLoading, isOwner, authError, refreshProfile, router, leagueId]);
 
   async function loadStats() {
+    if (!leagueId) return;
     const result = await getLeagueStats();
     setStats(result);
     setLoading(false);
@@ -164,6 +169,10 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg w-fit border border-border/50 mb-4">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Managing:</span>
+          <span className="text-sm font-semibold text-primary">{branding?.name || "League"}</span>
+        </div>
         <h1 className="text-3xl font-bold">League Admin 👑</h1>
         <p className="text-muted-foreground mt-2">
           Manage your hockey empire from here.
@@ -268,6 +277,12 @@ export default function AdminDashboardPage() {
               <Link href="/admin/payments">
                 <span className="text-2xl">💳</span>
                 <span>Payments</span>
+              </Link>
+            </Button>
+            <Button className="h-auto py-4 flex-col gap-2" variant="outline" asChild>
+              <Link href="/admin/analytics">
+                <span className="text-2xl">📊</span>
+                <span>Analytics</span>
               </Link>
             </Button>
           </div>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { logAuditEvent } from "@/lib/audit/logger";
+import { getActiveLeagueId } from "@/lib/auth/league-context";
 
 // Check if current user is an owner
 async function requireOwner() {
@@ -77,6 +78,11 @@ export async function createSuspension(formData: FormData) {
     return { error: "All fields are required" };
   }
 
+  const leagueId = await getActiveLeagueId();
+  if (!leagueId) {
+    return { error: "No active league found" };
+  }
+
   const { data: suspension, error } = await supabase
     .from("suspensions")
     .insert({
@@ -85,6 +91,7 @@ export async function createSuspension(formData: FormData) {
       games_remaining: gamesRemaining,
       start_date: startDate,
       issued_by: auth.userId!,
+      league_id: leagueId,
     })
     .select()
     .single();

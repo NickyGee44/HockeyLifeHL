@@ -34,6 +34,7 @@ import { getAllPayments, createPayment, updatePayment, deletePayment } from "@/l
 import { getAllPlayers } from "@/lib/admin/actions";
 import { getAllSeasons } from "@/lib/seasons/actions";
 import { toast } from "sonner";
+import { useActiveLeague } from "@/hooks/use-league";
 
 const paymentMethodLabels: Record<string, string> = {
   cash: "Cash",
@@ -51,6 +52,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AdminPaymentsPage() {
+  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
   const [payments, setPayments] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);
@@ -69,10 +71,13 @@ export default function AdminPaymentsPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, [selectedSeason]);
+    if (leagueId) {
+      loadData();
+    }
+  }, [selectedSeason, leagueId]);
 
   async function loadData() {
+    if (!leagueId) return;
     const [paymentsResult, playersResult, seasonsResult] = await Promise.all([
       getAllPayments(selectedSeason === "all" ? undefined : selectedSeason),
       getAllPlayers(),
@@ -92,6 +97,7 @@ export default function AdminPaymentsPage() {
   }
 
   async function handleCreate() {
+    if (!leagueId) return;
     const form = new FormData();
     form.set("player_id", formData.player_id);
     if (formData.season_id && formData.season_id !== "none") {
@@ -102,6 +108,7 @@ export default function AdminPaymentsPage() {
     form.set("payment_date", formData.payment_date);
     form.set("notes", formData.notes);
     form.set("status", formData.status);
+    form.set("league_id", leagueId);
 
     const result = await createPayment(form);
     if (result.error) {
@@ -170,9 +177,14 @@ export default function AdminPaymentsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+          </div>
           <h1 className="text-3xl font-bold">Payments 💳</h1>
           <p className="text-muted-foreground mt-2">
-            Track player payments and league fees
+            Track player payments and league fees for this league
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

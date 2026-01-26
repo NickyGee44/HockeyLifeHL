@@ -10,22 +10,44 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { currentLeague } from "@/lib/league-config";
+import { SponsorShowcase } from "@/components/marketing/SponsorShowcase";
+import { Sponsor } from "@/lib/sponsors/actions";
+import { AuroraText } from "@/components/magicui/aurora-text";
+import { MeshGradient } from "@/components/ui/mesh-gradient";
 
 interface LandingPageProps {
   playerOfTheWeek: any;
+  leagueSponsors?: Sponsor[];
+  platformSponsors?: Sponsor[];
 }
 
-export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
+export function LandingPage({ 
+  playerOfTheWeek, 
+  leagueSponsors = [], 
+  platformSponsors = [] 
+}: LandingPageProps) {
   return (
-    <div className="min-h-screen bg-arena flex flex-col">
+    <div className="min-h-screen bg-arena flex flex-col relative">
+      {/* Background Image Layer */}
+      <div className="fixed inset-0 z-0">
+        <Image 
+          src="/web-bg.jfif" 
+          alt="Ice Background" 
+          fill 
+          className="object-cover opacity-10"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/80" />
+      </div>
+
       <Header />
       
       {/* Live Ticker */}
-      <div className="bg-puck-black/80 border-b border-white/5 py-2 overflow-hidden whitespace-nowrap relative z-20">
+      <div className="bg-[#0B1220] border-b border-white/10 py-2 overflow-hidden whitespace-nowrap relative z-20 shadow-md">
         <motion.div 
           animate={{ x: [0, -1000] }}
           transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          className="flex gap-12 items-center text-xs font-bold uppercase tracking-widest text-gold/80"
+          className="flex gap-12 items-center text-xs font-bold uppercase tracking-widest text-gold/90"
         >
           {[...Array(10)].map((_, i) => (
             <div key={i} className="flex gap-8 items-center">
@@ -40,59 +62,48 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
         </motion.div>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 relative z-10">
         {/* Hero Section */}
-        <header className="relative overflow-hidden">
-          <div className="absolute inset-0">
-            <Image
-              src="/banner2.png"
-              alt="HockeyLifeHL Banner"
-              fill
-              className="object-cover object-center"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background" />
-          </div>
-          
+        <header className="relative overflow-hidden border-b border-border bg-white/30 backdrop-blur-sm">
           <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
             <div className="text-center max-w-4xl mx-auto">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="mb-8"
+                className="mb-6"
               >
                 <Image
                   src="/logo2.png"
                   alt={currentLeague.name}
-                  width={400}
-                  height={400}
-                  className="mx-auto h-48 md:h-64 w-auto drop-shadow-[0_0_30px_rgba(227,24,55,0.3)]"
+                  width={250}
+                  height={250}
+                  className="mx-auto h-32 md:h-48 w-auto drop-shadow-xl"
                   priority
                 />
               </motion.div>
               
-              <motion.p 
+              <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
-                className="text-ice-white text-xl md:text-2xl mb-2 font-medium drop-shadow-lg"
+                className="text-[#0B1220] text-xl md:text-3xl mb-4 font-bold"
               >
-                Men&apos;s Recreational Hockey League
-              </motion.p>
+                <AuroraText>Men&apos;s Recreational Hockey League</AuroraText>
+              </motion.div>
               
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6, duration: 0.5 }}
-                className="flex flex-col sm:flex-row gap-4 justify-center mt-8"
+                className="flex flex-col sm:flex-row gap-4 justify-center mt-10"
               >
-                <Button size="lg" className="text-lg px-8 bg-canada-red hover:bg-canada-red-dark shadow-[0_0_20px_rgba(227,24,55,0.5)] transition-all hover:scale-105" asChild>
+                <Button size="lg" className="text-lg px-8 bg-canada-red hover:bg-canada-red-dark text-white shadow-lg transition-all hover:scale-105" asChild>
                   <Link href="/register">
                     Join the League 🏒
                   </Link>
                 </Button>
-                <Button variant="outline" size="lg" className="text-lg px-8 bg-background/80 backdrop-blur hover:bg-background/100 transition-all hover:scale-105" asChild>
+                <Button variant="outline" size="lg" className="text-lg px-8 bg-white hover:bg-slate-50 border-slate-200 text-[#0B1220] shadow-sm transition-all hover:scale-105" asChild>
                   <Link href="/standings">
                     View Standings
                   </Link>
@@ -101,6 +112,12 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
             </div>
           </div>
         </header>
+
+        {/* League Sponsors Carousel */}
+        <SponsorShowcase 
+          sponsors={leagueSponsors} 
+          title={`${currentLeague.name} Partners`} 
+        />
 
         {/* Player of the Week */}
         {playerOfTheWeek && (
@@ -112,28 +129,28 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
                 viewport={{ once: true }}
               >
                 <h2 className="text-center mb-8">
-                  <span className="text-foreground">Player of the </span>
-                  <span className="text-gold">Week</span>
+                  <span className="text-[#0B1220]">Player of the </span>
+                  <span className="text-gold-dark font-bold">Week</span>
                 </h2>
                 
-                <Card className="overflow-hidden border-gold/30 bg-gradient-to-br from-card via-card to-gold/10 group hover:border-gold/50 transition-all duration-500 relative">
+                <Card className="overflow-hidden border-slate-200 bg-white shadow-xl group hover:border-gold/30 transition-all duration-500 relative">
                   {/* Holographic Shine Effect */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-1000 pointer-events-none bg-[linear-gradient(45deg,transparent_25%,rgba(255,215,0,0.4)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_3s_infinite_linear]" />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-1000 pointer-events-none bg-[linear-gradient(45deg,transparent_25%,rgba(255,215,0,0.3)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_3s_infinite_linear]" />
                   
                   <div className="flex flex-col md:flex-row relative z-10">
-                    <div className="flex-shrink-0 p-6 md:p-8 flex flex-col items-center md:items-start gap-4 md:border-r border-border/50">
+                    <div className="flex-shrink-0 p-6 md:p-8 flex flex-col items-center md:items-start gap-4 md:border-r border-slate-100">
                       <div className="relative">
                         <motion.div
                           whileHover={{ scale: 1.05, rotate: 2 }}
                           className="relative"
                         >
-                          <Avatar className="h-32 w-32 md:h-40 md:w-40 ring-4 ring-gold/30 shadow-[0_0_20px_rgba(255,215,0,0.2)]">
+                          <Avatar className="h-32 w-32 md:h-40 md:w-40 ring-4 ring-gold/10 shadow-lg">
                             <AvatarImage src={playerOfTheWeek.avatarUrl || ""} />
                             <AvatarFallback className="bg-canada-red text-white text-4xl">
                               {playerOfTheWeek.fullName?.split(" ").map((n: string) => n[0]).join("") || "?"}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="absolute -bottom-2 -right-2 bg-gold text-black rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-lg border-2 border-puck-black">
+                          <div className="absolute -bottom-2 -right-2 bg-gold text-black rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-lg border-2 border-white">
                             #{playerOfTheWeek.jerseyNumber || "?"}
                           </div>
                         </motion.div>
@@ -141,13 +158,13 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
                       
                       <div className="text-center md:text-left">
                         <Link href={`/stats/${playerOfTheWeek.id}`} className="hover:underline">
-                          <h3 className="text-2xl font-bold text-gradient-gold">{playerOfTheWeek.fullName}</h3>
+                          <h3 className="text-2xl font-bold text-[#0B1220]">{playerOfTheWeek.fullName}</h3>
                         </Link>
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-2">
                           {playerOfTheWeek.position && (
-                            <Badge variant="outline" className="border-gold/50 text-gold">{playerOfTheWeek.position}</Badge>
+                            <Badge variant="outline" className="border-slate-200 text-slate-600">{playerOfTheWeek.position}</Badge>
                           )}
-                          <Badge variant="outline" className="bg-canada-red/10 border-canada-red/30 text-canada-red">Elite Performer</Badge>
+                          <Badge variant="outline" className="bg-canada-red/5 border-canada-red/20 text-canada-red">Elite Performer</Badge>
                         </div>
                       </div>
 
@@ -170,29 +187,29 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
                     </div>
 
                     <div className="flex-1 p-6 md:p-8 flex flex-col justify-center">
-                      <p className="text-xs font-bold text-muted-foreground mb-4 uppercase tracking-widest">
+                      <p className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">
                         Weekly Performance
                       </p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
-                          { label: "Points", value: playerOfTheWeek.weeklyStats.points, color: "text-gold" },
+                          { label: "Points", value: playerOfTheWeek.weeklyStats.points, color: "text-gold-dark" },
                           { label: "Goals", value: playerOfTheWeek.weeklyStats.goals, color: "text-canada-red" },
                           { label: "Assists", value: playerOfTheWeek.weeklyStats.assists, color: "text-rink-blue" },
-                          { label: "Games", value: playerOfTheWeek.weeklyStats.gamesPlayed, color: "text-white" },
+                          { label: "Games", value: playerOfTheWeek.weeklyStats.gamesPlayed, color: "text-[#0B1220]" },
                         ].map((stat, i) => (
                           <motion.div 
                             key={i}
                             whileHover={{ y: -5 }}
-                            className="text-center p-4 bg-puck-black/40 rounded-lg border border-white/5"
+                            className="text-center p-4 bg-slate-50 rounded-lg border border-slate-100"
                           >
                             <div className={`text-3xl md:text-4xl font-display font-bold ${stat.color}`}>{stat.value}</div>
-                            <div className="text-[10px] uppercase tracking-tighter text-muted-foreground mt-1">{stat.label}</div>
+                            <div className="text-[10px] uppercase tracking-tighter text-slate-500 mt-1">{stat.label}</div>
                           </motion.div>
                         ))}
                       </div>
                       
                       <div className="mt-6 text-center md:text-left">
-                        <Button asChild variant="outline" className="border-gold/50 hover:bg-gold/10 text-gold group">
+                        <Button asChild variant="outline" className="border-slate-200 hover:bg-slate-50 text-[#0B1220] group">
                           <Link href={`/stats/${playerOfTheWeek.id}`} className="flex items-center gap-2">
                             View Full Career Profile <span className="group-hover:translate-x-1 transition-transform">→</span>
                           </Link>
@@ -207,15 +224,14 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
         )}
 
         {/* Features Preview */}
-        <section className="py-20 px-4 bg-arena relative overflow-hidden">
-          <div className="absolute inset-0 bg-canada-red/5 pointer-events-none" />
+        <section className="py-20 px-4 relative overflow-hidden">
           <div className="container mx-auto max-w-6xl relative z-10">
             <div className="text-center mb-16">
               <h2 className="mb-4">
-                <span className="text-foreground">Everything You Need to </span>
+                <span className="text-[#0B1220]">Everything You Need to </span>
                 <span className="text-canada-red">Run the League</span>
               </h2>
-              <div className="h-1 w-20 bg-canada-red mx-auto" />
+              <div className="h-1.5 w-20 bg-canada-red mx-auto rounded-full" />
             </div>
             
             <div className="grid md:grid-cols-3 gap-8">
@@ -234,13 +250,13 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
                 >
-                  <Card className="hover:border-canada-red/40 transition-all duration-300 hover:shadow-[0_0_20px_rgba(227,24,55,0.1)] h-full bg-card/40 backdrop-blur-sm group">
+                  <Card className="hover:border-canada-red/40 transition-all duration-300 hover:shadow-xl h-full bg-white/80 backdrop-blur-sm border-slate-100 group">
                     <CardHeader>
                       <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
-                      <CardTitle className="group-hover:text-canada-red transition-colors">{feature.title}</CardTitle>
+                      <CardTitle className="text-[#0B1220] group-hover:text-canada-red transition-colors">{feature.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <CardDescription className="text-base leading-relaxed">
+                      <CardDescription className="text-base leading-relaxed text-slate-600">
                         {feature.desc}
                       </CardDescription>
                     </CardContent>
@@ -259,23 +275,16 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
             >
-              <Card className="glass border-gold/20 overflow-hidden p-12">
-                <div className="absolute inset-0 opacity-20">
-                  <Image
-                    src="/banner.png"
-                    alt=""
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+              <Card className="bg-white border-slate-200 overflow-hidden p-12 relative shadow-2xl">
+                <MeshGradient className="absolute inset-0 z-0 opacity-10" />
                 <div className="relative z-10">
-                  <h2 className="text-4xl md:text-5xl mb-6">
-                    Ready to <span className="text-canada-red">Drop the Puck?</span>
+                  <h2 className="text-4xl md:text-5xl mb-6 text-[#0B1220]">
+                    Ready to <span className="text-canada-red font-bold">Drop the Puck?</span>
                   </h2>
-                  <p className="text-xl text-muted-foreground mb-10 max-w-lg mx-auto leading-relaxed">
+                  <p className="text-xl text-slate-600 mb-10 max-w-lg mx-auto leading-relaxed">
                     Join {currentLeague.name} today and experience recreational hockey like never before.
                   </p>
-                  <Button className="btn-hockey-gold text-xl px-12 py-8 rounded-xl shadow-xl hover:shadow-gold/20" asChild>
+                  <Button size="lg" className="bg-[#0B1220] text-white hover:bg-black text-xl px-12 py-8 rounded-xl shadow-xl transition-all hover:scale-105" asChild>
                     <Link href="/register">
                       Get Started 🏒
                     </Link>
@@ -285,6 +294,13 @@ export function LandingPage({ playerOfTheWeek }: LandingPageProps) {
             </motion.div>
           </div>
         </section>
+
+        {/* Platform Sponsors Grid */}
+        <SponsorShowcase 
+          sponsors={platformSponsors} 
+          title="Platform Partners" 
+          layout="grid"
+        />
       </div>
       <Footer />
     </div>
