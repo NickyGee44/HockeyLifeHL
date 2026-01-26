@@ -55,7 +55,24 @@ export async function getAllLeagues(): Promise<LeagueManagementResult> {
         secondary_color,
         sport
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as {
+        data: Array<{
+          id: string;
+          name: string;
+          slug: string;
+          subdomain: string | null;
+          custom_domain: string | null;
+          custom_domain_verified: boolean | null;
+          status: string;
+          created_at: string | null;
+          updated_at: string | null;
+          logo_url: string | null;
+          primary_color: string | null;
+          secondary_color: string | null;
+          sport: string;
+        }> | null;
+        error: any;
+      };
 
     if (error) {
       console.error('Error fetching leagues:', error);
@@ -145,7 +162,7 @@ export async function getLeagueDetails(leagueId: string): Promise<LeagueManageme
         created_by
       `)
       .eq('id', leagueId)
-      .single();
+      .single() as { data: any; error: any };
 
     if (error) {
       console.error('Error fetching league details:', error);
