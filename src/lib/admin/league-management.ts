@@ -263,7 +263,7 @@ export async function updateLeagueStatus(
 
     // TODO: Add platform admin check here
 
-    const { data: league, error } = await supabase
+    const { data: league, error } = await (supabase as any)
       .from('leagues')
       .update({
         status,
@@ -271,7 +271,7 @@ export async function updateLeagueStatus(
       })
       .eq('id', leagueId)
       .select()
-      .single() as { data: any; error: any };
+      .single();
 
     if (error) {
       console.error('Error updating league status:', error);
@@ -371,11 +371,11 @@ export async function createLeagueAsAdmin(data: {
     }
 
     // Check if slug is already taken
-    const { data: existingLeague } = await supabase
+    const { data: existingLeague } = await (supabase as any)
       .from('leagues')
       .select('id')
       .eq('slug', slug)
-      .single() as { data: any; error: any };
+      .single();
 
     if (existingLeague) {
       return { error: 'This league slug is already taken. Please choose a different name.' };
@@ -385,22 +385,22 @@ export async function createLeagueAsAdmin(data: {
     const subdomain = data.subdomain || slug;
 
     // Check if subdomain is already taken
-    const { data: existingSubdomain } = await supabase
+    const { data: existingSubdomain } = await (supabase as any)
       .from('leagues')
       .select('id')
       .eq('subdomain', subdomain)
-      .single() as { data: any; error: any };
+      .single();
 
     if (existingSubdomain) {
       return { error: 'This subdomain is already taken. Please choose a different one.' };
     }
 
     // Find the owner user
-    const { data: ownerProfile } = await supabase
+    const { data: ownerProfile } = await (supabase as any)
       .from('profiles')
       .select('id')
       .eq('email', data.ownerEmail.toLowerCase())
-      .single() as { data: any; error: any };
+      .single();
 
     if (!ownerProfile) {
       return { error: 'Owner user not found. Please ensure the email is correct.' };
@@ -532,12 +532,12 @@ export async function updateLeagueAsAdmin(
       }
 
       // Check if subdomain is already taken by another league
-      const { data: existingSubdomain } = await supabase
+      const { data: existingSubdomain } = await (supabase as any)
         .from('leagues')
         .select('id')
         .eq('subdomain', subdomain)
         .neq('id', leagueId)
-        .single() as { data: any; error: any };
+        .single();
 
       if (existingSubdomain) {
         return { error: 'This subdomain is already taken by another league' };
@@ -547,7 +547,7 @@ export async function updateLeagueAsAdmin(
     }
 
     // Update league
-    const { data: league, error } = await supabase
+    const { data: league, error } = await (supabase as any)
       .from('leagues')
       .update({
         ...sanitized,
@@ -555,7 +555,7 @@ export async function updateLeagueAsAdmin(
       })
       .eq('id', leagueId)
       .select()
-      .single() as { data: any; error: any };
+      .single();
 
     if (error) {
       console.error('Error updating league:', error);
