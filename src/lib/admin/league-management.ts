@@ -10,6 +10,7 @@ export type LeagueManagementResult = {
   success?: boolean;
   league?: any;
   leagues?: any[];
+  leagueId?: string;
 };
 
 /**
