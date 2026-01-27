@@ -118,7 +118,7 @@ type TeamInvite = {
 
 export default function CaptainTeamPage() {
   const { user, loading: authLoading, isCaptain } = useAuth();
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [team, setTeam] = useState<TeamData | null>(null);
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [season, setSeason] = useState<SeasonData | null>(null);

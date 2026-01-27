@@ -22,7 +22,7 @@ import { useActiveLeague } from "@/hooks/use-league";
 
 export default function CaptainDraftPage() {
   const { user, loading: authLoading, isCaptain } = useAuth();
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [team, setTeam] = useState<any>(null);
   const [season, setSeason] = useState<any>(null);
   const [draftId, setDraftId] = useState<string | null>(null);

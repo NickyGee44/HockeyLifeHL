@@ -1,5 +1,7 @@
 "use client";
 
+import { currentLeague } from "@/lib/league-config";
+
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -46,7 +48,7 @@ type TeamWithCaptain = Team & {
 };
 
 export default function AdminTeamsPage() {
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [teams, setTeams] = useState<TeamWithCaptain[]>([]);
   const [players, setPlayers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -357,7 +359,7 @@ export default function AdminTeamsPage() {
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
             <span className="text-muted-foreground">/</span>
-            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+            <span className="text-muted-foreground text-sm font-medium">{currentLeague.name}</span>
           </div>
           <h1 className="text-3xl font-bold">Manage Teams 🏆</h1>
           <p className="text-muted-foreground mt-2">

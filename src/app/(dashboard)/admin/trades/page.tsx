@@ -1,5 +1,7 @@
 "use client";
 
+import { currentLeague } from "@/lib/league-config";
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
@@ -40,7 +42,7 @@ import { useActiveLeague } from "@/hooks/use-league";
 
 export default function TradesPage() {
   const { user, isOwner, loading: authLoading } = useAuth();
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [loading, setLoading] = useState(true);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
@@ -266,7 +268,7 @@ export default function TradesPage() {
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
             <span className="text-muted-foreground">/</span>
-            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+            <span className="text-muted-foreground text-sm font-medium">{currentLeague.name}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
             Trade <span className="text-canada-red">Management</span>

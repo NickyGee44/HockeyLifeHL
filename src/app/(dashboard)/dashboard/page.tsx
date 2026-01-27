@@ -9,10 +9,11 @@ import { DashboardView } from "@/components/dashboard/DashboardView";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { useActiveLeague } from "@/hooks/use-league";
+import { currentLeague } from "@/lib/league-config";
 
 export default function DashboardPage() {
   const { user, profile, loading: authLoading, error: authError } = useAuth();
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [stats, setStats] = useState<any>(null);
   const [nextGame, setNextGame] = useState<any>(null);
   const [checkInData, setCheckInData] = useState<any>(null);
@@ -149,7 +150,7 @@ export default function DashboardPage() {
 
         error={error}
 
-        activeLeague={leagueId ? { id: leagueId, name: branding?.name || "League" } : undefined}
+        activeLeague={leagueId ? { id: leagueId, name: currentLeague.name } : undefined}
 
       />
 

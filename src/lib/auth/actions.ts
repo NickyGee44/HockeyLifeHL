@@ -258,52 +258,23 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
     }
   }
 
-  // If invite code provided and user was created, use the invite code
-  // Note: Profile is created by trigger, so we need to wait for it
-  if (inviteCode && signUpData.user) {
-    console.log("Waiting for profile creation trigger to complete...");
+  // If invite code provided and profile exists, use the invite code
+  if (inviteCode && profileExists) {
+    console.log("Applying invite code...");
 
-    // Initial wait for trigger to start
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const { useInviteCode } = await import("../teams/invite-actions");
+      const result = await useInviteCode(inviteCode);
 
-    // Poll for profile creation with increased retry count
-    let profileExists = false;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 20; // 20 attempts * 500ms = 10 seconds total wait time
-
-    while (!profileExists && attempts < MAX_ATTEMPTS) {
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", signUpData.user.id)
-        .single();
-
-      if (profile) {
-        profileExists = true;
-        console.log(`Profile found after ${attempts + 1} attempts`);
-
-        // Use the invite code
-        const { useInviteCode } = await import("../teams/invite-actions");
-        const result = await useInviteCode(inviteCode);
-
-        if (result.error) {
-          console.error("Error using invite code:", result.error);
-          // Don't fail signup if invite code fails, log for manual review
-          console.log(`ACTION REQUIRED: Manually apply invite code ${inviteCode} to user ${signUpData.user.id}`);
-        } else {
-          console.log("Successfully applied invite code");
-        }
+      if (result.error) {
+        console.error("Error using invite code:", result.error);
+        // Don't fail signup if invite code fails, log for manual review
+        console.log(`ACTION REQUIRED: Manually apply invite code ${inviteCode} to user ${signUpData.user.id}`);
       } else {
-        attempts++;
-        if (attempts < MAX_ATTEMPTS) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } else {
-          // Profile never created - critical error
-          console.error(`Profile creation failed after ${MAX_ATTEMPTS} attempts for user ${signUpData.user.id}`);
-          console.log(`ACTION REQUIRED: Check database trigger and manually create profile for user ${signUpData.user.id}`);
-          // Continue anyway - user is created, profile issue needs manual resolution
-        }
+        console.log("Successfully applied invite code");
       }
+    } catch (err) {
+      console.error("Error importing or using invite code:", err);
     }
   }
 
@@ -374,6 +345,36 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
     }
 
     console.log("User signed in successfully:", data.user.id);
+
+    // Set active league cookie if not already set
+    try {
+      const { getActiveLeagueId, setActiveLeagueId, getUserLeagues } = await import("./league-context");
+
+      // Check if user already has an active league set
+      const currentLeagueId = await getActiveLeagueId();
+
+      if (!currentLeagueId) {
+        console.log("No active league set, fetching user leagues...");
+
+        // Get user's leagues
+        const { leagues, error: leaguesError } = await getUserLeagues();
+
+        if (!leaguesError && leagues && leagues.length > 0) {
+          // Set to first league (usually the one they signed up with)
+          const firstLeague = leagues[0].league_id;
+          console.log(`Setting active league to: ${firstLeague}`);
+
+          await setActiveLeagueId(firstLeague);
+        } else {
+          console.log("User has no league memberships, they may need to be added manually");
+        }
+      } else {
+        console.log(`Active league already set: ${currentLeagueId}`);
+      }
+    } catch (err) {
+      console.error("Error setting active league on login:", err);
+      // Don't fail login if league setting fails
+    }
 
     revalidatePath("/", "layout");
     redirect("/dashboard");

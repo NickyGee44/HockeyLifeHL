@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { currentLeague } from "@/lib/league-config";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,7 @@ type EmailGenerationContext = {
 
 export default function AdminEmailsPage() {
   const { user, isOwner, loading: authLoading } = useAuth();
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
@@ -427,7 +428,7 @@ export default function AdminEmailsPage() {
         <div className="flex items-center gap-2 mb-2">
           <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
           <span className="text-muted-foreground">/</span>
-          <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+          <span className="text-muted-foreground text-sm font-medium">{currentLeague.name}</span>
         </div>
         <h1 className="text-3xl font-bold mb-2">Email Management</h1>
         <p className="text-muted-foreground">

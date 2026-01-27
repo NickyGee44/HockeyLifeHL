@@ -1,5 +1,7 @@
 "use client";
 
+import { currentLeague } from "@/lib/league-config";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +52,7 @@ import type { Season, SeasonStatus } from "@/types/database";
 import { useActiveLeague } from "@/hooks/use-league";
 
 export default function AdminSeasonsPage() {
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -516,7 +518,7 @@ export default function AdminSeasonsPage() {
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
             <span className="text-muted-foreground">/</span>
-            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+            <span className="text-muted-foreground text-sm font-medium">{currentLeague.name}</span>
           </div>
           <h1 className="text-3xl font-bold">Manage Seasons 📆</h1>
           <p className="text-muted-foreground mt-2">

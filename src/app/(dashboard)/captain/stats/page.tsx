@@ -62,7 +62,7 @@ type Player = {
 
 export default function CaptainStatsPage() {
   const { user, loading: authLoading, isCaptain } = useAuth();
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [team, setTeam] = useState<{ id: string; name: string } | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);

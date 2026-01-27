@@ -68,7 +68,7 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { user, profile, loading, isOwner, isCaptain } = useAuth();
-  const { leagueId, branding } = useActiveLeague();
+  const { leagueId } = useActiveLeague();
   const pathname = usePathname();
   const router = useRouter();
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { currentLeague } from "@/lib/league-config";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,7 @@ type GameWithRelations = Game & {
 };
 
 export default function AdminGamesPage() {
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const [games, setGames] = useState<GameWithRelations[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -315,7 +316,7 @@ export default function AdminGamesPage() {
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="outline" className="font-mono text-[10px]">ADMIN</Badge>
             <span className="text-muted-foreground">/</span>
-            <span className="text-muted-foreground text-sm font-medium">{branding?.name || "League"}</span>
+            <span className="text-muted-foreground text-sm font-medium">{currentLeague.name}</span>
           </div>
           <h1 className="text-3xl font-bold">Manage Games 🎮</h1>
           <p className="text-muted-foreground mt-2">

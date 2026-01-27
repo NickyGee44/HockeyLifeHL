@@ -21,10 +21,11 @@ import { getLeagueStats } from "@/lib/admin/stats-actions";
 import { generateTestData, removeAllTestData, makeCurrentUserOwner } from "@/lib/admin/test-data-actions";
 import { toast } from "sonner";
 import { useActiveLeague } from "@/hooks/use-league";
+import { currentLeague } from "@/lib/league-config";
 
 export default function AdminDashboardPage() {
   const { user, profile, loading: authLoading, isOwner, error: authError, refreshProfile } = useAuth();
-  const { leagueId, isLoading: leagueLoading, branding } = useActiveLeague();
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -171,7 +172,7 @@ export default function AdminDashboardPage() {
       <div>
         <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg w-fit border border-border/50 mb-4">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Managing:</span>
-          <span className="text-sm font-semibold text-primary">{branding?.name || "League"}</span>
+          <span className="text-sm font-semibold text-primary">{currentLeague.name}</span>
         </div>
         <h1 className="text-3xl font-bold">League Admin 👑</h1>
         <p className="text-muted-foreground mt-2">
