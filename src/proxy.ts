@@ -2,9 +2,9 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 /**
- * Multi-Instance Domain Routing Middleware
+ * Multi-Instance Domain Routing Proxy
  *
- * This middleware handles domain-based routing for the multi-tenant architecture:
+ * This proxy handles domain-based routing for the multi-tenant architecture:
  * 1. Platform domains (beerleaguehockey.ca) -> Marketing/platform pages
  * 2. Subdomains (pilot.beerleaguehockey.ca) -> League-specific pages
  * 3. Custom domains (customleague.com) -> League-specific pages
@@ -108,7 +108,7 @@ function isCustomDomain(hostname: string): boolean {
   return !isPlatformDomain(hostname) && !isSubdomain(hostname);
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   const pathname = request.nextUrl.pathname;
 

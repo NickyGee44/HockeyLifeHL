@@ -185,13 +185,13 @@ export async function getPublicLeagues(filters?: {
       }
 
       // Sort by relevance from search results
-      const leagueRelevance = new Map(
-        (searchResults || []).map((l: any) => [l.id, l.relevance])
+      const leagueRelevance = new Map<string, number>(
+        (searchResults || []).map((l: any) => [l.id, l.relevance as number])
       );
 
       const sortedLeagues = (fullLeagues || []).sort((a: any, b: any) => {
-        const relevanceA: number = leagueRelevance.get(a.id) || 0;
-        const relevanceB: number = leagueRelevance.get(b.id) || 0;
+        const relevanceA = (leagueRelevance.get(a.id) ?? 0) as number;
+        const relevanceB = (leagueRelevance.get(b.id) ?? 0) as number;
         return relevanceB - relevanceA; // Higher relevance first
       });
 
