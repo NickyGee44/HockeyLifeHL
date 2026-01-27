@@ -15,7 +15,7 @@ ORDER BY ordinal_position;
 -- Check profiles data
 SELECT
   COUNT(*) as total_profiles,
-  COUNT(DISTINCT user_id) as unique_users,
+  COUNT(DISTINCT id) as unique_users,
   COUNT(CASE WHEN email IS NULL THEN 1 END) as profiles_without_email,
   COUNT(CASE WHEN full_name IS NULL THEN 1 END) as profiles_without_name
 FROM profiles;
@@ -160,7 +160,7 @@ SELECT
   COUNT(*) as count
 FROM profiles p
 WHERE NOT EXISTS (
-  SELECT 1 FROM league_memberships lm WHERE lm.user_id = p.user_id
+  SELECT 1 FROM league_memberships lm WHERE lm.user_id = p.id
 );
 
 -- Teams without a league
@@ -246,7 +246,7 @@ FROM leagues
 UNION ALL
 SELECT
   'Total Users',
-  COUNT(DISTINCT user_id)
+  COUNT(DISTINCT id)
 FROM profiles
 UNION ALL
 SELECT

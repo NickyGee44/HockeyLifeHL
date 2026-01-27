@@ -26,12 +26,12 @@ LIMIT 1;
 -- INSERT INTO league_memberships (league_id, user_id, role, status)
 -- SELECT
 --   'YOUR_LEAGUE_ID'::UUID,  -- Replace with pilot league ID from above
---   p.user_id,
+--   p.id,
 --   'player',
 --   'active'
 -- FROM profiles p
 -- WHERE NOT EXISTS (
---   SELECT 1 FROM league_memberships lm WHERE lm.user_id = p.user_id
+--   SELECT 1 FROM league_memberships lm WHERE lm.user_id = p.id
 -- )
 -- ON CONFLICT (league_id, user_id) DO NOTHING;
 
@@ -45,10 +45,10 @@ LIMIT 1;
 --   new_league_id UUID;
 -- BEGIN
 --   FOR user_record IN
---     SELECT p.user_id, p.email, p.full_name
+--     SELECT p.id as user_id, p.email, p.full_name
 --     FROM profiles p
 --     WHERE NOT EXISTS (
---       SELECT 1 FROM league_memberships lm WHERE lm.user_id = p.user_id
+--       SELECT 1 FROM league_memberships lm WHERE lm.user_id = p.id
 --     )
 --   LOOP
 --     -- Create a league for this user
@@ -155,7 +155,7 @@ SELECT
   COUNT(*) as profiles_without_memberships
 FROM profiles p
 WHERE NOT EXISTS (
-  SELECT 1 FROM league_memberships lm WHERE lm.user_id = p.user_id
+  SELECT 1 FROM league_memberships lm WHERE lm.user_id = p.id
 );
 -- Expected: 0
 
