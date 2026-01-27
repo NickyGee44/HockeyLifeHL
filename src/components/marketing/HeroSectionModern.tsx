@@ -3,8 +3,6 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { InfiniteSlider } from '@/components/ui/infinite-slider'
-import { ProgressiveBlur } from '@/components/ui/progressive-blur'
 import { cn } from '@/lib/utils'
 import { Menu, X, ChevronRight } from 'lucide-react'
 import { useScroll, motion } from 'framer-motion'
@@ -15,113 +13,51 @@ export function HeroSectionModern() {
         <>
             <HeroHeader />
             <main className="overflow-x-hidden">
-                <section>
-                    <div className="py-24 md:pb-32 lg:pb-36 lg:pt-72">
-                        <div className="relative z-10 mx-auto flex max-w-7xl flex-col px-6 lg:block lg:px-12">
-                            <div className="mx-auto max-w-lg text-center lg:ml-0 lg:max-w-full lg:text-left">
-                                <h1 className="mt-8 max-w-2xl text-balance text-5xl md:text-6xl lg:mt-16 xl:text-7xl font-display">
+                <section className="relative">
+                    {/* Video Background - Behind everything */}
+                    <div className="absolute inset-0 -z-10 overflow-hidden">
+                        <video
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="size-full object-cover opacity-30 dark:opacity-20"
+                            src="/hero-video.mp4"></video>
+                        {/* Blur overlay */}
+                        <div className="absolute inset-0 backdrop-blur-sm bg-background/60 dark:bg-background/70"></div>
+                    </div>
+
+                    {/* Content - In front of video */}
+                    <div className="py-24 md:py-32 lg:py-40">
+                        <div className="relative z-10 mx-auto flex max-w-7xl flex-col px-6 lg:px-12">
+                            <div className="mx-auto max-w-3xl text-center">
+                                <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold">
                                     Modern League Management
                                 </h1>
-                                <p className="mt-8 max-w-2xl text-balance text-lg text-muted-foreground">
+                                <p className="mt-8 text-xl md:text-2xl text-muted-foreground">
                                     {platformConfig.slogan} Complete platform for drafts, stats, payments, and everything your beer league needs.
                                 </p>
 
-                                <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
+                                <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
                                     <Button
                                         asChild
                                         size="lg"
-                                        className="h-12 rounded-full pl-5 pr-3 text-base bg-[#1F4FD8] hover:bg-[#1F4FD8]/90">
+                                        className="h-14 rounded-full px-8 text-lg bg-[#1F4FD8] hover:bg-[#1F4FD8]/90">
                                         <Link href="/signup">
                                             <span className="text-nowrap">Start Your League</span>
-                                            <ChevronRight className="ml-1" />
+                                            <ChevronRight className="ml-2" />
                                         </Link>
                                     </Button>
                                     <Button
-                                        key={2}
                                         asChild
                                         size="lg"
-                                        variant="ghost"
-                                        className="h-12 rounded-full px-5 text-base hover:bg-zinc-950/5 dark:hover:bg-white/5">
+                                        variant="outline"
+                                        className="h-14 rounded-full px-8 text-lg hover:bg-background/80">
                                         <Link href="https://pilot.beerleaguehockey.ca">
                                             <span className="text-nowrap">View Demo League</span>
                                         </Link>
                                     </Button>
                                 </div>
-                            </div>
-                        </div>
-                        <div className="aspect-[2/3] absolute inset-1 overflow-hidden rounded-3xl border border-black/10 sm:aspect-video lg:rounded-[3rem] dark:border-white/5">
-                            <video
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                                className="size-full object-cover opacity-50 invert dark:opacity-35 dark:invert-0 dark:lg:opacity-75"
-                                src="/hero-video.mp4"></video>
-                            {/* Blur overlay */}
-                            <div className="absolute inset-0 backdrop-blur-md bg-background/20 dark:bg-background/30"></div>
-                        </div>
-                    </div>
-                </section>
-                <section className="bg-background pb-2">
-                    <div className="group relative m-auto max-w-7xl px-6">
-                        <div className="flex flex-col items-center md:flex-row">
-                            <div className="md:max-w-44 md:border-r md:pr-6">
-                                <p className="text-end text-sm text-muted-foreground">Trusted by leagues</p>
-                            </div>
-                            <div className="relative py-6 md:w-[calc(100%-11rem)]">
-                                <InfiniteSlider
-                                    speedOnHover={20}
-                                    speed={40}
-                                    gap={112}>
-                                    <div className="flex">
-                                        <div className="mx-auto h-12 w-24 rounded-lg bg-gradient-to-br from-[#1F4FD8] to-[#D72638] flex items-center justify-center text-white font-bold text-sm">
-                                            HLHL
-                                        </div>
-                                    </div>
-
-                                    <div className="flex">
-                                        <div className="mx-auto h-12 w-24 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white font-bold text-sm">
-                                            League 1
-                                        </div>
-                                    </div>
-
-                                    <div className="flex">
-                                        <div className="mx-auto h-12 w-24 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-sm">
-                                            League 2
-                                        </div>
-                                    </div>
-
-                                    <div className="flex">
-                                        <div className="mx-auto h-12 w-24 rounded-lg bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center text-white font-bold text-sm">
-                                            League 3
-                                        </div>
-                                    </div>
-
-                                    <div className="flex">
-                                        <div className="mx-auto h-12 w-24 rounded-lg bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center text-white font-bold text-sm">
-                                            League 4
-                                        </div>
-                                    </div>
-
-                                    <div className="flex">
-                                        <div className="mx-auto h-12 w-24 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center text-white font-bold text-sm">
-                                            League 5
-                                        </div>
-                                    </div>
-                                </InfiniteSlider>
-
-                                <div className="bg-linear-to-r from-background absolute inset-y-0 left-0 w-20"></div>
-                                <div className="bg-linear-to-l from-background absolute inset-y-0 right-0 w-20"></div>
-                                <ProgressiveBlur
-                                    className="pointer-events-none absolute left-0 top-0 h-full w-20"
-                                    direction="left"
-                                    blurIntensity={1}
-                                />
-                                <ProgressiveBlur
-                                    className="pointer-events-none absolute right-0 top-0 h-full w-20"
-                                    direction="right"
-                                    blurIntensity={1}
-                                />
                             </div>
                         </div>
                     </div>

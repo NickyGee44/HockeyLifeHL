@@ -121,7 +121,7 @@ function isCustomDomain(hostname: string): boolean {
   return !isPlatformDomain(hostname) && !isSubdomain(hostname);
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   const pathname = request.nextUrl.pathname;
 
