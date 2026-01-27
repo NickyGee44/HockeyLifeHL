@@ -69,30 +69,74 @@ export default function LeagueSignupPage() {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      // TODO: Call createLeague server action
-      console.log("Creating league:", data);
+      // Step 1: Create user account
+      const signUpFormData = new globalThis.FormData();
+      signUpFormData.append('email', data.email);
+      signUpFormData.append('password', data.password);
+      signUpFormData.append('fullName', data.fullName);
+      signUpFormData.append('jerseyNumber', ''); // Not required for league owner
+      signUpFormData.append('position', ''); // Not required for league owner
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { signUp } = await import('@/lib/auth/actions');
+      const signUpResult = await signUp(signUpFormData);
+
+      if (signUpResult.error) {
+        toast.error(signUpResult.error);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 2: Sign in the new user
+      const signInFormData = new globalThis.FormData();
+      signInFormData.append('email', data.email);
+      signInFormData.append('password', data.password);
+
+      const { signIn } = await import('@/lib/auth/actions');
+      try {
+        await signIn(signInFormData);
+      } catch (error) {
+        // Sign in redirects on success, so catch the redirect
+        // User is now authenticated
+      }
+
+      // Small delay to ensure auth session is set
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 3: Create the league
+      const leagueFormData = new globalThis.FormData();
+      leagueFormData.append('name', data.leagueName);
+      leagueFormData.append('slug', data.leagueSlug || '');
+      leagueFormData.append('sport', data.sport);
+      leagueFormData.append('description', `${data.leagueName} - A ${data.sport} league`);
+
+      const { createLeague } = await import('@/lib/leagues/actions');
+      const leagueResult = await createLeague(leagueFormData);
+
+      if (leagueResult.error) {
+        toast.error(leagueResult.error);
+        setIsSubmitting(false);
+        return;
+      }
 
       toast.success("League created successfully!");
       setStep(3); // Success step
 
-      // Start countdown
+      // Redirect to league onboarding after countdown
       const interval = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
-            router.push("/login");
+            // Redirect to league onboarding page
+            const slug = leagueResult.league?.slug || data.leagueSlug || 'league';
+            router.push(`/${slug}/onboarding`);
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to create league. Please try again.");
-    } finally {
+      toast.error(error.message || "Failed to create league. Please try again.");
       setIsSubmitting(false);
     }
   };

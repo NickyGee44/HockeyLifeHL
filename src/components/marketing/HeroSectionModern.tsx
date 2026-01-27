@@ -12,57 +12,55 @@ export function HeroSectionModern() {
     return (
         <>
             <HeroHeader />
-            <main className="overflow-x-hidden">
-                <section className="relative">
-                    {/* Video Background - Behind everything */}
-                    <div className="absolute inset-0 -z-10 overflow-hidden">
-                        <video
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="size-full object-cover opacity-30 dark:opacity-20"
-                            src="/hero-video.mp4"></video>
-                        {/* Blur overlay */}
-                        <div className="absolute inset-0 backdrop-blur-sm bg-background/60 dark:bg-background/70"></div>
-                    </div>
+            <section className="relative overflow-x-hidden">
+                {/* Video Background - Behind everything */}
+                <div className="absolute inset-0 -z-10 overflow-hidden">
+                    <video
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="size-full object-cover opacity-30 dark:opacity-20"
+                        src="/hero-video.mp4"></video>
+                    {/* Blur overlay */}
+                    <div className="absolute inset-0 backdrop-blur-sm bg-background/60 dark:bg-background/70"></div>
+                </div>
 
-                    {/* Content - In front of video */}
-                    <div className="py-24 md:py-32 lg:py-40">
-                        <div className="relative z-10 mx-auto flex max-w-7xl flex-col px-6 lg:px-12">
-                            <div className="mx-auto max-w-3xl text-center">
-                                <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold">
-                                    Modern League Management
-                                </h1>
-                                <p className="mt-8 text-xl md:text-2xl text-muted-foreground">
-                                    {platformConfig.slogan} Complete platform for drafts, stats, payments, and everything your beer league needs.
-                                </p>
+                {/* Content - In front of video */}
+                <div className="py-24 md:py-32 lg:py-40">
+                    <div className="relative z-10 mx-auto flex max-w-7xl flex-col px-6 lg:px-12">
+                        <div className="mx-auto max-w-3xl text-center">
+                            <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold">
+                                Modern League Management
+                            </h1>
+                            <p className="mt-8 text-xl md:text-2xl text-muted-foreground">
+                                {platformConfig.slogan} Complete platform for drafts, stats, payments, and everything your beer league needs.
+                            </p>
 
-                                <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                                    <Button
-                                        asChild
-                                        size="lg"
-                                        className="h-14 rounded-full px-8 text-lg bg-[#1F4FD8] hover:bg-[#1F4FD8]/90">
-                                        <Link href="/signup">
-                                            <span className="text-nowrap">Start Your League</span>
-                                            <ChevronRight className="ml-2" />
-                                        </Link>
-                                    </Button>
-                                    <Button
-                                        asChild
-                                        size="lg"
-                                        variant="outline"
-                                        className="h-14 rounded-full px-8 text-lg hover:bg-background/80">
-                                        <Link href="https://pilot.beerleaguehockey.ca">
-                                            <span className="text-nowrap">View Demo League</span>
-                                        </Link>
-                                    </Button>
-                                </div>
+                            <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                                <Button
+                                    asChild
+                                    size="lg"
+                                    className="h-14 rounded-full px-8 text-lg bg-[#1F4FD8] hover:bg-[#1F4FD8]/90">
+                                    <Link href="/signup">
+                                        <span className="text-nowrap">Start Your League</span>
+                                        <ChevronRight className="ml-2" />
+                                    </Link>
+                                </Button>
+                                <Button
+                                    asChild
+                                    size="lg"
+                                    variant="outline"
+                                    className="h-14 rounded-full px-8 text-lg hover:bg-background/80">
+                                    <Link href="https://pilot.beerleaguehockey.ca">
+                                        <span className="text-nowrap">View Demo League</span>
+                                    </Link>
+                                </Button>
                             </div>
                         </div>
                     </div>
-                </section>
-            </main>
+                </div>
+            </section>
         </>
     )
 }

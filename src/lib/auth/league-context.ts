@@ -110,7 +110,9 @@ export async function getUserLeagues(): Promise<{ leagues: LeagueMembership[]; e
           name,
           slug,
           logo_url,
-          primary_color
+          primary_color,
+          custom_domain,
+          custom_domain_verified
         )
       `)
       .eq('user_id', user.id)

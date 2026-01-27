@@ -30,6 +30,8 @@ type LeagueOption = {
   slug: string;
   logo_url?: string;
   role: string;
+  custom_domain?: string;
+  custom_domain_verified?: boolean;
 };
 
 export function LeagueSwitcher({ className }: { className?: string }) {
@@ -59,6 +61,8 @@ export function LeagueSwitcher({ className }: { className?: string }) {
             slug: membership.league.slug,
             logo_url: membership.league.logo_url,
             role: membership.role,
+            custom_domain: (membership.league as any).custom_domain,
+            custom_domain_verified: (membership.league as any).custom_domain_verified,
           }));
 
           setLeagues(leagueOptions);
@@ -91,8 +95,33 @@ export function LeagueSwitcher({ className }: { className?: string }) {
       setOpen(false);
       toast.success(`Switched to ${league.name}`);
 
-      // Refresh the page to reload with new league context
-      router.refresh();
+      // Get platform domain from environment
+      const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'localhost:3000';
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
+
+      // Check if we're on a subdomain or custom domain
+      const isOnPlatformDomain = currentHost.includes(platformDomain) || currentHost === 'localhost';
+
+      // Navigate to league's subdomain or path
+      if (typeof window !== 'undefined') {
+        // If league has a custom domain and it's verified, use that
+        // Otherwise use subdomain
+        const targetDomain = league.custom_domain_verified && league.custom_domain
+          ? league.custom_domain
+          : `${league.slug}.${platformDomain}`;
+
+        // If we're already on the right domain, just refresh
+        if (currentHost === targetDomain || currentHost === league.slug) {
+          router.refresh();
+        } else {
+          // Navigate to the league's domain/subdomain
+          const protocol = window.location.protocol;
+          window.location.href = `${protocol}//${targetDomain}`;
+        }
+      } else {
+        // Fallback: just refresh
+        router.refresh();
+      }
     } catch (err: any) {
       console.error("Error switching league:", err);
       toast.error("Failed to switch league");
