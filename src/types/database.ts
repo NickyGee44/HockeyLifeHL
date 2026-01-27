@@ -3521,6 +3521,8 @@ export type DraftPick = Database["public"]["Tables"]["draft_picks"]["Row"];
 export type Game = Database["public"]["Tables"]["games"]["Row"];
 export type PlayerStats = Database["public"]["Tables"]["player_stats"]["Row"];
 export type GoalieStats = Database["public"]["Tables"]["goalie_stats"]["Row"];
+export type Venue = Database["public"]["Tables"]["venues"]["Row"];
+export type Division = Database["public"]["Tables"]["divisions"]["Row"];
 
 // Convenience type exports for common enums
 export type PlayerRating = Database["public"]["Enums"]["player_rating"];

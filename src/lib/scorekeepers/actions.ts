@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireLeagueRole } from "@/lib/auth/league-context";
-import { stripHtml, sanitizeEmail } from "@/lib/input-sanitization";
+import { stripHtml, sanitizeEmail, sanitizeText } from "@/lib/input-sanitization";
 
 export type ScorekeeperActionResult = {
   error?: string;
@@ -643,5 +643,243 @@ export async function exportScorekeeperPayments(
   } catch (error: any) {
     console.error('Error in exportScorekeeperPayments:', error);
     return { error: error.message, payments: [] };
+  }
+}
+
+
+/**
+ * Add a scorekeeper - FormData wrapper
+ * Wrapper around addScorekeeperToLeague for form submissions
+ */
+export async function addScorekeeper(formData: FormData): Promise<ScorekeeperActionResult> {
+  const email = (formData.get("email") as string || '').trim();
+  const hourlyRate = parseFloat(formData.get("hourlyRate") as string || '30');
+  
+  return addScorekeeperToLeague(email, hourlyRate);
+}
+
+/**
+ * Get all scorekeepers for the active league with stats
+ * Requires owner or admin role
+ */
+export async function getAllScorekeepers(): Promise<{
+  error?: string;
+  scorekeepers: Array<any>;
+}> {
+  try {
+    const { leagueId } = await requireLeagueRole(['owner', 'admin']);
+    const supabase = await createClient();
+
+    // Fetch scorekeepers with profile info
+    const { data: scorekeepers, error } = await supabase
+      .from("league_scorekeepers")
+      .select(`
+        *,
+        profile:profiles!league_scorekeepers_scorekeeper_id_fkey (
+          id,
+          full_name,
+          email,
+          avatar_url
+        )
+      `)
+      .eq('league_id', leagueId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching scorekeepers:", error);
+      return { error: error.message, scorekeepers: [] };
+    }
+
+    // Fetch assignment stats for each scorekeeper
+    const scorekeepersWithStats = await Promise.all(
+      (scorekeepers || []).map(async (sk: any) => {
+        const { data: assignments } = await supabase
+          .from("game_scorekeeper_assignments")
+          .select("payment_amount, payment_status")
+          .eq('league_id', leagueId)
+          .eq('scorekeeper_id', sk.scorekeeper_id);
+
+        const assignment_count = assignments?.length || 0;
+        const total_earned = assignments?.reduce((sum, a) => sum + (a.payment_amount || 0), 0) || 0;
+        const total_unpaid = assignments?.filter(a => a.payment_status === 'pending')
+          .reduce((sum, a) => sum + (a.payment_amount || 0), 0) || 0;
+
+        return {
+          ...sk,
+          assignment_count,
+          total_earned,
+          total_unpaid,
+        };
+      })
+    );
+
+    return { scorekeepers: scorekeepersWithStats };
+  } catch (error: any) {
+    console.error("Error in getAllScorekeepers:", error);
+    return { error: error.message || 'Unauthorized', scorekeepers: [] };
+  }
+}
+
+/**
+ * Update scorekeeper settings
+ * Requires owner or admin role
+ */
+export async function updateScorekeeper(
+  scorekeeperId: string,
+  formData: FormData
+): Promise<ScorekeeperActionResult> {
+  try {
+    const { leagueId } = await requireLeagueRole(['owner', 'admin']);
+    const supabase = await createClient();
+
+    // Verify scorekeeper exists and belongs to this league
+    const { data: existing } = await supabase
+      .from("league_scorekeepers")
+      .select("id")
+      .eq("id", scorekeeperId)
+      .eq('league_id', leagueId)
+      .single();
+
+    if (!existing) {
+      return { error: "Scorekeeper not found or does not belong to your league" };
+    }
+
+    // Extract and validate fields
+    const hourlyRate = formData.get("hourlyRate") as string;
+    const rate = parseFloat(hourlyRate);
+    if (isNaN(rate) || rate < 0) {
+      return { error: "Hourly rate must be a positive number" };
+    }
+
+    const canEditGames = formData.get("canEditGames") === "true";
+    const canVerifyGames = formData.get("canVerifyGames") === "true";
+    const notes = formData.get("notes") as string || null;
+    const status = formData.get("status") as string || "active";
+
+    const sanitizedNotes = notes ? sanitizeText(notes, 500) : null;
+
+    // Update the scorekeeper
+    const { data: scorekeeper, error } = await supabase
+      .from("league_scorekeepers")
+      .update({
+        hourly_rate: rate,
+        can_edit_games: canEditGames,
+        can_verify_games: canVerifyGames,
+        notes: sanitizedNotes,
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", scorekeeperId)
+      .eq('league_id', leagueId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating scorekeeper:", error);
+      return { error: error.message };
+    }
+
+    revalidatePath("/settings/scorekeepers");
+    revalidatePath("/admin/scorekeepers");
+
+    return { success: true, scorekeeper };
+  } catch (error: any) {
+    console.error("Error in updateScorekeeper:", error);
+    return { error: error.message || 'Unauthorized or failed to update scorekeeper' };
+  }
+}
+
+/**
+ * Get unpaid scorekeeper assignments for payment tracking
+ * Requires owner or admin role
+ */
+export async function getUnpaidAssignments(): Promise<{
+  error?: string;
+  assignments: Array<any>;
+}> {
+  try {
+    const { leagueId } = await requireLeagueRole(['owner', 'admin']);
+    const supabase = await createClient();
+
+    const { data: assignments, error } = await supabase
+      .from("game_scorekeeper_assignments")
+      .select(`
+        *,
+        game:games (
+          id,
+          game_date,
+          game_time,
+          home_team:teams!games_home_team_id_fkey (id, name),
+          away_team:teams!games_away_team_id_fkey (id, name)
+        ),
+        scorekeeper_profile:profiles!game_scorekeeper_assignments_scorekeeper_id_fkey (
+          id,
+          full_name,
+          email
+        )
+      `)
+      .eq('league_id', leagueId)
+      .eq('payment_status', 'pending')
+      .order('assigned_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching unpaid assignments:", error);
+      return { error: error.message, assignments: [] };
+    }
+
+    return { assignments: assignments || [] };
+  } catch (error: any) {
+    console.error("Error in getUnpaidAssignments:", error);
+    return { error: error.message || 'Unauthorized', assignments: [] };
+  }
+}
+
+/**
+ * Mark a scorekeeper assignment as paid
+ * Requires owner or admin role
+ */
+export async function markAssignmentPaid(assignmentId: string): Promise<ScorekeeperActionResult> {
+  try {
+    const { leagueId } = await requireLeagueRole(['owner', 'admin']);
+    const supabase = await createClient();
+
+    // Verify assignment belongs to league
+    const { data: assignment, error: fetchError } = await supabase
+      .from("game_scorekeeper_assignments")
+      .select("id, payment_status")
+      .eq("id", assignmentId)
+      .eq('league_id', leagueId)
+      .single();
+
+    if (fetchError || !assignment) {
+      return { error: "Assignment not found or does not belong to your league" };
+    }
+
+    if (assignment.payment_status === 'paid') {
+      return { error: "This assignment is already marked as paid" };
+    }
+
+    // Update to paid
+    const { error } = await supabase
+      .from("game_scorekeeper_assignments")
+      .update({
+        payment_status: 'paid',
+        paid_at: new Date().toISOString(),
+      })
+      .eq("id", assignmentId)
+      .eq('league_id', leagueId);
+
+    if (error) {
+      console.error("Error marking assignment paid:", error);
+      return { error: error.message };
+    }
+
+    revalidatePath("/settings/scorekeepers");
+    revalidatePath("/admin/scorekeepers/payments");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in markAssignmentPaid:", error);
+    return { error: error.message || 'Unauthorized or failed to mark payment' };
   }
 }

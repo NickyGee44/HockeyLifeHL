@@ -9,6 +9,9 @@ import { Separator } from "@/components/ui/separator";
 const settingsNav = [
   { name: "General", href: "/settings/general" },
   { name: "Branding", href: "/settings/branding" },
+  { name: "Divisions", href: "/settings/divisions" },
+  { name: "Venues", href: "/settings/venues" },
+  { name: "Scorekeepers", href: "/settings/scorekeepers" },
   { name: "Sponsors", href: "/settings/sponsors" },
   { name: "Subscription", href: "/settings/subscription" },
   { name: "Features", href: "/settings/features" },
