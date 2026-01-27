@@ -90,14 +90,18 @@ export default function LoginPage() {
       toast.success("Signed in successfully!");
 
       // Small delay to ensure cookies are set
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Get safe redirect path from URL params (set by middleware)
       const redirectPath = getSafeRedirectPath(searchParams.get('redirect'));
 
-      // Use window.location for post-auth redirect to ensure full page reload
-      // This guarantees auth state is properly updated across all components
-      window.location.href = redirectPath;
+      console.log("Redirecting to:", redirectPath);
+
+      // Use window.location.replace for post-auth redirect
+      // This prevents back button issues and ensures clean navigation
+      window.location.replace(redirectPath);
+
+      // Don't call setIsLoading(false) - we're navigating away
     } catch (err: any) {
       console.error("Login error:", err);
       toast.error("An error occurred. Please try again.");
