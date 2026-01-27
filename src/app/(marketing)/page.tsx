@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { IceRinkDivider } from "@/components/marketing/IceRinkDivider";
+import { LaptopMockup } from "@/components/marketing/LaptopMockup";
 import { Check, ArrowRight, Trophy, Users, BarChart3, CreditCard, Calendar, Sparkles, Mail, Phone, Building } from "lucide-react";
 import { platformConfig } from "@/lib/league-config";
 import { AuroraText } from "@/components/magicui/aurora-text";
@@ -83,27 +84,8 @@ export default function MarketingPage() {
                 </div>
               </div>
 
-              {/* Hero Preview - Reduced Size */}
-              <div className="relative mx-auto max-w-5xl">
-                <div className="relative rounded-xl border-2 border-[#E6EBF2] bg-white p-1.5 shadow-2xl overflow-hidden">
-                  <div className="aspect-[16/10] relative bg-gradient-to-br from-[#F7FAFC] to-white rounded-lg overflow-hidden">
-                    <Image
-                      src={platformConfig.banner}
-                      alt="Beer League Hockey Platform Dashboard"
-                      fill
-                      className="object-cover object-top"
-                      priority
-                    />
-                  </div>
-                </div>
-                {/* Floating accent elements */}
-                <div className="absolute -top-4 -right-4 bg-[#16C784] text-white px-5 py-2.5 rounded-full text-base font-bold shadow-lg hidden md:block">
-                  🏒 Professional Tools
-                </div>
-                <div className="absolute -bottom-4 -left-4 bg-[#1F4FD8] text-white px-5 py-2.5 rounded-full text-base font-bold shadow-lg hidden md:block">
-                  ⚡ Setup in Minutes
-                </div>
-              </div>
+              {/* Hero Preview - Laptop Mockup */}
+              <LaptopMockup />
             </div>
           </div>
         </section>
