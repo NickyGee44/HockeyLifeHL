@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +13,15 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { currentLeague } from "@/lib/league-config";
 import Image from "next/image";
-import { AlertTriangle, ShieldCheck, CreditCard } from "lucide-react";
+import { AlertTriangle, ShieldCheck, CreditCard, Globe, ExternalLink } from "lucide-react";
 import { StripeConnectDashboard } from "@/components/stripe/StripeConnectDashboard";
+import { DNSInstructionsModal } from "@/components/domains/dns-instructions-modal";
 
 export default function GeneralSettingsPage({ params }: { params: { league: string } }) {
+  const [showDNSModal, setShowDNSModal] = useState(false);
+  const [customDomain, setCustomDomain] = useState("");
+  const [domainVerificationStatus, setDomainVerificationStatus] = useState<"pending" | "verified" | "failed" | null>(null);
+
   const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm({
     defaultValues: {
       name: "HockeyLifeHL",
@@ -34,6 +40,32 @@ export default function GeneralSettingsPage({ params }: { params: { league: stri
     console.log("Updating league:", data);
     await new Promise(resolve => setTimeout(resolve, 1000));
     toast.success("League settings updated");
+  };
+
+  const handleVerifyDomain = async () => {
+    if (!customDomain) {
+      toast.error("Please enter a domain first");
+      return;
+    }
+
+    // TODO: Call actual domain verification API
+    setDomainVerificationStatus("pending");
+    setShowDNSModal(true);
+    toast.info("Checking DNS configuration...");
+  };
+
+  const handleRefreshDomainStatus = async () => {
+    // TODO: Call actual domain verification check API
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Simulate status check
+    const isVerified = Math.random() > 0.5;
+    setDomainVerificationStatus(isVerified ? "verified" : "failed");
+
+    if (isVerified) {
+      toast.success("Domain verified successfully!");
+    } else {
+      toast.error("Domain verification failed. Please check your DNS settings.");
+    }
   };
 
   return (
@@ -123,6 +155,115 @@ export default function GeneralSettingsPage({ params }: { params: { league: stri
           </CardContent>
         </Card>
 
+        {/* Custom Domain */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Custom Domain
+                </CardTitle>
+                <CardDescription>Use your own domain for your league (e.g., yourleague.com)</CardDescription>
+              </div>
+              {domainVerificationStatus && (
+                <Badge
+                  variant={domainVerificationStatus === "verified" ? "default" : domainVerificationStatus === "failed" ? "destructive" : "secondary"}
+                  className={domainVerificationStatus === "verified" ? "bg-green-600" : ""}
+                >
+                  {domainVerificationStatus === "verified" && "Verified"}
+                  {domainVerificationStatus === "pending" && "Pending"}
+                  {domainVerificationStatus === "failed" && "Failed"}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="customDomain">Domain Name</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="customDomain"
+                  type="text"
+                  placeholder="yourdomain.com"
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleVerifyDomain}
+                  disabled={!customDomain}
+                >
+                  Configure DNS
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter your custom domain and we'll guide you through the DNS configuration.
+              </p>
+            </div>
+
+            {domainVerificationStatus === "verified" && (
+              <div className="bg-green-50 border border-green-200 rounded-md p-3 flex items-start gap-2">
+                <ShieldCheck className="h-4 w-4 text-green-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-900">Domain Active</p>
+                  <p className="text-xs text-green-700">
+                    Your custom domain is configured and active. Your league is accessible at{" "}
+                    <a href={`https://${customDomain}`} target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
+                      {customDomain}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {domainVerificationStatus === "pending" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-start gap-2">
+                <Globe className="h-4 w-4 text-blue-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900">Verification Pending</p>
+                  <p className="text-xs text-blue-700">
+                    Follow the DNS instructions to complete domain verification. This can take up to 48 hours.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-blue-600"
+                    onClick={() => setShowDNSModal(true)}
+                  >
+                    View DNS Instructions
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {domainVerificationStatus === "failed" && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-900">Verification Failed</p>
+                  <p className="text-xs text-red-700">
+                    We couldn't verify your domain. Please check your DNS settings and try again.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-red-600"
+                    onClick={() => setShowDNSModal(true)}
+                  >
+                    Review DNS Instructions
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Subscription & Payments */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
@@ -189,6 +330,15 @@ export default function GeneralSettingsPage({ params }: { params: { league: stri
           </div>
         </CardContent>
       </Card>
+
+      {/* DNS Instructions Modal */}
+      <DNSInstructionsModal
+        open={showDNSModal}
+        onOpenChange={setShowDNSModal}
+        domain={customDomain}
+        verificationStatus={domainVerificationStatus}
+        onRefresh={handleRefreshDomainStatus}
+      />
     </div>
   );
 }
