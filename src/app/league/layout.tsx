@@ -1,5 +1,7 @@
 import { getLeagueFromHostname } from "@/lib/context/league-context";
 import { LeagueThemeProvider } from "@/components/providers/LeagueThemeProvider";
+import { LeagueHeader } from "@/components/layout/LeagueHeader";
+import { LeagueFooter } from "@/components/layout/LeagueFooter";
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 
@@ -44,12 +46,14 @@ export default async function LeagueLayout({
   return (
     <LeagueThemeProvider league={league}>
       <div
-        className="min-h-screen"
+        className="min-h-screen flex flex-col"
         style={{
           fontFamily: league.fontFamily,
         }}
       >
-        {children}
+        <LeagueHeader league={league} />
+        <main className="flex-1">{children}</main>
+        <LeagueFooter league={league} />
       </div>
     </LeagueThemeProvider>
   );

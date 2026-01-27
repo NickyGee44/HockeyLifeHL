@@ -1,29 +1,30 @@
 "use client";
 
 import { useEffect } from "react";
-import { currentLeague } from "@/lib/league-config";
+import { platformConfig } from "@/lib/league-config";
 
 export function ThemeColorManager() {
   useEffect(() => {
     const root = document.documentElement;
-    
-    // Inject colors from league config into CSS variables
-    if (currentLeague.colors.primary) {
-      root.style.setProperty("--primary", currentLeague.colors.primary);
-      root.style.setProperty("--canada-red", currentLeague.colors.primary);
-    }
-    
-    if (currentLeague.colors.secondary) {
-      root.style.setProperty("--secondary", currentLeague.colors.secondary);
-      root.style.setProperty("--rink-blue", currentLeague.colors.secondary);
-    }
-    
-    if (currentLeague.colors.accent) {
-      root.style.setProperty("--accent", currentLeague.colors.accent);
-      root.style.setProperty("--gold-accent", currentLeague.colors.accent);
+
+    // Inject platform colors from config into CSS variables
+    // These are the Beer League Hockey platform colors
+    if (platformConfig.colors.rinkBlue) {
+      root.style.setProperty("--rink-blue", platformConfig.colors.rinkBlue);
+      root.style.setProperty("--primary", platformConfig.colors.rinkBlue);
     }
 
-    // You could also derive darker/lighter shades here if needed
+    if (platformConfig.colors.goalRed) {
+      root.style.setProperty("--canada-red", platformConfig.colors.goalRed);
+      root.style.setProperty("--goal-light-red", platformConfig.colors.goalRed);
+    }
+
+    if (platformConfig.colors.midnight) {
+      root.style.setProperty("--puck-black", platformConfig.colors.midnight);
+    }
+
+    // Note: League-specific pages (e.g., pilot.beerleaguehockey.ca)
+    // use LeagueThemeProvider which overrides these with database branding
   }, []);
 
   return null; // This component doesn't render anything

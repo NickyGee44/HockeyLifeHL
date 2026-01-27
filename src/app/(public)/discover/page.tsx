@@ -5,6 +5,7 @@ import { LeagueCard, LeagueCardSkeleton, type LeagueCardData } from "@/component
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { getPublicLeagues } from "@/lib/leagues/discovery-actions";
 
 // Cache this page for 5 minutes
 export const revalidate = 300;
@@ -19,114 +20,54 @@ interface DiscoverPageProps {
   };
 }
 
-// Mock function - replace with actual server action
+// Real database search using server actions
 async function searchLeagues(params: DiscoverPageProps["searchParams"]) {
-  // TODO: Implement actual search using the searchLeagues server action
-  // This is a mock implementation for demonstration
-
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const mockLeagues: LeagueCardData[] = [
-    {
-      id: "1",
-      name: "Toronto Sunday Night Beer League",
-      slug: "toronto-sunday",
-      sport: "hockey",
-      description: "Competitive adult hockey league every Sunday night. All skill levels welcome!",
-      logoUrl: "/images/leagues/toronto-logo.png",
-      bannerUrl: "/images/leagues/toronto-banner.jpg",
-      primaryColor: "#0066CC",
-      secondaryColor: "#E31837",
-      location: "Toronto, ON",
-      distance: 5,
-      teamCount: 12,
-      playerCount: 180,
-      status: "active",
-      nextGameDate: "2026-02-01T19:00:00Z",
-    },
-    {
-      id: "2",
-      name: "Vancouver Rec Soccer League",
-      slug: "vancouver-soccer",
-      sport: "soccer",
-      description: "Friday night soccer for adults. Co-ed teams, friendly competition.",
-      primaryColor: "#00A651",
-      secondaryColor: "#FDB913",
-      location: "Vancouver, BC",
-      distance: 12,
-      teamCount: 8,
-      playerCount: 120,
-      status: "registration_open",
-      nextGameDate: "2026-02-05T18:30:00Z",
-    },
-    {
-      id: "3",
-      name: "Calgary Drop-In Basketball",
-      slug: "calgary-basketball",
-      sport: "basketball",
-      description: "Weekly basketball games. Drop-in format, no commitment required.",
-      primaryColor: "#FF6B35",
-      secondaryColor: "#004E89",
-      location: "Calgary, AB",
-      distance: 8,
-      teamCount: 6,
-      playerCount: 90,
-      status: "active",
-    },
-    {
-      id: "4",
-      name: "Montreal Hockey Legends",
-      slug: "montreal-legends",
-      sport: "hockey",
-      description: "For players 40+. Friendly competition and great camaraderie.",
-      primaryColor: "#AF1E2D",
-      secondaryColor: "#192168",
-      location: "Montreal, QC",
-      distance: 15,
-      teamCount: 10,
-      playerCount: 150,
-      status: "active",
-      nextGameDate: "2026-02-03T20:00:00Z",
-    },
-  ];
-
-  // Apply filters
-  let filteredLeagues = mockLeagues;
-
-  if (params.q) {
-    const query = params.q.toLowerCase();
-    filteredLeagues = filteredLeagues.filter(
-      (league) =>
-        league.name.toLowerCase().includes(query) ||
-        league.description?.toLowerCase().includes(query) ||
-        league.sport.toLowerCase().includes(query)
-    );
-  }
-
-  if (params.sport && params.sport !== "all") {
-    filteredLeagues = filteredLeagues.filter((league) => league.sport === params.sport);
-  }
-
-  if (params.distance && params.distance !== "all" && params.location) {
-    const maxDistance = parseInt(params.distance);
-    filteredLeagues = filteredLeagues.filter(
-      (league) => league.distance && league.distance <= maxDistance
-    );
-  }
-
-  // Pagination
   const page = parseInt(params.page || "1");
   const perPage = 12;
-  const start = (page - 1) * perPage;
-  const end = start + perPage;
-  const paginatedLeagues = filteredLeagues.slice(start, end);
+  const offset = (page - 1) * perPage;
+
+  // Call the real server action
+  const result = await getPublicLeagues({
+    keyword: params.q,
+    sport: params.sport && params.sport !== "all" ? params.sport : undefined,
+    limit: perPage,
+    offset: offset,
+  });
+
+  if (result.error) {
+    console.error("Error fetching leagues:", result.error);
+    return {
+      leagues: [],
+      total: 0,
+      page,
+      totalPages: 0,
+    };
+  }
+
+  // Transform database results to LeagueCardData format
+  const transformedLeagues: LeagueCardData[] = result.leagues.map((league) => ({
+    id: league.id,
+    name: league.name,
+    slug: league.slug,
+    sport: league.sport || "hockey",
+    description: league.description || undefined,
+    logoUrl: league.logo_url || undefined,
+    bannerUrl: undefined, // Not in current schema
+    primaryColor: league.primary_color || "#0066CC",
+    secondaryColor: league.secondary_color || "#E31837",
+    location: [league.city, league.state_province].filter(Boolean).join(", ") || undefined,
+    distance: league.distance_km,
+    teamCount: undefined, // Could add team count query
+    playerCount: undefined, // Could add player count query
+    status: "active", // Assuming all public leagues are active
+    nextGameDate: undefined, // Could add upcoming game query
+  }));
 
   return {
-    leagues: paginatedLeagues,
-    total: filteredLeagues.length,
+    leagues: transformedLeagues,
+    total: result.total,
     page,
-    totalPages: Math.ceil(filteredLeagues.length / perPage),
+    totalPages: Math.ceil(result.total / perPage),
   };
 }
 
