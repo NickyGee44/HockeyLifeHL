@@ -52,7 +52,7 @@ export function SponsorShowcase({
                 target="_blank"
                 className="flex-shrink-0 grayscale hover:grayscale-0 transition-all duration-300 opacity-40 hover:opacity-100"
               >
-                {sponsor.logo_url ? (
+                {sponsor.logo_url?.trim() ? (
                   <div className="relative h-16 w-48">
                     <Image
                       src={sponsor.logo_url}
@@ -95,7 +95,7 @@ export function SponsorShowcase({
             >
               <Link href={sponsor.website_url} target="_blank">
                 <Card className="p-6 h-32 flex items-center justify-center bg-white shadow-sm hover:shadow-md transition-all border-slate-100 group">
-                  {sponsor.logo_url ? (
+                  {sponsor.logo_url?.trim() ? (
                     <div className="relative h-full w-full">
                       <Image
                         src={sponsor.logo_url}
