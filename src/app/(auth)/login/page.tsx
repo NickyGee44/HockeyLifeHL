@@ -95,10 +95,9 @@ export default function LoginPage() {
       // Get safe redirect path from URL params (set by middleware)
       const redirectPath = getSafeRedirectPath(searchParams.get('redirect'));
 
-      // Navigate using Next.js router and refresh to update auth state
-      // This is preferred over window.location as it preserves client-side routing
-      await router.push(redirectPath);
-      router.refresh();
+      // Use window.location for post-auth redirect to ensure full page reload
+      // This guarantees auth state is properly updated across all components
+      window.location.href = redirectPath;
     } catch (err: any) {
       console.error("Login error:", err);
       toast.error("An error occurred. Please try again.");

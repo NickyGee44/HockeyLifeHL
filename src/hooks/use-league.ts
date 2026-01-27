@@ -25,7 +25,24 @@ export function useActiveLeague() {
           return;
         }
 
-        // 2. Get active league from server cookie
+        // 2. Check if we're on a league subdomain (e.g., pilot.beerleaguehockey.ca)
+        try {
+          const response = await fetch('/api/league/context');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.league && data.league.id) {
+              console.log('[useActiveLeague] Detected league from subdomain:', data.league.name);
+              setLeagueId(data.league.id);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (apiError) {
+          console.warn('[useActiveLeague] Failed to fetch league context from API:', apiError);
+          // Continue with other methods if API fails
+        }
+
+        // 3. Get active league from server cookie
         const activeId = await getActiveLeagueId();
 
         if (activeId) {
