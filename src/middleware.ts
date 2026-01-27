@@ -34,7 +34,6 @@ const MARKETING_PATHS = [
   '/signup',
   '/forgot-password',
   '/reset-password',
-  '/pilot',
 ];
 
 /**

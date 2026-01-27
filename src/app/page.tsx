@@ -59,7 +59,7 @@ export default function MarketingPage() {
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="text-xl h-16 px-12 bg-white border-2 border-[#E6EBF2] hover:border-[#1F4FD8]/50 hover:bg-[#F7FAFC] font-semibold" asChild>
-                  <Link href="/pilot">
+                  <Link href="https://pilot.beerleaguehockey.ca">
                     View Demo League
                   </Link>
                 </Button>
@@ -429,7 +429,7 @@ export default function MarketingPage() {
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="text-xl h-18 px-14 bg-transparent border-2 border-white text-white hover:bg-white/10 font-semibold" asChild>
-                  <Link href="/pilot">
+                  <Link href="https://pilot.beerleaguehockey.ca">
                     See Demo League
                   </Link>
                 </Button>
@@ -473,7 +473,7 @@ export default function MarketingPage() {
               <ul className="space-y-2.5 text-sm text-[#7B8794]">
                 <li><Link href="/#features" className="hover:text-[#1F4FD8] transition-colors">Features</Link></li>
                 <li><Link href="/#pricing" className="hover:text-[#1F4FD8] transition-colors">Pricing</Link></li>
-                <li><Link href="/pilot" className="hover:text-[#1F4FD8] transition-colors">Demo</Link></li>
+                <li><Link href="https://pilot.beerleaguehockey.ca" className="hover:text-[#1F4FD8] transition-colors">Demo</Link></li>
                 <li><Link href="/about" className="hover:text-[#1F4FD8] transition-colors">About Us</Link></li>
               </ul>
             </div>
