@@ -191,6 +191,73 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
 
   console.log("User created successfully:", signUpData.user.id);
 
+  // CRITICAL: Add user to pilot league (multi-tenant fix)
+  // All new signups are automatically added to the original HockeyLifeHL league
+  const PILOT_LEAGUE_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+  // Wait for profile creation trigger to complete
+  console.log("Waiting for profile creation trigger...");
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Poll for profile creation
+  let profileExists = false;
+  let attempts = 0;
+  const MAX_PROFILE_ATTEMPTS = 20; // 20 attempts * 500ms = 10 seconds
+
+  while (!profileExists && attempts < MAX_PROFILE_ATTEMPTS) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", signUpData.user.id)
+      .single();
+
+    if (profile) {
+      profileExists = true;
+      console.log(`Profile found after ${attempts + 1} attempts`);
+    } else {
+      attempts++;
+      if (attempts < MAX_PROFILE_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  }
+
+  if (!profileExists) {
+    console.error(`Profile creation failed after ${MAX_PROFILE_ATTEMPTS} attempts for user ${signUpData.user.id}`);
+    console.log(`ACTION REQUIRED: Manually create profile for user ${signUpData.user.id}`);
+  } else {
+    // Profile exists - now create league membership
+    try {
+      const { error: membershipError } = await supabase
+        .from('league_memberships')
+        .insert({
+          league_id: PILOT_LEAGUE_ID,
+          user_id: signUpData.user.id,
+          role: 'player',
+          status: 'active',
+        });
+
+      if (membershipError) {
+        console.error("Failed to create league membership:", membershipError);
+        console.log(`ACTION REQUIRED: Manually add user ${signUpData.user.id} to league ${PILOT_LEAGUE_ID}`);
+      } else {
+        console.log("League membership created successfully");
+
+        // Set active league cookie using the server action
+        const { setActiveLeagueId } = await import("./league-context");
+        const result = await setActiveLeagueId(PILOT_LEAGUE_ID);
+
+        if (result.error) {
+          console.error("Failed to set active league cookie:", result.error);
+        } else {
+          console.log("Active league cookie set successfully");
+        }
+      }
+    } catch (err) {
+      console.error("Error creating league membership:", err);
+    }
+  }
+
   // If invite code provided and user was created, use the invite code
   // Note: Profile is created by trigger, so we need to wait for it
   if (inviteCode && signUpData.user) {

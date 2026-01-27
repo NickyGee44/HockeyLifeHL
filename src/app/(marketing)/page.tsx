@@ -6,90 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { HeroSectionModern } from "@/components/marketing/HeroSectionModern";
 import { IceRinkDivider } from "@/components/marketing/IceRinkDivider";
-import { LaptopMockup } from "@/components/marketing/LaptopMockup";
 import { ImageAccordion } from "@/components/marketing/ImageAccordion";
 import { Check, ArrowRight, Trophy, Users, BarChart3, CreditCard, Calendar, Sparkles, Mail, Phone, Building } from "lucide-react";
 import { platformConfig } from "@/lib/league-config";
-import { AuroraText } from "@/components/magicui/aurora-text";
 
 export default function MarketingPage() {
   return (
-    <div className="min-h-screen bg-[#F7FAFC] flex flex-col text-[#0B1220] relative overflow-hidden">
-      {/* Background Ice Texture Image */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <Image
-          src="/web-bg2.jpg"
-          alt=""
-          fill
-          className="object-cover opacity-[0.15]"
-          priority
-          quality={90}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-transparent to-white/80" />
-      </div>
+    <div className="min-h-screen flex flex-col">
+      {/* New Hero Section with Video Background */}
+      <HeroSectionModern />
 
-      <MarketingHeader />
-
-      <main className="flex-1 relative z-10">
-        {/* Hero Section - With Aurora */}
-        <section className="relative py-20 md:py-32 overflow-hidden">
-          <div className="container mx-auto px-4">
-            <div className="max-w-5xl mx-auto text-center">
-              <Badge variant="outline" className="mb-8 px-5 py-2 border-[#1F4FD8]/30 text-[#1F4FD8] bg-[#1F4FD8]/5 font-semibold text-base">
-                🏒 Built for Beer Leaguers, By Beer Leaguers
-              </Badge>
-              <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-black tracking-tight mb-8 leading-[0.95]">
-                Run Your Hockey League{" "}
-                <AuroraText
-                  className="block mt-4"
-                  colors={["#1F4FD8", "#D72638", "#FFD700", "#1F4FD8"]}
-                  speed={1.5}
-                >
-                  Like a Pro
-                </AuroraText>
-              </h1>
-              <p className="text-2xl md:text-3xl text-[#7B8794] mb-12 max-w-4xl mx-auto leading-relaxed font-light">
-                Modern drafts, real-time stats, and seamless payments.
-                Everything you need to focus on the game, not the paperwork.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-5 justify-center mb-16">
-                <Button size="lg" className="text-xl h-16 px-12 bg-[#1F4FD8] hover:bg-[#1F4FD8]/90 text-white shadow-2xl hover:shadow-3xl transition-all font-bold" asChild>
-                  <Link href="#contact">
-                    Get Started <ArrowRight className="ml-2 h-6 w-6" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="text-xl h-16 px-12 bg-white border-2 border-[#E6EBF2] hover:border-[#1F4FD8]/50 hover:bg-[#F7FAFC] font-semibold" asChild>
-                  <Link href="https://pilot.beerleaguehockey.ca">
-                    View Demo League
-                  </Link>
-                </Button>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="flex flex-wrap justify-center gap-12 text-center mb-20 text-[#7B8794]">
-                <div>
-                  <div className="text-4xl md:text-5xl font-bold text-[#0B1220]">500+</div>
-                  <div className="text-base md:text-lg mt-2">Active Players</div>
-                </div>
-                <div className="hidden sm:block h-16 w-px bg-[#E6EBF2]"/>
-                <div>
-                  <div className="text-4xl md:text-5xl font-bold text-[#0B1220]">50+</div>
-                  <div className="text-base md:text-lg mt-2">Games Tracked</div>
-                </div>
-                <div className="hidden sm:block h-16 w-px bg-[#E6EBF2]"/>
-                <div>
-                  <div className="text-4xl md:text-5xl font-bold text-[#0B1220]">24/7</div>
-                  <div className="text-base md:text-lg mt-2">Live Stats</div>
-                </div>
-              </div>
-
-              {/* Hero Preview - Laptop Mockup */}
-              <LaptopMockup />
-            </div>
-          </div>
-        </section>
+      <main className="flex-1 relative z-10 bg-[#F7FAFC]">
 
         {/* Feature Showcase - Image Accordion */}
         <section className="py-24 bg-white">
