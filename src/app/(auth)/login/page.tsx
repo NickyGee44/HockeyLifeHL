@@ -41,6 +41,9 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Log component mount for debugging
+  console.log("[LoginPage] Component mounted");
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
@@ -131,7 +134,13 @@ export default function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            console.log("[LoginPage] Form onSubmit fired");
+            handleSubmit(e);
+          }}
+          className="space-y-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -165,6 +174,7 @@ export default function LoginPage() {
             type="submit"
             className="w-full bg-canada-red hover:bg-canada-red-dark"
             disabled={isLoading}
+            onClick={() => console.log("[LoginPage] Button clicked")}
           >
             {isLoading ? (
               <>
