@@ -148,6 +148,7 @@ export default function LoginPage() {
               name="email"
               type="email"
               placeholder="player@beerleaguehockey.ca"
+              autoComplete="email"
               required
               disabled={isLoading}
             />
@@ -166,6 +167,7 @@ export default function LoginPage() {
               id="password"
               name="password"
               type="password"
+              autoComplete="current-password"
               required
               disabled={isLoading}
             />

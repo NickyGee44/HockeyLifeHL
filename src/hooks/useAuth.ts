@@ -129,34 +129,43 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
+        try {
+          if (!mounted) return;
 
-        console.log("Auth state changed:", event);
+          console.log("Auth state changed:", event);
 
-        // Only refetch profile on actual auth changes, not on token refresh
-        const shouldRefetchProfile = event === 'SIGNED_IN' ||
-                                     event === 'SIGNED_OUT' ||
-                                     event === 'USER_UPDATED';
+          // Only refetch profile on actual auth changes, not on token refresh
+          const shouldRefetchProfile = event === 'SIGNED_IN' ||
+                                       event === 'SIGNED_OUT' ||
+                                       event === 'USER_UPDATED';
 
-        setUser(session?.user ?? null);
+          setUser(session?.user ?? null);
 
-        if (session?.user) {
-          if (shouldRefetchProfile || !profile) {
-            // Fetch profile on auth change or if we don't have one yet
-            const userProfile = await fetchProfile(session.user.id);
-            if (mounted) {
-              setProfile(userProfile);
-              setError(null);
+          if (session?.user) {
+            if (shouldRefetchProfile || !profile) {
+              // Fetch profile on auth change or if we don't have one yet
+              const userProfile = await fetchProfile(session.user.id);
+              if (mounted) {
+                setProfile(userProfile);
+                setError(null);
+              }
             }
+            // On TOKEN_REFRESHED, keep existing profile (don't refetch)
+          } else {
+            setProfile(null);
+            setError(null);
           }
-          // On TOKEN_REFRESHED, keep existing profile (don't refetch)
-        } else {
-          setProfile(null);
-          setError(null);
-        }
 
-        if (mounted) {
-          setLoading(false);
+          if (mounted) {
+            setLoading(false);
+          }
+        } catch (err: any) {
+          // Catch AbortErrors silently - these are expected when unmounting
+          if (err.name === 'AbortError') {
+            console.log("Auth state change aborted (component unmounted)");
+          } else {
+            console.error("Auth state change error:", err);
+          }
         }
       }
     );

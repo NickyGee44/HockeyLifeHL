@@ -38,7 +38,7 @@ export function LeagueLandingPage({
       {/* Background Image Layer */}
       <div className="fixed inset-0 z-0">
         <Image
-          src={league.bannerUrl || "/banner2.png"}
+          src={league.bannerUrl?.trim() || "/banner2.png"}
           alt="Ice Background"
           fill
           className="object-cover opacity-20"
