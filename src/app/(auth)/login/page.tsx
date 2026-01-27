@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -43,6 +43,25 @@ export default function LoginPage() {
 
   // Log component mount for debugging
   console.log("[LoginPage] Component mounted");
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        console.log("[LoginPage] User already authenticated, redirecting...");
+        const redirectPath = getSafeRedirectPath(searchParams.get('redirect'));
+        console.log("[LoginPage] Redirect path:", redirectPath);
+        window.location.replace(redirectPath);
+      } else {
+        console.log("[LoginPage] No active session");
+      }
+    };
+
+    checkAuth();
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
