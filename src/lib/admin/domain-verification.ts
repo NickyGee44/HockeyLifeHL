@@ -37,6 +37,19 @@ export async function verifyCustomDomain(
       return { error: 'Not authenticated' };
     }
 
+    // Check league ownership
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role')
+      .eq('league_id', leagueId)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+      return { error: 'Unauthorized: Must be league owner or admin' };
+    }
+
     // Validate domain format
     const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
     const domainRegex = /^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/i;
@@ -172,13 +185,24 @@ async function checkDNSRecord(domain: string): Promise<{
         const aRecords = await resolver.resolve4(domain);
 
         if (aRecords && aRecords.length > 0) {
-          // For now, accept any A record
-          // In production, you'd verify it matches Vercel's IP
-          return {
-            valid: true,
-            message: 'A record found',
-            records: aRecords,
-          };
+          // CRITICAL: Validate A records point to Vercel IPs
+          const vercelIPs = ['76.76.21.21', '76.76.21.142', '76.76.21.164', '76.223.126.88'];
+          const hasVercelIP = aRecords.some(ip => vercelIPs.includes(ip));
+
+          if (hasVercelIP) {
+            return {
+              valid: true,
+              message: 'A record verified',
+              records: aRecords,
+            };
+          } else {
+            return {
+              valid: false,
+              error: 'A record does not point to Vercel',
+              message: `Found: ${aRecords.join(', ')}, expected one of: ${vercelIPs.join(', ')}`,
+              records: aRecords,
+            };
+          }
         }
       } catch (aError: any) {
         return {
@@ -259,6 +283,19 @@ export async function removeCustomDomain(leagueId: string): Promise<DomainVerifi
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { error: 'Not authenticated' };
+    }
+
+    // Check league ownership
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role')
+      .eq('league_id', leagueId)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+      return { error: 'Unauthorized: Must be league owner or admin' };
     }
 
     const { error } = await supabase
@@ -360,6 +397,19 @@ export async function setCustomDomain(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { error: 'Not authenticated' };
+    }
+
+    // Check league ownership
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role')
+      .eq('league_id', leagueId)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+      return { error: 'Unauthorized: Must be league owner or admin' };
     }
 
     // Validate and clean domain

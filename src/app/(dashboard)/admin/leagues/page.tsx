@@ -26,8 +26,10 @@ export default async function AdminLeaguesPage() {
             <p className="text-muted-foreground mb-4">
               {result.error}
             </p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
+            <Button asChild>
+              <Link href="/admin/leagues">
+                Try Again
+              </Link>
             </Button>
           </CardContent>
         </Card>

@@ -3,9 +3,10 @@ import { getUpcomingGames, getRecentGames } from "@/lib/games/actions";
 import { getActiveSeason } from "@/lib/seasons/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Calendar, Trophy, TrendingUp, Users } from "lucide-react";
+import { Calendar, Trophy, TrendingUp, Users, Mail, Phone, MapPin, UserPlus, ExternalLink } from "lucide-react";
 
 // Cache this page for 60 seconds
 export const revalidate = 60;
@@ -67,7 +68,7 @@ export default async function LeagueHomePage() {
         )}
 
         <div className="container mx-auto px-4 relative z-10">
-          <div className="flex flex-col md:flex-row items-center gap-6 text-white">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-white">
             {/* Logo */}
             {league.logoUrl && (
               <div className="shrink-0">
@@ -82,7 +83,7 @@ export default async function LeagueHomePage() {
             )}
 
             {/* League Info */}
-            <div className="text-center md:text-left">
+            <div className="text-center md:text-left flex-1">
               <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
                 {league.name}
               </h1>
@@ -109,6 +110,20 @@ export default async function LeagueHomePage() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Join League Button */}
+            <div className="shrink-0">
+              <Button
+                size="lg"
+                className="bg-white text-slate-900 hover:bg-white/90 font-semibold shadow-lg"
+                asChild
+              >
+                <Link href="/join">
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  Join League
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -153,9 +168,9 @@ export default async function LeagueHomePage() {
       {/* Main Content */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Upcoming Games */}
-            <Card>
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" style={{ color: league.primaryColor }} />
@@ -207,7 +222,61 @@ export default async function LeagueHomePage() {
               </CardContent>
             </Card>
 
-            {/* Recent Results */}
+            {/* Contact & Registration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">League Information</CardTitle>
+                <CardDescription>
+                  Get in touch or join us
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Registration Button */}
+                <Button
+                  className="w-full"
+                  size="lg"
+                  style={{
+                    backgroundColor: league.primaryColor,
+                    color: '#fff',
+                  }}
+                  asChild
+                >
+                  <Link href="/register">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Registration Form
+                  </Link>
+                </Button>
+
+                {/* Contact Information */}
+                <div className="space-y-3 pt-2 border-t">
+                  <h4 className="font-semibold text-sm">Contact Us</h4>
+                  <div className="space-y-2">
+                    <a
+                      href="mailto:info@league.example.com"
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Mail className="h-4 w-4" />
+                      <span>info@league.example.com</span>
+                    </a>
+                    <a
+                      href="tel:+15551234567"
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Phone className="h-4 w-4" />
+                      <span>(555) 123-4567</span>
+                    </a>
+                    <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4 mt-0.5" />
+                      <span>Toronto, ON</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Results */}
+          <div className="mt-8">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -224,8 +293,8 @@ export default async function LeagueHomePage() {
                     No recent games
                   </p>
                 ) : (
-                  <div className="space-y-3">
-                    {recentGames.slice(0, 5).map((game: any) => (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {recentGames.slice(0, 6).map((game: any) => (
                       <div
                         key={game.id}
                         className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
@@ -250,15 +319,65 @@ export default async function LeagueHomePage() {
                         </div>
                       </div>
                     ))}
-                    <Link
-                      href="/schedule"
-                      className="block text-center text-sm font-medium py-2 hover:underline"
-                      style={{ color: league.primaryColor }}
-                    >
-                      View All Results
-                    </Link>
                   </div>
                 )}
+                {recentGames.length > 0 && (
+                  <Link
+                    href="/schedule"
+                    className="block text-center text-sm font-medium py-2 mt-4 hover:underline"
+                    style={{ color: league.primaryColor }}
+                  >
+                    View All Results
+                  </Link>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Public Teams List */}
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" style={{ color: league.primaryColor }} />
+                      Teams
+                    </CardTitle>
+                    <CardDescription>
+                      Meet our league teams
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/teams">
+                      View All Teams
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {/* Placeholder for teams - replace with actual team data */}
+                  {[1, 2, 3, 4].map((i) => (
+                    <Link
+                      key={i}
+                      href={`/teams/${i}`}
+                      className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent transition-colors"
+                    >
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+                        style={{ backgroundColor: league.primaryColor }}
+                      >
+                        T{i}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">Team {i}</div>
+                        <div className="text-xs text-muted-foreground">0-0-0</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
