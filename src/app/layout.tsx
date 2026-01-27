@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Oswald, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeColorManager } from "@/components/layout/ThemeColorManager";
 import { QuickActionMenu } from "@/components/ui/quick-action-menu";
@@ -83,13 +84,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Favicon */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
         <link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96x96.png" />
-        
+
         {/* PWA Meta Tags */}
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
@@ -100,10 +101,18 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${oswald.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
-        <ThemeColorManager />
-        {children}
-        <QuickActionMenu />
-        <Toaster richColors position="top-right" />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          storageKey="hockeylife-theme"
+          disableTransitionOnChange
+        >
+          <ThemeColorManager />
+          {children}
+          <QuickActionMenu />
+          <Toaster richColors position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -25,6 +25,7 @@ import { motion } from "framer-motion";
 import { currentLeague } from "@/lib/league-config";
 import { LeagueSelector } from "@/components/layout/LeagueSelector";
 import { useActiveLeague } from "@/hooks/use-league";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navLinks = [
   { href: "/standings", label: "Standings" },
@@ -304,6 +305,8 @@ export function Header() {
             </div>
           )}
 
+          <ThemeToggle />
+
           {loading ? (
             <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
           ) : user ? (
@@ -402,8 +405,11 @@ export function Header() {
                     <>
                       {/* User Info */}
                       <div className="border-t border-border pt-4 mt-4 mb-2 px-2">
-                        <div className="mb-4">
-                          <LeagueSelector />
+                        <div className="mb-4 flex items-center justify-between gap-2">
+                          <div className="flex-1">
+                            <LeagueSelector />
+                          </div>
+                          <ThemeToggle />
                         </div>
                         <p className="font-medium">
                           {getRoleBadge()} {profile?.full_name || "Player"}
@@ -507,6 +513,9 @@ export function Header() {
                     </>
                   ) : (
                     <div className="border-t border-border pt-4 mt-4 flex flex-col gap-2">
+                      <div className="flex items-center justify-center mb-2">
+                        <ThemeToggle />
+                      </div>
                       <Button variant="outline" asChild className="w-full">
                         <Link href="/login" onClick={() => setIsOpen(false)}>
                           Sign In
