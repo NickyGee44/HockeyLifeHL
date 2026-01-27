@@ -58,6 +58,19 @@ function isPlatformDomain(hostname: string): boolean {
   // Remove port if present for comparison
   const hostnameWithoutPort = hostname.split(':')[0];
 
+  // Check if it's a deployment platform domain (Vercel, Netlify, Railway, etc.)
+  const deploymentPlatforms = [
+    '.vercel.app',
+    '.netlify.app',
+    '.railway.app',
+    '.render.com',
+    '.fly.dev',
+  ];
+
+  if (deploymentPlatforms.some(platform => hostnameWithoutPort.endsWith(platform))) {
+    return true;
+  }
+
   return PLATFORM_DOMAINS.some(domain => {
     const domainWithoutPort = domain.split(':')[0];
     return hostnameWithoutPort === domainWithoutPort ||
