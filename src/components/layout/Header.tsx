@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { motion } from "framer-motion";
-import { currentLeague } from "@/lib/league-config";
+import { platformConfig } from "@/lib/league-config";
 import { LeagueSelector } from "@/components/layout/LeagueSelector";
 import { useActiveLeague } from "@/hooks/use-league";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -133,8 +133,8 @@ export function Header() {
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
             <Image
-              src={currentLeague.logo}
-              alt={currentLeague.name}
+              src={platformConfig.icon}
+              alt={platformConfig.name}
               width={40}
               height={40}
               className="h-10 w-auto drop-shadow-sm"
@@ -143,7 +143,7 @@ export function Header() {
             />
           </motion.div>
           <span className="font-display text-xl font-bold text-gradient-canada hidden sm:inline group-hover:tracking-tight transition-all">
-            {currentLeague.name}
+            {platformConfig.name}
           </span>
         </Link>
 

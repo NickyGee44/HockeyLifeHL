@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { IceRinkDivider } from "@/components/marketing/IceRinkDivider";
 import { LaptopMockup } from "@/components/marketing/LaptopMockup";
+import { ImageAccordion } from "@/components/marketing/ImageAccordion";
 import { Check, ArrowRight, Trophy, Users, BarChart3, CreditCard, Calendar, Sparkles, Mail, Phone, Building } from "lucide-react";
 import { platformConfig } from "@/lib/league-config";
 import { AuroraText } from "@/components/magicui/aurora-text";
@@ -87,6 +88,26 @@ export default function MarketingPage() {
               {/* Hero Preview - Laptop Mockup */}
               <LaptopMockup />
             </div>
+          </div>
+        </section>
+
+        {/* Feature Showcase - Image Accordion */}
+        <section className="py-24 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <Badge variant="outline" className="mb-4 px-3 py-1 border-[#1F4FD8]/30 text-[#1F4FD8] bg-[#1F4FD8]/5">
+                ✨ See It In Action
+              </Badge>
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
+                Everything You Need, One Dashboard
+              </h2>
+              <p className="text-xl text-[#7B8794] max-w-2xl mx-auto">
+                From drafts to game day, from admin control to captain tools.
+                See how our platform brings it all together.
+              </p>
+            </div>
+
+            <ImageAccordion />
           </div>
         </section>
 
