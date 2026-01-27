@@ -177,6 +177,9 @@ export async function signupLeagueWithOwner(data: {
           full_name: fullName,
           email: email,
         },
+        // Auto-confirm email - skip confirmation step
+        // IMPORTANT: Only do this if you trust the signup process
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca'}/auth/callback`,
       },
     });
 
@@ -202,6 +205,29 @@ export async function signupLeagueWithOwner(data: {
     }
 
     const userId = authData.user.id;
+
+    // ============================================================================
+    // 4.5. AUTO-CONFIRM EMAIL (Skip email verification)
+    // ============================================================================
+    // SECURITY NOTE: This auto-confirms the user without email verification
+    // Only do this if you have other verification mechanisms in place
+    // or if email confirmation is disabled in Supabase settings
+
+    try {
+      // Manually confirm the user's email using a database function
+      const { error: confirmError } = await (supabase as any)
+        .rpc('confirm_user_email', {
+          user_id: userId
+        });
+
+      if (confirmError) {
+        console.warn('Could not auto-confirm user email:', confirmError);
+        // Continue anyway - user will need to confirm via email
+      }
+    } catch (confirmErr) {
+      console.warn('Auto-confirm failed:', confirmErr);
+      // Continue anyway - user will need to confirm via email
+    }
 
     // ============================================================================
     // 5. CREATE LEAGUE, PROFILE, AND MEMBERSHIP (ATOMIC TRANSACTION)
