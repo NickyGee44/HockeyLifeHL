@@ -34,17 +34,17 @@ export function LeagueLandingPage({
   platformSponsors = []
 }: LeagueLandingPageProps) {
   return (
-    <div className="min-h-screen bg-arena flex flex-col relative">
+    <div className="min-h-screen bg-[#0B1220] flex flex-col relative">
       {/* Background Image Layer */}
       <div className="fixed inset-0 z-0">
         <Image
-          src={league.bannerUrl || "/web-bg.jfif"}
+          src={league.bannerUrl || "/banner2.png"}
           alt="Ice Background"
           fill
-          className="object-cover opacity-10"
+          className="object-cover opacity-20"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1220]/80 via-[#0B1220]/70 to-[#0B1220]/90" />
       </div>
 
       {/* Live Ticker */}
@@ -69,7 +69,7 @@ export function LeagueLandingPage({
 
       <div className="flex-1 relative z-10">
         {/* Hero Section */}
-        <header className="relative overflow-hidden border-b border-border bg-white/30 backdrop-blur-sm">
+        <header className="relative overflow-hidden border-b border-white/10 bg-[#0B1220]/50 backdrop-blur-sm">
           <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
             <div className="text-center max-w-4xl mx-auto">
               <motion.div
@@ -84,7 +84,7 @@ export function LeagueLandingPage({
                     alt={league.name}
                     width={250}
                     height={250}
-                    className="mx-auto h-32 md:h-48 w-auto drop-shadow-xl"
+                    className="mx-auto h-32 md:h-48 w-auto drop-shadow-2xl"
                     priority
                   />
                 )}
@@ -94,7 +94,7 @@ export function LeagueLandingPage({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
-                className="text-[#0B1220] text-xl md:text-3xl mb-4 font-bold"
+                className="text-white text-xl md:text-3xl mb-4 font-bold"
               >
                 <AuroraText>{league.tagline || "Men's Recreational Hockey League"}</AuroraText>
               </motion.div>
@@ -115,7 +115,7 @@ export function LeagueLandingPage({
                     Join the League 🏒
                   </Link>
                 </Button>
-                <Button variant="outline" size="lg" className="text-lg px-8 bg-white hover:bg-slate-50 border-slate-200 text-[#0B1220] shadow-sm transition-all hover:scale-105" asChild>
+                <Button variant="outline" size="lg" className="text-lg px-8 bg-white hover:bg-[#1a2332] border-white/10 text-white shadow-sm transition-all hover:scale-105" asChild>
                   <Link href="/standings">
                     View Standings
                   </Link>
@@ -138,7 +138,7 @@ export function LeagueLandingPage({
           <section className="py-12 px-4">
             <div className="container mx-auto max-w-6xl">
               <h2 className="text-3xl font-bold text-center mb-8">
-                <span className="text-[#0B1220]">Upcoming </span>
+                <span className="text-white">Upcoming </span>
                 <span style={{ color: league.primaryColor }}>Games</span>
               </h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -182,16 +182,16 @@ export function LeagueLandingPage({
                 viewport={{ once: true }}
               >
                 <h2 className="text-center mb-8 text-3xl font-bold">
-                  <span className="text-[#0B1220]">Player of the </span>
+                  <span className="text-white">Player of the </span>
                   <span className="text-gold-dark font-bold">Week</span>
                 </h2>
 
-                <Card className="overflow-hidden border-slate-200 bg-white shadow-xl group hover:border-gold/30 transition-all duration-500 relative">
+                <Card className="overflow-hidden border-white/10 bg-[#151C2C]/90 backdrop-blur-sm shadow-xl group hover:border-gold/30 transition-all duration-500 relative">
                   {/* Holographic Shine Effect */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-1000 pointer-events-none bg-[linear-gradient(45deg,transparent_25%,rgba(255,215,0,0.3)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_3s_infinite_linear]" />
 
                   <div className="flex flex-col md:flex-row relative z-10">
-                    <div className="flex-shrink-0 p-6 md:p-8 flex flex-col items-center md:items-start gap-4 md:border-r border-slate-100">
+                    <div className="flex-shrink-0 p-6 md:p-8 flex flex-col items-center md:items-start gap-4 md:border-r border-white/10">
                       <div className="relative">
                         <motion.div
                           whileHover={{ scale: 1.05, rotate: 2 }}
@@ -211,11 +211,11 @@ export function LeagueLandingPage({
 
                       <div className="text-center md:text-left">
                         <Link href={`/stats/${playerOfTheWeek.id}`} className="hover:underline">
-                          <h3 className="text-2xl font-bold text-[#0B1220]">{playerOfTheWeek.fullName}</h3>
+                          <h3 className="text-2xl font-bold text-white">{playerOfTheWeek.fullName}</h3>
                         </Link>
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-2">
                           {playerOfTheWeek.position && (
-                            <Badge variant="outline" className="border-slate-200 text-slate-600">{playerOfTheWeek.position}</Badge>
+                            <Badge variant="outline" className="border-white/10 text-slate-300">{playerOfTheWeek.position}</Badge>
                           )}
                           <Badge variant="outline" className="bg-gold/10 border-gold/20 text-gold-dark">Elite Performer</Badge>
                         </div>
@@ -248,12 +248,12 @@ export function LeagueLandingPage({
                           { label: "Points", value: playerOfTheWeek.weeklyStats?.points || 0, color: "text-gold-dark" },
                           { label: "Goals", value: playerOfTheWeek.weeklyStats?.goals || 0, color: league.primaryColor },
                           { label: "Assists", value: playerOfTheWeek.weeklyStats?.assists || 0, color: league.secondaryColor },
-                          { label: "Games", value: playerOfTheWeek.weeklyStats?.gamesPlayed || 0, color: "text-[#0B1220]" },
+                          { label: "Games", value: playerOfTheWeek.weeklyStats?.gamesPlayed || 0, color: "text-white" },
                         ].map((stat, i) => (
                           <motion.div
                             key={i}
                             whileHover={{ y: -5 }}
-                            className="text-center p-4 bg-slate-50 rounded-lg border border-slate-100"
+                            className="text-center p-4 bg-[#1a2332] rounded-lg border border-white/10"
                           >
                             <div className={`text-3xl md:text-4xl font-display font-bold`} style={{ color: typeof stat.color === 'string' && stat.color.startsWith('#') ? stat.color : undefined }}>{stat.value}</div>
                             <div className="text-[10px] uppercase tracking-tighter text-slate-500 mt-1">{stat.label}</div>
@@ -262,7 +262,7 @@ export function LeagueLandingPage({
                       </div>
 
                       <div className="mt-6 text-center md:text-left">
-                        <Button asChild variant="outline" className="border-slate-200 hover:bg-slate-50 text-[#0B1220] group">
+                        <Button asChild variant="outline" className="border-white/10 hover:bg-[#1a2332] text-white group">
                           <Link href={`/stats/${playerOfTheWeek.id}`} className="flex items-center gap-2">
                             View Full Career Profile <span className="group-hover:translate-x-1 transition-transform">→</span>
                           </Link>
@@ -281,7 +281,7 @@ export function LeagueLandingPage({
           <section className="py-12 px-4">
             <div className="container mx-auto max-w-6xl">
               <h2 className="text-3xl font-bold text-center mb-8">
-                <span className="text-[#0B1220]">Recent </span>
+                <span className="text-white">Recent </span>
                 <span style={{ color: league.accentColor || league.primaryColor }}>Results</span>
               </h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -320,7 +320,7 @@ export function LeagueLandingPage({
           <div className="container mx-auto max-w-6xl relative z-10">
             <div className="text-center mb-16">
               <h2 className="mb-4 text-3xl font-bold">
-                <span className="text-[#0B1220]">Everything You Need to </span>
+                <span className="text-white">Everything You Need to </span>
                 <span style={{ color: league.primaryColor }}>Run the League</span>
               </h2>
               <div className="h-1.5 w-20 mx-auto rounded-full" style={{ backgroundColor: league.primaryColor }} />
@@ -342,13 +342,13 @@ export function LeagueLandingPage({
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
                 >
-                  <Card className="hover:shadow-xl transition-all duration-300 h-full bg-white/80 backdrop-blur-sm border-slate-100 group" style={{ borderColor: `${league.primaryColor}20` }}>
+                  <Card className="hover:shadow-xl transition-all duration-300 h-full bg-[#151C2C]/80 backdrop-blur-sm border-white/10 group" style={{ borderColor: `${league.primaryColor}40` }}>
                     <CardHeader>
                       <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
-                      <CardTitle className="text-[#0B1220] group-hover:text-current transition-colors" style={{ color: league.primaryColor }}>{feature.title}</CardTitle>
+                      <CardTitle className="text-white group-hover:text-current transition-colors" style={{ color: league.primaryColor }}>{feature.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <CardDescription className="text-base leading-relaxed text-slate-600">
+                      <CardDescription className="text-base leading-relaxed text-slate-300">
                         {feature.desc}
                       </CardDescription>
                     </CardContent>
@@ -367,13 +367,13 @@ export function LeagueLandingPage({
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
             >
-              <Card className="bg-white border-slate-200 overflow-hidden p-12 relative shadow-2xl">
+              <Card className="bg-[#151C2C]/90 backdrop-blur-sm border-white/10 overflow-hidden p-12 relative shadow-2xl">
                 <MeshGradient className="absolute inset-0 z-0 opacity-10" />
                 <div className="relative z-10">
-                  <h2 className="text-4xl md:text-5xl mb-6 text-[#0B1220]">
+                  <h2 className="text-4xl md:text-5xl mb-6 text-white">
                     Ready to <span className="font-bold" style={{ color: league.primaryColor }}>Drop the Puck?</span>
                   </h2>
-                  <p className="text-xl text-slate-600 mb-10 max-w-lg mx-auto leading-relaxed">
+                  <p className="text-xl text-slate-300 mb-10 max-w-lg mx-auto leading-relaxed">
                     Join {league.name} today and experience recreational hockey like never before.
                   </p>
                   <Button
