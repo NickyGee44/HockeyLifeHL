@@ -9,10 +9,9 @@ SET search_path = public
 AS $$
 BEGIN
   -- Update the user in auth.users to mark email as confirmed
+  -- NOTE: confirmed_at is a GENERATED column and updates automatically
   UPDATE auth.users
-  SET
-    email_confirmed_at = NOW(),
-    confirmed_at = NOW()
+  SET email_confirmed_at = NOW()
   WHERE id = user_id
     AND email_confirmed_at IS NULL;
 END;
