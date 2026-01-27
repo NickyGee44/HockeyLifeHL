@@ -184,12 +184,50 @@ export async function proxy(request: NextRequest) {
     const subdomain = extractSubdomain(hostname);
 
     if (subdomain) {
-      // Create new headers with league context
+      // Create new headers with league context (always set these)
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set('x-league-hostname', hostname);
       requestHeaders.set('x-league-subdomain', subdomain);
 
-      // Rewrite the URL to /league/* path while preserving original URL in browser
+      // Paths that should NOT be rewritten (dashboard, captain, admin, auth)
+      const protectedPaths = [
+        '/dashboard',
+        '/captain',
+        '/admin',
+        '/auth',
+        '/login',
+        '/register',
+        '/forgot-password',
+        '/reset-password',
+      ];
+
+      const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+
+      // If it's a protected path, pass through normally with league context headers
+      if (isProtectedPath) {
+        const sessionResponse = await updateSession(request);
+
+        // If session middleware returned a redirect, respect it
+        if (sessionResponse.status >= 300 && sessionResponse.status < 400) {
+          return sessionResponse;
+        }
+
+        // Pass through with league context headers (no rewrite)
+        const response = NextResponse.next({
+          request: {
+            headers: requestHeaders,
+          },
+        });
+
+        // Copy cookies from session response
+        sessionResponse.cookies.getAll().forEach(cookie => {
+          response.cookies.set(cookie.name, cookie.value, cookie);
+        });
+
+        return response;
+      }
+
+      // For public league pages, rewrite to /league/*
       const url = request.nextUrl.clone();
 
       // If already accessing /league path, don't double-rewrite
@@ -229,7 +267,45 @@ export async function proxy(request: NextRequest) {
     requestHeaders.set('x-league-hostname', hostname);
     // Custom domains don't have a subdomain - the full hostname is used for lookup
 
-    // Rewrite the URL to /league/* path
+    // Paths that should NOT be rewritten (dashboard, captain, admin, auth)
+    const protectedPaths = [
+      '/dashboard',
+      '/captain',
+      '/admin',
+      '/auth',
+      '/login',
+      '/register',
+      '/forgot-password',
+      '/reset-password',
+    ];
+
+    const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+
+    // If it's a protected path, pass through normally with league context headers
+    if (isProtectedPath) {
+      const sessionResponse = await updateSession(request);
+
+      // If session middleware returned a redirect, respect it
+      if (sessionResponse.status >= 300 && sessionResponse.status < 400) {
+        return sessionResponse;
+      }
+
+      // Pass through with league context headers (no rewrite)
+      const response = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+
+      // Copy cookies from session response
+      sessionResponse.cookies.getAll().forEach(cookie => {
+        response.cookies.set(cookie.name, cookie.value, cookie);
+      });
+
+      return response;
+    }
+
+    // For public league pages, rewrite to /league/*
     const url = request.nextUrl.clone();
 
     // If already accessing /league path, don't double-rewrite

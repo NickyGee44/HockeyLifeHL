@@ -22,12 +22,37 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LeagueSelector } from "@/components/layout/LeagueSelector";
+import { useActiveLeague } from "@/hooks/use-league";
 
 const navLinks = [
   { href: "/standings", label: "Standings" },
   { href: "/schedule", label: "Schedule" },
   { href: "/stats", label: "Stats" },
   { href: "/teams", label: "Teams" },
+];
+
+// Dashboard navigation items
+const playerNav = [
+  { href: "/dashboard/team", label: "My Team", icon: "🏒" },
+  { href: "/dashboard/stats", label: "My Stats", icon: "📈" },
+];
+
+const captainNav = [
+  { href: "/captain/team", label: "Team Management", icon: "👥" },
+  { href: "/captain/stats", label: "Enter Stats", icon: "✏️" },
+  { href: "/captain/draft", label: "Draft Board", icon: "🎯" },
+];
+
+const adminNav = [
+  { href: "/admin/teams", label: "Teams", icon: "🏆" },
+  { href: "/admin/players", label: "Players", icon: "⛸️" },
+  { href: "/admin/games", label: "Games", icon: "🎮" },
+  { href: "/admin/seasons", label: "Seasons", icon: "📆" },
+  { href: "/admin/emails", label: "Emails", icon: "📧" },
+  { href: "/admin/suspensions", label: "Suspensions", icon: "🚫" },
+  { href: "/admin/articles", label: "Articles", icon: "✍️" },
+  { href: "/admin/payments", label: "Payments", icon: "💳" },
 ];
 
 interface LeagueHeaderProps {
@@ -42,9 +67,16 @@ interface LeagueHeaderProps {
 export function LeagueHeader({ league }: LeagueHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, isOwner, isCaptain } = useAuth();
+  const { leagueId, branding } = useActiveLeague();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Check if we're in a dashboard area
+  const isInDashboard = pathname?.startsWith("/dashboard");
+  const isInCaptain = pathname?.startsWith("/captain");
+  const isInAdmin = pathname?.startsWith("/admin");
+  const isInAnyDashboard = isInDashboard || isInCaptain || isInAdmin;
 
   useEffect(() => {
     setMounted(true);
@@ -81,6 +113,12 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
         .slice(0, 2);
     }
     return user?.email?.slice(0, 2).toUpperCase() || "??";
+  };
+
+  const getRoleBadge = () => {
+    if (isOwner) return "👑";
+    if (isCaptain) return "🏒";
+    return "⛸️";
   };
 
   return (
@@ -124,6 +162,7 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1">
+          {/* Public Links */}
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -131,8 +170,8 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
               className={cn(
                 "px-3 py-2 text-sm font-bold uppercase tracking-wide rounded-md transition-colors",
                 pathname === link.href
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
               style={
                 pathname === link.href
@@ -143,10 +182,154 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
               {link.label}
             </Link>
           ))}
+
+          {/* Dashboard Navigation for Authenticated Users */}
+          {user && (
+            <>
+              <div className="h-4 w-px bg-border mx-2" />
+
+              {/* Player Dashboard Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={isInDashboard ? "secondary" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "gap-1",
+                      isInDashboard && "text-white"
+                    )}
+                    style={
+                      isInDashboard
+                        ? { backgroundColor: league.primaryColor }
+                        : {}
+                    }
+                    onClick={(e) => {
+                      if (e.detail === 1) {
+                        router.push("/dashboard");
+                      }
+                    }}
+                  >
+                    ⛸️ Player
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuLabel>Player Dashboard</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {playerNav.map((item) => {
+                    const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                    return (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <Link href={href} className={cn(
+                          "w-full cursor-pointer",
+                          pathname === href && "bg-muted"
+                        )}>
+                          <span className="mr-2">{item.icon}</span>
+                          {item.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Captain Dropdown */}
+              {(isCaptain || isOwner) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant={isInCaptain ? "secondary" : "ghost"}
+                      size="sm"
+                      className={cn(
+                        "gap-1",
+                        isInCaptain && "text-white"
+                      )}
+                      style={
+                        isInCaptain
+                          ? { backgroundColor: league.secondaryColor }
+                          : {}
+                      }
+                      onClick={(e) => {
+                        if (e.detail === 1) {
+                          router.push("/captain");
+                        }
+                      }}
+                    >
+                      🏒 Captain
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuLabel>Captain Tools</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {captainNav.map((item) => {
+                      const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                      return (
+                        <DropdownMenuItem key={item.href} asChild>
+                          <Link href={href} className={cn(
+                            "w-full cursor-pointer",
+                            pathname === href && "bg-muted"
+                          )}>
+                            <span className="mr-2">{item.icon}</span>
+                            {item.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {/* Admin Dropdown */}
+              {isOwner && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant={isInAdmin ? "secondary" : "ghost"}
+                      size="sm"
+                      className={cn(
+                        "gap-1",
+                        isInAdmin && "bg-gold text-puck-black hover:bg-gold/90"
+                      )}
+                      onClick={(e) => {
+                        if (e.detail === 1) {
+                          router.push("/admin");
+                        }
+                      }}
+                    >
+                      👑 Admin
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuLabel>League Admin</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {adminNav.map((item) => {
+                      const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                      return (
+                        <DropdownMenuItem key={item.href} asChild>
+                          <Link href={href} className={cn(
+                            "w-full cursor-pointer",
+                            pathname === href && "bg-muted"
+                          )}>
+                            <span className="mr-2">{item.icon}</span>
+                            {item.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </>
+          )}
         </nav>
 
         {/* Auth / User Menu */}
         <div className="flex items-center gap-4">
+          {user && (
+            <div className="hidden md:block">
+              <LeagueSelector />
+            </div>
+          )}
+
           <ThemeToggle />
 
           {loading ? (
@@ -170,7 +353,7 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
                     <p className="font-medium">
-                      {profile?.full_name || "Player"}
+                      {getRoleBadge()} {profile?.full_name || "Player"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {user.email}
@@ -230,6 +413,7 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px] overflow-y-auto px-6">
                 <nav className="flex flex-col gap-2 mt-8 px-2">
+                  {/* Public Navigation */}
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">
                     League
                   </p>
@@ -251,16 +435,111 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
 
                   {user ? (
                     <>
+                      {/* User Info */}
                       <div className="border-t border-border pt-4 mt-4 mb-2 px-2">
-                        <div className="flex items-center justify-center mb-2">
+                        <div className="mb-4 flex items-center justify-between gap-2">
+                          <div className="flex-1">
+                            <LeagueSelector />
+                          </div>
                           <ThemeToggle />
                         </div>
                         <p className="font-medium">
-                          {profile?.full_name || "Player"}
+                          {getRoleBadge()} {profile?.full_name || "Player"}
                         </p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
 
+                      {/* Player Dashboard */}
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
+                        ⛸️ Player
+                      </p>
+                      {playerNav.map((item) => {
+                        const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={href}
+                            onClick={() => setIsOpen(false)}
+                            className={cn(
+                              "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                              pathname === href
+                                ? "text-foreground"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )}
+                            style={
+                              pathname === href
+                                ? { backgroundColor: league.primaryColor + '20', color: league.primaryColor }
+                                : {}
+                            }
+                          >
+                            <span>{item.icon}</span>
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+
+                      {/* Captain Tools */}
+                      {(isCaptain || isOwner) && (
+                        <>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
+                            🏒 Captain
+                          </p>
+                          {captainNav.map((item) => {
+                            const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                            return (
+                              <Link
+                                key={item.href}
+                                href={href}
+                                onClick={() => setIsOpen(false)}
+                                className={cn(
+                                  "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                                  pathname === href
+                                    ? "text-foreground"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                                style={
+                                  pathname === href
+                                    ? { backgroundColor: league.secondaryColor + '20', color: league.secondaryColor }
+                                    : {}
+                                }
+                              >
+                                <span>{item.icon}</span>
+                                {item.label}
+                              </Link>
+                            );
+                          })}
+                        </>
+                      )}
+
+                      {/* Admin Panel */}
+                      {isOwner && (
+                        <>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
+                            👑 Admin
+                          </p>
+                          {adminNav.map((item) => {
+                            const href = leagueId ? `/${leagueId}${item.href}` : item.href;
+                            return (
+                              <Link
+                                key={item.href}
+                                href={href}
+                                onClick={() => setIsOpen(false)}
+                                className={cn(
+                                  "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                                  pathname === href
+                                    ? "bg-gold/20 text-gold"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                              >
+                                <span>{item.icon}</span>
+                                {item.label}
+                              </Link>
+                            );
+                          })}
+                        </>
+                      )}
+
+                      {/* Sign Out */}
                       <div className="border-t border-border pt-4 mt-4">
                         <Button
                           variant="destructive"
