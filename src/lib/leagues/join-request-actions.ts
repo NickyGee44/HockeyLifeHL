@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { stripHtml } from "@/lib/input-sanitization";
+import { RateLimiters } from "@/lib/rate-limit";
 
 export type JoinRequestResult = {
   error?: string;
@@ -55,6 +56,18 @@ export async function requestJoinLeague(data: {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { error: 'You must be logged in to join a league' };
+    }
+
+    // ============================================================================
+    // 1.5 RATE LIMITING
+    // ============================================================================
+    // SECURITY: Prevent abuse by limiting join requests to 10 per minute per user
+    const rateLimitKey = `join-request:${user.id}`;
+    const rateLimit = await RateLimiters.standard.check(rateLimitKey);
+    if (!rateLimit.success) {
+      return {
+        error: "Too many join requests. Please try again later."
+      };
     }
 
     // ============================================================================

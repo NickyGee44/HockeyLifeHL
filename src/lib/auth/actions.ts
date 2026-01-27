@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { withConsistentTiming } from "./timing-protection";
 import { sanitizeEmail } from "@/lib/input-sanitization";
+import { RateLimiters } from "@/lib/rate-limit";
 
 export type AuthResult = {
   error?: string;
@@ -113,6 +115,20 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   const passwordValidation = validatePassword(password);
   if (!passwordValidation.valid) {
     return { error: passwordValidation.error };
+  }
+
+  // RATE LIMITING: 5 signups per minute per IP
+  const headersList = await headers();
+  const forwarded = headersList.get('x-forwarded-for');
+  const realIp = headersList.get('x-real-ip');
+  const ip = forwarded?.split(',')[0].trim() || realIp || 'unknown';
+  const rateLimitKey = `signup:${ip}`;
+
+  const rateLimit = await RateLimiters.strict.check(rateLimitKey);
+  if (!rateLimit.success) {
+    return {
+      error: "Too many signup attempts. Please try again later."
+    };
   }
 
   // Validate invite code if provided (before signup)
@@ -245,6 +261,20 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
 
     if (!email || !password) {
       return { error: "Email and password are required" };
+    }
+
+    // RATE LIMITING: 10 login attempts per minute per IP
+    const headersList = await headers();
+    const forwarded = headersList.get('x-forwarded-for');
+    const realIp = headersList.get('x-real-ip');
+    const ip = forwarded?.split(',')[0].trim() || realIp || 'unknown';
+    const rateLimitKey = `signin:${ip}`;
+
+    const rateLimit = await RateLimiters.standard.check(rateLimitKey);
+    if (!rateLimit.success) {
+      return {
+        error: "Too many login attempts. Please try again later."
+      };
     }
 
     console.log("Sign in attempt for:", email);

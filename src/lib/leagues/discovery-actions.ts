@@ -78,7 +78,7 @@ export async function getPublicLeagues(filters?: {
       const radius = filters.radius_km || 50; // Default 50km radius
 
       // Use the search_nearby_leagues stored procedure
-      const { data: nearbyLeagues, error } = await supabase
+      const { data: nearbyLeagues, error } = await (supabase as any)
         .rpc('search_nearby_leagues', {
           user_lat: filters.latitude,
           user_lon: filters.longitude,
@@ -146,7 +146,7 @@ export async function getPublicLeagues(filters?: {
       const keyword = filters.keyword.trim();
 
       // Use the search_leagues_by_keyword stored procedure
-      const { data: searchResults, error } = await supabase
+      const { data: searchResults, error } = await (supabase as any)
         .rpc('search_leagues_by_keyword', {
           search_query: keyword,
           limit_results: 100, // Get many results for filtering
@@ -356,7 +356,7 @@ export async function getLeaguesByLocation(filters: {
     const offset = filters?.offset || 0;
 
     // Use the database helper function to get league IDs
-    const { data: locationResults, error } = await supabase
+    const { data: locationResults, error } = await (supabase as any)
       .rpc('get_leagues_by_location', {
         search_city: filters.city || null,
         search_state: filters.state || null,

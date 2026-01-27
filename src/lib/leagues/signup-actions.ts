@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { stripHtml } from "@/lib/input-sanitization";
 import { generateSlug, validateSlug } from "./slug-utils";
+import { RateLimiters } from "@/lib/rate-limit";
 
 export type SignupResult = {
   error?: string;
@@ -30,6 +32,23 @@ export async function signupLeagueWithOwner(data: {
 }): Promise<SignupResult> {
   try {
     const supabase = await createClient();
+
+    // ============================================================================
+    // 0. RATE LIMITING
+    // ============================================================================
+    // SECURITY: Prevent abuse by limiting league signups to 5 per minute per IP
+    const headersList = await headers();
+    const forwarded = headersList.get('x-forwarded-for');
+    const realIp = headersList.get('x-real-ip');
+    const ip = forwarded?.split(',')[0].trim() || realIp || 'unknown';
+    const rateLimitKey = `league-signup:${ip}`;
+
+    const rateLimit = await RateLimiters.strict.check(rateLimitKey);
+    if (!rateLimit.success) {
+      return {
+        error: "Too many signup attempts. Please try again later."
+      };
+    }
 
     // ============================================================================
     // 1. VALIDATE INPUTS
@@ -190,7 +209,7 @@ export async function signupLeagueWithOwner(data: {
     // Use database function for atomic all-or-nothing operation
     // This prevents partial state if any step fails
 
-    const { data: signupResult, error: signupError } = await supabase
+    const { data: signupResult, error: signupError } = await (supabase as any)
       .rpc('signup_league_with_owner', {
         p_league_name: leagueName,
         p_league_slug: finalSlug,
