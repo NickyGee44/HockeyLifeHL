@@ -45,6 +45,8 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    console.log("[Login] Form submitted");
+
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
@@ -58,6 +60,8 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
 
+      console.log("[Login] Attempting sign in...");
+
       // Sign in with password - this sets cookies on client side
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -65,7 +69,7 @@ export default function LoginPage() {
       });
 
       if (error) {
-        console.error("Signin error:", error);
+        console.error("[Login] Signin error:", error);
 
         // Generic error messages to prevent account enumeration
         if (error.message.includes("Invalid login credentials") ||
@@ -81,21 +85,23 @@ export default function LoginPage() {
       }
 
       if (!data.user) {
+        console.error("[Login] No user data returned");
         toast.error("Failed to sign in. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      console.log("User signed in successfully:", data.user.id);
+      console.log("[Login] User signed in successfully:", data.user.id);
       toast.success("Signed in successfully!");
 
       // Small delay to ensure cookies are set
+      console.log("[Login] Waiting for cookies to be set...");
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Get safe redirect path from URL params (set by middleware)
       const redirectPath = getSafeRedirectPath(searchParams.get('redirect'));
 
-      console.log("Redirecting to:", redirectPath);
+      console.log("[Login] Redirecting to:", redirectPath);
 
       // Use window.location.replace for post-auth redirect
       // This prevents back button issues and ensures clean navigation
@@ -103,7 +109,7 @@ export default function LoginPage() {
 
       // Don't call setIsLoading(false) - we're navigating away
     } catch (err: any) {
-      console.error("Login error:", err);
+      console.error("[Login] Exception:", err);
       toast.error("An error occurred. Please try again.");
       setIsLoading(false);
     }
