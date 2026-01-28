@@ -5,13 +5,8 @@
  * Enables features like "Sign out other devices" and session limits.
  *
  * DATABASE MIGRATION: supabase/migrations/20260128_create_user_sessions.sql
- *
- * NOTE: @ts-nocheck is used because the user_sessions table types will be
- * available after applying the migration and regenerating Supabase types.
- * Run: npx supabase gen types typescript --project-id <project-id> > src/types/database.types.ts
  */
 
-// @ts-nocheck - Table types will be available after migration
 import { createClient } from '@/lib/supabase/server';
 
 export interface UserSession {

@@ -27,10 +27,10 @@ export function InfiniteSlider({
   speed,
   speedOnHover,
 }: InfiniteSliderProps) {
-  const currentDuration = speed ? 100 / speed : duration;
-  const hoverDuration = speedOnHover ? 100 / speedOnHover : durationOnHover;
+  const actualDuration = speed ? speed : duration;
+  const actualDurationOnHover = speedOnHover ? speedOnHover : durationOnHover;
 
-  const [activeDuration, setActiveDuration] = useState(currentDuration);
+  const [currentDuration, setCurrentDuration] = useState(actualDuration);
   const [ref, { width, height }] = useMeasure();
   const translation = useMotionValue(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -47,7 +47,7 @@ export function InfiniteSlider({
       controls = animate(translation, [translation.get(), to], {
         ease: 'linear',
         duration:
-          activeDuration * Math.abs((translation.get() - to) / contentSize),
+          currentDuration * Math.abs((translation.get() - to) / contentSize),
         onComplete: () => {
           setIsTransitioning(false);
           setKey((prevKey) => prevKey + 1);
@@ -56,7 +56,7 @@ export function InfiniteSlider({
     } else {
       controls = animate(translation, [from, to], {
         ease: 'linear',
-        duration: activeDuration,
+        duration: currentDuration,
         repeat: Infinity,
         repeatType: 'loop',
         repeatDelay: 0,
@@ -70,7 +70,7 @@ export function InfiniteSlider({
   }, [
     key,
     translation,
-    activeDuration,
+    currentDuration,
     width,
     height,
     gap,
@@ -79,15 +79,15 @@ export function InfiniteSlider({
     reverse,
   ]);
 
-  const hoverProps = hoverDuration
+  const hoverProps = actualDurationOnHover
     ? {
         onHoverStart: () => {
           setIsTransitioning(true);
-          setActiveDuration(hoverDuration);
+          setCurrentDuration(actualDurationOnHover);
         },
         onHoverEnd: () => {
           setIsTransitioning(true);
-          setActiveDuration(currentDuration);
+          setCurrentDuration(actualDuration);
         },
       }
     : {};

@@ -31,9 +31,22 @@ export default function MarketingPage() {
       <MarketingHeader />
 
       <main className="flex-1 relative z-10">
-        {/* Hero Section - With Aurora */}
-        <section className="relative py-20 md:py-32 overflow-hidden">
-          <div className="container mx-auto px-4">
+        {/* Hero Section - With Background Video */}
+        <section className="relative min-h-[90vh] py-24 md:pb-32 lg:pb-36 lg:pt-48 overflow-hidden">
+          {/* Background Video */}
+          <div className="absolute inset-0 overflow-hidden rounded-3xl border border-black/10 dark:border-white/5">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="size-full object-cover opacity-20 dark:opacity-10"
+              src="/hero-video.mp4"></video>
+            {/* Gradient overlay for better text readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#F7FAFC]/90 via-[#F7FAFC]/70 to-[#F7FAFC]/90 dark:from-black/80 dark:via-black/60 dark:to-black/80" />
+          </div>
+
+          <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-5xl mx-auto text-center">
               <Badge variant="outline" className="mb-8 px-5 py-2 border-[#1F4FD8]/30 text-[#1F4FD8] bg-[#1F4FD8]/5 font-semibold text-base">
                 🏒 Built for Beer Leaguers, By Beer Leaguers
@@ -48,11 +61,11 @@ export default function MarketingPage() {
                   Like a Pro
                 </AuroraText>
               </h1>
-              <p className="text-2xl md:text-3xl text-[#7B8794] mb-12 max-w-4xl mx-auto leading-relaxed font-light">
+              <p className="text-2xl md:text-3xl text-[#7B8794] mb-12 max-w-4xl mx-auto leading-relaxed font-light dark:text-gray-300">
                 Modern drafts, real-time stats, and seamless payments.
                 Everything you need to focus on the game, not the paperwork.
               </p>
-              <div className="flex flex-col sm:flex-row gap-5 justify-center mb-16">
+              <div className="flex flex-col sm:flex-row gap-5 justify-center">
                 <Button size="lg" className="text-xl h-16 px-12 bg-[#1F4FD8] hover:bg-[#1F4FD8]/90 text-white shadow-2xl hover:shadow-3xl transition-all font-bold" asChild>
                   <Link href="#contact">
                     Get Started <ArrowRight className="ml-2 h-6 w-6" />
@@ -65,27 +78,12 @@ export default function MarketingPage() {
                 </Button>
               </div>
 
-              {/* Hero Video */}
-              <div className="relative mx-auto max-w-5xl">
-                <div className="relative rounded-xl border-2 border-[#E6EBF2] bg-white p-1.5 shadow-2xl overflow-hidden">
-                  <div className="aspect-[16/10] relative bg-gradient-to-br from-[#F7FAFC] to-white rounded-lg overflow-hidden">
-                    <video
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover"
-                    >
-                      <source src="/hero-video.mp4" type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                  </div>
-                </div>
-                {/* Floating accent elements */}
-                <div className="absolute -top-4 -right-4 bg-[#16C784] text-white px-5 py-2.5 rounded-full text-base font-bold shadow-lg hidden md:block">
+              {/* Floating accent elements */}
+              <div className="mt-16 flex justify-center gap-8">
+                <div className="bg-[#16C784] text-white px-5 py-2.5 rounded-full text-base font-bold shadow-lg">
                   🏒 Professional Tools
                 </div>
-                <div className="absolute -bottom-4 -left-4 bg-[#1F4FD8] text-white px-5 py-2.5 rounded-full text-base font-bold shadow-lg hidden md:block">
+                <div className="bg-[#1F4FD8] text-white px-5 py-2.5 rounded-full text-base font-bold shadow-lg">
                   ⚡ Setup in Minutes
                 </div>
               </div>

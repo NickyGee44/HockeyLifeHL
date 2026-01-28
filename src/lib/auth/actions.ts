@@ -346,6 +346,26 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
 
     console.log("User signed in successfully:", data.user.id);
 
+    // Track session for security monitoring
+    try {
+      const { logSessionCreated } = await import("../session-tracking");
+      const sessionToken = data.session?.access_token || data.user.id;
+
+      // Create Request object from headers for IP/user agent extraction
+      const headersList = await headers();
+      const request = {
+        headers: {
+          get: (key: string) => headersList.get(key)
+        }
+      } as any;
+
+      await logSessionCreated(data.user.id, sessionToken, request);
+      console.log("Session tracking logged for user:", data.user.id);
+    } catch (err) {
+      console.error("Error logging session creation:", err);
+      // Non-critical - don't fail login if session tracking fails
+    }
+
     // Set active league cookie if not already set
     try {
       const { getActiveLeagueId, setActiveLeagueId, getUserLeagues } = await import("./league-context");
@@ -384,12 +404,28 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
 export async function signOut(): Promise<{ error?: string }> {
   try {
     const supabase = await createClient();
+
+    // Get current user before signing out
+    const { data: { user } } = await supabase.auth.getUser();
+
     // Use 'global' scope to sign out from all sessions (all tabs/devices)
     const { error } = await supabase.auth.signOut({ scope: 'global' });
 
     if (error) {
       console.error("Sign out error:", error);
       return { error: error.message };
+    }
+
+    // Terminate all sessions in tracking database
+    if (user) {
+      try {
+        const { logSessionTerminated } = await import("../session-tracking");
+        await logSessionTerminated(user.id);
+        console.log("All sessions terminated for user:", user.id);
+      } catch (err) {
+        console.error("Error terminating sessions:", err);
+        // Non-critical - don't fail signout if tracking fails
+      }
     }
 
     // Revalidate all paths to clear cached data
