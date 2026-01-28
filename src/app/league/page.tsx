@@ -8,6 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { generateLeagueMetadata, generateLeagueStructuredData, renderStructuredData } from "@/lib/seo/metadata";
 import { headers } from "next/headers";
 
+// Force dynamic rendering (uses headers())
+export const dynamic = 'force-dynamic';
+
 // Cache this page for 60 seconds
 export const revalidate = 60;
 

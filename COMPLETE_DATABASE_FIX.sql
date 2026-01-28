@@ -61,7 +61,9 @@ CREATE INDEX IF NOT EXISTS idx_leagues_subdomain ON leagues(subdomain);
 CREATE INDEX IF NOT EXISTS idx_leagues_owner_id ON leagues(owner_id);
 CREATE INDEX IF NOT EXISTS idx_leagues_sport ON leagues(sport);
 
-RAISE NOTICE '✓ Part 1 complete: Missing leagues columns added';
+DO $$ BEGIN
+  RAISE NOTICE '✓ Part 1 complete: Missing leagues columns added';
+END $$;
 
 -- ==============================================================================
 -- PART 2: FIX AUTHENTICATION TRIGGER
@@ -115,7 +117,9 @@ CREATE POLICY "Service role can insert profiles" ON profiles
   TO service_role
   WITH CHECK (true);
 
-RAISE NOTICE '✓ Part 2 complete: Auth trigger fixed';
+DO $$ BEGIN
+  RAISE NOTICE '✓ Part 2 complete: Auth trigger fixed';
+END $$;
 
 -- ==============================================================================
 -- PART 3: FIX ORPHANED USERS
@@ -134,7 +138,9 @@ ON CONFLICT (id) DO UPDATE SET
   email = EXCLUDED.email,
   full_name = EXCLUDED.full_name;
 
-RAISE NOTICE '✓ Part 3 complete: Orphaned users fixed';
+DO $$ BEGIN
+  RAISE NOTICE '✓ Part 3 complete: Orphaned users fixed';
+END $$;
 
 -- ==============================================================================
 -- PART 4: COMPREHENSIVE VERIFICATION

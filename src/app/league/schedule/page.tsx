@@ -5,6 +5,9 @@ import { getActiveSeason, getAllSeasons } from "@/lib/seasons/actions";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
 import { Card, CardContent } from "@/components/ui/card";
 
+// Force dynamic rendering (uses headers())
+export const dynamic = 'force-dynamic';
+
 // Cache this page for 60 seconds
 export const revalidate = 60;
 

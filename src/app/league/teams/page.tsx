@@ -7,6 +7,9 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import { createClient } from "@/lib/supabase/server";
 import { getLeagueFromHostname } from "@/lib/context/league-context";
 
+// Force dynamic rendering (uses headers())
+export const dynamic = 'force-dynamic';
+
 // Cache this page for 60 seconds
 export const revalidate = 60;
 

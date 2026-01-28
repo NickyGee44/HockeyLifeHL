@@ -5,6 +5,9 @@ import { LeagueFooter } from "@/components/layout/LeagueFooter";
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 
+// Force dynamic rendering (uses headers())
+export const dynamic = 'force-dynamic';
+
 /**
  * League Layout Wrapper
  *
