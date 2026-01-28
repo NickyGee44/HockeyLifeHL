@@ -1,35 +1,3 @@
-npm WARN exec The following package was not found and will be installed: supabase@2.72.9
-npm WARN EBADENGINE Unsupported engine {
-npm WARN EBADENGINE   package: 'bin-links@6.0.0',
-npm WARN EBADENGINE   required: { node: '^20.17.0 || >=22.9.0' },
-npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.4.0' }
-npm WARN EBADENGINE }
-npm WARN EBADENGINE Unsupported engine {
-npm WARN EBADENGINE   package: 'cmd-shim@8.0.0',
-npm WARN EBADENGINE   required: { node: '^20.17.0 || >=22.9.0' },
-npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.4.0' }
-npm WARN EBADENGINE }
-npm WARN EBADENGINE Unsupported engine {
-npm WARN EBADENGINE   package: 'npm-normalize-package-bin@5.0.0',
-npm WARN EBADENGINE   required: { node: '^20.17.0 || >=22.9.0' },
-npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.4.0' }
-npm WARN EBADENGINE }
-npm WARN EBADENGINE Unsupported engine {
-npm WARN EBADENGINE   package: 'proc-log@6.1.0',
-npm WARN EBADENGINE   required: { node: '^20.17.0 || >=22.9.0' },
-npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.4.0' }
-npm WARN EBADENGINE }
-npm WARN EBADENGINE Unsupported engine {
-npm WARN EBADENGINE   package: 'read-cmd-shim@6.0.0',
-npm WARN EBADENGINE   required: { node: '^20.17.0 || >=22.9.0' },
-npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.4.0' }
-npm WARN EBADENGINE }
-npm WARN EBADENGINE Unsupported engine {
-npm WARN EBADENGINE   package: 'write-file-atomic@7.0.0',
-npm WARN EBADENGINE   required: { node: '^20.17.0 || >=22.9.0' },
-npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.4.0' }
-npm WARN EBADENGINE }
-npm WARN deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
 export type Json =
   | string
   | number
@@ -4225,3 +4193,21 @@ export const Constants = {
     },
   },
 } as const
+
+// Convenience type exports for easier imports
+export type Profile = Database['public']['Tables']['profiles']['Row']
+export type League = Database['public']['Tables']['leagues']['Row']
+export type Season = Database['public']['Tables']['seasons']['Row']
+export type Team = Database['public']['Tables']['teams']['Row']
+export type Game = Database['public']['Tables']['games']['Row']
+export type Draft = Database['public']['Tables']['drafts']['Row']
+export type DraftPick = Database['public']['Tables']['draft_picks']['Row']
+export type PlayerStats = Database['public']['Tables']['player_stats']['Row']
+export type GoalieStats = Database['public']['Tables']['goalie_stats']['Row']
+export type PlayerRating = Database['public']['Enums']['player_rating']
+export type UserRole = Database['public']['Enums']['user_role']
+export type GameStatus = Database['public']['Enums']['game_status']
+export type SeasonStatus = Database['public']['Enums']['season_status']
+export type DraftStatus = Database['public']['Enums']['draft_status']
+export type Venue = Database['public']['Tables']['venues']['Row']
+export type TeamRoster = Database['public']['Tables']['team_rosters']['Row']

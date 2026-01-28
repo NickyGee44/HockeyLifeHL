@@ -16,6 +16,8 @@ import { updateProfile, updateAvatar, deleteAvatar } from "@/lib/auth/profile-ac
 import { PaymentHistory } from "@/components/payments/PaymentHistory";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { Shield, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function ProfilePage() {
   const { user, profile, loading, isOwner, isCaptain } = useAuth();
@@ -434,6 +436,35 @@ export default function ProfilePage() {
             <p className="text-xs text-muted-foreground mt-1">
               Contact the league owner to change your role
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Security Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            <CardTitle>Security</CardTitle>
+          </div>
+          <CardDescription>
+            Manage your account security and active sessions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+            <div>
+              <h4 className="font-medium">Active Sessions</h4>
+              <p className="text-sm text-muted-foreground">
+                View and manage devices where you're signed in
+              </p>
+            </div>
+            <Link href="/dashboard/profile/sessions">
+              <Button variant="outline" size="sm">
+                Manage Sessions
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
