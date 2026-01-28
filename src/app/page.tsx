@@ -40,10 +40,10 @@ export default function MarketingPage() {
               loop
               muted
               playsInline
-              className="size-full object-cover opacity-20 dark:opacity-10"
+              className="size-full object-cover opacity-60 dark:opacity-50"
               src="/hero-video.mp4"></video>
-            {/* Gradient overlay for better text readability */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#F7FAFC]/90 via-[#F7FAFC]/70 to-[#F7FAFC]/90 dark:from-black/80 dark:via-black/60 dark:to-black/80" />
+            {/* Light gradient overlay for text contrast */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white/40 dark:from-black/40 dark:via-transparent dark:to-black/40" />
           </div>
 
           <div className="container mx-auto px-4 relative z-10">
