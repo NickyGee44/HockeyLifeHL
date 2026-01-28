@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeColorManager } from "@/components/layout/ThemeColorManager";
 import { QuickActionMenu } from "@/components/ui/quick-action-menu";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { currentLeague, platformConfig } from "@/lib/league-config";
 import "./globals.css";
 
@@ -108,6 +109,7 @@ export default function RootLayout({
           storageKey="hockeylife-theme"
           disableTransitionOnChange
         >
+          <ServiceWorkerRegister />
           <ThemeColorManager />
           {children}
           <QuickActionMenu />

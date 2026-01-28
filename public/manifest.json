@@ -1,14 +1,14 @@
 {
-  "name": "Hockey Stats - Scorekeeper",
-  "short_name": "Scorekeeper",
-  "description": "Live hockey stat entry for scorekeepers at the rink. iPad-optimized offline-capable stat tracking system.",
-  "start_url": "/scorekeeper/dashboard",
-  "scope": "/scorekeeper/",
+  "name": "Beer League Hockey - Complete League Management Platform",
+  "short_name": "BLH",
+  "description": "Complete beer league hockey management platform. Modern drafts, real-time stats, payments, and everything you need to run your league.",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "landscape-primary",
-  "theme_color": "#E31837",
-  "background_color": "#ffffff",
-  "categories": ["sports", "productivity"],
+  "orientation": "any",
+  "theme_color": "#1F4FD8",
+  "background_color": "#F7FAFC",
+  "categories": ["sports", "productivity", "lifestyle"],
   "icons": [
     {
       "src": "/icons/favicon-96x96.png",
@@ -41,5 +41,37 @@
       "purpose": "maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/banner.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your league dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/web-app-manifest-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Schedule",
+      "short_name": "Schedule",
+      "description": "View game schedule",
+      "url": "/schedule",
+      "icons": [{ "src": "/icons/web-app-manifest-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Stats",
+      "short_name": "Stats",
+      "description": "View player statistics",
+      "url": "/stats",
+      "icons": [{ "src": "/icons/web-app-manifest-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
   "prefer_related_applications": false
 }
