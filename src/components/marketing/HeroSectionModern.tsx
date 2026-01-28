@@ -3,6 +3,7 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import Safari_01 from '@/components/ui/safari-01'
 import { cn } from '@/lib/utils'
 import { Menu, X, ChevronRight } from 'lucide-react'
 import { useScroll, motion } from 'framer-motion'
@@ -28,16 +29,17 @@ export function HeroSectionModern() {
 
                 {/* Content - In front of video */}
                 <div className="py-24 md:py-32 lg:py-40">
-                    <div className="relative z-10 mx-auto flex max-w-7xl flex-col px-6 lg:px-12">
-                        <div className="mx-auto max-w-3xl text-center">
-                            <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold">
+                    <div className="relative z-10 mx-auto flex max-w-7xl flex-col lg:flex-row items-center gap-12 lg:gap-16 px-6 lg:px-12">
+                        {/* Left side - Text content */}
+                        <div className="flex-1 text-left max-w-2xl">
+                            <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold leading-tight">
                                 Modern League Management
                             </h1>
                             <p className="mt-8 text-xl md:text-2xl text-muted-foreground">
                                 {platformConfig.slogan} Complete platform for drafts, stats, payments, and everything your beer league needs.
                             </p>
 
-                            <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                            <div className="mt-12 flex flex-col sm:flex-row items-start gap-4">
                                 <Button
                                     asChild
                                     size="lg"
@@ -57,6 +59,23 @@ export function HeroSectionModern() {
                                     </Link>
                                 </Button>
                             </div>
+                        </div>
+
+                        {/* Right side - Safari browser preview */}
+                        <div className="flex-1 w-full max-w-3xl hidden lg:block">
+                            <motion.div
+                                initial={{ opacity: 0, x: 50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.8, delay: 0.2 }}
+                            >
+                                {/* TODO: Replace with actual pilot site screenshot
+                                    To create: Visit https://pilot.beerleaguehockey.ca
+                                    Take full-page screenshot and save as /public/pilot-site-preview.png */}
+                                <Safari_01
+                                    image="/banner2.png"
+                                    className="shadow-2xl border-2 border-zinc-300/50 dark:border-zinc-700/50"
+                                />
+                            </motion.div>
                         </div>
                     </div>
                 </div>
