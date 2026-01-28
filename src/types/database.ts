@@ -4195,6 +4195,7 @@ export const Constants = {
 } as const
 
 // Convenience type exports for easier imports
+// Export all database types for use throughout the application
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type League = Database['public']['Tables']['leagues']['Row']
 export type Season = Database['public']['Tables']['seasons']['Row']
