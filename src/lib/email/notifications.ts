@@ -399,3 +399,262 @@ export async function sendSeasonInviteEmail(
 
   return await sendEmailDraft(draft, true);
 }
+
+/**
+ * Send welcome email when user is added to a league
+ */
+export async function sendLeagueMembershipEmail(
+  leagueId: string,
+  userId: string,
+  role: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  // Get league and user details
+  const [leagueResult, userResult] = await Promise.all([
+    supabase.from("leagues").select("id, name").eq("id", leagueId).single(),
+    supabase.from("profiles").select("id, email, full_name").eq("id", userId).single(),
+  ]);
+
+  if (leagueResult.error || !leagueResult.data) {
+    return { error: "League not found" };
+  }
+
+  if (userResult.error || !userResult.data || !userResult.data.email) {
+    return { error: "User not found or has no email" };
+  }
+
+  const league = leagueResult.data;
+  const user = userResult.data;
+
+  const recipient: EmailRecipient = {
+    email: user.email!,
+    name: user.full_name || undefined,
+    role: role as any,
+  };
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const dashboardUrl = `${siteUrl}/dashboard`;
+
+  const html = getBaseEmailTemplate({
+    title: `Welcome to ${league.name}!`,
+    content: `
+      <p>Hi ${user.full_name || 'there'},</p>
+      <p>You've been added to <strong>${league.name}</strong> as a <strong>${role}</strong>.</p>
+      <p>You can now access your league dashboard to view games, stats, and more.</p>
+    `,
+    buttonText: "Go to Dashboard",
+    buttonUrl: dashboardUrl,
+  });
+
+  const draft: EmailDraft = {
+    type: "custom",
+    subject: `Welcome to ${league.name}!`,
+    html,
+    recipients: [recipient],
+    isAutomated: true,
+  };
+
+  return await sendEmailDraft(draft, true);
+}
+
+/**
+ * Notify league admins of new join request
+ */
+export async function sendJoinRequestNotificationEmail(
+  leagueId: string,
+  requestId: string
+): Promise<{ success: boolean; sent?: number; error?: string }> {
+  const supabase = await createClient();
+
+  // Get league details
+  const { data: league, error: leagueError } = await supabase
+    .from("leagues")
+    .select("id, name")
+    .eq("id", leagueId)
+    .single();
+
+  if (leagueError || !league) {
+    return { error: "League not found" };
+  }
+
+  // Get join request details
+  const { data: joinRequest } = await supabase
+    .from("league_join_requests")
+    .select(`
+      id,
+      user_id,
+      message,
+      profiles:user_id(full_name, email)
+    `)
+    .eq("id", requestId)
+    .single();
+
+  if (!joinRequest) {
+    return { error: "Join request not found" };
+  }
+
+  // Get all league admins and owners
+  const { data: admins } = await supabase
+    .from("league_memberships")
+    .select(`
+      user_id,
+      profiles:user_id(email, full_name)
+    `)
+    .eq("league_id", leagueId)
+    .in("role", ["owner", "admin"])
+    .eq("status", "active");
+
+  if (!admins || admins.length === 0) {
+    return { success: true, sent: 0 };
+  }
+
+  const recipients: EmailRecipient[] = admins
+    .filter((admin) => admin.profiles && admin.profiles.email)
+    .map((admin) => ({
+      email: admin.profiles.email!,
+      name: admin.profiles.full_name || undefined,
+      role: "admin",
+    }));
+
+  if (recipients.length === 0) {
+    return { success: true, sent: 0 };
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const reviewUrl = `${siteUrl}/admin/join-requests`;
+
+  const html = getBaseEmailTemplate({
+    title: "New Join Request",
+    content: `
+      <p>A new user has requested to join <strong>${league.name}</strong>.</p>
+      <p><strong>User:</strong> ${joinRequest.profiles?.full_name || joinRequest.profiles?.email || 'Unknown'}</p>
+      ${joinRequest.message ? `<p><strong>Message:</strong> ${joinRequest.message}</p>` : ''}
+      <p>Please review and approve or reject this request.</p>
+    `,
+    buttonText: "Review Request",
+    buttonUrl: reviewUrl,
+  });
+
+  const draft: EmailDraft = {
+    type: "custom",
+    subject: `New Join Request for ${league.name}`,
+    html,
+    recipients,
+    isAutomated: true,
+  };
+
+  return await sendEmailDraft(draft, true);
+}
+
+/**
+ * Notify user that their join request was approved
+ */
+export async function sendJoinRequestApprovedEmail(
+  leagueId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  // Get league and user details
+  const [leagueResult, userResult] = await Promise.all([
+    supabase.from("leagues").select("id, name").eq("id", leagueId).single(),
+    supabase.from("profiles").select("id, email, full_name").eq("id", userId).single(),
+  ]);
+
+  if (leagueResult.error || !leagueResult.data) {
+    return { error: "League not found" };
+  }
+
+  if (userResult.error || !userResult.data || !userResult.data.email) {
+    return { error: "User not found or has no email" };
+  }
+
+  const league = leagueResult.data;
+  const user = userResult.data;
+
+  const recipient: EmailRecipient = {
+    email: user.email!,
+    name: user.full_name || undefined,
+    role: "player",
+  };
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const dashboardUrl = `${siteUrl}/dashboard`;
+
+  const html = getBaseEmailTemplate({
+    title: "Join Request Approved!",
+    content: `
+      <p>Hi ${user.full_name || 'there'},</p>
+      <p>Great news! Your request to join <strong>${league.name}</strong> has been approved.</p>
+      <p>You can now access your league dashboard to view games, stats, and more.</p>
+    `,
+    buttonText: "Go to Dashboard",
+    buttonUrl: dashboardUrl,
+  });
+
+  const draft: EmailDraft = {
+    type: "custom",
+    subject: `Welcome to ${league.name}!`,
+    html,
+    recipients: [recipient],
+    isAutomated: true,
+  };
+
+  return await sendEmailDraft(draft, true);
+}
+
+/**
+ * Notify user that their join request was rejected
+ */
+export async function sendJoinRequestRejectedEmail(
+  leagueId: string,
+  userId: string,
+  reason?: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  // Get league and user details
+  const [leagueResult, userResult] = await Promise.all([
+    supabase.from("leagues").select("id, name").eq("id", leagueId).single(),
+    supabase.from("profiles").select("id, email, full_name").eq("id", userId).single(),
+  ]);
+
+  if (leagueResult.error || !leagueResult.data) {
+    return { error: "League not found" };
+  }
+
+  if (userResult.error || !userResult.data || !userResult.data.email) {
+    return { error: "User not found or has no email" };
+  }
+
+  const league = leagueResult.data;
+  const user = userResult.data;
+
+  const recipient: EmailRecipient = {
+    email: user.email!,
+    name: user.full_name || undefined,
+    role: "player",
+  };
+
+  const html = getBaseEmailTemplate({
+    title: "Join Request Update",
+    content: `
+      <p>Hi ${user.full_name || 'there'},</p>
+      <p>Thank you for your interest in joining <strong>${league.name}</strong>.</p>
+      <p>Unfortunately, your join request was not approved at this time.</p>
+      ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+      <p>If you have any questions, please contact the league administrator.</p>
+    `,
+  });
+
+  const draft: EmailDraft = {
+    type: "custom",
+    subject: `Join Request Update - ${league.name}`,
+    html,
+    recipients: [recipient],
+    isAutomated: true,
+  };
+
+  return await sendEmailDraft(draft, true);
+}

@@ -65,35 +65,20 @@ export default function MarketingPage() {
                 </Button>
               </div>
 
-              {/* Trust Indicators */}
-              <div className="flex flex-wrap justify-center gap-12 text-center mb-20 text-[#7B8794]">
-                <div>
-                  <div className="text-4xl md:text-5xl font-bold text-[#0B1220]">500+</div>
-                  <div className="text-base md:text-lg mt-2">Active Players</div>
-                </div>
-                <div className="hidden sm:block h-16 w-px bg-[#E6EBF2]"/>
-                <div>
-                  <div className="text-4xl md:text-5xl font-bold text-[#0B1220]">50+</div>
-                  <div className="text-base md:text-lg mt-2">Games Tracked</div>
-                </div>
-                <div className="hidden sm:block h-16 w-px bg-[#E6EBF2]"/>
-                <div>
-                  <div className="text-4xl md:text-5xl font-bold text-[#0B1220]">24/7</div>
-                  <div className="text-base md:text-lg mt-2">Live Stats</div>
-                </div>
-              </div>
-
-              {/* Hero Preview - Reduced Size */}
+              {/* Hero Video */}
               <div className="relative mx-auto max-w-5xl">
                 <div className="relative rounded-xl border-2 border-[#E6EBF2] bg-white p-1.5 shadow-2xl overflow-hidden">
                   <div className="aspect-[16/10] relative bg-gradient-to-br from-[#F7FAFC] to-white rounded-lg overflow-hidden">
-                    <Image
-                      src={platformConfig.banner}
-                      alt="Beer League Hockey Platform Dashboard"
-                      fill
-                      className="object-cover object-top"
-                      priority
-                    />
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                    >
+                      <source src="/hero-video.mp4" type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
                   </div>
                 </div>
                 {/* Floating accent elements */}

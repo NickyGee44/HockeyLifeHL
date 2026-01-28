@@ -16,6 +16,7 @@ import Image from "next/image";
 import { AlertTriangle, ShieldCheck, CreditCard, Globe, ExternalLink } from "lucide-react";
 import { StripeConnectDashboard } from "@/components/stripe/StripeConnectDashboard";
 import { DNSInstructionsModal } from "@/components/domains/dns-instructions-modal";
+import { initiateDomainVerification, verifyDomainOwnership } from "@/lib/domains/domain-verification";
 
 export default function GeneralSettingsPage({ params }: { params: { league: string } }) {
   const [showDNSModal, setShowDNSModal] = useState(false);
@@ -48,22 +49,37 @@ export default function GeneralSettingsPage({ params }: { params: { league: stri
       return;
     }
 
-    // TODO: Call actual domain verification API
+    toast.info("Initiating domain verification...");
+
+    const result = await initiateDomainVerification(params.league, customDomain);
+
+    if (result.error) {
+      toast.error(result.error);
+      setDomainVerificationStatus("failed");
+      return;
+    }
+
     setDomainVerificationStatus("pending");
     setShowDNSModal(true);
-    toast.info("Checking DNS configuration...");
+    toast.success("Verification initiated. Please add the TXT record to your DNS.");
   };
 
   const handleRefreshDomainStatus = async () => {
-    // TODO: Call actual domain verification check API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    // Simulate status check
-    const isVerified = Math.random() > 0.5;
-    setDomainVerificationStatus(isVerified ? "verified" : "failed");
+    toast.info("Checking DNS configuration...");
 
-    if (isVerified) {
+    const result = await verifyDomainOwnership(params.league);
+
+    if (result.error) {
+      toast.error(result.error);
+      setDomainVerificationStatus("failed");
+      return;
+    }
+
+    if (result.status === "verified") {
+      setDomainVerificationStatus("verified");
       toast.success("Domain verified successfully!");
     } else {
+      setDomainVerificationStatus("failed");
       toast.error("Domain verification failed. Please check your DNS settings.");
     }
   };

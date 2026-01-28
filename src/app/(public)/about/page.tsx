@@ -1,83 +1,151 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
-import { currentLeague } from "@/lib/league-config";
+import { Badge } from "@/components/ui/badge";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Us - HockeyLifeHL",
+  description: "Learn about HockeyLifeHL - The ultimate recreational men's hockey league platform. For Fun, For Beers, For Glory.",
+  openGraph: {
+    title: "About Us - HockeyLifeHL",
+    description: "Learn about HockeyLifeHL and our mission to bring recreational hockey to everyone.",
+  },
+};
 
 export default function AboutPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="mb-2">
-            <span className="text-foreground">About </span>
-            <span className="text-rink-blue">{currentLeague.name}</span>
-          </h1>
-          <p className="text-muted-foreground">
-            Men&apos;s recreational hockey league
-          </p>
-        </div>
+    <div className="container mx-auto py-12 px-4 max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold mb-2">About HockeyLifeHL</h1>
+        <p className="text-muted-foreground">For Fun, For Beers, For Glory 🍁🏒🍺</p>
+      </div>
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Our Mission</CardTitle>
+            <CardDescription>What we're all about</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              HockeyLifeHL is a recreational men's hockey league dedicated to bringing together players
+              of all skill levels for competitive, fun, and community-focused hockey. We believe in the
+              spirit of the game, camaraderie, and creating lasting memories on and off the ice.
+            </p>
+            <p className="text-muted-foreground">
+              Whether you're a seasoned veteran or picking up a stick for the first time, our league
+              provides a welcoming environment where everyone can enjoy the greatest game on earth.
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-4 mb-4">
-              <Image
-                src={currentLeague.logo}
-                alt={currentLeague.name}
-                width={64}
-                height={64}
-                className="h-16 w-auto"
-              />
+            <CardTitle>What Makes Us Unique</CardTitle>
+            <CardDescription>The HockeyLifeHL difference</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Badge className="bg-canada-red mt-1">🔄</Badge>
               <div>
-                <CardTitle className="text-2xl">{currentLeague.name}</CardTitle>
-                <CardDescription className="text-lg">
-                  {currentLeague.slogan} 🍁🏒
-                </CardDescription>
+                <h3 className="font-semibold mb-1">13-Game Draft Cycles</h3>
+                <p className="text-muted-foreground text-sm">
+                  Every 13 games, teams are redrafted to keep things fresh and balanced. No season-long
+                  dynasties, just constant competition and new teammates.
+                </p>
               </div>
             </div>
+            <div className="flex items-start gap-3">
+              <Badge className="bg-canada-red mt-1">📊</Badge>
+              <div>
+                <h3 className="font-semibold mb-1">Complete Stat Tracking</h3>
+                <p className="text-muted-foreground text-sm">
+                  All goals, assists, and goalie stats are tracked and verified. View leaderboards,
+                  career stats, and game-by-game breakdowns for every player.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Badge className="bg-canada-red mt-1">🤖</Badge>
+              <div>
+                <h3 className="font-semibold mb-1">AI-Powered Content</h3>
+                <p className="text-muted-foreground text-sm">
+                  Automatic game recaps, weekly wrap-ups, and draft grade articles keep everyone
+                  engaged and informed.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Badge className="bg-canada-red mt-1">⚖️</Badge>
+              <div>
+                <h3 className="font-semibold mb-1">Fair Player Ratings</h3>
+                <p className="text-muted-foreground text-sm">
+                  Players are rated A-D based on attendance, performance, and stats. This ensures
+                  balanced drafts and competitive games.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Our Values</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-3">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Our Mission</h3>
-              <p className="text-muted-foreground">
-                {currentLeague.name} is a men&apos;s recreational hockey league dedicated to bringing 
-                players together for competitive, fun hockey. We believe in the spirit of 
-                Canadian hockey - where competition meets camaraderie, and every game is 
-                played with heart.
+              <h3 className="font-semibold text-canada-red mb-1">🎉 Fun First</h3>
+              <p className="text-muted-foreground text-sm">
+                While we play to win, we never forget that hockey should be enjoyable. Leave your
+                stress at the door and have a great time.
               </p>
             </div>
-
             <div>
-              <h3 className="text-lg font-semibold mb-2">What We Offer</h3>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>Regular season games with full stat tracking</li>
-                <li>13-game cycles with redrafting for balanced competition</li>
-                <li>Comprehensive player statistics and leaderboards</li>
-                <li>AI-generated game recaps and weekly articles</li>
-                <li>Team management tools for captains</li>
-                <li>Mobile-friendly PWA for on-the-go access</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">The League</h3>
-              <p className="text-muted-foreground">
-                Our league operates on a unique 13-game cycle system. After every 13 games, 
-                teams are redrafted based on player performance ratings, ensuring competitive 
-                balance and giving everyone a fresh start. Player ratings are calculated based 
-                on attendance, games played, goals, assists, and for goalies, goals against average.
+              <h3 className="font-semibold text-canada-red mb-1">🤝 Respect & Sportsmanship</h3>
+              <p className="text-muted-foreground text-sm">
+                Every player deserves respect. We maintain a positive, inclusive environment both
+                on and off the ice.
               </p>
             </div>
-
             <div>
-              <h3 className="text-lg font-semibold mb-2">Join Us</h3>
-              <p className="text-muted-foreground">
-                Ready to drop the puck?{" "}
-                <a href="/register" className="text-canada-red hover:underline font-medium">
-                  Join the league
-                </a>{" "}
-                and become part of the {currentLeague.name} family. Whether you&apos;re a seasoned 
-                veteran or new to the game, there&apos;s a place for you on the ice.
+              <h3 className="font-semibold text-canada-red mb-1">🏆 Competitive Spirit</h3>
+              <p className="text-muted-foreground text-sm">
+                We play hard and compete fairly. The thrill of competition makes every game exciting.
               </p>
             </div>
+            <div>
+              <h3 className="font-semibold text-canada-red mb-1">🍺 Post-Game Camaraderie</h3>
+              <p className="text-muted-foreground text-sm">
+                Some of the best moments happen after the final whistle. Grab a beer and share
+                stories with your opponents-turned-friends.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Get Involved</CardTitle>
+            <CardDescription>Join the community</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-muted-foreground">
+              Interested in playing? Check out our current season and see if there's room for new
+              players. We welcome everyone who loves the game and wants to be part of something special.
+            </p>
+            <p className="text-muted-foreground">
+              Have questions? Contact the league administrator through the contact page.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-canada-red/10 to-transparent border-canada-red/20">
+          <CardContent className="py-8 text-center">
+            <p className="text-2xl font-bold text-canada-red mb-2">
+              "For Fun, For Beers, For Glory"
+            </p>
+            <p className="text-muted-foreground">
+              That's not just a motto—it's a way of life. 🍁🏒🍺
+            </p>
           </CardContent>
         </Card>
       </div>

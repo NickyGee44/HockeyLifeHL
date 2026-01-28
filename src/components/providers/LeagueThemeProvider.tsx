@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { LeagueBranding } from "@/lib/context/league-context";
+import type { SiteTemplate, TemplateCustomization } from "@/types/site-templates";
+import { generateCssVariables, applyCssVariables, removeCssVariables } from "@/lib/templates/template-applier";
 
 /**
  * League Theme Provider
@@ -49,6 +51,12 @@ export function useLeagueBranding(): LeagueBranding {
 interface LeagueThemeProviderProps {
   league: LeagueBranding;
   children: ReactNode;
+  /** Optional site template (enhances league branding) */
+  template?: SiteTemplate | null;
+  /** Optional template customizations */
+  customizations?: TemplateCustomization | null;
+  /** Selected color preset index (if using template) */
+  presetIndex?: number;
 }
 
 /**
@@ -57,8 +65,29 @@ interface LeagueThemeProviderProps {
 export function LeagueThemeProvider({
   league,
   children,
+  template,
+  customizations,
+  presetIndex,
 }: LeagueThemeProviderProps) {
-  // Set CSS variables on document root when branding changes
+  // Apply template CSS variables if template is provided
+  useEffect(() => {
+    if (!template) {
+      return;
+    }
+
+    console.log("[LeagueThemeProvider] Applying template:", template.slug);
+
+    const templateVars = generateCssVariables(template, customizations || undefined, presetIndex);
+    applyCssVariables(templateVars);
+
+    // Cleanup: Remove template CSS variables on unmount or template change
+    return () => {
+      removeCssVariables(templateVars);
+      console.log("[LeagueThemeProvider] Removed template CSS variables");
+    };
+  }, [template, customizations, presetIndex]);
+
+  // Set CSS variables on document root when branding changes (legacy support)
   useEffect(() => {
     const root = document.documentElement;
 

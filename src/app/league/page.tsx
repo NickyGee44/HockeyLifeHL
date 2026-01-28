@@ -5,9 +5,33 @@ import { getPlayerOfTheWeek } from "@/lib/players/actions";
 import { getLeagueSponsors, getPlatformSponsors } from "@/lib/sponsors/actions";
 import { LeagueLandingPage } from "@/components/league/LeagueLandingPage";
 import { Card, CardContent } from "@/components/ui/card";
+import { generateLeagueMetadata, generateLeagueStructuredData, renderStructuredData } from "@/lib/seo/metadata";
+import { headers } from "next/headers";
 
 // Cache this page for 60 seconds
 export const revalidate = 60;
+
+/**
+ * Generate metadata for league home page
+ */
+export async function generateMetadata() {
+  const league = await getLeagueFromHostname();
+
+  if (!league) {
+    return {
+      title: "League Not Found",
+      description: "The requested league could not be found.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  // Get custom domain from headers if available
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const customDomain = host && !host.includes("localhost") && !host.includes("vercel.app") ? host : undefined;
+
+  return generateLeagueMetadata({ league, customDomain });
+}
 
 /**
  * League Home Page
@@ -56,15 +80,35 @@ export default async function LeagueHomePage() {
   const leagueSponsors = leagueSponsorsResult.sponsors || [];
   const platformSponsors = platformSponsorsResult.sponsors || [];
 
+  // Generate structured data for the league
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const baseUrl = host ? `https://${host}` : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+  const structuredData = generateLeagueStructuredData({
+    name: league.name,
+    description: league.tagline || undefined,
+    logoUrl: league.logoUrl,
+    url: baseUrl,
+  });
+
   return (
-    <LeagueLandingPage
-      league={league}
-      activeSeason={activeSeason}
-      upcomingGames={upcomingGames}
-      recentGames={recentGames}
-      playerOfTheWeek={playerOfTheWeek}
-      leagueSponsors={leagueSponsors}
-      platformSponsors={platformSponsors}
-    />
+    <>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: renderStructuredData(structuredData) }}
+      />
+
+      <LeagueLandingPage
+        league={league}
+        activeSeason={activeSeason}
+        upcomingGames={upcomingGames}
+        recentGames={recentGames}
+        playerOfTheWeek={playerOfTheWeek}
+        leagueSponsors={leagueSponsors}
+        platformSponsors={platformSponsors}
+      />
+    </>
   );
 }

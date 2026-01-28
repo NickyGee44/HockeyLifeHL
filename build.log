@@ -1,0 +1,28 @@
+
+> hockey-life-hl@0.1.0 build
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.8s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/api/stripe/webhooks/subscriptions/route.ts:81:27
+Type error: No overload matches this call.
+  Overload 1 of 2, '(relation: "profiles" | "games" | "leagues" | "seasons" | "drafts" | "teams" | "trades" | "articles" | "colors" | "divisions" | "draft_order" | "draft_picks" | "email_drafts" | "game_scorekeeper_assignments" | ... 23 more ... | "webhook_events"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"stripe_webhook_events"' is not assignable to parameter of type '"profiles" | "games" | "leagues" | "seasons" | "drafts" | "teams" | "trades" | "articles" | "colors" | "divisions" | "draft_order" | "draft_picks" | "email_drafts" | "game_scorekeeper_assignments" | ... 23 more ... | "webhook_events"'.
+  Overload 2 of 2, '(relation: "public_leagues" | "team_standings" | "goalie_season_stats" | "goalie_season_stats_mv" | "player_career_stats" | "player_season_stats" | "player_season_stats_mv"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"stripe_webhook_events"' is not assignable to parameter of type '"public_leagues" | "team_standings" | "goalie_season_stats" | "goalie_season_stats_mv" | "player_career_stats" | "player_season_stats" | "player_season_stats_mv"'.
+
+[0m [90m 79 |[39m     [36mtry[39m {
+ [90m 80 |[39m       [36mconst[39m supabase [33m=[39m [36mawait[39m createClient()[33m;[39m
+[31m[1m>[22m[39m[90m 81 |[39m       [36mawait[39m supabase[33m.[39m[36mfrom[39m([32m'stripe_webhook_events'[39m)[33m.[39minsert({
+ [90m    |[39m                           [31m[1m^[22m[39m
+ [90m 82 |[39m         stripe_event_id[33m:[39m event[33m.[39mid[33m,[39m
+ [90m 83 |[39m         event_type[33m:[39m event[33m.[39mtype[33m,[39m
+ [90m 84 |[39m         stripe_account_id[33m:[39m (event[33m.[39maccount [36mas[39m string) [33m||[39m [36mnull[39m[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null

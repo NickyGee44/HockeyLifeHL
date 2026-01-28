@@ -32,6 +32,12 @@ const navLinks = [
   { href: "/teams", label: "Teams" },
 ];
 
+const moreLinks = [
+  { href: "/about", label: "About Us", icon: "ℹ️" },
+  { href: "/rules", label: "League Rules", icon: "📋" },
+  { href: "/contact", label: "Contact", icon: "✉️" },
+];
+
 // Dashboard navigation items
 const playerNav = [
   { href: "/dashboard/team", label: "My Team", icon: "🏒" },
@@ -182,6 +188,34 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
               {link.label}
             </Link>
           ))}
+
+          {/* More Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="px-3 py-2 text-sm font-bold uppercase tracking-wide"
+              >
+                More
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel>League Info</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {moreLinks.map((item) => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link href={item.href} className={cn(
+                    "w-full cursor-pointer",
+                    pathname === item.href && "bg-muted"
+                  )}>
+                    <span className="mr-2">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Dashboard Navigation for Authenticated Users */}
           {user && (
@@ -429,6 +463,27 @@ export function LeagueHeader({ league }: LeagueHeaderProps) {
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       )}
                     >
+                      {link.label}
+                    </Link>
+                  ))}
+
+                  {/* More Links */}
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
+                    Info
+                  </p>
+                  {moreLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsOpen(false)}
+                      className={cn(
+                        "px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2",
+                        pathname === link.href
+                          ? "bg-muted text-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <span>{link.icon}</span>
                       {link.label}
                     </Link>
                   ))}

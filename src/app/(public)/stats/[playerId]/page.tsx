@@ -3,11 +3,58 @@ import { getPlayerStats, getGoalieStats } from "@/lib/stats/queries";
 import { getAllSeasons } from "@/lib/seasons/actions";
 import { createClient } from "@/lib/supabase/server";
 import { PlayerStatsView } from "@/components/stats/PlayerStatsView";
+import { generatePlayerMetadata, generatePlayerStructuredData, renderStructuredData } from "@/lib/seo/metadata";
+import { getLeagueFromHostname } from "@/lib/context/league-context";
 
 type Props = {
   params: Promise<{ playerId: string }>;
   searchParams: Promise<{ season?: string }>;
 };
+
+/**
+ * Generate metadata for player stats page
+ */
+export async function generateMetadata({ params }: Props) {
+  const { playerId } = await params;
+  const supabase = await createClient();
+  const league = await getLeagueFromHostname();
+
+  const { data: player } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", playerId)
+    .single();
+
+  if (!player || !league) {
+    return { title: "Player Not Found", robots: { index: false } };
+  }
+
+  // Get player stats for description
+  const { seasons } = await getAllSeasons();
+  const activeSeason = seasons.find((s) => s.status === "active" || s.status === "playoffs");
+
+  if (activeSeason) {
+    const { totals } = await getPlayerStats(playerId, activeSeason.id);
+    return generatePlayerMetadata({
+      playerName: player.full_name || "Unknown Player",
+      leagueName: league.name,
+      playerId,
+      stats: totals
+        ? {
+            goals: totals.goals,
+            assists: totals.assists,
+            gamesPlayed: totals.games,
+          }
+        : undefined,
+    });
+  }
+
+  return generatePlayerMetadata({
+    playerName: player.full_name || "Unknown Player",
+    leagueName: league.name,
+    playerId,
+  });
+}
 
 async function getPlayerData(playerId: string) {
   const supabase = await createClient();

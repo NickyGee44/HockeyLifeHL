@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireLeagueRole, setActiveLeagueId } from "@/lib/auth/league-context";
 import { validateSlug, generateSlug } from "./slug-utils";
 import { sanitizeName, sanitizeText, sanitizeEmail, sanitizeUrl, stripHtml } from "@/lib/input-sanitization";
+import { sendLeagueMembershipEmail } from "@/lib/email/notifications";
 
 export type LeagueActionResult = {
   error?: string;
@@ -26,11 +27,27 @@ export async function createLeague(formData: FormData): Promise<LeagueActionResu
       return { error: 'Not authenticated' };
     }
 
-    // Get form data
+    // Get form data - basic fields
     const name = stripHtml(formData.get('name') as string);
     const description = stripHtml(formData.get('description') as string) || '';
     const sport = stripHtml(formData.get('sport') as string) || 'hockey';
     const slugInput = stripHtml(formData.get('slug') as string);
+
+    // Get form data - enhanced fields
+    const tagline = stripHtml(formData.get('tagline') as string) || null;
+    const contactEmail = stripHtml(formData.get('contactEmail') as string) || null;
+    const city = stripHtml(formData.get('city') as string) || null;
+    const region = stripHtml(formData.get('region') as string) || null;
+    const teamCountEstimate = formData.get('teamCountEstimate') ? parseInt(formData.get('teamCountEstimate') as string) : null;
+    const seasonFormat = stripHtml(formData.get('seasonFormat') as string) || null;
+    const expectedStartDate = formData.get('expectedStartDate') as string || null;
+    const leagueType = stripHtml(formData.get('leagueType') as string) || null;
+    const subscriptionTier = stripHtml(formData.get('subscriptionTier') as string) || 'pro';
+
+    // Template fields
+    const templateId = formData.get('templateId') as string || null;
+    const colorPresetName = formData.get('colorPresetName') as string || null;
+    const ownerRole = stripHtml(formData.get('ownerRole') as string) || 'owner';
 
     // Validation
     if (!name || name.length < 3) {
@@ -59,7 +76,7 @@ export async function createLeague(formData: FormData): Promise<LeagueActionResu
       return { error: 'This league slug is already taken. Please choose a different name.' };
     }
 
-    // Create the league
+    // Create the league with enhanced fields
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
       .insert({
@@ -69,6 +86,23 @@ export async function createLeague(formData: FormData): Promise<LeagueActionResu
         sport,
         status: 'active',
         created_by: user.id,
+        // Enhanced fields
+        tagline,
+        contact_email: contactEmail,
+        city,
+        region,
+        team_count_estimate: teamCountEstimate,
+        season_format: seasonFormat,
+        expected_start_date: expectedStartDate,
+        league_type: leagueType,
+        subscription_tier: subscriptionTier,
+        features_enabled: {
+          drafts: true,
+          payments: subscriptionTier === 'pro' || subscriptionTier === 'enterprise',
+          ai_recaps: subscriptionTier === 'pro' || subscriptionTier === 'enterprise',
+          stats_tracking: true,
+          mobile_app: true,
+        },
       })
       .select()
       .single();
@@ -78,13 +112,13 @@ export async function createLeague(formData: FormData): Promise<LeagueActionResu
       return { error: 'Failed to create league. Please try again.' };
     }
 
-    // Add creator as league owner
+    // Add creator as league owner with specified role
     const { error: membershipError } = await supabase
       .from('league_memberships')
       .insert({
         league_id: league.id,
         user_id: user.id,
-        role: 'owner',
+        role: ownerRole,
         status: 'active',
       });
 
@@ -103,7 +137,7 @@ export async function createLeague(formData: FormData): Promise<LeagueActionResu
         stat_entry_mode: 'captain', // Default to captain-entered stats
         allow_trades: true,
         allow_player_registration: true,
-        require_payment: false,
+        require_payment: subscriptionTier === 'pro' || subscriptionTier === 'enterprise',
       });
 
     if (settingsError) {
@@ -111,10 +145,45 @@ export async function createLeague(formData: FormData): Promise<LeagueActionResu
       // Non-critical, continue anyway
     }
 
+    // Set template if provided
+    if (templateId) {
+      try {
+        const { setLeagueTemplate } = await import('@/lib/templates/actions');
+
+        // Build customizations object
+        const customizations: any = {};
+
+        // Add color preset or custom colors
+        if (colorPresetName) {
+          customizations.colorPresetName = colorPresetName;
+        }
+
+        // Add custom colors if provided
+        const customPrimary = formData.get('customColors.primary') as string;
+        const customSecondary = formData.get('customColors.secondary') as string;
+        const customAccent = formData.get('customColors.accent') as string;
+
+        if (customPrimary || customSecondary || customAccent) {
+          customizations.colors = {
+            primary: customPrimary || null,
+            secondary: customSecondary || null,
+            accent: customAccent || null,
+          };
+        }
+
+        // Set the template with customizations
+        await setLeagueTemplate(league.id, templateId, customizations);
+      } catch (templateError) {
+        console.error('Error setting league template:', templateError);
+        // Non-critical, continue anyway
+      }
+    }
+
     // Set as active league
     await setActiveLeagueId(league.id);
 
     revalidatePath('/');
+    revalidatePath(`/${slug}`);
     return { success: true, league, leagueId: league.id };
   } catch (error: any) {
     console.error('Error in createLeague:', error);
@@ -288,8 +357,10 @@ export async function inviteUserToLeague(
         return { error: 'Failed to add user to league' };
       }
 
-      // TODO: Send email notification to user
-      // await sendLeagueInvitationEmail(email, leagueId, role);
+      // Send email notification to user
+      await sendLeagueMembershipEmail(leagueId, existingUser.id, role).catch(err =>
+        console.error('Failed to send membership email:', err)
+      );
 
       revalidatePath('/');
       return { success: true };

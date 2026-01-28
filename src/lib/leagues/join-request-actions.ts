@@ -3,6 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { stripHtml } from "@/lib/input-sanitization";
 import { RateLimiters } from "@/lib/rate-limit";
+import {
+  sendJoinRequestNotificationEmail,
+  sendJoinRequestApprovedEmail,
+  sendJoinRequestRejectedEmail,
+} from "@/lib/email/notifications";
 
 export type JoinRequestResult = {
   error?: string;
@@ -201,8 +206,10 @@ export async function requestJoinLeague(data: {
       return { error: 'Failed to create join request' };
     }
 
-    // TODO: Send notification to league admins/owners
-    // await notifyLeagueAdmins(data.leagueId, user.id);
+    // Send notification to league admins/owners
+    await sendJoinRequestNotificationEmail(data.leagueId, newRequest.id).catch(err =>
+      console.error('Failed to send join request notification:', err)
+    );
 
     return {
       success: true,
@@ -427,8 +434,10 @@ export async function approveJoinRequest(
       return { error: 'Failed to approve request. Please try again.' };
     }
 
-    // TODO: Send notification to user
-    // await notifyUserRequestApproved(request.user_id, request.league_id);
+    // Send notification to user
+    await sendJoinRequestApprovedEmail(request.league_id, request.user_id).catch(err =>
+      console.error('Failed to send approval email:', err)
+    );
 
     return { success: true, status: 'approved' };
   } catch (error: any) {
@@ -505,8 +514,10 @@ export async function rejectJoinRequest(
       return { error: 'Failed to reject request. Please try again.' };
     }
 
-    // TODO: Send notification to user
-    // await notifyUserRequestRejected(request.user_id, request.league_id, finalReason);
+    // Send notification to user
+    await sendJoinRequestRejectedEmail(request.league_id, request.user_id, finalReason).catch(err =>
+      console.error('Failed to send rejection email:', err)
+    );
 
     return { success: true, status: 'rejected' };
   } catch (error: any) {

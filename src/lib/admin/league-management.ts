@@ -21,21 +21,48 @@ export type LeagueManagementResult = {
  */
 
 /**
+ * Helper function to check if user is a platform admin
+ * Checks is_platform_admin field or owner role
+ */
+async function requirePlatformAdmin(): Promise<{ error?: string; userId?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin, role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) {
+    return { error: 'Profile not found' };
+  }
+
+  // Check if user is platform admin or has owner role (backwards compatibility)
+  if (!(profile as any).is_platform_admin && (profile as any).role !== 'owner') {
+    return { error: 'Platform admin access required' };
+  }
+
+  return { userId: user.id };
+}
+
+/**
  * Get all leagues with basic stats
  * For display in the admin leagues table
  */
 export async function getAllLeagues(): Promise<LeagueManagementResult> {
   try {
-    const supabase = await createClient();
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: 'Not authenticated' };
+    // Check platform admin access
+    const authCheck = await requirePlatformAdmin();
+    if (authCheck.error) {
+      return { error: authCheck.error };
     }
 
-    // TODO: Add platform admin check here
-    // For now, any authenticated user can view leagues
+    const supabase = await createClient();
 
     // Fetch all leagues with member counts
     const { data: leagues, error } = await supabase
@@ -253,15 +280,13 @@ export async function updateLeagueStatus(
   status: 'active' | 'suspended' | 'archived'
 ): Promise<LeagueManagementResult> {
   try {
-    const supabase = await createClient();
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: 'Not authenticated' };
+    // Check platform admin access
+    const authCheck = await requirePlatformAdmin();
+    if (authCheck.error) {
+      return { error: authCheck.error };
     }
 
-    // TODO: Add platform admin check here
+    const supabase = await createClient();
 
     const { data: league, error } = await (supabase as any)
       .from('leagues')
@@ -293,15 +318,13 @@ export async function updateLeagueStatus(
  */
 export async function permanentlyDeleteLeague(leagueId: string): Promise<LeagueManagementResult> {
   try {
-    const supabase = await createClient();
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: 'Not authenticated' };
+    // Check platform admin access
+    const authCheck = await requirePlatformAdmin();
+    if (authCheck.error) {
+      return { error: authCheck.error };
     }
 
-    // TODO: Add platform admin check here
+    const supabase = await createClient();
 
     // Instead of hard delete, set to archived status
     // This preserves data integrity
@@ -343,15 +366,14 @@ export async function createLeagueAsAdmin(data: {
   logoUrl?: string;
 }): Promise<LeagueManagementResult> {
   try {
-    const supabase = await createClient();
-
-    // Get current user (admin)
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: 'Not authenticated' };
+    // Check platform admin access
+    const authCheck = await requirePlatformAdmin();
+    if (authCheck.error) {
+      return { error: authCheck.error };
     }
 
-    // TODO: Add platform admin check here
+    const supabase = await createClient();
+    const user = { id: authCheck.userId }; // Use userId from auth check
 
     // Validation
     const name = stripHtml(data.name);
@@ -487,15 +509,13 @@ export async function updateLeagueAsAdmin(
   }
 ): Promise<LeagueManagementResult> {
   try {
-    const supabase = await createClient();
-
-    // Get current user (admin)
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: 'Not authenticated' };
+    // Check platform admin access
+    const authCheck = await requirePlatformAdmin();
+    if (authCheck.error) {
+      return { error: authCheck.error };
     }
 
-    // TODO: Add platform admin check here
+    const supabase = await createClient();
 
     const sanitized: any = {};
 
