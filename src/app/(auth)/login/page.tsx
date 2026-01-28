@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { signIn } from "@/lib/auth/actions";
 
 // Whitelist of allowed redirect paths (must match middleware whitelist)
 const ALLOWED_REDIRECT_PATHS = [
@@ -44,30 +45,14 @@ export default function LoginPage() {
   // Log component mount for debugging
   console.log("[LoginPage] Component mounted");
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        console.log("[LoginPage] User already authenticated, redirecting...");
-        const redirectPath = getSafeRedirectPath(searchParams.get('redirect'));
-        console.log("[LoginPage] Redirect path:", redirectPath);
-        window.location.replace(redirectPath);
-      } else {
-        console.log("[LoginPage] No active session");
-      }
-    };
-
-    checkAuth();
-  }, [searchParams]);
+  // Note: Middleware handles redirecting already-authenticated users
+  // No need to check auth client-side
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
 
-    console.log("[Login] Form submitted");
+    console.log("[Login] Form submitted - using SERVER ACTION");
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
@@ -80,58 +65,35 @@ export default function LoginPage() {
     }
 
     try {
-      const supabase = createClient();
+      console.log("[Login] Calling server action...");
 
-      console.log("[Login] Attempting sign in...");
+      // Use server action - this properly sets httpOnly cookies
+      const result = await signIn(formData);
 
-      // Sign in with password - this sets cookies on client side
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error("[Login] Signin error:", error);
-
-        // Generic error messages to prevent account enumeration
-        if (error.message.includes("Invalid login credentials") ||
-            error.message.includes("Email not confirmed")) {
-          toast.error("Unable to sign in. Please check your credentials or verify your email.");
-        } else if (error.message.includes("rate limit")) {
-          toast.error("Too many login attempts. Please try again later.");
-        } else {
-          toast.error("Unable to sign in. Please try again or contact support.");
-        }
+      if (result?.error) {
+        console.error("[Login] Server action error:", result.error);
+        toast.error(result.error);
         setIsLoading(false);
         return;
       }
 
-      if (!data.user) {
-        console.error("[Login] No user data returned");
-        toast.error("Failed to sign in. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      console.log("[Login] User signed in successfully:", data.user.id);
+      // Success! Server action handles redirect automatically via Next.js redirect()
+      console.log("[Login] Server action succeeded - redirecting...");
       toast.success("Signed in successfully!");
 
-      // Small delay to ensure cookies are set
-      console.log("[Login] Waiting for cookies to be set...");
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // The server action already called redirect(), so we'll be redirected automatically
+      // But just in case, we'll keep the loading state active
 
-      // Get safe redirect path from URL params (set by middleware)
-      const redirectPath = getSafeRedirectPath(searchParams.get('redirect'));
-
-      console.log("[Login] Redirecting to:", redirectPath);
-
-      // Use window.location.replace for post-auth redirect
-      // This prevents back button issues and ensures clean navigation
-      window.location.replace(redirectPath);
-
-      // Don't call setIsLoading(false) - we're navigating away
     } catch (err: any) {
       console.error("[Login] Exception:", err);
+
+      // Server action redirects throw an error (expected behavior in Next.js)
+      // If we get here with a redirect error, that's actually success
+      if (err?.message?.includes('NEXT_REDIRECT')) {
+        console.log("[Login] Redirect successful (expected redirect error)");
+        return;
+      }
+
       toast.error("An error occurred. Please try again.");
       setIsLoading(false);
     }

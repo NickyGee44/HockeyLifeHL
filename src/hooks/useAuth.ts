@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 
-const AUTH_TIMEOUT = 10000; // 10 second timeout for auth operations
+const AUTH_TIMEOUT = 30000; // 30 second timeout for auth operations
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -26,32 +26,39 @@ export function useAuth() {
   // Always fetch fresh profile data - no caching
   const fetchProfile = useCallback(async (userId: string, retryCount = 0): Promise<Profile | null> => {
     if (!supabase) return null;
-    
+
     try {
+      console.log(`[useAuth] Fetching profile for user ${userId} (attempt ${retryCount + 1})`);
+
       const { data, error: fetchError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
-      
+
       if (fetchError) {
-        console.error("Profile fetch error:", fetchError);
-        // Retry once if it's a network error
-        if (retryCount < 1 && (fetchError.code === 'PGRST116' || fetchError.message.includes('network'))) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        console.error("[useAuth] Profile fetch error:", fetchError);
+        // Retry up to 3 times on any error (network, timeout, etc)
+        if (retryCount < 3) {
+          console.log(`[useAuth] Retrying profile fetch in ${(retryCount + 1) * 1000}ms...`);
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
           return fetchProfile(userId, retryCount + 1);
         }
+        console.error("[useAuth] Profile fetch failed after 3 retries");
         return null;
       }
-      
+
+      console.log("[useAuth] Profile fetched successfully:", data?.email);
       return data || null;
     } catch (err) {
-      console.error("Profile fetch exception:", err);
-      // Retry once on exception
-      if (retryCount < 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      console.error("[useAuth] Profile fetch exception:", err);
+      // Retry up to 3 times on exception
+      if (retryCount < 3) {
+        console.log(`[useAuth] Retrying after exception in ${(retryCount + 1) * 1000}ms...`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
         return fetchProfile(userId, retryCount + 1);
       }
+      console.error("[useAuth] Profile fetch failed after 3 retries");
       return null;
     }
   }, [supabase]);
@@ -76,12 +83,18 @@ export function useAuth() {
 
     // Get initial session with timeout
     const getInitialSession = async () => {
+      console.log("[useAuth] Getting initial session...");
+
+      // Set loading to false after maximum wait time (even if profile fetch isn't done)
+      const maxWaitTime = process.env.NODE_ENV === 'production' ? AUTH_TIMEOUT : 5000; // 5s in dev, 30s in prod
       const timeoutId = setTimeout(() => {
         if (mounted) {
-          console.warn("Auth initialization timed out");
+          console.warn(`[useAuth] Auth initialization exceeded ${maxWaitTime}ms, setting loading to false anyway`);
+          // Set loading to false so app can proceed even if profile isn't loaded yet
           setLoading(false);
+          // Profile might still load in the background via the auth state listener
         }
-      }, AUTH_TIMEOUT);
+      }, maxWaitTime);
 
       try {
         // Get session from storage - this reads from localStorage
@@ -89,36 +102,50 @@ export function useAuth() {
 
         if (!mounted) {
           clearTimeout(timeoutId);
+          console.log("[useAuth] Component unmounted, aborting session fetch");
           return;
         }
 
         if (sessionError) {
-          console.error("Session error:", sessionError);
+          console.error("[useAuth] Session error:", sessionError);
           clearTimeout(timeoutId);
           setLoading(false);
+          setError("Failed to load session");
           return;
         }
 
         if (session?.user) {
+          console.log("[useAuth] Session found for user:", session.user.email);
           setUser(session.user);
 
-          // Fetch profile on initial load only
+          // Fetch profile on initial load - allow more time if needed
           const userProfile = await fetchProfile(session.user.id);
           if (mounted) {
             setProfile(userProfile);
-            setError(null);
+            if (userProfile) {
+              console.log("[useAuth] Profile loaded successfully");
+              setError(null);
+            } else {
+              console.error("[useAuth] Profile not loaded - user may have limited access");
+              setError("Profile could not be loaded. Some features may be unavailable.");
+            }
           }
         } else {
           // No session - user is not logged in
+          console.log("[useAuth] No session found");
           setUser(null);
           setProfile(null);
           setError(null);
         }
       } catch (err) {
-        console.error("Auth initialization error:", err);
+        console.error("[useAuth] Auth initialization error:", err);
+        setError("Failed to initialize authentication");
       } finally {
-        clearTimeout(timeoutId);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
         if (mounted) {
+          console.log("[useAuth] Auth initialization complete, setting loading to false");
           setLoading(false);
         }
       }
