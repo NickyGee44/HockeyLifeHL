@@ -129,7 +129,7 @@ export async function GET(
     const supabase = await createClient();
 
     // 4. Fetch game with full details
-    const { data: game, error: gameError } = await supabase
+    const gameResult: any = await supabase
       .from("games")
       .select(
         `
@@ -150,12 +150,15 @@ export async function GET(
       .eq("league_id", leagueId)
       .single();
 
+    const game = gameResult.data;
+    const gameError = gameResult.error;
+
     if (gameError || !game) {
       throw ErrorResponses.notFound("Game");
     }
 
     // 5. Fetch team rosters
-    const { data: homeRoster } = await supabase
+    const homeRosterResult: any = await supabase
       .from("team_memberships")
       .select(
         `
@@ -165,7 +168,9 @@ export async function GET(
       .eq("team_id", game.home_team.id)
       .eq("status", "active");
 
-    const { data: awayRoster } = await supabase
+    const homeRoster = homeRosterResult.data;
+
+    const awayRosterResult: any = await supabase
       .from("team_memberships")
       .select(
         `
@@ -175,8 +180,10 @@ export async function GET(
       .eq("team_id", game.away_team.id)
       .eq("status", "active");
 
+    const awayRoster = awayRosterResult.data;
+
     // 6. Fetch player stats for this game
-    const { data: gameStats } = await supabase
+    const gameStatsResult: any = await supabase
       .from("game_stats")
       .select(
         `
@@ -188,6 +195,8 @@ export async function GET(
       `
       )
       .eq("game_id", gameId);
+
+    const gameStats = gameStatsResult.data;
 
     // 7. Aggregate player stats by team
     const homePlayerStats: Map<string, PlayerStats> = new Map();
