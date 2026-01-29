@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, AlertCircle, Mail, ArrowLeft, RefreshCw, Eye, CheckCircle, XCircle, Clock } from "lucide-react";
+import { useActiveLeague } from "@/hooks/use-league";
 import { format, parseISO } from "date-fns";
 
 /**
@@ -49,7 +50,7 @@ type Notification = {
 
 export default function NotificationLogPage() {
   const router = useRouter();
-  const tenantSlug = "pilot"; // TODO: Get from context
+  const { leagueSlug } = useActiveLeague();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +76,7 @@ export default function NotificationLogPage() {
       if (typeFilter !== "all") params.append("type", typeFilter);
       params.append("limit", "100");
 
-      const response = await fetch(`/api/${tenantSlug}/notifications?${params.toString()}`);
+      const response = await fetch(`/api/${leagueSlug}/notifications?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch notifications");
@@ -100,7 +101,7 @@ export default function NotificationLogPage() {
    */
   const handleResend = async (notificationId: string) => {
     try {
-      const response = await fetch(`/api/${tenantSlug}/notifications/${notificationId}/resend`, {
+      const response = await fetch(`/api/${leagueSlug}/notifications/${notificationId}/resend`, {
         method: "POST",
       });
 

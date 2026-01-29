@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Calendar, AlertTriangle } from "lucide-react";
+import { useActiveLeague } from "@/hooks/use-league";
 import { format, parseISO } from "date-fns";
 
 /**
@@ -44,6 +45,7 @@ type BulkRescheduleResult = {
 
 export default function BulkReschedulePage() {
   const router = useRouter();
+  const { leagueSlug } = useActiveLeague();
 
   // Wizard step
   const [step, setStep] = useState(1);
@@ -62,8 +64,6 @@ export default function BulkReschedulePage() {
   const [result, setResult] = useState<BulkRescheduleResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const tenantSlug = "pilot"; // TODO: Get from context
-
   /**
    * Fetch scheduled games
    */
@@ -81,7 +81,7 @@ export default function BulkReschedulePage() {
       const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       const response = await fetch(
-        `/api/${tenantSlug}/schedule?status=scheduled&start_date=${startDate}&end_date=${endDate}&limit=100`
+        `/api/${leagueSlug}/schedule?status=scheduled&start_date=${startDate}&end_date=${endDate}&limit=100`
       );
 
       if (!response.ok) {
@@ -142,7 +142,7 @@ export default function BulkReschedulePage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/${tenantSlug}/games/bulk-reschedule`, {
+      const response = await fetch(`/api/${leagueSlug}/games/bulk-reschedule`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

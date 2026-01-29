@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Calendar, X, Clock, MapPin, Users, Mail, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { useActiveLeague } from "@/hooks/use-league";
 import { parseISO, format } from "date-fns";
 
 /**
@@ -128,7 +129,7 @@ export default function GameDetailPage() {
   const params = useParams();
   const router = useRouter();
   const gameId = params.gameId as string;
-  const tenantSlug = "pilot"; // TODO: Get from context
+  const { leagueSlug } = useActiveLeague();
 
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,7 +151,7 @@ export default function GameDetailPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/${tenantSlug}/games/${gameId}`);
+      const response = await fetch(`/api/${leagueSlug}/games/${gameId}`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -182,7 +183,7 @@ export default function GameDetailPage() {
 
     try {
       const response = await fetch(
-        `/api/${tenantSlug}/notifications?related_entity_type=game&related_entity_id=${gameId}&limit=50`
+        `/api/${leagueSlug}/notifications?related_entity_type=game&related_entity_id=${gameId}&limit=50`
       );
 
       if (!response.ok) {
@@ -255,7 +256,7 @@ export default function GameDetailPage() {
         status={game.status}
         venue={game.venue}
         division={game.division}
-        tenantSlug={tenantSlug}
+        tenantSlug={leagueSlug || "pilot"}
       />
 
       {/* Admin Actions */}
@@ -304,7 +305,7 @@ export default function GameDetailPage() {
                       players: game.playerStats.away,
                     }}
                     statType="scoring"
-                    tenantSlug={tenantSlug}
+                    tenantSlug={leagueSlug || "pilot"}
                   />
                 </TabsContent>
                 <TabsContent value="penalties" className="mt-4">
@@ -320,7 +321,7 @@ export default function GameDetailPage() {
                       players: game.playerStats.away,
                     }}
                     statType="penalties"
-                    tenantSlug={tenantSlug}
+                    tenantSlug={leagueSlug || "pilot"}
                   />
                 </TabsContent>
                 <TabsContent value="goalies" className="mt-4">
@@ -346,7 +347,7 @@ export default function GameDetailPage() {
                       })),
                     }}
                     statType="goalies"
-                    tenantSlug={tenantSlug}
+                    tenantSlug={leagueSlug || "pilot"}
                   />
                 </TabsContent>
               </Tabs>
@@ -596,7 +597,7 @@ export default function GameDetailPage() {
         currentScheduledAt={game.scheduledAt}
         currentVenue={game.venue}
         onSuccess={handleActionSuccess}
-        tenantSlug={tenantSlug}
+        tenantSlug={leagueSlug || "pilot"}
       />
 
       <CancelGameDialog
@@ -607,7 +608,7 @@ export default function GameDetailPage() {
         homeTeamName={game.homeTeam.name}
         awayTeamName={game.awayTeam.name}
         onSuccess={handleActionSuccess}
-        tenantSlug={tenantSlug}
+        tenantSlug={leagueSlug || "pilot"}
       />
     </div>
   );
