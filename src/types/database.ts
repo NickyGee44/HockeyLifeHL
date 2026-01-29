@@ -2388,6 +2388,79 @@ export type Database = {
           },
         ]
       }
+      schedule_rules: {
+        Row: {
+          id: string
+          league_id: string
+          season_id: string | null
+          game_duration_minutes: number | null
+          buffer_minutes: number | null
+          min_hours_between_games: number | null
+          max_games_per_week: number | null
+          max_games_per_day: number | null
+          allowed_venue_ids: string[] | null
+          blackout_dates: Json | null
+          preferred_start_times: Json | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          league_id: string
+          season_id?: string | null
+          game_duration_minutes?: number | null
+          buffer_minutes?: number | null
+          min_hours_between_games?: number | null
+          max_games_per_week?: number | null
+          max_games_per_day?: number | null
+          allowed_venue_ids?: string[] | null
+          blackout_dates?: Json | null
+          preferred_start_times?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          league_id?: string
+          season_id?: string | null
+          game_duration_minutes?: number | null
+          buffer_minutes?: number | null
+          min_hours_between_games?: number | null
+          max_games_per_week?: number | null
+          max_games_per_day?: number | null
+          allowed_venue_ids?: string[] | null
+          blackout_dates?: Json | null
+          preferred_start_times?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_rules_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_rules_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stat_changes: {
         Row: {
           change_reason: string | null
