@@ -111,7 +111,8 @@ export async function POST(
     }
 
     // 5. Fetch schedule rules for conflict detection
-    const scheduleRulesResult: any = await supabase
+    // @ts-ignore - TypeScript has deep instantiation issues with complex Supabase queries
+    const scheduleRulesResult = await supabase
       .from("schedule_rules")
       .select("id, league_id, season_id, game_duration_minutes, buffer_minutes, min_hours_between_games, max_games_per_week, max_games_per_day, allowed_venue_ids, blackout_dates, preferred_start_times")
       .eq("league_id", leagueId)
