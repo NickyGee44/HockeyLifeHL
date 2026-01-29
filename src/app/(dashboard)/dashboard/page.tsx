@@ -23,7 +23,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (authLoading || leagueLoading) return;
-    if (!user || !leagueId) {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    // If there's no league context (platform domain), don't load league-specific data
+    if (!leagueId) {
       setLoading(false);
       return;
     }
@@ -130,9 +135,41 @@ export default function DashboardPage() {
     );
   }
 
+  // If on platform domain (no league context), show league selection prompt
+  if (!leagueLoading && !leagueId) {
+    return (
+      <div className="py-12 text-center max-w-2xl mx-auto">
+        <Card>
+          <CardContent className="py-12 space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Welcome to Beer League Hockey!</h2>
+              <p className="text-muted-foreground">
+                Select a league from the dropdown in the header to view your dashboard, or browse available leagues to join.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => window.location.href = '/discover'}
+                className="px-6 py-2 bg-canada-red hover:bg-canada-red-dark text-white rounded-md font-semibold transition-colors"
+              >
+                Browse Leagues
+              </button>
+              <button
+                onClick={() => window.location.href = '/admin/leagues/create'}
+                className="px-6 py-2 border border-border hover:bg-muted rounded-md font-semibold transition-colors"
+              >
+                Create a League
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
     return (
 
-      <DashboardView 
+      <DashboardView
 
         profile={profile}
 

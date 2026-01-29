@@ -26,13 +26,25 @@ export function useActiveLeague() {
         }
 
         // 2. Check if we're on a league subdomain (e.g., pilot.beerleaguehockey.ca)
+        let isPlatformDomain = false;
         try {
           const response = await fetch('/api/league/context');
           if (response.ok) {
             const data = await response.json();
+
+            // If we detected a league from subdomain/custom domain, use it
             if (data.league && data.league.id) {
               console.log('[useActiveLeague] Detected league from subdomain:', data.league.name);
               setLeagueId(data.league.id);
+              setIsLoading(false);
+              return;
+            }
+
+            // If we're on platform domain (no league detected), DON'T auto-select
+            if (data.isPlatform) {
+              console.log('[useActiveLeague] On platform domain - no league context');
+              isPlatformDomain = true;
+              setLeagueId(null);
               setIsLoading(false);
               return;
             }
@@ -42,26 +54,22 @@ export function useActiveLeague() {
           // Continue with other methods if API fails
         }
 
-        // 3. Get active league from server cookie
+        // If we're on platform domain, stop here (don't auto-select a league)
+        if (isPlatformDomain) {
+          setIsLoading(false);
+          return;
+        }
+
+        // 3. Get active league from server cookie (only if NOT on platform domain)
         const activeId = await getActiveLeagueId();
 
         if (activeId) {
           setLeagueId(activeId);
         } else {
-          // No active league set - fetch user's leagues and set the first one
-          const { leagues: userLeagues, error: leaguesError } = await getUserLeagues();
-
-          if (leaguesError) {
-            setError(leaguesError);
-          } else if (userLeagues && userLeagues.length > 0) {
-            // Auto-select first league
-            const firstLeague = userLeagues[0].league_id;
-            await setActiveLeagueId(firstLeague);
-            setLeagueId(firstLeague);
-            setLeagues(userLeagues);
-          } else {
-            setError("No leagues found. Please contact support.");
-          }
+          // No active league set - on platform domain, leave as null
+          // User can select a league via LeagueSelector dropdown
+          console.log('[useActiveLeague] No active league - user should select one');
+          setLeagueId(null);
         }
 
         setIsLoading(false);
