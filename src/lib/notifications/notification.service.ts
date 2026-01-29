@@ -133,7 +133,7 @@ async function getCaptainsForGame(
   }
 
   // Get team names
-  const { data: game, error: gameError } = await supabase
+  const gameResult: any = await supabase
     .from("games")
     .select(
       `
@@ -144,17 +144,23 @@ async function getCaptainsForGame(
     .eq("id", gameId)
     .single();
 
+  const game = gameResult.data;
+  const gameError = gameResult.error;
+
   if (gameError) {
     console.error("[NotificationService] Error fetching game teams:", gameError);
     return [];
   }
 
   // Match captains to teams
-  const { data: memberships, error: membershipError } = await supabase
+  const membershipsResult: any = await supabase
     .from("league_memberships")
     .select("user_id, team_id, teams(name)")
     .in("user_id", data)
     .eq("role", "captain");
+
+  const memberships = membershipsResult.data;
+  const membershipError = membershipsResult.error;
 
   if (membershipError) {
     console.error("[NotificationService] Error fetching memberships:", membershipError);
