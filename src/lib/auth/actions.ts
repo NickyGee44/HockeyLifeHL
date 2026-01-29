@@ -93,6 +93,13 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   const position = formData.get("position") as string;
   const inviteCode = (formData.get("inviteCode") as string)?.trim().toUpperCase() || null;
 
+  // Free agent profile fields
+  const skillLevel = formData.get("skillLevel") as string;
+  const availability = formData.get("availability") as string;
+  const phone = formData.get("phone") as string;
+  const city = formData.get("city") as string;
+  const province = formData.get("province") as string;
+
   // Validation
   if (!email || !password) {
     return { error: "Email and password are required" };
@@ -160,8 +167,13 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
         full_name: fullName,
         jersey_number: jerseyNumber ? parseInt(jerseyNumber) : null,
         position: position || null,
+        skill_level: skillLevel || null,
+        availability: availability || null,
+        phone: phone || null,
+        city: city || null,
+        province: province || null,
       },
-      emailRedirectTo: `${siteUrl}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/discover`,
     },
   });
 
@@ -189,11 +201,10 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
     return { error: "Failed to create account. Please try again." };
   }
 
-  console.log("User created successfully:", signUpData.user.id);
+  console.log("User created successfully (free agent):", signUpData.user.id);
 
-  // CRITICAL: Add user to pilot league (multi-tenant fix)
-  // All new signups are automatically added to the original HockeyLifeHL league
-  const PILOT_LEAGUE_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  // FREE AGENT SIGNUP: Users are NOT automatically added to any league
+  // They can browse leagues and request to join via the /discover page
 
   // Wait for profile creation trigger to complete
   console.log("Waiting for profile creation trigger...");
@@ -224,41 +235,34 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
 
   if (!profileExists) {
     console.error(`Profile creation failed after ${MAX_PROFILE_ATTEMPTS} attempts for user ${signUpData.user.id}`);
-    console.log(`ACTION REQUIRED: Manually create profile for user ${signUpData.user.id}`);
+    console.log(`WARNING: Profile may not have been created for user ${signUpData.user.id}`);
   } else {
-    // Profile exists - now create league membership
+    console.log("Profile created successfully - user is a free agent (no league membership)");
+
+    // Update profile with free agent fields (in case trigger didn't catch them)
     try {
-      const { error: membershipError } = await supabase
-        .from('league_memberships')
-        .insert({
-          league_id: PILOT_LEAGUE_ID,
-          user_id: signUpData.user.id,
-          role: 'player',
-          status: 'active',
-        });
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          skill_level: skillLevel || null,
+          availability: availability || null,
+          phone: phone || null,
+          city: city || null,
+          province: province || null,
+        })
+        .eq('id', signUpData.user.id);
 
-      if (membershipError) {
-        console.error("Failed to create league membership:", membershipError);
-        console.log(`ACTION REQUIRED: Manually add user ${signUpData.user.id} to league ${PILOT_LEAGUE_ID}`);
+      if (updateError) {
+        console.error("Error updating profile with free agent fields:", updateError);
       } else {
-        console.log("League membership created successfully");
-
-        // Set active league cookie using the server action
-        const { setActiveLeagueId } = await import("./league-context");
-        const result = await setActiveLeagueId(PILOT_LEAGUE_ID);
-
-        if (result.error) {
-          console.error("Failed to set active league cookie:", result.error);
-        } else {
-          console.log("Active league cookie set successfully");
-        }
+        console.log("Free agent profile fields updated successfully");
       }
     } catch (err) {
-      console.error("Error creating league membership:", err);
+      console.error("Error updating free agent profile:", err);
     }
   }
 
-  // If invite code provided and profile exists, use the invite code
+  // If invite code provided, use it to join a team/league
   if (inviteCode && profileExists) {
     console.log("Applying invite code...");
 
