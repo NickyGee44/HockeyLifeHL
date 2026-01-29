@@ -29,9 +29,9 @@ export function HeroSectionModern() {
 
                 {/* Content - In front of video */}
                 <div className="py-24 md:py-32 lg:py-40">
-                    <div className="relative z-10 mx-auto flex max-w-7xl flex-col lg:flex-row items-center gap-12 lg:gap-16 px-6 lg:px-12">
+                    <div className="relative z-10 mx-auto flex max-w-7xl flex-col lg:flex-row items-center lg:items-start gap-12 lg:gap-16 px-6 lg:px-12">
                         {/* Left side - Text content */}
-                        <div className="flex-1 text-left max-w-2xl">
+                        <div className="flex-1 text-center lg:text-left max-w-2xl">
                             <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold leading-tight">
                                 Modern League Management
                             </h1>
@@ -62,19 +62,23 @@ export function HeroSectionModern() {
                         </div>
 
                         {/* Right side - Safari browser preview */}
-                        <div className="flex-1 w-full max-w-3xl hidden lg:block">
+                        <div className="flex-1 w-full max-w-3xl">
                             <motion.div
                                 initial={{ opacity: 0, x: 50 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.8, delay: 0.2 }}
                             >
-                                {/* TODO: Replace with actual pilot site screenshot
-                                    To create: Visit https://pilot.beerleaguehockey.ca
-                                    Take full-page screenshot and save as /public/pilot-site-preview.png */}
-                                <Safari_01
-                                    image="/banner2.png"
-                                    className="shadow-2xl border-2 border-zinc-300/50 dark:border-zinc-700/50"
-                                />
+                                <Link
+                                    href="https://pilot.beerleaguehockey.ca"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block cursor-pointer hover:scale-[1.02] transition-transform duration-300"
+                                >
+                                    <Safari_01
+                                        image="/pilot_league.png"
+                                        className="shadow-2xl border-2 border-zinc-300/50 dark:border-zinc-700/50 hover:shadow-3xl transition-shadow"
+                                    />
+                                </Link>
                             </motion.div>
                         </div>
                     </div>

@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { signIn } from "@/lib/auth/actions";
+import { useActiveLeague } from "@/hooks/use-league";
+import { useBranding } from "@/hooks/use-branding";
 
 // Whitelist of allowed redirect paths (must match middleware whitelist)
 const ALLOWED_REDIRECT_PATHS = [
@@ -41,6 +43,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Get league context and branding
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
+  const branding = useBranding(leagueId);
 
   // Log component mount for debugging
   console.log("[LoginPage] Component mounted");
@@ -103,15 +109,18 @@ export default function LoginPage() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <Image
-          src="/BLH-Logo.png"
-          alt="Beer League Hockey"
+          src={branding.logo}
+          alt={branding.name}
           width={80}
           height={80}
           className="mx-auto mb-4"
         />
         <CardTitle className="text-2xl">Welcome Back</CardTitle>
         <CardDescription>
-          Sign in to your league dashboard
+          {leagueId
+            ? `Sign in to ${branding.name}`
+            : "Sign in to your account"
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>

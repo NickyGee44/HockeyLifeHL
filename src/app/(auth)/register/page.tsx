@@ -11,10 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { signUp } from "@/lib/auth/actions";
 import { toast } from "sonner";
+import { useActiveLeague } from "@/hooks/use-league";
+import { useBranding } from "@/hooks/use-branding";
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Get league context and branding
+  const { leagueId, isLoading: leagueLoading } = useActiveLeague();
+  const branding = useBranding(leagueId);
 
   // Form state - preserves values on error
   const [formData, setFormData] = useState({
@@ -82,13 +88,15 @@ export default function RegisterPage() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <Image
-          src="/BLH-Logo.png"
-          alt="Beer League Hockey"
+          src={branding.logo}
+          alt={branding.name}
           width={80}
           height={80}
           className="mx-auto mb-4"
         />
-        <CardTitle className="text-2xl">Join Beer League Hockey</CardTitle>
+        <CardTitle className="text-2xl">
+          {leagueId ? `Join ${branding.name}` : "Join Beer League Hockey"}
+        </CardTitle>
         <CardDescription>
           Create your account to get started
         </CardDescription>
