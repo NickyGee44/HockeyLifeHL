@@ -4,6 +4,44 @@ import type { Database } from '@/types/database'
 // Singleton pattern - only create one client instance
 let client: ReturnType<typeof createBrowserClient<Database>> | null = null
 
+// Helper to get/set cookies on the client-side
+function getCookies() {
+  if (typeof document === 'undefined') return {}
+
+  return document.cookie.split('; ').reduce((acc, cookie) => {
+    const [name, value] = cookie.split('=')
+    if (name && value) {
+      acc[name] = decodeURIComponent(value)
+    }
+    return acc
+  }, {} as Record<string, string>)
+}
+
+function setCookie(name: string, value: string, options: any = {}) {
+  if (typeof document === 'undefined') return
+
+  const {
+    maxAge = 60 * 60 * 24 * 14, // 14 days
+    path = '/',
+    sameSite = 'lax',
+    secure = process.env.NODE_ENV === 'production',
+  } = options
+
+  let cookieString = `${name}=${encodeURIComponent(value)}; path=${path}; max-age=${maxAge}; samesite=${sameSite}`
+
+  if (secure) {
+    cookieString += '; secure'
+  }
+
+  document.cookie = cookieString
+}
+
+function deleteCookie(name: string) {
+  if (typeof document === 'undefined') return
+
+  document.cookie = `${name}=; path=/; max-age=0`
+}
+
 export function createClient() {
   if (client) return client
 
@@ -18,25 +56,22 @@ export function createClient() {
     )
   }
 
-  // Browser client should use localStorage for session management
-  // Cookies are managed server-side with HttpOnly flag for security
+  // Browser client uses cookies for session management (same as server)
+  // This allows the client to read sessions created by the server
   client = createBrowserClient<Database>(
     supabaseUrl,
     supabaseAnonKey,
     {
-      auth: {
-        // Persist auth session in localStorage (secure client-side storage)
-        persistSession: true,
-        // Automatically detect session from URL (OAuth callbacks)
-        detectSessionInUrl: true,
-        // Auto refresh token before it expires
-        autoRefreshToken: true,
-        // Custom storage key to avoid conflicts
-        storageKey: 'hockeylifehl-auth-token',
-        // Use PKCE flow for enhanced security
-        flowType: 'pkce',
-        // Store in localStorage, not cookies (cookies are HttpOnly server-side)
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      cookies: {
+        getAll() {
+          const cookies = getCookies()
+          return Object.entries(cookies).map(([name, value]) => ({ name, value }))
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            setCookie(name, value, options)
+          })
+        },
       },
     }
   )

@@ -46,8 +46,10 @@ export async function createClient() {
               // Enhanced cookie options for security and mobile support
               const enhancedOptions = {
                 ...options,
-                // Prevent client-side JavaScript access (XSS protection)
-                httpOnly: true,
+                // Allow client-side JavaScript access for session sync
+                // Note: While this reduces XSS protection, it's required for
+                // Supabase SSR to work properly with client-side auth state
+                httpOnly: false,
                 sameSite: 'lax' as const,
                 secure: process.env.NODE_ENV === 'production',
                 maxAge: 60 * 60 * 24 * 14, // 14 days (reduced from 30 for better security)
