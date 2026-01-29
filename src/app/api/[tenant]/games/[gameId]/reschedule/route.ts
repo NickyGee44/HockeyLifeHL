@@ -257,6 +257,9 @@ export async function POST(
     if (!detailsError && gameDetails) {
       // 10. Emit GameRescheduled event for notification system
       try {
+        // Type assertion for Supabase query with column hints
+        const details = gameDetails as any;
+
         emitGameRescheduled(
           {
             leagueId: leagueId,
@@ -270,12 +273,12 @@ export async function POST(
             oldVenueId: originalGame.venue_id,
             newVenueId: newGame.venue_id,
             reason: reason,
-            homeTeamId: gameDetails.home_team.id,
-            awayTeamId: gameDetails.away_team.id,
-            homeTeamName: gameDetails.home_team.name,
-            awayTeamName: gameDetails.away_team.name,
-            venueName: gameDetails.venue?.name || "TBD",
-            divisionName: gameDetails.division?.name || "TBD",
+            homeTeamId: details.home_team.id,
+            awayTeamId: details.away_team.id,
+            homeTeamName: details.home_team.name,
+            awayTeamName: details.away_team.name,
+            venueName: details.venue?.name || "TBD",
+            divisionName: details.division?.name || "TBD",
           }
         );
       } catch (eventError) {

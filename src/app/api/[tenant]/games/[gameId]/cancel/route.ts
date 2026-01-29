@@ -182,6 +182,9 @@ export async function POST(
         // Determine if game will be rescheduled (postponed) or permanently cancelled
         const willReschedule = game.status === "postponed";
 
+        // Type assertion for Supabase query with column hints
+        const details = gameDetails as any;
+
         emitGameCancelled(
           {
             leagueId: leagueId,
@@ -190,15 +193,15 @@ export async function POST(
           },
           {
             gameId: gameId,
-            scheduledAt: gameDetails.scheduled_at,
+            scheduledAt: details.scheduled_at,
             reason: reason,
             willReschedule: willReschedule,
-            homeTeamId: gameDetails.home_team.id,
-            awayTeamId: gameDetails.away_team.id,
-            homeTeamName: gameDetails.home_team.name,
-            awayTeamName: gameDetails.away_team.name,
-            venueName: gameDetails.venue?.name || "TBD",
-            divisionName: gameDetails.division?.name || "TBD",
+            homeTeamId: details.home_team.id,
+            awayTeamId: details.away_team.id,
+            homeTeamName: details.home_team.name,
+            awayTeamName: details.away_team.name,
+            venueName: details.venue?.name || "TBD",
+            divisionName: details.division?.name || "TBD",
             notes: notes,
           }
         );
