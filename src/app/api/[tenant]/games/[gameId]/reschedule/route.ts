@@ -217,7 +217,7 @@ export async function POST(
         rescheduled_by: userId,
       })
       .select()
-      .single();
+      .single()) as any;
 
     if (createError || !newGame) {
       console.error("[Reschedule API] Failed to create new game:", createError);
