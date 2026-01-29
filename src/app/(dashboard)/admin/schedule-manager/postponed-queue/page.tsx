@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Calendar, ArrowLeft, Clock, MapPin } from "lucide-react";
 import { RescheduleDialog } from "@/components/schedule/RescheduleDialog";
+import { useActiveLeague } from "@/hooks/use-league";
 import { format, parseISO } from "date-fns";
 
 /**
@@ -37,7 +38,7 @@ type PostponedGame = {
 
 export default function PostponedQueuePage() {
   const router = useRouter();
-  const tenantSlug = "pilot"; // TODO: Get from context
+  const { leagueSlug } = useActiveLeague();
 
   const [games, setGames] = useState<PostponedGame[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,11 +52,13 @@ export default function PostponedQueuePage() {
    * Fetch postponed games
    */
   const fetchPostponedGames = async () => {
+    if (!leagueSlug) return; // Wait for league context to load
+
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/${tenantSlug}/schedule?status=postponed&limit=100`);
+      const response = await fetch(`/api/${leagueSlug}/schedule?status=postponed&limit=100`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch postponed games");
@@ -315,7 +318,7 @@ export default function PostponedQueuePage() {
               : undefined
           }
           onSuccess={handleRescheduleSuccess}
-          tenantSlug={tenantSlug}
+          tenantSlug={leagueSlug || "pilot"}
         />
       )}
     </div>

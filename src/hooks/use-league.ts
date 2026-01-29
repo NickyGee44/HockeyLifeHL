@@ -9,6 +9,8 @@ export function useActiveLeague() {
   const params = useParams();
   const router = useRouter();
   const [leagueId, setLeagueId] = useState<string | null>(null);
+  const [leagueSlug, setLeagueSlug] = useState<string | null>(null);
+  const [leagueName, setLeagueName] = useState<string | null>(null);
   const [leagues, setLeagues] = useState<LeagueMembership[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,9 @@ export function useActiveLeague() {
 
         // 1. Check URL params for [league] (for dynamic routes)
         if (params?.league) {
-          setLeagueId(params.league as string);
+          const id = params.league as string;
+          setLeagueId(id);
+          await fetchLeagueDetails(id);
           setIsLoading(false);
           return;
         }
@@ -36,6 +40,8 @@ export function useActiveLeague() {
             if (data.league && data.league.id) {
               console.log('[useActiveLeague] Detected league from subdomain:', data.league.name);
               setLeagueId(data.league.id);
+              setLeagueSlug(data.league.slug);
+              setLeagueName(data.league.name);
               setIsLoading(false);
               return;
             }
@@ -45,6 +51,8 @@ export function useActiveLeague() {
               console.log('[useActiveLeague] On platform domain - no league context');
               isPlatformDomain = true;
               setLeagueId(null);
+              setLeagueSlug(null);
+              setLeagueName(null);
               setIsLoading(false);
               return;
             }
@@ -65,11 +73,14 @@ export function useActiveLeague() {
 
         if (activeId) {
           setLeagueId(activeId);
+          await fetchLeagueDetails(activeId);
         } else {
           // No active league set - on platform domain, leave as null
           // User can select a league via LeagueSelector dropdown
           console.log('[useActiveLeague] No active league - user should select one');
           setLeagueId(null);
+          setLeagueSlug(null);
+          setLeagueName(null);
         }
 
         setIsLoading(false);
@@ -77,6 +88,21 @@ export function useActiveLeague() {
         console.error("Error loading league context:", err);
         setError(err.message || "Failed to load league context");
         setIsLoading(false);
+      }
+    }
+
+    async function fetchLeagueDetails(id: string) {
+      try {
+        // Fetch league details from user's leagues
+        const userLeagues = await getUserLeagues();
+        const league = userLeagues.leagues.find((l: LeagueMembership) => l.league_id === id);
+
+        if (league && league.league) {
+          setLeagueSlug(league.league.slug);
+          setLeagueName(league.league.name);
+        }
+      } catch (err) {
+        console.error('[useActiveLeague] Error fetching league details:', err);
       }
     }
 
@@ -102,6 +128,8 @@ export function useActiveLeague() {
 
   return {
     leagueId,
+    leagueSlug,
+    leagueName,
     leagues,
     isLoading,
     error,

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle, Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useActiveLeague } from "@/hooks/use-league";
 import { addDays, startOfDay, endOfDay, format, parseISO } from "date-fns";
 
 /**
@@ -65,6 +66,7 @@ type FilterOption = {
 export default function AdminScheduleManagerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { leagueSlug } = useActiveLeague();
 
   // State
   const [games, setGames] = useState<Game[]>([]);
@@ -103,12 +105,12 @@ export default function AdminScheduleManagerPage() {
    * Fetch games from Schedule Query API
    */
   const fetchGames = async () => {
+    if (!leagueSlug) return; // Wait for league context to load
+
     setLoading(true);
     setError(null);
 
     try {
-      const tenantSlug = "pilot"; // TODO: Get from context/hostname
-
       // Build query params
       const params = new URLSearchParams();
       if (selectedDivision) params.append("division_id", selectedDivision);
@@ -122,7 +124,7 @@ export default function AdminScheduleManagerPage() {
       params.append("limit", pagination.limit.toString());
       params.append("offset", pagination.offset.toString());
 
-      const response = await fetch(`/api/${tenantSlug}/schedule?${params.toString()}`);
+      const response = await fetch(`/api/${leagueSlug}/schedule?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch games: ${response.statusText}`);
