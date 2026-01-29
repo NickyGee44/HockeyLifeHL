@@ -98,6 +98,7 @@ export async function POST(
     const supabase = await createClient();
 
     // 2. Fetch notification
+    // @ts-ignore
     const { data: notification, error: fetchError } = await supabase
       .from("notifications")
       .select(

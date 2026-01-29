@@ -84,12 +84,15 @@ export async function POST(
     const supabase = await createClient();
 
     // 3. Fetch original game
-    const { data: originalGame, error: gameError } = (await supabase
+    // @ts-ignore
+    const originalGameResult: any = await supabase
       .from("games")
       .select("id, status, season_id, home_team_id, away_team_id, location, league_id, scheduled_at, rescheduled_from, reschedule_reason, rescheduled_at, rescheduled_by, cancelled_at, cancelled_by, cancellation_reason")
       .eq("id", gameId)
       .eq("league_id", leagueId)
-      .single()) as any;
+      .single();
+    const originalGame = originalGameResult.data;
+    const gameError = originalGameResult.error;
 
     if (gameError || !originalGame) {
       throw ErrorResponses.notFound("Game");
@@ -111,7 +114,8 @@ export async function POST(
     }
 
     // 5. Fetch schedule rules for conflict detection
-    const { data: scheduleRules } = await supabase
+    // @ts-ignore
+    const scheduleRulesResult: any = await supabase
       .from("schedule_rules")
       .select("id, league_id, season_id, game_duration_minutes, buffer_minutes, min_hours_between_games, max_games_per_week, max_games_per_day, allowed_venue_ids, blackout_dates, preferred_start_times")
       .eq("league_id", leagueId)
@@ -119,6 +123,7 @@ export async function POST(
       .order("season_id", { ascending: false, nullsFirst: false })
       .limit(1)
       .single();
+    const scheduleRules = scheduleRulesResult.data;
 
     if (!scheduleRules) {
       throw ErrorResponses.badRequest("Schedule rules not configured for this league");
@@ -201,7 +206,8 @@ export async function POST(
     }
 
     // Step 8b: Create new game
-    const { data: newGame, error: createError } = (await supabase
+    // @ts-ignore
+    const newGameResult: any = await supabase
       .from("games")
       .insert({
         league_id: originalGame.league_id,
@@ -217,7 +223,9 @@ export async function POST(
         rescheduled_by: userId,
       })
       .select()
-      .single()) as any;
+      .single();
+    const newGame = newGameResult.data;
+    const createError = newGameResult.error;
 
     if (createError || !newGame) {
       console.error("[Reschedule API] Failed to create new game:", createError);
@@ -237,7 +245,8 @@ export async function POST(
     }
 
     // 9. Fetch team names, venue name, and division name for notification
-    const { data: gameDetails, error: detailsError } = await supabase
+    // @ts-ignore
+    const gameDetailsResult: any = await supabase
       .from("games")
       .select(
         `
@@ -251,6 +260,8 @@ export async function POST(
       )
       .eq("id", newGame.id)
       .single();
+    const gameDetails = gameDetailsResult.data;
+    const detailsError = gameDetailsResult.error;
 
     if (!detailsError && gameDetails) {
       // 10. Emit GameRescheduled event for notification system

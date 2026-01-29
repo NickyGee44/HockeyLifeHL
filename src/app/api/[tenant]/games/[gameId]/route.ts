@@ -129,31 +129,40 @@ export async function GET(
     const supabase = await createClient();
 
     // 4. Fetch game with full details
-    const { data: game, error: gameError } = (await supabase.from("games").select(`
+    // @ts-ignore
+    const gameResult: any = await supabase.from("games").select(`
         id, scheduled_at, status, home_score, away_score, season_id,
         home_team:teams!games_home_team_id_fkey(id, name, logo_url),
         away_team:teams!games_away_team_id_fkey(id, name, logo_url),
         venue:venues(id, name, address, city, state_province, postal_code),
         division:divisions(id, name), scorekeeper:profiles(id, name)
-      `).eq("id", gameId).eq("league_id", leagueId).single()) as any;
+      `).eq("id", gameId).eq("league_id", leagueId).single();
+    const game = gameResult.data;
+    const gameError = gameResult.error;
 
     if (gameError || !game) {
       throw ErrorResponses.notFound("Game");
     }
 
     // 5. Fetch team rosters
-    const { data: homeRoster } = (await supabase.from("team_memberships").select(`
+    // @ts-ignore
+    const homeRosterResult: any = await supabase.from("team_memberships").select(`
         player:profiles(id, name, jersey_number, position)
-      `).eq("team_id", game.home_team.id).eq("status", "active")) as any;
+      `).eq("team_id", game.home_team.id).eq("status", "active");
+    const homeRoster = homeRosterResult.data;
 
-    const { data: awayRoster } = (await supabase.from("team_memberships").select(`
+    // @ts-ignore
+    const awayRosterResult: any = await supabase.from("team_memberships").select(`
         player:profiles(id, name, jersey_number, position)
-      `).eq("team_id", game.away_team.id).eq("status", "active")) as any;
+      `).eq("team_id", game.away_team.id).eq("status", "active");
+    const awayRoster = awayRosterResult.data;
 
     // 6. Fetch player stats for this game
-    const { data: gameStats } = (await supabase.from("game_stats").select(`
+    // @ts-ignore
+    const gameStatsResult: any = await supabase.from("game_stats").select(`
         player_id, stat_type, value, team_id, player:profiles(id, name, jersey_number)
-      `).eq("game_id", gameId)) as any;
+      `).eq("game_id", gameId);
+    const gameStats = gameStatsResult.data;
 
     // 7. Aggregate player stats by team
     const homePlayerStats: Map<string, PlayerStats> = new Map();
