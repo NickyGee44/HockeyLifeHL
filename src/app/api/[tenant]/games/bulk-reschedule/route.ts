@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { validateTenantAccess } from "@/lib/api/tenant-validation";
 import { requireLeagueAdmin } from "@/lib/api/auth";
 import { handleApiError, ErrorResponses } from "@/lib/api/error-handling";
+import { emitBulkGameCancelled } from "@/lib/events";
 
 /**
  * Request body schema
@@ -191,7 +192,54 @@ export async function POST(
       );
     }
 
-    // 7. Success - all games postponed
+    // 7. Fetch game details for notifications
+    const { data: gameDetails, error: detailsError } = await supabase
+      .from("games")
+      .select(
+        `
+        id,
+        scheduled_at,
+        home_team:home_team_id(id, name),
+        away_team:away_team_id(id, name),
+        venue:venue_id(id, name),
+        division:division_id(id, name)
+      `
+      )
+      .in("id", gameIds);
+
+    if (!detailsError && gameDetails && gameDetails.length > 0) {
+      // 8. Emit bulk GameCancelled events for notification system
+      try {
+        const eventPayloads = gameDetails.map((game: any) => ({
+          gameId: game.id,
+          scheduledAt: game.scheduled_at,
+          reason: reason,
+          willReschedule: true, // Postponed games will be rescheduled
+          homeTeamId: game.home_team.id,
+          awayTeamId: game.away_team.id,
+          homeTeamName: game.home_team.name,
+          awayTeamName: game.away_team.name,
+          venueName: game.venue?.name || "TBD",
+          divisionName: game.division?.name || "TBD",
+        }));
+
+        emitBulkGameCancelled(
+          {
+            leagueId: leagueId,
+            userId: userId,
+            source: `POST /api/${tenant}/games/bulk-reschedule`,
+          },
+          eventPayloads
+        );
+
+        console.log(`[Bulk Reschedule API] Emitted ${eventPayloads.length} game cancelled events`);
+      } catch (eventError) {
+        // Don't fail the API request if event emission fails
+        console.error("[Bulk Reschedule API] Failed to emit events:", eventError);
+      }
+    }
+
+    // 9. Success - all games postponed
     console.log(
       `[Bulk Reschedule API] Successfully postponed ${gameIds.length} games for league ${leagueId}`
     );

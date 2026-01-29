@@ -23,6 +23,7 @@ import { requireLeagueAdmin } from "@/lib/api/auth";
 import { handleApiError, ErrorResponses } from "@/lib/api/error-handling";
 import { ConflictDetectionService } from "@/lib/games/conflict-detection.service";
 import type { SchedulingConflict, ScheduleRules } from "@/lib/games/conflict-detection.types";
+import { emitGameRescheduled } from "@/lib/events";
 
 /**
  * Request body schema
@@ -237,7 +238,53 @@ export async function POST(
       throw new Error("Failed to create rescheduled game. Transaction aborted.");
     }
 
-    // 9. Success - return new game ID and any warnings
+    // 9. Fetch team names, venue name, and division name for notification
+    const { data: gameDetails, error: detailsError } = await supabase
+      .from("games")
+      .select(
+        `
+        id,
+        scheduled_at,
+        home_team:home_team_id(id, name),
+        away_team:away_team_id(id, name),
+        venue:venue_id(id, name),
+        division:division_id(id, name)
+      `
+      )
+      .eq("id", newGame.id)
+      .single();
+
+    if (!detailsError && gameDetails) {
+      // 10. Emit GameRescheduled event for notification system
+      try {
+        emitGameRescheduled(
+          {
+            leagueId: leagueId,
+            userId: userId,
+            source: `POST /api/${tenant}/games/${gameId}/reschedule`,
+          },
+          {
+            gameId: newGame.id,
+            oldScheduledAt: originalGame.scheduled_at,
+            newScheduledAt: newGame.scheduled_at,
+            oldVenueId: originalGame.venue_id,
+            newVenueId: newGame.venue_id,
+            reason: reason,
+            homeTeamId: gameDetails.home_team.id,
+            awayTeamId: gameDetails.away_team.id,
+            homeTeamName: gameDetails.home_team.name,
+            awayTeamName: gameDetails.away_team.name,
+            venueName: gameDetails.venue?.name || "TBD",
+            divisionName: gameDetails.division?.name || "TBD",
+          }
+        );
+      } catch (eventError) {
+        // Don't fail the API request if event emission fails
+        console.error("[Reschedule API] Failed to emit event:", eventError);
+      }
+    }
+
+    // 11. Success - return new game ID and any warnings
     return NextResponse.json({
       success: true,
       newGameId: newGame.id,

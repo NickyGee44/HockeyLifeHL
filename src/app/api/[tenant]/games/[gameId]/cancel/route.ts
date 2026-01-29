@@ -26,6 +26,7 @@ import { createClient } from "@/lib/supabase/server";
 import { validateTenantAccess } from "@/lib/api/tenant-validation";
 import { requireLeagueAdmin } from "@/lib/api/auth";
 import { handleApiError, ErrorResponses } from "@/lib/api/error-handling";
+import { emitGameCancelled } from "@/lib/events";
 
 /**
  * Request body schema
@@ -159,7 +160,55 @@ export async function POST(
       throw new Error(`Failed to cancel game: ${cancelError?.message || "Unknown error"}`);
     }
 
-    // 6. Success
+    // 6. Fetch game details for notification
+    const { data: gameDetails, error: detailsError } = await supabase
+      .from("games")
+      .select(
+        `
+        id,
+        scheduled_at,
+        home_team:home_team_id(id, name),
+        away_team:away_team_id(id, name),
+        venue:venue_id(id, name),
+        division:division_id(id, name)
+      `
+      )
+      .eq("id", gameId)
+      .single();
+
+    if (!detailsError && gameDetails) {
+      // 7. Emit GameCancelled event for notification system
+      try {
+        // Determine if game will be rescheduled (postponed) or permanently cancelled
+        const willReschedule = game.status === "postponed";
+
+        emitGameCancelled(
+          {
+            leagueId: leagueId,
+            userId: userId,
+            source: `POST /api/${tenant}/games/${gameId}/cancel`,
+          },
+          {
+            gameId: gameId,
+            scheduledAt: gameDetails.scheduled_at,
+            reason: reason,
+            willReschedule: willReschedule,
+            homeTeamId: gameDetails.home_team.id,
+            awayTeamId: gameDetails.away_team.id,
+            homeTeamName: gameDetails.home_team.name,
+            awayTeamName: gameDetails.away_team.name,
+            venueName: gameDetails.venue?.name || "TBD",
+            divisionName: gameDetails.division?.name || "TBD",
+            notes: notes,
+          }
+        );
+      } catch (eventError) {
+        // Don't fail the API request if event emission fails
+        console.error("[Cancel Game API] Failed to emit event:", eventError);
+      }
+    }
+
+    // 8. Success
     console.log(`[Cancel Game API] Successfully cancelled game ${gameId} for league ${leagueId}`);
 
     return NextResponse.json({

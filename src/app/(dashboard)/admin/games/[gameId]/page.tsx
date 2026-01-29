@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, Calendar, X, Clock, MapPin, Users } from "lucide-react";
+import { Loader2, AlertCircle, Calendar, X, Clock, MapPin, Users, Mail, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { parseISO, format } from "date-fns";
 
 /**
@@ -138,6 +138,10 @@ export default function GameDetailPage() {
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
+  // Notifications
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
   /**
    * Fetch game details
    */
@@ -167,13 +171,39 @@ export default function GameDetailPage() {
 
   useEffect(() => {
     fetchGameDetails();
+    fetchNotifications();
   }, [gameId]);
+
+  /**
+   * Fetch notifications for this game
+   */
+  const fetchNotifications = async () => {
+    setNotificationsLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/${tenantSlug}/notifications?related_entity_type=game&related_entity_id=${gameId}&limit=50`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch notifications");
+      }
+
+      const data = await response.json();
+      setNotifications(data.notifications || []);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
 
   /**
    * Handle successful reschedule/cancel
    */
   const handleActionSuccess = () => {
     fetchGameDetails(); // Refresh game data
+    fetchNotifications(); // Refresh notifications
   };
 
   if (loading) {
@@ -472,6 +502,90 @@ export default function GameDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Notifications Log */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Notifications Sent
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchNotifications}
+              disabled={notificationsLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${notificationsLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {notificationsLoading ? (
+              <div className="py-8 text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading notifications...</p>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="py-8 text-center">
+                <Mail className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  No notifications have been sent for this game.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notifications.map((notification: any) => (
+                  <div
+                    key={notification.id}
+                    className="p-3 rounded-lg border bg-slate-50"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          {notification.status === "sent" ? (
+                            <Badge className="bg-green-600">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Sent
+                            </Badge>
+                          ) : notification.status === "failed" ? (
+                            <Badge variant="destructive">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Failed
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {notification.status}
+                            </Badge>
+                          )}
+                          <span className="text-sm font-medium">
+                            {notification.type.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                          </span>
+                        </div>
+                        {notification.subject && (
+                          <p className="text-sm">{notification.subject}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          To: {notification.recipient_email || notification.recipient_name || "Unknown"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {notification.sent_at
+                            ? `Sent: ${format(parseISO(notification.sent_at), "MMM d, yyyy h:mm a")}`
+                            : `Created: ${format(parseISO(notification.created_at), "MMM d, yyyy h:mm a")}`}
+                        </p>
+                        {notification.failure_reason && (
+                          <p className="text-xs text-red-600">
+                            Error: {notification.failure_reason}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Dialogs */}
