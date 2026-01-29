@@ -116,7 +116,7 @@ export async function POST(
       .select("id, league_id, season_id, game_duration_minutes, buffer_minutes, min_hours_between_games, max_games_per_week, max_games_per_day, allowed_venue_ids, blackout_dates, preferred_start_times")
       .eq("league_id", leagueId)
       .or(`season_id.eq.${originalGame.season_id},season_id.is.null`)
-      .order("season_id", { ascending: false, nullsLast: true })
+      .order("season_id", { ascending: false, nullsFirst: false })
       .limit(1)
       .single();
 
