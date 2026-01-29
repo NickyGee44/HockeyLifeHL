@@ -197,14 +197,14 @@ export function RescheduleDialog({
   /**
    * Get conflict variant by severity
    */
-  const getConflictVariant = (severity: "error" | "warning" | "info") => {
+  const getConflictVariant = (severity: "error" | "warning" | "info"): "default" | "destructive" => {
     switch (severity) {
       case "error":
         return "destructive";
       case "warning":
         return "default";
       case "info":
-        return "secondary";
+        return "default";
     }
   };
 

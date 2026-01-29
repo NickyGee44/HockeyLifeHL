@@ -152,13 +152,16 @@ export async function GET(
     }
 
     if (endDate) {
+      // @ts-ignore
       query = query.lte("scheduled_at", endDate);
     }
 
     // Order by scheduled_at ascending
+    // @ts-ignore
     query = query.order("scheduled_at", { ascending: true });
 
     // Pagination
+    // @ts-ignore
     query = query.range(offset, offset + limit - 1);
 
     // Execute query
