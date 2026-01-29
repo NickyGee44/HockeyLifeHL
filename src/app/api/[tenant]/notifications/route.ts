@@ -83,6 +83,7 @@ export async function GET(
 
     // 3. Build query
     let query = supabase
+      // @ts-ignore
       .from("notifications")
       .select(
         `

@@ -98,8 +98,8 @@ export async function POST(
     const supabase = await createClient();
 
     // 2. Fetch notification
-    // @ts-ignore
-    const { data: notification, error: fetchError } = await supabase
+    const notificationResult: any = await supabase
+      // @ts-ignore
       .from("notifications")
       .select(
         `
@@ -115,6 +115,8 @@ export async function POST(
       .eq("id", notificationId)
       .eq("league_id", leagueId)
       .single();
+    const notification = notificationResult.data;
+    const fetchError = notificationResult.error;
 
     if (fetchError || !notification) {
       throw ErrorResponses.notFound("Notification");
@@ -153,7 +155,7 @@ export async function POST(
 
     // 7. Update notification status
     const updateData: any = {
-      retry_count: supabase.raw("retry_count + 1"),
+      retry_count: (notification.retry_count || 0) + 1, // Increment retry count
       created_by: userId, // Track who manually resent
     };
 

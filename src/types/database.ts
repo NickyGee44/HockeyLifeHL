@@ -1322,6 +1322,157 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          id: string
+          league_id: string
+          user_id: string
+          type: string
+          channel: string
+          subject: string | null
+          body: string
+          template_id: string | null
+          template_data: Json | null
+          status: string | null
+          sent_at: string | null
+          failed_at: string | null
+          failure_reason: string | null
+          retry_count: number | null
+          related_entity_type: string | null
+          related_entity_id: string | null
+          created_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          league_id: string
+          user_id: string
+          type: string
+          channel: string
+          subject?: string | null
+          body: string
+          template_id?: string | null
+          template_data?: Json | null
+          status?: string | null
+          sent_at?: string | null
+          failed_at?: string | null
+          failure_reason?: string | null
+          retry_count?: number | null
+          related_entity_type?: string | null
+          related_entity_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          league_id?: string
+          user_id?: string
+          type?: string
+          channel?: string
+          subject?: string | null
+          body?: string
+          template_id?: string | null
+          template_data?: Json | null
+          status?: string | null
+          sent_at?: string | null
+          failed_at?: string | null
+          failure_reason?: string | null
+          retry_count?: number | null
+          related_entity_type?: string | null
+          related_entity_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_templates: {
+        Row: {
+          id: string
+          league_id: string | null
+          template_id: string
+          name: string
+          description: string | null
+          channel: string
+          subject: string | null
+          body: string
+          html_body: string | null
+          required_variables: string[] | null
+          active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          league_id?: string | null
+          template_id: string
+          name: string
+          description?: string | null
+          channel: string
+          subject?: string | null
+          body: string
+          html_body?: string | null
+          required_variables?: string[] | null
+          active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          league_id?: string | null
+          template_id?: string
+          name?: string
+          description?: string | null
+          channel?: string
+          subject?: string | null
+          body?: string
+          html_body?: string | null
+          required_variables?: string[] | null
+          active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leagues: {
         Row: {
           accent_color: string | null
