@@ -11,6 +11,7 @@ import { IceRinkDivider } from "@/components/marketing/IceRinkDivider";
 import { Check, ArrowRight, Trophy, Users, BarChart3, CreditCard, Calendar, Sparkles, Mail, Phone, Building } from "lucide-react";
 import { platformConfig } from "@/lib/league-config";
 import { AuroraText } from "@/components/magicui/aurora-text";
+import Safari_01 from "@/components/ui/safari-01";
 
 export default function MarketingPage() {
   return (
@@ -47,46 +48,67 @@ export default function MarketingPage() {
           </div>
 
           <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-5xl mx-auto text-center">
-              <Badge variant="outline" className="mb-8 px-5 py-2 border-[#1F4FD8]/30 text-[#1F4FD8] bg-[#1F4FD8]/5 font-semibold text-base">
-                🏒 Built for Beer Leaguers, By Beer Leaguers
-              </Badge>
-              <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-black tracking-tight mb-8 leading-[0.95]">
-                Run Your Hockey League{" "}
-                <AuroraText
-                  className="block mt-4"
-                  colors={["#1F4FD8", "#D72638", "#FFD700", "#1F4FD8"]}
-                  speed={1.5}
-                >
-                  Like a Pro
-                </AuroraText>
-              </h1>
-              <p className="text-2xl md:text-3xl text-[#7B8794] mb-12 max-w-4xl mx-auto leading-relaxed font-light dark:text-gray-300">
-                Modern drafts, real-time stats, and seamless payments.
-                Everything you need to focus on the game, not the paperwork.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-5 justify-center">
-                <Button size="lg" className="text-xl h-16 px-12 bg-[#1F4FD8] hover:bg-[#1F4FD8]/90 text-white shadow-2xl hover:shadow-3xl transition-all font-bold" asChild>
-                  <Link href="#contact">
-                    Get Started <ArrowRight className="ml-2 h-6 w-6" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="text-xl h-16 px-12 bg-white border-2 border-[#E6EBF2] hover:border-[#1F4FD8]/50 hover:bg-[#F7FAFC] font-semibold" asChild>
-                  <Link href="https://pilot.beerleaguehockey.ca">
-                    View Demo League
-                  </Link>
-                </Button>
+            {/* Two-column layout on large screens, stacked on mobile */}
+            <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center lg:items-start gap-12 lg:gap-16">
+
+              {/* Left side - Text content */}
+              <div className="flex-1 text-center lg:text-left max-w-2xl">
+                <Badge variant="outline" className="mb-8 px-5 py-2 border-[#1F4FD8]/30 text-[#1F4FD8] bg-[#1F4FD8]/5 font-semibold text-base">
+                  🏒 Built for Beer Leaguers, By Beer Leaguers
+                </Badge>
+                <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-black tracking-tight mb-8 leading-[0.95]">
+                  Run Your Hockey League{" "}
+                  <AuroraText
+                    className="block mt-4"
+                    colors={["#1F4FD8", "#D72638", "#FFD700", "#1F4FD8"]}
+                    speed={1.5}
+                  >
+                    Like a Pro
+                  </AuroraText>
+                </h1>
+                <p className="text-xl md:text-2xl text-[#7B8794] mb-12 leading-relaxed font-light dark:text-gray-300">
+                  Modern drafts, real-time stats, and seamless payments.
+                  Everything you need to focus on the game, not the paperwork.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
+                  <Button size="lg" className="text-xl h-16 px-12 bg-[#1F4FD8] hover:bg-[#1F4FD8]/90 text-white shadow-2xl hover:shadow-3xl transition-all font-bold" asChild>
+                    <Link href="#contact">
+                      Get Started <ArrowRight className="ml-2 h-6 w-6" />
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" className="text-xl h-16 px-12 bg-white border-2 border-[#E6EBF2] hover:border-[#1F4FD8]/50 hover:bg-[#F7FAFC] font-semibold" asChild>
+                    <Link href="https://pilot.beerleaguehockey.ca">
+                      View Demo League
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Floating accent elements */}
+                <div className="mt-16 flex gap-4 justify-center lg:justify-start flex-wrap">
+                  <div className="bg-[#16C784] text-white px-5 py-2.5 rounded-full text-sm md:text-base font-bold shadow-lg">
+                    🏒 Professional Tools
+                  </div>
+                  <div className="bg-[#1F4FD8] text-white px-5 py-2.5 rounded-full text-sm md:text-base font-bold shadow-lg">
+                    ⚡ Setup in Minutes
+                  </div>
+                </div>
               </div>
 
-              {/* Floating accent elements */}
-              <div className="mt-16 flex justify-center gap-8">
-                <div className="bg-[#16C784] text-white px-5 py-2.5 rounded-full text-base font-bold shadow-lg">
-                  🏒 Professional Tools
-                </div>
-                <div className="bg-[#1F4FD8] text-white px-5 py-2.5 rounded-full text-base font-bold shadow-lg">
-                  ⚡ Setup in Minutes
-                </div>
+              {/* Right side - Safari browser preview */}
+              <div className="flex-1 w-full max-w-3xl">
+                <Link
+                  href="https://pilot.beerleaguehockey.ca"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block cursor-pointer hover:scale-[1.02] transition-transform duration-300"
+                >
+                  <Safari_01
+                    image="/pilot_league.png"
+                    className="shadow-2xl border-2 border-zinc-300/50 dark:border-zinc-700/50 hover:shadow-3xl transition-shadow"
+                  />
+                </Link>
               </div>
+
             </div>
           </div>
         </section>

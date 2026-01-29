@@ -13,7 +13,7 @@ const Safari_01: React.FC<Safari_01Props> = ({ image, className }) => {
   return (
     <div
       className={cn(
-        "min-w-[700px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-muted shadow-md overflow-hidden",
+        "w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-muted shadow-md overflow-hidden",
         className
       )}
     >
