@@ -107,6 +107,7 @@ async function getCaptainsForGame(
 ): Promise<Array<{ userId: string; email: string; name: string; teamName: string }>> {
   const supabase = await createClient();
 
+  // @ts-ignore
   const { data, error } = await supabase.rpc("get_captain_user_ids_for_game", {
     p_game_id: gameId,
   });
@@ -116,7 +117,8 @@ async function getCaptainsForGame(
     return [];
   }
 
-  if (!data || data.length === 0) {
+  const captainData = data as any[];
+  if (!captainData || captainData.length === 0) {
     console.warn(`[NotificationService] No captains found for game ${gameId}`);
     return [];
   }
@@ -125,7 +127,7 @@ async function getCaptainsForGame(
   const { data: profiles, error: profileError } = await supabase
     .from("profiles")
     .select("id, email, full_name")
-    .in("id", data);
+    .in("id", captainData);
 
   if (profileError) {
     console.error("[NotificationService] Error fetching captain profiles:", profileError);
@@ -157,7 +159,7 @@ async function getCaptainsForGame(
   const membershipsResult: any = await supabase
     .from("league_memberships")
     .select("user_id, team_id, teams(name)")
-    .in("user_id", data)
+    .in("user_id", captainData)
     .eq("role", "captain");
   const memberships = membershipsResult.data;
   const membershipError = membershipsResult.error;

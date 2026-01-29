@@ -3887,6 +3887,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_expired_sessions: { Args: never; Returns: number }
+      get_captain_user_ids_for_game: {
+        Args: { p_game_id: string }
+        Returns: string[]
+      }
       confirm_user_email: { Args: { user_id: string }; Returns: undefined }
       get_active_league_sponsors: {
         Args: { check_league_id: string }
