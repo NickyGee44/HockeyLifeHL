@@ -4015,7 +4015,7 @@ export type Database = {
         | "draft_grades"
         | "announcement"
       draft_status: "pending" | "in_progress" | "completed"
-      game_status: "scheduled" | "in_progress" | "completed" | "cancelled"
+      game_status: "scheduled" | "in_progress" | "completed" | "cancelled" | "postponed"
       opt_in_type: "full_time" | "call_up"
       payment_method: "cash" | "e_transfer" | "stripe" | "check" | "other"
       payment_status: "pending" | "completed" | "refunded" | "failed"
@@ -4169,7 +4169,7 @@ export const Constants = {
         "announcement",
       ],
       draft_status: ["pending", "in_progress", "completed"],
-      game_status: ["scheduled", "in_progress", "completed", "cancelled"],
+      game_status: ["scheduled", "in_progress", "completed", "cancelled", "postponed"],
       opt_in_type: ["full_time", "call_up"],
       payment_method: ["cash", "e_transfer", "stripe", "check", "other"],
       payment_status: ["pending", "completed", "refunded", "failed"],
