@@ -86,7 +86,7 @@ export async function POST(
     // 3. Fetch original game
     const { data: originalGame, error: gameError } = await supabase
       .from("games")
-      .select("*")
+      .select("id, status, season_id, home_team_id, away_team_id, venue_id, scorekeeper_id, league_id, division_id, scheduled_at")
       .eq("id", gameId)
       .eq("league_id", leagueId)
       .single();
@@ -111,14 +111,14 @@ export async function POST(
     }
 
     // 5. Fetch schedule rules for conflict detection
-    const { data: scheduleRules } = (await supabase
+    const { data: scheduleRules } = await supabase
       .from("schedule_rules")
-      .select("*")
+      .select("id, league_id, season_id, game_duration_minutes, buffer_minutes, min_hours_between_games, max_games_per_week, max_games_per_day, allowed_venue_ids, blackout_dates, preferred_start_times")
       .eq("league_id", leagueId)
       .or(`season_id.eq.${originalGame.season_id},season_id.is.null`)
       .order("season_id", { ascending: false, nullsLast: true })
       .limit(1)
-      .single()) as any;
+      .single();
 
     if (!scheduleRules) {
       throw ErrorResponses.badRequest("Schedule rules not configured for this league");

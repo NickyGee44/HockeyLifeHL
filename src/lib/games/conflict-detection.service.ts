@@ -495,7 +495,7 @@ export class ConflictDetectionService {
   ): Promise<ScheduleRules | null> {
     let query = this.supabase
       .from("schedule_rules")
-      .select("*")
+      .select("id, league_id, season_id, game_duration_minutes, buffer_minutes, min_hours_between_games, max_games_per_week, max_games_per_day, allowed_venue_ids, blackout_dates, preferred_start_times")
       .eq("league_id", leagueId);
 
     if (seasonId) {
