@@ -84,12 +84,12 @@ export async function POST(
     const supabase = await createClient();
 
     // 3. Fetch original game
-    const { data: originalGame, error: gameError } = await supabase
+    const { data: originalGame, error: gameError } = (await supabase
       .from("games")
-      .select("id, status, season_id, home_team_id, away_team_id, venue_id, scorekeeper_id, league_id, division_id, scheduled_at")
+      .select("id, status, season_id, home_team_id, away_team_id, location, league_id, scheduled_at, rescheduled_from, reschedule_reason, rescheduled_at, rescheduled_by, cancelled_at, cancelled_by, cancellation_reason")
       .eq("id", gameId)
       .eq("league_id", leagueId)
-      .single();
+      .single()) as any;
 
     if (gameError || !originalGame) {
       throw ErrorResponses.notFound("Game");
@@ -146,13 +146,13 @@ export async function POST(
       id: undefined, // New game, no ID yet
       homeTeamId: originalGame.home_team_id,
       awayTeamId: originalGame.away_team_id,
-      venueId: venueId || originalGame.venue_id,
-      scorekeeperId: scorekeeperId || originalGame.scorekeeper_id,
+      venueId: venueId, // Optional venue ID
+      scorekeeperId: scorekeeperId, // Optional scorekeeper ID
       scheduledAt: newDate,
       status: "scheduled" as const,
       leagueId: originalGame.league_id,
       seasonId: originalGame.season_id,
-      divisionId: originalGame.division_id,
+      divisionId: undefined, // Division ID may not be on games table yet
     };
 
     const conflictResult = await conflictService.checkGameConflicts(newGameData, rules);
@@ -201,16 +201,14 @@ export async function POST(
     }
 
     // Step 8b: Create new game
-    const { data: newGame, error: createError } = await supabase
+    const { data: newGame, error: createError } = (await supabase
       .from("games")
       .insert({
         league_id: originalGame.league_id,
         season_id: originalGame.season_id,
-        division_id: originalGame.division_id,
         home_team_id: originalGame.home_team_id,
         away_team_id: originalGame.away_team_id,
-        venue_id: venueId || originalGame.venue_id,
-        scorekeeper_id: scorekeeperId || originalGame.scorekeeper_id,
+        location: originalGame.location, // Use location (TEXT) instead of venue_id
         scheduled_at: newDate.toISOString(),
         status: "scheduled",
         rescheduled_from: originalGame.id,
@@ -270,14 +268,12 @@ export async function POST(
             gameId: newGame.id,
             oldScheduledAt: originalGame.scheduled_at,
             newScheduledAt: newGame.scheduled_at,
-            oldVenueId: originalGame.venue_id,
-            newVenueId: newGame.venue_id,
             reason: reason,
             homeTeamId: details.home_team.id,
             awayTeamId: details.away_team.id,
             homeTeamName: details.home_team.name,
             awayTeamName: details.away_team.name,
-            venueName: details.venue?.name || "TBD",
+            venueName: details.venue?.name || originalGame.location || "TBD",
             divisionName: details.division?.name || "TBD",
           }
         );
