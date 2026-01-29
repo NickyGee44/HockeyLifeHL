@@ -111,14 +111,16 @@ export async function POST(
     }
 
     // 5. Fetch schedule rules for conflict detection
-    const { data: scheduleRules } = (await supabase
+    const scheduleRulesResult: any = await supabase
       .from("schedule_rules")
       .select("id, league_id, season_id, game_duration_minutes, buffer_minutes, min_hours_between_games, max_games_per_week, max_games_per_day, allowed_venue_ids, blackout_dates, preferred_start_times")
       .eq("league_id", leagueId)
       .or(`season_id.eq.${originalGame.season_id},season_id.is.null`)
       .order("season_id", { ascending: false, nullsLast: true })
       .limit(1)
-      .single()) as any;
+      .single();
+
+    const scheduleRules = scheduleRulesResult.data;
 
     if (!scheduleRules) {
       throw ErrorResponses.badRequest("Schedule rules not configured for this league");
