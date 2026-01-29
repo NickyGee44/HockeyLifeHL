@@ -1,8 +1,13 @@
+import 'dotenv/config';
 import postgres from 'postgres';
 
-// Connection string from .env.local (URL encoded password)
-// Password: REDACTED_PASSWORD -> URL encoded: REDACTED_PASSWORD
-const connectionString = 'REDACTED_DB_CONNECTION';
+const connectionString = process.env.SUPABASE_DB_URL;
+
+if (!connectionString) {
+  console.error('Error: SUPABASE_DB_URL environment variable not set');
+  console.error('Please set this in .env.local');
+  process.exit(1);
+}
 
 const sql = postgres(connectionString, {
   ssl: 'require',

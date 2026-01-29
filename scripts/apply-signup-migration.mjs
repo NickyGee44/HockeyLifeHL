@@ -1,8 +1,15 @@
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 
-const supabaseUrl = 'https://ntplczcmhvfkijjxavdl.supabase.co';
-const supabaseKey = 'REDACTED_SERVICE_KEY';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Error: Missing required environment variables');
+  console.error('Please ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in .env.local');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -125,10 +132,12 @@ SET search_path = '';
       // Import postgres client
       const { default: postgres } = await import('postgres');
 
-      const sql = postgres(
-        'REDACTED_DB_CONNECTION',
-        { ssl: 'require' }
-      );
+      const dbUrl = process.env.SUPABASE_DB_URL;
+      if (!dbUrl) {
+        throw new Error('SUPABASE_DB_URL environment variable not set');
+      }
+
+      const sql = postgres(dbUrl, { ssl: 'require' });
 
       await sql.unsafe(functionSQL);
       await sql.end();
