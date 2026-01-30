@@ -19,8 +19,8 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card/50">
-      <div className="container mx-auto px-4 py-12">
+    <footer className="border-t border-[#E6EBF2] py-16 bg-white">
+      <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-2">
@@ -36,24 +36,24 @@ export function Footer() {
                 {platformConfig.name}
               </span>
             </Link>
-            <p className="text-muted-foreground mb-4 max-w-md">
+            <p className="text-[#7B8794] text-sm leading-relaxed mb-4 max-w-md">
               The ultimate men&apos;s recreational hockey league.
               Where legends are made, rivalries are born, and beers are earned.
             </p>
-            <p className="text-gold font-semibold">
+            <p className="text-[#1F4FD8] font-semibold">
               🍁 {platformConfig.slogan} 🍺
             </p>
           </div>
 
           {/* League Links */}
           <div>
-            <h3 className="font-display text-lg font-semibold mb-4">League</h3>
-            <ul className="space-y-2">
+            <h3 className="font-bold text-[#0B1220] mb-4">League</h3>
+            <ul className="space-y-2.5 text-sm text-[#7B8794]">
               {footerLinks.league.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="hover:text-[#1F4FD8] transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -64,13 +64,13 @@ export function Footer() {
 
           {/* Info Links */}
           <div>
-            <h3 className="font-display text-lg font-semibold mb-4">Info</h3>
-            <ul className="space-y-2">
+            <h3 className="font-bold text-[#0B1220] mb-4">Info</h3>
+            <ul className="space-y-2.5 text-sm text-[#7B8794]">
               {footerLinks.info.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="hover:text-[#1F4FD8] transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -81,15 +81,15 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="border-t border-[#E6EBF2] mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-[#7B8794]">
             © {new Date().getFullYear()} {platformConfig.name}. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/privacy" className="hover:text-foreground transition-colors">
+          <div className="flex items-center gap-4 text-sm text-[#7B8794]">
+            <Link href="/privacy" className="hover:text-[#1F4FD8] transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="hover:text-foreground transition-colors">
+            <Link href="/terms" className="hover:text-[#1F4FD8] transition-colors">
               Terms of Service
             </Link>
           </div>
