@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,18 @@ import {
   MapPin,
   Shield,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { generateTestData, removeAllTestData } from "@/lib/admin/test-data-actions";
 import { toast } from "sonner";
 import { useActiveLeague } from "@/hooks/use-league";
+import { getUserLeagues, setActiveLeagueId } from "@/lib/auth/league-context";
+import { useRouter } from "next/navigation";
 
 /**
  * Admin Test Suite
@@ -41,9 +50,22 @@ import { useActiveLeague } from "@/hooks/use-league";
  */
 
 export default function AdminTestSuitePage() {
-  const { leagueId, leagueSlug, leagueName } = useActiveLeague();
+  const { leagueId, leagueSlug, leagueName, isLoading } = useActiveLeague();
+  const router = useRouter();
   const [generating, setGenerating] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [leagues, setLeagues] = useState<any[]>([]);
+  const [loadingLeagues, setLoadingLeagues] = useState(true);
+
+  // Load user's leagues on mount
+  useEffect(() => {
+    async function loadLeagues() {
+      const result = await getUserLeagues();
+      setLeagues(result.leagues || []);
+      setLoadingLeagues(false);
+    }
+    loadLeagues();
+  }, []);
 
   const handleGenerateTestData = async () => {
     setGenerating(true);
@@ -68,6 +90,16 @@ export default function AdminTestSuitePage() {
     setRemoving(false);
   };
 
+  const handleLeagueChange = async (newLeagueId: string) => {
+    const result = await setActiveLeagueId(newLeagueId);
+    if (result.success) {
+      toast.success("League switched successfully");
+      router.refresh();
+    } else {
+      toast.error(result.error || "Failed to switch league");
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Header */}
@@ -82,14 +114,65 @@ export default function AdminTestSuitePage() {
           </div>
         </div>
 
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Active League:</strong> {leagueName || "Not loaded"} ({leagueSlug || "N/A"})
-            <br />
-            <strong>Note:</strong> This page is for testing only. All features bypass authentication.
-          </AlertDescription>
-        </Alert>
+        <Card className="border-2 border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Select Active League for Testing:</label>
+                {loadingLeagues || isLoading ? (
+                  <div className="h-10 bg-muted animate-pulse rounded-md" />
+                ) : leagues.length === 0 ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      No leagues found. Please create or join a league first.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Select value={leagueId || ""} onValueChange={handleLeagueChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a league..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leagues.map((membership: any) => (
+                        <SelectItem key={membership.league_id} value={membership.league_id}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{membership.league.name}</span>
+                            <span className="text-xs text-muted-foreground">({membership.league.slug})</span>
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {membership.role}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {leagueId && (
+                <div className="text-sm space-y-1 p-3 bg-background rounded-md border">
+                  <p>
+                    <strong>Active League:</strong> {leagueName || "Loading..."}
+                  </p>
+                  <p>
+                    <strong>Slug:</strong> {leagueSlug || "N/A"}
+                  </p>
+                  <p>
+                    <strong>League ID:</strong> <code className="text-xs bg-muted px-1 py-0.5 rounded">{leagueId}</code>
+                  </p>
+                </div>
+              )}
+
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Note:</strong> This page is for testing only. All features bypass authentication.
+                </AlertDescription>
+              </Alert>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Test Data Management */}
