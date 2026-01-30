@@ -300,16 +300,16 @@ export function PlatformDashboard() {
                 Browse Leagues
               </Button>
             </Link>
-            <Link href="/profile">
+            <Link href="/dashboard/profile">
               <Button variant="outline" className="w-full justify-start">
                 <Shield className="mr-2 h-4 w-4" />
                 Edit Profile
               </Button>
             </Link>
-            <Link href="/settings">
+            <Link href="/dashboard/profile/sessions">
               <Button variant="outline" className="w-full justify-start">
                 <Calendar className="mr-2 h-4 w-4" />
-                Settings
+                Sessions
               </Button>
             </Link>
           </div>
