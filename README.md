@@ -171,30 +171,39 @@ npx tsc --noEmit
 
 ## Current Status
 
-**Overall Progress:** 65% Complete
+**Overall Progress:** ~70% Complete
+**Production Status:** ✅ LIVE at https://beerleaguehockey.ca
+**Last Deployment:** 2026-01-29
 
 **Completed:**
 - ✅ Multi-tenant database architecture (100%)
-- ✅ Core league management features
-- ✅ Scorekeeper system with offline support
-- ✅ Stripe Connect payment integration
-- ✅ Player dashboard and stats tracking
-- ✅ Admin panels
+- ✅ Core league management features (100%)
+- ✅ Scorekeeper system with offline support (100%)
+- ✅ Stripe Connect payment integration (100%)
+- ✅ Player dashboard and stats tracking (100%)
+- ✅ Admin panels (100%)
+- ✅ **Phase 1A: Schedule Management** (100%) - NEW!
+  - Game rescheduling with conflict detection
+  - Bulk postpone operations
+  - Optimistic locking for concurrent updates
+- ✅ **Phase 1B: Notification System** (100%) - NEW!
+  - Event-driven email notifications
+  - Automatic captain notifications for reschedules/cancellations
+  - Admin notification log with manual resend
+- ✅ Multi-tenant branding (100%)
+- ✅ Free agent signup system (100%)
 
 **In Progress:**
-- 🔄 New feature migrations (sponsors, discovery, registration types)
-- 🔄 Public league discovery pages
-- 🔄 Non-draft registration flows
-- 🔄 Sponsor display components
+- ⏳ Phase 1C: Admin Ops Console (inline editing, bulk ops)
+- ⏳ Phase 1D: Scorekeeper enhancements (event sourcing)
 
 **Next Steps:**
-1. Execute new feature migrations (see `RUN_NEW_FEATURE_MIGRATIONS.md`)
-2. Regenerate TypeScript types
-3. Build public league discovery UI
-4. Implement sponsor management UI
-5. Add non-draft team registration flow
+1. User acceptance testing for Phase 1A + 1B
+2. Configure Resend email service in production
+3. Begin Phase 1C planning and implementation
+4. Set up monitoring and error tracking
 
-See `MULTI_TENANT_PROGRESS_TRACKER.md` for detailed progress tracking.
+See `PROJECT_MASTER.md` for comprehensive project documentation and `BMHL_PHASE_1AB_PRODUCTION_DEPLOYMENT.md` for latest deployment details.
 
 ## Contributing
 
