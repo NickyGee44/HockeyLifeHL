@@ -11,6 +11,7 @@
     "test:data:create": "tsx scripts/create-test-leagues.ts create",
     "test:data:reset": "tsx scripts/create-test-leagues.ts reset",
     "generate:testdata": "tsx scripts/generate-test-data.ts",
+    "add:user": "tsx scripts/add-user-to-league.ts",
     "setup:supabase": "echo 'See SUPABASE_CLI_SETUP.md for instructions'"
   },
   "dependencies": {
