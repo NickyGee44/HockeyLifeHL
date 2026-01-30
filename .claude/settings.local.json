@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(pnpm install:*)",
+      "Bash(test:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(turbo --version:*)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__generate_typescript_types",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dev:builder:*)",
+      "Bash(timeout /t 10)",
+      "Bash(ping:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(cmd.exe /c \"taskkill /PID 171660 /F\")",
+      "Bash(powershell -Command \"Stop-Process -Id 171660 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 178592 -Force\")",
+      "Bash(git add:*)"
+    ]
+  }
+}
