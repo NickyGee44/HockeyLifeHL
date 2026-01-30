@@ -79,8 +79,7 @@ export function PlatformDashboard() {
           )
         `)
         .eq("user_id", user.id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
+        .eq("status", "active");
 
       if (membershipError) throw membershipError;
 
