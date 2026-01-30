@@ -46,15 +46,11 @@ export function useActiveLeague() {
               return;
             }
 
-            // If we're on platform domain (no league detected), DON'T auto-select
+            // If we're on platform domain (no league detected), continue to check cookie
             if (data.isPlatform) {
-              console.log('[useActiveLeague] On platform domain - no league context');
+              console.log('[useActiveLeague] On platform domain - checking cookie for active league');
               isPlatformDomain = true;
-              setLeagueId(null);
-              setLeagueSlug(null);
-              setLeagueName(null);
-              setIsLoading(false);
-              return;
+              // Don't return early - let it check the cookie below
             }
           }
         } catch (apiError) {
@@ -62,13 +58,7 @@ export function useActiveLeague() {
           // Continue with other methods if API fails
         }
 
-        // If we're on platform domain, stop here (don't auto-select a league)
-        if (isPlatformDomain) {
-          setIsLoading(false);
-          return;
-        }
-
-        // 3. Get active league from server cookie (only if NOT on platform domain)
+        // 3. Get active league from server cookie (works on both platform and league domains)
         const activeId = await getActiveLeagueId();
 
         if (activeId) {
