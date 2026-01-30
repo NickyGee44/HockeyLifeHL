@@ -59,44 +59,82 @@ async function generateTestData() {
 
     console.log(`✓ Found league: ${league.name} (${league.slug})\n`);
 
-    // Create a test season
+    // Create a test season (or use existing)
     console.log('Creating test season...');
-    const { data: season, error: seasonError } = await supabase
+
+    let season;
+    const seasonName = `Test Season ${new Date().getFullYear()}`;
+
+    // Check if season already exists
+    const { data: existingSeason } = await supabase
       .from('seasons')
-      .insert({
-        league_id: leagueId,
-        name: 'Test Season 2026',
-        status: 'active',
-        start_date: '2026-01-01',
-        end_date: '2026-06-01',
-      })
       .select()
+      .eq('league_id', leagueId)
+      .eq('name', seasonName)
       .single();
 
-    if (seasonError) throw seasonError;
-    console.log(`✓ Created season: ${season.name}\n`);
+    if (existingSeason) {
+      console.log(`✓ Using existing season: ${existingSeason.name}`);
+      season = existingSeason;
+    } else {
+      const { data: newSeason, error: seasonError } = await supabase
+        .from('seasons')
+        .insert({
+          league_id: leagueId,
+          name: seasonName,
+          status: 'active',
+          start_date: `${new Date().getFullYear()}-01-01`,
+          end_date: `${new Date().getFullYear()}-06-01`,
+        })
+        .select()
+        .single();
+
+      if (seasonError) throw seasonError;
+      season = newSeason;
+      console.log(`✓ Created season: ${season.name}`);
+    }
+    console.log();
 
     // Create test teams
     console.log('Creating test teams...');
     const teams = [];
-    const teamNames = ['Ice Hawks', 'Thunder Pucks', 'Lightning Skates', 'Blizzard Blades'];
+    const teamData = [
+      { name: 'Ice Hawks', short: 'ICE' },
+      { name: 'Thunder Pucks', short: 'THU' },
+      { name: 'Lightning Skates', short: 'LGT' },
+      { name: 'Blizzard Blades', short: 'BLZ' },
+    ];
 
-    for (const teamName of teamNames) {
+    for (const teamInfo of teamData) {
+      // Check if team already exists
+      const { data: existingTeam } = await supabase
+        .from('teams')
+        .select()
+        .eq('league_id', leagueId)
+        .eq('name', teamInfo.name)
+        .single();
+
+      if (existingTeam) {
+        teams.push(existingTeam);
+        console.log(`  ✓ ${teamInfo.name} (${teamInfo.short}) - already exists`);
+        continue;
+      }
+
       const { data: team, error: teamError } = await supabase
         .from('teams')
         .insert({
           league_id: leagueId,
-          name: teamName,
-          short_name: teamName.split(' ')[0],
-          primary_color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-          secondary_color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
+          name: teamInfo.name,
+          short_name: teamInfo.short,
+          primary_color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`,
+          secondary_color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`,
         })
         .select()
         .single();
 
       if (teamError) throw teamError;
       teams.push(team);
-      console.log(`  ✓ ${teamName}`);
+      console.log(`  ✓ ${teamInfo.name} (${teamInfo.short})`);
     }
     console.log();
 
