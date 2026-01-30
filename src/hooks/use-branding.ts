@@ -19,8 +19,8 @@ export interface SimpleBranding {
 const PLATFORM_BRANDING: SimpleBranding = {
   logo: platformConfig.icon,
   name: platformConfig.name,
-  primaryColor: platformConfig.brandColor,
-  secondaryColor: "#D72638",
+  primaryColor: platformConfig.colors.rinkBlue,
+  secondaryColor: platformConfig.colors.goalRed,
 };
 
 /**
