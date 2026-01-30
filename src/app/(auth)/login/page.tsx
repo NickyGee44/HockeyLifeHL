@@ -44,12 +44,12 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Get league context and branding
+  // Get league context and branding (both optional - work without league)
   const { leagueId, isLoading: leagueLoading } = useActiveLeague();
   const branding = useBranding(leagueId);
 
   // Log component mount for debugging
-  console.log("[LoginPage] Component mounted");
+  console.log("[LoginPage] Component mounted", { leagueId });
 
   // Note: Middleware handles redirecting already-authenticated users
   // No need to check auth client-side

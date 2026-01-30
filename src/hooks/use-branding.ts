@@ -1,5 +1,7 @@
 "use client";
 
+import { platformConfig } from "@/lib/league-config";
+
 /**
  * Simple branding object with logo and name
  * Used for components that need basic branding in both platform and league contexts
@@ -12,12 +14,12 @@ export interface SimpleBranding {
 }
 
 /**
- * Platform default branding
+ * Platform default branding (from league-config for consistency)
  */
 const PLATFORM_BRANDING: SimpleBranding = {
-  logo: "/BLH-Logo.png",
-  name: "Beer League Hockey",
-  primaryColor: "#1F4FD8",
+  logo: platformConfig.icon,
+  name: platformConfig.name,
+  primaryColor: platformConfig.brandColor,
   secondaryColor: "#D72638",
 };
 
@@ -31,12 +33,14 @@ const PLATFORM_BRANDING: SimpleBranding = {
  * This is a simple hook for auth pages that need basic branding without
  * complex league context.
  *
+ * NO LEAGUE CONTEXT REQUIRED: This hook works on the platform domain
+ * even when the user has no league selected or is not a member of any league.
+ *
  * @param leagueId - Optional league ID (currently unused, reserved for future)
  * @returns SimpleBranding object with logo and name
  */
 export function useBranding(leagueId?: string | null): SimpleBranding {
-  // For now, always return platform branding for auth pages
-  // Auth pages are shown on the platform domain
-  // League-specific auth would redirect to platform first
+  // Always return platform branding for auth pages
+  // This works without any league context - platform domain users, free agents, etc.
   return PLATFORM_BRANDING;
 }
