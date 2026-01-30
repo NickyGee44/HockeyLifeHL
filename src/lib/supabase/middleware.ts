@@ -35,6 +35,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  // Create response object ONCE before creating Supabase client
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -48,10 +49,11 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          // CRITICAL FIX: Don't recreate response - use the existing one
+          // Set cookies on request for SSR
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+
+          // Set cookies on response for client
           cookiesToSet.forEach(({ name, value, options }) => {
             // Enhanced cookie options for security and mobile support
             const enhancedOptions = {
@@ -65,6 +67,7 @@ export async function updateSession(request: NextRequest) {
               // Session lifetime: 14 days (reduced from 30 for better security)
               maxAge: 60 * 60 * 24 * 14, // 14 days
             }
+            // Set on the SAME response object (don't recreate it)
             supabaseResponse.cookies.set(name, value, enhancedOptions)
           })
         },
