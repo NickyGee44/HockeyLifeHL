@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getPlayerStats } from "@/lib/stats/queries";
 import { getUpcomingGameForCheckIn, checkInToGame } from "@/lib/players/availability-actions";
 import { DashboardView } from "@/components/dashboard/DashboardView";
+import { PlatformDashboard } from "@/components/dashboard/PlatformDashboard";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { useActiveLeague } from "@/hooks/use-league";
@@ -135,36 +136,9 @@ export default function DashboardPage() {
     );
   }
 
-  // If on platform domain (no league context), show league selection prompt
+  // If on platform domain (no league context), show platform dashboard
   if (!leagueLoading && !leagueId) {
-    return (
-      <div className="py-12 text-center max-w-2xl mx-auto">
-        <Card>
-          <CardContent className="py-12 space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold">Welcome to Beer League Hockey!</h2>
-              <p className="text-muted-foreground">
-                Select a league from the dropdown in the header to view your dashboard, or browse available leagues to join.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={() => window.location.href = '/discover'}
-                className="px-6 py-2 bg-canada-red hover:bg-canada-red-dark text-white rounded-md font-semibold transition-colors"
-              >
-                Browse Leagues
-              </button>
-              <button
-                onClick={() => window.location.href = '/admin/leagues/create'}
-                className="px-6 py-2 border border-border hover:bg-muted rounded-md font-semibold transition-colors"
-              >
-                Create a League
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <PlatformDashboard />;
   }
 
     return (
