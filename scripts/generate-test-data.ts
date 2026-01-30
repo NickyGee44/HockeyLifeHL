@@ -163,6 +163,14 @@ async function generateTestData() {
 
       players.push(authUser.user);
 
+      // Add to league memberships (required for league selector)
+      await supabase.from('league_memberships').insert({
+        league_id: leagueId,
+        user_id: authUser.user.id,
+        role: 'player',
+        status: 'active',
+      });
+
       // Add to team roster
       const teamIndex = Math.floor(i / 4); // 4 players per team
       await supabase.from('team_rosters').insert({
