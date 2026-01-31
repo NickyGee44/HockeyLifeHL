@@ -1,0 +1,362 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+   HOCKEYLIFEHL LEAGUE SITES - GLOBAL STYLES
+   ============================================================================
+   Multi-tenant theming with league color overrides
+   Based on BRAND-KIT.md v2.0
+   ============================================================================ */
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES - BASE THEME
+   ============================================================================= */
+
+:root {
+  /* Gold accent palette */
+  --color-gold-50: #FFFDF5;
+  --color-gold-100: #FFF9E6;
+  --color-gold-200: #FFF0BF;
+  --color-gold-300: #FFE699;
+  --color-gold-400: #FFD54F;
+  --color-gold-500: #D4AF37;
+  --color-gold-600: #C19A00;
+  --color-gold-700: #9A7B00;
+  --color-gold-800: #735C00;
+  --color-gold-900: #4D3D00;
+
+  /* League-specific colors (can be overridden per-league) */
+  --league-primary: var(--color-gold-500);
+  --league-secondary: #1a1a1a;
+  --league-accent: var(--league-primary);
+  --league-glow-color: rgba(212, 175, 55, 0.2);
+}
+
+/* =============================================================================
+   DARK MODE (DEFAULT)
+   ============================================================================= */
+
+[data-theme='dark'],
+:root {
+  color-scheme: dark;
+
+  --color-background: #0a0a0a;
+  --color-background-elevated: #141414;
+  --color-background-sunken: #050505;
+  --color-surface: #1a1a1a;
+  --color-surface-hover: #242424;
+  --color-surface-active: #2e2e2e;
+
+  --color-border: rgba(212, 175, 55, 0.2);
+  --color-border-muted: rgba(255, 255, 255, 0.1);
+  --color-border-emphasis: rgba(212, 175, 55, 0.4);
+
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #525252;
+  --color-text-inverse: #0a0a0a;
+
+  --color-accent: var(--league-primary, #D4AF37);
+  --color-accent-hover: var(--league-primary-hover, #C19A00);
+  --color-accent-muted: rgba(212, 175, 55, 0.15);
+  --color-accent-text: #0a0a0a;
+}
+
+/* =============================================================================
+   LIGHT MODE
+   ============================================================================= */
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --color-background: #fafafa;
+  --color-background-elevated: #ffffff;
+  --color-background-sunken: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f5f5;
+  --color-surface-active: #ededed;
+
+  --color-border: #e5e5e5;
+  --color-border-muted: #f0f0f0;
+  --color-border-emphasis: #d4d4d4;
+
+  --color-text-primary: #171717;
+  --color-text-secondary: #525252;
+  --color-text-muted: #a3a3a3;
+  --color-text-inverse: #fafafa;
+
+  --color-accent: var(--league-primary, #B8960F);
+  --color-accent-hover: var(--league-primary-hover, #9A7B00);
+  --color-accent-muted: rgba(212, 175, 55, 0.1);
+  --color-accent-text: #ffffff;
+}
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =============================================================================
+   LEAGUE-SPECIFIC THEMING
+   ============================================================================= */
+
+/* League colors are applied via CSS variables set in the layout based on DB */
+[data-league-theme] {
+  /* Primary color is used for accents, buttons, links */
+  --color-accent: var(--league-primary);
+
+  /* Adjust glow color based on league primary */
+  --league-glow-color: color-mix(in srgb, var(--league-primary) 20%, transparent);
+}
+
+/* League hero section uses league colors prominently */
+.league-hero {
+  background: linear-gradient(
+    135deg,
+    var(--league-primary) 0%,
+    var(--league-secondary) 100%
+  );
+}
+
+/* League accent elements */
+.league-accent {
+  color: var(--league-primary);
+}
+
+.league-accent-bg {
+  background-color: var(--league-primary);
+  color: var(--color-accent-text);
+}
+
+/* =============================================================================
+   COMPONENT STYLES
+   ============================================================================= */
+
+/* Cards with league theming */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--color-border-emphasis);
+  box-shadow: 0 0 20px var(--league-glow-color);
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(to right, var(--league-primary), var(--league-primary-hover, var(--league-primary)));
+  color: var(--color-accent-text);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 40px var(--league-glow-color);
+  transform: scale(1.02);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--league-primary) 50%, transparent);
+  color: var(--league-primary);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--league-primary) 10%, transparent);
+  border-color: var(--league-primary);
+}
+
+/* =============================================================================
+   STANDINGS TABLE
+   ============================================================================= */
+
+.standings-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.standings-table th {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.standings-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.standings-table tr:hover td {
+  background: var(--color-surface-hover);
+}
+
+/* Highlight current team row */
+.standings-table tr.highlight td {
+  background: color-mix(in srgb, var(--league-primary) 10%, transparent);
+  border-color: var(--league-primary);
+}
+
+/* =============================================================================
+   SCHEDULE / GAME CARDS
+   ============================================================================= */
+
+.game-card {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  transition: all 0.2s ease;
+}
+
+.game-card:hover {
+  border-color: var(--color-border-emphasis);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.game-card .team {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.game-card .team.away {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.game-card .vs {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.game-card .score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--league-primary);
+}
+
+/* =============================================================================
+   STATS LEADERS
+   ============================================================================= */
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.stat-card .rank {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--league-primary);
+  min-width: 2rem;
+}
+
+.stat-card .rank.top-3 {
+  color: var(--color-gold-400);
+}
+
+.stat-card .player-info {
+  flex: 1;
+}
+
+.stat-card .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* =============================================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .game-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .game-card .team,
+  .game-card .team.away {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .game-card .vs {
+    padding: 0.5rem 0;
+  }
+}
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

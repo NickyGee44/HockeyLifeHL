@@ -1,0 +1,159 @@
+/**
+ * Platform 2 (League Sites) Type Definitions
+ *
+ * Types for public-facing league website data
+ */
+
+export interface League {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  accent_color: string | null;
+  logo_url: string | null;
+  banner_url: string | null;
+  website_url: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
+  status: 'draft' | 'active' | 'archived';
+  organization_id: string;
+  created_at: string;
+}
+
+export interface LeagueTheme {
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+}
+
+export interface Season {
+  id: string;
+  name: string;
+  league_id: string;
+  start_date: string;
+  end_date: string;
+  status: 'upcoming' | 'active' | 'completed';
+  is_current: boolean;
+}
+
+export interface Division {
+  id: string;
+  name: string;
+  season_id: string;
+  league_id: string;
+  sort_order: number;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  slug: string;
+  colors: string | null;
+  logo: string | null;
+  league_id: string;
+  division_id: string | null;
+  created_at: string;
+  // Joined data
+  division?: Division;
+}
+
+export interface TeamStanding {
+  team_id: string;
+  team_name: string;
+  team_logo: string | null;
+  division_id: string | null;
+  division_name: string | null;
+  games_played: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  overtime_losses: number;
+  points: number;
+  goals_for: number;
+  goals_against: number;
+  goal_differential: number;
+  streak: string | null;
+  last_10: string | null;
+}
+
+export interface Game {
+  id: string;
+  league_id: string;
+  season_id: string;
+  home_team_id: string;
+  away_team_id: string;
+  scheduled_at: string;
+  venue: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'cancelled';
+  period: number | null;
+  period_time: string | null;
+  created_at: string;
+  // Joined data
+  home_team?: Team;
+  away_team?: Team;
+}
+
+export interface Player {
+  id: string;
+  profile_id: string;
+  team_id: string;
+  jersey_number: string | null;
+  position: 'C' | 'LW' | 'RW' | 'D' | 'G' | null;
+  is_captain: boolean;
+  is_alternate: boolean;
+  // Joined data
+  profile?: {
+    first_name: string;
+    last_name: string;
+    avatar_url: string | null;
+  };
+}
+
+export interface PlayerStats {
+  player_id: string;
+  player_name: string;
+  team_name: string;
+  team_id: string;
+  position: string | null;
+  games_played: number;
+  goals: number;
+  assists: number;
+  points: number;
+  penalty_minutes: number;
+  plus_minus: number;
+  // Goalie stats
+  wins?: number;
+  losses?: number;
+  saves?: number;
+  goals_against?: number;
+  save_percentage?: number;
+  goals_against_average?: number;
+}
+
+export interface LeagueStats {
+  totalTeams: number;
+  totalPlayers: number;
+  totalGames: number;
+  gamesPlayed: number;
+  upcomingGames: number;
+}
+
+export interface UpcomingGame extends Game {
+  home_team: Team;
+  away_team: Team;
+}
+
+export interface RecentGame extends Game {
+  home_team: Team;
+  away_team: Team;
+}
