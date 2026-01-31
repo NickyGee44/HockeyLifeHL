@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { unstable_cache } from 'next/cache';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -43,27 +43,27 @@ export interface DashboardData {
  * 1. Fetch user's organizations (owner + member via organization_members)
  * 2. LEFT JOIN leagues to get all leagues per org
  * 3. Use aggregations in app layer (Supabase doesn't support nested aggregations well)
- * 4. Cache result for 60 seconds
+ * 4. Pass userId as parameter to avoid cookies() in cached function
  *
  * Performance:
  * - Before: 1 query for orgs + N queries for leagues + N*M for teams = O(N*M) queries
  * - After: 1 query total = O(1) query
  *
- * RLS: Enforced at database level via organization and league policies
+ * RLS: Uses service role client with manual userId filtering
+ *
+ * @param userId - The authenticated user's ID (passed from outside cache scope)
  */
-export async function getDashboardData(): Promise<DashboardData | null> {
-  const supabase = await createClient();
+export async function getDashboardData(userId: string): Promise<DashboardData | null> {
+  // Use service role client to avoid cookies() issue in cache
+  const supabase = createServiceRoleClient();
 
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
+  if (!userId) {
     return null;
   }
 
   try {
     // Step 1: Fetch organizations where user is owner OR member
-    // Uses RLS policies on organizations table
+    // Manual filtering by userId (service role client bypasses RLS)
     const { data: orgsAsOwner, error: orgError } = await supabase
       .from('organizations')
       .select(`
@@ -76,7 +76,7 @@ export async function getDashboardData(): Promise<DashboardData | null> {
         created_at,
         owner_user_id
       `)
-      .eq('owner_user_id', user.id)
+      .eq('owner_user_id', userId)
       .order('created_at', { ascending: false });
 
     if (orgError) {
@@ -101,9 +101,9 @@ export async function getDashboardData(): Promise<DashboardData | null> {
           owner_user_id
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('status', 'active')
-      .neq('organization.owner_user_id', user.id); // Exclude orgs where user is owner (already fetched)
+      .neq('organization.owner_user_id', userId); // Exclude orgs where user is owner (already fetched)
 
     if (memberError) {
       if (isDevelopment) {
@@ -235,7 +235,8 @@ export async function getDashboardData(): Promise<DashboardData | null> {
  * Cached version of getDashboardData
  *
  * Cache Strategy:
- * - Key: user-specific (user.id in the function scope)
+ * - Get user session OUTSIDE cache scope (avoid cookies() in cached function)
+ * - Pass userId as parameter to cached function
  * - TTL: 60 seconds
  * - Revalidation: On-demand via revalidateTag('dashboard-{userId}')
  *
@@ -246,6 +247,7 @@ export async function getDashboardData(): Promise<DashboardData | null> {
  * - Player added/removed from roster
  */
 export async function getCachedDashboardData(): Promise<DashboardData | null> {
+  // Get user OUTSIDE cache scope to avoid cookies() error
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -254,8 +256,9 @@ export async function getCachedDashboardData(): Promise<DashboardData | null> {
   }
 
   // Use Next.js 14+ unstable_cache for automatic request deduplication
+  // Pass userId as parameter instead of accessing cookies() inside cache
   const cachedFetch = unstable_cache(
-    async () => getDashboardData(),
+    async (userId: string) => getDashboardData(userId),
     [`dashboard-${user.id}`],
     {
       revalidate: 60, // Cache for 60 seconds
@@ -263,7 +266,7 @@ export async function getCachedDashboardData(): Promise<DashboardData | null> {
     }
   );
 
-  return cachedFetch();
+  return cachedFetch(user.id);
 }
 
 /**
