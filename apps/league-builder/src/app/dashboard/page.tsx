@@ -1,4 +1,5 @@
-import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
+import { getCurrentUser } from '@/lib/actions/auth';
+import { getCachedDashboardData } from '@/lib/actions/dashboard';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from '@hockey-life/ui';
@@ -12,7 +13,13 @@ export default async function DashboardPage() {
   }
 
   const { user, profile } = userData;
-  const organizations = await getUserOrganizations();
+  const dashboardData = await getCachedDashboardData();
+
+  if (!dashboardData) {
+    redirect('/login');
+  }
+
+  const { organizations, totals } = dashboardData;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -42,7 +49,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-600">
-                {organizations.length}
+                {totals.total_organizations}
               </div>
             </CardContent>
           </Card>
@@ -54,28 +61,34 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-green-600">
-                0
+                {totals.total_leagues}
               </div>
-              <Link
-                href="/dashboard/leagues/new"
-                className="text-xs text-blue-600 hover:text-blue-800 mt-2 inline-flex items-center gap-1"
-              >
-                <Plus className="h-3 w-3" />
-                Create your first league
-              </Link>
+              {totals.total_leagues === 0 && (
+                <Link
+                  href="/dashboard/leagues/new"
+                  className="text-xs text-blue-600 hover:text-blue-800 mt-2 inline-flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  Create your first league
+                </Link>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Trial Status</CardTitle>
-              <CardDescription>Days remaining</CardDescription>
+              <CardTitle>Teams</CardTitle>
+              <CardDescription>Total teams across all leagues</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-orange-600">
-                14
+              <div className="text-3xl font-bold text-purple-600">
+                {totals.total_teams}
               </div>
-              <p className="text-xs text-gray-500 mt-2">Upgrade to continue</p>
+              {totals.total_teams > 0 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  {totals.total_players} total players
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -105,7 +118,7 @@ export default async function DashboardPage() {
                       key={org.id}
                       className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-blue-500 transition-colors"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-3">
                         <div>
                           <h3 className="font-semibold text-gray-900 dark:text-white">
                             {org.name}
@@ -120,6 +133,28 @@ export default async function DashboardPage() {
                           </span>
                         </div>
                       </div>
+                      {org.league_count > 0 && (
+                        <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Leagues</p>
+                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {org.league_count}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Teams</p>
+                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {org.leagues.reduce((sum, l) => sum + l.team_count, 0)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Players</p>
+                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {org.leagues.reduce((sum, l) => sum + l.player_count, 0)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
