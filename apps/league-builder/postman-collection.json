@@ -1,0 +1,545 @@
+{
+  "info": {
+    "name": "Platform 1 (League Builder) API",
+    "description": "REST API endpoints for Platform 1 (League Builder). Note: Most operations use Next.js Server Actions - this collection covers the REST endpoints only.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "team_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "season_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roster_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staff_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "person_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Team Roster",
+      "item": [
+        {
+          "name": "Get Team Roster",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/roster?seasonId={{season_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "roster"],
+              "query": [
+                {
+                  "key": "seasonId",
+                  "value": "{{season_id}}",
+                  "description": "Season UUID (required)"
+                }
+              ]
+            },
+            "description": "Retrieves all active players on a team roster for a specific season."
+          },
+          "response": [
+            {
+              "name": "Success - Roster Retrieved",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/teams/{{team_id}}/roster?seasonId={{season_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "teams", "{{team_id}}", "roster"],
+                  "query": [
+                    {
+                      "key": "seasonId",
+                      "value": "{{season_id}}"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"uuid\",\n    \"team_id\": \"uuid\",\n    \"player_id\": \"uuid\",\n    \"season_id\": \"uuid\",\n    \"division_id\": \"uuid\",\n    \"jersey_number\": 99,\n    \"position\": \"forward\",\n    \"status\": \"active\",\n    \"leadership_role\": \"captain\",\n    \"start_date\": \"2024-01-01T00:00:00Z\",\n    \"end_date\": null,\n    \"full_name\": \"John Doe\",\n    \"email\": \"john@example.com\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Add Player to Roster",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"{{player_id}}\",\n  \"seasonId\": \"{{season_id}}\",\n  \"jerseyNumber\": 99,\n  \"position\": \"forward\",\n  \"leadershipRole\": \"captain\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/roster",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "roster"]
+            },
+            "description": "Adds a player to a team roster with jersey number validation."
+          },
+          "response": [
+            {
+              "name": "Success - Player Added",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"playerId\": \"player-uuid\",\n  \"seasonId\": \"season-uuid\",\n  \"jerseyNumber\": 99,\n  \"position\": \"forward\",\n  \"leadershipRole\": \"captain\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/teams/{{team_id}}/roster",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "teams", "{{team_id}}", "roster"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"roster-uuid\",\n  \"team_id\": \"team-uuid\",\n  \"player_id\": \"player-uuid\",\n  \"season_id\": \"season-uuid\",\n  \"division_id\": null,\n  \"jersey_number\": 99,\n  \"position\": \"forward\",\n  \"status\": \"active\",\n  \"leadership_role\": \"captain\",\n  \"start_date\": \"2024-01-01T00:00:00Z\",\n  \"end_date\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Jersey Number",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jerseyNumber\": 88\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/roster/{{roster_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "roster", "{{roster_id}}"]
+            },
+            "description": "Updates a player's jersey number (creates new temporal record)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Player Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"injured\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/roster/{{roster_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "roster", "{{roster_id}}"]
+            },
+            "description": "Updates a player's roster status (active, injured, suspended, etc.)."
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Captain",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leadershipRole\": \"captain\",\n  \"playerId\": \"{{player_id}}\",\n  \"seasonId\": \"{{season_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/roster/{{roster_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "roster", "{{roster_id}}"]
+            },
+            "description": "Assigns or removes captain/alternate captain designation."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Player from Roster",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/roster/{{roster_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "roster", "{{roster_id}}"]
+            },
+            "description": "Removes a player from the roster by setting end_date."
+          },
+          "response": [
+            {
+              "name": "Success - Player Removed",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/teams/{{team_id}}/roster/{{roster_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "teams", "{{team_id}}", "roster", "{{roster_id}}"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Endpoints for managing team rosters"
+    },
+    {
+      "name": "Team Staff",
+      "item": [
+        {
+          "name": "Get Team Staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/staff?seasonId={{season_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "staff"],
+              "query": [
+                {
+                  "key": "seasonId",
+                  "value": "{{season_id}}",
+                  "description": "Season UUID (required)"
+                }
+              ]
+            },
+            "description": "Retrieves all active staff members for a team."
+          },
+          "response": [
+            {
+              "name": "Success - Staff Retrieved",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/teams/{{team_id}}/staff?seasonId={{season_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "teams", "{{team_id}}", "staff"],
+                  "query": [
+                    {
+                      "key": "seasonId",
+                      "value": "{{season_id}}"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"staff-uuid\",\n    \"team_id\": \"team-uuid\",\n    \"person_id\": \"person-uuid\",\n    \"season_id\": \"season-uuid\",\n    \"role\": \"head_coach\",\n    \"start_date\": \"2024-01-01T00:00:00Z\",\n    \"end_date\": null,\n    \"profiles\": {\n      \"id\": \"person-uuid\",\n      \"full_name\": \"John Doe\",\n      \"email\": \"john@example.com\"\n    }\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Add Staff Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personId\": \"{{person_id}}\",\n  \"seasonId\": \"{{season_id}}\",\n  \"role\": \"head_coach\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/staff",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "staff"]
+            },
+            "description": "Adds a staff member to a team. Valid roles: head_coach, assistant_coach, goalie_coach, manager, trainer, equipment_manager."
+          },
+          "response": [
+            {
+              "name": "Success - Staff Added",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"personId\": \"person-uuid\",\n  \"seasonId\": \"season-uuid\",\n  \"role\": \"head_coach\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/teams/{{team_id}}/staff",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "teams", "{{team_id}}", "staff"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"staff-uuid\",\n  \"team_id\": \"team-uuid\",\n  \"person_id\": \"person-uuid\",\n  \"season_id\": \"season-uuid\",\n  \"role\": \"head_coach\",\n  \"start_date\": \"2024-01-01T00:00:00Z\",\n  \"end_date\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Remove Staff Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}/staff/{{staff_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}", "staff", "{{staff_id}}"]
+            },
+            "description": "Removes a staff member by setting end_date."
+          },
+          "response": [
+            {
+              "name": "Success - Staff Removed",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/teams/{{team_id}}/staff/{{staff_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "teams", "{{team_id}}", "staff", "{{staff_id}}"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Endpoints for managing team staff"
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Stripe Subscription Webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "stripe-signature",
+                "value": "t=timestamp,v1=signature",
+                "description": "Stripe webhook signature (required)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_test\",\n  \"type\": \"customer.subscription.created\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"sub_test\",\n      \"customer\": \"cus_test\",\n      \"status\": \"active\",\n      \"metadata\": {\n        \"organization_id\": \"org-uuid\"\n      }\n    }\n  },\n  \"created\": 1234567890\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/stripe/webhooks/subscriptions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stripe", "webhooks", "subscriptions"]
+            },
+            "description": "Stripe webhook endpoint for subscription events. Signature verification required. Supported events: customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, invoice.paid, invoice.payment_failed, payment_method.attached."
+          },
+          "response": [
+            {
+              "name": "Success - Webhook Received",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "stripe-signature",
+                    "value": "t=timestamp,v1=signature"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"evt_test\",\n  \"type\": \"customer.subscription.created\",\n  \"data\": {\n    \"object\": {}\n  },\n  \"created\": 1234567890\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/stripe/webhooks/subscriptions",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "stripe", "webhooks", "subscriptions"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"received\": true,\n  \"duplicate\": false\n}"
+            }
+          ]
+        }
+      ],
+      "description": "External webhook endpoints"
+    }
+  ]
+}

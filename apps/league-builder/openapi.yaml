@@ -1,0 +1,1053 @@
+openapi: 3.0.3
+info:
+  title: Platform 1 (League Builder) API
+  description: |
+    Platform 1 API for managing hockey leagues, teams, rosters, and subscriptions.
+
+    **Architecture Note**: This platform primarily uses Next.js Server Actions instead of traditional REST APIs.
+    This OpenAPI spec includes:
+    - REST API routes (for external integrations)
+    - Server Actions represented as RPC-style operations
+
+    For Server Actions, use the TypeScript SDK instead of direct HTTP calls.
+
+  version: 1.0.0
+  contact:
+    name: Platform 1 Team
+    email: support@example.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://leaguebuilder.example.com
+    description: Production
+  - url: http://localhost:3000
+    description: Local Development
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Organizations
+    description: Organization management
+  - name: Leagues
+    description: League creation and management
+  - name: Rosters
+    description: Team roster management
+  - name: Staff
+    description: Team staff management
+  - name: Subscriptions
+    description: Stripe subscription management
+  - name: Dashboard
+    description: Dashboard data aggregation
+  - name: Webhooks
+    description: External webhook endpoints
+
+# ============================================================================
+# Security Schemes
+# ============================================================================
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: supabase-auth-token
+      description: Supabase session cookie (automatically set after login)
+
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token for API routes
+
+  # ==========================================================================
+  # Schemas
+  # ==========================================================================
+
+  schemas:
+    # Error responses
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Not authenticated"
+      required:
+        - error
+
+    ActionError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Validation failed"
+      required:
+        - success
+        - error
+
+    # Common types
+    SubscriptionTier:
+      type: string
+      enum:
+        - starter
+        - professional
+        - enterprise
+
+    SubscriptionStatus:
+      type: string
+      enum:
+        - trialing
+        - active
+        - past_due
+        - canceled
+        - incomplete
+        - incomplete_expired
+        - unpaid
+
+    PlayerPosition:
+      type: string
+      enum:
+        - forward
+        - defense
+        - goalie
+
+    RosterStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - injured
+        - suspended
+        - traded
+
+    LeadershipRole:
+      type: string
+      enum:
+        - captain
+        - alternate
+      nullable: true
+
+    StaffRole:
+      type: string
+      enum:
+        - head_coach
+        - assistant_coach
+        - goalie_coach
+        - manager
+        - trainer
+        - equipment_manager
+
+    RegistrationType:
+      type: string
+      enum:
+        - open
+        - approval_required
+        - invite_only
+
+    # Database models
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum:
+            - owner
+            - admin
+            - member
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - full_name
+        - role
+        - created_at
+        - updated_at
+
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        owner_user_id:
+          type: string
+          format: uuid
+        subscription_tier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        subscription_status:
+          $ref: '#/components/schemas/SubscriptionStatus'
+        stripe_customer_id:
+          type: string
+          nullable: true
+        stripe_subscription_id:
+          type: string
+          nullable: true
+        current_period_start:
+          type: string
+          format: date-time
+          nullable: true
+        current_period_end:
+          type: string
+          format: date-time
+          nullable: true
+        trial_ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        cancel_at_period_end:
+          type: boolean
+        cancelled_at:
+          type: string
+          format: date-time
+          nullable: true
+        payment_method_last4:
+          type: string
+          nullable: true
+        payment_method_brand:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - owner_user_id
+        - subscription_tier
+        - subscription_status
+        - cancel_at_period_end
+        - created_at
+        - updated_at
+
+    League:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        city:
+          type: string
+        state_province:
+          type: string
+        country:
+          type: string
+        timezone:
+          type: string
+        primary_color:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+        secondary_color:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+        logo_url:
+          type: string
+          format: uri
+          nullable: true
+        contact_email:
+          type: string
+          format: email
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        website_url:
+          type: string
+          format: uri
+          nullable: true
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - archived
+        created_by:
+          type: string
+          format: uuid
+        settings:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - organization_id
+        - name
+        - slug
+        - city
+        - state_province
+        - country
+        - timezone
+        - primary_color
+        - secondary_color
+        - status
+        - created_by
+        - created_at
+        - updated_at
+
+    TeamRoster:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        team_id:
+          type: string
+          format: uuid
+        player_id:
+          type: string
+          format: uuid
+        season_id:
+          type: string
+          format: uuid
+        division_id:
+          type: string
+          format: uuid
+          nullable: true
+        jersey_number:
+          type: integer
+          minimum: 1
+          maximum: 99
+        position:
+          $ref: '#/components/schemas/PlayerPosition'
+        status:
+          $ref: '#/components/schemas/RosterStatus'
+        leadership_role:
+          $ref: '#/components/schemas/LeadershipRole'
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - team_id
+        - player_id
+        - season_id
+        - jersey_number
+        - position
+        - status
+        - start_date
+
+    TeamRosterPlayer:
+      allOf:
+        - $ref: '#/components/schemas/TeamRoster'
+        - type: object
+          properties:
+            full_name:
+              type: string
+            email:
+              type: string
+              format: email
+          required:
+            - full_name
+            - email
+
+    TeamStaff:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        team_id:
+          type: string
+          format: uuid
+        person_id:
+          type: string
+          format: uuid
+        season_id:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/StaffRole'
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        profiles:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            full_name:
+              type: string
+            email:
+              type: string
+              format: email
+      required:
+        - id
+        - team_id
+        - person_id
+        - season_id
+        - role
+        - start_date
+
+    OrganizationSubscription:
+      type: object
+      properties:
+        tier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        status:
+          $ref: '#/components/schemas/SubscriptionStatus'
+        stripeCustomerId:
+          type: string
+          nullable: true
+        stripeSubscriptionId:
+          type: string
+          nullable: true
+        currentPeriodStart:
+          type: string
+          format: date-time
+          nullable: true
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+        trialEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelAtPeriodEnd:
+          type: boolean
+        paymentMethodLast4:
+          type: string
+          nullable: true
+        paymentMethodBrand:
+          type: string
+          nullable: true
+      required:
+        - tier
+        - status
+        - cancelAtPeriodEnd
+
+    DashboardData:
+      type: object
+      properties:
+        organizations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              slug:
+                type: string
+              subscription_tier:
+                $ref: '#/components/schemas/SubscriptionTier'
+              subscription_status:
+                $ref: '#/components/schemas/SubscriptionStatus'
+              trial_ends_at:
+                type: string
+                format: date-time
+                nullable: true
+              created_at:
+                type: string
+                format: date-time
+              league_count:
+                type: integer
+              leagues:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+                    slug:
+                      type: string
+                    status:
+                      type: string
+                    created_at:
+                      type: string
+                      format: date-time
+                    team_count:
+                      type: integer
+                    player_count:
+                      type: integer
+        totals:
+          type: object
+          properties:
+            total_organizations:
+              type: integer
+            total_leagues:
+              type: integer
+            total_teams:
+              type: integer
+            total_players:
+              type: integer
+      required:
+        - organizations
+        - totals
+
+# ============================================================================
+# REST API Paths
+# ============================================================================
+
+paths:
+  # ==========================================================================
+  # Team Roster Endpoints
+  # ==========================================================================
+
+  /api/teams/{teamId}/roster:
+    get:
+      tags:
+        - Rosters
+      summary: Get team roster
+      description: Retrieves all active players on a team roster for a specific season
+      operationId: getTeamRoster
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Team UUID
+        - name: seasonId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Season UUID
+      responses:
+        '200':
+          description: Roster retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamRosterPlayer'
+        '400':
+          description: Missing seasonId parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Rosters
+      summary: Add player to roster
+      description: Adds a player to a team roster with jersey number validation
+      operationId: addPlayerToRoster
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                playerId:
+                  type: string
+                  format: uuid
+                seasonId:
+                  type: string
+                  format: uuid
+                jerseyNumber:
+                  type: integer
+                  minimum: 1
+                  maximum: 99
+                position:
+                  $ref: '#/components/schemas/PlayerPosition'
+                leadershipRole:
+                  $ref: '#/components/schemas/LeadershipRole'
+              required:
+                - playerId
+                - seasonId
+                - jerseyNumber
+                - position
+      responses:
+        '201':
+          description: Player added to roster
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamRoster'
+        '400':
+          description: Validation error or jersey number already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict (jersey number in use, player on another team)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/teams/{teamId}/roster/{rosterId}:
+    patch:
+      tags:
+        - Rosters
+      summary: Update roster entry
+      description: Updates jersey number, status, or leadership role
+      operationId: updateRosterEntry
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: rosterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    jerseyNumber:
+                      type: integer
+                      minimum: 1
+                      maximum: 99
+                  required:
+                    - jerseyNumber
+                - type: object
+                  properties:
+                    status:
+                      $ref: '#/components/schemas/RosterStatus'
+                  required:
+                    - status
+                - type: object
+                  properties:
+                    leadershipRole:
+                      $ref: '#/components/schemas/LeadershipRole'
+                    playerId:
+                      type: string
+                      format: uuid
+                    seasonId:
+                      type: string
+                      format: uuid
+                  required:
+                    - leadershipRole
+                    - playerId
+                    - seasonId
+      responses:
+        '200':
+          description: Roster entry updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamRoster'
+        '400':
+          description: Invalid update fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Roster entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Rosters
+      summary: Remove player from roster
+      description: Removes a player from the roster by setting end_date
+      operationId: removePlayerFromRoster
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: rosterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Player removed from roster
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Roster entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ==========================================================================
+  # Team Staff Endpoints
+  # ==========================================================================
+
+  /api/teams/{teamId}/staff:
+    get:
+      tags:
+        - Staff
+      summary: Get team staff
+      description: Retrieves all active staff members for a team
+      operationId: getTeamStaff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: seasonId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Staff list retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamStaff'
+        '400':
+          description: Missing seasonId parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Staff
+      summary: Add staff member
+      description: Adds a staff member to a team
+      operationId: addStaffMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                personId:
+                  type: string
+                  format: uuid
+                seasonId:
+                  type: string
+                  format: uuid
+                role:
+                  $ref: '#/components/schemas/StaffRole'
+              required:
+                - personId
+                - seasonId
+                - role
+      responses:
+        '201':
+          description: Staff member added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamStaff'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/teams/{teamId}/staff/{staffId}:
+    delete:
+      tags:
+        - Staff
+      summary: Remove staff member
+      description: Removes a staff member by setting end_date
+      operationId: removeStaffMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: staffId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Staff member removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Staff entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ==========================================================================
+  # Stripe Webhooks
+  # ==========================================================================
+
+  /api/stripe/webhooks/subscriptions:
+    post:
+      tags:
+        - Webhooks
+      summary: Stripe subscription webhook
+      description: |
+        Handles Stripe webhook events for organization subscriptions.
+
+        Supported events:
+        - customer.subscription.created
+        - customer.subscription.updated
+        - customer.subscription.deleted
+        - invoice.paid
+        - invoice.payment_failed
+        - payment_method.attached
+      operationId: handleStripeWebhook
+      security: []
+      parameters:
+        - name: stripe-signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Stripe webhook signature for verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Stripe event object
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+                  duplicate:
+                    type: boolean
+                    example: false
+        '400':
+          description: Missing signature or invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Webhook processing failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+# ============================================================================
+# Note: Server Actions are not exposed as HTTP endpoints
+# ============================================================================
+#
+# The following operations are available as Server Actions:
+#
+# Authentication:
+# - signUp(formData)
+# - signIn(formData)
+# - signOut()
+# - getCurrentUser()
+# - getUserOrganizations()
+#
+# Organizations:
+# - updateOrganizationProfile(formData)
+# - getOrganization(organizationId)
+# - getOrganizationMembers(organizationId)
+# - inviteOrganizationMember(formData)
+# - updateMemberRole(formData)
+# - removeOrganizationMember(formData)
+#
+# League Wizard:
+# - saveDraft(data)
+# - deleteDraft(draftId)
+# - createLeague(formData)
+#
+# Roster (Server Actions):
+# - addPlayerToRoster(params)
+# - updateJerseyNumber(params)
+# - assignCaptain(params)
+# - updatePlayerStatus(params)
+# - removePlayerFromRoster(rosterId)
+# - addStaffMember(params)
+# - removeStaffMember(staffId)
+# - getTeamRoster(teamId, seasonId)
+# - getTeamStaff(teamId, seasonId)
+#
+# Subscriptions:
+# - getCurrentSubscription()
+# - createOrganizationSubscription(tier, paymentMethodId?, trialDays?)
+# - upgradeSubscription(newTier)
+# - downgradeSubscription(newTier)
+# - cancelSubscription(cancelImmediately?, reason?, feedback?)
+# - reactivateSubscription()
+# - updatePaymentMethod(paymentMethodId)
+# - createBillingPortalSession(returnUrl)
+# - getBillingHistory()
+# - getProrationPreview(newTier)
+#
+# Dashboard:
+# - getCachedDashboardData()
+# - revalidateDashboardCache(userId)
+#
+# For TypeScript usage, import from:
+# import { actionName } from '@/lib/actions/[module]';
