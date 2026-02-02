@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Play, Pause, AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Download } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 
 import { PickClock } from './PickClock';
@@ -10,6 +10,13 @@ import { PlayerPool } from './PlayerPool';
 import { DraftBoard } from './DraftBoard';
 import { DraftHistory } from './DraftHistory';
 import { ChatSidebar } from './ChatSidebar';
+import { DraftControls } from './DraftControls';
+import { TradePickerModal } from './TradePickerModal';
+import { DraftCompleteModal } from './DraftCompleteModal';
+import { DraftResultsExport } from './DraftResultsExport';
+import { RosterConfirmation } from './RosterConfirmation';
+import { ConnectionStatus, ConnectionStatusBadge } from './ConnectionStatus';
+import { useDraftReliability } from './useDraftReliability';
 import type {
   Draft,
   DraftPick,
@@ -19,6 +26,7 @@ import type {
   DraftMessage,
   DraftState,
   DraftRoomProps,
+  RosterConfirmationType,
 } from './types';
 
 export function DraftRoom({
@@ -44,6 +52,9 @@ export function DraftRoom({
   // UI state
   const [selectedPlayer, setSelectedPlayer] = useState<DraftPlayer | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [rosterConfirmations, setRosterConfirmations] = useState<RosterConfirmationType[]>([]);
 
   // Computed properties
   const isMyPick = draft?.current_team_id === userTeamId;
@@ -51,6 +62,29 @@ export function DraftRoom({
   const canChat = isCaptain || isAdmin;
   const isPaused = draft?.status === 'paused';
   const isComplete = draft?.status === 'complete';
+
+  // Reliability hook for connection monitoring and state drift detection
+  const {
+    connectionState,
+    localStateVersion,
+    setLocalStateVersion,
+    isPollingFallback,
+    lastSyncTime,
+    forceSync,
+    processedEventIds,
+  } = useDraftReliability({
+    draftId,
+    onStateVersionMismatch: (serverVersion, localVersion) => {
+      console.log(`[DraftRoom] State drift detected: server=${serverVersion}, local=${localVersion}`);
+      fetchDraftData(); // Full refresh on drift
+    },
+    onConnectionChange: (state) => {
+      if (state === 'connected') {
+        // Sync on reconnect
+        fetchDraftData();
+      }
+    },
+  });
 
   // Fetch initial data
   const fetchDraftData = useCallback(async () => {
@@ -65,32 +99,41 @@ export function DraftRoom({
       );
 
       if (stateError) throw stateError;
-      if (stateData?.error) throw new Error(stateData.error);
 
-      setDraftState(stateData);
-      setDraft(stateData.draft);
+      // Handle RPC response type
+      const state = stateData as unknown as { error?: string; draft?: Draft } | null;
+      if (state?.error) throw new Error(state.error);
 
-      // Fetch picks with player and team names
+      if (state?.draft) {
+        setDraftState(state as unknown as DraftState);
+        setDraft(state.draft);
+      }
+
+      // Fetch picks with player and team names (exclude undone picks)
       const { data: picksData, error: picksError } = await supabase
         .from('draft_picks')
         .select(`
           *,
-          player:profiles(first_name, last_name),
+          player:profiles!draft_picks_player_id_fkey(full_name),
           team:teams(name)
         `)
         .eq('draft_id', draftId)
+        .is('undone_at', null)  // Only active picks
         .order('pick_number', { ascending: true });
 
       if (picksError) throw picksError;
-      setPicks(
-        picksData?.map((p) => ({
-          ...p,
-          player_name: p.player
-            ? `${p.player.first_name} ${p.player.last_name}`
-            : 'Unknown',
-          team_name: p.team?.name || 'Unknown Team',
-        })) || []
-      );
+
+      const mappedPicks: DraftPick[] = (picksData || []).map((p: any) => ({
+        ...p,
+        player_name: p.player?.full_name || 'Unknown',
+        team_name: p.team?.name || 'Unknown Team',
+      }));
+      setPicks(mappedPicks);
+
+      // Update local state version from draft
+      if (state?.draft && 'state_version' in state.draft) {
+        setLocalStateVersion((state.draft as any).state_version || 0);
+      }
 
       // Fetch available players
       const { data: playersData, error: playersError } = await supabase.rpc(
@@ -99,16 +142,24 @@ export function DraftRoom({
       );
 
       if (playersError) throw playersError;
-      setPlayers(playersData || []);
+      setPlayers((playersData as DraftPlayer[]) || []);
 
       // Fetch teams
-      const { data: teamsData, error: teamsError } = await supabase
-        .from('teams')
-        .select('id, name, logo, colors')
-        .eq('league_id', stateData.draft.league_id);
+      const leagueId = state?.draft?.league_id;
+      if (leagueId) {
+        const { data: teamsData, error: teamsError } = await supabase
+          .from('teams')
+          .select('id, name')
+          .eq('league_id', leagueId);
 
-      if (teamsError) throw teamsError;
-      setTeams(teamsData?.map((t) => ({ ...t, picks: [] })) || []);
+        if (teamsError) throw teamsError;
+        const mappedTeams: DraftTeam[] = (teamsData || []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          picks: [],
+        }));
+        setTeams(mappedTeams);
+      }
 
       // Fetch draft order
       const { data: orderData, error: orderError } = await supabase
@@ -119,34 +170,32 @@ export function DraftRoom({
         .order('pick_position', { ascending: true });
 
       if (orderError) throw orderError;
-      setDraftOrder(
-        orderData?.map((o) => ({
-          ...o,
-          team_name: o.team?.name || 'Unknown',
-        })) || []
-      );
+
+      const mappedOrder: DraftOrder[] = (orderData || []).map((o: any) => ({
+        ...o,
+        team_name: o.team?.name || 'Unknown',
+      }));
+      setDraftOrder(mappedOrder);
 
       // Fetch messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('draft_messages')
         .select(`
           *,
-          user:profiles(first_name, last_name),
+          user:profiles!draft_messages_user_id_fkey(full_name),
           team:teams(name)
         `)
         .eq('draft_id', draftId)
         .order('created_at', { ascending: true });
 
       if (messagesError) throw messagesError;
-      setMessages(
-        messagesData?.map((m) => ({
-          ...m,
-          user_name: m.user
-            ? `${m.user.first_name} ${m.user.last_name}`
-            : 'Unknown',
-          team_name: m.team?.name || null,
-        })) || []
-      );
+
+      const mappedMessages: DraftMessage[] = (messagesData || []).map((m: any) => ({
+        ...m,
+        user_name: m.user?.full_name || 'Unknown',
+        team_name: m.team?.name || null,
+      }));
+      setMessages(mappedMessages);
     } catch (err) {
       console.error('Error fetching draft data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load draft');
@@ -177,7 +226,14 @@ export function DraftRoom({
         },
         (payload) => {
           console.log('Draft updated:', payload);
-          setDraft(payload.new as Draft);
+          const newDraft = payload.new as Draft & { state_version?: number };
+
+          // Update state version for drift detection
+          if (newDraft.state_version) {
+            setLocalStateVersion(newDraft.state_version);
+          }
+
+          setDraft(newDraft);
         }
       )
       .on(
@@ -189,32 +245,81 @@ export function DraftRoom({
           filter: `draft_id=eq.${draftId}`,
         },
         async (payload) => {
+          const pickId = payload.new.id;
+
+          // Deduplicate events
+          if (processedEventIds.current.has(pickId)) {
+            console.log('Duplicate pick event ignored:', pickId);
+            return;
+          }
+          processedEventIds.current.add(pickId);
+
           console.log('New pick:', payload);
-          // Fetch the full pick with relations
-          const { data } = await supabase
-            .from('draft_picks')
-            .select(`
-              *,
-              player:profiles(first_name, last_name),
-              team:teams(name)
-            `)
-            .eq('id', payload.new.id)
-            .single();
 
-          if (data) {
-            const newPick = {
-              ...data,
-              player_name: data.player
-                ? `${data.player.first_name} ${data.player.last_name}`
-                : 'Unknown',
-              team_name: data.team?.name || 'Unknown Team',
-            };
-            setPicks((prev) => [...prev, newPick]);
+          try {
+            // Fetch the full pick with relations
+            const { data, error } = await supabase
+              .from('draft_picks')
+              .select(`
+                *,
+                player:profiles!draft_picks_player_id_fkey(full_name),
+                team:teams(name)
+              `)
+              .eq('id', pickId)
+              .is('undone_at', null)  // Only if not undone
+              .single();
 
-            // Remove player from available pool
-            setPlayers((prev) =>
-              prev.filter((p) => p.player_id !== data.player_id)
-            );
+            if (error) {
+              console.error('Error fetching pick:', error);
+              // Trigger full refresh on error
+              forceSync();
+              return;
+            }
+
+            if (data) {
+              const pick = data as any;
+              const newPick: DraftPick = {
+                ...pick,
+                player_name: pick.player?.full_name || 'Unknown',
+                team_name: pick.team?.name || 'Unknown Team',
+              };
+
+              // Check if pick already exists (race condition protection)
+              setPicks((prev) => {
+                if (prev.some((p) => p.id === pickId)) {
+                  return prev; // Already have this pick
+                }
+                return [...prev, newPick];
+              });
+
+              // Remove player from available pool
+              setPlayers((prev) =>
+                prev.filter((p) => p.player_id !== pick.player_id)
+              );
+            }
+          } catch (err) {
+            console.error('Error processing pick event:', err);
+            forceSync(); // Recover by syncing
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'draft_picks',
+          filter: `draft_id=eq.${draftId}`,
+        },
+        async (payload) => {
+          // Handle undo (pick marked with undone_at)
+          const updatedPick = payload.new as any;
+          if (updatedPick.undone_at) {
+            console.log('Pick undone:', updatedPick.id);
+            // Remove from picks list
+            setPicks((prev) => prev.filter((p) => p.id !== updatedPick.id));
+            // Restore player to pool
+            fetchDraftData(); // Full refresh to get player back in pool
           }
         }
       )
@@ -233,19 +338,18 @@ export function DraftRoom({
             .from('draft_messages')
             .select(`
               *,
-              user:profiles(first_name, last_name),
+              user:profiles!draft_messages_user_id_fkey(full_name),
               team:teams(name)
             `)
             .eq('id', payload.new.id)
             .single();
 
           if (data) {
-            const newMessage = {
-              ...data,
-              user_name: data.user
-                ? `${data.user.first_name} ${data.user.last_name}`
-                : 'Unknown',
-              team_name: data.team?.name || null,
+            const msg = data as any;
+            const newMessage: DraftMessage = {
+              ...msg,
+              user_name: msg.user?.full_name || 'Unknown',
+              team_name: msg.team?.name || null,
             };
             setMessages((prev) => [...prev, newMessage]);
           }
@@ -272,7 +376,9 @@ export function DraftRoom({
       });
 
       if (pickError) throw pickError;
-      if (!data?.success) throw new Error(data?.error || 'Failed to make pick');
+
+      const result = data as unknown as { success?: boolean; error?: string } | null;
+      if (!result?.success) throw new Error(result?.error || 'Failed to make pick');
 
       setSelectedPlayer(null);
     } catch (err) {
@@ -295,14 +401,14 @@ export function DraftRoom({
 
   // Send chat message
   const handleSendMessage = async (message: string) => {
-    if (!canChat) return;
+    if (!canChat || !draft?.league_id) return;
 
     try {
       const { error: msgError } = await supabase.from('draft_messages').insert({
         draft_id: draftId,
-        league_id: draft?.league_id,
+        league_id: draft.league_id,
         user_id: userId,
-        team_id: userTeamId,
+        team_id: userTeamId || null,
         message,
         message_type: 'chat',
       });
@@ -327,6 +433,68 @@ export function DraftRoom({
     const { error } = await supabase.rpc('resume_draft', { p_draft_id: draftId });
     if (error) console.error('Error resuming draft:', error);
   };
+
+  // Undo last pick (admin only)
+  const handleUndoPick = async () => {
+    if (!isAdmin || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      // Note: undo_last_pick RPC is defined in migrations but not in generated types yet
+      const { data, error } = await (supabase.rpc as any)('undo_last_pick', { p_draft_id: draftId });
+
+      if (error) throw error;
+
+      const result = data as { success?: boolean; error?: string; restored_player?: string };
+      if (!result?.success) throw new Error(result?.error || 'Failed to undo pick');
+
+      // Refresh data to get updated state
+      fetchDraftData();
+    } catch (err) {
+      console.error('Error undoing pick:', err);
+      setError(err instanceof Error ? err.message : 'Failed to undo pick');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle trade complete
+  const handleTradeComplete = () => {
+    setShowTradeModal(false);
+    fetchDraftData(); // Refresh to get updated draft order
+  };
+
+  // Handle export
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    // Export is handled by DraftResultsExport component
+    console.log('Export requested:', format);
+  };
+
+  // Check for draft completion and show modal
+  useEffect(() => {
+    if (draft?.status === 'complete' && !showCompleteModal) {
+      // Small delay for dramatic effect
+      const timer = setTimeout(() => setShowCompleteModal(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [draft?.status, showCompleteModal]);
+
+  // Fetch roster confirmations for complete drafts
+  useEffect(() => {
+    if (draft?.status === 'complete') {
+      const fetchConfirmations = async () => {
+        // Note: draft_roster_confirmations table is defined in migrations but not in generated types yet
+        const { data } = await (supabase.from as any)('draft_roster_confirmations')
+          .select('*')
+          .eq('draft_id', draftId);
+
+        if (data) {
+          setRosterConfirmations(data as RosterConfirmationType[]);
+        }
+      };
+      fetchConfirmations();
+    }
+  }, [draft?.status, draftId, supabase]);
 
   // Loading state
   if (isLoading) {
@@ -360,17 +528,61 @@ export function DraftRoom({
 
   // Draft complete state
   if (isComplete) {
+    const isMyTeamConfirmed = rosterConfirmations.some((c) => c.team_id === userTeamId);
+
     return (
       <div className="container mx-auto p-6">
-        <div className="mb-6 flex items-center gap-3 rounded-lg border-2 border-green-500 bg-green-500/10 p-4">
-          <CheckCircle className="h-6 w-6 text-green-500" />
-          <div>
-            <p className="font-semibold text-green-500">Draft Complete!</p>
-            <p className="text-sm text-muted-foreground">
-              All {picks.length} picks have been made.
-            </p>
+        {/* Complete Modal */}
+        {draft && (
+          <DraftCompleteModal
+            isOpen={showCompleteModal}
+            draft={draft}
+            picks={picks}
+            teams={teams}
+            onClose={() => setShowCompleteModal(false)}
+            onExport={handleExport}
+          />
+        )}
+
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3 rounded-lg border-2 border-green-500 bg-green-500/10 p-4">
+            <CheckCircle className="h-6 w-6 text-green-500" />
+            <div>
+              <p className="font-semibold text-green-500">Draft Complete!</p>
+              <p className="text-sm text-muted-foreground">
+                All {picks.length} picks have been made.
+              </p>
+            </div>
           </div>
+
+          {/* Export buttons */}
+          <DraftResultsExport draftId={draftId} picks={picks} teams={teams} />
         </div>
+
+        {/* Roster Confirmation for team captain */}
+        {isCaptain && userTeamId && draft?.require_roster_confirmation && (
+          <div className="mb-6">
+            <RosterConfirmation
+              draftId={draftId}
+              teamId={userTeamId}
+              picks={picks}
+              onConfirm={() => {
+                const newConfirmation: RosterConfirmationType = {
+                  id: crypto.randomUUID(),
+                  draft_id: draftId,
+                  team_id: userTeamId,
+                  league_id: draft.league_id,
+                  confirmed_by: userId,
+                  confirmed_at: new Date().toISOString(),
+                  notes: null,
+                  has_issues: false,
+                };
+                setRosterConfirmations((prev) => [...prev, newConfirmation]);
+              }}
+              isConfirmed={isMyTeamConfirmed}
+            />
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
@@ -394,13 +606,33 @@ export function DraftRoom({
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
+      {/* Trade Modal */}
+      {draft && (
+        <TradePickerModal
+          isOpen={showTradeModal}
+          onClose={() => setShowTradeModal(false)}
+          draftId={draftId}
+          teams={teams}
+          currentRound={draft.current_round}
+          totalRounds={draft.total_rounds || 10}
+          onTradeComplete={handleTradeComplete}
+        />
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between border-b bg-card px-6 py-4">
-        <div>
-          <h1 className="text-xl font-bold">{draft?.name || 'Draft Room'}</h1>
-          <p className="text-sm text-muted-foreground">
-            Round {draft?.current_round || 1} - Pick {draft?.current_pick || 1}
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-xl font-bold">{draft?.name || 'Draft Room'}</h1>
+            <p className="text-sm text-muted-foreground">
+              Round {draft?.current_round || 1} - Pick {draft?.current_pick || 1}
+              {draft?.draft_type === 'snake' && (
+                <span className="ml-2 text-gold-500">(Snake Draft)</span>
+              )}
+            </p>
+          </div>
+          {/* Connection status badge */}
+          <ConnectionStatusBadge state={connectionState} />
         </div>
 
         <div className="flex items-center gap-4">
@@ -412,26 +644,16 @@ export function DraftRoom({
           )}
 
           {/* Admin controls */}
-          {isAdmin && (
-            <div className="flex items-center gap-2">
-              {isPaused ? (
-                <button
-                  onClick={handleResumeDraft}
-                  className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 font-medium text-white hover:bg-green-600"
-                >
-                  <Play className="h-4 w-4" />
-                  Resume
-                </button>
-              ) : (
-                <button
-                  onClick={handlePauseDraft}
-                  className="flex items-center gap-2 rounded-lg bg-yellow-500 px-4 py-2 font-medium text-black hover:bg-yellow-600"
-                >
-                  <Pause className="h-4 w-4" />
-                  Pause
-                </button>
-              )}
-            </div>
+          {draft && (
+            <DraftControls
+              draft={draft}
+              isAdmin={isAdmin}
+              onPause={handlePauseDraft}
+              onResume={handleResumeDraft}
+              onUndo={handleUndoPick}
+              onOpenTrade={() => setShowTradeModal(true)}
+              isSubmitting={isSubmitting}
+            />
           )}
 
           {/* Pick status */}
@@ -442,6 +664,18 @@ export function DraftRoom({
           )}
         </div>
       </header>
+
+      {/* Connection status banner (when disconnected) */}
+      {(connectionState === 'disconnected' || isPollingFallback) && (
+        <div className="border-b border-red-500/20 bg-red-500/5 px-6 py-2">
+          <ConnectionStatus
+            state={connectionState}
+            isPollingFallback={isPollingFallback}
+            lastSyncTime={lastSyncTime}
+            onForceSync={forceSync}
+          />
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">

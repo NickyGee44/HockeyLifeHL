@@ -1,0 +1,776 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* ============================================================
+   HockeyLifeHL Design System
+   Version 2.0 - Dark & Light Mode Support
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   TAILWIND V4 THEME EXTENSION
+   Defines brand colors for Tailwind utility classes
+   ------------------------------------------------------------ */
+@theme {
+  /* Gold Brand Colors */
+  --color-gold-50: #FFFDF5;
+  --color-gold-100: #FFF9E6;
+  --color-gold-200: #FFF0BF;
+  --color-gold-300: #FFE699;
+  --color-gold-400: #FFD54F;
+  --color-gold-500: #D4AF37;
+  --color-gold-600: #C19A00;
+  --color-gold-700: #9A7B00;
+  --color-gold-800: #735C00;
+  --color-gold-900: #4D3D00;
+
+  /* Neutral Colors (Extended) */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-150: #ededed;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-250: #d9d9d9;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-750: #2e2e2e;
+  --color-neutral-800: #1a1a1a;
+  --color-neutral-850: #141414;
+  --color-neutral-900: #111111;
+  --color-neutral-950: #0a0a0a;
+
+  /* Box Shadows */
+  --shadow-glow-sm: 0 0 20px rgba(212,175,55,0.15);
+  --shadow-glow: 0 0 40px rgba(212,175,55,0.2);
+  --shadow-glow-lg: 0 0 60px rgba(212,175,55,0.3);
+  --shadow-glow-intense: 0 0 80px rgba(212,175,55,0.4);
+  --shadow-gold: 0 4px 14px rgba(212,175,55,0.25);
+
+  /* Font Family */
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ------------------------------------------------------------
+   THEME LAYER: Color Palette Definitions
+   ------------------------------------------------------------ */
+@layer theme {
+  :root {
+    /* Gold Scale (OKLCH for perceptual uniformity) */
+    --color-gold-50: oklch(99% 0.02 85);
+    --color-gold-100: oklch(98% 0.05 85);
+    --color-gold-200: oklch(95% 0.10 85);
+    --color-gold-300: oklch(90% 0.15 85);
+    --color-gold-400: oklch(85% 0.18 85);
+    --color-gold-500: oklch(75% 0.15 85);
+    --color-gold-600: oklch(65% 0.13 85);
+    --color-gold-700: oklch(55% 0.11 85);
+    --color-gold-800: oklch(45% 0.09 85);
+    --color-gold-900: oklch(35% 0.07 85);
+
+    /* Neutral Scale */
+    --color-neutral-50: #fafafa;
+    --color-neutral-100: #f5f5f5;
+    --color-neutral-150: #ededed;
+    --color-neutral-200: #e5e5e5;
+    --color-neutral-250: #d9d9d9;
+    --color-neutral-300: #d4d4d4;
+    --color-neutral-400: #a3a3a3;
+    --color-neutral-500: #737373;
+    --color-neutral-600: #525252;
+    --color-neutral-700: #404040;
+    --color-neutral-750: #2e2e2e;
+    --color-neutral-800: #262626;
+    --color-neutral-850: #1a1a1a;
+    --color-neutral-900: #171717;
+    --color-neutral-925: #141414;
+    --color-neutral-950: #0a0a0a;
+
+    /* Base Brand Colors (Hex for compatibility) */
+    --hhl-gold: #D4AF37;
+    --hhl-gold-light: #FFD54F;
+    --hhl-gold-dark: #B8960F;
+    --hhl-gold-darker: #9A7B00;
+
+    /* Status Colors */
+    --color-success: #22c55e;
+    --color-success-dark: #16a34a;
+    --color-warning: #eab308;
+    --color-warning-dark: #ca8a04;
+    --color-error: #ef4444;
+    --color-error-dark: #dc2626;
+    --color-info: #3b82f6;
+    --color-info-dark: #2563eb;
+  }
+}
+
+/* ------------------------------------------------------------
+   DARK MODE (Default)
+   Premium black & gold theme
+   ------------------------------------------------------------ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Semantic Background Colors */
+  --color-background: var(--color-neutral-950);
+  --color-background-elevated: var(--color-neutral-925);
+  --color-background-sunken: #050505;
+  --color-surface: var(--color-neutral-850);
+  --color-surface-hover: var(--color-neutral-750);
+  --color-surface-active: var(--color-neutral-700);
+
+  /* Semantic Border Colors */
+  --color-border: rgba(212, 175, 55, 0.2);
+  --color-border-muted: rgba(255, 255, 255, 0.08);
+  --color-border-emphasis: rgba(212, 175, 55, 0.4);
+
+  /* Semantic Text Colors */
+  --color-text-primary: var(--color-neutral-50);
+  --color-text-secondary: var(--color-neutral-400);
+  --color-text-muted: var(--color-neutral-600);
+  --color-text-inverse: var(--color-neutral-950);
+
+  /* Accent Colors */
+  --color-accent: #D4AF37;
+  --color-accent-hover: #C19A00;
+  --color-accent-muted: rgba(212, 175, 55, 0.15);
+  --color-accent-text: var(--color-neutral-950);
+  --color-accent-foreground: #0a0a0a;
+
+  /* Shadows & Glows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 40px rgba(212, 175, 55, 0.2);
+  --shadow-glow-hover: 0 0 60px rgba(212, 175, 55, 0.35);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+
+  /* Input States */
+  --color-input-bg: rgba(0, 0, 0, 0.5);
+  --color-input-border: rgba(212, 175, 55, 0.3);
+  --color-input-focus: var(--color-accent);
+  --color-input-placeholder: var(--color-neutral-600);
+
+  /* Status Color Mappings */
+  --color-status-success: var(--color-success);
+  --color-status-success-muted: rgba(34, 197, 94, 0.15);
+  --color-status-warning: var(--color-warning);
+  --color-status-warning-muted: rgba(234, 179, 8, 0.15);
+  --color-status-error: var(--color-error);
+  --color-status-error-muted: rgba(239, 68, 68, 0.15);
+  --color-status-info: var(--color-info);
+  --color-status-info-muted: rgba(59, 130, 246, 0.15);
+
+  /* shadcn/ui Compatible Variables (HSL format) */
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 10%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 6%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 45 56% 52%;
+  --primary-foreground: 0 0% 5%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 65%;
+  --accent: 45 100% 38%;
+  --accent-foreground: 0 0% 5%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 45 56% 52% / 0.2;
+  --input: 0 0% 15%;
+  --ring: 45 56% 52%;
+  --radius: 0.75rem;
+
+  /* Chart Colors for Data Viz */
+  --chart-1: 45 56% 52%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 200 70% 50%;
+}
+
+/* ------------------------------------------------------------
+   LIGHT MODE
+   Clean, professional light theme with gold accents
+   ------------------------------------------------------------ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Semantic Background Colors */
+  --color-background: var(--color-neutral-50);
+  --color-background-elevated: #ffffff;
+  --color-background-sunken: var(--color-neutral-100);
+  --color-surface: #ffffff;
+  --color-surface-hover: var(--color-neutral-100);
+  --color-surface-active: var(--color-neutral-150);
+
+  /* Semantic Border Colors */
+  --color-border: var(--color-neutral-200);
+  --color-border-muted: var(--color-neutral-150);
+  --color-border-emphasis: var(--color-neutral-300);
+
+  /* Semantic Text Colors */
+  --color-text-primary: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-600);
+  --color-text-muted: var(--color-neutral-400);
+  --color-text-inverse: var(--color-neutral-50);
+
+  /* Accent Colors - Slightly darker for light mode contrast */
+  --color-accent: #B8960F;
+  --color-accent-hover: #9A7B00;
+  --color-accent-muted: rgba(184, 150, 15, 0.1);
+  --color-accent-text: #ffffff;
+  --color-accent-foreground: #ffffff;
+
+  /* Shadows (Traditional for light mode) */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 4px 14px rgba(184, 150, 15, 0.2);
+  --shadow-glow-hover: 0 8px 25px rgba(184, 150, 15, 0.3);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /* Input States */
+  --color-input-bg: #ffffff;
+  --color-input-border: var(--color-neutral-250);
+  --color-input-focus: var(--color-accent);
+  --color-input-placeholder: var(--color-neutral-400);
+
+  /* Status Color Mappings */
+  --color-status-success: var(--color-success-dark);
+  --color-status-success-muted: rgba(22, 163, 74, 0.1);
+  --color-status-warning: var(--color-warning-dark);
+  --color-status-warning-muted: rgba(202, 138, 4, 0.1);
+  --color-status-error: var(--color-error-dark);
+  --color-status-error-muted: rgba(220, 38, 38, 0.1);
+  --color-status-info: var(--color-info-dark);
+  --color-status-info-muted: rgba(37, 99, 235, 0.1);
+
+  /* shadcn/ui Compatible Variables (HSL format) */
+  --background: 0 0% 98%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 45 85% 39%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 45 85% 39%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 45 85% 39%;
+
+  /* Chart Colors for Data Viz */
+  --chart-1: 45 85% 39%;
+  --chart-2: 160 60% 35%;
+  --chart-3: 30 80% 45%;
+  --chart-4: 280 65% 50%;
+  --chart-5: 200 70% 40%;
+}
+
+/* ------------------------------------------------------------
+   SYSTEM PREFERENCE DETECTION
+   Applies when no explicit theme is set
+   ------------------------------------------------------------ */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+
+    --color-background: var(--color-neutral-50);
+    --color-background-elevated: #ffffff;
+    --color-background-sunken: var(--color-neutral-100);
+    --color-surface: #ffffff;
+    --color-surface-hover: var(--color-neutral-100);
+    --color-surface-active: var(--color-neutral-150);
+
+    --color-border: var(--color-neutral-200);
+    --color-border-muted: var(--color-neutral-150);
+    --color-border-emphasis: var(--color-neutral-300);
+
+    --color-text-primary: var(--color-neutral-900);
+    --color-text-secondary: var(--color-neutral-600);
+    --color-text-muted: var(--color-neutral-400);
+    --color-text-inverse: var(--color-neutral-50);
+
+    --color-accent: #B8960F;
+    --color-accent-hover: #9A7B00;
+    --color-accent-muted: rgba(184, 150, 15, 0.1);
+    --color-accent-text: #ffffff;
+    --color-accent-foreground: #ffffff;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    --shadow-glow: 0 4px 14px rgba(184, 150, 15, 0.2);
+    --shadow-glow-hover: 0 8px 25px rgba(184, 150, 15, 0.3);
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+    --color-input-bg: #ffffff;
+    --color-input-border: var(--color-neutral-250);
+    --color-input-focus: var(--color-accent);
+    --color-input-placeholder: var(--color-neutral-400);
+
+    --color-status-success: var(--color-success-dark);
+    --color-status-success-muted: rgba(22, 163, 74, 0.1);
+    --color-status-warning: var(--color-warning-dark);
+    --color-status-warning-muted: rgba(202, 138, 4, 0.1);
+    --color-status-error: var(--color-error-dark);
+    --color-status-error-muted: rgba(220, 38, 38, 0.1);
+    --color-status-info: var(--color-info-dark);
+    --color-status-info-muted: rgba(37, 99, 235, 0.1);
+
+    --background: 0 0% 98%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 45 85% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 45 85% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 45 85% 39%;
+  }
+}
+
+/* ------------------------------------------------------------
+   BASE STYLES
+   ------------------------------------------------------------ */
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-accent-muted);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] ::selection {
+  background-color: rgba(212, 175, 55, 0.3);
+  color: white;
+}
+
+/* Focus Ring */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ------------------------------------------------------------
+   SCROLLBAR STYLING
+   ------------------------------------------------------------ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-hover);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
+}
+
+/* ------------------------------------------------------------
+   UTILITY CLASSES
+   ------------------------------------------------------------ */
+
+/* Gold Gradient Text */
+.text-gradient-gold {
+  background-image: linear-gradient(to right, #FFD54F, #D4AF37, #FFD54F);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-theme="light"] .text-gradient-gold {
+  background-image: linear-gradient(to right, #C19A00, #9A7B00, #C19A00);
+}
+
+/* Button Glow Effect */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 300ms;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+}
+
+.btn-glow:hover::before {
+  opacity: 1;
+  animation: shine 0.75s ease-out;
+}
+
+@keyframes shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Card Hover Animation */
+.card-hover {
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-0.25rem);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Border Glow */
+.border-glow {
+  border: 1px solid var(--color-border);
+  box-shadow: inset 0 0 20px var(--color-accent-muted);
+}
+
+.border-glow:hover {
+  border-color: var(--color-border-emphasis);
+  box-shadow: inset 0 0 30px var(--color-accent-muted);
+}
+
+/* ------------------------------------------------------------
+   FORM ELEMENTS
+   ------------------------------------------------------------ */
+
+/* Input Base */
+.input-themed {
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-text-primary);
+  border-radius: 0.5rem;
+  transition: all 200ms;
+}
+
+.input-themed::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.input-themed:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-input-focus), 0 0 0 4px var(--color-accent-muted);
+}
+
+/* Legacy Input Gold (Dark Mode Only) */
+.input-gold {
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-text-primary);
+  border-radius: 0.5rem;
+  transition: all 200ms;
+}
+
+.input-gold::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.input-gold:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 4px var(--color-accent-muted);
+}
+
+/* Form Validation States */
+.input-error {
+  border-color: var(--color-status-error) !important;
+}
+
+.input-error:focus {
+  box-shadow: 0 0 0 2px var(--color-status-error) !important;
+}
+
+.input-success {
+  border-color: var(--color-status-success) !important;
+}
+
+.input-success:focus {
+  box-shadow: 0 0 0 2px var(--color-status-success) !important;
+}
+
+/* ------------------------------------------------------------
+   BUTTONS
+   ------------------------------------------------------------ */
+
+/* Primary Button */
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background-image: linear-gradient(to right, var(--color-accent), var(--color-accent-hover));
+  color: var(--color-accent-text);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary:hover {
+  box-shadow: var(--shadow-glow);
+  transform: scale(1.02);
+}
+
+.btn-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-accent);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary:disabled:hover {
+  transform: scale(1);
+  box-shadow: none;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  background-color: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-accent-muted);
+  border-color: var(--color-accent);
+}
+
+.btn-secondary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-accent);
+}
+
+/* Ghost Button */
+.btn-ghost {
+  padding: 0.5rem 1rem;
+  color: var(--color-text-secondary);
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 200ms;
+}
+
+.btn-ghost:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-hover);
+}
+
+/* ------------------------------------------------------------
+   CARDS
+   ------------------------------------------------------------ */
+
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1.5rem;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  border-color: var(--color-border-emphasis);
+  box-shadow: var(--shadow-glow);
+}
+
+[data-theme="light"] .card {
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ------------------------------------------------------------
+   BADGES
+   ------------------------------------------------------------ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-gold {
+  background-color: var(--color-accent-muted);
+  color: var(--color-accent);
+  border: 1px solid var(--color-border);
+}
+
+.badge-success {
+  background-color: var(--color-status-success-muted);
+  color: var(--color-status-success);
+  border: 1px solid currentColor;
+  border-opacity: 0.3;
+}
+
+.badge-warning {
+  background-color: var(--color-status-warning-muted);
+  color: var(--color-status-warning);
+  border: 1px solid currentColor;
+  border-opacity: 0.3;
+}
+
+.badge-error {
+  background-color: var(--color-status-error-muted);
+  color: var(--color-status-error);
+  border: 1px solid currentColor;
+  border-opacity: 0.3;
+}
+
+/* ------------------------------------------------------------
+   MULTI-TENANT THEMING
+   League-specific CSS variables (injected via middleware)
+   ------------------------------------------------------------ */
+[data-league-theme] {
+  --league-primary: var(--color-accent);
+  --league-secondary: var(--color-surface);
+  --league-accent: var(--league-primary);
+}
+
+/* ------------------------------------------------------------
+   ANIMATIONS
+   ------------------------------------------------------------ */
+
+.animate-in {
+  animation: fadeUp 0.6s ease-out forwards;
+}
+
+.animate-in-delay-1 {
+  animation: fadeUp 0.6s ease-out 0.1s forwards;
+  opacity: 0;
+}
+
+.animate-in-delay-2 {
+  animation: fadeUp 0.6s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+.animate-in-delay-3 {
+  animation: fadeUp 0.6s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 20px var(--color-accent-muted); }
+  50% { box-shadow: 0 0 40px var(--color-accent-muted); }
+}
+
+/* ------------------------------------------------------------
+   REDUCED MOTION
+   ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------
+   THEME TRANSITION
+   Smooth color transitions when switching themes
+   ------------------------------------------------------------ */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease,
+              fill 0.2s ease,
+              stroke 0.2s ease,
+              box-shadow 0.2s ease !important;
+}
