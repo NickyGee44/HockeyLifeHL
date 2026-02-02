@@ -104,7 +104,7 @@ export function ChatSidebar({
                     </span>
                   )}
                   <span className="text-muted-foreground/50">
-                    {formatTimestamp(msg.created_at)}
+                    {msg.created_at ? formatTimestamp(msg.created_at) : ''}
                   </span>
                 </div>
 

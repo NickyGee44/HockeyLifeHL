@@ -1,0 +1,250 @@
+'use client';
+
+import * as React from 'react';
+import { useFormContext } from 'react-hook-form';
+import { Calendar, Clock, Info } from 'lucide-react';
+import {
+  Input,
+  FormField,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@hockey-life/ui';
+import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
+import type { WizardFormData } from '@/lib/schemas/league-wizard';
+
+const REGISTRATION_TYPES = [
+  {
+    value: 'approval_required',
+    label: 'Approval Required',
+    description: 'Players can register, but need admin approval',
+  },
+  {
+    value: 'open',
+    label: 'Open Registration',
+    description: 'Anyone can register and join immediately',
+  },
+  {
+    value: 'invite_only',
+    label: 'Invite Only',
+    description: 'Players must be invited by admins',
+  },
+];
+
+export function Step2SeasonSettings() {
+  const {
+    register,
+    formState: { errors },
+    setValue,
+    watch,
+  } = useFormContext<WizardFormData>();
+
+  const registrationType = watch('registration_type');
+
+  return (
+    <WizardStepContainer
+      title="Season Settings"
+      description="Configure your league's season details, registration settings, and game parameters."
+    >
+      {/* Season Information */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Calendar className="h-5 w-5" />
+          Season Information
+        </h3>
+
+        <FormField
+          label="Season Name"
+          error={errors.season_name?.message}
+          required
+          htmlFor="season_name"
+        >
+          <Input
+            {...register('season_name')}
+            id="season_name"
+            placeholder="e.g., Winter 2026 Season"
+            error={!!errors.season_name}
+          />
+        </FormField>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            label="Season Start Date"
+            error={errors.season_start_date?.message}
+            required
+            htmlFor="season_start_date"
+          >
+            <Input
+              {...register('season_start_date')}
+              id="season_start_date"
+              type="datetime-local"
+              error={!!errors.season_start_date}
+            />
+          </FormField>
+
+          <FormField
+            label="Season End Date"
+            error={errors.season_end_date?.message}
+            required
+            htmlFor="season_end_date"
+          >
+            <Input
+              {...register('season_end_date')}
+              id="season_end_date"
+              type="datetime-local"
+              error={!!errors.season_end_date}
+            />
+          </FormField>
+        </div>
+      </div>
+
+      {/* Registration Settings */}
+      <div className="space-y-4 pt-6">
+        <h3 className="text-lg font-semibold">Registration Settings</h3>
+
+        <FormField
+          label="Registration Type"
+          error={errors.registration_type?.message}
+          required
+          htmlFor="registration_type"
+        >
+          <Select
+            value={registrationType}
+            onValueChange={(value: any) => setValue('registration_type', value)}
+          >
+            <SelectTrigger error={!!errors.registration_type}>
+              <SelectValue placeholder="Select registration type" />
+            </SelectTrigger>
+            <SelectContent>
+              {REGISTRATION_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{type.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {type.description}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+
+        <div className="bg-muted/50 p-4 rounded-lg">
+          <div className="flex gap-2">
+            <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium mb-1">Registration Type Guidelines:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>
+                  <strong>Approval Required (Recommended)</strong>: Best for
+                  competitive leagues where you want to review players
+                </li>
+                <li>
+                  <strong>Open Registration</strong>: Great for recreational
+                  leagues welcoming all skill levels
+                </li>
+                <li>
+                  <strong>Invite Only</strong>: Perfect for private or
+                  invite-based leagues
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            label="Registration Opens"
+            error={errors.registration_opens?.message}
+            htmlFor="registration_opens"
+            hint="Optional. When can players start registering?"
+          >
+            <Input
+              {...register('registration_opens')}
+              id="registration_opens"
+              type="datetime-local"
+              error={!!errors.registration_opens}
+            />
+          </FormField>
+
+          <FormField
+            label="Registration Closes"
+            error={errors.registration_closes?.message}
+            htmlFor="registration_closes"
+            hint="Optional. Last day to register"
+          >
+            <Input
+              {...register('registration_closes')}
+              id="registration_closes"
+              type="datetime-local"
+              error={!!errors.registration_closes}
+            />
+          </FormField>
+        </div>
+      </div>
+
+      {/* Game Settings */}
+      <div className="space-y-4 pt-6">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Game Settings
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            label="Game Duration (minutes)"
+            error={errors.game_duration_minutes?.message}
+            required
+            htmlFor="game_duration_minutes"
+            hint="Total game time in minutes"
+          >
+            <Input
+              {...register('game_duration_minutes', {
+                valueAsNumber: true,
+              })}
+              id="game_duration_minutes"
+              type="number"
+              min={30}
+              max={180}
+              step={5}
+              placeholder="60"
+              error={!!errors.game_duration_minutes}
+            />
+          </FormField>
+
+          <FormField
+            label="Number of Periods"
+            error={errors.period_count?.message}
+            required
+            htmlFor="period_count"
+            hint="How many periods per game?"
+          >
+            <Input
+              {...register('period_count', {
+                valueAsNumber: true,
+              })}
+              id="period_count"
+              type="number"
+              min={1}
+              max={5}
+              step={1}
+              placeholder="3"
+              error={!!errors.period_count}
+            />
+          </FormField>
+        </div>
+
+        <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-2">
+          <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-sm text-muted-foreground">
+            Standard hockey games are 60 minutes with 3 periods (20 minutes
+            each). You can adjust these settings to match your league's format.
+          </p>
+        </div>
+      </div>
+    </WizardStepContainer>
+  );
+}

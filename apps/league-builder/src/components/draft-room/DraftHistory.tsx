@@ -100,7 +100,7 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
 
                   {/* Timestamp */}
                   <span className="text-xs text-muted-foreground">
-                    {formatTimestamp(pick.created_at)}
+                    {pick.created_at ? formatTimestamp(pick.created_at) : ''}
                   </span>
                 </div>
               </li>

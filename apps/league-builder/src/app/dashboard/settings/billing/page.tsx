@@ -18,51 +18,52 @@ export default async function BillingSettingsPage() {
   }
 
   // Calculate days remaining in trial
-  const trialEndsAt = new Date(organization.trial_ends_at);
+  const orgData = organization as any;
+  const trialEndsAt = new Date(orgData.trial_ends_at);
   const now = new Date();
   const daysRemaining = Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   return (
     <div className="space-y-6">
       {/* Current Plan */}
-      <Card>
+      <Card className="bg-neutral-800/50 border-gold-500/20">
         <CardHeader>
-          <CardTitle>Current Plan</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-neutral-100">Current Plan</CardTitle>
+          <CardDescription className="text-neutral-400">
             Your subscription and billing information
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between p-4 bg-gold-500/10 rounded-xl border border-gold-500/30">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
-                {organization.subscription_tier} Plan
+              <h3 className="text-lg font-semibold text-neutral-100 capitalize">
+                {orgData.subscription_tier} Plan
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Status: <span className="font-medium capitalize">{organization.subscription_status}</span>
+              <p className="text-sm text-neutral-400">
+                Status: <span className="font-medium capitalize text-gold-500">{orgData.subscription_status}</span>
               </p>
             </div>
             <div className="text-right">
-              {organization.subscription_status === 'trialing' && (
+              {orgData.subscription_status === 'trialing' && (
                 <div>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  <p className="text-2xl font-bold text-gold-500">
                     {daysRemaining} days
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">remaining in trial</p>
+                  <p className="text-xs text-neutral-400">remaining in trial</p>
                 </div>
               )}
             </div>
           </div>
 
-          {organization.subscription_status === 'trialing' && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
+          {orgData.subscription_status === 'trialing' && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
               <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                <Calendar className="w-5 h-5 text-yellow-500 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                  <h4 className="font-medium text-neutral-100 mb-1">
                     Trial Period Active
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-neutral-400">
                     Your trial ends on {trialEndsAt.toLocaleDateString()}. Upgrade to a paid plan to continue using all features.
                   </p>
                 </div>
@@ -73,26 +74,26 @@ export default async function BillingSettingsPage() {
       </Card>
 
       {/* Payment Method */}
-      <Card>
+      <Card className="bg-neutral-800/50 border-gold-500/20">
         <CardHeader>
-          <CardTitle>Payment Method</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-neutral-100">Payment Method</CardTitle>
+          <CardDescription className="text-neutral-400">
             Manage your payment information
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <CreditCard className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
+            <p className="text-neutral-400 mb-4">
               No payment method on file
             </p>
             <button
               disabled
-              className="px-4 py-2 bg-blue-600 text-white rounded-md opacity-50 cursor-not-allowed"
+              className="px-4 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl opacity-50 cursor-not-allowed"
             >
               Add Payment Method
             </button>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <p className="text-xs text-neutral-500 mt-2">
               Stripe integration coming soon
             </p>
           </div>
@@ -100,85 +101,85 @@ export default async function BillingSettingsPage() {
       </Card>
 
       {/* Available Plans */}
-      <Card>
+      <Card className="bg-neutral-800/50 border-gold-500/20">
         <CardHeader>
-          <CardTitle>Available Plans</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-neutral-100">Available Plans</CardTitle>
+          <CardDescription className="text-neutral-400">
             Choose the plan that works best for your organization
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Starter Plan */}
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
+              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
                 Starter
               </h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold text-gray-900 dark:text-white">$29</span>
-                <span className="text-gray-600 dark:text-gray-400">/month</span>
+                <span className="text-3xl font-bold text-neutral-100">$29</span>
+                <span className="text-neutral-400">/month</span>
               </div>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
-                <li>✓ Up to 2 leagues</li>
-                <li>✓ 100 players total</li>
-                <li>✓ Basic analytics</li>
-                <li>✓ Email support</li>
+              <ul className="space-y-2 text-sm text-neutral-400 mb-6">
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Up to 2 leagues</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> 100 players total</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Basic analytics</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Email support</li>
               </ul>
               <button
                 disabled
-                className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-md cursor-not-allowed"
+                className="w-full px-4 py-2 bg-neutral-700 text-neutral-400 rounded-xl cursor-not-allowed"
               >
                 Current Plan
               </button>
             </div>
 
             {/* Pro Plan */}
-            <div className="border-2 border-blue-500 dark:border-blue-600 rounded-lg p-6 relative">
+            <div className="border-2 border-gold-500 rounded-xl p-6 relative bg-neutral-900/50 shadow-[0_0_20px_rgba(212,175,55,0.15)]">
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                <span className="bg-gradient-to-r from-gold-500 to-gold-600 text-black text-xs font-semibold px-3 py-1 rounded-full">
                   Recommended
                 </span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
                 Pro
               </h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold text-gray-900 dark:text-white">$79</span>
-                <span className="text-gray-600 dark:text-gray-400">/month</span>
+                <span className="text-3xl font-bold text-gold-500">$79</span>
+                <span className="text-neutral-400">/month</span>
               </div>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
-                <li>✓ Up to 10 leagues</li>
-                <li>✓ 500 players total</li>
-                <li>✓ Advanced analytics</li>
-                <li>✓ Custom branding</li>
-                <li>✓ Priority support</li>
+              <ul className="space-y-2 text-sm text-neutral-400 mb-6">
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Up to 10 leagues</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> 500 players total</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Advanced analytics</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Custom branding</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Priority support</li>
               </ul>
               <button
                 disabled
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md opacity-50 cursor-not-allowed"
+                className="w-full px-4 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl opacity-50 cursor-not-allowed"
               >
                 Upgrade to Pro
               </button>
             </div>
 
             {/* Enterprise Plan */}
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
+              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
                 Enterprise
               </h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold text-gray-900 dark:text-white">Custom</span>
+                <span className="text-3xl font-bold text-neutral-100">Custom</span>
               </div>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
-                <li>✓ Unlimited leagues</li>
-                <li>✓ Unlimited players</li>
-                <li>✓ White-label option</li>
-                <li>✓ Dedicated support</li>
-                <li>✓ Custom integrations</li>
+              <ul className="space-y-2 text-sm text-neutral-400 mb-6">
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Unlimited leagues</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Unlimited players</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> White-label option</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Dedicated support</li>
+                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Custom integrations</li>
               </ul>
               <button
                 disabled
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md cursor-not-allowed"
+                className="w-full px-4 py-2 border border-gold-500/50 text-gold-500 rounded-xl cursor-not-allowed"
               >
                 Contact Sales
               </button>
@@ -188,17 +189,17 @@ export default async function BillingSettingsPage() {
       </Card>
 
       {/* Billing History */}
-      <Card>
+      <Card className="bg-neutral-800/50 border-gold-500/20">
         <CardHeader>
-          <CardTitle>Billing History</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-neutral-100">Billing History</CardTitle>
+          <CardDescription className="text-neutral-400">
             View your past invoices and receipts
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">
+            <TrendingUp className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
+            <p className="text-neutral-400">
               No billing history yet
             </p>
           </div>

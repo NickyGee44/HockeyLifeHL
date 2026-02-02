@@ -85,7 +85,7 @@ async function getDashboardData(userId: string): Promise<DashboardData | null> {
     }
 
     // Type assertion - the RPC function returns properly structured JSON
-    return data as DashboardData;
+    return data as unknown as DashboardData;
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error fetching dashboard data:', error);
@@ -138,5 +138,5 @@ export async function getCachedDashboardData(): Promise<DashboardData | null> {
  */
 export async function revalidateDashboardCache(userId: string): Promise<void> {
   const { revalidateTag } = await import('next/cache');
-  revalidateTag(`dashboard-${userId}`);
+  (revalidateTag as any)(`dashboard-${userId}`);
 }

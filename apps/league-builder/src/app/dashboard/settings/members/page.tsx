@@ -19,7 +19,8 @@ export default async function TeamMembersPage() {
     redirect('/dashboard');
   }
 
-  const members = await getOrganizationMembers(organization.id);
+  const orgData = organization as any;
+  const members = await getOrganizationMembers(orgData.id);
 
   return (
     <div className="space-y-6">
@@ -31,7 +32,7 @@ export default async function TeamMembersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <InviteMemberForm organizationId={organization.id} />
+          <InviteMemberForm organizationId={orgData.id} />
         </CardContent>
       </Card>
 
@@ -44,8 +45,8 @@ export default async function TeamMembersPage() {
         </CardHeader>
         <CardContent>
           <MembersTable
-            members={members || []}
-            organizationId={organization.id}
+            members={(members || []) as any}
+            organizationId={orgData.id}
             currentUserId={userData.user.id}
           />
         </CardContent>

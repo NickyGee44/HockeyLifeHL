@@ -47,10 +47,11 @@ export function DraftBoard({
   const roundOrders = useMemo(() => {
     const orders: Record<number, DraftOrder[]> = {};
     draftOrder.forEach((order) => {
-      if (!orders[order.round]) {
-        orders[order.round] = [];
+      const round = order.round ?? 1;
+      if (!orders[round]) {
+        orders[round] = [];
       }
-      orders[order.round].push(order);
+      orders[round].push(order);
     });
     // Sort by pick position
     Object.values(orders).forEach((roundOrder) => {

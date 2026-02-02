@@ -1,0 +1,979 @@
+'use server';
+
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+
+// ==============================================================================
+// CONSTANTS
+// ==============================================================================
+
+const MAX_BULK_OPERATIONS = 100;
+const MAX_SCORE_VALUE = 99;
+const VALID_GAME_STATUSES = ['scheduled', 'in_progress', 'completed', 'cancelled', 'postponed'] as const;
+
+// ==============================================================================
+// INPUT VALIDATION HELPERS
+// ==============================================================================
+
+function isValidUUID(value: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+}
+
+function isValidGameStatus(status: string): status is GameStatus {
+  return VALID_GAME_STATUSES.includes(status as GameStatus);
+}
+
+function isValidDate(dateStr: string): boolean {
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
+}
+
+function sanitizeError(error: unknown, context: string): string {
+  // Log the real error for debugging (server-side only)
+  console.error(`Error in ${context}:`, error);
+
+  // Return generic message to client
+  if (error instanceof Error) {
+    if (error.message.includes('not found') || error.message.includes('PGRST116')) {
+      return 'Resource not found';
+    }
+    if (error.message.includes('permission denied') || error.message.includes('row-level security')) {
+      return 'Permission denied';
+    }
+    if (error.message.includes('duplicate')) {
+      return 'A resource with this identifier already exists';
+    }
+  }
+
+  return 'An unexpected error occurred. Please try again.';
+}
+
+// ==============================================================================
+// TYPES
+// ==============================================================================
+
+export type GameStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'postponed';
+
+export interface Game {
+  id: string;
+  league_id: string;
+  season_id: string;
+  home_team_id: string;
+  away_team_id: string;
+  home_score: number;
+  away_score: number;
+  status: GameStatus;
+  scheduled_at: string;
+  location: string | null;
+  is_rescheduled: boolean;
+  original_scheduled_at: string | null;
+  rescheduled_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  round_number: number | null;
+  game_number: number | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  home_team?: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    primary_color: string | null;
+    logo_url: string | null;
+  };
+  away_team?: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    primary_color: string | null;
+    logo_url: string | null;
+  };
+  season?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface GameFilters {
+  status?: GameStatus | 'all';
+  teamId?: string;
+  seasonId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export type ActionResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+// ==============================================================================
+// HELPER: Verify user has admin access to league
+// ==============================================================================
+
+async function verifyLeagueAdmin(leagueId: string): Promise<{ userId: string } | null> {
+  const supabase = await createClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return null;
+
+  const { data: membership } = await supabase
+    .from('league_memberships')
+    .select('role')
+    .eq('league_id', leagueId)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .single();
+
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return null;
+  }
+
+  return { userId: user.id };
+}
+
+// ==============================================================================
+// HELPER: Log game audit
+// ==============================================================================
+
+async function logGameAudit(
+  gameId: string,
+  leagueId: string,
+  action: string,
+  changedBy: string,
+  previousData: Record<string, unknown> | null,
+  newData: Record<string, unknown> | null,
+  reason?: string
+): Promise<void> {
+  const supabase = createServiceRoleClient();
+
+  await supabase.from('game_audit_log').insert({
+    game_id: gameId,
+    league_id: leagueId,
+    action,
+    changed_by: changedBy,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    previous_data: previousData as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    new_data: newData as any,
+    reason: reason ?? null,
+  });
+}
+
+// ==============================================================================
+// GET GAMES
+// ==============================================================================
+
+export async function getGames(
+  leagueId: string,
+  filters?: GameFilters
+): Promise<ActionResult<{ games: Game[]; total: number }>> {
+  try {
+    // Input validation
+    if (!isValidUUID(leagueId)) {
+      return { success: false, error: 'Invalid league ID format' };
+    }
+
+    if (filters?.teamId && !isValidUUID(filters.teamId)) {
+      return { success: false, error: 'Invalid team ID format' };
+    }
+
+    if (filters?.seasonId && !isValidUUID(filters.seasonId)) {
+      return { success: false, error: 'Invalid season ID format' };
+    }
+
+    if (filters?.status && filters.status !== 'all' && !isValidGameStatus(filters.status)) {
+      return { success: false, error: 'Invalid status value' };
+    }
+
+    if (filters?.dateFrom && !isValidDate(filters.dateFrom)) {
+      return { success: false, error: 'Invalid from date format' };
+    }
+
+    if (filters?.dateTo && !isValidDate(filters.dateTo)) {
+      return { success: false, error: 'Invalid to date format' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const supabase = await createServiceRoleClient();
+
+    let query = supabase
+      .from('games')
+      .select(`
+        *,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        season:seasons(id, name)
+      `, { count: 'exact' })
+      .eq('league_id', leagueId)
+      .order('scheduled_at', { ascending: false });
+
+    // Apply filters
+    if (filters?.status && filters.status !== 'all') {
+      query = query.eq('status', filters.status);
+    }
+    if (filters?.teamId) {
+      query = query.or(`home_team_id.eq.${filters.teamId},away_team_id.eq.${filters.teamId}`);
+    }
+    if (filters?.seasonId) {
+      query = query.eq('season_id', filters.seasonId);
+    }
+    if (filters?.dateFrom) {
+      query = query.gte('scheduled_at', filters.dateFrom);
+    }
+    if (filters?.dateTo) {
+      query = query.lte('scheduled_at', filters.dateTo);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'getGames') };
+    }
+
+    return {
+      success: true,
+      data: {
+        games: (data || []) as Game[],
+        total: count || 0,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'getGames'),
+    };
+  }
+}
+
+// ==============================================================================
+// GET SINGLE GAME
+// ==============================================================================
+
+export async function getGame(gameId: string): Promise<ActionResult<Game>> {
+  try {
+    // Input validation first
+    if (!isValidUUID(gameId)) {
+      return { success: false, error: 'Invalid game ID format' };
+    }
+
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // First, get just the league_id to verify authorization BEFORE fetching full data
+    const { data: gameRef, error: refError } = await serviceClient
+      .from('games')
+      .select('league_id')
+      .eq('id', gameId)
+      .single();
+
+    if (refError || !gameRef) {
+      return { success: false, error: 'Game not found or access denied' };
+    }
+
+    // Verify user has access to this game's league BEFORE fetching full data
+    const { data: membership } = await serviceClient
+      .from('league_memberships')
+      .select('role')
+      .eq('league_id', gameRef.league_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (!membership) {
+      return { success: false, error: 'Game not found or access denied' };
+    }
+
+    // Now fetch full game data (user is authorized)
+    const { data, error } = await serviceClient
+      .from('games')
+      .select(`
+        *,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        season:seasons(id, name)
+      `)
+      .eq('id', gameId)
+      .single();
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'getGame') };
+    }
+
+    return { success: true, data: data as Game };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'getGame'),
+    };
+  }
+}
+
+// ==============================================================================
+// UPDATE GAME
+// ==============================================================================
+
+export interface UpdateGameInput {
+  scheduled_at?: string;
+  location?: string;
+  home_score?: number;
+  away_score?: number;
+  status?: GameStatus;
+}
+
+export async function updateGame(
+  gameId: string,
+  updates: UpdateGameInput
+): Promise<ActionResult<Game>> {
+  try {
+    // Input validation
+    if (!isValidUUID(gameId)) {
+      return { success: false, error: 'Invalid game ID format' };
+    }
+
+    if (updates.status && !isValidGameStatus(updates.status)) {
+      return { success: false, error: 'Invalid status value' };
+    }
+
+    if (updates.home_score !== undefined) {
+      if (updates.home_score < 0 || updates.home_score > MAX_SCORE_VALUE) {
+        return { success: false, error: `Score must be between 0 and ${MAX_SCORE_VALUE}` };
+      }
+    }
+
+    if (updates.away_score !== undefined) {
+      if (updates.away_score < 0 || updates.away_score > MAX_SCORE_VALUE) {
+        return { success: false, error: `Score must be between 0 and ${MAX_SCORE_VALUE}` };
+      }
+    }
+
+    if (updates.scheduled_at && !isValidDate(updates.scheduled_at)) {
+      return { success: false, error: 'Invalid date format' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // Get current game first
+    const { data: currentGame, error: fetchError } = await serviceClient
+      .from('games')
+      .select('*')
+      .eq('id', gameId)
+      .single();
+
+    if (fetchError || !currentGame) {
+      return { success: false, error: 'Game not found' };
+    }
+
+    // Verify admin access
+    const auth = await verifyLeagueAdmin(currentGame.league_id);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Update game
+    const { data, error } = await serviceClient
+      .from('games')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', gameId)
+      .select(`
+        *,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        season:seasons(id, name)
+      `)
+      .single();
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'updateGame') };
+    }
+
+    // Log audit
+    await logGameAudit(
+      gameId,
+      currentGame.league_id,
+      'update',
+      auth.userId,
+      currentGame,
+      data,
+      undefined
+    );
+
+    revalidatePath(`/dashboard/games`);
+    revalidatePath(`/dashboard/games/${gameId}`);
+
+    return { success: true, data: data as Game };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'updateGame'),
+    };
+  }
+}
+
+// ==============================================================================
+// RESCHEDULE GAME
+// ==============================================================================
+
+export async function rescheduleGame(
+  gameId: string,
+  newScheduledAt: string,
+  newLocation?: string
+): Promise<ActionResult<Game>> {
+  try {
+    // Input validation
+    if (!isValidUUID(gameId)) {
+      return { success: false, error: 'Invalid game ID format' };
+    }
+
+    if (!isValidDate(newScheduledAt)) {
+      return { success: false, error: 'Invalid date format' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // Get current game
+    const { data: currentGame, error: fetchError } = await serviceClient
+      .from('games')
+      .select('*')
+      .eq('id', gameId)
+      .single();
+
+    if (fetchError || !currentGame) {
+      return { success: false, error: 'Game not found' };
+    }
+
+    // Verify admin access
+    const auth = await verifyLeagueAdmin(currentGame.league_id);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Can only reschedule scheduled or postponed games
+    if (!currentGame.status || !['scheduled', 'postponed'].includes(currentGame.status)) {
+      return {
+        success: false,
+        error: 'Can only reschedule scheduled or postponed games'
+      };
+    }
+
+    // Update game
+    const { data, error } = await serviceClient
+      .from('games')
+      .update({
+        scheduled_at: newScheduledAt,
+        location: newLocation !== undefined ? newLocation : currentGame.location,
+        original_scheduled_at: currentGame.original_scheduled_at || currentGame.scheduled_at,
+        is_rescheduled: true,
+        rescheduled_at: new Date().toISOString(),
+        status: 'scheduled',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', gameId)
+      .select(`
+        *,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        season:seasons(id, name)
+      `)
+      .single();
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'rescheduleGame') };
+    }
+
+    // Log audit
+    await logGameAudit(
+      gameId,
+      currentGame.league_id,
+      'reschedule',
+      auth.userId,
+      { scheduled_at: currentGame.scheduled_at, location: currentGame.location },
+      { scheduled_at: newScheduledAt, location: newLocation || currentGame.location },
+      `Rescheduled from ${currentGame.scheduled_at}`
+    );
+
+    revalidatePath(`/dashboard/games`);
+    revalidatePath(`/dashboard/games/${gameId}`);
+
+    return { success: true, data: data as Game };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'rescheduleGame'),
+    };
+  }
+}
+
+// ==============================================================================
+// CANCEL GAME
+// ==============================================================================
+
+export async function cancelGame(
+  gameId: string,
+  reason: string
+): Promise<ActionResult<Game>> {
+  try {
+    // Input validation
+    if (!isValidUUID(gameId)) {
+      return { success: false, error: 'Invalid game ID format' };
+    }
+
+    if (!reason.trim()) {
+      return { success: false, error: 'Cancellation reason is required' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // Get current game
+    const { data: currentGame, error: fetchError } = await serviceClient
+      .from('games')
+      .select('*')
+      .eq('id', gameId)
+      .single();
+
+    if (fetchError || !currentGame) {
+      return { success: false, error: 'Game not found' };
+    }
+
+    // Verify admin access
+    const auth = await verifyLeagueAdmin(currentGame.league_id);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Can't cancel completed games
+    if (currentGame.status === 'completed') {
+      return { success: false, error: 'Cannot cancel a completed game' };
+    }
+
+    // Update game
+    const { data, error } = await serviceClient
+      .from('games')
+      .update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        cancellation_reason: reason.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', gameId)
+      .select(`
+        *,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        season:seasons(id, name)
+      `)
+      .single();
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'cancelGame') };
+    }
+
+    // Log audit
+    await logGameAudit(
+      gameId,
+      currentGame.league_id,
+      'cancel',
+      auth.userId,
+      { status: currentGame.status },
+      { status: 'cancelled', cancellation_reason: reason },
+      reason
+    );
+
+    revalidatePath(`/dashboard/games`);
+    revalidatePath(`/dashboard/games/${gameId}`);
+
+    return { success: true, data: data as Game };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'cancelGame'),
+    };
+  }
+}
+
+// ==============================================================================
+// POSTPONE GAME
+// ==============================================================================
+
+export async function postponeGame(
+  gameId: string,
+  reason: string
+): Promise<ActionResult<Game>> {
+  try {
+    // Input validation
+    if (!isValidUUID(gameId)) {
+      return { success: false, error: 'Invalid game ID format' };
+    }
+
+    if (!reason.trim()) {
+      return { success: false, error: 'Postponement reason is required' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // Get current game
+    const { data: currentGame, error: fetchError } = await serviceClient
+      .from('games')
+      .select('*')
+      .eq('id', gameId)
+      .single();
+
+    if (fetchError || !currentGame) {
+      return { success: false, error: 'Game not found' };
+    }
+
+    // Verify admin access
+    const auth = await verifyLeagueAdmin(currentGame.league_id);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Can only postpone scheduled games
+    if (currentGame.status !== 'scheduled') {
+      return { success: false, error: 'Can only postpone scheduled games' };
+    }
+
+    // Update game
+    const { data, error } = await serviceClient
+      .from('games')
+      .update({
+        status: 'postponed',
+        cancellation_reason: reason.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', gameId)
+      .select(`
+        *,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        season:seasons(id, name)
+      `)
+      .single();
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'postponeGame') };
+    }
+
+    // Log audit
+    await logGameAudit(
+      gameId,
+      currentGame.league_id,
+      'postpone',
+      auth.userId,
+      { status: currentGame.status },
+      { status: 'postponed' },
+      reason
+    );
+
+    revalidatePath(`/dashboard/games`);
+    revalidatePath(`/dashboard/games/${gameId}`);
+
+    return { success: true, data: data as Game };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'postponeGame'),
+    };
+  }
+}
+
+// ==============================================================================
+// BULK CANCEL GAMES
+// ==============================================================================
+
+export async function bulkCancelGames(
+  gameIds: string[],
+  reason: string
+): Promise<ActionResult<{ cancelled: number; failed: string[] }>> {
+  try {
+    if (!reason.trim()) {
+      return { success: false, error: 'Cancellation reason is required' };
+    }
+
+    if (gameIds.length === 0) {
+      return { success: false, error: 'No games selected' };
+    }
+
+    // Bulk operation limit
+    if (gameIds.length > MAX_BULK_OPERATIONS) {
+      return {
+        success: false,
+        error: `Cannot cancel more than ${MAX_BULK_OPERATIONS} games at once`
+      };
+    }
+
+    // Validate all game IDs
+    for (const gameId of gameIds) {
+      if (!isValidUUID(gameId)) {
+        return { success: false, error: 'Invalid game ID format in selection' };
+      }
+    }
+
+    const cancelled: string[] = [];
+    const failed: string[] = [];
+
+    for (const gameId of gameIds) {
+      const result = await cancelGame(gameId, reason);
+      if (result.success) {
+        cancelled.push(gameId);
+      } else {
+        failed.push(gameId);
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        cancelled: cancelled.length,
+        failed,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'bulkCancelGames'),
+    };
+  }
+}
+
+// ==============================================================================
+// BULK RESCHEDULE GAMES (shift by days)
+// ==============================================================================
+
+export async function bulkRescheduleGames(
+  gameIds: string[],
+  dayShift: number
+): Promise<ActionResult<{ rescheduled: number; failed: string[] }>> {
+  try {
+    if (gameIds.length === 0) {
+      return { success: false, error: 'No games selected' };
+    }
+
+    // Bulk operation limit
+    if (gameIds.length > MAX_BULK_OPERATIONS) {
+      return {
+        success: false,
+        error: `Cannot reschedule more than ${MAX_BULK_OPERATIONS} games at once`
+      };
+    }
+
+    // Validate day shift bounds
+    if (!Number.isInteger(dayShift) || dayShift < -365 || dayShift > 365) {
+      return { success: false, error: 'Day shift must be an integer between -365 and 365' };
+    }
+
+    // Validate all game IDs
+    for (const gameId of gameIds) {
+      if (!isValidUUID(gameId)) {
+        return { success: false, error: 'Invalid game ID format in selection' };
+      }
+    }
+
+    const rescheduled: string[] = [];
+    const failed: string[] = [];
+
+    const serviceClient = await createServiceRoleClient();
+
+    for (const gameId of gameIds) {
+      // Get current game
+      const { data: currentGame, error: fetchError } = await serviceClient
+        .from('games')
+        .select('scheduled_at, league_id, status')
+        .eq('id', gameId)
+        .single();
+
+      if (fetchError || !currentGame) {
+        failed.push(gameId);
+        continue;
+      }
+
+      // Calculate new date
+      const currentDate = new Date(currentGame.scheduled_at);
+      currentDate.setDate(currentDate.getDate() + dayShift);
+      const newScheduledAt = currentDate.toISOString();
+
+      const result = await rescheduleGame(gameId, newScheduledAt);
+      if (result.success) {
+        rescheduled.push(gameId);
+      } else {
+        failed.push(gameId);
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        rescheduled: rescheduled.length,
+        failed,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'bulkRescheduleGames'),
+    };
+  }
+}
+
+// ==============================================================================
+// GET TEAMS FOR FILTER
+// ==============================================================================
+
+export async function getTeamsForLeague(
+  leagueId: string
+): Promise<ActionResult<Array<{ id: string; name: string; short_name: string | null }>>> {
+  try {
+    // Input validation
+    if (!isValidUUID(leagueId)) {
+      return { success: false, error: 'Invalid league ID format' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    const { data, error } = await serviceClient
+      .from('teams')
+      .select('id, name, short_name')
+      .eq('league_id', leagueId)
+      .order('name');
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'getTeamsForLeague') };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'getTeamsForLeague'),
+    };
+  }
+}
+
+// ==============================================================================
+// GET SEASONS FOR FILTER
+// ==============================================================================
+
+export async function getSeasonsForLeague(
+  leagueId: string
+): Promise<ActionResult<Array<{ id: string; name: string }>>> {
+  try {
+    // Input validation
+    if (!isValidUUID(leagueId)) {
+      return { success: false, error: 'Invalid league ID format' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    const { data, error } = await serviceClient
+      .from('seasons')
+      .select('id, name')
+      .eq('league_id', leagueId)
+      .order('start_date', { ascending: false });
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'getSeasonsForLeague') };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'getSeasonsForLeague'),
+    };
+  }
+}
+
+// ==============================================================================
+// GET GAME AUDIT LOG
+// ==============================================================================
+
+export async function getGameAuditLog(
+  gameId: string
+): Promise<ActionResult<Array<{
+  id: string;
+  action: string;
+  changed_by: string;
+  previous_data: unknown;
+  new_data: unknown;
+  reason: string | null;
+  created_at: string;
+  changed_by_profile?: { full_name: string | null };
+}>>> {
+  try {
+    // Input validation
+    if (!isValidUUID(gameId)) {
+      return { success: false, error: 'Invalid game ID format' };
+    }
+
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // First get the game's league_id to verify authorization
+    const { data: game, error: gameError } = await serviceClient
+      .from('games')
+      .select('league_id')
+      .eq('id', gameId)
+      .single();
+
+    if (gameError || !game) {
+      // Use generic error to prevent game enumeration
+      return { success: false, error: 'Game not found or access denied' };
+    }
+
+    // Verify admin access
+    const auth = await verifyLeagueAdmin(game.league_id);
+    if (!auth) {
+      return { success: false, error: 'Game not found or access denied' };
+    }
+
+    const { data, error } = await serviceClient
+      .from('game_audit_log')
+      .select(`
+        *,
+        changed_by_profile:profiles!game_audit_log_changed_by_fkey(full_name)
+      `)
+      .eq('game_id', gameId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'getGameAuditLog') };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'getGameAuditLog'),
+    };
+  }
+}
