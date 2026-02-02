@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo [$(date '+%Y-%m-%d %H:%M:%S')] Session started >> .claude/orchestration.log"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo [$(date '+%Y-%m-%d %H:%M:%S')] Subagent completed >> .claude/orchestration.log"
+          }
+        ]
+      }
+    ]
+  },
+  "agents": {
+    "feature-dev": {
+      "description": "Feature development agent for Phase 1C/1D implementation",
+      "model": "sonnet",
+      "tools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
+    },
+    "bugfix": {
+      "description": "Bug fix and maintenance agent for audits and hotfixes",
+      "model": "sonnet",
+      "tools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
+    },
+    "explorer": {
+      "description": "Fast exploration agent for codebase research",
+      "model": "haiku",
+      "tools": ["Read", "Glob", "Grep"]
+    },
+    "validator": {
+      "description": "Validation agent for type checking and testing",
+      "model": "haiku",
+      "tools": ["Bash", "Read"]
+    }
+  }
+}
