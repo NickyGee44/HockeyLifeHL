@@ -41,7 +41,7 @@ export default function LoginPage() {
 
         setError(result.error);
       }
-    } catch (_err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
