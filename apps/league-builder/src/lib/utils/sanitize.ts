@@ -11,9 +11,6 @@ const EMAIL_REGEX = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/gi;
 // Phone number patterns (common formats)
 const PHONE_REGEX = /\b(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g;
 
-// Name patterns (First Last format - less reliable but catches some)
-const NAME_REGEX = /\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g;
-
 /**
  * Sanitizes an error object by removing PII from error messages.
  * Use this before logging errors to prevent PII exposure in logs.

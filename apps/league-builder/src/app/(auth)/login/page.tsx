@@ -41,7 +41,7 @@ export default function LoginPage() {
 
         setError(result.error);
       }
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -150,7 +150,7 @@ export default function LoginPage() {
 
       <div className="mt-6 text-center">
         <p className="text-sm text-neutral-400">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link
             href="/signup"
             className="text-gold-500 hover:text-gold-400 hover:underline font-medium transition-colors"

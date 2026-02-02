@@ -195,7 +195,7 @@ export interface OrganizationSubscription {
   discountEndAt: Date | null;
 
   // Metadata
-  subscriptionMetadata: Record<string, any>;
+  subscriptionMetadata: Record<string, unknown>;
 }
 
 export interface SubscriptionPlan {
@@ -251,7 +251,7 @@ export interface SubscriptionEvent {
   toStatus: SubscriptionStatus | null;
   stripeEventId: string | null;
   amountCents: number | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: Date;
   createdBy: string | null;
 }

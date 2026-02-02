@@ -17,7 +17,7 @@ import crypto from 'crypto';
  */
 export function generateIdempotencyKey(
   operation: string,
-  data: Record<string, any>
+  data: Record<string, unknown>
 ): string {
   // Sort keys for deterministic stringification
   const sortedData = Object.keys(data)
@@ -25,7 +25,7 @@ export function generateIdempotencyKey(
     .reduce((acc, key) => {
       acc[key] = data[key];
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
 
   // Create hash of operation + sorted data
   const hash = crypto

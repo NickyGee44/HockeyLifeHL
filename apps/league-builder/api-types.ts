@@ -166,7 +166,7 @@ export interface League {
   website_url: string | null;
   status: LeagueStatus;
   created_by: string;
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -300,7 +300,7 @@ export interface CurrentUser {
   user: {
     id: string;
     email: string;
-    [key: string]: any; // Supabase User object
+    [key: string]: unknown; // Supabase User object
   };
   profile: Profile;
 }
@@ -483,7 +483,7 @@ export interface OrganizationSubscription {
   cancelAtPeriodEnd: boolean;
   couponId: string | null;
   discountEndAt: Date | null;
-  subscriptionMetadata: Record<string, any>;
+  subscriptionMetadata: Record<string, unknown>;
 }
 
 /**
@@ -634,7 +634,7 @@ export interface StripeWebhookEvent {
   id: string;
   type: string;
   data: {
-    object: any;
+    object: unknown;
   };
   created: number;
 }

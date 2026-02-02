@@ -1,6 +1,5 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Trophy } from 'lucide-react';
 
@@ -9,8 +8,6 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const t = useTranslations();
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-950">
       {/* Background gradient */}

@@ -20,7 +20,7 @@ export default function SignUpPage() {
       }
       // If no error, the server action will handle redirect
       // Don't setLoading(false) here as page will redirect
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
       setLoading(false);
     }
