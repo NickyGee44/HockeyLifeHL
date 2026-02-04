@@ -59,7 +59,50 @@ async function checkEventDuplicate(
 }
 
 // ============================================================================
-// Helper: Verify Event Ordering
+// Helper: Acquire PostgreSQL Advisory Lock (CRITICAL for race condition fix)
+// ============================================================================
+
+/**
+ * Acquire PostgreSQL advisory lock for organization to prevent concurrent webhook processing.
+ *
+ * CRITICAL SECURITY: Prevents TOCTOU (Time-of-Check-Time-of-Use) race condition where
+ * out-of-order webhook events can bypass timestamp validation and corrupt subscription state.
+ *
+ * Attack scenario without lock:
+ * 1. Event A (timestamp 1000) arrives, checks ordering (valid), starts processing
+ * 2. Event B (timestamp 900) arrives, checks ordering (STILL valid because A hasn't committed)
+ * 3. Event B processes and commits (sets last_timestamp=900)
+ * 4. Event A processes and commits (sets last_timestamp=1000)
+ * 5. Result: Event B bypassed ordering check and corrupted state
+ *
+ * Defense: PostgreSQL advisory lock serializes ALL webhook processing for each customer.
+ * Lock is released automatically at transaction end (even on error).
+ *
+ * @param supabase - Supabase client with transaction support
+ * @param organizationId - Organization ID to lock
+ * @returns Lock key (for logging/debugging)
+ */
+async function acquireOrganizationLock(
+  supabase: ReturnType<typeof createServiceClient>,
+  organizationId: string
+): Promise<void> {
+  // Generate deterministic lock key from organization ID
+  // Use hashtext() to convert UUID to 32-bit integer for advisory lock
+  // Advisory lock will block until any existing lock for this org is released
+  const { error } = await supabase.rpc('acquire_webhook_lock', {
+    p_organization_id: organizationId,
+  });
+
+  if (error) {
+    console.error('[Webhook] Failed to acquire advisory lock:', error);
+    throw new Error(`Failed to acquire lock for organization ${organizationId}: ${error.message}`);
+  }
+
+  // Lock acquired successfully (will be automatically released at transaction end)
+}
+
+// ============================================================================
+// Helper: Verify Event Ordering (now protected by advisory lock)
 // ============================================================================
 
 async function verifyEventOrdering(
@@ -176,7 +219,11 @@ async function handleSubscriptionCreated(
     throw new Error('Missing organization_id in subscription metadata');
   }
 
-  // Verify event ordering
+  // CRITICAL SECURITY: Acquire advisory lock to prevent race conditions
+  // This ensures sequential processing of webhooks for this organization
+  await acquireOrganizationLock(supabase, organizationId);
+
+  // Verify event ordering (now protected by lock)
   const { valid, lastTimestamp } = await verifyEventOrdering(
     supabase,
     organizationId,
@@ -277,7 +324,10 @@ async function handleSubscriptionUpdated(
     throw new Error('Missing organization_id in subscription metadata');
   }
 
-  // Verify event ordering
+  // CRITICAL SECURITY: Acquire advisory lock to prevent race conditions
+  await acquireOrganizationLock(supabase, organizationId);
+
+  // Verify event ordering (now protected by lock)
   const { valid, lastTimestamp } = await verifyEventOrdering(
     supabase,
     organizationId,
@@ -400,7 +450,10 @@ async function handleSubscriptionDeleted(
     throw new Error('Missing organization_id in subscription metadata');
   }
 
-  // Verify event ordering
+  // CRITICAL SECURITY: Acquire advisory lock to prevent race conditions
+  await acquireOrganizationLock(supabase, organizationId);
+
+  // Verify event ordering (now protected by lock)
   const { valid, lastTimestamp } = await verifyEventOrdering(
     supabase,
     organizationId,
@@ -497,7 +550,10 @@ async function handleInvoicePaid(
     );
   }
 
-  // Verify event ordering
+  // CRITICAL SECURITY: Acquire advisory lock to prevent race conditions
+  await acquireOrganizationLock(supabase, org.id);
+
+  // Verify event ordering (now protected by lock)
   const { valid, lastTimestamp } = await verifyEventOrdering(
     supabase,
     org.id,
@@ -591,7 +647,10 @@ async function handleInvoicePaymentFailed(
     );
   }
 
-  // Verify event ordering
+  // CRITICAL SECURITY: Acquire advisory lock to prevent race conditions
+  await acquireOrganizationLock(supabase, org.id);
+
+  // Verify event ordering (now protected by lock)
   const { valid, lastTimestamp } = await verifyEventOrdering(
     supabase,
     org.id,
@@ -677,7 +736,10 @@ async function handlePaymentMethodAttached(
     throw new Error(`Organization not found for customer: ${customerId}`);
   }
 
-  // Verify event ordering
+  // CRITICAL SECURITY: Acquire advisory lock to prevent race conditions
+  await acquireOrganizationLock(supabase, org.id);
+
+  // Verify event ordering (now protected by lock)
   const { valid, lastTimestamp } = await verifyEventOrdering(
     supabase,
     org.id,

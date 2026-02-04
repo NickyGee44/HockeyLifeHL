@@ -1,10 +1,66 @@
 'use server';
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { randomBytes } from 'crypto';
+import {
+  checkScorekeeperRateLimit,
+  recordTokenFailure,
+  clearTokenFailures,
+  getClientIp,
+} from '@/lib/middleware/scorekeeper-rate-limit';
 
 // Session cookie name for scorekeeper tokens
 const SCOREKEEPER_SESSION_COOKIE = 'sk_session';
+
+/**
+ * Verify that there is an active, valid scorekeeper session for the given game.
+ *
+ * CRITICAL SECURITY: This function MUST be called before ANY service role operation
+ * that modifies game stats. Without this check, anyone can call stat entry functions
+ * directly and manipulate game data without authentication.
+ *
+ * Defense-in-depth: Even though we use service role client (which bypasses RLS),
+ * we validate session authorization at the application layer.
+ *
+ * @param gameId - The game ID to verify session for
+ * @returns Session ID if valid, throws error if invalid/expired
+ */
+async function verifyActiveScorekeeperSession(gameId: string): Promise<string> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SCOREKEEPER_SESSION_COOKIE)?.value;
+
+  if (!token) {
+    throw new Error('No scorekeeper session found. Please log in with a valid token.');
+  }
+
+  // Validate token and get session
+  const supabase = await createServiceRoleClient();
+  const { data, error } = await supabase.rpc('validate_scorekeeper_token', {
+    p_token: token.toUpperCase().trim(),
+  });
+
+  if (error || !data || data.length === 0) {
+    throw new Error('Invalid scorekeeper session. Token may be expired or revoked.');
+  }
+
+  const session = data[0];
+
+  // Verify session is for this game
+  if (session.game_id !== gameId) {
+    throw new Error(
+      `Session mismatch: This scorekeeper session is for game ${session.game_id}, not ${gameId}.`
+    );
+  }
+
+  // Verify session is active and not expired
+  if (!session.is_valid) {
+    throw new Error('Scorekeeper session is expired or inactive.');
+  }
+
+  // Return session ID for audit logging
+  return session.id;
+}
 
 export interface ScorekeeperSession {
   sessionId: string;
@@ -82,13 +138,38 @@ export interface GameEventData {
 
 /**
  * Validate a scorekeeper token and return session info
+ *
+ * CRITICAL SECURITY: Implements rate limiting to prevent brute force attacks:
+ * - 5 attempts per minute per IP
+ * - 10 failed attempts per token before 15-minute lockout
+ * - Exponential backoff on repeated failures
+ * - CAPTCHA after 3 failed attempts
  */
 export async function validateScorekeeperToken(token: string): Promise<{
   success: boolean;
   session?: ScorekeeperSession;
   error?: string;
+  shouldShowCaptcha?: boolean;
+  retryAfterMs?: number;
 }> {
   try {
+    // Get client IP for rate limiting
+    const headersList = await headers();
+    const forwardedFor = headersList.get('x-forwarded-for');
+    const realIp = headersList.get('x-real-ip');
+    const clientIp = forwardedFor?.split(',')[0].trim() || realIp || 'unknown';
+
+    // CRITICAL SECURITY: Check rate limits BEFORE validating token
+    const rateLimitCheck = checkScorekeeperRateLimit(clientIp, token);
+    if (!rateLimitCheck.allowed) {
+      return {
+        success: false,
+        error: rateLimitCheck.error,
+        shouldShowCaptcha: rateLimitCheck.shouldShowCaptcha,
+        retryAfterMs: rateLimitCheck.retryAfterMs,
+      };
+    }
+
     const supabase = await createServiceRoleClient();
 
     const { data, error } = await supabase.rpc('validate_scorekeeper_token', {
@@ -97,14 +178,23 @@ export async function validateScorekeeperToken(token: string): Promise<{
 
     if (error) {
       console.error('Token validation error:', error);
+      recordTokenFailure(token); // Track failure for rate limiting
       return { success: false, error: 'Invalid token' };
     }
 
     if (!data || data.length === 0 || !data[0].is_valid) {
-      return { success: false, error: 'Token expired or invalid' };
+      recordTokenFailure(token); // Track failure for rate limiting
+      return {
+        success: false,
+        error: 'Token expired or invalid',
+        shouldShowCaptcha: rateLimitCheck.shouldShowCaptcha,
+      };
     }
 
     const session = data[0];
+
+    // SUCCESS: Clear any failure tracking for this token
+    clearTokenFailures(token);
 
     // Store token in httpOnly cookie
     const cookieStore = await cookies();
@@ -132,6 +222,7 @@ export async function validateScorekeeperToken(token: string): Promise<{
     };
   } catch (error) {
     console.error('Token validation error:', error);
+    recordTokenFailure(token); // Track failure even on exceptions
     return { success: false, error: 'Failed to validate token' };
   }
 }
@@ -453,6 +544,9 @@ export async function addGoalEvent(data: {
   isEmptyNet?: boolean;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
+    // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
+    await verifyActiveScorekeeperSession(data.gameId);
+
     const supabase = await createServiceRoleClient();
 
     // Get league_id from game
@@ -527,6 +621,9 @@ export async function addPenaltyEvent(data: {
   penaltyMinutes: number;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
+    // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
+    await verifyActiveScorekeeperSession(data.gameId);
+
     const supabase = await createServiceRoleClient();
 
     // Get league_id from game
@@ -589,6 +686,9 @@ export async function addSaveEvent(data: {
   gameTimeSeconds?: number;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
+    // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
+    await verifyActiveScorekeeperSession(data.gameId);
+
     const supabase = await createServiceRoleClient();
 
     // Get league_id from game
@@ -647,6 +747,20 @@ export async function undoEvent(eventId: string): Promise<{
   try {
     const supabase = await createServiceRoleClient();
 
+    // Get game_id for the event to verify session
+    const { data: event } = await supabase
+      .from('game_events')
+      .select('game_id')
+      .eq('id', eventId)
+      .single();
+
+    if (!event) {
+      return { success: false, error: 'Event not found' };
+    }
+
+    // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
+    await verifyActiveScorekeeperSession(event.game_id);
+
     const { error } = await supabase
       .from('game_events')
       .update({
@@ -679,9 +793,15 @@ export async function submitGameForVerification(gameId: string): Promise<{
   try {
     const supabase = await createServiceRoleClient();
 
-    // Generate verification tokens
-    const homeToken = Math.random().toString(36).substring(2, 15).toUpperCase();
-    const awayToken = Math.random().toString(36).substring(2, 15).toUpperCase();
+    // Generate cryptographically secure verification tokens
+    // Security: Uses crypto.randomBytes() instead of Math.random() to prevent
+    // token prediction via timestamp correlation attacks
+    const homeToken = randomBytes(8).toString('base64').replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 12);
+    const awayToken = randomBytes(8).toString('base64').replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 12);
+
+    // Set token expiration to 24 hours from now
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
 
     const { error } = await supabase
       .from('games')
@@ -689,6 +809,8 @@ export async function submitGameForVerification(gameId: string): Promise<{
         status: 'pending_verification',
         home_verification_token: homeToken,
         away_verification_token: awayToken,
+        home_verification_token_expires_at: expiresAt.toISOString(),
+        away_verification_token_expires_at: expiresAt.toISOString(),
         stats_submitted_at: new Date().toISOString(),
       })
       .eq('id', gameId);
