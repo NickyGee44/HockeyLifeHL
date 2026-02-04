@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Stripe Server Client
  *
@@ -8,24 +7,38 @@
 
 import Stripe from 'stripe';
 
-// Validate Stripe secret key exists
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+// Lazy-initialized Stripe client (build-safe)
+let _stripe: Stripe | null = null;
 
-if (!stripeSecretKey) {
-  throw new Error(
-    'Missing STRIPE_SECRET_KEY environment variable. ' +
-    'Please add it to your .env.local file.'
-  );
+function getStripeClient(): Stripe {
+  if (_stripe) return _stripe;
+
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey) {
+    throw new Error(
+      'Missing STRIPE_SECRET_KEY environment variable. ' +
+      'Please add it to your .env.local file.'
+    );
+  }
+
+  _stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2026-01-28.clover', // Latest API version
+    typescript: true,
+    appInfo: {
+      name: 'HockeyLifeHL',
+      version: '1.0.0',
+      url: 'https://hockeylifehl.com',
+    },
+  });
+
+  return _stripe;
 }
 
-// Initialize Stripe client with API version and app info
-export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2025-01-27.acacia', // Latest API version
-  typescript: true,
-  appInfo: {
-    name: 'HockeyLifeHL',
-    version: '1.0.0',
-    url: 'https://hockeylifehl.com',
+// Export a proxy that lazily initializes the client
+export const stripe = new Proxy({} as Stripe, {
+  get(_, prop) {
+    return getStripeClient()[prop as keyof Stripe];
   },
 });
 
@@ -33,22 +46,16 @@ export const stripe = new Stripe(stripeSecretKey, {
 // Stripe Price IDs from Environment
 // ============================================================================
 
+// Enterprise-only licensing model
 export const STRIPE_PRICE_IDS = {
-  starter: process.env.STRIPE_PRICE_STARTER,
-  pro: process.env.STRIPE_PRICE_PRO,
-  business: process.env.STRIPE_PRICE_BUSINESS,
   enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
 } as const;
 
 // Validate price IDs are configured (warn if missing, don't crash)
 if (process.env.NODE_ENV !== 'test') {
-  const missingPrices = Object.entries(STRIPE_PRICE_IDS)
-    .filter(([_, id]) => !id)
-    .map(([tier]) => tier);
-
-  if (missingPrices.length > 0) {
+  if (!STRIPE_PRICE_IDS.enterprise) {
     console.warn(
-      `[Stripe] Missing price IDs for tiers: ${missingPrices.join(', ')}. ` +
+      `[Stripe] Missing STRIPE_PRICE_ENTERPRISE. ` +
       `Subscription features will be limited.`
     );
   }
@@ -72,15 +79,16 @@ if (!STRIPE_WEBHOOK_SECRET_ORGANIZATIONS && process.env.NODE_ENV !== 'test') {
 // Helper: Get Price ID by Tier
 // ============================================================================
 
+// Enterprise-only licensing model
 export function getPriceIdByTier(
-  tier: 'starter' | 'pro' | 'business' | 'enterprise'
+  tier: 'enterprise'
 ): string {
   const priceId = STRIPE_PRICE_IDS[tier];
 
   if (!priceId) {
     throw new Error(
       `Stripe price ID not configured for tier: ${tier}. ` +
-      `Please set STRIPE_PRICE_${tier.toUpperCase()} in your environment.`
+      `Please set STRIPE_PRICE_ENTERPRISE in your environment.`
     );
   }
 
@@ -91,26 +99,27 @@ export function getPriceIdByTier(
 // Helper: Get Tier by Price ID
 // ============================================================================
 
+// Enterprise-only licensing model
 export function getTierByPriceId(
   priceId: string
-): 'starter' | 'pro' | 'business' | 'enterprise' | null {
+): 'enterprise' | null {
   const entry = Object.entries(STRIPE_PRICE_IDS).find(
-    ([_, id]) => id === priceId
+    ([, id]) => id === priceId
   );
 
-  return entry ? (entry[0] as 'starter' | 'pro' | 'business' | 'enterprise') : null;
+  return entry ? (entry[0] as 'enterprise') : null;
 }
 
 // ============================================================================
 // Error Handling Utilities
 // ============================================================================
 
-export function isStripeError(error: unknown): error is Stripe.StripeError {
+export function isStripeError(error: unknown): error is Stripe.errors.StripeError {
   return (
     typeof error === 'object' &&
     error !== null &&
     'type' in error &&
-    typeof (error as any).type === 'string'
+    typeof (error as Record<string, unknown>).type === 'string'
   );
 }
 

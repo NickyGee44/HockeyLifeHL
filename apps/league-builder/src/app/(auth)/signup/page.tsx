@@ -8,15 +8,19 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setError(null);
     setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
 
     try {
       const result = await signUp(formData);
       if (result?.error) {
         setError(result.error);
         setLoading(false);
+        // Form data is preserved since we prevented default
       }
       // If no error, the server action will handle redirect
       // Don't setLoading(false) here as page will redirect
@@ -32,7 +36,7 @@ export default function SignUpPage() {
         Create Your Account
       </h2>
 
-      <form action={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label
             htmlFor="fullName"
@@ -122,71 +126,75 @@ export default function SignUpPage() {
         )}
 
         <div className="border-t border-gold-500/20 pt-4 space-y-3">
-          <div className="space-y-2">
-            <div className="flex items-start">
+          <div className="space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 id="acceptTerms"
                 name="acceptTerms"
+                value="true"
                 required
-                className="mt-1 h-4 w-4 accent-gold-500 bg-black/50 border-gold-500/30 rounded focus:ring-gold-500/50"
+                className="checkbox-gold mt-0.5"
               />
-              <label htmlFor="acceptTerms" className="ml-2 text-sm text-neutral-300">
+              <span className="text-sm text-neutral-300 group-hover:text-neutral-200">
                 I accept the{' '}
-                <Link href="/terms" target="_blank" className="text-gold-500 hover:text-gold-400 hover:underline">
+                <Link href="/terms" target="_blank" className="text-gold-500 hover:text-gold-400 hover:underline" onClick={(e) => e.stopPropagation()}>
                   Terms of Service
                 </Link>{' '}
                 <span className="text-red-400">*</span>
-              </label>
-            </div>
+              </span>
+            </label>
 
-            <div className="flex items-start">
+            <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 id="acceptPrivacy"
                 name="acceptPrivacy"
+                value="true"
                 required
-                className="mt-1 h-4 w-4 accent-gold-500 bg-black/50 border-gold-500/30 rounded focus:ring-gold-500/50"
+                className="checkbox-gold mt-0.5"
               />
-              <label htmlFor="acceptPrivacy" className="ml-2 text-sm text-neutral-300">
+              <span className="text-sm text-neutral-300 group-hover:text-neutral-200">
                 I accept the{' '}
-                <Link href="/privacy" target="_blank" className="text-gold-500 hover:text-gold-400 hover:underline">
+                <Link href="/privacy" target="_blank" className="text-gold-500 hover:text-gold-400 hover:underline" onClick={(e) => e.stopPropagation()}>
                   Privacy Policy
                 </Link>{' '}
                 <span className="text-red-400">*</span>
-              </label>
-            </div>
+              </span>
+            </label>
           </div>
 
-          <div className="border-t border-gold-500/20 pt-3 space-y-2">
+          <div className="border-t border-gold-500/20 pt-3 space-y-3">
             <p className="text-xs font-medium text-neutral-300">
               Optional Communications
             </p>
 
-            <div className="flex items-start">
+            <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 id="marketingEmails"
                 name="marketingEmails"
-                className="mt-1 h-4 w-4 accent-gold-500 bg-black/50 border-gold-500/30 rounded focus:ring-gold-500/50"
+                value="true"
+                className="checkbox-gold mt-0.5"
               />
-              <label htmlFor="marketingEmails" className="ml-2 text-sm text-neutral-300">
+              <span className="text-sm text-neutral-300 group-hover:text-neutral-200">
                 I agree to receive marketing emails (you can unsubscribe anytime)
-              </label>
-            </div>
+              </span>
+            </label>
 
-            <div className="flex items-start">
+            <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 id="analyticsTracking"
                 name="analyticsTracking"
+                value="true"
                 defaultChecked
-                className="mt-1 h-4 w-4 accent-gold-500 bg-black/50 border-gold-500/30 rounded focus:ring-gold-500/50"
+                className="checkbox-gold mt-0.5"
               />
-              <label htmlFor="analyticsTracking" className="ml-2 text-sm text-neutral-300">
+              <span className="text-sm text-neutral-300 group-hover:text-neutral-200">
                 I agree to analytics tracking to help improve the platform
-              </label>
-            </div>
+              </span>
+            </label>
           </div>
 
           <p className="text-xs text-neutral-400">

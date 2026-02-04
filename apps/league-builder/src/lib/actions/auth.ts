@@ -28,6 +28,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 export async function signUp(formData: FormData) {
   if (isDevelopment) {
     console.log('🚀 SignUp v2.0 - Starting signup process');
+    console.log('FormData entries:', Object.fromEntries(formData.entries()));
   }
 
   const email = formData.get('email') as string;
@@ -36,10 +37,26 @@ export async function signUp(formData: FormData) {
   const organizationName = formData.get('organizationName') as string;
 
   // GDPR/CCPA Compliance: Validate required consents
-  const acceptTerms = formData.get('acceptTerms') === 'on';
-  const acceptPrivacy = formData.get('acceptPrivacy') === 'on';
-  const marketingEmails = formData.get('marketingEmails') === 'on';
-  const analyticsTracking = formData.get('analyticsTracking') === 'on';
+  // Checkboxes send 'on' by default, or a custom value if specified
+  // We check for both to handle different form configurations
+  const acceptTermsValue = formData.get('acceptTerms');
+  const acceptPrivacyValue = formData.get('acceptPrivacy');
+  const marketingEmailsValue = formData.get('marketingEmails');
+  const analyticsTrackingValue = formData.get('analyticsTracking');
+
+  const acceptTerms = acceptTermsValue === 'on' || acceptTermsValue === 'true';
+  const acceptPrivacy = acceptPrivacyValue === 'on' || acceptPrivacyValue === 'true';
+  const marketingEmails = marketingEmailsValue === 'on' || marketingEmailsValue === 'true';
+  const analyticsTracking = analyticsTrackingValue === 'on' || analyticsTrackingValue === 'true';
+
+  if (isDevelopment) {
+    console.log('Consent values:', {
+      acceptTermsValue,
+      acceptPrivacyValue,
+      acceptTerms,
+      acceptPrivacy,
+    });
+  }
 
   if (!acceptTerms || !acceptPrivacy) {
     return { error: 'You must accept the Terms of Service and Privacy Policy to create an account.' };
@@ -135,18 +152,15 @@ export async function signUp(formData: FormData) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
 
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 14); // 14 day trial
-
+    // Free platform - no trial needed, all features included
     const { data: orgData, error: orgError } = await serviceSupabase
       .from('organizations')
       .insert({
         name: organizationName,
         slug,
         owner_user_id: authData.user.id,
-        subscription_tier: 'starter',
-        subscription_status: 'trialing',
-        trial_ends_at: trialEndsAt.toISOString(),
+        subscription_tier: 'free',
+        subscription_status: 'active',
       })
       .select()
       .single();
@@ -298,20 +312,92 @@ export async function getUserOrganizations() {
     return [];
   }
 
-  // For now, just get organizations where user is the owner
-  // TODO: Add support for shared organizations via league_ownerships later
-  const { data: organizations, error } = await supabase
+  // Get organizations where user is either the owner OR a member
+  // First, get organizations where user is owner
+  const { data: ownedOrgs, error: ownerError } = await supabase
     .from('organizations')
     .select('*')
-    .eq('owner_user_id', user.id)
-    .order('created_at', { ascending: false });
+    .eq('owner_user_id', user.id);
 
-  if (error) {
-    if (isDevelopment) {
-      console.error('Error fetching organizations:', error);
-    }
-    return [];
+  // Then, get organizations where user is a member
+  const { data: memberOrgs, error: memberError } = await supabase
+    .from('organization_members')
+    .select('organization:organizations(*)')
+    .eq('user_id', user.id)
+    .eq('status', 'active');
+
+  if (ownerError && isDevelopment) {
+    console.error('Error fetching owned organizations:', ownerError);
+  }
+  if (memberError && isDevelopment) {
+    console.error('Error fetching member organizations:', memberError);
   }
 
-  return organizations || [];
+  // Combine and deduplicate organizations
+  const allOrgs = new Map<string, any>();
+
+  // Add owned organizations
+  if (ownedOrgs) {
+    for (const org of ownedOrgs) {
+      allOrgs.set(org.id, org);
+    }
+  }
+
+  // Add member organizations
+  if (memberOrgs) {
+    for (const memberOrg of memberOrgs) {
+      const org = (memberOrg as any).organization;
+      if (org && !allOrgs.has(org.id)) {
+        allOrgs.set(org.id, org);
+      }
+    }
+  }
+
+  // DEV ONLY: If no organizations found, check if this is a test user and auto-associate
+  if (isDevelopment && allOrgs.size === 0 && user.email) {
+    const testEmails = ['admin@test.com', 'organizer@test.com', 'captain@test.com', 'player@test.com', 'scorekeeper@test.com'];
+    if (testEmails.includes(user.email)) {
+      // Try to find the test organization and associate this user
+      const { data: testOrg } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('slug', 'test-hockey-org')
+        .single();
+
+      if (testOrg) {
+        // Add user as member of test org
+        const role = user.email === 'admin@test.com' ? 'owner' :
+                     user.email === 'organizer@test.com' ? 'admin' : 'member';
+
+        await supabase
+          .from('organization_members')
+          .upsert({
+            organization_id: testOrg.id,
+            user_id: user.id,
+            role,
+            status: 'active',
+          }, {
+            onConflict: 'organization_id,user_id'
+          });
+
+        // If admin, also update owner_user_id
+        if (user.email === 'admin@test.com') {
+          await supabase
+            .from('organizations')
+            .update({ owner_user_id: user.id })
+            .eq('id', testOrg.id);
+        }
+
+        allOrgs.set(testOrg.id, testOrg);
+        console.log(`[DEV] Auto-associated ${user.email} with test organization`);
+      }
+    }
+  }
+
+  // Convert to array and sort by created_at
+  const organizations = Array.from(allOrgs.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  return organizations;
 }

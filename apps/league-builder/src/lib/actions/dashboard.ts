@@ -33,6 +33,7 @@ export interface DashboardData {
     total_leagues: number;
     total_teams: number;
     total_players: number;
+    active_seasons: number;
   };
 }
 

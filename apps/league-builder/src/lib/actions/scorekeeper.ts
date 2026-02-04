@@ -219,7 +219,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
     }
 
     // Get rosters for both teams
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [homeRosterResult, awayRosterResult] = await Promise.all([
       (supabase as any)
         .from('team_rosters')

@@ -117,30 +117,25 @@ export function OrganizationProfileForm({ organization }: OrganizationProfileFor
         </p>
       </div>
 
-      {/* Organization Logo */}
+      {/* Branding Link */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Organization Logo
+          League Branding
         </label>
         <div className="flex items-center gap-4">
-          {organization.logo_url ? (
-            <img
-              src={organization.logo_url}
-              alt={organization.name}
-              className="w-20 h-20 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
-              <Building2 className="w-8 h-8 text-gray-400" />
-            </div>
-          )}
+          <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+            <Building2 className="w-8 h-8 text-gray-400" />
+          </div>
           <div className="flex-1">
-            <Button type="button" variant="outline" disabled>
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Logo
-            </Button>
+            <a
+              href="/dashboard/settings/branding"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              <Upload className="w-4 h-4" />
+              Manage League Branding
+            </a>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Logo upload coming soon. Recommended: 500x500px PNG or JPG
+              Upload logos and customize colors for each league in the Branding settings
             </p>
           </div>
         </div>

@@ -20,9 +20,9 @@ export type ActionResult<T = void> =
   | { success: false; error: string };
 
 /**
- * Subscription tiers
+ * Subscription tiers - Enterprise-only licensing model
  */
-export type SubscriptionTier = 'starter' | 'professional' | 'enterprise';
+export type SubscriptionTier = 'enterprise';
 
 /**
  * Subscription status
@@ -728,11 +728,9 @@ export function isCanceled(subscription: OrganizationSubscription): boolean {
 // ============================================================================
 
 /**
- * Valid subscription tiers
+ * Valid subscription tiers - Enterprise-only licensing model
  */
 export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
-  'starter',
-  'professional',
   'enterprise',
 ];
 

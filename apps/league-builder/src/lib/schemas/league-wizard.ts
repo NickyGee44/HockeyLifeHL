@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { z } from 'zod';
 
 // ==============================================================================
@@ -75,7 +74,7 @@ export const step2Schema = z
 
     // Registration Settings
     registration_type: z.enum(['open', 'approval_required', 'invite_only'], {
-      required_error: 'Please select a registration type',
+      message: 'Please select a registration type',
     }),
     registration_opens: z
       .string()
@@ -161,6 +160,94 @@ export type Step3FormData = z.infer<typeof step3Schema>;
 export type TeamFormData = z.infer<typeof teamSchema>;
 
 // ==============================================================================
+// STEP 4: Registration Fees
+// ==============================================================================
+
+export const earlyBirdDiscountSchema = z.object({
+  enabled: z.boolean().default(false),
+  amount: z.number().int().min(0).default(0), // Amount in cents (or percentage if isPercentage is true)
+  isPercentage: z.boolean().default(false), // If true, amount is a percentage (0-100)
+  deadline: z
+    .string()
+    .optional()
+    .or(z.literal('')),
+});
+
+export const lateRegistrationFeeSchema = z.object({
+  enabled: z.boolean().default(false),
+  amount: z.number().int().min(0).default(0), // Amount in cents
+  startsAt: z
+    .string()
+    .optional()
+    .or(z.literal('')),
+});
+
+export const step4Schema = z.object({
+  // Main toggle for paid registration
+  enablePaidRegistration: z.boolean().default(false),
+
+  // Base registration fee (in cents)
+  registrationFee: z
+    .number()
+    .int('Must be a whole number')
+    .min(0, 'Fee cannot be negative')
+    .default(0),
+
+  // Early bird discount (nested object)
+  earlyBirdDiscount: earlyBirdDiscountSchema.default({
+    enabled: false,
+    amount: 0,
+    isPercentage: false,
+    deadline: '',
+  }),
+
+  // Late registration fee (nested object)
+  lateRegistrationFee: lateRegistrationFeeSchema.default({
+    enabled: false,
+    amount: 0,
+    startsAt: '',
+  }),
+
+  // Optional payment instructions
+  paymentInstructions: z
+    .string()
+    .max(1000, 'Payment instructions must be less than 1000 characters')
+    .optional()
+    .or(z.literal('')),
+});
+
+export type Step4FormData = z.infer<typeof step4Schema>;
+export type EarlyBirdDiscount = z.infer<typeof earlyBirdDiscountSchema>;
+export type LateRegistrationFee = z.infer<typeof lateRegistrationFeeSchema>;
+
+// ==============================================================================
+// STEP 5: Payment Setup
+// ==============================================================================
+
+export const step5Schema = z.object({
+  stripeAccountId: z.string().nullable().default(null),
+  stripeAccountStatus: z.enum(['not_connected', 'pending', 'active']).default('not_connected'),
+  skipPaymentSetup: z.boolean().default(false),
+});
+
+export type Step5FormData = z.infer<typeof step5Schema>;
+
+// ==============================================================================
+// STEP 6: Website & Branding
+// ==============================================================================
+
+export const step6Schema = z.object({
+  isPublic: z.boolean().default(true),
+  themePreset: z.enum(['dark', 'light', 'custom']).default('dark'),
+  bannerUrl: z.string().url().optional().or(z.literal('')),
+  socialFacebook: z.string().url().optional().or(z.literal('')),
+  socialInstagram: z.string().url().optional().or(z.literal('')),
+  socialTwitter: z.string().url().optional().or(z.literal('')),
+});
+
+export type Step6FormData = z.infer<typeof step6Schema>;
+
+// ==============================================================================
 // COMBINED WIZARD SCHEMA
 // ==============================================================================
 
@@ -180,7 +267,7 @@ const step2BaseSchema = z.object({
 
   // Registration Settings
   registration_type: z.enum(['open', 'approval_required', 'invite_only'], {
-    required_error: 'Please select a registration type',
+    message: 'Please select a registration type',
   }),
   registration_opens: z
     .string()
@@ -216,6 +303,12 @@ export const wizardSchema = z
     ...step2BaseSchema.shape,
     // Step 3 fields
     ...step3Schema.shape,
+    // Step 4 fields (Registration Fees)
+    ...step4Schema.shape,
+    // Step 5 fields (Payment Setup)
+    ...step5Schema.shape,
+    // Step 6 fields (Website & Branding)
+    ...step6Schema.shape,
   })
   .refine(
     (data) => {
@@ -274,6 +367,31 @@ export const defaultValues: Partial<WizardFormData> = {
 
   // Step 3 defaults
   teams: [],
+
+  // Step 4 defaults (Registration Fees)
+  enablePaidRegistration: false,
+  registrationFee: 0,
+  earlyBirdDiscount: {
+    enabled: false,
+    amount: 0,
+    isPercentage: false,
+    deadline: '',
+  },
+  lateRegistrationFee: {
+    enabled: false,
+    amount: 0,
+    startsAt: '',
+  },
+  paymentInstructions: '',
+
+  // Step 5 defaults (Payment Setup)
+  stripeAccountId: null,
+  stripeAccountStatus: 'not_connected',
+  skipPaymentSetup: false,
+
+  // Step 6 defaults (Website & Branding)
+  isPublic: true,
+  themePreset: 'dark',
 };
 
 // ==============================================================================
@@ -297,6 +415,19 @@ export function validateStep(
         break;
       case 3:
         step3Schema.parse(data);
+        break;
+      case 4:
+        step4Schema.parse(data);
+        break;
+      case 5:
+        step5Schema.parse(data);
+        break;
+      case 6:
+        step6Schema.parse(data);
+        break;
+      case 7:
+        // Review step - validates entire form
+        wizardSchema.parse(data);
         break;
       default:
         throw new Error(`Invalid step: ${step}`);

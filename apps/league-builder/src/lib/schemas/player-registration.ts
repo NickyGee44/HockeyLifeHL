@@ -22,7 +22,7 @@ export const EMERGENCY_CONTACT_RELATIONSHIPS = ['parent', 'spouse', 'sibling', '
 
 export const step1Schema = z.object({
   registration_type: z.enum(REGISTRATION_TYPES, {
-    required_error: 'Please select a registration type',
+    error: 'Please select a registration type',
   }),
   team_id: z.string().uuid('Invalid team ID').optional().nullable(),
   league_id: z.string().uuid('Invalid league ID'),
@@ -67,7 +67,7 @@ export const step2Schema = z.object({
     .min(10, 'Please enter a valid phone number')
     .max(20, 'Phone number is too long'),
   emergency_contact_relationship: z.enum(EMERGENCY_CONTACT_RELATIONSHIPS, {
-    required_error: 'Please select a relationship',
+    error: 'Please select a relationship',
   }),
 
   // Optional Medical Info
@@ -87,12 +87,12 @@ export type Step2FormData = z.infer<typeof step2Schema>;
 export const step3Schema = z.object({
   // Skill Level (Required)
   skill_level: z.enum(SKILL_LEVELS, {
-    required_error: 'Please select your skill level',
+    error: 'Please select your skill level',
   }),
 
   // Positions
   primary_position: z.enum(PLAYER_POSITIONS, {
-    required_error: 'Please select your primary position',
+    error: 'Please select your primary position',
   }),
   secondary_position: z
     .enum(PLAYER_POSITIONS)
@@ -146,7 +146,7 @@ export type Step4FormData = z.infer<typeof step4Schema>;
 export const step5Schema = z.object({
   // Waiver Agreement
   waiver_agreed: z.literal(true, {
-    errorMap: () => ({ message: 'You must agree to the waiver to continue' }),
+    message: 'You must agree to the waiver to continue',
   }),
 
   // Signature
@@ -160,13 +160,13 @@ export const step5Schema = z.object({
 
   // Required Consents
   consent_terms: z.literal(true, {
-    errorMap: () => ({ message: 'You must accept the Terms of Service' }),
+    message: 'You must accept the Terms of Service',
   }),
   consent_privacy: z.literal(true, {
-    errorMap: () => ({ message: 'You must accept the Privacy Policy' }),
+    message: 'You must accept the Privacy Policy',
   }),
   consent_data_processing: z.literal(true, {
-    errorMap: () => ({ message: 'You must consent to data processing' }),
+    message: 'You must consent to data processing',
   }),
 
   // Optional Consent

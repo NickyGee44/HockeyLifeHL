@@ -10,15 +10,19 @@ import type { WizardFormData } from '@/lib/schemas/league-wizard';
 import { WizardProgressBar } from '../ui/wizard/wizard-progress-bar';
 import { WizardNavigation } from './wizard-navigation';
 import { WizardProgress } from './wizard-progress';
+import { WizardSuccess } from './wizard-success';
 
 const WIZARD_STEPS = [
   { number: 1, title: 'League Info', description: 'Basic information' },
   { number: 2, title: 'Season Settings', description: 'Configure season' },
   { number: 3, title: 'Teams', description: 'Add teams (optional)' },
-  { number: 4, title: 'Review', description: 'Review & create' },
+  { number: 4, title: 'Registration Fees', description: 'Configure fees' },
+  { number: 5, title: 'Payment Setup', description: 'Connect Stripe' },
+  { number: 6, title: 'Website & Branding', description: 'Public site settings' },
+  { number: 7, title: 'Review', description: 'Review & create' },
 ];
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 7;
 const AUTO_SAVE_DELAY = 2000; // 2 seconds
 
 export interface WizardContainerProps {
@@ -34,6 +38,13 @@ export function WizardContainer({
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [currentDraftId, setCurrentDraftId] = React.useState<string | null>(null);
+  const [isComplete, setIsComplete] = React.useState(false);
+  const [createdLeague, setCreatedLeague] = React.useState<{
+    leagueId: string;
+    slug: string;
+    seasonId: string;
+  } | null>(null);
   const autoSaveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Get current step from URL params (default to 1)
@@ -47,6 +58,34 @@ export function WizardContainer({
   const form = useWizardForm({
     defaultValues: initialData || undefined,
   });
+
+  // Auto-save draft - moved before useEffect that uses it
+  const handleAutoSave = async () => {
+    // Don't auto-save on review step (final step)
+    if (validStep === TOTAL_STEPS) return;
+
+    // Don't auto-save if already submitting
+    if (isSubmitting) return;
+
+    const formData = form.getValues();
+
+    // Only save if there's meaningful data
+    if (!formData.name || formData.name.length < 3) return;
+
+    setIsSaving(true);
+
+    const result = await saveDraft(formData);
+
+    setIsSaving(false);
+
+    if (!result.success) {
+      console.error('Auto-save failed:', result.error);
+      // Don't show error toast for auto-save failures (non-intrusive)
+    } else if (result.data?.draftId) {
+      // Track the current draft ID so we can delete only this draft on completion
+      setCurrentDraftId(result.data.draftId);
+    }
+  };
 
   // Watch form changes for auto-save
   React.useEffect(() => {
@@ -70,35 +109,23 @@ export function WizardContainer({
     };
   }, []);
 
-  // Auto-save draft
-  const handleAutoSave = async () => {
-    // Don't auto-save on review step (final step)
-    if (validStep === TOTAL_STEPS) return;
-
-    // Don't auto-save if already submitting
-    if (isSubmitting) return;
-
-    const formData = form.getValues();
-
-    // Only save if there's meaningful data
-    if (!formData.name || formData.name.length < 3) return;
-
-    setIsSaving(true);
-
-    const result = await saveDraft(formData);
-
-    setIsSaving(false);
-
-    if (!result.success) {
-      console.error('Auto-save failed:', result.error);
-      // Don't show error toast for auto-save failures (non-intrusive)
-    }
-  };
-
   // Navigate to a specific step
   const goToStep = (step: number) => {
     const targetStep = Math.max(1, Math.min(step, TOTAL_STEPS));
     router.push(`?step=${targetStep}`);
+  };
+
+  // Validate current step - moved before handleNext that uses it
+  const validateCurrentStep = async (): Promise<boolean> => {
+    const fieldsToValidate = getStepFields(validStep);
+
+    if (fieldsToValidate.length === 0) return true;
+
+    const results = await Promise.all(
+      fieldsToValidate.map((field) => form.trigger(field as any))
+    );
+
+    return results.every((result) => result);
   };
 
   // Handle next button click
@@ -126,19 +153,6 @@ export function WizardContainer({
     goToStep(validStep - 1);
   };
 
-  // Validate current step
-  const validateCurrentStep = async (): Promise<boolean> => {
-    const fieldsToValidate = getStepFields(validStep);
-
-    if (fieldsToValidate.length === 0) return true;
-
-    const results = await Promise.all(
-      fieldsToValidate.map((field) => form.trigger(field as any))
-    );
-
-    return results.every((result) => result);
-  };
-
   // Handle final form submission
   const handleSubmit = async (data: WizardFormData) => {
     console.log('Submitting wizard form:', data);
@@ -146,7 +160,8 @@ export function WizardContainer({
     setIsSubmitting(true);
 
     try {
-      const result = await createLeague(data);
+      // Pass the current draft ID so only this specific draft is deleted
+      const result = await createLeague(data, currentDraftId ?? undefined);
 
       if (!result.success) {
         toast.error(result.error);
@@ -154,10 +169,13 @@ export function WizardContainer({
         return;
       }
 
-      toast.success('League created successfully!');
-
-      // Redirect to dashboard or league page
-      router.push(`/dashboard`);
+      // Set the created league data and show success screen
+      setCreatedLeague({
+        leagueId: result.data.leagueId,
+        slug: result.data.slug,
+        seasonId: result.data.seasonId,
+      });
+      setIsComplete(true);
     } catch (error) {
       console.error('Submission error:', error);
       toast.error('An unexpected error occurred');
@@ -210,6 +228,23 @@ export function WizardContainer({
     toast.success('Draft discarded');
     router.push('/dashboard');
   };
+
+  // Show success screen after league creation
+  if (isComplete && createdLeague) {
+    const formData = form.getValues();
+    return (
+      <WizardSuccess
+        leagueId={createdLeague.leagueId}
+        leagueSlug={createdLeague.slug}
+        leagueName={formData.name}
+        seasonName={formData.season_name}
+        seasonStartDate={formData.season_start_date}
+        seasonEndDate={formData.season_end_date}
+        location={`${formData.city}, ${formData.state_province}`}
+        teamCount={formData.teams?.length || 0}
+      />
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
@@ -282,6 +317,29 @@ function getStepFields(step: number): string[] {
     case 3:
       return ['teams'];
     case 4:
+      return [
+        'enablePaidRegistration',
+        'registrationFee',
+        'earlyBirdDiscount',
+        'lateRegistrationFee',
+        'paymentInstructions',
+      ];
+    case 5:
+      return [
+        'stripeAccountId',
+        'stripeAccountStatus',
+        'skipPaymentSetup',
+      ];
+    case 6:
+      return [
+        'isPublic',
+        'themePreset',
+        'bannerUrl',
+        'socialFacebook',
+        'socialInstagram',
+        'socialTwitter',
+      ];
+    case 7:
       return []; // Review step has no fields
     default:
       return [];

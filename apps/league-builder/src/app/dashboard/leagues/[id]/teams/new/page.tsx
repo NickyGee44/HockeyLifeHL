@@ -14,8 +14,11 @@ export const metadata = {
 export default async function NewTeamPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  // Await params as required in Next.js 16
+  const { id: leagueId } = await params;
+
   const userData = await getCurrentUser();
 
   if (!userData) {
@@ -29,7 +32,7 @@ export default async function NewTeamPage({
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
     .select('id, name, organization_id, organizations!inner(owner_user_id)')
-    .eq('id', params.id)
+    .eq('id', leagueId)
     .single();
 
   if (leagueError || !league) {
@@ -43,8 +46,8 @@ export default async function NewTeamPage({
 
   // Get divisions and venues for the league
   const [divisionsResult, venuesResult] = await Promise.all([
-    getLeagueDivisions(params.id),
-    getLeagueVenues(params.id),
+    getLeagueDivisions(leagueId),
+    getLeagueVenues(leagueId),
   ]);
 
   const divisions = divisionsResult.data || [];
@@ -56,7 +59,7 @@ export default async function NewTeamPage({
         {/* Header */}
         <div className="mb-8">
           <Link
-            href={`/dashboard/leagues/${params.id}`}
+            href={`/dashboard/leagues/${leagueId}`}
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -69,7 +72,7 @@ export default async function NewTeamPage({
 
         {/* Team Creation Wizard */}
         <TeamCreationWizard
-          leagueId={params.id}
+          leagueId={leagueId}
           divisions={divisions}
           venues={venues}
         />

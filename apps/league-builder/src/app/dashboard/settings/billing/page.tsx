@@ -1,7 +1,10 @@
 import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
 import { redirect } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@hockey-life/ui';
-import { CreditCard, Calendar, TrendingUp } from 'lucide-react';
+import { CreditCard, Percent, Database, Globe, CheckCircle, TrendingUp } from 'lucide-react';
+import { cn } from '@hockey-life/ui';
+
+export const dynamic = 'force-dynamic';
 
 export default async function BillingSettingsPage() {
   const userData = await getCurrentUser();
@@ -17,190 +20,187 @@ export default async function BillingSettingsPage() {
     redirect('/dashboard');
   }
 
-  // Calculate days remaining in trial
-  const orgData = organization as any;
-  const trialEndsAt = new Date(orgData.trial_ends_at);
-  const now = new Date();
-  const daysRemaining = Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
   return (
     <div className="space-y-6">
-      {/* Current Plan */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
-        <CardHeader>
-          <CardTitle className="text-neutral-100">Current Plan</CardTitle>
-          <CardDescription className="text-neutral-400">
-            Your subscription and billing information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gold-500/10 rounded-xl border border-gold-500/30">
+      {/* Free Platform Banner */}
+      <Card className="bg-gradient-to-br from-gold-500/10 to-gold-600/5 border-gold-500/30">
+        <CardContent className="py-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gold-500 to-gold-600 flex items-center justify-center">
+              <CheckCircle className="w-8 h-8 text-black" />
+            </div>
             <div>
-              <h3 className="text-lg font-semibold text-neutral-100 capitalize">
-                {orgData.subscription_tier} Plan
-              </h3>
-              <p className="text-sm text-neutral-400">
-                Status: <span className="font-medium capitalize text-gold-500">{orgData.subscription_status}</span>
+              <h2 className="text-2xl font-bold text-white">Free Forever</h2>
+              <p className="text-neutral-300">
+                Build and manage your leagues at no cost. We only earn when you do.
               </p>
             </div>
-            <div className="text-right">
-              {orgData.subscription_status === 'trialing' && (
-                <div>
-                  <p className="text-2xl font-bold text-gold-500">
-                    {daysRemaining} days
-                  </p>
-                  <p className="text-xs text-neutral-400">remaining in trial</p>
-                </div>
-              )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* How It Works */}
+      <Card className="bg-neutral-800/50 border-gold-500/20">
+        <CardHeader>
+          <CardTitle className="text-neutral-100">How Pricing Works</CardTitle>
+          <CardDescription className="text-neutral-400">
+            Simple, transparent pricing with no hidden fees
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Transaction Fee */}
+            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
+              <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center mb-4">
+                <Percent className="w-6 h-6 text-gold-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
+                Payment Processing
+              </h3>
+              <div className="mb-4">
+                <span className="text-3xl font-bold text-gold-500">2.99%</span>
+                <span className="text-neutral-400"> per transaction</span>
+              </div>
+              <p className="text-sm text-neutral-400">
+                We process all player registration payments through Stripe. Our fee covers payment processing, fraud protection, and platform costs.
+              </p>
+            </div>
+
+            {/* Data Import */}
+            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
+              <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center mb-4">
+                <Database className="w-6 h-6 text-gold-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
+                Historic Data Import
+              </h3>
+              <div className="mb-4">
+                <span className="text-3xl font-bold text-neutral-100">Custom</span>
+              </div>
+              <p className="text-sm text-neutral-400">
+                Want to import your league's historical stats, standings, and player records? We'll migrate your data for a one-time fee based on league size.
+              </p>
+              <a
+                href="mailto:support@hockeylifehl.com?subject=Historic Data Import"
+                className={cn(
+                  'inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl text-sm font-medium',
+                  'bg-gold-500/10 text-gold-500 border border-gold-500/30',
+                  'hover:bg-gold-500/20 transition-colors'
+                )}
+              >
+                Get a Quote
+              </a>
+            </div>
+
+            {/* Custom Domain */}
+            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
+              <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center mb-4">
+                <Globe className="w-6 h-6 text-gold-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
+                Custom Domains
+              </h3>
+              <div className="mb-4">
+                <span className="text-3xl font-bold text-neutral-100">Add-on</span>
+              </div>
+              <p className="text-sm text-neutral-400">
+                Use your own domain (e.g., myleague.com) instead of our subdomain. Includes SSL certificate and DNS configuration support.
+              </p>
+              <a
+                href="mailto:support@hockeylifehl.com?subject=Custom Domain Setup"
+                className={cn(
+                  'inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl text-sm font-medium',
+                  'bg-gold-500/10 text-gold-500 border border-gold-500/30',
+                  'hover:bg-gold-500/20 transition-colors'
+                )}
+              >
+                Get a Quote
+              </a>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {orgData.subscription_status === 'trialing' && (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-yellow-500 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-neutral-100 mb-1">
-                    Trial Period Active
-                  </h4>
-                  <p className="text-sm text-neutral-400">
-                    Your trial ends on {trialEndsAt.toLocaleDateString()}. Upgrade to a paid plan to continue using all features.
-                  </p>
-                </div>
+      {/* What's Included Free */}
+      <Card className="bg-neutral-800/50 border-gold-500/20">
+        <CardHeader>
+          <CardTitle className="text-neutral-100">Everything Included Free</CardTitle>
+          <CardDescription className="text-neutral-400">
+            No limits, no tiers, no surprises
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              'Unlimited leagues',
+              'Unlimited teams',
+              'Unlimited players',
+              'Unlimited seasons',
+              'Schedule generation',
+              'Standings & statistics',
+              'Player registration',
+              'Team management',
+              'Game scorekeeping',
+              'Custom branding & colors',
+              'Public league website',
+              'Email notifications',
+              'Mobile-friendly interface',
+              'Analytics dashboard',
+              'Player photo uploads',
+              'Waiver management',
+            ].map((feature) => (
+              <div key={feature} className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-gold-500 flex-shrink-0" />
+                <span className="text-sm text-neutral-300">{feature}</span>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
         </CardContent>
       </Card>
 
       {/* Payment Method */}
       <Card className="bg-neutral-800/50 border-gold-500/20">
         <CardHeader>
-          <CardTitle className="text-neutral-100">Payment Method</CardTitle>
+          <CardTitle className="text-neutral-100">Stripe Connect</CardTitle>
           <CardDescription className="text-neutral-400">
-            Manage your payment information
+            Connect your Stripe account to receive player payments
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <CreditCard className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
             <p className="text-neutral-400 mb-4">
-              No payment method on file
+              Connect your Stripe account to start accepting registration payments
             </p>
-            <button
-              disabled
-              className="px-4 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl opacity-50 cursor-not-allowed"
+            <a
+              href="/dashboard/leagues"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-lg hover:shadow-gold-500/20 transition-all"
             >
-              Add Payment Method
-            </button>
+              Go to Leagues
+            </a>
             <p className="text-xs text-neutral-500 mt-2">
-              Stripe integration coming soon
+              Set up Stripe Connect in each league's billing settings
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Available Plans */}
+      {/* Transaction History */}
       <Card className="bg-neutral-800/50 border-gold-500/20">
         <CardHeader>
-          <CardTitle className="text-neutral-100">Available Plans</CardTitle>
+          <CardTitle className="text-neutral-100">Transaction History</CardTitle>
           <CardDescription className="text-neutral-400">
-            Choose the plan that works best for your organization
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Starter Plan */}
-            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
-              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
-                Starter
-              </h3>
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-neutral-100">$29</span>
-                <span className="text-neutral-400">/month</span>
-              </div>
-              <ul className="space-y-2 text-sm text-neutral-400 mb-6">
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Up to 2 leagues</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> 100 players total</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Basic analytics</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Email support</li>
-              </ul>
-              <button
-                disabled
-                className="w-full px-4 py-2 bg-neutral-700 text-neutral-400 rounded-xl cursor-not-allowed"
-              >
-                Current Plan
-              </button>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="border-2 border-gold-500 rounded-xl p-6 relative bg-neutral-900/50 shadow-[0_0_20px_rgba(212,175,55,0.15)]">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <span className="bg-gradient-to-r from-gold-500 to-gold-600 text-black text-xs font-semibold px-3 py-1 rounded-full">
-                  Recommended
-                </span>
-              </div>
-              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
-                Pro
-              </h3>
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-gold-500">$79</span>
-                <span className="text-neutral-400">/month</span>
-              </div>
-              <ul className="space-y-2 text-sm text-neutral-400 mb-6">
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Up to 10 leagues</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> 500 players total</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Advanced analytics</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Custom branding</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Priority support</li>
-              </ul>
-              <button
-                disabled
-                className="w-full px-4 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl opacity-50 cursor-not-allowed"
-              >
-                Upgrade to Pro
-              </button>
-            </div>
-
-            {/* Enterprise Plan */}
-            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
-              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
-                Enterprise
-              </h3>
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-neutral-100">Custom</span>
-              </div>
-              <ul className="space-y-2 text-sm text-neutral-400 mb-6">
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Unlimited leagues</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Unlimited players</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> White-label option</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Dedicated support</li>
-                <li className="flex items-center gap-2"><span className="text-gold-500">✓</span> Custom integrations</li>
-              </ul>
-              <button
-                disabled
-                className="w-full px-4 py-2 border border-gold-500/50 text-gold-500 rounded-xl cursor-not-allowed"
-              >
-                Contact Sales
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Billing History */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
-        <CardHeader>
-          <CardTitle className="text-neutral-100">Billing History</CardTitle>
-          <CardDescription className="text-neutral-400">
-            View your past invoices and receipts
+            View your payment processing history
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <TrendingUp className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
             <p className="text-neutral-400">
-              No billing history yet
+              No transactions yet
+            </p>
+            <p className="text-xs text-neutral-500 mt-2">
+              Transaction history will appear here once players start registering
             </p>
           </div>
         </CardContent>

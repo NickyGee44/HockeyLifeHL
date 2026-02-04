@@ -6,7 +6,7 @@ import { RegistrationDetailClient } from './registration-detail-client';
 import { ArrowLeft } from 'lucide-react';
 
 interface RegistrationDetailPageProps {
-  params: { id: string; registrationId: string };
+  params: Promise<{ id: string; registrationId: string }>;
 }
 
 async function getLeagueTeams(leagueId: string) {
@@ -24,9 +24,12 @@ async function getLeagueTeams(leagueId: string) {
 export default async function RegistrationDetailPage({
   params,
 }: RegistrationDetailPageProps) {
+  // Await params as required in Next.js 16
+  const { id: leagueId, registrationId } = await params;
+
   const [registrationResult, teams] = await Promise.all([
-    getRegistrationDetails(params.registrationId),
-    getLeagueTeams(params.id),
+    getRegistrationDetails(registrationId),
+    getLeagueTeams(leagueId),
   ]);
 
   if (!registrationResult.success || !registrationResult.data) {
@@ -39,7 +42,7 @@ export default async function RegistrationDetailPage({
     <div className="space-y-6">
       {/* Back Link */}
       <Link
-        href={`/dashboard/leagues/${params.id}/registrations`}
+        href={`/dashboard/leagues/${leagueId}/registrations`}
         className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -49,7 +52,7 @@ export default async function RegistrationDetailPage({
       {/* Detail View */}
       <RegistrationDetailClient
         registration={registration}
-        leagueId={params.id}
+        leagueId={leagueId}
         teams={teams}
       />
     </div>

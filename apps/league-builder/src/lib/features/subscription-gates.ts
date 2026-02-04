@@ -336,31 +336,8 @@ function getTierLimits(tier: SubscriptionTier): {
   apiAccess: boolean;
   prioritySupport: boolean;
 } {
+  // Enterprise-only licensing: all features unlimited
   const limits = {
-    starter: {
-      maxLeagues: 'unlimited' as const,
-      maxPlayersTotal: 100,
-      maxAdmins: 3,
-      customBranding: false,
-      apiAccess: false,
-      prioritySupport: false,
-    },
-    pro: {
-      maxLeagues: 'unlimited' as const,
-      maxPlayersTotal: 500,
-      maxAdmins: 10,
-      customBranding: true,
-      apiAccess: true,
-      prioritySupport: true,
-    },
-    business: {
-      maxLeagues: 'unlimited' as const,
-      maxPlayersTotal: 'unlimited' as const,
-      maxAdmins: 'unlimited' as const,
-      customBranding: true,
-      apiAccess: true,
-      prioritySupport: true,
-    },
     enterprise: {
       maxLeagues: 'unlimited' as const,
       maxPlayersTotal: 'unlimited' as const,

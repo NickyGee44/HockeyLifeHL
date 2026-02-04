@@ -1,23 +1,26 @@
 /**
- * Subscription Types for Platform 1 (Organization-level billing)
+ * Subscription Types for Platform (Organization-level billing)
  *
- * These types define the subscription model for organizations using the HockeyLifeHL platform.
- * Separate from league-level Stripe Connect (marketplace payments).
+ * HockeyLifeHL uses a free platform model with transaction-based pricing:
+ * - Platform is free to use
+ * - 2.99% fee on payment processing
+ * - Optional paid add-ons (custom domains, data import)
  */
 
 // ============================================================================
 // Subscription Tiers
 // ============================================================================
 
-export type SubscriptionTier = 'starter' | 'pro' | 'business' | 'enterprise';
+// Free platform with optional add-ons
+export type SubscriptionTier = 'free' | 'custom_domain' | 'enterprise';
 
 export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, {
   name: string;
-  price: number; // in dollars
+  price: number;
   interval: 'month' | 'year';
   features: string[];
   limits: {
-    maxPlayersTotal: number | 'unlimited'; // Total players across all leagues
+    maxPlayersTotal: number | 'unlimited';
     maxLeagues: number | 'unlimited';
     maxAdmins: number | 'unlimited';
     customBranding: boolean;
@@ -27,97 +30,75 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, {
     isolatedDeployment: boolean;
     whiteLabel: boolean;
     sla: boolean;
+    customDomain: boolean;
   };
 }> = {
-  starter: {
-    name: 'Starter',
-    price: 99,
+  free: {
+    name: 'Free Forever',
+    price: 0,
     interval: 'month',
     features: [
-      'Up to 100 players total',
       'Unlimited leagues',
-      'Shared deployment',
-      'Basic statistics',
-      'Email support',
-      '14-day free trial',
-    ],
-    limits: {
-      maxPlayersTotal: 100,
-      maxLeagues: 'unlimited',
-      maxAdmins: 3,
-      customBranding: false,
-      apiAccess: false,
-      prioritySupport: false,
-      dedicatedDeployment: false,
-      isolatedDeployment: false,
-      whiteLabel: false,
-      sla: false,
-    },
-  },
-  pro: {
-    name: 'Pro',
-    price: 299,
-    interval: 'month',
-    features: [
-      'Up to 500 players total',
-      'Unlimited leagues',
-      'Shared deployment',
-      'Advanced statistics & analytics',
-      'Priority email support',
-      'API access',
-    ],
-    limits: {
-      maxPlayersTotal: 500,
-      maxLeagues: 'unlimited',
-      maxAdmins: 10,
-      customBranding: true,
-      apiAccess: true,
-      prioritySupport: true,
-      dedicatedDeployment: false,
-      isolatedDeployment: false,
-      whiteLabel: false,
-      sla: false,
-    },
-  },
-  business: {
-    name: 'Business',
-    price: 799,
-    interval: 'month',
-    features: [
-      'Unlimited players',
-      'Unlimited leagues',
-      'Dedicated deployment',
-      'Advanced statistics & analytics',
-      'Priority support',
-      'API access',
-      'Custom branding',
+      'Unlimited teams & players',
+      'Schedule generation',
+      'Standings & statistics',
+      'Player registration system',
+      'Game scorekeeping',
+      'Custom branding & colors',
+      'Public league website',
+      'Email notifications',
+      'Analytics dashboard',
     ],
     limits: {
       maxPlayersTotal: 'unlimited',
       maxLeagues: 'unlimited',
       maxAdmins: 'unlimited',
       customBranding: true,
-      apiAccess: true,
-      prioritySupport: true,
-      dedicatedDeployment: true,
+      apiAccess: false,
+      prioritySupport: false,
+      dedicatedDeployment: false,
       isolatedDeployment: false,
       whiteLabel: false,
       sla: false,
+      customDomain: false,
+    },
+  },
+  custom_domain: {
+    name: 'Custom Domain',
+    price: 0, // Custom pricing - contact sales
+    interval: 'month',
+    features: [
+      'Everything in Free',
+      'Use your own domain',
+      'SSL certificate included',
+      'DNS setup assistance',
+    ],
+    limits: {
+      maxPlayersTotal: 'unlimited',
+      maxLeagues: 'unlimited',
+      maxAdmins: 'unlimited',
+      customBranding: true,
+      apiAccess: false,
+      prioritySupport: false,
+      dedicatedDeployment: false,
+      isolatedDeployment: false,
+      whiteLabel: false,
+      sla: false,
+      customDomain: true,
     },
   },
   enterprise: {
     name: 'Enterprise',
-    price: 0, // Custom pricing
+    price: 0, // Custom pricing - contact sales
     interval: 'month',
     features: [
-      'Everything in Business',
-      'Isolated deployment',
-      'White-label options',
-      'SLA guarantees',
-      'Phone & Slack support',
+      'Everything in Free',
+      'Custom domain',
+      'Historic data import',
+      'API access',
+      'Priority support',
       'Custom integrations',
       'Dedicated account manager',
-      'Custom contracts',
     ],
     limits: {
       maxPlayersTotal: 'unlimited',
@@ -130,9 +111,13 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, {
       isolatedDeployment: true,
       whiteLabel: true,
       sla: true,
+      customDomain: true,
     },
   },
 };
+
+// Platform transaction fee (percentage)
+export const PLATFORM_TRANSACTION_FEE = 2.99;
 
 // ============================================================================
 // Subscription Status
@@ -342,24 +327,21 @@ export type Feature =
   | 'white_label'
   | 'custom_integrations';
 
+// Features by tier
 export const FEATURES_BY_TIER: Record<SubscriptionTier, Feature[]> = {
-  starter: ['basic_leagues', 'basic_stats'],
-  pro: [
+  free: [
     'basic_leagues',
     'basic_stats',
     'advanced_stats',
     'custom_branding',
-    'api_access',
-    'priority_support',
     'unlimited_leagues',
+    'unlimited_players',
   ],
-  business: [
+  custom_domain: [
     'basic_leagues',
     'basic_stats',
     'advanced_stats',
     'custom_branding',
-    'api_access',
-    'priority_support',
     'unlimited_leagues',
     'unlimited_players',
   ],

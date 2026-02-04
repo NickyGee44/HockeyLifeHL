@@ -157,3 +157,212 @@ export interface RecentGame extends Game {
   home_team: Team;
   away_team: Team;
 }
+
+/**
+ * WeekPickerDay - Day data for schedule week navigation
+ */
+export interface WeekPickerDay {
+  date: string; // ISO date string (YYYY-MM-DD)
+  dayName: string; // "Mon", "Tue", etc.
+  dayNumber: number; // 1-31
+  gameCount: number;
+}
+
+/**
+ * TickerGame - Game data for the score ticker component
+ * Includes team info with division data for display
+ */
+export interface TickerGame {
+  id: string;
+  scheduled_at: string;
+  venue: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'cancelled';
+  home_team: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+    colors: string | null;
+    division_id: string | null;
+    divisions: { name: string } | null;
+  } | null;
+  away_team: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+    colors: string | null;
+    division_id: string | null;
+    divisions: { name: string } | null;
+  } | null;
+}
+
+/**
+ * ScheduleGame - Game data for the schedule table
+ * Includes team and division info for display
+ */
+export interface ScheduleGame {
+  id: string;
+  league_id: string;
+  season_id: string;
+  scheduled_at: string;
+  venue: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'cancelled';
+  game_type?: string | null;
+  division_id?: string | null;
+  home_team: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+    colors: string | null;
+  } | null;
+  away_team: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+    colors: string | null;
+  } | null;
+  division?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+/**
+ * TeamWithStats - Team with division data for game preview
+ */
+export interface TeamWithStats {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  colors: string | null;
+  division?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+/**
+ * GamePreview - Full game data for preview page
+ */
+export interface GamePreview {
+  id: string;
+  league_id: string;
+  season_id: string;
+  home_team_id: string;
+  away_team_id: string;
+  scheduled_at: string;
+  venue: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'cancelled';
+  period: number | null;
+  period_time: string | null;
+  created_at: string;
+  home_team: TeamWithStats;
+  away_team: TeamWithStats;
+}
+
+/**
+ * SeasonSeriesGame - Game result for season series history
+ */
+export interface SeasonSeriesGame {
+  id: string;
+  scheduled_at: string;
+  home_score: number | null;
+  away_score: number | null;
+  status: string;
+  home_team_id: string;
+  away_team_id: string;
+}
+
+/**
+ * TeamSeasonStats - Calculated team stats for a season
+ */
+export interface TeamSeasonStats {
+  games_played: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  overtime_losses: number;
+  points: number;
+  goals_for: number;
+  goals_against: number;
+  goals_per_game: number;
+  goals_against_per_game: number;
+  power_play_pct: number | null;
+  penalty_kill_pct: number | null;
+}
+
+/**
+ * PlayerStat - Player stat leader for comparison
+ */
+export interface PlayerStat {
+  player_id: string;
+  player_name: string;
+  jersey_number: string | null;
+  position: string | null;
+  avatar_url?: string | null;
+  team_id?: string;
+  value: number;
+  stat_type?: 'points' | 'goals' | 'assists';
+}
+
+// =============================================================================
+// BMHL Template Types - Additional
+// =============================================================================
+
+/**
+ * TickerTeam - Team data for score ticker
+ */
+export interface TickerTeam {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  colors: string | null;
+  division_id: string | null;
+  divisions: { name: string } | null;
+}
+
+/**
+ * Schedule Filters
+ */
+export interface ScheduleFilterState {
+  season?: string;
+  division?: string;
+  type?: 'regular' | 'playoffs' | 'exhibition';
+}
+
+/**
+ * Season Series
+ */
+export interface SeasonSeries {
+  games: SeasonSeriesGame[];
+  teamAWins: number;
+  teamBWins: number;
+  ties: number;
+}
+
+/**
+ * Goalie Stats
+ */
+export interface GoalieStats {
+  player_id: string;
+  player_name: string;
+  jersey_number: string | null;
+  team_id: string;
+  games_played: number;
+  wins: number;
+  losses: number;
+  save_percentage: number;
+  goals_against_average: number;
+  shutouts: number;
+}

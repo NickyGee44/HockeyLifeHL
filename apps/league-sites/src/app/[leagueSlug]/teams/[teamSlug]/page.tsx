@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Users, Shield } from 'lucide-react';
-import { getLeagueBySlug, getTeamBySlug, getTeamRoster, getTeamSlugs } from '@/lib/data';
+import { ArrowLeft, Users } from 'lucide-react';
+import { getLeagueBySlug, getTeamBySlug, getTeamRoster } from '@/lib/data';
+import type { Player } from '@/lib/types';
 import { notFound } from 'next/navigation';
 
 interface TeamPageProps {
@@ -151,7 +152,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
   );
 }
 
-function RosterSection({ title, players }: { title: string; players: any[] }) {
+function RosterSection({ title, players }: { title: string; players: Player[] }) {
   return (
     <section>
       <h3 className="text-lg font-semibold mb-4 text-[var(--color-text-secondary)]">
@@ -166,7 +167,7 @@ function RosterSection({ title, players }: { title: string; players: any[] }) {
   );
 }
 
-function PlayerCard({ player }: { player: any }) {
+function PlayerCard({ player }: { player: Player }) {
   const fullName = player.profile
     ? `${player.profile.first_name} ${player.profile.last_name}`
     : 'Unknown Player';

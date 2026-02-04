@@ -183,7 +183,7 @@ export class TestDataSeeder {
         name: orgName,
         slug,
         owner_user_id: userId,
-        subscription_tier: 'starter',
+        subscription_tier: 'enterprise',
         subscription_status: 'active',
       })
       .select('id, name, slug')

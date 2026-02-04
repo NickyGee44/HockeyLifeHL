@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@hock
 import { MembersTable } from './members-table';
 import { InviteMemberForm } from './invite-member-form';
 
+export const dynamic = 'force-dynamic';
+
 export default async function TeamMembersPage() {
   const userData = await getCurrentUser();
 

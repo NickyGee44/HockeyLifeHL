@@ -106,6 +106,7 @@ async function getSeasonData(seasonId: string) {
 export default async function SeasonSchedulePage({ params }: PageProps) {
   const { seasonId } = await params;
   const data = await getSeasonData(seasonId);
+  const FALLBACK_DATE = '1970-01-01T00:00:00.000Z';
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -208,16 +209,16 @@ export default async function SeasonSchedulePage({ params }: PageProps) {
               gameDays: (t.default_game_days as number[]) ?? [1, 3],
               gameTimes: (t.default_game_times as string[]) ?? ['19:00', '20:30'],
               gameDurationMinutes: t.default_game_duration_minutes ?? 60,
-              startDate: new Date(data.season.start_date ?? Date.now()),
-              endDate: new Date(data.season.end_date ?? Date.now()),
+              startDate: new Date(data.season.start_date ?? FALLBACK_DATE),
+              endDate: new Date(data.season.end_date ?? FALLBACK_DATE),
               defaultVenueId: t.default_venue_id,
               rotateHomeVenue: t.rotate_home_venue ?? true,
               isDefault: t.is_default ?? false,
-              createdAt: new Date(t.created_at ?? Date.now()),
-              updatedAt: new Date(t.updated_at ?? Date.now()),
+              createdAt: new Date(t.created_at ?? FALLBACK_DATE),
+              updatedAt: new Date(t.updated_at ?? FALLBACK_DATE),
             }))}
-            startDate={new Date(data.season.start_date ?? Date.now())}
-            endDate={new Date(data.season.end_date ?? Date.now())}
+            startDate={new Date(data.season.start_date ?? FALLBACK_DATE)}
+            endDate={new Date(data.season.end_date ?? FALLBACK_DATE)}
             hasExistingSchedule={data.season.schedule_generated ?? false}
           />
         </Suspense>

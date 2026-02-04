@@ -10,7 +10,6 @@ import {
 } from '@/lib/data';
 import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
-import { format } from 'date-fns';
 
 interface HomePageProps {
   params: Promise<{ leagueSlug: string }>;

@@ -30,7 +30,6 @@ const RESERVED_SUBDOMAINS = [
 
 // Production domain for the league sites
 const PRODUCTION_DOMAIN = 'hockeylifehl.com';
-const PRODUCTION_SITES_DOMAIN = 'sites.hockeylifehl.com';
 
 // Development domain patterns
 const DEV_DOMAINS = ['localhost', '127.0.0.1', '.local'];

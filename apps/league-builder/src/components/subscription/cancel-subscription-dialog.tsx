@@ -217,10 +217,10 @@ export function CancelSubscriptionDialog({
                       What happens when you cancel
                     </p>
                     <ul className="text-sm text-amber-700 dark:text-amber-300 mt-2 space-y-1 list-disc list-inside">
-                      <li>Your leagues will be downgraded to the free tier</li>
-                      <li>Advanced features will be disabled</li>
-                      <li>Historical data will be preserved</li>
-                      <li>You can reactivate anytime</li>
+                      <li>Your paid add-on features will be revoked (e.g., custom domain)</li>
+                      <li>The free platform features remain available</li>
+                      <li>All historical data will be preserved</li>
+                      <li>Contact support to reactivate add-ons anytime</li>
                     </ul>
                   </div>
                 </div>

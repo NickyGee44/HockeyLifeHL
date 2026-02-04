@@ -23,10 +23,7 @@ export function SubscriptionOverview() {
   const [subscription, setSubscription] = useState<OrganizationSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
-
-  useEffect(() => {
-    loadSubscription();
-  }, []);
+  const [currentTime] = useState(() => Date.now());
 
   async function loadSubscription() {
     setLoading(true);
@@ -42,6 +39,10 @@ export function SubscriptionOverview() {
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadSubscription();
+  }, []);
 
   async function handleManageBilling() {
     setRedirecting(true);
@@ -86,7 +87,7 @@ export function SubscriptionOverview() {
 
   // Calculate days remaining in trial
   const trialDaysRemaining = subscription.trialEndsAt
-    ? Math.ceil((subscription.trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? Math.ceil((subscription.trialEndsAt.getTime() - currentTime) / (1000 * 60 * 60 * 24))
     : 0;
 
   return (
@@ -119,9 +120,9 @@ export function SubscriptionOverview() {
             <h3 className="text-sm font-medium text-muted-foreground">Current Plan</h3>
             <div className="text-right">
               <p className="text-2xl font-bold">{tierInfo.name}</p>
-              {subscription.tier !== 'enterprise' && (
+              {subscription.tier === 'free' && (
                 <p className="text-sm text-muted-foreground">
-                  ${tierInfo.price}/{tierInfo.interval}
+                  2.99% transaction fee on payments
                 </p>
               )}
             </div>

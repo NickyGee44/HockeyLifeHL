@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Users, ChevronRight } from 'lucide-react';
 import { getLeagueBySlug, getTeams, getDivisions, getCurrentSeason } from '@/lib/data';
+import type { Team, Division } from '@/lib/types';
 
 interface TeamsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -83,7 +84,7 @@ export default async function TeamsPage({ params }: TeamsPageProps) {
   );
 }
 
-function TeamCard({ team, leagueSlug }: { team: any; leagueSlug: string }) {
+function TeamCard({ team, leagueSlug }: { team: Team; leagueSlug: string }) {
   return (
     <Link
       href={`/${leagueSlug}/teams/${team.slug}`}
@@ -133,12 +134,12 @@ function TeamCard({ team, leagueSlug }: { team: any; leagueSlug: string }) {
   );
 }
 
-function groupTeamsByDivision(teams: any[], divisions: any[]) {
+function groupTeamsByDivision(teams: Team[], divisions: Division[]): Record<string, Team[]> {
   if (divisions.length === 0) {
     return { 'All Teams': teams };
   }
 
-  const result: Record<string, any[]> = {};
+  const result: Record<string, Team[]> = {};
 
   divisions.forEach((division) => {
     const divisionTeams = teams.filter((team) => team.division?.id === division.id);

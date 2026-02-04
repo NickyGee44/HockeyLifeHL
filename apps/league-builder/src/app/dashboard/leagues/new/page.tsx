@@ -6,7 +6,10 @@ import { WizardStep } from '@/components/ui/wizard/wizard-steps';
 import { Step1LeagueInfo } from '@/components/league-wizard/steps/step-1-league-info';
 import { Step2SeasonSettings } from '@/components/league-wizard/steps/step-2-season-settings';
 import { Step3Teams } from '@/components/league-wizard/steps/step-3-teams';
-import { Step4Review } from '@/components/league-wizard/steps/step-4-review';
+import { Step4RegistrationFees } from '@/components/league-wizard/steps/step-4-registration-fees';
+import { Step5PaymentSetup } from '@/components/league-wizard/steps/step-5-payment-setup';
+import { Step6WebsiteBranding } from '@/components/league-wizard/steps/step-6-website-branding';
+import { Step7Review } from '@/components/league-wizard/steps/step-7-review';
 
 export const metadata = {
   title: 'Create New League | HockeyLifeHL',
@@ -70,7 +73,19 @@ export default async function NewLeaguePage({ searchParams }: PageProps) {
         </WizardStep>
 
         <WizardStep step={4} isActive={currentStep === 4}>
-          <Step4Review />
+          <Step4RegistrationFees />
+        </WizardStep>
+
+        <WizardStep step={5} isActive={currentStep === 5}>
+          <Step5PaymentSetup />
+        </WizardStep>
+
+        <WizardStep step={6} isActive={currentStep === 6}>
+          <Step6WebsiteBranding />
+        </WizardStep>
+
+        <WizardStep step={7} isActive={currentStep === 7}>
+          <Step7Review />
         </WizardStep>
       </WizardContainer>
     </div>

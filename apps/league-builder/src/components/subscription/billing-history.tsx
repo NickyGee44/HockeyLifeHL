@@ -28,10 +28,6 @@ export function BillingHistory() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadInvoices();
-  }, []);
-
   async function loadInvoices() {
     setLoading(true);
     const result = await getBillingHistory();
@@ -46,6 +42,10 @@ export function BillingHistory() {
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadInvoices();
+  }, []);
 
   function getStatusBadge(status: Invoice['status']) {
     switch (status) {

@@ -50,10 +50,6 @@ export function LeagueBillingDashboard({
   const [stats, setStats] = useState<PaymentStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [leagueId]);
-
   async function loadData() {
     setLoading(true);
 
@@ -75,6 +71,10 @@ export function LeagueBillingDashboard({
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadData();
+  }, [leagueId]);
 
   function handleStatusChange() {
     loadData();

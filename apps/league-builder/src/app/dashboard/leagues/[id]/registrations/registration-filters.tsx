@@ -31,6 +31,12 @@ export function RegistrationFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchValue, setSearchValue] = useState(currentSearch || '');
+  const [mounted, setMounted] = useState(false);
+
+  // Only render Select components after mount to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setSearchValue(currentSearch || '');
@@ -82,62 +88,74 @@ export function RegistrationFilters({
         </form>
 
         {/* Status Filter */}
-        <Select
-          value={currentStatus || 'all'}
-          onValueChange={(value) =>
-            updateFilters('status', value === 'all' ? null : value)
-          }
-        >
-          <SelectTrigger className="w-full md:w-40 bg-neutral-800 border-neutral-700">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="waitlisted">Waitlisted</SelectItem>
-          </SelectContent>
-        </Select>
+        {mounted ? (
+          <Select
+            value={currentStatus || 'all'}
+            onValueChange={(value) =>
+              updateFilters('status', value === 'all' ? null : value)
+            }
+          >
+            <SelectTrigger className="w-full md:w-40 bg-neutral-800 border-neutral-700">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="waitlisted">Waitlisted</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="w-full md:w-40 h-10 bg-neutral-800 border border-neutral-700 rounded-md animate-pulse" />
+        )}
 
         {/* Type Filter */}
-        <Select
-          value={currentType || 'all'}
-          onValueChange={(value) =>
-            updateFilters('type', value === 'all' ? null : value)
-          }
-        >
-          <SelectTrigger className="w-full md:w-48 bg-neutral-800 border-neutral-700">
-            <SelectValue placeholder="Registration Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="team_registration">Team Registration</SelectItem>
-            <SelectItem value="free_agent">Free Agent</SelectItem>
-            <SelectItem value="individual">Individual</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Season Filter */}
-        {seasons.length > 0 && (
+        {mounted ? (
           <Select
-            value={currentSeason || 'all'}
+            value={currentType || 'all'}
             onValueChange={(value) =>
-              updateFilters('season', value === 'all' ? null : value)
+              updateFilters('type', value === 'all' ? null : value)
             }
           >
             <SelectTrigger className="w-full md:w-48 bg-neutral-800 border-neutral-700">
-              <SelectValue placeholder="Season" />
+              <SelectValue placeholder="Registration Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Seasons</SelectItem>
-              {seasons.map((season) => (
-                <SelectItem key={season.id} value={season.id}>
-                  {season.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="team_registration">Team Registration</SelectItem>
+              <SelectItem value="free_agent">Free Agent</SelectItem>
+              <SelectItem value="individual">Individual</SelectItem>
             </SelectContent>
           </Select>
+        ) : (
+          <div className="w-full md:w-48 h-10 bg-neutral-800 border border-neutral-700 rounded-md animate-pulse" />
+        )}
+
+        {/* Season Filter */}
+        {seasons.length > 0 && (
+          mounted ? (
+            <Select
+              value={currentSeason || 'all'}
+              onValueChange={(value) =>
+                updateFilters('season', value === 'all' ? null : value)
+              }
+            >
+              <SelectTrigger className="w-full md:w-48 bg-neutral-800 border-neutral-700">
+                <SelectValue placeholder="Season" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Seasons</SelectItem>
+                {seasons.map((season) => (
+                  <SelectItem key={season.id} value={season.id}>
+                    {season.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="w-full md:w-48 h-10 bg-neutral-800 border border-neutral-700 rounded-md animate-pulse" />
+          )
         )}
       </div>
 

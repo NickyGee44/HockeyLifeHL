@@ -30,10 +30,6 @@ export default function PrivacySettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   async function loadData() {
     const [deletion, summary] = await Promise.all([
       getAccountDeletionStatus(),
@@ -45,6 +41,10 @@ export default function PrivacySettingsPage() {
       setDataSummary(summary.summary);
     }
   }
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   async function handleExportData() {
     setLoading(true);

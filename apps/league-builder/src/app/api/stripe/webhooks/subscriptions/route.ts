@@ -427,12 +427,12 @@ async function handleSubscriptionDeleted(
     return;
   }
 
-  // Update organization
+  // Update organization - enterprise licensing model, subscription becomes inactive
   const { error } = await supabase
     .from('organizations')
     .update({
       subscription_status: 'canceled',
-      subscription_tier: 'starter', // Downgrade to free tier
+      // Keep enterprise tier but mark as canceled - contact sales to reactivate
       stripe_subscription_id: null,
       cancelled_at: new Date().toISOString(),
     })

@@ -3,6 +3,7 @@ import { Trophy } from 'lucide-react';
 import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason } from '@/lib/data';
 import { StandingsTabs } from '@/components/StandingsTabs';
 import { StandingsTable } from '@/components/StandingsTable';
+import type { TeamStanding, Division } from '@/lib/types';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -86,8 +87,8 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
   );
 }
 
-function groupByDivision(standings: any[], divisions: any[]) {
-  const result: Record<string, any[]> = {};
+function groupByDivision(standings: TeamStanding[], divisions: Division[]): Record<string, TeamStanding[]> {
+  const result: Record<string, TeamStanding[]> = {};
 
   // Add "All" division first
   result['all'] = standings;

@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import Image from 'next/image';
 import { BarChart3, Trophy, Target, Shield } from 'lucide-react';
 import { getLeagueBySlug, getStatsLeaders, getCurrentSeason } from '@/lib/data';
 import { StatsLeadersTabs } from '@/components/StatsLeadersTabs';

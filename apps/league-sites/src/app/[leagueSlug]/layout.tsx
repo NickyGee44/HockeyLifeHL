@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs } from '@/lib/data';
+import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
 import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
+import { ScoreTicker } from '@/components/ScoreTicker';
 import type { Metadata } from 'next';
 
 interface LeagueLayoutProps {
@@ -61,12 +62,16 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     notFound();
   }
 
-  const theme = getLeagueTheme(league);
+  const [theme, tickerGames] = await Promise.all([
+    Promise.resolve(getLeagueTheme(league)),
+    getTickerGames(league.id),
+  ]);
 
   return (
     <LeagueThemeProvider theme={theme}>
       <div className="min-h-screen flex flex-col">
         <LeagueHeader league={league} leagueSlug={leagueSlug} />
+        <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
         <main className="flex-1">{children}</main>
         <LeagueFooter league={league} leagueSlug={leagueSlug} />
       </div>

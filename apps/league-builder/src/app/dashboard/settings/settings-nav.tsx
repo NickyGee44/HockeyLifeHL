@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { usePathname } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
 import {
@@ -11,6 +11,7 @@ import {
   Shield,
   Bell,
   Sparkles,
+  Globe,
 } from 'lucide-react';
 
 const settingsNav = [
@@ -25,6 +26,12 @@ const settingsNav = [
     href: '/dashboard/settings/members',
     description: 'Invite and manage team members',
     icon: Users,
+  },
+  {
+    name: 'Domains',
+    href: '/dashboard/settings/domains',
+    description: 'Subdomains and custom domains',
+    icon: Globe,
   },
   {
     name: 'Subscription',
@@ -61,10 +68,17 @@ const settingsNav = [
 export function SettingsNav() {
   const pathname = usePathname();
 
+  // Check if path matches, accounting for locale prefix (e.g., /en/dashboard/settings)
+  const isPathActive = (href: string) => {
+    // Remove locale prefix if present (e.g., /en, /fr)
+    const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}(?=\/)/, '');
+    return pathWithoutLocale === href;
+  };
+
   return (
     <nav className="space-y-1">
       {settingsNav.map((item) => {
-        const isActive = pathname === item.href;
+        const isActive = isPathActive(item.href);
         const Icon = item.icon;
 
         return (

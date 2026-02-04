@@ -293,14 +293,12 @@ function OrganizationCard({ org, t }: { org: any; t: any }) {
         <span
           className={cn(
             'px-3 py-1 text-xs font-semibold rounded-full',
-            org.subscription_tier === 'pro'
+            org.subscription_tier === 'enterprise'
               ? 'bg-gold-500/20 text-gold-500 border border-gold-500/30'
-              : org.subscription_tier === 'starter'
-              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
               : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
           )}
         >
-          {t(`billing.plans.${org.subscription_tier || 'free'}`)}
+          {org.subscription_tier === 'enterprise' ? t('billing.plans.enterprise') : t('billing.contactSales')}
         </span>
       </div>
 

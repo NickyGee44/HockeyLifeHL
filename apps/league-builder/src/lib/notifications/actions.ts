@@ -235,7 +235,7 @@ async function shouldSendEmail(
 
   return {
     canSend: typeMap[notificationType] ?? true,
-    unsubscribeToken: data.unsubscribe_token,
+    unsubscribeToken: data.unsubscribe_token ?? undefined,
   };
 }
 
@@ -304,10 +304,10 @@ export async function sendGameReminderNotification(
       id,
       scheduled_at,
       league_id,
-      home_team:home_team_id(id, name),
-      away_team:away_team_id(id, name),
-      venue:venue_id(id, name, address),
-      league:league_id(name)
+      location,
+      home_team:teams!home_team_id(id, name),
+      away_team:teams!away_team_id(id, name),
+      league:leagues!league_id(name)
     `)
     .eq('id', gameId)
     .single();
@@ -316,10 +316,10 @@ export async function sendGameReminderNotification(
     return { success: false, error: 'Game not found' };
   }
 
-  // Get all players from both teams
+  // Get all players from both teams using team_rosters
   const { data: players } = await supabase
-    .from('league_memberships')
-    .select('user_id, profiles:user_id(id, email, full_name)')
+    .from('team_rosters')
+    .select('team_id, player_id, profiles:profiles!player_id(id, email, full_name)')
     .in('team_id', [game.home_team?.id, game.away_team?.id].filter(Boolean))
     .eq('status', 'active');
 
@@ -349,8 +349,8 @@ export async function sendGameReminderNotification(
       opponentName: opponentTeam?.name || 'Opponent',
       gameDate: gameDate.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' }),
       gameTime: gameDate.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' }),
-      venueName: game.venue?.name || 'TBD',
-      venueAddress: game.venue?.address,
+      venueName: game.location || 'TBD',
+      venueAddress: undefined,
       hoursUntilGame,
       dashboardUrl: `${siteUrl}/dashboard/games/${gameId}`,
       unsubscribeUrl: unsubscribeToken ? getUnsubscribeUrl(unsubscribeToken, 'game_updates') : undefined,
@@ -423,7 +423,7 @@ export async function sendRosterChangeNotification(
     teamName: team.name,
     changeType,
     seasonName: team.seasons?.name || 'Current Season',
-    changedByName: changedByResult?.data?.full_name,
+    changedByName: changedByResult?.data?.full_name ?? undefined,
     reason,
     dashboardUrl: `${siteUrl}/dashboard`,
     unsubscribeUrl: unsubscribeToken ? getUnsubscribeUrl(unsubscribeToken, 'registration') : undefined,

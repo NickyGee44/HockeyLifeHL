@@ -23,6 +23,7 @@ import type {
   UpdateSeasonFeeParams,
   ActionResult,
 } from './types';
+import type { Json } from '@hockey-life/database';
 
 // ============================================================================
 // Helper: Verify League Admin Access
@@ -80,7 +81,7 @@ async function logPaymentAuditEvent(
   const { error } = await serviceSupabase.from('player_payment_audit_log').insert({
     league_id: leagueId,
     event_type: eventType,
-    payload,
+    payload: payload as Json,
     created_by: createdBy || null,
   });
 
@@ -96,7 +97,7 @@ async function logPaymentAuditEvent(
 export async function getSeasonFees(
   leagueId: string,
   options?: { seasonId?: string; activeOnly?: boolean }
-): ActionResult<SeasonFeeWithSeason[]> {
+): Promise<ActionResult<SeasonFeeWithSeason[]>> {
   try {
     const access = await verifyLeagueAdminAccess(leagueId);
     if ('error' in access) {
@@ -144,7 +145,7 @@ export async function getSeasonFees(
 
 export async function getSeasonFee(
   feeId: string
-): ActionResult<SeasonFeeWithSeason> {
+): Promise<ActionResult<SeasonFeeWithSeason>> {
   try {
     const supabase = await createClient();
 
@@ -182,7 +183,7 @@ export async function getSeasonFee(
 
 export async function createSeasonFee(
   params: CreateSeasonFeeParams
-): ActionResult<SeasonFee> {
+): Promise<ActionResult<SeasonFee>> {
   try {
     const access = await verifyLeagueAdminAccess(params.leagueId);
     if ('error' in access) {
@@ -260,7 +261,7 @@ export async function createSeasonFee(
 
 export async function updateSeasonFee(
   params: UpdateSeasonFeeParams
-): ActionResult<SeasonFee> {
+): Promise<ActionResult<SeasonFee>> {
   try {
     const supabase = await createClient();
 
@@ -326,7 +327,7 @@ export async function updateSeasonFee(
 // 5. Delete Season Fee
 // ============================================================================
 
-export async function deleteSeasonFee(feeId: string): ActionResult<void> {
+export async function deleteSeasonFee(feeId: string): Promise<ActionResult<void>> {
   try {
     const supabase = await createClient();
 
@@ -402,7 +403,7 @@ export async function getAvailableFeesForPlayer(
   leagueId: string,
   seasonId: string,
   playerId: string
-): ActionResult<SeasonFee[]> {
+): Promise<ActionResult<SeasonFee[]>> {
   try {
     const supabase = await createClient();
 
@@ -445,7 +446,7 @@ export async function getAvailableFeesForPlayer(
 
 export async function getLeagueSeasonsWithFees(
   leagueId: string
-): ActionResult<Array<{ id: string; name: string; feeCount: number }>> {
+): Promise<ActionResult<Array<{ id: string; name: string; feeCount: number }>>> {
   try {
     const access = await verifyLeagueAdminAccess(leagueId);
     if ('error' in access) {

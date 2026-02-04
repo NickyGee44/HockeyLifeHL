@@ -80,29 +80,7 @@ export function RegistrationWizardContainer({
     } as any,
   });
 
-  // Watch form changes for auto-save
-  React.useEffect(() => {
-    const subscription = form.watch(() => {
-      // Clear existing timeout
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-
-      // Set new timeout for auto-save (debounced)
-      autoSaveTimeoutRef.current = setTimeout(() => {
-        handleAutoSave();
-      }, AUTO_SAVE_DELAY);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Auto-save draft
+  // Auto-save draft (moved before useEffect that uses it)
   const handleAutoSave = async () => {
     // Don't auto-save on final step
     if (validStep === TOTAL_STEPS) return;
@@ -125,6 +103,28 @@ export function RegistrationWizardContainer({
       console.error('Auto-save failed:', result.error);
     }
   };
+
+  // Watch form changes for auto-save
+  React.useEffect(() => {
+    const subscription = form.watch(() => {
+      // Clear existing timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+
+      // Set new timeout for auto-save (debounced)
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        handleAutoSave();
+      }, AUTO_SAVE_DELAY);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Navigate to a specific step
   const goToStep = (step: number) => {

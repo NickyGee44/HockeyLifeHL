@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import Script from 'next/script';
 import '../globals.css';
 import { ThemeProvider, themeScript } from '@/components/ThemeProvider';
 import { locales, type Locale } from '@/i18n/config';
@@ -36,10 +37,13 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
+      <head />
       <body className="min-h-screen bg-neutral-950 text-white antialiased">
+        <Script
+          id="theme-script"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider defaultTheme="dark" enableSystem enableTransition>
             {children}

@@ -41,14 +41,6 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (isConnected) {
-      loadPayoutInfo();
-    } else {
-      setLoading(false);
-    }
-  }, [leagueId, isConnected]);
-
   async function loadPayoutInfo() {
     const result = await getLeaguePayoutInfo(leagueId);
 
@@ -58,6 +50,14 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    if (isConnected) {
+      loadPayoutInfo();
+    } else {
+      setLoading(false);
+    }
+  }, [leagueId, isConnected]);
 
   async function handleRefresh() {
     setRefreshing(true);

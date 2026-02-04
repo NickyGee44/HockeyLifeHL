@@ -12,6 +12,12 @@ import type {
   LeagueStats,
   UpcomingGame,
   RecentGame,
+  TickerGame,
+  ScheduleGame,
+  GamePreview,
+  SeasonSeriesGame,
+  TeamSeasonStats,
+  PlayerStat,
 } from './types';
 
 // Default brand colors from BRAND-KIT.md
@@ -91,6 +97,25 @@ export async function getDivisions(seasonId: string): Promise<Division[]> {
   }
 
   return data as Division[];
+}
+
+/**
+ * Fetch all seasons for a league
+ */
+export async function getSeasons(leagueId: string): Promise<Season[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('seasons')
+    .select('*')
+    .eq('league_id', leagueId)
+    .order('start_date', { ascending: false });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as Season[];
 }
 
 /**
@@ -287,6 +312,175 @@ export async function getRecentGames(
 }
 
 /**
+ * Fetch games for score ticker (mix of recent and upcoming)
+ */
+export async function getTickerGames(
+  leagueId: string,
+  limit = 10
+): Promise<TickerGame[]> {
+  const supabase = await createClient();
+
+  // Get completed games and upcoming games
+  const { data, error } = await supabase
+    .from('games')
+    .select(`
+      id,
+      scheduled_at,
+      venue,
+      home_score,
+      away_score,
+      status,
+      home_team:teams!games_home_team_id_fkey(id, name, slug, logo, colors, division_id, divisions(name)),
+      away_team:teams!games_away_team_id_fkey(id, name, slug, logo, colors, division_id, divisions(name))
+    `)
+    .eq('league_id', leagueId)
+    .in('status', ['final', 'in_progress', 'scheduled'])
+    .order('scheduled_at', { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  // Transform Supabase array results to single objects
+  return data.map((game) => {
+    const homeTeam = Array.isArray(game.home_team) ? game.home_team[0] : game.home_team;
+    const awayTeam = Array.isArray(game.away_team) ? game.away_team[0] : game.away_team;
+
+    return {
+      ...game,
+      home_team: homeTeam
+        ? {
+            ...homeTeam,
+            divisions: Array.isArray(homeTeam.divisions)
+              ? homeTeam.divisions[0] ?? null
+              : homeTeam.divisions,
+          }
+        : null,
+      away_team: awayTeam
+        ? {
+            ...awayTeam,
+            divisions: Array.isArray(awayTeam.divisions)
+              ? awayTeam.divisions[0] ?? null
+              : awayTeam.divisions,
+          }
+        : null,
+    };
+  }) as TickerGame[];
+}
+
+/**
+ * Fetch games for a specific week with optional filters
+ */
+export async function getWeekGames(
+  leagueId: string,
+  weekStart: Date,
+  filters?: {
+    day?: string;
+    seasonId?: string;
+    divisionId?: string;
+    type?: string;
+  }
+): Promise<ScheduleGame[]> {
+  const supabase = await createClient();
+
+  // Calculate week end (7 days from start)
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  let query = supabase
+    .from('games')
+    .select(`
+      id,
+      league_id,
+      season_id,
+      scheduled_at,
+      venue,
+      home_score,
+      away_score,
+      status,
+      game_type,
+      division_id,
+      home_team:teams!games_home_team_id_fkey(id, name, slug, logo, colors),
+      away_team:teams!games_away_team_id_fkey(id, name, slug, logo, colors),
+      division:divisions(id, name)
+    `)
+    .eq('league_id', leagueId)
+    .gte('scheduled_at', weekStart.toISOString())
+    .lt('scheduled_at', weekEnd.toISOString())
+    .order('scheduled_at', { ascending: true });
+
+  // Apply optional filters
+  if (filters?.day) {
+    const dayStart = new Date(filters.day);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(filters.day);
+    dayEnd.setHours(23, 59, 59, 999);
+    query = query.gte('scheduled_at', dayStart.toISOString()).lte('scheduled_at', dayEnd.toISOString());
+  }
+
+  if (filters?.seasonId) {
+    query = query.eq('season_id', filters.seasonId);
+  }
+
+  if (filters?.divisionId) {
+    query = query.eq('division_id', filters.divisionId);
+  }
+
+  if (filters?.type) {
+    query = query.eq('game_type', filters.type);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data) {
+    return [];
+  }
+
+  // Transform Supabase array results to single objects
+  return data.map((game) => ({
+    ...game,
+    home_team: Array.isArray(game.home_team) ? game.home_team[0] ?? null : game.home_team,
+    away_team: Array.isArray(game.away_team) ? game.away_team[0] ?? null : game.away_team,
+    division: Array.isArray(game.division) ? game.division[0] ?? null : game.division,
+  })) as ScheduleGame[];
+}
+
+/**
+ * Get game counts per day for a week (for the week picker badges)
+ */
+export async function getWeekGameCounts(
+  leagueId: string,
+  weekStart: Date
+): Promise<Record<string, number>> {
+  const supabase = await createClient();
+
+  // Calculate week end (7 days from start)
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  const { data, error } = await supabase
+    .from('games')
+    .select('scheduled_at')
+    .eq('league_id', leagueId)
+    .gte('scheduled_at', weekStart.toISOString())
+    .lt('scheduled_at', weekEnd.toISOString());
+
+  if (error || !data) {
+    return {};
+  }
+
+  // Count games per day
+  const counts: Record<string, number> = {};
+  data.forEach((game: { scheduled_at: string }) => {
+    const dateStr = game.scheduled_at.split('T')[0];
+    counts[dateStr] = (counts[dateStr] || 0) + 1;
+  });
+
+  return counts;
+}
+
+/**
  * Fetch all games for schedule page
  */
 export async function getSchedule(
@@ -433,10 +627,108 @@ export function getTeamSlugs(leagueId: string): Promise<string[]> {
     .from('teams')
     .select('slug')
     .eq('league_id', leagueId)
-    .then(({ data, error }: { data: { slug: string }[] | null; error: any }) => {
+    .then(({ data, error }: { data: { slug: string }[] | null; error: unknown }) => {
       if (error || !data) {
         return [];
       }
       return data.map((team) => team.slug);
     });
+}
+
+/**
+ * Fetch game details for preview page
+ */
+export async function getGamePreview(gameId: string): Promise<GamePreview | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('games')
+    .select(`
+      *,
+      home_team:teams!games_home_team_id_fkey(
+        id, name, slug, logo, colors,
+        division:divisions(id, name)
+      ),
+      away_team:teams!games_away_team_id_fkey(
+        id, name, slug, logo, colors,
+        division:divisions(id, name)
+      )
+    `)
+    .eq('id', gameId)
+    .single();
+
+  if (error || !data) return null;
+  return data as GamePreview;
+}
+
+/**
+ * Fetch season series between two teams
+ */
+export async function getSeasonSeries(
+  teamAId: string,
+  teamBId: string,
+  seasonId: string
+): Promise<SeasonSeriesGame[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('games')
+    .select(`
+      id,
+      scheduled_at,
+      home_score,
+      away_score,
+      status,
+      home_team_id,
+      away_team_id
+    `)
+    .eq('season_id', seasonId)
+    .eq('status', 'final')
+    .or(`and(home_team_id.eq.${teamAId},away_team_id.eq.${teamBId}),and(home_team_id.eq.${teamBId},away_team_id.eq.${teamAId})`)
+    .order('scheduled_at', { ascending: false });
+
+  if (error || !data) return [];
+  return data as SeasonSeriesGame[];
+}
+
+/**
+ * Fetch team season stats
+ */
+export async function getTeamSeasonStats(
+  teamId: string,
+  seasonId: string
+): Promise<TeamSeasonStats | null> {
+  const supabase = await createClient();
+
+  // Try RPC first for calculated stats
+  const { data, error } = await supabase.rpc('get_team_season_stats', {
+    p_team_id: teamId,
+    p_season_id: seasonId,
+  });
+
+  if (!error && data) return data as TeamSeasonStats;
+
+  // Fallback: return null (stats not available)
+  return null;
+}
+
+/**
+ * Fetch player stat leaders for a team
+ */
+export async function getPlayerLeaders(
+  teamId: string,
+  seasonId: string,
+  statType: 'points' | 'goals' | 'assists'
+): Promise<PlayerStat[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc('get_team_player_leaders', {
+    p_team_id: teamId,
+    p_season_id: seasonId,
+    p_stat_type: statType,
+    p_limit: 3,
+  });
+
+  if (!error && data) return data as PlayerStat[];
+  return [];
 }

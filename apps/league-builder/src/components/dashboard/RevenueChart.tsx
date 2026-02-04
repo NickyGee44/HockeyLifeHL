@@ -305,14 +305,17 @@ export function ExportButton({
   );
 }
 
+// Pre-generated skeleton heights (avoids Math.random() during render)
+const SKELETON_HEIGHTS = [45, 72, 58, 33, 67, 81, 42, 55, 76, 38, 63, 49];
+
 export function ChartSkeleton() {
   return (
     <div className="h-full flex items-end gap-2 animate-pulse">
-      {Array.from({ length: 12 }).map((_, i) => (
+      {SKELETON_HEIGHTS.map((height, i) => (
         <div
           key={i}
           className="flex-1 bg-neutral-800 rounded-t"
-          style={{ height: `${Math.random() * 60 + 20}%` }}
+          style={{ height: `${height}%` }}
         />
       ))}
     </div>

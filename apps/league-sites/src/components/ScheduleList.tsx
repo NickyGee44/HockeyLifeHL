@@ -21,8 +21,8 @@ export function ScheduleList({
     if (!teamFilter) return games;
     return games.filter(
       (game) =>
-        (game.home_team as any)?.slug === teamFilter ||
-        (game.away_team as any)?.slug === teamFilter
+        game.home_team?.slug === teamFilter ||
+        game.away_team?.slug === teamFilter
     );
   };
 
@@ -48,7 +48,7 @@ export function ScheduleList({
               {filteredGames.map((game) => (
                 <GameCard
                   key={game.id}
-                  game={game as any}
+                  game={game as Game & { home_team: NonNullable<Game['home_team']>; away_team: NonNullable<Game['away_team']> }}
                   leagueSlug={leagueSlug}
                   showScore={game.status === 'final'}
                 />

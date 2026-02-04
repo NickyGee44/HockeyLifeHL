@@ -1,8 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { MapPin, Clock } from 'lucide-react';
-import type { Game, UpcomingGame, RecentGame } from '@/lib/types';
+import { MapPin } from 'lucide-react';
+import type { UpcomingGame, RecentGame } from '@/lib/types';
 
 interface GameCardProps {
   game: UpcomingGame | RecentGame;

@@ -90,6 +90,7 @@ export async function saveDraft(
       // Store wizard-specific data in settings JSONB
       settings: {
         wizard_data: {
+          // Step 2 - Season Settings
           season_name: data.season_name,
           season_start_date: data.season_start_date,
           season_end_date: data.season_end_date,
@@ -99,6 +100,32 @@ export async function saveDraft(
           game_duration_minutes: data.game_duration_minutes,
           period_count: data.period_count,
           teams: data.teams || [],
+          // Step 4 - Registration Fees (nested objects)
+          enablePaidRegistration: data.enablePaidRegistration ?? false,
+          registrationFee: data.registrationFee ?? 0,
+          earlyBirdDiscount: data.earlyBirdDiscount ?? {
+            enabled: false,
+            amount: 0,
+            isPercentage: false,
+            deadline: '',
+          },
+          lateRegistrationFee: data.lateRegistrationFee ?? {
+            enabled: false,
+            amount: 0,
+            startsAt: '',
+          },
+          paymentInstructions: data.paymentInstructions,
+          // Step 5 - Payment Setup
+          stripeAccountId: data.stripeAccountId ?? null,
+          stripeAccountStatus: data.stripeAccountStatus ?? 'not_connected',
+          skipPaymentSetup: data.skipPaymentSetup ?? false,
+          // Step 6 - Website & Branding
+          isPublic: data.isPublic ?? true,
+          themePreset: data.themePreset ?? 'dark',
+          bannerUrl: data.bannerUrl,
+          socialFacebook: data.socialFacebook,
+          socialInstagram: data.socialInstagram,
+          socialTwitter: data.socialTwitter,
         },
       },
     };
@@ -302,10 +329,14 @@ export async function deleteDraft(
  * 2. League membership (owner role)
  * 3. Season
  * 4. Teams (if provided)
- * 5. Deletes draft (if exists)
+ * 5. Deletes the specific draft (if draftId provided)
+ *
+ * @param formData - The wizard form data
+ * @param draftId - Optional ID of the draft to delete after successful creation
  */
 export async function createLeague(
-  formData: WizardFormData
+  formData: WizardFormData,
+  draftId?: string
 ): Promise<
   ActionResult<{
     leagueId: string;
@@ -361,7 +392,7 @@ export async function createLeague(
     console.log(`🏢 Organization: ${org.id}`);
 
     // Generate unique slug with collision detection
-    let slug = generateSlug(data.name);
+    const slug = generateSlug(data.name);
     let slugAttempt = 0;
     let uniqueSlug = slug;
 
@@ -408,12 +439,44 @@ export async function createLeague(
         organization_id: org.id,
         status: 'active',
         created_by: user.id,
+        is_public: data.isPublic ?? true,
         settings: {
           statEntryMode: 'captain',
           allowPlayerRegistration: true,
           requireApproval: data.registration_type !== 'open',
           emailNotifications: true,
           allowTrades: false,
+          // Fee configuration (Step 4) - uses nested objects
+          fees: {
+            enablePaidRegistration: data.enablePaidRegistration ?? false,
+            registrationFee: data.registrationFee ?? 0,
+            earlyBirdDiscount: {
+              enabled: data.earlyBirdDiscount?.enabled ?? false,
+              amount: data.earlyBirdDiscount?.amount ?? 0,
+              isPercentage: data.earlyBirdDiscount?.isPercentage ?? false,
+              deadline: data.earlyBirdDiscount?.deadline || null,
+            },
+            lateRegistrationFee: {
+              enabled: data.lateRegistrationFee?.enabled ?? false,
+              amount: data.lateRegistrationFee?.amount ?? 0,
+              startsAt: data.lateRegistrationFee?.startsAt || null,
+            },
+            paymentInstructions: data.paymentInstructions || null,
+          },
+          // Payment setup (Step 5)
+          payment: {
+            stripeAccountId: data.stripeAccountId ?? null,
+            stripeAccountStatus: data.stripeAccountStatus ?? 'not_connected',
+            skipPaymentSetup: data.skipPaymentSetup ?? false,
+          },
+          // Website & Branding (Step 6)
+          website: {
+            themePreset: data.themePreset ?? 'dark',
+            bannerUrl: data.bannerUrl || null,
+            socialFacebook: data.socialFacebook || null,
+            socialInstagram: data.socialInstagram || null,
+            socialTwitter: data.socialTwitter || null,
+          },
         },
       })
       .select('id')
@@ -465,7 +528,7 @@ export async function createLeague(
           registration_opens_at: data.registration_opens || null,
           registration_closes_at: data.registration_closes || null,
           registration_type: dbRegistrationType,
-          status: 'draft', // Valid enum: active, playoffs, completed, draft, archived
+          status: 'active', // Valid enum: active, playoffs, completed, draft, archived
           game_duration_minutes: data.game_duration_minutes,
           period_count: data.period_count,
         })
@@ -488,25 +551,49 @@ export async function createLeague(
           primary_color: team.color || null,
         }));
 
-        const { error: teamsError } = await (serviceSupabase
+        const { data: createdTeams, error: teamsError } = await (serviceSupabase
           .from('teams') as any)
-          .insert(teamsToInsert);
+          .insert(teamsToInsert)
+          .select('id');
 
         if (teamsError) {
           throw new Error(`Teams creation failed: ${teamsError.message}`);
         }
 
         console.log(`✅ Created ${data.teams.length} teams`);
+
+        // Step 4b: Link teams to season via season_teams junction table
+        if (createdTeams && createdTeams.length > 0) {
+          const teamIds = createdTeams.map((t: { id: string }) => t.id);
+          const seasonTeamInserts = teamIds.map((teamId: string) => ({
+            season_id: season.id,
+            team_id: teamId,
+          }));
+
+          const { error: seasonTeamsError } = await (serviceSupabase as any)
+            .from('season_teams')
+            .insert(seasonTeamInserts);
+
+          if (seasonTeamsError) {
+            console.error('Failed to link teams to season:', seasonTeamsError);
+            // Continue anyway - teams are created, just not linked
+          } else {
+            console.log(`✅ Linked ${teamIds.length} teams to season`);
+          }
+        }
       }
 
-      // Step 5: Delete draft if exists
-      await serviceSupabase
-        .from('leagues')
-        .delete()
-        .eq('created_by', user.id)
-        .eq('status', 'draft');
+      // Step 5: Delete the specific draft if draftId was provided
+      if (draftId) {
+        await serviceSupabase
+          .from('leagues')
+          .delete()
+          .eq('id', draftId)
+          .eq('created_by', user.id)
+          .eq('status', 'draft');
 
-      console.log('✅ Cleaned up draft');
+        console.log(`✅ Cleaned up draft: ${draftId}`);
+      }
 
       // Revalidate relevant paths
       revalidatePath('/dashboard');

@@ -97,6 +97,21 @@ const PAYMENT_PLAN_LABELS: Record<PaymentPlanType, string> = {
   three_pay: '3-Pay',
 };
 
+interface SortIconProps {
+  field: SortField;
+  currentSortField: SortField;
+  sortDirection: SortDirection;
+}
+
+function SortIcon({ field, currentSortField, sortDirection }: SortIconProps) {
+  if (currentSortField !== field) return null;
+  return sortDirection === 'asc' ? (
+    <ChevronUp className="h-4 w-4" />
+  ) : (
+    <ChevronDown className="h-4 w-4" />
+  );
+}
+
 export function PaymentStatusTable({
   payments,
   onRefund,
@@ -170,15 +185,6 @@ export function PaymentStatusTable({
       setSortField(field);
       setSortDirection('asc');
     }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return sortDirection === 'asc' ? (
-      <ChevronUp className="h-4 w-4" />
-    ) : (
-      <ChevronDown className="h-4 w-4" />
-    );
   };
 
   const formatCurrency = (cents: number) => {
@@ -300,7 +306,7 @@ export function PaymentStatusTable({
               >
                 <div className="flex items-center gap-1">
                   Player
-                  <SortIcon field="player" />
+                  <SortIcon field="player" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
               <th
@@ -309,7 +315,7 @@ export function PaymentStatusTable({
               >
                 <div className="flex items-center gap-1">
                   Team
-                  <SortIcon field="team" />
+                  <SortIcon field="team" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
               <th
@@ -318,7 +324,7 @@ export function PaymentStatusTable({
               >
                 <div className="flex items-center gap-1">
                   Amount
-                  <SortIcon field="amount" />
+                  <SortIcon field="amount" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
               <th
@@ -327,7 +333,7 @@ export function PaymentStatusTable({
               >
                 <div className="flex items-center gap-1">
                   Progress
-                  <SortIcon field="progress" />
+                  <SortIcon field="progress" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
               <th
@@ -336,7 +342,7 @@ export function PaymentStatusTable({
               >
                 <div className="flex items-center gap-1">
                   Status
-                  <SortIcon field="status" />
+                  <SortIcon field="status" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider">

@@ -97,7 +97,7 @@ async function verifyLeagueAccess(leagueId: string): Promise<{ authorized: boole
 
   return {
     authorized: true,
-    organizationId: league.organization_id
+    organizationId: league.organization_id ?? undefined
   };
 }
 
@@ -555,9 +555,9 @@ export async function uploadTeamLogo(teamId: string, file: File) {
     const filename = `${teamId}-${Date.now()}.${ext}`;
     const path = `team-logos/${filename}`;
 
-    // Upload to storage
+    // Upload to storage (use team-logos bucket as defined in migrations)
     const { error: uploadError } = await supabase.storage
-      .from('assets')
+      .from('team-logos')
       .upload(path, file, {
         cacheControl: '3600',
         upsert: false,
@@ -572,7 +572,7 @@ export async function uploadTeamLogo(teamId: string, file: File) {
 
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from('assets')
+      .from('team-logos')
       .getPublicUrl(path);
 
     // Update team with new logo URL
@@ -583,7 +583,7 @@ export async function uploadTeamLogo(teamId: string, file: File) {
 
     if (updateError) {
       // Try to clean up uploaded file
-      await supabase.storage.from('assets').remove([path]);
+      await supabase.storage.from('team-logos').remove([path]);
       return { error: 'Failed to update team with logo URL' };
     }
 

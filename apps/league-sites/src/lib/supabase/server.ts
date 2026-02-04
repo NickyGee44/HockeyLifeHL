@@ -64,7 +64,7 @@ export function createServiceRoleClient() {
           }),
         }),
       }),
-    } as any;
+    } as ReturnType<typeof createServerClient>;
   }
 
   return createServerClient(

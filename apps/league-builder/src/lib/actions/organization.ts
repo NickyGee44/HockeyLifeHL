@@ -342,3 +342,220 @@ export async function removeOrganizationMember(formData: FormData) {
     return { error: 'An unexpected error occurred' };
   }
 }
+
+// ==============================================================================
+// LEAGUE BRANDING ACTIONS
+// ==============================================================================
+
+/**
+ * Get leagues for the current user's organization
+ */
+export async function getOrganizationLeagues(organizationId: string) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    // Verify user owns the organization
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('owner_user_id')
+      .eq('id', organizationId)
+      .single();
+
+    if (orgError || !org || org.owner_user_id !== user.id) {
+      return { error: 'Not authorized' };
+    }
+
+    // Get leagues for this organization
+    const { data: leagues, error: leaguesError } = await supabase
+      .from('leagues')
+      .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color, status')
+      .eq('organization_id', organizationId)
+      .neq('status', 'draft')
+      .order('name');
+
+    if (leaguesError) {
+      if (isDevelopment) {
+        console.error('Error fetching leagues:', leaguesError);
+      }
+      return { error: 'Failed to fetch leagues' };
+    }
+
+    return { success: true, data: leagues || [] };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Error in getOrganizationLeagues:', error);
+    }
+    return { error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Update league branding (colors, logo)
+ */
+export async function updateLeagueBranding(formData: {
+  leagueId: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  logoUrl?: string | null;
+}) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    // Get league and verify ownership through organization
+    const { data: league, error: leagueError } = await supabase
+      .from('leagues')
+      .select('id, organization_id, organizations!inner(owner_user_id)')
+      .eq('id', formData.leagueId)
+      .single();
+
+    if (leagueError || !league) {
+      return { error: 'League not found' };
+    }
+
+    const orgOwner = (league.organizations as any)?.owner_user_id;
+    if (orgOwner !== user.id) {
+      return { error: 'Not authorized to update this league' };
+    }
+
+    // Build update object
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (formData.primaryColor !== undefined) {
+      updateData.primary_color = formData.primaryColor;
+    }
+    if (formData.secondaryColor !== undefined) {
+      updateData.secondary_color = formData.secondaryColor;
+    }
+    if (formData.accentColor !== undefined) {
+      updateData.accent_color = formData.accentColor;
+    }
+    if (formData.logoUrl !== undefined) {
+      updateData.logo_url = formData.logoUrl;
+    }
+
+    // Update league
+    const { error: updateError } = await supabase
+      .from('leagues')
+      .update(updateData)
+      .eq('id', formData.leagueId);
+
+    if (updateError) {
+      if (isDevelopment) {
+        console.error('Error updating league branding:', updateError);
+      }
+      return { error: 'Failed to update branding' };
+    }
+
+    revalidatePath('/dashboard/settings/branding');
+    revalidatePath(`/dashboard/leagues/${formData.leagueId}`);
+
+    return { success: true };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Error in updateLeagueBranding:', error);
+    }
+    return { error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Upload league logo to Supabase storage
+ */
+export async function uploadLeagueLogo(leagueId: string, file: File) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    // Get league and verify ownership through organization
+    const { data: league, error: leagueError } = await supabase
+      .from('leagues')
+      .select('id, organization_id, organizations!inner(owner_user_id)')
+      .eq('id', leagueId)
+      .single();
+
+    if (leagueError || !league) {
+      return { error: 'League not found' };
+    }
+
+    const orgOwner = (league.organizations as any)?.owner_user_id;
+    if (orgOwner !== user.id) {
+      return { error: 'Not authorized to update this league' };
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      return { error: 'Invalid file type. Allowed: PNG, JPEG, WebP, SVG' };
+    }
+
+    // Validate file size (max 2MB)
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return { error: 'File too large. Maximum size is 2MB' };
+    }
+
+    // Generate unique filename
+    const ext = file.name.split('.').pop();
+    const filename = `${leagueId}-${Date.now()}.${ext}`;
+    const path = `${filename}`;
+
+    // Upload to storage
+    const { error: uploadError } = await supabase.storage
+      .from('league-logos')
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      if (isDevelopment) {
+        console.error('Error uploading logo:', uploadError);
+      }
+      return { error: 'Failed to upload logo' };
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('league-logos')
+      .getPublicUrl(path);
+
+    // Update league with new logo URL
+    const { error: updateError } = await supabase
+      .from('leagues')
+      .update({ logo_url: urlData.publicUrl, updated_at: new Date().toISOString() })
+      .eq('id', leagueId);
+
+    if (updateError) {
+      // Try to clean up uploaded file
+      await supabase.storage.from('league-logos').remove([path]);
+      return { error: 'Failed to update league with logo URL' };
+    }
+
+    revalidatePath('/dashboard/settings/branding');
+    revalidatePath(`/dashboard/leagues/${leagueId}`);
+
+    return { success: true, data: { url: urlData.publicUrl } };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Error in uploadLeagueLogo:', error);
+    }
+    return { error: 'An unexpected error occurred' };
+  }
+}

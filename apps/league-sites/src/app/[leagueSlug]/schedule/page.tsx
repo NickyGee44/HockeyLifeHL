@@ -1,11 +1,20 @@
 import { Metadata } from 'next';
-import { Calendar, Filter } from 'lucide-react';
-import { getLeagueBySlug, getSchedule, getTeams, getCurrentSeason } from '@/lib/data';
-import { ScheduleList } from '@/components/ScheduleList';
+import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getDivisions, getCurrentSeason } from '@/lib/data';
+import { WeekPicker } from '@/components/schedule/WeekPicker';
+import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
+import { ScheduleTable } from '@/components/schedule/ScheduleTable';
+import { Calendar } from 'lucide-react';
+import type { WeekPickerDay } from '@/lib/types';
 
 interface SchedulePageProps {
   params: Promise<{ leagueSlug: string }>;
-  searchParams: Promise<{ team?: string; month?: string }>;
+  searchParams: Promise<{
+    week?: string;
+    day?: string;
+    season?: string;
+    division?: string;
+    type?: string;
+  }>;
 }
 
 export const metadata: Metadata = {
@@ -15,85 +24,71 @@ export const metadata: Metadata = {
 
 export default async function SchedulePage({ params, searchParams }: SchedulePageProps) {
   const { leagueSlug } = await params;
-  const { team: teamFilter, month: monthFilter } = await searchParams;
+  const { week, day, season: seasonFilter, division: divisionFilter, type: typeFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) return null;
 
-  const [games, teams, season] = await Promise.all([
-    getSchedule(league.id),
-    getTeams(league.id),
-    getCurrentSeason(league.id),
+  // Parse week or default to current week
+  const weekStart = week ? new Date(week) : getStartOfWeek(new Date());
+
+  // Fetch current season first to get divisions
+  const currentSeason = await getCurrentSeason(league.id);
+
+  // Fetch remaining data in parallel
+  const [seasons, divisions, games, gameCounts] = await Promise.all([
+    getSeasons(league.id),
+    currentSeason ? getDivisions(currentSeason.id) : Promise.resolve([]),
+    getWeekGames(league.id, weekStart, {
+      day,
+      seasonId: seasonFilter,
+      divisionId: divisionFilter,
+      type: typeFilter,
+    }),
+    getWeekGameCounts(league.id, weekStart),
   ]);
 
-  // Group games by month
-  const gamesByMonth = groupGamesByMonth(games);
+  // Build days array for WeekPicker
+  const days = buildWeekDays(weekStart, gameCounts);
 
   return (
-    <div className="container mx-auto px-4 py-12 animate-fade-in">
+    <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-4">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold flex items-center gap-3 mb-2">
           <Calendar className="w-8 h-8 text-[var(--league-primary)]" />
           Schedule
         </h1>
-        {season && (
-          <p className="text-[var(--color-text-secondary)]">
-            {season.name} Season
-          </p>
+        {currentSeason && (
+          <p className="text-[var(--color-text-secondary)]">{currentSeason.name}</p>
         )}
       </div>
 
+      {/* Week Picker */}
+      <WeekPicker
+        weekStart={weekStart}
+        days={days}
+        selectedDay={day || null}
+        leagueSlug={leagueSlug}
+      />
+
       {/* Filters */}
-      <div className="card p-4 mb-8">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[var(--color-text-muted)]" />
-            <span className="text-sm font-medium">Filter by:</span>
-          </div>
+      <ScheduleFilters
+        seasons={seasons}
+        divisions={divisions}
+        currentFilters={{ season: seasonFilter, division: divisionFilter, type: typeFilter }}
+        leagueSlug={leagueSlug}
+      />
 
-          {/* Team Filter */}
-          <select
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
-            defaultValue={teamFilter || ''}
-          >
-            <option value="">All Teams</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.slug}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Month Filter */}
-          <select
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
-            defaultValue={monthFilter || ''}
-          >
-            <option value="">All Months</option>
-            {Object.keys(gamesByMonth).map((month) => (
-              <option key={month} value={month}>
-                {month}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Schedule List */}
+      {/* Schedule Table */}
       {games.length > 0 ? (
-        <ScheduleList
-          gamesByMonth={gamesByMonth}
-          leagueSlug={leagueSlug}
-          teamFilter={teamFilter}
-          monthFilter={monthFilter}
-        />
+        <ScheduleTable games={games} leagueSlug={leagueSlug} showDivision />
       ) : (
         <div className="card p-12 text-center">
           <Calendar className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Games Scheduled</h3>
           <p className="text-[var(--color-text-secondary)]">
-            Check back later for the upcoming schedule.
+            {day ? 'No games on this day.' : 'No games this week.'}
           </p>
         </div>
       )}
@@ -101,21 +96,32 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   );
 }
 
-function groupGamesByMonth(games: any[]): Record<string, any[]> {
-  const grouped: Record<string, any[]> = {};
+// Helper functions
+function getStartOfWeek(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
-  games.forEach((game) => {
-    const date = new Date(game.scheduled_at);
-    const monthKey = date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
+function buildWeekDays(weekStart: Date, counts: Record<string, number>): WeekPickerDay[] {
+  const days: WeekPickerDay[] = [];
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + i);
+    const dateStr = date.toISOString().split('T')[0];
+
+    days.push({
+      date: dateStr,
+      dayName: dayNames[i],
+      dayNumber: date.getDate(),
+      gameCount: counts[dateStr] || 0,
     });
+  }
 
-    if (!grouped[monthKey]) {
-      grouped[monthKey] = [];
-    }
-    grouped[monthKey].push(game);
-  });
-
-  return grouped;
+  return days;
 }

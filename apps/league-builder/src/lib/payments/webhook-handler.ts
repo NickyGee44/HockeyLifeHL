@@ -18,6 +18,7 @@ import { stripe } from '@/lib/stripe/client';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
+import type { Json } from '@hockey-life/database';
 
 // ============================================================================
 // Types
@@ -78,7 +79,7 @@ async function logAuditEvent(
     league_id: leagueId,
     event_type: eventType,
     stripe_event_id: stripeEventId || null,
-    payload,
+    payload: payload as Json,
   });
 
   if (error) {
@@ -153,6 +154,7 @@ async function handleCheckoutCompleted(
   const applicationFee = calculateApplicationFee(amountPaid);
 
   // Record transaction
+  const currentInstallment = payment.current_installment ?? 0;
   const { error: txnError } = await supabase.from('payment_transactions').insert({
     player_payment_id: playerPaymentId,
     transaction_type: 'payment',
@@ -162,7 +164,7 @@ async function handleCheckoutCompleted(
     stripe_payment_intent_id: paymentIntent,
     stripe_checkout_session_id: session.id,
     status: 'succeeded',
-    installment_number: payment.current_installment + 1,
+    installment_number: currentInstallment + 1,
     description: `Payment via Stripe Checkout`,
     completed_at: new Date().toISOString(),
     idempotency_key: `checkout_${session.id}`,
@@ -193,9 +195,10 @@ async function handleCheckoutCompleted(
   }
 
   // Get new values from the atomic update result
-  const newAmountPaid = updatedPayment?.amount_paid_cents || payment.amount_paid_cents + amountPaid;
-  const newInstallment = updatedPayment?.current_installment || payment.current_installment + 1;
-  const isFullyPaid = newAmountPaid >= payment.total_amount_cents;
+  const totalAmountCents = payment.total_amount_cents ?? 0;
+  const newAmountPaid = updatedPayment?.amount_paid_cents || (payment.amount_paid_cents ?? 0) + amountPaid;
+  const newInstallment = updatedPayment?.current_installment || currentInstallment + 1;
+  const isFullyPaid = newAmountPaid >= totalAmountCents;
 
   await logAuditEvent(
     payment.league_id,
@@ -250,7 +253,7 @@ async function handlePaymentFailed(
     currency: paymentIntent.currency,
     stripe_payment_intent_id: paymentIntent.id,
     status: 'failed',
-    installment_number: payment.current_installment + 1,
+    installment_number: (payment.current_installment ?? 0) + 1,
     description: `Payment failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
     idempotency_key: `failed_${paymentIntent.id}`,
   });

@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "pnpm lint --fix ${file}",
+        "description": "Auto-lint files after editing"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git push:*)",
+        "command": "pnpm type-check",
+        "description": "Type-check before pushing"
+      }
+    ]
+  }
+}

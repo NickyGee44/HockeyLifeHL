@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Subscription Reconciliation Job
  *
@@ -52,8 +51,8 @@ interface ReconciliationResult {
     orgId: string;
     orgName: string;
     field: string;
-    dbValue: any;
-    stripeValue: any;
+    dbValue: string | null | unknown;
+    stripeValue: string | null | unknown;
     fixed: boolean;
   }>;
 }
@@ -102,9 +101,18 @@ async function reconcileSubscriptions(
       console.log(`[Reconciliation] Checking org ${org.id} (${org.name})...`);
 
       // Fetch subscription from Stripe
-      const subscription = await stripe.subscriptions.retrieve(
+      const subscriptionResponse = await stripe.subscriptions.retrieve(
         org.stripe_subscription_id!
       );
+      // Extract subscription data from the response
+      const subscription = subscriptionResponse as unknown as {
+        status: string;
+        items: { data: Array<{ price: { id: string } }> };
+        current_period_end: number;
+        current_period_start: number;
+        cancel_at_period_end: boolean;
+        canceled_at: number | null;
+      };
 
       // Determine tier from Stripe price
       const priceId = subscription.items.data[0]?.price.id;

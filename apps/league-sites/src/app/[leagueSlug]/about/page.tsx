@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import { Info, Mail, Phone, MapPin, Globe, Calendar, Users, Trophy } from 'lucide-react';
 import { getLeagueBySlug, getLeagueStats, getCurrentSeason } from '@/lib/data';
+import type { League } from '@/lib/types';
 
 interface AboutPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -273,7 +274,7 @@ function QuickLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function formatAddress(league: any): string {
+function formatAddress(league: Pick<League, 'address' | 'city' | 'state' | 'zip_code'>): string {
   const parts = [];
   if (league.address) parts.push(league.address);
   const cityState = [league.city, league.state].filter(Boolean).join(', ');

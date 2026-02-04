@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { AccountLockedMessage } from '@/components/auth';
 import { Loader2 } from 'lucide-react';
 
@@ -15,12 +16,12 @@ function AccountLockedContent() {
     return (
       <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
         <p className="text-neutral-400">No lock information available.</p>
-        <a
+        <Link
           href="/login"
           className="inline-block mt-4 text-gold-500 hover:text-gold-400 transition-colors"
         >
           Back to Login
-        </a>
+        </Link>
       </div>
     );
   }

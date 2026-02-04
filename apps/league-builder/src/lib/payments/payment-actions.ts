@@ -33,7 +33,9 @@ import type {
   PaymentReportRow,
   PaymentPlanType,
   ActionResult,
+  PlayerPaymentStatus,
 } from './types';
+import type { Json } from '@hockey-life/database';
 
 // ============================================================================
 // Helper: Get Current User
@@ -102,7 +104,7 @@ async function logPaymentAuditEvent(
     league_id: leagueId,
     event_type: eventType,
     stripe_event_id: stripeEventId || null,
-    payload,
+    payload: payload as Json,
     created_by: createdBy || null,
   });
 
@@ -167,7 +169,7 @@ function calculatePaymentAmount(
 
 export async function createPlayerPayment(
   params: CreatePlayerPaymentParams
-): ActionResult<PlayerPayment> {
+): Promise<ActionResult<PlayerPayment>> {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -220,10 +222,10 @@ export async function createPlayerPayment(
       fee.amount_cents,
       params.paymentPlan,
       fee.early_bird_deadline,
-      fee.early_bird_discount_cents,
+      fee.early_bird_discount_cents ?? 0,
       fee.payment_deadline,
-      fee.late_fee_cents,
-      fee.installment_fee_cents
+      fee.late_fee_cents ?? 0,
+      fee.installment_fee_cents ?? 0
     );
 
     // Determine number of installments
@@ -327,7 +329,7 @@ export async function createPlayerPayment(
 
 export async function createCheckoutSession(
   params: CreateCheckoutParams
-): ActionResult<CheckoutResult> {
+): Promise<ActionResult<CheckoutResult>> {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -388,13 +390,18 @@ export async function createCheckoutSession(
 
     // Calculate amount for this checkout
     // For installments, charge only the current installment amount
+    const totalAmountCents = payment.total_amount_cents ?? 0;
+    const amountPaidCents = payment.amount_paid_cents ?? 0;
+    const totalInstallments = payment.total_installments ?? 1;
+    const currentInstallment = payment.current_installment ?? 0;
+
     let checkoutAmount: number;
-    if (payment.total_installments > 1) {
-      const remainingAmount = payment.total_amount_cents - payment.amount_paid_cents;
-      const remainingInstallments = payment.total_installments - payment.current_installment;
+    if (totalInstallments > 1) {
+      const remainingAmount = totalAmountCents - amountPaidCents;
+      const remainingInstallments = totalInstallments - currentInstallment;
       checkoutAmount = Math.ceil(remainingAmount / remainingInstallments);
     } else {
-      checkoutAmount = payment.total_amount_cents - payment.amount_paid_cents;
+      checkoutAmount = totalAmountCents - amountPaidCents;
     }
 
     if (checkoutAmount <= 0) {
@@ -407,7 +414,7 @@ export async function createCheckoutSession(
     // Idempotency key
     const idempotencyKey = generateIdempotencyKey('create_checkout', {
       payment_id: params.playerPaymentId,
-      installment: payment.current_installment + 1,
+      installment: currentInstallment + 1,
       amount: checkoutAmount,
     });
 
@@ -424,8 +431,8 @@ export async function createCheckoutSession(
               product_data: {
                 name: seasonFee.name,
                 description:
-                  payment.total_installments > 1
-                    ? `Installment ${payment.current_installment + 1} of ${payment.total_installments}`
+                  totalInstallments > 1
+                    ? `Installment ${currentInstallment + 1} of ${totalInstallments}`
                     : seasonFee.description || `Season fee for ${league.name}`,
               },
               unit_amount: checkoutAmount,
@@ -442,7 +449,7 @@ export async function createCheckoutSession(
             player_payment_id: params.playerPaymentId,
             player_id: payment.player_id,
             league_id: payment.league_id,
-            installment_number: (payment.current_installment + 1).toString(),
+            installment_number: (currentInstallment + 1).toString(),
             platform: 'hockeylifehl',
           },
         },
@@ -475,7 +482,7 @@ export async function createCheckoutSession(
         checkout_session_id: session.id,
         amount_cents: checkoutAmount,
         application_fee_cents: applicationFee,
-        installment_number: payment.current_installment + 1,
+        installment_number: currentInstallment + 1,
       },
       user.id,
       params.playerPaymentId
@@ -498,7 +505,7 @@ export async function createCheckoutSession(
 // 3. Get Player's Payments
 // ============================================================================
 
-export async function getMyPayments(): ActionResult<PlayerPaymentWithDetails[]> {
+export async function getMyPayments(): Promise<ActionResult<PlayerPaymentWithDetails[]>> {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -539,7 +546,7 @@ export async function getMyPayments(): ActionResult<PlayerPaymentWithDetails[]> 
 export async function getLeaguePlayerPayments(
   leagueId: string,
   options?: { seasonId?: string; status?: string; limit?: number; offset?: number }
-): ActionResult<{ payments: PlayerPaymentWithDetails[]; total: number }> {
+): Promise<ActionResult<{ payments: PlayerPaymentWithDetails[]; total: number }>> {
   try {
     const access = await verifyLeagueAdminAccess(leagueId);
     if ('error' in access) {
@@ -569,7 +576,7 @@ export async function getLeaguePlayerPayments(
     }
 
     if (options?.status) {
-      query = query.eq('status', options.status);
+      query = query.eq('status', options.status as PlayerPaymentStatus);
     }
 
     const { data: payments, error, count } = await query;
@@ -598,7 +605,7 @@ export async function getLeaguePlayerPayments(
 
 export async function refundPlayerPayment(
   params: RefundPlayerPaymentParams
-): ActionResult<RefundResult> {
+): Promise<ActionResult<RefundResult>> {
   try {
     const supabase = await createClient();
 
@@ -757,7 +764,7 @@ export async function refundPlayerPayment(
 export async function getPaymentSummary(
   leagueId: string,
   seasonId: string
-): ActionResult<PaymentSummary> {
+): Promise<ActionResult<PaymentSummary>> {
   try {
     const access = await verifyLeagueAdminAccess(leagueId);
     if ('error' in access) {
@@ -811,7 +818,7 @@ export async function getPaymentSummary(
 export async function exportPaymentReport(
   leagueId: string,
   seasonId: string
-): ActionResult<PaymentReportRow[]> {
+): Promise<ActionResult<PaymentReportRow[]>> {
   try {
     const access = await verifyLeagueAdminAccess(leagueId);
     if ('error' in access) {
@@ -846,12 +853,12 @@ export async function exportPaymentReport(
       teamName: (p.team as any)?.name || null,
       feeName: (p.season_fee as any)?.name || 'Unknown Fee',
       paymentPlan: p.payment_plan,
-      totalAmount: p.total_amount_cents / 100,
-      amountPaid: p.amount_paid_cents / 100,
-      amountOutstanding: (p.total_amount_cents - p.amount_paid_cents) / 100,
+      totalAmount: (p.total_amount_cents ?? 0) / 100,
+      amountPaid: (p.amount_paid_cents ?? 0) / 100,
+      amountOutstanding: ((p.total_amount_cents ?? 0) - (p.amount_paid_cents ?? 0)) / 100,
       status: p.status,
-      currentInstallment: p.current_installment,
-      totalInstallments: p.total_installments,
+      currentInstallment: p.current_installment ?? 0,
+      totalInstallments: p.total_installments ?? 1,
       nextPaymentDate: p.next_payment_date,
       createdAt: p.created_at,
       paidAt: p.paid_at,
@@ -880,7 +887,7 @@ export async function exportPaymentReport(
 
 export async function sendPaymentReminder(
   paymentId: string
-): ActionResult<{ remindersSent: number }> {
+): Promise<ActionResult<{ remindersSent: number }>> {
   try {
     const supabase = await createClient();
 
@@ -933,7 +940,7 @@ export async function sendPaymentReminder(
       playerName: player.full_name || 'Player',
       leagueName: league?.name || 'Your League',
       feeName: seasonFee?.name || 'Season Fee',
-      amountDue: payment.total_amount_cents - payment.amount_paid_cents,
+      amountDue: (payment.total_amount_cents ?? 0) - (payment.amount_paid_cents ?? 0),
       dueDate: payment.next_payment_date,
       paymentUrl,
       reminderNumber: (payment.reminder_sent_count || 0) + 1,
@@ -960,7 +967,7 @@ export async function sendPaymentReminder(
         player_id: player.id,
         player_email: player.email,
         reminder_number: (payment.reminder_sent_count || 0) + 1,
-        amount_due_cents: payment.total_amount_cents - payment.amount_paid_cents,
+        amount_due_cents: (payment.total_amount_cents ?? 0) - (payment.amount_paid_cents ?? 0),
       },
       access.userId,
       paymentId
@@ -982,7 +989,7 @@ export async function updatePaymentStatus(
   paymentId: string,
   status: 'cancelled' | 'overdue',
   notes?: string
-): ActionResult<PlayerPayment> {
+): Promise<ActionResult<PlayerPayment>> {
   try {
     const supabase = await createClient();
 

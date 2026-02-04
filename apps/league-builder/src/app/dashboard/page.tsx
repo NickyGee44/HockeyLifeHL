@@ -81,7 +81,7 @@ export default async function DashboardPage() {
           />
           <StatsCard
             title="Active Seasons"
-            value={0}
+            value={totals.active_seasons ?? 0}
             icon={<TrendingUp className="w-5 h-5" />}
             trend={null}
           />
@@ -285,15 +285,12 @@ function OrganizationCard({ org }: { org: any }) {
         <span
           className={cn(
             'px-3 py-1 text-xs font-semibold rounded-full',
-            org.subscription_tier === 'pro'
+            org.subscription_tier === 'enterprise'
               ? 'bg-gold-500/20 text-gold-500 border border-gold-500/30'
-              : org.subscription_tier === 'starter'
-              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
               : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
           )}
         >
-          {org.subscription_tier?.charAt(0).toUpperCase() + org.subscription_tier?.slice(1) ||
-            'Free'}
+          {org.subscription_tier === 'enterprise' ? 'Enterprise' : 'Contact Sales'}
         </span>
       </div>
 

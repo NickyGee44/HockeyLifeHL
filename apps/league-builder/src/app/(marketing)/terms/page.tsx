@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-neutral-950 py-12">
@@ -78,25 +80,22 @@ export default function TermsOfServicePage() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-neutral-100 mb-4">
-              5. Subscription and Payment
+              5. Pricing and Payment
             </h2>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Free Trial:</strong> New accounts receive a 14-day free trial of the Starter plan.
+              <strong className="text-gold-500">Free Platform:</strong> HockeyLife is free to use. All core features including league creation, team management, scheduling, statistics, and player registration are available at no cost.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Subscription Plans:</strong> After the trial, you must subscribe to a paid plan to continue using the Service. Subscription fees are charged monthly or annually based on your selected plan.
+              <strong className="text-gold-500">Transaction Fee:</strong> When you process payments through HockeyLife (e.g., player registration fees), we charge a 2.99% fee on each transaction. This covers Stripe payment processing, fraud protection, and platform operating costs.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Payment Processing:</strong> Payments are processed securely through Stripe. By providing payment information, you authorize us to charge your payment method for subscription fees.
+              <strong className="text-gold-500">Payment Processing:</strong> All payments are processed securely through Stripe Connect. League administrators receive funds directly to their connected Stripe account, minus the 2.99% transaction fee.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Automatic Renewal:</strong> Subscriptions automatically renew unless canceled before the renewal date.
+              <strong className="text-gold-500">Optional Add-ons:</strong> Additional services such as custom domain setup and historic data import are available for a custom fee. Contact us for pricing on these add-on services.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Cancellation:</strong> You may cancel your subscription at any time. Cancellation takes effect at the end of the current billing period. No refunds for partial months.
-            </p>
-            <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Price Changes:</strong> We reserve the right to change subscription prices with 30 days&apos; notice.
+              <strong className="text-gold-500">Fee Changes:</strong> We reserve the right to change the transaction fee percentage with 30 days&apos; notice.
             </p>
           </section>
 
@@ -121,9 +120,9 @@ export default function TermsOfServicePage() {
             </h2>
             <p className="text-neutral-300 mb-4">
               Your use of the Service is also governed by our{' '}
-              <a href="/privacy" className="text-gold-500 hover:text-gold-400 hover:underline transition-colors">
+              <Link href="/privacy" className="text-gold-500 hover:text-gold-400 hover:underline transition-colors">
                 Privacy Policy
-              </a>
+              </Link>
               , which describes how we collect, use, and protect your personal information.
             </p>
             <p className="text-neutral-300 mb-4">

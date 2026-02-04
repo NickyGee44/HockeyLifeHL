@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:builder": "turbo dev --filter=@hockey-life/league-builder",
-    "dev:website": "turbo dev --filter=@hockey-life/league-website",
+    "dev:website": "turbo dev --filter=@hockey-life/league-sites",
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",

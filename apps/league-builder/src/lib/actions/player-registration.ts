@@ -24,6 +24,7 @@ import type {
   RegistrationFormData,
   RegistrationDraftData,
 } from '@/lib/schemas/player-registration';
+import type { Database } from '@hockey-life/database';
 import {
   sendRegistrationSubmittedEmail,
   sendRegistrationApprovedEmail,
@@ -613,12 +614,13 @@ export async function confirmRegistrationPayment(
       return { success: false, error: 'Failed to confirm payment.' };
     }
 
-    // Log to connect_payments table for league's payment tracking
+    // Log to stripe_connect_payments table for league's payment tracking
     const serviceClient = createServiceRoleClient();
-    await serviceClient.from('connect_payments').insert({
+    await serviceClient.from('stripe_connect_payments').insert({
       league_id: registration.league_id,
       stripe_payment_intent_id: paymentIntentId,
       amount_cents: amountPaidCents || 0,
+      application_fee_cents: 0,
       currency: 'usd',
       status: 'succeeded',
       description: `Registration payment`,
@@ -1003,10 +1005,10 @@ export async function getPendingRegistrations(
       .range(offset, offset + limit - 1);
 
     if (status) {
-      query = query.eq('status', status);
+      query = query.eq('status', status as Database['public']['Enums']['registration_status_enum']);
     }
     if (type) {
-      query = query.eq('registration_type', type);
+      query = query.eq('registration_type', type as Database['public']['Enums']['registration_type_enum']);
     }
     if (seasonId) {
       query = query.eq('season_id', seasonId);
@@ -1070,7 +1072,7 @@ export async function getRegistrationDetails(
     if (registration.player_id !== user.id) {
       const accessResult = await verifyLeagueAdminAccess(registration.league_id);
       if ('error' in accessResult) {
-        return { success: false, error: accessResult.error };
+        return { success: false, error: accessResult.error || 'Access denied' };
       }
     }
 
@@ -1101,7 +1103,7 @@ export async function approveRegistration(
 
     const { data: registration } = await supabase
       .from('registration_submissions')
-      .select('league_id, player_id')
+      .select('league_id, player_id, season_id')
       .eq('id', registrationId)
       .single();
 
@@ -1111,7 +1113,7 @@ export async function approveRegistration(
 
     const result = await verifyLeagueAdminAccess(registration.league_id);
     if ('error' in result) {
-      return { success: false, error: result.error };
+      return { success: false, error: result.error || 'Access denied' };
     }
 
     const { teamId, jerseyNumber, notes } = options;
@@ -1137,11 +1139,12 @@ export async function approveRegistration(
     // If team assigned, add player to roster
     const serviceSupabase = createServiceRoleClient();
     if (teamId) {
-      await serviceSupabase.from('rosters').insert({
+      await serviceSupabase.from('team_rosters').insert({
         team_id: teamId,
         player_id: registration.player_id,
+        league_id: registration.league_id,
+        season_id: registration.season_id,
         jersey_number: jerseyNumber || null,
-        position: 'Player',
         status: 'active',
       });
     }
@@ -1178,7 +1181,7 @@ export async function approveRegistration(
           registrationType: fullReg.registration_type as 'team_registration' | 'free_agent' | 'individual',
           teamName: assignedTeam?.data?.name || fullReg.team?.name,
           jerseyNumber: jerseyNumber,
-          position: fullReg.preferred_position,
+          position: fullReg.preferred_position ?? undefined,
           seasonStartDate: fullReg.season?.start_date
             ? new Date(fullReg.season.start_date)
             : undefined,
@@ -1220,7 +1223,7 @@ export async function rejectRegistration(
 
     const result = await verifyLeagueAdminAccess(registration.league_id);
     if ('error' in result) {
-      return { success: false, error: result.error };
+      return { success: false, error: result.error || 'Access denied' };
     }
 
     const { error } = await supabase
@@ -1308,7 +1311,7 @@ export async function bulkUpdateRegistrations(
 
     const result = await verifyLeagueAdminAccess(firstReg.league_id);
     if ('error' in result) {
-      return { success: false, error: result.error };
+      return { success: false, error: result.error || 'Access denied' };
     }
 
     const statusMap = {

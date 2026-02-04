@@ -18,14 +18,14 @@ import {
 } from 'lucide-react';
 
 interface RegistrationsPageProps {
-  params: { id: string };
-  searchParams: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{
     status?: string;
     type?: string;
     season?: string;
     search?: string;
     page?: string;
-  };
+  }>;
 }
 
 async function getLeague(id: string) {
@@ -56,24 +56,28 @@ export default async function RegistrationsPage({
   params,
   searchParams,
 }: RegistrationsPageProps) {
-  const league = await getLeague(params.id);
+  // Await params and searchParams as required in Next.js 16
+  const { id: leagueId } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const league = await getLeague(leagueId);
 
   if (!league) {
     notFound();
   }
 
   // Parse search params
-  const status = searchParams.status;
-  const type = searchParams.type;
-  const seasonId = searchParams.season;
-  const search = searchParams.search;
-  const page = parseInt(searchParams.page || '1', 10);
+  const status = resolvedSearchParams.status;
+  const type = resolvedSearchParams.type;
+  const seasonId = resolvedSearchParams.season;
+  const search = resolvedSearchParams.search;
+  const page = parseInt(resolvedSearchParams.page || '1', 10);
   const limit = 20;
   const offset = (page - 1) * limit;
 
   // Fetch data in parallel
   const [registrationsResult, summaryResult] = await Promise.all([
-    getPendingRegistrations(params.id, {
+    getPendingRegistrations(leagueId, {
       status,
       type,
       seasonId,
@@ -81,7 +85,7 @@ export default async function RegistrationsPage({
       limit,
       offset,
     }),
-    getRegistrationSummary(params.id),
+    getRegistrationSummary(leagueId),
   ]);
 
   const registrations = registrationsResult.success
@@ -171,7 +175,7 @@ export default async function RegistrationsPage({
       >
         <RegistrationsTable
           registrations={registrations}
-          leagueId={params.id}
+          leagueId={leagueId}
         />
       </Suspense>
 
@@ -185,7 +189,7 @@ export default async function RegistrationsPage({
             {page > 1 && (
               <Link
                 href={`?${new URLSearchParams({
-                  ...searchParams,
+                  ...resolvedSearchParams,
                   page: String(page - 1),
                 }).toString()}`}
                 className="px-4 py-2 rounded-lg bg-neutral-800 text-white hover:bg-neutral-700 transition-colors"
@@ -196,7 +200,7 @@ export default async function RegistrationsPage({
             {page < totalPages && (
               <Link
                 href={`?${new URLSearchParams({
-                  ...searchParams,
+                  ...resolvedSearchParams,
                   page: String(page + 1),
                 }).toString()}`}
                 className="px-4 py-2 rounded-lg bg-neutral-800 text-white hover:bg-neutral-700 transition-colors"

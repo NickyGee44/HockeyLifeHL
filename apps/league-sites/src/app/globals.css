@@ -360,3 +360,376 @@ body {
     display: none !important;
   }
 }
+
+/* =============================================================================
+   BMHL TEMPLATE STYLES
+   ============================================================================= */
+
+/* Score Ticker */
+.score-ticker {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
+  position: relative;
+}
+
+.score-ticker-track {
+  display: flex;
+  animation: ticker-scroll 30s linear infinite;
+  width: max-content;
+}
+
+.score-ticker-track:hover {
+  animation-play-state: paused;
+}
+
+.score-ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-right: 1px solid var(--color-border-muted);
+  white-space: nowrap;
+  min-width: max-content;
+}
+
+.score-ticker-item:hover {
+  background: var(--color-surface-hover);
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Week Picker */
+.week-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.week-picker-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.week-picker-nav:hover {
+  border-color: var(--league-primary);
+  color: var(--league-primary);
+}
+
+.week-picker-days {
+  display: flex;
+  gap: 0.25rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.week-picker-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 3.5rem;
+}
+
+.week-picker-day:hover {
+  border-color: var(--league-primary);
+}
+
+.week-picker-day.selected {
+  background: var(--league-primary);
+  border-color: var(--league-primary);
+  color: var(--color-text-inverse);
+}
+
+.week-picker-day.selected .week-picker-day-name {
+  color: var(--color-text-inverse);
+}
+
+.week-picker-day-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+}
+
+.week-picker-day-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.week-picker-day-count {
+  font-size: 0.625rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  background: var(--color-accent-muted);
+  color: var(--league-primary);
+  margin-top: 0.25rem;
+}
+
+.week-picker-day.selected .week-picker-day-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-inverse);
+}
+
+/* Game Preview Header */
+.game-preview-header {
+  position: relative;
+  min-height: 200px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.game-preview-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    var(--away-team-color, var(--league-secondary)) 0%,
+    var(--away-team-color, var(--league-secondary)) 50%,
+    var(--home-team-color, var(--league-primary)) 50%,
+    var(--home-team-color, var(--league-primary)) 100%
+  );
+  clip-path: polygon(0 0, 55% 0, 45% 100%, 0 100%);
+  z-index: 0;
+}
+
+.game-preview-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--home-team-color, var(--league-primary));
+  z-index: -1;
+}
+
+.game-preview-away,
+.game-preview-home,
+.game-preview-center {
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+}
+
+.game-preview-away {
+  text-align: left;
+}
+
+.game-preview-home {
+  text-align: right;
+}
+
+.game-preview-center {
+  text-align: center;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.game-preview-team-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.game-preview-record {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Stats Bar */
+.stats-bar {
+  position: relative;
+  background: var(--color-border-muted);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.stats-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.stats-bar-fill.home {
+  background: var(--home-team-color, var(--league-primary));
+}
+
+.stats-bar-fill.away {
+  background: var(--away-team-color, var(--league-secondary));
+}
+
+/* Stats Comparison Row */
+.stats-comparison-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.stats-comparison-row:last-child {
+  border-bottom: none;
+}
+
+.stats-comparison-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.stats-comparison-value.winner {
+  color: var(--league-primary);
+}
+
+.stats-comparison-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* Schedule Table */
+.schedule-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.schedule-table th {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.schedule-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border-muted);
+  vertical-align: middle;
+}
+
+.schedule-table tr:hover td {
+  background: var(--color-surface-hover);
+}
+
+.schedule-table .matchup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.schedule-table .team-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.schedule-table .vs {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  padding: 0 0.5rem;
+}
+
+/* Mobile Schedule Cards */
+@media (max-width: 768px) {
+  .game-preview-header {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .game-preview-header::before {
+    clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+  }
+
+  .game-preview-away,
+  .game-preview-home {
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .schedule-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .schedule-card-teams {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .schedule-card-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+/* Season Series Card */
+.season-series-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border-muted);
+  margin-bottom: 0.75rem;
+}
+
+.season-series-record {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.season-series-game {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.season-series-score {
+  font-weight: 600;
+}
+
+.season-series-date {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}

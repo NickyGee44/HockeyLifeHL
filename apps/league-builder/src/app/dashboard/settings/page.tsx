@@ -4,6 +4,8 @@ import { cn } from '@hockey-life/ui';
 import { OrganizationProfileForm } from './organization-profile-form';
 import { Copy, AlertTriangle } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function OrganizationProfilePage() {
   const userData = await getCurrentUser();
 

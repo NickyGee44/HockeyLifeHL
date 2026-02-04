@@ -2,6 +2,8 @@ import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
 import { redirect } from 'next/navigation';
 import { NotificationPreferences } from '@/components/notifications';
 
+export const dynamic = 'force-dynamic';
+
 export default async function NotificationSettingsPage() {
   const userData = await getCurrentUser();
 

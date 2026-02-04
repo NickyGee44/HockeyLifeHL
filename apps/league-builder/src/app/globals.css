@@ -553,6 +553,47 @@ body {
   box-shadow: 0 0 0 2px var(--color-status-success) !important;
 }
 
+/* Custom Checkbox Styling */
+input[type="checkbox"].checkbox-gold {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--color-gold-500, #D4AF37);
+  border-radius: 0.25rem;
+  background-color: var(--color-neutral-900, #111);
+  cursor: pointer;
+  position: relative;
+  transition: all 150ms ease;
+  flex-shrink: 0;
+}
+
+input[type="checkbox"].checkbox-gold:checked {
+  background-color: var(--color-gold-500, #D4AF37);
+  border-color: var(--color-gold-500, #D4AF37);
+}
+
+input[type="checkbox"].checkbox-gold:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: solid black;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"].checkbox-gold:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.5);
+}
+
+input[type="checkbox"].checkbox-gold:hover {
+  border-color: var(--color-gold-400, #FFD54F);
+}
+
 /* ------------------------------------------------------------
    BUTTONS
    ------------------------------------------------------------ */

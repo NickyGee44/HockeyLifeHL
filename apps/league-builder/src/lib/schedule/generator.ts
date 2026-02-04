@@ -533,7 +533,9 @@ export async function generateSchedule(
     }
 
     // Assign matchups to slots
-    let { games, violations } = assignMatchupsToSlots(matchups, slots, options);
+    const result = assignMatchupsToSlots(matchups, slots, options);
+    let games = result.games;
+    const violations = result.violations;
 
     // Optimize home/away balance
     if (config.homeAwayBalance) {
