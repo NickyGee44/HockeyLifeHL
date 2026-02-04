@@ -157,10 +157,10 @@ export default async function LeagueDetailPage({ params }: Props) {
             description="View and manage games"
           />
           <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/billing`}
+            href={`/${locale}/dashboard/leagues/${leagueId}/payments`}
             icon={<CreditCard className="w-5 h-5" />}
-            title="League Billing"
-            description="Payments & payouts"
+            title="Player Payments"
+            description="Track player fees"
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/settings`}

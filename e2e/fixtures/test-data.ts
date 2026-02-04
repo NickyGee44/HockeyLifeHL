@@ -345,6 +345,171 @@ export class TestDataSeeder {
       teams,
     };
   }
+
+  /**
+   * Create a game between two teams
+   */
+  async createGame(data: {
+    seasonId: string;
+    homeTeamId: string;
+    awayTeamId: string;
+    scheduledAt?: string;
+    status?: string;
+  }): Promise<{ id: string }> {
+    const { data: game, error } = await this.supabase
+      .from('games')
+      .insert({
+        season_id: data.seasonId,
+        home_team_id: data.homeTeamId,
+        away_team_id: data.awayTeamId,
+        scheduled_at: data.scheduledAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+        status: data.status || 'scheduled',
+        period_count: 3,
+        period_length_minutes: 20,
+      })
+      .select('id')
+      .single();
+
+    if (error || !game) {
+      throw new Error(`Failed to create game: ${error?.message}`);
+    }
+
+    return game;
+  }
+
+  /**
+   * Assign scorekeeper to game
+   */
+  async assignScorekeeper(gameId: string, scorekeeperEmail: string): Promise<{ token: string }> {
+    // Generate token
+    const token = Math.random().toString(36).substring(2, 15).toUpperCase();
+
+    // Create scorekeeper session
+    const { error } = await this.supabase.from('scorekeeper_sessions').insert({
+      game_id: gameId,
+      token,
+      scorekeeper_email: scorekeeperEmail,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      status: 'active',
+    });
+
+    if (error) {
+      throw new Error(`Failed to assign scorekeeper: ${error?.message}`);
+    }
+
+    return { token };
+  }
+
+  /**
+   * Set team captain
+   */
+  async setTeamCaptain(teamId: string, playerId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('teams')
+      .update({ captain_id: playerId })
+      .eq('id', teamId);
+
+    if (error) {
+      throw new Error(`Failed to set captain: ${error?.message}`);
+    }
+
+    // Also update roster
+    await this.supabase
+      .from('team_rosters')
+      .update({ is_captain: true })
+      .eq('team_id', teamId)
+      .eq('player_id', playerId);
+  }
+
+  /**
+   * Add player to team roster
+   */
+  async addPlayerToRoster(data: {
+    teamId: string;
+    playerId: string;
+    jerseyNumber: number;
+    position: 'Forward' | 'Defense' | 'Goalie';
+  }): Promise<void> {
+    const { error } = await this.supabase.from('team_rosters').insert({
+      team_id: data.teamId,
+      player_id: data.playerId,
+      jersey_number: data.jerseyNumber,
+      position: data.position,
+      status: 'active',
+    });
+
+    if (error) {
+      throw new Error(`Failed to add player to roster: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Create player join request
+   */
+  async createJoinRequest(teamId: string, playerId: string): Promise<{ id: string }> {
+    const { data, error } = await this.supabase
+      .from('team_join_requests')
+      .insert({
+        team_id: teamId,
+        player_id: playerId,
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (error || !data) {
+      throw new Error(`Failed to create join request: ${error?.message}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Configure season fees
+   */
+  async configureSeasonFees(seasonId: string, feeAmount: number): Promise<void> {
+    const { error } = await this.supabase
+      .from('seasons')
+      .update({
+        registration_fee: feeAmount,
+        payment_enabled: true,
+      })
+      .eq('id', seasonId);
+
+    if (error) {
+      throw new Error(`Failed to configure fees: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Create test payment record
+   */
+  async createPaymentRecord(data: {
+    seasonId: string;
+    playerId: string;
+    amount: number;
+    status: 'paid' | 'pending' | 'failed';
+    stripePaymentIntentId?: string;
+  }): Promise<{ id: string }> {
+    const { data: payment, error } = await this.supabase
+      .from('player_payments')
+      .insert({
+        season_id: data.seasonId,
+        player_id: data.playerId,
+        amount: data.amount,
+        status: data.status,
+        stripe_payment_intent_id: data.stripePaymentIntentId || `pi_test_${Date.now()}`,
+        paid_at: data.status === 'paid' ? new Date().toISOString() : null,
+      })
+      .select('id')
+      .single();
+
+    if (error || !payment) {
+      throw new Error(`Failed to create payment: ${error?.message}`);
+    }
+
+    return payment;
+  }
 }
 
 /**

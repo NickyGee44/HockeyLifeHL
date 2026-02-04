@@ -642,89 +642,99 @@ export async function refundPlayerPayment(
       return { success: false, error: 'Refund amount exceeds amount paid.' };
     }
 
-    // Get transactions to find Stripe payment intents
-    const { data: transactions } = await supabase
-      .from('payment_transactions')
-      .select('stripe_payment_intent_id, amount_cents')
-      .eq('player_payment_id', params.playerPaymentId)
-      .eq('status', 'succeeded')
-      .eq('transaction_type', 'payment')
-      .order('created_at', { ascending: false });
+    // FIX ISSUE #3: Use atomic bulk refund function instead of loop
+    // This ensures all database updates happen in a single transaction
+    const serviceSupabase = createServiceRoleClient();
 
-    if (!transactions || transactions.length === 0) {
-      return { success: false, error: 'No successful transactions found to refund.' };
+    const { data: bulkRefundResult, error: bulkRefundError } = await serviceSupabase.rpc(
+      'process_bulk_refund',
+      {
+        p_payment_id: params.playerPaymentId,
+        p_total_refund_amount_cents: refundAmount,
+        p_reason: params.reason,
+        p_notes: params.notes || null,
+        p_created_by: access.userId,
+      }
+    );
+
+    if (bulkRefundError) {
+      console.error('[Payments] Bulk refund preparation error:', sanitizeErrorForLogging(bulkRefundError));
+      return { success: false, error: 'Failed to prepare refund transactions atomically.' };
     }
 
-    // Process refund(s)
-    let amountToRefund = refundAmount;
+    if (!bulkRefundResult || !bulkRefundResult.success) {
+      console.error('[Payments] Bulk refund preparation failed:', bulkRefundResult);
+      return { success: false, error: bulkRefundResult?.message || 'Refund preparation failed' };
+    }
+
+    // Now execute Stripe refunds for each pending transaction
+    const refundTransactions = bulkRefundResult.refund_transactions || [];
     let totalRefunded = 0;
     let totalFeeRefunded = 0;
     let lastRefundId = '';
+    const failedRefunds = [];
 
-    for (const txn of transactions) {
-      if (amountToRefund <= 0) break;
-      if (!txn.stripe_payment_intent_id) continue;
+    for (const refundTxn of refundTransactions) {
+      try {
+        const idempotencyKey = generateIdempotencyKey('refund_payment', {
+          payment_id: params.playerPaymentId,
+          txn_id: refundTxn.stripe_payment_intent_id,
+          refund_txn_id: refundTxn.refund_transaction_id,
+        });
 
-      const txnRefundAmount = Math.min(amountToRefund, txn.amount_cents);
-      const feeRefund = await calculateApplicationFee(txnRefundAmount);
+        const refund = await stripe.refunds.create(
+          {
+            payment_intent: refundTxn.stripe_payment_intent_id,
+            amount: refundTxn.refund_amount_cents,
+            reason: params.reason,
+            refund_application_fee: true,
+          },
+          { idempotencyKey }
+        );
 
-      const idempotencyKey = generateIdempotencyKey('refund_payment', {
-        payment_id: params.playerPaymentId,
-        txn_id: txn.stripe_payment_intent_id,
-        amount: txnRefundAmount,
-      });
+        // Update transaction status to succeeded
+        await serviceSupabase
+          .from('payment_transactions')
+          .update({
+            status: 'succeeded',
+            stripe_refund_id: refund.id,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', refundTxn.refund_transaction_id);
 
-      const refund = await stripe.refunds.create(
-        {
-          payment_intent: txn.stripe_payment_intent_id,
-          amount: txnRefundAmount,
-          reason: params.reason,
-          refund_application_fee: true,
-        },
-        { idempotencyKey }
-      );
+        totalRefunded += refund.amount;
+        totalFeeRefunded += refundTxn.fee_refund_cents;
+        lastRefundId = refund.id;
+      } catch (refundError) {
+        // Mark this refund as failed
+        console.error('[Payments] Stripe refund failed:', sanitizeErrorForLogging(refundError));
+        await serviceSupabase
+          .from('payment_transactions')
+          .update({
+            status: 'failed',
+            description: `Refund failed: ${refundError instanceof Error ? refundError.message : 'Unknown error'}`,
+          })
+          .eq('id', refundTxn.refund_transaction_id);
 
-      totalRefunded += refund.amount;
-      totalFeeRefunded += feeRefund;
-      lastRefundId = refund.id;
-      amountToRefund -= txnRefundAmount;
-
-      // Record refund transaction
-      const serviceSupabase = createServiceRoleClient();
-      await serviceSupabase.from('payment_transactions').insert({
-        player_payment_id: params.playerPaymentId,
-        transaction_type: 'refund',
-        amount_cents: -refund.amount,
-        application_fee_cents: -feeRefund,
-        currency: payment.currency,
-        stripe_refund_id: refund.id,
-        stripe_payment_intent_id: txn.stripe_payment_intent_id,
-        status: 'succeeded',
-        description: `Refund: ${params.reason}`,
-        completed_at: new Date().toISOString(),
-      });
+        failedRefunds.push({
+          transaction_id: refundTxn.refund_transaction_id,
+          amount: refundTxn.refund_amount_cents,
+          error: refundError instanceof Error ? refundError.message : 'Unknown error',
+        });
+      }
     }
 
-    // Update payment record
-    const newAmountPaid = payment.amount_paid_cents - totalRefunded;
-    const newStatus =
-      newAmountPaid <= 0
-        ? 'refunded'
-        : totalRefunded < payment.amount_paid_cents
-        ? 'partially_refunded'
-        : 'refunded';
+    // If ANY refunds failed, we need to report partial success
+    if (failedRefunds.length > 0) {
+      console.error('[Payments] Some refunds failed:', failedRefunds);
+      return {
+        success: false,
+        error: `${failedRefunds.length} of ${refundTransactions.length} refunds failed. Please check audit log.`,
+      };
+    }
 
-    const serviceSupabase = createServiceRoleClient();
-    await serviceSupabase
-      .from('player_payments')
-      .update({
-        amount_paid_cents: newAmountPaid,
-        status: newStatus,
-        notes: params.notes
-          ? `${payment.notes || ''}\nRefund: ${params.notes}`.trim()
-          : payment.notes,
-      })
-      .eq('id', params.playerPaymentId);
+    const newStatus = bulkRefundResult.new_status;
+    const newAmountPaid = bulkRefundResult.new_amount_paid_cents;
 
     await logPaymentAuditEvent(
       payment.league_id,

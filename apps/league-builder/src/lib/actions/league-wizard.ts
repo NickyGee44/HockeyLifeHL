@@ -541,6 +541,41 @@ export async function createLeague(
 
       console.log(`✅ Season created: ${season.id}`);
 
+      // Step 3b: Create season fee if paid registration is enabled
+      if (data.enablePaidRegistration && data.registrationFee > 0) {
+        const earlyBirdDiscountCents = data.earlyBirdDiscount?.enabled
+          ? data.earlyBirdDiscount.isPercentage
+            ? Math.round((data.registrationFee * data.earlyBirdDiscount.amount) / 100)
+            : data.earlyBirdDiscount.amount
+          : 0;
+
+        const { error: feeError } = await serviceSupabase.from('season_fees').insert({
+          league_id: league.id,
+          season_id: season.id,
+          name: 'Registration Fee',
+          description: 'Season registration fee',
+          amount_cents: data.registrationFee,
+          currency: 'usd',
+          allow_full_payment: true,
+          allow_two_pay: false,
+          allow_three_pay: false,
+          payment_deadline: data.registration_closes || null,
+          early_bird_deadline: data.earlyBirdDiscount?.deadline || null,
+          early_bird_discount_cents: earlyBirdDiscountCents,
+          late_fee_cents: data.lateRegistrationFee?.enabled ? data.lateRegistrationFee.amount : 0,
+          installment_fee_cents: 0,
+          is_active: true,
+          created_by: user.id,
+        });
+
+        if (feeError) {
+          console.error('Failed to create season fee:', feeError);
+          // Continue anyway - league is created, fee can be added later
+        } else {
+          console.log('✅ Season fee created');
+        }
+      }
+
       // Step 4: Create teams (if provided)
       if (data.teams && data.teams.length > 0) {
         const teamsToInsert = data.teams.map((team) => ({

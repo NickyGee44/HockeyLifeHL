@@ -44,40 +44,7 @@ interface AddStaffMemberParams {
   role: StaffRole;
 }
 
-// Helper to verify team ownership through organization
-async function verifyTeamAccess(teamId: string): Promise<{ authorized: boolean; organizationId?: string; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { authorized: false, error: 'Not authenticated' };
-  }
-
-  // Get team with organization info
-  const { data: team, error } = await supabase
-    .from('teams')
-    .select('id, league_id, leagues!inner(organization_id, organizations!inner(owner_user_id))')
-    .eq('id', teamId)
-    .single();
-
-  if (error || !team) {
-    if (isDevelopment) {
-      console.error('Error fetching team:', error);
-    }
-    return { authorized: false, error: 'Team not found' };
-  }
-
-  // Check if user owns the organization
-  const orgOwnerId = (team.leagues as any).organizations.owner_user_id;
-  if (orgOwnerId !== user.id) {
-    return { authorized: false, error: 'Not authorized to manage this team' };
-  }
-
-  return {
-    authorized: true,
-    organizationId: (team.leagues as any).organization_id
-  };
-}
+import { verifyCaptainOrAdminAccess } from './permissions';
 
 /**
  * Add a player to team roster with jersey number validation
@@ -85,8 +52,8 @@ async function verifyTeamAccess(teamId: string): Promise<{ authorized: boolean; 
 export async function addPlayerToRoster(params: AddPlayerToRosterParams) {
   const { teamId, playerId, seasonId, jerseyNumber, position, leadershipRole } = params;
 
-  // Verify access
-  const access = await verifyTeamAccess(teamId);
+  // Verify access (captain or organization owner)
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
@@ -197,8 +164,8 @@ export async function updateJerseyNumber(params: UpdateJerseyNumberParams) {
       return { error: 'Roster entry not found' };
     }
 
-    // Verify access
-    const access = await verifyTeamAccess(currentRoster.team_id);
+    // Verify access (captain or organization owner)
+    const access = await verifyCaptainOrAdminAccess(currentRoster.team_id);
     if (!access.authorized) {
       return { error: access.error || 'Not authorized' };
     }
@@ -269,8 +236,8 @@ export async function updateJerseyNumber(params: UpdateJerseyNumberParams) {
 export async function assignCaptain(params: AssignCaptainParams) {
   const { teamId, playerId, seasonId, role } = params;
 
-  // Verify access
-  const access = await verifyTeamAccess(teamId);
+  // Verify access (captain or organization owner)
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
@@ -346,8 +313,8 @@ export async function updatePlayerStatus(params: UpdatePlayerStatusParams) {
       return { error: 'Roster entry not found' };
     }
 
-    // Verify access
-    const access = await verifyTeamAccess(roster.team_id);
+    // Verify access (captain or organization owner)
+    const access = await verifyCaptainOrAdminAccess(roster.team_id);
     if (!access.authorized) {
       return { error: access.error || 'Not authorized' };
     }
@@ -395,8 +362,8 @@ export async function removePlayerFromRoster(rosterId: string) {
       return { error: 'Roster entry not found' };
     }
 
-    // Verify access
-    const access = await verifyTeamAccess(roster.team_id);
+    // Verify access (captain or organization owner)
+    const access = await verifyCaptainOrAdminAccess(roster.team_id);
     if (!access.authorized) {
       return { error: access.error || 'Not authorized' };
     }
@@ -430,8 +397,8 @@ export async function removePlayerFromRoster(rosterId: string) {
 export async function addStaffMember(params: AddStaffMemberParams) {
   const { teamId, personId, seasonId, role } = params;
 
-  // Verify access
-  const access = await verifyTeamAccess(teamId);
+  // Verify access (captain or organization owner)
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
@@ -486,8 +453,8 @@ export async function removeStaffMember(staffId: string) {
       return { error: 'Staff entry not found' };
     }
 
-    // Verify access
-    const access = await verifyTeamAccess(staff.team_id);
+    // Verify access (captain or organization owner)
+    const access = await verifyCaptainOrAdminAccess(staff.team_id);
     if (!access.authorized) {
       return { error: access.error || 'Not authorized' };
     }

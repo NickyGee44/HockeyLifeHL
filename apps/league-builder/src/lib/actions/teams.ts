@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
+import { verifyCaptainOrAdminAccess, verifyLeagueOwnerAccess } from './permissions';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -66,75 +67,8 @@ export interface UpdateTeamParams {
   logoUrl?: string | null;
 }
 
-// Helper to verify league access through organization
-async function verifyLeagueAccess(leagueId: string): Promise<{ authorized: boolean; organizationId?: string; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { authorized: false, error: 'Not authenticated' };
-  }
-
-  // Get league with organization info
-  const { data: league, error } = await supabase
-    .from('leagues')
-    .select('id, organization_id, organizations!inner(owner_user_id)')
-    .eq('id', leagueId)
-    .single();
-
-  if (error || !league) {
-    if (isDevelopment) {
-      console.error('Error fetching league:', sanitizeErrorForLogging(error));
-    }
-    return { authorized: false, error: 'League not found' };
-  }
-
-  // Check if user owns the organization
-  const orgOwnerId = (league.organizations as any).owner_user_id;
-  if (orgOwnerId !== user.id) {
-    return { authorized: false, error: 'Not authorized to manage this league' };
-  }
-
-  return {
-    authorized: true,
-    organizationId: league.organization_id ?? undefined
-  };
-}
-
-// Helper to verify team access through organization
-async function verifyTeamAccess(teamId: string): Promise<{ authorized: boolean; team?: Team; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { authorized: false, error: 'Not authenticated' };
-  }
-
-  // Get team with organization info
-  const { data: team, error } = await supabase
-    .from('teams')
-    .select('*, leagues!inner(organization_id, organizations!inner(owner_user_id))')
-    .eq('id', teamId)
-    .single();
-
-  if (error || !team) {
-    if (isDevelopment) {
-      console.error('Error fetching team:', sanitizeErrorForLogging(error));
-    }
-    return { authorized: false, error: 'Team not found' };
-  }
-
-  // Check if user owns the organization
-  const orgOwnerId = (team.leagues as any).organizations.owner_user_id;
-  if (orgOwnerId !== user.id) {
-    return { authorized: false, error: 'Not authorized to manage this team' };
-  }
-
-  return {
-    authorized: true,
-    team: team as Team
-  };
-}
+// NOTE: Helper functions moved to permissions.ts
+// Use verifyLeagueOwnerAccess() and verifyCaptainOrAdminAccess() instead
 
 /**
  * Get all teams for a league with stats
@@ -270,8 +204,8 @@ export async function createTeam(params: CreateTeamParams) {
     notes
   } = params;
 
-  // Verify access
-  const access = await verifyLeagueAccess(leagueId);
+  // Verify access (organization owner only for creating teams)
+  const access = await verifyLeagueOwnerAccess(leagueId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
@@ -335,8 +269,8 @@ export async function createTeam(params: CreateTeamParams) {
 export async function updateTeam(params: UpdateTeamParams) {
   const { teamId, ...updates } = params;
 
-  // Verify access
-  const access = await verifyTeamAccess(teamId);
+  // Verify access (captain or organization owner)
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
@@ -391,8 +325,8 @@ export async function updateTeam(params: UpdateTeamParams) {
  * Delete a team (soft delete by setting status to inactive)
  */
 export async function deleteTeam(teamId: string) {
-  // Verify access
-  const access = await verifyTeamAccess(teamId);
+  // Verify access (captain or organization owner)
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized || !access.team) {
     return { error: access.error || 'Not authorized' };
   }
@@ -439,8 +373,8 @@ export async function deleteTeam(teamId: string) {
  * Assign or update team captain
  */
 export async function assignTeamCaptain(teamId: string, captainId: string | null) {
-  // Verify access
-  const access = await verifyTeamAccess(teamId);
+  // Verify access (captain or organization owner)
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
@@ -491,8 +425,8 @@ export async function assignTeamCaptain(teamId: string, captainId: string | null
  * Update team status
  */
 export async function updateTeamStatus(teamId: string, status: TeamStatus) {
-  // Verify access
-  const access = await verifyTeamAccess(teamId);
+  // Verify access (captain or organization owner)
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
@@ -529,8 +463,8 @@ export async function updateTeamStatus(teamId: string, status: TeamStatus) {
  * Upload team logo to Supabase storage
  */
 export async function uploadTeamLogo(teamId: string, file: File) {
-  // Verify access
-  const access = await verifyTeamAccess(teamId);
+  // Verify access (captain or organization owner)
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }

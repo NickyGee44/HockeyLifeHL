@@ -153,52 +153,40 @@ async function handleCheckoutCompleted(
   const amountPaid = session.amount_total || 0;
   const applicationFee = await calculateApplicationFee(amountPaid);
 
-  // Record transaction
-  const currentInstallment = payment.current_installment ?? 0;
-  const { error: txnError } = await supabase.from('payment_transactions').insert({
-    player_payment_id: playerPaymentId,
-    transaction_type: 'payment',
-    amount_cents: amountPaid,
-    application_fee_cents: applicationFee,
-    currency: session.currency || 'usd',
-    stripe_payment_intent_id: paymentIntent,
-    stripe_checkout_session_id: session.id,
-    status: 'succeeded',
-    installment_number: currentInstallment + 1,
-    description: `Payment via Stripe Checkout`,
-    completed_at: new Date().toISOString(),
-    idempotency_key: `checkout_${session.id}`,
-  });
-
-  if (txnError) {
-    // Check if duplicate (idempotent)
-    if (txnError.code === '23505') {
-      return { success: true, message: 'Transaction already processed' };
-    }
-    console.error('[Payments Webhook] Transaction insert error:', sanitizeErrorForLogging(txnError));
-    return { success: false, message: 'Failed to record transaction' };
-  }
-
-  // Use atomic update function to prevent race conditions
-  const { data: updatedPayment, error: updateError } = await supabase.rpc(
-    'update_payment_amount_atomic',
+  // Process payment atomically using database function (FIX ISSUE #1)
+  // This ensures transaction insert AND payment update happen in a single atomic operation
+  const { data: result, error: processError } = await supabase.rpc(
+    'process_checkout_completed',
     {
       p_payment_id: playerPaymentId,
-      p_amount_to_add: amountPaid,
-      p_installment_increment: 1,
+      p_session_id: session.id,
+      p_payment_intent_id: paymentIntent,
+      p_amount_paid_cents: amountPaid,
+      p_application_fee_cents: applicationFee,
+      p_currency: session.currency || 'usd',
+      p_idempotency_key: `checkout_${session.id}`,
     }
   );
 
-  if (updateError) {
-    console.error('[Payments Webhook] Payment update error:', sanitizeErrorForLogging(updateError));
-    return { success: false, message: 'Failed to update payment' };
+  if (processError) {
+    console.error('[Payments Webhook] Atomic processing error:', sanitizeErrorForLogging(processError));
+    return { success: false, message: 'Failed to process payment atomically' };
   }
 
-  // Get new values from the atomic update result
-  const totalAmountCents = payment.total_amount_cents ?? 0;
-  const newAmountPaid = updatedPayment?.amount_paid_cents || (payment.amount_paid_cents ?? 0) + amountPaid;
-  const newInstallment = updatedPayment?.current_installment || currentInstallment + 1;
-  const isFullyPaid = newAmountPaid >= totalAmountCents;
+  if (!result || !result.success) {
+    console.error('[Payments Webhook] Atomic processing failed:', result);
+    return { success: false, message: 'Payment processing returned failure' };
+  }
+
+  // Check if already processed (idempotent)
+  if (result.already_processed) {
+    console.log('[Payments Webhook] Payment already processed:', result.message);
+    return { success: true, message: result.message };
+  }
+
+  // Extract results from atomic function
+  const isFullyPaid = result.is_fully_paid || false;
+  const processedPayment = result.payment || payment;
 
   await logAuditEvent(
     payment.league_id,
@@ -207,14 +195,15 @@ async function handleCheckoutCompleted(
       checkout_session_id: session.id,
       payment_intent_id: paymentIntent,
       amount_cents: amountPaid,
-      installment_number: newInstallment,
+      installment_number: processedPayment.current_installment || 0,
       is_fully_paid: isFullyPaid,
+      transaction_id: result.transaction_id,
     },
     playerPaymentId,
     eventId
   );
 
-  return { success: true, message: `Payment processed: $${(amountPaid / 100).toFixed(2)}` };
+  return { success: true, message: `Payment processed atomically: $${(amountPaid / 100).toFixed(2)}` };
 }
 
 // ============================================================================
@@ -316,19 +305,220 @@ async function handleChargeRefunded(
     return { success: false, message: 'Payment not found' };
   }
 
+  // FIX ISSUE #2: Apply refund atomically using database function
+  // Get the most recent refund from the charge
+  const latestRefund = charge.refunds?.data[0];
+  if (!latestRefund) {
+    console.warn('[Payments Webhook] No refund data in charge.refunded event');
+    return { success: false, message: 'No refund data found' };
+  }
+
+  const { data: refundResult, error: refundError } = await supabase.rpc(
+    'process_refund',
+    {
+      p_payment_id: payment.id,
+      p_charge_id: charge.id,
+      p_payment_intent_id: paymentIntentId,
+      p_refund_id: latestRefund.id,
+      p_refund_amount_cents: latestRefund.amount,
+      p_currency: latestRefund.currency,
+      p_reason: latestRefund.reason || 'Refund issued',
+      p_is_full_refund: charge.refunded, // True if fully refunded
+    }
+  );
+
+  if (refundError) {
+    console.error('[Payments Webhook] Refund processing error:', sanitizeErrorForLogging(refundError));
+    return { success: false, message: 'Failed to process refund atomically' };
+  }
+
+  if (!refundResult || !refundResult.success) {
+    console.error('[Payments Webhook] Refund processing failed:', refundResult);
+    return { success: false, message: 'Refund processing returned failure' };
+  }
+
+  // Check if already processed
+  if (refundResult.already_processed) {
+    console.log('[Payments Webhook] Refund already processed:', refundResult.message);
+    return { success: true, message: refundResult.message };
+  }
+
   await logAuditEvent(
     payment.league_id,
     'webhook_charge_refunded',
     {
       charge_id: charge.id,
       payment_intent_id: paymentIntentId,
-      amount_refunded: charge.amount_refunded,
+      refund_id: latestRefund.id,
+      amount_refunded: latestRefund.amount,
+      new_status: refundResult.new_status,
+      new_amount_paid_cents: refundResult.new_amount_paid_cents,
+      transaction_id: refundResult.transaction_id,
     },
     payment.id,
     eventId
   );
 
-  return { success: true, message: 'Refund event logged' };
+  return {
+    success: true,
+    message: `Refund processed atomically: $${(latestRefund.amount / 100).toFixed(2)}. Status: ${refundResult.new_status}`
+  };
+}
+
+// ============================================================================
+// Handle: charge.dispute.created (FIX ISSUE #4: Chargeback Tracking)
+// ============================================================================
+
+async function handleDisputeCreated(
+  dispute: Stripe.Dispute,
+  eventId: string
+): Promise<WebhookResult> {
+  const chargeId = dispute.charge as string;
+
+  if (!chargeId) {
+    return { success: true, message: 'No charge ID' };
+  }
+
+  const supabase = createServiceRoleClient();
+
+  // Find payment by charge ID
+  const { data: transaction } = await supabase
+    .from('payment_transactions')
+    .select('player_payment_id, stripe_payment_intent_id')
+    .eq('stripe_charge_id', chargeId)
+    .single();
+
+  if (!transaction) {
+    return { success: true, message: 'Not a player fee payment' };
+  }
+
+  // Get payment record
+  const { data: payment } = await supabase
+    .from('player_payments')
+    .select('*')
+    .eq('id', transaction.player_payment_id)
+    .single();
+
+  if (!payment) {
+    return { success: false, message: 'Payment not found' };
+  }
+
+  // Record chargeback atomically using database function
+  const evidenceDueBy = dispute.evidence_details?.due_by
+    ? new Date(dispute.evidence_details.due_by * 1000).toISOString()
+    : null;
+
+  const { data: disputeResult, error: disputeError } = await supabase.rpc(
+    'record_chargeback',
+    {
+      p_payment_id: payment.id,
+      p_dispute_id: dispute.id,
+      p_charge_id: chargeId,
+      p_payment_intent_id: transaction.stripe_payment_intent_id,
+      p_amount_cents: dispute.amount,
+      p_currency: dispute.currency,
+      p_reason: dispute.reason,
+      p_status: dispute.status,
+      p_evidence_due_by: evidenceDueBy,
+    }
+  );
+
+  if (disputeError) {
+    console.error('[Payments Webhook] Dispute recording error:', sanitizeErrorForLogging(disputeError));
+    return { success: false, message: 'Failed to record chargeback' };
+  }
+
+  if (!disputeResult || !disputeResult.success) {
+    console.error('[Payments Webhook] Dispute recording failed:', disputeResult);
+    return { success: false, message: 'Chargeback recording returned failure' };
+  }
+
+  // Check if already processed
+  if (disputeResult.already_processed) {
+    console.log('[Payments Webhook] Dispute already processed:', disputeResult.message);
+    return { success: true, message: disputeResult.message };
+  }
+
+  await logAuditEvent(
+    payment.league_id,
+    'webhook_dispute_created',
+    {
+      dispute_id: dispute.id,
+      charge_id: chargeId,
+      amount_cents: dispute.amount,
+      reason: dispute.reason,
+      status: dispute.status,
+      evidence_due_by: evidenceDueBy,
+      dispute_db_id: disputeResult.dispute_id,
+    },
+    payment.id,
+    eventId
+  );
+
+  // TODO: Send email alert to league admin about chargeback
+  // This should be done via an email service to notify the league admin immediately
+
+  return {
+    success: true,
+    message: `Chargeback recorded: $${(dispute.amount / 100).toFixed(2)}. Evidence due: ${evidenceDueBy || 'N/A'}`
+  };
+}
+
+// ============================================================================
+// Handle: charge.dispute.closed
+// ============================================================================
+
+async function handleDisputeClosed(
+  dispute: Stripe.Dispute,
+  eventId: string
+): Promise<WebhookResult> {
+  const supabase = createServiceRoleClient();
+
+  // Update dispute status
+  const { data: updateResult, error: updateError } = await supabase.rpc(
+    'update_dispute_status',
+    {
+      p_dispute_id: dispute.id,
+      p_new_status: dispute.status,
+      p_resolved: true,
+    }
+  );
+
+  if (updateError) {
+    console.error('[Payments Webhook] Dispute update error:', sanitizeErrorForLogging(updateError));
+    return { success: false, message: 'Failed to update dispute status' };
+  }
+
+  if (!updateResult || !updateResult.success) {
+    console.error('[Payments Webhook] Dispute update failed:', updateResult);
+    return { success: false, message: 'Dispute update returned failure' };
+  }
+
+  // Get payment for audit log
+  const { data: dispute_record } = await supabase
+    .from('payment_disputes')
+    .select('league_id, player_payment_id')
+    .eq('stripe_dispute_id', dispute.id)
+    .single();
+
+  if (dispute_record) {
+    await logAuditEvent(
+      dispute_record.league_id,
+      'webhook_dispute_closed',
+      {
+        dispute_id: dispute.id,
+        status: dispute.status,
+        outcome: dispute.status === 'won' ? 'League won' : 'League lost',
+      },
+      dispute_record.player_payment_id,
+      eventId
+    );
+  }
+
+  return {
+    success: true,
+    message: `Dispute closed: ${dispute.status}`
+  };
 }
 
 // ============================================================================
@@ -357,6 +547,18 @@ export async function handlePlayerPaymentsWebhook(
       case 'charge.refunded':
         return await handleChargeRefunded(
           event.data.object as Stripe.Charge,
+          event.id
+        );
+
+      case 'charge.dispute.created':
+        return await handleDisputeCreated(
+          event.data.object as Stripe.Dispute,
+          event.id
+        );
+
+      case 'charge.dispute.closed':
+        return await handleDisputeClosed(
+          event.data.object as Stripe.Dispute,
           event.id
         );
 

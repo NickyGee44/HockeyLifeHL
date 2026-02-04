@@ -20,7 +20,10 @@ import {
   Play,
   UserPlus,
   Edit,
+  DollarSign,
 } from 'lucide-react';
+import { SeasonFeeManager } from '@/components/payments/SeasonFeeManager';
+import { getSeasonFees } from '@/lib/payments/fee-actions';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -82,6 +85,12 @@ export default async function SeasonDetailPage({ params }: Props) {
     .from('team_rosters')
     .select('*', { count: 'exact', head: true })
     .eq('season_id', seasonId);
+
+  // Get season fees
+  const feesResult = await getSeasonFees(leagueId, { seasonId });
+  const seasonFees = feesResult.success ? feesResult.data : [];
+  const activeFees = seasonFees.filter((f) => f.is_active);
+  const feeCount = activeFees.length;
 
   const statusColors: Record<string, string> = {
     active: 'bg-green-500/10 text-green-500 border-green-500/30',
@@ -253,6 +262,16 @@ export default async function SeasonDetailPage({ params }: Props) {
             icon={<Settings className="w-6 h-6" />}
             title="League Settings"
             description="Configure league and season settings"
+          />
+        </div>
+
+        {/* Registration Fees Section */}
+        <div className="mb-8">
+          <SeasonFeeManager
+            leagueId={leagueId}
+            seasonId={seasonId}
+            seasonName={season.name}
+            initialFees={seasonFees}
           />
         </div>
 

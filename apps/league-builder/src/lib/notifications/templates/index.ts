@@ -17,6 +17,7 @@ export * from './registration-submitted';
 export * from './registration-approved';
 export * from './registration-rejected';
 export * from './registration-admin-alert';
+export * from './scorekeeper-assignment';
 
 export type EmailTemplateType =
   | 'game_reminder'
@@ -30,4 +31,5 @@ export type EmailTemplateType =
   | 'registration_submitted'
   | 'registration_approved'
   | 'registration_rejected'
-  | 'registration_admin_alert';
+  | 'registration_admin_alert'
+  | 'scorekeeper_assignment';

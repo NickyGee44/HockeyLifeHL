@@ -16,6 +16,7 @@ import {
   Step6Payment,
   Step7Confirmation,
 } from '@/components/player-registration';
+import { StripeProvider } from '@/components/payments/StripeProvider';
 import { Loader2 } from 'lucide-react';
 
 interface RegisterPageProps {
@@ -253,6 +254,9 @@ export default async function RegisterPage({
   // Determine current step from URL
   const currentStep = searchParams.step ? parseInt(searchParams.step, 10) : 1;
 
+  // Get Stripe publishable key
+  const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <Suspense
@@ -262,26 +266,28 @@ export default async function RegisterPage({
           </div>
         }
       >
-        <RegistrationWizardContainer
-          leagueId={league.id}
-          seasonId={activeSeason.id}
-          leagueName={league.name}
-          initialData={initialData}
-          registrationFee={0}
-          teams={teams}
-          waiverContent={waiver.content}
-          waiverVersion={waiver.version}
-          waiverContentHash={waiver.content_hash}
-        >
-          {/* Render appropriate step based on URL */}
-          {currentStep === 1 && <Step1RegistrationType />}
-          {currentStep === 2 && <Step2PersonalInfo />}
-          {currentStep === 3 && <Step3SkillAssessment />}
-          {currentStep === 4 && <Step4PhotoUpload />}
-          {currentStep === 5 && <Step5Waiver />}
-          {currentStep === 6 && <Step6Payment />}
-          {currentStep === 7 && <Step7Confirmation />}
-        </RegistrationWizardContainer>
+        <StripeProvider publishableKey={stripePublishableKey}>
+          <RegistrationWizardContainer
+            leagueId={league.id}
+            seasonId={activeSeason.id}
+            leagueName={league.name}
+            initialData={initialData}
+            registrationFee={0}
+            teams={teams}
+            waiverContent={waiver.content}
+            waiverVersion={waiver.version}
+            waiverContentHash={waiver.content_hash}
+          >
+            {/* Render appropriate step based on URL */}
+            {currentStep === 1 && <Step1RegistrationType />}
+            {currentStep === 2 && <Step2PersonalInfo />}
+            {currentStep === 3 && <Step3SkillAssessment />}
+            {currentStep === 4 && <Step4PhotoUpload />}
+            {currentStep === 5 && <Step5Waiver />}
+            {currentStep === 6 && <Step6Payment />}
+            {currentStep === 7 && <Step7Confirmation />}
+          </RegistrationWizardContainer>
+        </StripeProvider>
       </Suspense>
     </div>
   );

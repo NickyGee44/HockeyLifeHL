@@ -107,12 +107,12 @@
                     - generic [ref=e141]: League Name*
                     - textbox "League Name*" [ref=e143]:
                       - /placeholder: e.g., Winter Warriors Hockey League
-                      - text: E2E Test League
+                      - text: E2E League 1770231738489
                   - generic [ref=e144]:
                     - text: Description
                     - textbox "Description" [ref=e146]:
                       - /placeholder: Describe your league, its mission, and what makes it special...
-                      - text: Test league created by E2E tests
+                      - text: Created by E2E test
                     - paragraph [ref=e147]: Optional. Provide a brief description of your league.
                 - generic [ref=e148]:
                   - heading "Location" [level=3] [ref=e149]
@@ -124,7 +124,7 @@
                         - text: Toronto
                     - generic [ref=e155]:
                       - generic [ref=e156]: State/Province*
-                      - textbox "State/Province*" [active] [ref=e158]:
+                      - textbox "State/Province*" [ref=e158]:
                         - /placeholder: e.g., Colorado
                         - text: Ontario
                   - generic [ref=e159]:
@@ -132,7 +132,7 @@
                       - generic [ref=e161]: Country*
                       - generic [ref=e162]:
                         - combobox [ref=e163]:
-                          - generic: United States
+                          - generic: Canada
                           - img [ref=e164]
                         - combobox [ref=e166]
                     - generic [ref=e167]:
@@ -152,8 +152,8 @@
                     - generic [ref=e182]:
                       - generic [ref=e183]: Primary Color*
                       - generic [ref=e185]:
-                        - textbox "Primary Color*" [ref=e187] [cursor=pointer]: "#1e40af"
-                        - textbox "#000000" [ref=e188]: "#1E40AF"
+                        - textbox "Primary Color*" [ref=e187] [cursor=pointer]: "#d4af37"
+                        - textbox "#000000" [ref=e188]: "#d4af37"
                       - paragraph [ref=e189]: Main brand color
                     - generic [ref=e190]:
                       - generic [ref=e191]: Secondary Color*
@@ -170,8 +170,9 @@
                   - heading "Contact Information (Optional)" [level=3] [ref=e203]
                   - generic [ref=e204]:
                     - text: Contact Email
-                    - textbox "Contact Email" [ref=e206]:
+                    - textbox "Contact Email" [active] [ref=e206]:
                       - /placeholder: league@example.com
+                      - text: e2e@test.com
                   - generic [ref=e207]:
                     - generic [ref=e208]:
                       - text: Contact Phone

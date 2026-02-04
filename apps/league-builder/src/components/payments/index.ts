@@ -10,3 +10,4 @@ export { RefundModal } from './RefundModal';
 export { CheckoutButton } from './CheckoutButton';
 export { PaymentHistoryCard } from './PaymentHistoryCard';
 export { PaymentReportExport } from './PaymentReportExport';
+export { StripeProvider } from './StripeProvider';

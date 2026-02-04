@@ -10,6 +10,7 @@ import { GameFilters } from './game-filters';
 import { BulkActionsBar } from './bulk-actions-bar';
 import { GameEditModal } from './game-edit-modal';
 import { CancelGameModal } from './cancel-game-modal';
+import { AssignScorekeeperModal } from './assign-scorekeeper-modal';
 import { Loader2, RefreshCw, Calendar, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -36,6 +37,7 @@ export function GamesListClient({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editGame, setEditGame] = useState<Game | null>(null);
   const [cancelGame, setCancelGame] = useState<Game | null>(null);
+  const [assignScorekeeperGame, setAssignScorekeeperGame] = useState<Game | null>(null);
 
   // Refresh games from server
   const refreshGames = useCallback(() => {
@@ -101,6 +103,11 @@ export function GamesListClient({
   }, [router]);
 
   const handleBulkSuccess = useCallback(() => {
+    refreshGames();
+  }, [refreshGames]);
+
+  const handleAssignScorekeeperSuccess = useCallback(() => {
+    setAssignScorekeeperGame(null);
     refreshGames();
   }, [refreshGames]);
 
@@ -209,6 +216,7 @@ export function GamesListClient({
                     onSelect={(selected) => handleSelectGame(game.id, selected)}
                     onEdit={() => setEditGame(game)}
                     onCancel={() => setCancelGame(game)}
+                    onAssignScorekeeper={() => setAssignScorekeeperGame(game)}
                     onClick={() => router.push(`/dashboard/leagues/${leagueId}/games/${game.id}`)}
                   />
                 ))}
@@ -243,6 +251,16 @@ export function GamesListClient({
           open={!!cancelGame}
           onOpenChange={(open) => !open && setCancelGame(null)}
           onSuccess={handleCancelSuccess}
+        />
+      )}
+
+      {/* Assign Scorekeeper Modal */}
+      {assignScorekeeperGame && (
+        <AssignScorekeeperModal
+          game={assignScorekeeperGame}
+          open={!!assignScorekeeperGame}
+          onOpenChange={(open) => !open && setAssignScorekeeperGame(null)}
+          onSuccess={handleAssignScorekeeperSuccess}
         />
       )}
     </div>

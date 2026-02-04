@@ -5,12 +5,11 @@ import { useFormContext } from 'react-hook-form';
 import { CreditCard, Shield, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
 import { cn } from '@hockey-life/ui/lib/utils';
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useRegistrationContext } from '../registration-wizard-container';
-import { createRegistrationPaymentIntent } from '@/lib/actions/player-registration';
+import { createRegistrationPaymentIntent, confirmRegistrationPayment } from '@/lib/actions/player-registration';
 import type { RegistrationFormData } from '@/lib/schemas/player-registration';
-
-// Note: In a real implementation, you would integrate Stripe Elements here
-// This is a simplified version showing the structure
+import type { StripeCardElementChangeEvent } from '@stripe/stripe-js';
 
 export function Step6Payment() {
   const { registrationFee, leagueName, leagueId, seasonId } = useRegistrationContext();
@@ -20,9 +19,14 @@ export function Step6Payment() {
     formState: { errors },
   } = useFormContext<RegistrationFormData>();
 
+  const stripe = useStripe();
+  const elements = useElements();
+
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = React.useState(false);
+  const [cardComplete, setCardComplete] = React.useState(false);
+  const [clientSecret, setClientSecret] = React.useState<string | null>(null);
 
   const paymentStatus = watch('payment_status');
 
@@ -32,17 +36,15 @@ export function Step6Payment() {
     currency: 'USD',
   }).format(registrationFee / 100);
 
-  const handlePayment = async () => {
-    setIsProcessing(true);
-    setPaymentError(null);
+  // Create PaymentIntent on component mount
+  React.useEffect(() => {
+    if (!clientSecret && registrationFee > 0) {
+      createPaymentIntent();
+    }
+  }, []);
 
+  const createPaymentIntent = async () => {
     try {
-      // In a real implementation, this would:
-      // 1. Create a PaymentIntent via server action
-      // 2. Use Stripe Elements to collect card details
-      // 3. Confirm the payment with Stripe
-      // 4. Update the form with the payment status
-
       const result = await createRegistrationPaymentIntent(
         leagueId,
         seasonId,
@@ -54,12 +56,69 @@ export function Step6Payment() {
         return;
       }
 
-      // Simulate payment success (in real app, this would be after Stripe confirmation)
-      setValue('payment_intent_id', result.data?.paymentIntentId);
-      setValue('payment_status', 'completed');
-      setValue('amount_cents', registrationFee);
-      setPaymentSuccess(true);
+      setClientSecret(result.data?.clientSecret || null);
     } catch (error) {
+      setPaymentError('Failed to initialize payment. Please refresh the page.');
+    }
+  };
+
+  const handleCardChange = (event: StripeCardElementChangeEvent) => {
+    setCardComplete(event.complete);
+    if (event.error) {
+      setPaymentError(event.error.message);
+    } else {
+      setPaymentError(null);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!stripe || !elements || !clientSecret) {
+      setPaymentError('Payment system not initialized. Please refresh the page.');
+      return;
+    }
+
+    if (!cardComplete) {
+      setPaymentError('Please enter complete card details.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setPaymentError(null);
+
+    try {
+      // Get the CardElement
+      const cardElement = elements.getElement(CardElement);
+
+      if (!cardElement) {
+        setPaymentError('Payment form not found. Please refresh the page.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Confirm the payment with Stripe
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+        },
+      });
+
+      if (error) {
+        setPaymentError(error.message || 'Payment failed. Please try again.');
+        setIsProcessing(false);
+        return;
+      }
+
+      if (paymentIntent?.status === 'succeeded') {
+        // Update form with payment details
+        setValue('payment_intent_id', paymentIntent.id);
+        setValue('payment_status', 'completed');
+        setValue('amount_cents', registrationFee);
+        setPaymentSuccess(true);
+      } else {
+        setPaymentError('Payment was not successful. Please try again.');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
       setPaymentError('Payment processing failed. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -137,22 +196,42 @@ export function Step6Payment() {
         </div>
       </div>
 
-      {/* Payment Form Placeholder */}
+      {/* Payment Form */}
       <div className="p-6 rounded-xl border border-neutral-700 bg-neutral-800/30 space-y-6">
         <div className="flex items-center gap-2 text-white mb-2">
           <CreditCard className="w-5 h-5 text-rink-500" />
           <h3 className="font-semibold">Payment Details</h3>
         </div>
 
-        {/* Stripe Elements would go here */}
-        <div className="p-4 rounded-lg border border-dashed border-neutral-600 bg-neutral-900/50 text-center">
-          <p className="text-neutral-400 text-sm">
-            Stripe Elements card form will be rendered here
-          </p>
-          <p className="text-xs text-neutral-500 mt-1">
-            (Card Number, Expiry, CVC)
-          </p>
-        </div>
+        {/* Stripe Card Element */}
+        {clientSecret ? (
+          <div className="p-4 rounded-lg border border-neutral-600 bg-neutral-900/50">
+            <CardElement
+              options={{
+                style: {
+                  base: {
+                    fontSize: '16px',
+                    color: '#f3f4f6',
+                    '::placeholder': {
+                      color: '#9ca3af',
+                    },
+                  },
+                  invalid: {
+                    color: '#ef4444',
+                    iconColor: '#ef4444',
+                  },
+                },
+                hidePostalCode: false,
+              }}
+              onChange={handleCardChange}
+            />
+          </div>
+        ) : (
+          <div className="p-4 rounded-lg border border-neutral-600 bg-neutral-900/50 text-center">
+            <Loader2 className="w-5 h-5 animate-spin text-rink-500 mx-auto mb-2" />
+            <p className="text-neutral-400 text-sm">Loading payment form...</p>
+          </div>
+        )}
 
         {/* Error Display */}
         {paymentError && (
@@ -169,14 +248,14 @@ export function Step6Payment() {
         <Button
           type="button"
           onClick={handlePayment}
-          disabled={isProcessing}
+          disabled={isProcessing || !stripe || !clientSecret || !cardComplete}
           className="w-full"
           size="lg"
         >
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
+              Processing Payment...
             </>
           ) : (
             <>

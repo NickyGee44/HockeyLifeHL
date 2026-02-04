@@ -4,7 +4,7 @@ import { cn } from '@hockey-life/ui';
 import { format } from 'date-fns';
 import type { Game } from '@/lib/actions/games';
 import { StatusBadge, StatusDot } from './status-badge';
-import { Calendar, MapPin, Trophy, Edit, X } from 'lucide-react';
+import { Calendar, MapPin, Trophy, Edit, X, UserPlus } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
 interface GameCardProps {
@@ -16,6 +16,7 @@ interface GameCardProps {
   // Optional action callbacks
   onEdit?: () => void;
   onCancel?: () => void;
+  onAssignScorekeeper?: () => void;
   onClick?: () => void;
 }
 
@@ -196,6 +197,7 @@ export function GameCardCompact({
   className,
   onEdit,
   onCancel,
+  onAssignScorekeeper,
   onClick,
 }: GameCardProps) {
   const homeTeam = game.home_team;
@@ -256,6 +258,18 @@ export function GameCardCompact({
 
       {/* Action buttons */}
       <div className="flex items-center gap-1">
+        {onAssignScorekeeper && (game.status === 'scheduled' || game.status === 'in_progress') && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAssignScorekeeper();
+            }}
+            className="p-2 rounded-lg text-neutral-400 hover:text-rink-500 hover:bg-rink-500/10 transition-colors"
+            title="Assign scorekeeper"
+          >
+            <UserPlus className="w-4 h-4" />
+          </button>
+        )}
         {onEdit && game.status !== 'cancelled' && (
           <button
             onClick={(e) => {
