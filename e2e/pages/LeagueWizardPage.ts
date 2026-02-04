@@ -67,10 +67,10 @@ export class LeagueWizardPage extends BasePage {
     this.descriptionInput = page.locator('textarea#description');
     this.cityInput = page.locator('input#city');
     this.stateProvinceInput = page.locator('input#state_province');
-    // Country and Timezone are Radix UI Select components with id attributes
-    // FormField passes htmlFor as id to the SelectTrigger button
-    this.countrySelect = page.locator('button#country');
-    this.timezoneSelect = page.locator('button#timezone');
+    // Country and Timezone are Radix UI Select components (role="combobox")
+    // Use label[for] to find the associated trigger via parent traversal
+    this.countrySelect = page.locator('label[for="country"]').locator('..').locator('[role="combobox"]');
+    this.timezoneSelect = page.locator('label[for="timezone"]').locator('..').locator('[role="combobox"]');
     this.primaryColorInput = page.locator('input#primary_color');
     this.secondaryColorInput = page.locator('input#secondary_color');
     this.logoUrlInput = page.locator('input#logo_url');

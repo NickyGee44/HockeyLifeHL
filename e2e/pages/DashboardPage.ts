@@ -192,8 +192,8 @@ export class SettingsPage extends BasePage {
     this.backToDashboard = page.locator('a:has-text("Back to Dashboard")');
     this.navProfile = page.locator('a[href="/dashboard/settings"]:has-text("Profile")');
     this.navMembers = page.locator('a[href="/dashboard/settings/members"]');
-    this.navSubscription = page.locator('a[href="/dashboard/settings/subscription"]');
-    this.navBilling = page.locator('a[href="/dashboard/settings/billing"]');
+    this.navSubscription = page.locator('a[href*="/dashboard/settings/subscription"]');
+    this.navBilling = page.locator('a[href*="/dashboard/settings/billing"]');
     this.navBranding = page.locator('a[href="/dashboard/settings/branding"]');
     this.navPrivacy = page.locator('a[href="/dashboard/settings/privacy"]');
     this.navNotifications = page.locator('a[href="/dashboard/settings/notifications"]');

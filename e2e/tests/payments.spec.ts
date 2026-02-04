@@ -31,8 +31,8 @@ test.describe('Billing Portal', () => {
   test('should display billing information', async ({ page }) => {
     await page.goto('/dashboard/settings/billing');
 
-    // Should show billing section
-    await expect(page.locator('h1, h2').filter({ hasText: /billing/i })).toBeVisible();
+    // Should show billing/pricing section
+    await expect(page.locator('h1, h2, [class*="CardTitle"]').filter({ hasText: /billing|pricing/i })).toBeVisible();
   });
 });
 

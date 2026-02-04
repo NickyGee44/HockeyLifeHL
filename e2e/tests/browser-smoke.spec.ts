@@ -44,7 +44,8 @@ test.describe('Browser Smoke Tests', () => {
   });
 
   test('should handle localStorage', async ({ page, browserName }) => {
-    await page.goto('data:text/html,<html><body><h1>Storage Test</h1></body></html>');
+    // Use the base URL instead of data: URL (localStorage is blocked on data: URLs)
+    await page.goto('/');
 
     // Set localStorage
     await page.evaluate(() => {

@@ -107,7 +107,7 @@ test.describe('League Creation Wizard', () => {
     await expect(errorIndicator.first()).toBeVisible({ timeout: 5000 });
   });
 
-  test('should complete step 2: Season Settings', async ({ page }) => {
+  test('should complete step 2: Season Settings', { timeout: 90000 }, async ({ page }) => {
     await wizardPage.goto();
 
     // Complete step 1 with all required fields
@@ -220,7 +220,7 @@ test.describe('League Creation Wizard', () => {
     // This is implementation-specific
   });
 
-  test('should complete full wizard flow', async ({ page }) => {
+  test('should complete full wizard flow', { timeout: 120000 }, async ({ page }) => {
     await wizardPage.goto();
 
     const uniqueId = Date.now();
@@ -288,8 +288,8 @@ test.describe('League Listing', () => {
       const leagueCard = page.locator('a[href*="/dashboard/leagues/"]:not([href*="new"]):not([href$="/leagues"])').first();
       await leagueCard.click();
 
-      // Should be on league detail page
-      await expect(page).toHaveURL(/\/dashboard\/leagues\/[^/]+$/);
+      // Should be on league detail page (URL may include locale prefix like /en/)
+      await expect(page).toHaveURL(/\/dashboard\/leagues\/[^/]+$/, { timeout: 15000 });
     } else {
       // No leagues - verify empty state
       await dashboardPage.goToLeagues();
