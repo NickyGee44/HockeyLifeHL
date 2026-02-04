@@ -46,7 +46,7 @@ export function ChatSidebar({
       {/* Header */}
       <div className="border-b p-4">
         <div className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5 text-gold-500" />
+          <MessageCircle className="h-5 w-5 text-rink-500" />
           <h2 className="text-lg font-semibold">Captain Chat</h2>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -113,7 +113,7 @@ export function ChatSidebar({
                   className={cn(
                     'max-w-[85%] rounded-2xl px-4 py-2 text-sm',
                     isOwnMessage
-                      ? 'bg-gold-500 text-black rounded-br-sm'
+                      ? 'bg-rink-500 text-black rounded-br-sm'
                       : 'bg-muted rounded-bl-sm'
                   )}
                 >
@@ -138,7 +138,7 @@ export function ChatSidebar({
             maxLength={500}
             className={cn(
               'flex-1 rounded-lg border bg-background px-3 py-2 text-sm',
-              'focus:outline-none focus:ring-2 focus:ring-gold-500',
+              'focus:outline-none focus:ring-2 focus:ring-rink-500',
               !canSend && 'cursor-not-allowed opacity-50'
             )}
           />
@@ -146,8 +146,8 @@ export function ChatSidebar({
             type="submit"
             disabled={!canSend || !input.trim()}
             className={cn(
-              'rounded-lg bg-gold-500 p-2 text-black transition-colors',
-              'hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-50'
+              'rounded-lg bg-rink-500 p-2 text-black transition-colors',
+              'hover:bg-rink-600 disabled:cursor-not-allowed disabled:opacity-50'
             )}
           >
             <Send className="h-5 w-5" />

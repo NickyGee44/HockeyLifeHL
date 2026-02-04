@@ -50,7 +50,7 @@ export default async function UnsubscribePage({ searchParams }: UnsubscribePageP
               </p>
               <div className="bg-[rgba(212,175,55,0.1)] border border-[rgba(212,175,55,0.2)] rounded-lg p-4 mb-6">
                 <p className="text-sm text-[#a3a3a3]">
-                  <strong className="text-[#D4AF37]">Changed your mind?</strong>
+                  <strong className="text-[#22D3EE]">Changed your mind?</strong>
                   <br />
                   You can re-enable notifications anytime from your account settings.
                 </p>
@@ -75,7 +75,7 @@ export default async function UnsubscribePage({ searchParams }: UnsubscribePageP
           ) : (
             <>
               <div className="w-16 h-16 mx-auto mb-6 bg-[rgba(212,175,55,0.1)] rounded-full flex items-center justify-center">
-                <Mail className="h-8 w-8 text-[#D4AF37]" />
+                <Mail className="h-8 w-8 text-[#22D3EE]" />
               </div>
               <h1 className="text-2xl font-bold text-white mb-2">
                 Email Preferences
@@ -89,13 +89,13 @@ export default async function UnsubscribePage({ searchParams }: UnsubscribePageP
           <div className="space-y-3">
             <Link
               href="/dashboard/settings/notifications"
-              className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-gradient-to-r from-[#D4AF37] to-[#9A7B00] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all"
+              className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-gradient-to-r from-[#22D3EE] to-[#0891b2] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all"
             >
               Manage Preferences
             </Link>
             <Link
               href="/dashboard"
-              className="flex items-center justify-center gap-2 w-full px-6 py-3 border border-[rgba(212,175,55,0.3)] text-[#D4AF37] font-medium rounded-lg hover:bg-[rgba(212,175,55,0.1)] transition-all"
+              className="flex items-center justify-center gap-2 w-full px-6 py-3 border border-[rgba(212,175,55,0.3)] text-[#22D3EE] font-medium rounded-lg hover:bg-[rgba(212,175,55,0.1)] transition-all"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
@@ -104,7 +104,7 @@ export default async function UnsubscribePage({ searchParams }: UnsubscribePageP
         </div>
 
         <p className="text-center text-xs text-[#525252] mt-4">
-          HockeyLifeHL - Hockey League Management
+          Beer League Hockey - Hockey League Management
         </p>
       </div>
     </div>

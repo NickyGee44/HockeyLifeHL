@@ -63,7 +63,7 @@ export function getRegistrationRejectedEmail(props: RegistrationRejectedEmailPro
     : `
       <p style="color: #a3a3a3;">
         Unfortunately, this registration cannot be reconsidered at this time.
-        ${contactEmail ? `If you believe this was an error, please contact us at <a href="mailto:${contactEmail}" style="color: #D4AF37;">${contactEmail}</a>.` : ''}
+        ${contactEmail ? `If you believe this was an error, please contact us at <a href="mailto:${contactEmail}" style="color: #22D3EE;">${contactEmail}</a>.` : ''}
       </p>
     `;
 

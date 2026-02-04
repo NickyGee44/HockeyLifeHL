@@ -215,12 +215,12 @@ export function FeeConfigurationForm({
   const installmentFee = dollarsToCents(formData.installmentFeeDollars);
 
   return (
-    <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl">
+    <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl">
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-neutral-700">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gold-500/10 rounded-full flex items-center justify-center">
-            <DollarSign className="h-5 w-5 text-gold-500" />
+          <div className="w-10 h-10 bg-rink-500/10 rounded-full flex items-center justify-center">
+            <DollarSign className="h-5 w-5 text-rink-500" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-neutral-100">
@@ -262,7 +262,7 @@ export function FeeConfigurationForm({
               onChange={handleChange}
               required
               placeholder="e.g., Registration Fee, Tournament Fee"
-              className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
             />
           </div>
 
@@ -277,7 +277,7 @@ export function FeeConfigurationForm({
               onChange={handleChange}
               rows={2}
               placeholder="Optional description of what this fee covers..."
-              className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all resize-none"
+              className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all resize-none"
             />
           </div>
 
@@ -297,7 +297,7 @@ export function FeeConfigurationForm({
                 min="0.01"
                 step="0.01"
                 placeholder="0.00"
-                className="w-full pl-8 pr-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+                className="w-full pl-8 pr-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -316,15 +316,15 @@ export function FeeConfigurationForm({
               onClick={() => handleCheckboxChange('allowFullPayment')}
               className={`p-4 rounded-xl border text-left transition-all ${
                 formData.allowFullPayment
-                  ? 'bg-gold-500/10 border-gold-500/50'
-                  : 'bg-neutral-900/50 border-neutral-700 hover:border-gold-500/30'
+                  ? 'bg-rink-500/10 border-rink-500/50'
+                  : 'bg-neutral-900/50 border-neutral-700 hover:border-rink-500/30'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                     formData.allowFullPayment
-                      ? 'bg-gold-500 border-gold-500'
+                      ? 'bg-rink-500 border-rink-500'
                       : 'border-neutral-500'
                   }`}
                 >
@@ -335,7 +335,7 @@ export function FeeConfigurationForm({
                   )}
                 </div>
                 <div>
-                  <p className={`font-medium ${formData.allowFullPayment ? 'text-gold-500' : 'text-neutral-300'}`}>
+                  <p className={`font-medium ${formData.allowFullPayment ? 'text-rink-500' : 'text-neutral-300'}`}>
                     Full Payment
                   </p>
                   <p className="text-xs text-neutral-500">Pay in one installment</p>
@@ -348,15 +348,15 @@ export function FeeConfigurationForm({
               onClick={() => handleCheckboxChange('allowTwoPay')}
               className={`p-4 rounded-xl border text-left transition-all ${
                 formData.allowTwoPay
-                  ? 'bg-gold-500/10 border-gold-500/50'
-                  : 'bg-neutral-900/50 border-neutral-700 hover:border-gold-500/30'
+                  ? 'bg-rink-500/10 border-rink-500/50'
+                  : 'bg-neutral-900/50 border-neutral-700 hover:border-rink-500/30'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                     formData.allowTwoPay
-                      ? 'bg-gold-500 border-gold-500'
+                      ? 'bg-rink-500 border-rink-500'
                       : 'border-neutral-500'
                   }`}
                 >
@@ -367,7 +367,7 @@ export function FeeConfigurationForm({
                   )}
                 </div>
                 <div>
-                  <p className={`font-medium ${formData.allowTwoPay ? 'text-gold-500' : 'text-neutral-300'}`}>
+                  <p className={`font-medium ${formData.allowTwoPay ? 'text-rink-500' : 'text-neutral-300'}`}>
                     2-Pay Plan
                   </p>
                   <p className="text-xs text-neutral-500">Split into 2 payments</p>
@@ -380,15 +380,15 @@ export function FeeConfigurationForm({
               onClick={() => handleCheckboxChange('allowThreePay')}
               className={`p-4 rounded-xl border text-left transition-all ${
                 formData.allowThreePay
-                  ? 'bg-gold-500/10 border-gold-500/50'
-                  : 'bg-neutral-900/50 border-neutral-700 hover:border-gold-500/30'
+                  ? 'bg-rink-500/10 border-rink-500/50'
+                  : 'bg-neutral-900/50 border-neutral-700 hover:border-rink-500/30'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                     formData.allowThreePay
-                      ? 'bg-gold-500 border-gold-500'
+                      ? 'bg-rink-500 border-rink-500'
                       : 'border-neutral-500'
                   }`}
                 >
@@ -399,7 +399,7 @@ export function FeeConfigurationForm({
                   )}
                 </div>
                 <div>
-                  <p className={`font-medium ${formData.allowThreePay ? 'text-gold-500' : 'text-neutral-300'}`}>
+                  <p className={`font-medium ${formData.allowThreePay ? 'text-rink-500' : 'text-neutral-300'}`}>
                     3-Pay Plan
                   </p>
                   <p className="text-xs text-neutral-500">Split into 3 payments</p>
@@ -424,7 +424,7 @@ export function FeeConfigurationForm({
                   min="0"
                   step="0.01"
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+                  className="w-full pl-8 pr-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
                 />
               </div>
               <p className="mt-1 text-xs text-neutral-500">
@@ -452,7 +452,7 @@ export function FeeConfigurationForm({
                 name="paymentDeadline"
                 value={formData.paymentDeadline}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
               />
               <p className="mt-1 text-xs text-neutral-500">
                 After this date, late fees apply
@@ -474,7 +474,7 @@ export function FeeConfigurationForm({
                   min="0"
                   step="0.01"
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+                  className="w-full pl-8 pr-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -499,7 +499,7 @@ export function FeeConfigurationForm({
                 name="earlyBirdDeadline"
                 value={formData.earlyBirdDeadline}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
               />
               <p className="mt-1 text-xs text-neutral-500">
                 Pay before this date for discount
@@ -521,7 +521,7 @@ export function FeeConfigurationForm({
                   min="0"
                   step="0.01"
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+                  className="w-full pl-8 pr-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -561,7 +561,7 @@ export function FeeConfigurationForm({
               <div className="border-t border-neutral-700 pt-2 mt-2">
                 <div className="flex justify-between font-semibold">
                   <span className="text-neutral-300">Standard Total</span>
-                  <span className="text-gold-500">${(baseAmount / 100).toFixed(2)}</span>
+                  <span className="text-rink-500">${(baseAmount / 100).toFixed(2)}</span>
                 </div>
                 {earlyBirdDiscount > 0 && (
                   <div className="flex justify-between text-xs">
@@ -598,7 +598,7 @@ export function FeeConfigurationForm({
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 py-3 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+            className="flex-1 py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

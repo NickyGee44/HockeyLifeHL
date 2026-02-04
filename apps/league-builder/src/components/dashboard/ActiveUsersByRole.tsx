@@ -53,7 +53,7 @@ export function ActiveUsersByRole({
   const roles = data
     ? [
         { label: 'Players', value: data.active_players, color: 'bg-blue-500', icon: PlayerIcon },
-        { label: 'Captains', value: data.captains, color: 'bg-gold-500', icon: CaptainIcon },
+        { label: 'Captains', value: data.captains, color: 'bg-rink-500', icon: CaptainIcon },
         { label: 'Scorekeepers', value: data.scorekeepers, color: 'bg-emerald-500', icon: ScorekeeperIcon },
         { label: 'Staff', value: data.staff_members, color: 'bg-purple-500', icon: StaffIcon },
         { label: 'Admins', value: data.admins, color: 'bg-red-500', icon: AdminIcon },
@@ -95,8 +95,8 @@ export function ActiveUsersByRole({
           <div className="pt-4 border-t border-neutral-800">
             <div className="bg-neutral-950/50 rounded-xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gold-500/20 rounded-lg">
-                  <UsersIcon className="w-5 h-5 text-gold-500" />
+                <div className="p-2 bg-rink-500/20 rounded-lg">
+                  <UsersIcon className="w-5 h-5 text-rink-500" />
                 </div>
                 <span className="text-sm font-medium text-neutral-400">Total Active Users</span>
               </div>

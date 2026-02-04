@@ -24,7 +24,7 @@ export default async function NotificationSettingsPage() {
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Notification Preferences</h2>
         <p className="text-[#a3a3a3]">
-          Control how and when you receive notifications from HockeyLifeHL
+          Control how and when you receive notifications from Beer League Hockey
         </p>
       </div>
 

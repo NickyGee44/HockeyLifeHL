@@ -130,7 +130,7 @@ export function EventTimeline({
 
   return (
     <div
-      className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden"
+      className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden"
       style={{ maxHeight }}
     >
       <div className="overflow-y-auto" style={{ maxHeight }}>
@@ -140,7 +140,7 @@ export function EventTimeline({
             <div key={periodNum}>
               {/* Period Header */}
               <div className="sticky top-0 z-10 px-4 py-2 bg-neutral-950 border-b border-neutral-800">
-                <span className="text-xs font-semibold text-gold-500 uppercase tracking-wider">
+                <span className="text-xs font-semibold text-rink-500 uppercase tracking-wider">
                   Period {periodNum}
                 </span>
               </div>
@@ -200,7 +200,7 @@ function EventItem({
   isUndoing,
 }: EventItemProps) {
   const [showUndo, setShowUndo] = useState(false);
-  const teamColor = team?.primary_color || '#D4AF37';
+  const teamColor = team?.primary_color || '#22D3EE';
 
   const eventConfig = getEventConfig(event.event_type);
 
@@ -241,7 +241,7 @@ function EventItem({
               className={cn(
                 'text-xs px-1.5 py-0.5 rounded',
                 event.sync_status === 'pending' && 'bg-amber-500/20 text-amber-400',
-                event.sync_status === 'syncing' && 'bg-gold-500/20 text-gold-400',
+                event.sync_status === 'syncing' && 'bg-rink-500/20 text-rink-400',
                 event.sync_status === 'error' && 'bg-red-500/20 text-red-400'
               )}
             >
@@ -353,9 +353,9 @@ function getEventConfig(type: EventType) {
       return {
         label: 'PERIOD START',
         icon: ClockIcon,
-        bgClass: 'bg-gold-500/20',
-        iconClass: 'text-gold-400',
-        textClass: 'text-gold-400',
+        bgClass: 'bg-rink-500/20',
+        iconClass: 'text-rink-400',
+        textClass: 'text-rink-400',
       };
     case 'period_end':
       return {

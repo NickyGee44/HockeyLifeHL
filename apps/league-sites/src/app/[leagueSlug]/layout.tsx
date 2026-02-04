@@ -33,10 +33,10 @@ export async function generateMetadata({
       default: league.name,
       template: `%s | ${league.name}`,
     },
-    description: league.description || `${league.name} - Powered by HockeyLifeHL`,
+    description: league.description || `${league.name} - Powered by Beer League Hockey`,
     openGraph: {
       title: league.name,
-      description: league.description || `${league.name} - Powered by HockeyLifeHL`,
+      description: league.description || `${league.name} - Powered by Beer League Hockey`,
       images: league.banner_url ? [{ url: league.banner_url }] : [],
     },
   };
@@ -70,8 +70,8 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
   return (
     <LeagueThemeProvider theme={theme}>
       <div className="min-h-screen flex flex-col">
-        <LeagueHeader league={league} leagueSlug={leagueSlug} />
         <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+        <LeagueHeader league={league} leagueSlug={leagueSlug} />
         <main className="flex-1">{children}</main>
         <LeagueFooter league={league} leagueSlug={leagueSlug} />
       </div>

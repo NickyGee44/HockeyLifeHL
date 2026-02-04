@@ -85,7 +85,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
   // Token error state
   if (initialError === 'Invalid or expired link') {
     return (
-      <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
+      <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-6 bg-red-500/10 rounded-full flex items-center justify-center">
           <AlertCircle className="h-8 w-8 text-red-500" />
         </div>
@@ -95,7 +95,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
         </p>
         <Link
           href="/forgot-password"
-          className="inline-block w-full py-3 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
+          className="inline-block w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
         >
           Request New Link
         </Link>
@@ -106,7 +106,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
   // Success state
   if (success) {
     return (
-      <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
+      <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-6 bg-green-500/10 rounded-full flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
@@ -116,13 +116,13 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
           shortly.
         </p>
         <div className="animate-pulse flex justify-center">
-          <div className="h-1 w-24 bg-gold-500/30 rounded-full overflow-hidden">
-            <div className="h-full bg-gold-500 animate-[loading_3s_ease-in-out]" />
+          <div className="h-1 w-24 bg-rink-500/30 rounded-full overflow-hidden">
+            <div className="h-full bg-rink-500 animate-[loading_3s_ease-in-out]" />
           </div>
         </div>
         <Link
           href="/login"
-          className="inline-block mt-6 text-gold-500 hover:text-gold-400 text-sm transition-colors"
+          className="inline-block mt-6 text-rink-500 hover:text-rink-400 text-sm transition-colors"
         >
           Go to Login Now
         </Link>
@@ -131,10 +131,10 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
   }
 
   return (
-    <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8">
+    <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8">
       <div className="text-center mb-6">
-        <div className="w-12 h-12 mx-auto mb-4 bg-gold-500/10 rounded-full flex items-center justify-center">
-          <Lock className="h-6 w-6 text-gold-500" />
+        <div className="w-12 h-12 mx-auto mb-4 bg-rink-500/10 rounded-full flex items-center justify-center">
+          <Lock className="h-6 w-6 text-rink-500" />
         </div>
         <h2 className="text-2xl font-bold text-neutral-100 mb-2">Create New Password</h2>
         <p className="text-neutral-400 text-sm">
@@ -160,7 +160,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
               required
               autoComplete="new-password"
               autoFocus
-              className="w-full px-4 py-3 pr-12 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 pr-12 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
               placeholder="Enter new password"
             />
             <button
@@ -199,7 +199,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
               className={`w-full px-4 py-3 pr-12 bg-black/50 border rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
                 confirmPassword.length > 0 && password !== confirmPassword
                   ? 'border-red-500/50 focus:ring-red-500/50'
-                  : 'border-gold-500/30 focus:ring-gold-500/50'
+                  : 'border-rink-500/30 focus:ring-rink-500/50'
               }`}
               placeholder="Confirm new password"
             />
@@ -237,7 +237,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
             password !== confirmPassword ||
             (validation !== null && !validation.valid)
           }
-          className="w-full py-3 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+          className="w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -253,7 +253,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
       <div className="mt-6 pt-6 border-t border-neutral-700">
         <p className="text-xs text-neutral-500 text-center">
           Remember your password?{' '}
-          <Link href="/login" className="text-gold-500 hover:underline">
+          <Link href="/login" className="text-rink-500 hover:underline">
             Back to Login
           </Link>
         </p>

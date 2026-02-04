@@ -1,8 +1,8 @@
 import { SupportTicketForm } from '@/components/auth';
 
 export const metadata = {
-  title: 'Account Recovery | HockeyLifeHL',
-  description: 'Get help recovering your HockeyLifeHL account',
+  title: 'Account Recovery | Beer League Hockey',
+  description: 'Get help recovering your Beer League Hockey account',
 };
 
 interface AccountRecoveryPageProps {

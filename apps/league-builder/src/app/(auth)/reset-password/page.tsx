@@ -43,8 +43,8 @@ function ResetPasswordContent() {
 
   if (loading) {
     return (
-      <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gold-500 mx-auto mb-4" />
+      <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-rink-500 mx-auto mb-4" />
         <p className="text-neutral-400">Verifying your reset link...</p>
       </div>
     );
@@ -55,8 +55,8 @@ function ResetPasswordContent() {
 
 function LoadingFallback() {
   return (
-    <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
-      <Loader2 className="h-8 w-8 animate-spin text-gold-500 mx-auto mb-4" />
+    <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 text-center">
+      <Loader2 className="h-8 w-8 animate-spin text-rink-500 mx-auto mb-4" />
       <p className="text-neutral-400">Loading...</p>
     </div>
   );

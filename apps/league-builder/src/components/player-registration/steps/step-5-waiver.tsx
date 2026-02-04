@@ -54,7 +54,7 @@ export function Step5Waiver() {
       {/* Waiver Section */}
       <div className="p-6 rounded-xl border border-neutral-700 bg-neutral-800/30">
         <div className="flex items-center gap-2 text-white mb-4">
-          <FileText className="w-5 h-5 text-gold-500" />
+          <FileText className="w-5 h-5 text-rink-500" />
           <h3 className="font-semibold">Liability Waiver</h3>
           <span className="text-xs text-neutral-500 ml-2">v{waiverVersion}</span>
         </div>
@@ -99,7 +99,7 @@ export function Step5Waiver() {
             href="/terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gold-500 hover:text-gold-400 inline-flex items-center gap-1"
+            className="text-rink-500 hover:text-rink-400 inline-flex items-center gap-1"
           >
             Terms of Service
             <ExternalLink className="w-3 h-3" />
@@ -121,7 +121,7 @@ export function Step5Waiver() {
             href="/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gold-500 hover:text-gold-400 inline-flex items-center gap-1"
+            className="text-rink-500 hover:text-rink-400 inline-flex items-center gap-1"
           >
             Privacy Policy
             <ExternalLink className="w-3 h-3" />
@@ -193,7 +193,7 @@ function ConsentCheckbox({
         className={cn(
           'flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors',
           checked
-            ? 'border-gold-500/50 bg-gold-500/5'
+            ? 'border-rink-500/50 bg-rink-500/5'
             : 'border-transparent hover:bg-neutral-800/50',
           error && 'border-red-500/50'
         )}
@@ -210,7 +210,7 @@ function ConsentCheckbox({
             className={cn(
               'w-5 h-5 rounded border-2 flex items-center justify-center transition-colors',
               checked
-                ? 'bg-gold-500 border-gold-500'
+                ? 'bg-rink-500 border-rink-500'
                 : 'border-neutral-600 bg-neutral-800'
             )}
           >

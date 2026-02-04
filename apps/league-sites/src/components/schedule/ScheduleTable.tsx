@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Eye, MapPin, Clock } from 'lucide-react';
+import { Eye, Clock } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { Game, ScheduleGame } from '@/lib/types';
 
@@ -16,8 +16,11 @@ interface ScheduleTableProps {
 /**
  * ScheduleTable - BMHL-style game schedule table
  *
- * Desktop: Full table layout with columns for matchup, time, venue, division, and actions
+ * Desktop: Full table layout with columns for matchup, time/score, venue, division, and details
  * Mobile: Card layout with stacked information
+ *
+ * Column layout:
+ * | Match Up (flex-1) | Time (100px) | Rink (120px) | Division (80px) | Details (60px) |
  *
  * This is a server component for optimal performance.
  */
@@ -44,22 +47,22 @@ export function ScheduleTable({
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-[var(--color-border)]">
-              <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+            <tr className="bg-[var(--league-primary)]">
+              <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent-text)]">
                 Match Up
               </th>
-              <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+              <th className="text-center py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent-text)] w-[100px]">
                 Time
               </th>
-              <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+              <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent-text)] w-[120px]">
                 Rink
               </th>
               {showDivision && (
-                <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+                <th className="text-center py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent-text)] w-[80px]">
                   Division
                 </th>
               )}
-              <th className="text-center py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+              <th className="text-center py-3 px-4 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent-text)] w-[60px]">
                 Details
               </th>
             </tr>
@@ -78,7 +81,7 @@ export function ScheduleTable({
       </div>
 
       {/* Mobile Card View */}
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-3">
         {games.map((game) => (
           <ScheduleCard
             key={game.id}
@@ -90,6 +93,28 @@ export function ScheduleTable({
       </div>
     </>
   );
+}
+
+// Helper to determine the winning team
+function getWinner(game: ScheduleGameData): 'home' | 'away' | 'tie' | null {
+  if (game.status !== 'final') return null;
+  const homeScore = game.home_score ?? 0;
+  const awayScore = game.away_score ?? 0;
+  if (homeScore > awayScore) return 'home';
+  if (awayScore > homeScore) return 'away';
+  return 'tie';
+}
+
+// Get division short code from division name (e.g., "C Division" -> "C", "Division 1" -> "D1")
+function getDivisionCode(divisionName: string | null | undefined): string {
+  if (!divisionName) return '-';
+  // If already short (3 chars or less), return as-is
+  if (divisionName.length <= 3) return divisionName;
+  // Try to extract a short code
+  const match = divisionName.match(/^([A-Z]\d?)[\s-]/i) || divisionName.match(/[\s-]([A-Z]\d?)$/i);
+  if (match) return match[1].toUpperCase();
+  // Fallback: first 2 chars uppercase
+  return divisionName.substring(0, 2).toUpperCase();
 }
 
 // Desktop table row
@@ -105,6 +130,7 @@ function ScheduleTableRow({
   const gameDate = new Date(game.scheduled_at);
   const isCompleted = game.status === 'final';
   const isLive = game.status === 'in_progress';
+  const winner = getWinner(game);
 
   // Get division name - try game.division first (ScheduleGame), then home_team.division (Game)
   const divisionName =
@@ -112,100 +138,105 @@ function ScheduleTableRow({
     ('home_team' in game && game.home_team && 'division' in game.home_team && game.home_team.division?.name) ||
     null;
 
+  // Team name styles based on winner
+  const awayNameClass = isCompleted && winner === 'away'
+    ? 'font-bold text-[var(--league-primary)]'
+    : 'font-medium';
+
+  const homeNameClass = isCompleted && winner === 'home'
+    ? 'font-bold text-[var(--league-primary)]'
+    : 'font-medium';
+
   return (
     <tr className="border-b border-[var(--color-border-muted)] hover:bg-[var(--color-surface-hover)] transition-colors">
-      {/* Match Up Column */}
-      <td className="py-4 px-4">
-        <div className="flex items-center gap-4">
+      {/* Match Up Column - flex-1 (largest) */}
+      <td className="py-3 px-4">
+        <div className="flex items-center gap-2">
           {/* Away Team */}
-          <div className="flex items-center gap-2 min-w-[140px]">
-            <TeamLogo
-              logoUrl={game.away_team?.logo || null}
-              teamName={game.away_team?.name || 'TBD'}
-              teamColor={game.away_team?.colors}
-              size="sm"
-            />
-            <div className="flex flex-col">
-              <Link
-                href={`/${leagueSlug}/teams/${game.away_team?.slug}`}
-                className="font-medium hover:text-[var(--league-primary)] transition-colors text-sm"
-              >
-                {game.away_team?.name || 'TBD'}
-              </Link>
-              {isCompleted && (
-                <span
-                  className={`text-lg font-bold ${
-                    (game.away_score || 0) > (game.home_score || 0)
-                      ? 'text-[var(--league-primary)]'
-                      : 'text-[var(--color-text-secondary)]'
-                  }`}
-                >
-                  {game.away_score}
-                </span>
-              )}
-            </div>
-          </div>
+          <TeamLogo
+            logoUrl={game.away_team?.logo || null}
+            teamName={game.away_team?.name || 'TBD'}
+            teamColor={game.away_team?.colors}
+            size="sm"
+          />
+          <Link
+            href={`/${leagueSlug}/teams/${game.away_team?.slug}`}
+            className={`${awayNameClass} hover:text-[var(--league-primary)] transition-colors text-sm whitespace-nowrap`}
+          >
+            {game.away_team?.name || 'TBD'}
+          </Link>
 
-          {/* VS / @ / Score indicator */}
-          <span className="text-xs text-[var(--color-text-muted)] font-medium">
-            {isLive ? (
-              <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-medium">
-                LIVE
-              </span>
-            ) : isCompleted ? (
-              'Final'
-            ) : (
-              '@'
-            )}
-          </span>
+          {isCompleted && (
+            <span className={`text-sm font-bold ${winner === 'away' ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+              ({game.away_score})
+            </span>
+          )}
+          {isLive && (
+            <span className="text-sm font-bold text-red-400">
+              ({game.away_score ?? 0})
+            </span>
+          )}
+
+          {/* @ separator */}
+          <span className="text-xs text-[var(--color-text-muted)] font-medium mx-1">@</span>
 
           {/* Home Team */}
-          <div className="flex items-center gap-2 min-w-[140px]">
-            <TeamLogo
-              logoUrl={game.home_team?.logo || null}
-              teamName={game.home_team?.name || 'TBD'}
-              teamColor={game.home_team?.colors}
-              size="sm"
-            />
-            <div className="flex flex-col">
-              <Link
-                href={`/${leagueSlug}/teams/${game.home_team?.slug}`}
-                className="font-medium hover:text-[var(--league-primary)] transition-colors text-sm"
-              >
-                {game.home_team?.name || 'TBD'}
-              </Link>
-              {isCompleted && (
-                <span
-                  className={`text-lg font-bold ${
-                    (game.home_score || 0) > (game.away_score || 0)
-                      ? 'text-[var(--league-primary)]'
-                      : 'text-[var(--color-text-secondary)]'
-                  }`}
-                >
-                  {game.home_score}
-                </span>
-              )}
-            </div>
-          </div>
+          <Link
+            href={`/${leagueSlug}/teams/${game.home_team?.slug}`}
+            className={`${homeNameClass} hover:text-[var(--league-primary)] transition-colors text-sm whitespace-nowrap`}
+          >
+            {game.home_team?.name || 'TBD'}
+          </Link>
+          {isCompleted && (
+            <span className={`text-sm font-bold ${winner === 'home' ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+              ({game.home_score})
+            </span>
+          )}
+          {isLive && (
+            <span className="text-sm font-bold text-red-400">
+              ({game.home_score ?? 0})
+            </span>
+          )}
+          <TeamLogo
+            logoUrl={game.home_team?.logo || null}
+            teamName={game.home_team?.name || 'TBD'}
+            teamColor={game.home_team?.colors}
+            size="sm"
+          />
         </div>
       </td>
 
-      {/* Time Column */}
-      <td className="py-4 px-4">
-        <div className="flex flex-col">
+      {/* Time / Score Column - 100px */}
+      <td className="py-3 px-4 text-center w-[100px]">
+        {isLive ? (
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-sm font-bold text-red-400">
+              {game.away_score ?? 0} - {game.home_score ?? 0}
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-[10px] font-semibold uppercase animate-pulse">
+              LIVE
+            </span>
+          </div>
+        ) : isCompleted ? (
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-sm font-bold text-[var(--color-text-primary)]">
+              {game.away_score} - {game.home_score}
+            </span>
+            <span className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase">
+              Final
+            </span>
+          </div>
+        ) : (
           <span className="text-sm font-medium text-[var(--color-text-primary)]">
             {format(gameDate, 'h:mm a')}
           </span>
-          <span className="text-xs text-[var(--color-text-muted)]">
-            {format(gameDate, 'EEE, MMM d')}
-          </span>
-        </div>
+        )}
       </td>
 
-      {/* Rink/Venue Column */}
-      <td className="py-4 px-4">
+      {/* Rink/Venue Column - 120px */}
+      <td className="py-3 px-4 w-[120px]">
         {game.venue ? (
-          <span className="text-sm text-[var(--color-text-secondary)]">
+          <span className="text-sm text-[var(--color-text-secondary)] truncate block max-w-[120px]">
             {game.venue}
           </span>
         ) : (
@@ -213,25 +244,21 @@ function ScheduleTableRow({
         )}
       </td>
 
-      {/* Division Column */}
+      {/* Division Column - 80px */}
       {showDivision && (
-        <td className="py-4 px-4">
-          {divisionName ? (
-            <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-[var(--color-surface-active)] text-[var(--color-text-secondary)]">
-              {divisionName}
-            </span>
-          ) : (
-            <span className="text-sm text-[var(--color-text-muted)]">-</span>
-          )}
+        <td className="py-3 px-4 text-center w-[80px]">
+          <span className="text-xs font-medium text-[var(--color-text-secondary)]">
+            {getDivisionCode(divisionName)}
+          </span>
         </td>
       )}
 
-      {/* Details/Actions Column */}
-      <td className="py-4 px-4 text-center">
+      {/* Details Column - 60px */}
+      <td className="py-3 px-4 text-center w-[60px]">
         <Link
           href={`/${leagueSlug}/games/${game.id}`}
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-[var(--color-surface-active)] transition-colors text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]"
-          aria-label={`View game details: ${game.away_team?.name} vs ${game.home_team?.name}`}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--color-surface)] border border-transparent hover:border-[var(--league-primary)] transition-all text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]"
+          aria-label={`View game details: ${game.away_team?.name} @ ${game.home_team?.name}`}
         >
           <Eye className="w-4 h-4" />
         </Link>
@@ -253,118 +280,106 @@ function ScheduleCard({
   const gameDate = new Date(game.scheduled_at);
   const isCompleted = game.status === 'final';
   const isLive = game.status === 'in_progress';
+  const winner = getWinner(game);
 
-  // Get division name - try game.division first (ScheduleGame), then home_team.division (Game)
+  // Get division name
   const divisionName =
     ('division' in game && game.division?.name) ||
     ('home_team' in game && game.home_team && 'division' in game.home_team && game.home_team.division?.name) ||
     null;
 
+  const awayNameClass = isCompleted && winner === 'away'
+    ? 'font-bold text-[var(--league-primary)]'
+    : 'font-medium';
+
+  const homeNameClass = isCompleted && winner === 'home'
+    ? 'font-bold text-[var(--league-primary)]'
+    : 'font-medium';
+
   return (
-    <div className="card p-4">
-      {/* Header: Date/Time + Status */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="card p-4 border-b border-[var(--color-border-muted)]">
+      {/* Header: Status + Time */}
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-sm">
-          <span className="font-medium text-[var(--color-text-primary)]">
+          {isLive ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-semibold animate-pulse">
+              LIVE
+            </span>
+          ) : isCompleted ? (
+            <span className="text-xs text-[var(--color-text-muted)] font-medium uppercase">
+              Final
+            </span>
+          ) : (
+            <span className="font-medium text-[var(--league-primary)]">
+              {format(gameDate, 'h:mm a')}
+            </span>
+          )}
+          <span className="text-[var(--color-text-muted)]">
             {format(gameDate, 'EEE, MMM d')}
           </span>
-          <span className="text-[var(--league-primary)] font-semibold">
-            {format(gameDate, 'h:mm a')}
-          </span>
         </div>
-        {isLive ? (
-          <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-medium">
-            LIVE
+        {showDivision && divisionName && (
+          <span className="text-xs font-medium text-[var(--color-text-secondary)] px-2 py-0.5 rounded-full bg-[var(--color-surface-active)]">
+            {getDivisionCode(divisionName)}
           </span>
-        ) : isCompleted ? (
-          <span className="text-xs text-[var(--color-text-muted)] font-medium">
-            Final
-          </span>
-        ) : null}
+        )}
       </div>
 
-      {/* Teams */}
-      <div className="space-y-3 mb-4">
-        {/* Away Team */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <TeamLogo
-              logoUrl={game.away_team?.logo || null}
-              teamName={game.away_team?.name || 'TBD'}
-              teamColor={game.away_team?.colors}
-              size="md"
-            />
-            <Link
-              href={`/${leagueSlug}/teams/${game.away_team?.slug}`}
-              className="font-medium hover:text-[var(--league-primary)] transition-colors"
-            >
-              {game.away_team?.name || 'TBD'}
-            </Link>
-          </div>
-          {isCompleted && (
-            <span
-              className={`text-2xl font-bold ${
-                (game.away_score || 0) > (game.home_score || 0)
-                  ? 'text-[var(--league-primary)]'
-                  : 'text-[var(--color-text-secondary)]'
-              }`}
-            >
-              {game.away_score}
-            </span>
-          )}
-        </div>
+      {/* Match Up Row: Away @ Home */}
+      <div className="flex items-center gap-2 mb-3">
+        <TeamLogo
+          logoUrl={game.away_team?.logo || null}
+          teamName={game.away_team?.name || 'TBD'}
+          teamColor={game.away_team?.colors}
+          size="sm"
+        />
+        <Link
+          href={`/${leagueSlug}/teams/${game.away_team?.slug}`}
+          className={`${awayNameClass} hover:text-[var(--league-primary)] transition-colors text-sm`}
+        >
+          {game.away_team?.name || 'TBD'}
+        </Link>
 
-        {/* Home Team */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <TeamLogo
-              logoUrl={game.home_team?.logo || null}
-              teamName={game.home_team?.name || 'TBD'}
-              teamColor={game.home_team?.colors}
-              size="md"
-            />
-            <Link
-              href={`/${leagueSlug}/teams/${game.home_team?.slug}`}
-              className="font-medium hover:text-[var(--league-primary)] transition-colors"
-            >
-              {game.home_team?.name || 'TBD'}
-            </Link>
-          </div>
-          {isCompleted && (
-            <span
-              className={`text-2xl font-bold ${
-                (game.home_score || 0) > (game.away_score || 0)
-                  ? 'text-[var(--league-primary)]'
-                  : 'text-[var(--color-text-secondary)]'
-              }`}
-            >
-              {game.home_score}
-            </span>
-          )}
-        </div>
+        {(isCompleted || isLive) && (
+          <span className={`text-sm font-bold ${isLive ? 'text-red-400' : winner === 'away' ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+            ({isLive ? (game.away_score ?? 0) : game.away_score})
+          </span>
+        )}
+
+        <span className="text-xs text-[var(--color-text-muted)] font-medium mx-1">@</span>
+
+        <Link
+          href={`/${leagueSlug}/teams/${game.home_team?.slug}`}
+          className={`${homeNameClass} hover:text-[var(--league-primary)] transition-colors text-sm`}
+        >
+          {game.home_team?.name || 'TBD'}
+        </Link>
+
+        {(isCompleted || isLive) && (
+          <span className={`text-sm font-bold ${isLive ? 'text-red-400' : winner === 'home' ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+            ({isLive ? (game.home_score ?? 0) : game.home_score})
+          </span>
+        )}
+
+        <TeamLogo
+          logoUrl={game.home_team?.logo || null}
+          teamName={game.home_team?.name || 'TBD'}
+          teamColor={game.home_team?.colors}
+          size="sm"
+        />
       </div>
 
-      {/* Footer: Venue, Division, Action */}
-      <div className="flex items-center justify-between pt-3 border-t border-[var(--color-border-muted)]">
-        <div className="flex items-center gap-4 text-xs text-[var(--color-text-secondary)]">
-          {game.venue && (
-            <div className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              <span>{game.venue}</span>
-            </div>
-          )}
-          {showDivision && divisionName && (
-            <span className="px-2 py-0.5 rounded-full bg-[var(--color-surface-active)]">
-              {divisionName}
-            </span>
-          )}
-        </div>
+      {/* Footer: Venue + Details Link */}
+      <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border-muted)]">
+        <span className="text-xs text-[var(--color-text-secondary)]">
+          {game.venue || 'TBD'}
+        </span>
         <Link
           href={`/${leagueSlug}/games/${game.id}`}
-          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--league-primary)] hover:underline"
+          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--color-surface)] border border-transparent hover:border-[var(--league-primary)] transition-all text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]"
+          aria-label={`View game details: ${game.away_team?.name} @ ${game.home_team?.name}`}
         >
           <Eye className="w-4 h-4" />
-          <span>Details</span>
         </Link>
       </div>
     </div>

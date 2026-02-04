@@ -29,7 +29,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-8">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8">
       <h2 className="text-2xl font-bold text-white mb-2">
         {t('auth.welcomeBack')}
       </h2>
@@ -54,7 +54,7 @@ export default function LoginPage() {
               'w-full px-4 py-3 rounded-xl',
               'bg-neutral-800 border border-neutral-700',
               'text-white placeholder:text-neutral-500',
-              'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent',
+              'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent',
               'transition-all'
             )}
             placeholder="you@example.com"
@@ -71,7 +71,7 @@ export default function LoginPage() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-xs text-gold-500 hover:text-gold-400"
+              className="text-xs text-rink-500 hover:text-rink-400"
             >
               {t('auth.forgotPassword')}
             </Link>
@@ -85,7 +85,7 @@ export default function LoginPage() {
               'w-full px-4 py-3 rounded-xl',
               'bg-neutral-800 border border-neutral-700',
               'text-white placeholder:text-neutral-500',
-              'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent',
+              'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent',
               'transition-all'
             )}
             placeholder="********"
@@ -103,8 +103,8 @@ export default function LoginPage() {
           disabled={loading}
           className={cn(
             'w-full py-3 px-4 rounded-xl font-semibold text-sm',
-            'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-            'hover:shadow-lg hover:shadow-gold-500/20',
+            'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+            'hover:shadow-lg hover:shadow-rink-500/20',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             'transition-all flex items-center justify-center gap-2'
           )}
@@ -125,7 +125,7 @@ export default function LoginPage() {
           {t('auth.dontHaveAccount')}{' '}
           <Link
             href="/signup"
-            className="text-gold-500 hover:text-gold-400 font-medium"
+            className="text-rink-500 hover:text-rink-400 font-medium"
           >
             {t('auth.signUpNow')}
           </Link>

@@ -93,8 +93,8 @@ export default function AnalyticsPage() {
                 onChange={(e) => setOrganizationId(e.target.value)}
                 className={cn(
                   'px-4 py-2.5 rounded-xl text-sm font-medium',
-                  'bg-neutral-900 border border-gold-500/20 text-white',
-                  'focus:outline-none focus:ring-2 focus:ring-gold-500/50'
+                  'bg-white/[0.04] border border-white/10 backdrop-blur-xl text-white',
+                  'focus:outline-none focus:ring-2 focus:ring-rink-500/50'
                 )}
               >
                 {organizations.map((org) => (
@@ -162,7 +162,7 @@ export default function AnalyticsPage() {
 function LoadingSpinner() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="w-12 h-12 border-4 border-gold-500/20 border-t-gold-500 rounded-full animate-spin" />
+      <div className="w-12 h-12 border-4 border-white/10 border-t-rink-500 rounded-full animate-spin" />
       <p className="text-neutral-400">Loading analytics...</p>
     </div>
   );
@@ -171,10 +171,10 @@ function LoadingSpinner() {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
-      <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-8 text-center max-w-md">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold-500/10 flex items-center justify-center">
+      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center max-w-md">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rink-500/10 flex items-center justify-center">
           <svg
-            className="w-8 h-8 text-gold-500"
+            className="w-8 h-8 text-rink-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -195,8 +195,8 @@ function EmptyState() {
           href="/dashboard"
           className={cn(
             'inline-block px-6 py-3 rounded-xl font-semibold text-sm',
-            'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-            'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+            'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+            'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
           )}
         >
           Go to Dashboard

@@ -28,9 +28,9 @@ export function ConnectionStatus({
       case 'connecting':
         return {
           icon: RefreshCw,
-          iconClass: 'animate-spin text-gold-500',
-          bgClass: 'bg-gold-500/10 border-gold-500/30',
-          textClass: 'text-gold-400',
+          iconClass: 'animate-spin text-rink-500',
+          bgClass: 'bg-rink-500/10 border-rink-500/30',
+          textClass: 'text-rink-400',
           message: 'Connecting to draft...',
         };
       case 'disconnected':

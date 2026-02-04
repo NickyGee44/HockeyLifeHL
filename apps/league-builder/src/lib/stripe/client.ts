@@ -26,9 +26,9 @@ function getStripeClient(): Stripe {
     apiVersion: '2026-01-28.clover', // Latest API version
     typescript: true,
     appInfo: {
-      name: 'HockeyLifeHL',
+      name: 'Beer League Hockey',
       version: '1.0.0',
-      url: 'https://hockeylifehl.com',
+      url: 'https://beerleaguehockey.ca',
     },
   });
 

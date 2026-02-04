@@ -11,7 +11,7 @@ import { headers } from 'next/headers';
 import { sendEmail } from '@/lib/notifications/email-service';
 import { getPasswordResetEmail } from '@/lib/notifications/templates';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://hockeylifehl.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // =============================================================================
@@ -602,7 +602,7 @@ export async function adminInitiatePasswordReset(userId: string): Promise<Action
       userName: targetProfile.full_name || undefined,
       resetUrl,
       expiresIn: '1 hour',
-      leagueName: 'HockeyLifeHL',
+      leagueName: 'Beer League Hockey',
     }),
   });
 

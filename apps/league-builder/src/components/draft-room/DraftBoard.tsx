@@ -83,7 +83,7 @@ export function DraftBoard({
                   key={team.id}
                   className={cn(
                     'px-4 py-3 text-center text-sm font-medium',
-                    currentTeamId === team.id && 'bg-gold-500/10'
+                    currentTeamId === team.id && 'bg-rink-500/10'
                   )}
                 >
                   <div className="flex flex-col items-center gap-1">
@@ -125,7 +125,7 @@ export function DraftBoard({
                       key={`${round}-${team.id}`}
                       className={cn(
                         'px-2 py-2 text-center',
-                        isCurrentPick && 'bg-gold-500/20 ring-2 ring-inset ring-gold-500',
+                        isCurrentPick && 'bg-rink-500/20 ring-2 ring-inset ring-rink-500',
                         isFuturePick && !pick && 'bg-muted/30',
                         isPastPick && !pick && round === currentRound && 'bg-muted/50'
                       )}
@@ -150,7 +150,7 @@ export function DraftBoard({
                         </div>
                       ) : isCurrentPick ? (
                         <div className="flex items-center justify-center">
-                          <div className="h-3 w-3 animate-pulse rounded-full bg-gold-500" />
+                          <div className="h-3 w-3 animate-pulse rounded-full bg-rink-500" />
                         </div>
                       ) : isFuturePick ? (
                         <span className="text-xs text-muted-foreground">-</span>

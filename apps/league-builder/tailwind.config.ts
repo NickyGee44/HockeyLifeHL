@@ -11,36 +11,62 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Brand Kit: Gold (Primary Accent)
-        gold: {
-          50: '#FFFDF5',
-          100: '#FFF9E6',
-          200: '#FFF0BF',
-          300: '#FFE699',
-          400: '#FFD54F',
-          500: '#D4AF37', // Primary brand gold
-          600: '#C19A00',
-          700: '#9A7B00',
-          800: '#735C00',
-          900: '#4D3D00',
+        // Brand Kit: Rink (Neon Cyan Primary)
+        rink: {
+          50: '#ecfeff',
+          100: '#cffafe',
+          200: '#a5f3fc',
+          300: '#67e8f9',
+          400: '#36d8f2',
+          500: '#22D3EE', // Primary brand cyan
+          600: '#06b6d4',
+          700: '#0891b2',
+          800: '#0e7490',
+          900: '#155e75',
         },
-        // Brand Kit: Neutral (Dark Mode Surfaces)
+        // Brand Kit: Arena Blue
+        arena: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3B82F6', // Arena Blue
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+        // Brand Kit: Foam Amber (warm accent — use sparingly)
+        foam: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#FBBF24', // Foam Amber
+          500: '#f59e0b',
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+          900: '#78350f',
+        },
+        // Brand Kit: Neutral (Blue-tinted slate for "night rink" vibe)
         neutral: {
-          50: '#fafafa',
-          100: '#f5f5f5',
-          150: '#ededed',
-          200: '#e5e5e5',
-          250: '#d9d9d9',
-          300: '#d4d4d4',
-          400: '#a3a3a3',
-          500: '#737373',
-          600: '#525252',
-          700: '#404040',
-          750: '#2e2e2e',
-          800: '#1a1a1a',
-          850: '#141414',
-          900: '#111111',
-          950: '#0a0a0a',
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          150: '#e8edf3',
+          200: '#e2e8f0',
+          250: '#d5dce6',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          750: '#283548',
+          800: '#1e293b',
+          850: '#152032',
+          900: '#0f172a',
+          950: '#070A0F', // Ice Black
         },
         // Semantic CSS variable colors
         background: 'hsl(var(--background))',
@@ -93,11 +119,12 @@ const config: Config = {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       boxShadow: {
-        'glow-sm': '0 0 20px rgba(212,175,55,0.15)',
-        'glow': '0 0 40px rgba(212,175,55,0.2)',
-        'glow-lg': '0 0 60px rgba(212,175,55,0.3)',
-        'glow-intense': '0 0 80px rgba(212,175,55,0.4)',
-        'gold': '0 4px 14px rgba(212,175,55,0.25)',
+        'glow-sm': '0 0 20px rgba(34,211,238,0.10)',
+        'glow': '0 0 40px rgba(34,211,238,0.12)',
+        'glow-lg': '0 0 60px rgba(34,211,238,0.18)',
+        'glow-intense': '0 0 80px rgba(34,211,238,0.25)',
+        'rink': '0 4px 14px rgba(34,211,238,0.15)',
+        'surface': '0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55)',
       },
       keyframes: {
         marquee: {

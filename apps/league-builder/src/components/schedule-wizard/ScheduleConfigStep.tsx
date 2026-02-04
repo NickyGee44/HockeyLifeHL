@@ -85,8 +85,8 @@ export function ScheduleConfigStep({
                 className={cn(
                   'px-3 py-2 text-sm rounded-lg border transition-colors',
                   selectedTemplateId === template.id
-                    ? 'border-gold-500 bg-gold-500/10 text-gold-500'
-                    : 'border-neutral-700 text-neutral-300 hover:border-gold-500/50'
+                    ? 'border-rink-500 bg-rink-500/10 text-rink-500'
+                    : 'border-neutral-700 text-neutral-300 hover:border-rink-500/50'
                 )}
               >
                 {template.name}
@@ -113,8 +113,8 @@ export function ScheduleConfigStep({
               className={cn(
                 'p-4 rounded-lg border text-left transition-colors',
                 config.scheduleType === type.value
-                  ? 'border-gold-500 bg-gold-500/10'
-                  : 'border-neutral-700 hover:border-gold-500/50'
+                  ? 'border-rink-500 bg-rink-500/10'
+                  : 'border-neutral-700 hover:border-rink-500/50'
               )}
             >
               <div className="font-medium text-white">{type.label}</div>
@@ -128,11 +128,11 @@ export function ScheduleConfigStep({
       <div className="bg-neutral-800/50 rounded-lg p-4">
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-gold-500" />
+            <Users className="w-4 h-4 text-rink-500" />
             <span className="text-neutral-300">{teamCount} Teams</span>
           </div>
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gold-500" />
+            <Calendar className="w-4 h-4 text-rink-500" />
             <span className="text-neutral-300">{totalGames} Total Games</span>
           </div>
           <div className="flex items-center gap-2">
@@ -155,8 +155,8 @@ export function ScheduleConfigStep({
               className={cn(
                 'px-4 py-2 rounded-lg border text-sm transition-colors',
                 config.gameDays.includes(index)
-                  ? 'border-gold-500 bg-gold-500/10 text-gold-500'
-                  : 'border-neutral-700 text-neutral-400 hover:border-gold-500/50'
+                  ? 'border-rink-500 bg-rink-500/10 text-rink-500'
+                  : 'border-neutral-700 text-neutral-400 hover:border-rink-500/50'
               )}
             >
               {name.slice(0, 3)}
@@ -182,8 +182,8 @@ export function ScheduleConfigStep({
               className={cn(
                 'px-3 py-2 rounded-lg border text-sm transition-colors',
                 config.gameTimes.includes(time)
-                  ? 'border-gold-500 bg-gold-500/10 text-gold-500'
-                  : 'border-neutral-700 text-neutral-400 hover:border-gold-500/50'
+                  ? 'border-rink-500 bg-rink-500/10 text-rink-500'
+                  : 'border-neutral-700 text-neutral-400 hover:border-rink-500/50'
               )}
             >
               {time}
@@ -203,7 +203,7 @@ export function ScheduleConfigStep({
         <select
           value={config.gameDurationMinutes}
           onChange={(e) => setConfig((prev) => ({ ...prev, gameDurationMinutes: parseInt(e.target.value) }))}
-          className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+          className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
         >
           <option value={45}>45 minutes</option>
           <option value={60}>60 minutes (1 hour)</option>
@@ -221,7 +221,7 @@ export function ScheduleConfigStep({
         <select
           value={config.defaultVenueId ?? ''}
           onChange={(e) => setConfig((prev) => ({ ...prev, defaultVenueId: e.target.value || null }))}
-          className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+          className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
         >
           <option value="">No default venue</option>
           {venues.map((venue) => (
@@ -241,7 +241,7 @@ export function ScheduleConfigStep({
             type="checkbox"
             checked={config.homeAwayBalance}
             onChange={(e) => setConfig((prev) => ({ ...prev, homeAwayBalance: e.target.checked }))}
-            className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-gold-500 focus:ring-gold-500"
+            className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
           />
           <span className="text-sm text-neutral-300">Balance home and away games (recommended)</span>
         </label>
@@ -251,7 +251,7 @@ export function ScheduleConfigStep({
             type="checkbox"
             checked={config.allowBackToBack}
             onChange={(e) => setConfig((prev) => ({ ...prev, allowBackToBack: e.target.checked }))}
-            className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-gold-500 focus:ring-gold-500"
+            className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
           />
           <span className="text-sm text-neutral-300">Allow back-to-back games for same team</span>
         </label>
@@ -261,7 +261,7 @@ export function ScheduleConfigStep({
             type="checkbox"
             checked={config.rotateHomeVenue}
             onChange={(e) => setConfig((prev) => ({ ...prev, rotateHomeVenue: e.target.checked }))}
-            className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-gold-500 focus:ring-gold-500"
+            className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
           />
           <span className="text-sm text-neutral-300">Use team's home venue when available</span>
         </label>

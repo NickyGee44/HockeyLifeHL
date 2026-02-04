@@ -270,7 +270,7 @@ export function RegistrationDetailClient({
         </InfoCard>
 
         {/* Skill Assessment */}
-        <InfoCard icon={Trophy} title="Skill Assessment" iconColor="text-gold-500">
+        <InfoCard icon={Trophy} title="Skill Assessment" iconColor="text-rink-500">
           <InfoRow
             label="Skill Level"
             value={

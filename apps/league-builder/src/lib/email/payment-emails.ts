@@ -12,7 +12,7 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@hockeylifehl.com';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@beerleaguehockey.ca';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 // ============================================================================
@@ -64,41 +64,44 @@ function getEmailLayout(content: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HockeyLifeHL</title>
+  <title>Beer League Hockey</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: #333;
+      color: #a3a3a3;
       max-width: 600px;
       margin: 0 auto;
       padding: 20px;
-      background-color: #f5f5f5;
+      background-color: #070A0F;
     }
     .container {
-      background-color: #ffffff;
+      background-color: #0f172a;
       border-radius: 8px;
       padding: 40px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.10);
     }
     .header {
       text-align: center;
       margin-bottom: 30px;
       padding-bottom: 20px;
-      border-bottom: 2px solid #e5e5e5;
+      border-bottom: 2px solid #1e293b;
     }
     .logo {
       font-size: 24px;
       font-weight: bold;
-      color: #1a1a1a;
+      color: #fafafa;
     }
     .content {
       margin-bottom: 30px;
     }
+    .content h1 {
+      color: #fafafa;
+    }
     .button {
       display: inline-block;
-      background-color: #d4af37;
-      color: #000000;
+      background: linear-gradient(to right, #22D3EE, #3B82F6);
+      color: #070A0F;
       text-decoration: none;
       padding: 12px 30px;
       border-radius: 6px;
@@ -106,37 +109,40 @@ function getEmailLayout(content: string): string {
       margin: 20px 0;
     }
     .button-secondary {
-      background-color: #333;
-      color: #ffffff;
+      background-color: #1e293b;
+      color: #fafafa;
     }
     .footer {
       margin-top: 40px;
       padding-top: 20px;
-      border-top: 1px solid #e5e5e5;
+      border-top: 1px solid #1e293b;
       text-align: center;
       font-size: 12px;
-      color: #666;
+      color: #404040;
+    }
+    .footer a {
+      color: #22D3EE;
     }
     .highlight {
-      background-color: #fff8e6;
+      background-color: rgba(34, 211, 238, 0.1);
       padding: 15px;
-      border-left: 4px solid #d4af37;
+      border-left: 4px solid #22D3EE;
       margin: 20px 0;
     }
     .warning {
-      background-color: #fff3f3;
+      background-color: rgba(251, 113, 133, 0.1);
       padding: 15px;
-      border-left: 4px solid #cc0000;
+      border-left: 4px solid #FB7185;
       margin: 20px 0;
     }
     .success {
-      background-color: #f0fff0;
+      background-color: rgba(52, 211, 153, 0.1);
       padding: 15px;
-      border-left: 4px solid #00cc00;
+      border-left: 4px solid #34D399;
       margin: 20px 0;
     }
     .payment-details {
-      background-color: #f9f9f9;
+      background-color: rgba(0, 0, 0, 0.3);
       padding: 20px;
       border-radius: 8px;
       margin: 20px 0;
@@ -149,28 +155,29 @@ function getEmailLayout(content: string): string {
       padding: 8px 0;
     }
     .payment-details .label {
-      color: #666;
+      color: #a3a3a3;
     }
     .payment-details .value {
       text-align: right;
       font-weight: bold;
+      color: #fafafa;
     }
     .amount-due {
       font-size: 24px;
-      color: #d4af37;
+      color: #22D3EE;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">HockeyLifeHL</div>
+      <div class="logo">Beer League Hockey</div>
     </div>
     <div class="content">
       ${content}
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} HockeyLifeHL. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Beer League Hockey. All rights reserved.</p>
       <p><a href="${SITE_URL}/support">Contact Support</a></p>
     </div>
   </div>
@@ -392,7 +399,7 @@ export async function sendPaymentOverdueEmail(params: {
             ? `
         <tr>
           <td class="label">Late Fee</td>
-          <td class="value" style="color: #cc0000;">+$${(lateFeeApplied / 100).toFixed(2)}</td>
+          <td class="value" style="color: #FB7185;">+$${(lateFeeApplied / 100).toFixed(2)}</td>
         </tr>
         `
             : ''

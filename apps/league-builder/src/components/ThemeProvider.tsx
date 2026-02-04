@@ -10,7 +10,7 @@ import {
 } from 'react';
 
 /* ============================================================
-   Theme Provider for HockeyLifeHL
+   Theme Provider for Beer League Hockey
 
    Features:
    - System preference detection (prefers-color-scheme)

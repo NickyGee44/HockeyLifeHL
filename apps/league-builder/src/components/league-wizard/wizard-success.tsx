@@ -40,7 +40,7 @@ const CONFETTI_COLORS = [
   '#3B82F6', // Bright blue
   '#60A5FA', // Light blue
   '#FFFFFF', // White
-  '#D4AF37', // Gold
+  '#22D3EE', // Gold
   '#FFD700', // Bright gold
   '#93C5FD', // Pale blue
 ];

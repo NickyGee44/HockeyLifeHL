@@ -101,7 +101,7 @@ export function CancelGameModal({
         onOpenChange(newOpen);
       }}
     >
-      <DialogContent className="bg-neutral-800 border-gold-500/20 max-w-lg">
+      <DialogContent className="bg-neutral-800 border-white/10 max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <AlertTriangle className="w-5 h-5 text-red-500" />
@@ -114,12 +114,12 @@ export function CancelGameModal({
 
         <form onSubmit={handleSubmit} className="space-y-5 mt-4">
           {/* Game Info */}
-          <div className="p-4 rounded-xl bg-neutral-900/50 border border-gold-500/10">
+          <div className="p-4 rounded-xl bg-neutral-900/50 border border-white/[0.06]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div
                   className="w-6 h-6 rounded"
-                  style={{ backgroundColor: game.home_team?.primary_color || '#D4AF37' }}
+                  style={{ backgroundColor: game.home_team?.primary_color || '#22D3EE' }}
                 />
                 <span className="font-medium text-white text-sm">
                   {game.home_team?.short_name || game.home_team?.name}
@@ -154,7 +154,7 @@ export function CancelGameModal({
                   'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
                   actionType === 'cancel'
                     ? 'bg-red-500/10 border-red-500/30'
-                    : 'bg-neutral-900 border-gold-500/10 hover:border-gold-500/30'
+                    : 'bg-neutral-900 border-white/[0.06] hover:border-rink-500/30'
                 )}
               >
                 <RadioGroupItem value="cancel" className="border-red-500 text-red-500" />
@@ -171,7 +171,7 @@ export function CancelGameModal({
                   'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
                   actionType === 'postpone'
                     ? 'bg-yellow-500/10 border-yellow-500/30'
-                    : 'bg-neutral-900 border-gold-500/10 hover:border-gold-500/30'
+                    : 'bg-neutral-900 border-white/[0.06] hover:border-rink-500/30'
                 )}
               >
                 <RadioGroupItem value="postpone" className="border-yellow-500 text-yellow-500" />
@@ -198,8 +198,8 @@ export function CancelGameModal({
                   className={cn(
                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                     selectedReason === suggestion
-                      ? 'bg-gold-500/20 text-gold-500 border border-gold-500/40'
-                      : 'bg-neutral-900 text-neutral-400 border border-gold-500/10 hover:border-gold-500/30'
+                      ? 'bg-rink-500/20 text-rink-500 border border-rink-500/40'
+                      : 'bg-neutral-900 text-neutral-400 border border-white/[0.06] hover:border-rink-500/30'
                   )}
                 >
                   {suggestion}
@@ -219,7 +219,7 @@ export function CancelGameModal({
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
                 placeholder="Enter the reason for cancellation or postponement..."
-                className="bg-neutral-900 border-gold-500/20 text-white focus:ring-gold-500 focus:border-gold-500 min-h-[80px]"
+                className="bg-neutral-900 border-white/10 text-white focus:ring-rink-500 focus:border-rink-500 min-h-[80px]"
               />
             </div>
           )}

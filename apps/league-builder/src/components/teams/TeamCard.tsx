@@ -26,12 +26,12 @@ interface TeamCardProps {
 
 export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }: TeamCardProps) {
   const maxRoster = team.max_roster_size ?? 23;
-  const primaryColor = team.primary_color || '#D4AF37';
+  const primaryColor = team.primary_color || '#22D3EE';
   const secondaryColor = team.secondary_color || '#0a0a0a';
   const rosterPercent = (team.roster_count / maxRoster) * 100;
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden hover:border-gold-500/40 transition-all group">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden hover:border-white/20 transition-all group">
       {/* Team Color Bar */}
       <div
         className="h-2"
@@ -60,7 +60,7 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
               </div>
             )}
             <div>
-              <h3 className="font-bold text-white group-hover:text-gold-500 transition-colors">
+              <h3 className="font-bold text-white group-hover:text-rink-500 transition-colors">
                 {team.name}
               </h3>
               <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
         {/* Captain */}
         {team.captain_name && (
           <div className="flex items-center gap-2 mb-4 text-sm">
-            <div className="flex items-center gap-1.5 text-gold-500">
+            <div className="flex items-center gap-1.5 text-rink-500">
               <Crown className="w-4 h-4" />
               <span className="font-medium">Captain:</span>
             </div>
@@ -163,13 +163,13 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-4 border-t border-gold-500/10">
+        <div className="flex items-center gap-2 pt-4 border-t border-white/[0.06]">
           <Link
             href={leagueId ? `/dashboard/leagues/${leagueId}/teams/${team.id}` : `/dashboard/teams/${team.id}`}
             className={cn(
               'flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl',
-              'bg-gold-500/10 text-gold-500 border border-gold-500/30',
-              'hover:bg-gold-500/20 transition-colors font-medium text-sm'
+              'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+              'hover:bg-rink-500/20 transition-colors font-medium text-sm'
             )}
           >
             Manage Team

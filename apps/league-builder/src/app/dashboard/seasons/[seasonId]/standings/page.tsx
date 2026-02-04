@@ -125,7 +125,7 @@ export default async function SeasonStandingsPage({ params }: PageProps) {
               <span>{data.season.name}</span>
             </div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Trophy className="w-7 h-7 text-gold-500" />
+              <Trophy className="w-7 h-7 text-rink-500" />
               Standings
             </h1>
           </div>
@@ -149,7 +149,7 @@ export default async function SeasonStandingsPage({ params }: PageProps) {
           </div>
           <div className="bg-neutral-900 rounded-lg p-4 border border-neutral-800">
             <div className="text-sm text-neutral-400">Playoff Spots</div>
-            <div className="text-2xl font-bold text-gold-500">
+            <div className="text-2xl font-bold text-rink-500">
               {data.config?.playoffTeamsTotal ?? 8}
             </div>
           </div>

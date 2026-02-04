@@ -114,7 +114,7 @@ export function DraftSetupWizard({
                 value={config.name}
                 onChange={(e) => updateConfig({ name: e.target.value })}
                 placeholder="e.g., 2026 Season Draft"
-                className="w-full rounded-xl border border-gold-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-gold-500"
+                className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
               />
             </div>
 
@@ -128,14 +128,14 @@ export function DraftSetupWizard({
                   className={cn(
                     'flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all',
                     config.draftType === 'snake'
-                      ? 'border-gold-500 bg-gold-500/10'
+                      ? 'border-rink-500 bg-rink-500/10'
                       : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
                   )}
                 >
                   <Shuffle
                     className={cn(
                       'h-8 w-8',
-                      config.draftType === 'snake' ? 'text-gold-500' : 'text-neutral-400'
+                      config.draftType === 'snake' ? 'text-rink-500' : 'text-neutral-400'
                     )}
                   />
                   <div className="text-center">
@@ -150,14 +150,14 @@ export function DraftSetupWizard({
                   className={cn(
                     'flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all',
                     config.draftType === 'linear'
-                      ? 'border-gold-500 bg-gold-500/10'
+                      ? 'border-rink-500 bg-rink-500/10'
                       : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
                   )}
                 >
                   <ArrowRight
                     className={cn(
                       'h-8 w-8',
-                      config.draftType === 'linear' ? 'text-gold-500' : 'text-neutral-400'
+                      config.draftType === 'linear' ? 'text-rink-500' : 'text-neutral-400'
                     )}
                   />
                   <div className="text-center">
@@ -181,9 +181,9 @@ export function DraftSetupWizard({
                   max="25"
                   value={config.totalRounds}
                   onChange={(e) => updateConfig({ totalRounds: parseInt(e.target.value) })}
-                  className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-neutral-700 accent-gold-500"
+                  className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-neutral-700 accent-rink-500"
                 />
-                <span className="w-12 text-center text-xl font-bold text-gold-500">
+                <span className="w-12 text-center text-xl font-bold text-rink-500">
                   {config.totalRounds}
                 </span>
               </div>
@@ -208,10 +208,10 @@ export function DraftSetupWizard({
                   onChange={(e) =>
                     updateConfig({ pickTimeSeconds: parseInt(e.target.value) })
                   }
-                  className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-neutral-700 accent-gold-500"
+                  className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-neutral-700 accent-rink-500"
                 />
                 <span className="w-20 text-center">
-                  <span className="text-xl font-bold text-gold-500">
+                  <span className="text-xl font-bold text-rink-500">
                     {Math.floor(config.pickTimeSeconds / 60)}:
                     {(config.pickTimeSeconds % 60).toString().padStart(2, '0')}
                   </span>
@@ -226,7 +226,7 @@ export function DraftSetupWizard({
 
             <div className="rounded-xl border border-neutral-700 bg-neutral-800/50 p-4">
               <div className="mb-4 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-gold-500" />
+                <Clock className="h-5 w-5 text-rink-500" />
                 <span className="font-medium text-white">Timer Preview</span>
               </div>
               <div className="flex items-center justify-center">
@@ -250,7 +250,7 @@ export function DraftSetupWizard({
                       fill="none"
                       strokeDasharray="352"
                       strokeDashoffset="88"
-                      className="text-gold-500"
+                      className="text-rink-500"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -265,7 +265,7 @@ export function DraftSetupWizard({
 
             <div className="flex items-center justify-between rounded-xl border border-neutral-700 bg-neutral-800/50 p-4">
               <div className="flex items-center gap-3">
-                <Zap className="h-5 w-5 text-gold-500" />
+                <Zap className="h-5 w-5 text-rink-500" />
                 <div>
                   <p className="font-medium text-white">Auto-Pick on Timeout</p>
                   <p className="text-xs text-neutral-400">
@@ -277,7 +277,7 @@ export function DraftSetupWizard({
                 onClick={() => updateConfig({ autoPickEnabled: !config.autoPickEnabled })}
                 className={cn(
                   'relative h-6 w-11 rounded-full transition-colors',
-                  config.autoPickEnabled ? 'bg-gold-500' : 'bg-neutral-600'
+                  config.autoPickEnabled ? 'bg-rink-500' : 'bg-neutral-600'
                 )}
               >
                 <span
@@ -296,7 +296,7 @@ export function DraftSetupWizard({
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-xl border border-neutral-700 bg-neutral-800/50 p-4">
               <div className="flex items-center gap-3">
-                <RefreshCcw className="h-5 w-5 text-gold-500" />
+                <RefreshCcw className="h-5 w-5 text-rink-500" />
                 <div>
                   <p className="font-medium text-white">Allow Pick Trading</p>
                   <p className="text-xs text-neutral-400">
@@ -308,7 +308,7 @@ export function DraftSetupWizard({
                 onClick={() => updateConfig({ allowTrades: !config.allowTrades })}
                 className={cn(
                   'relative h-6 w-11 rounded-full transition-colors',
-                  config.allowTrades ? 'bg-gold-500' : 'bg-neutral-600'
+                  config.allowTrades ? 'bg-rink-500' : 'bg-neutral-600'
                 )}
               >
                 <span
@@ -322,7 +322,7 @@ export function DraftSetupWizard({
 
             <div className="flex items-center justify-between rounded-xl border border-neutral-700 bg-neutral-800/50 p-4">
               <div className="flex items-center gap-3">
-                <Users className="h-5 w-5 text-gold-500" />
+                <Users className="h-5 w-5 text-rink-500" />
                 <div>
                   <p className="font-medium text-white">Require Roster Confirmation</p>
                   <p className="text-xs text-neutral-400">
@@ -338,7 +338,7 @@ export function DraftSetupWizard({
                 }
                 className={cn(
                   'relative h-6 w-11 rounded-full transition-colors',
-                  config.requireRosterConfirmation ? 'bg-gold-500' : 'bg-neutral-600'
+                  config.requireRosterConfirmation ? 'bg-rink-500' : 'bg-neutral-600'
                 )}
               >
                 <span
@@ -356,7 +356,7 @@ export function DraftSetupWizard({
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white">Review Settings</h3>
-            <div className="rounded-xl border border-gold-500/30 bg-gold-500/5 p-6">
+            <div className="rounded-xl border border-rink-500/30 bg-rink-500/5 p-6">
               <dl className="space-y-4">
                 <div className="flex justify-between">
                   <dt className="text-neutral-400">Draft Name</dt>
@@ -430,7 +430,7 @@ export function DraftSetupWizard({
                   isComplete
                     ? 'bg-green-500 text-white'
                     : isActive
-                      ? 'bg-gold-500 text-black'
+                      ? 'bg-rink-500 text-black'
                       : 'bg-neutral-800 text-neutral-400'
                 )}
               >
@@ -458,7 +458,7 @@ export function DraftSetupWizard({
       )}
 
       {/* Step Content */}
-      <div className="min-h-[300px] rounded-2xl border border-gold-500/20 bg-neutral-900 p-6">
+      <div className="min-h-[300px] rounded-2xl border border-white/10 bg-neutral-900 p-6">
         {renderStepContent()}
       </div>
 
@@ -475,7 +475,7 @@ export function DraftSetupWizard({
         {currentStep < STEPS.length - 1 ? (
           <button
             onClick={handleNext}
-            className="flex items-center gap-2 rounded-lg bg-gold-500 px-6 py-2 font-semibold text-black transition-all hover:bg-gold-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+            className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]"
           >
             Next
             <ArrowRight className="h-4 w-4" />
@@ -484,7 +484,7 @@ export function DraftSetupWizard({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 rounded-lg bg-gold-500 px-6 py-2 font-semibold text-black transition-all hover:bg-gold-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
               <>

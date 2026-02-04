@@ -214,7 +214,7 @@ export function TeamCreationWizard({
                   onChange={(e) => updateField('divisionId', e.target.value)}
                   className={cn(
                     'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-                    'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                    'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
                   )}
                 >
                   <option value="">No division</option>
@@ -290,7 +290,7 @@ export function TeamCreationWizard({
                   onChange={(e) => updateField('homeVenueId', e.target.value)}
                   className={cn(
                     'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-                    'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                    'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
                   )}
                 >
                   <option value="">Select a venue</option>
@@ -360,7 +360,7 @@ export function TeamCreationWizard({
                 className={cn(
                   'w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2',
                   'text-sm text-white placeholder:text-neutral-500',
-                  'focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                  'focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
                 )}
               />
             </div>
@@ -373,9 +373,9 @@ export function TeamCreationWizard({
   };
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="p-6 border-b border-gold-500/10">
+      <div className="p-6 border-b border-white/[0.06]">
         <h2 className="text-xl font-bold text-white">Create New Team</h2>
         <p className="text-sm text-neutral-400 mt-1">
           Fill in the details to add a new team to your league
@@ -383,7 +383,7 @@ export function TeamCreationWizard({
       </div>
 
       {/* Progress Steps */}
-      <div className="px-6 py-4 border-b border-gold-500/10 bg-neutral-900/50">
+      <div className="px-6 py-4 border-b border-white/[0.06] bg-neutral-900/50">
         <div className="flex items-center justify-between">
           {STEPS.map((step, index) => {
             const Icon = step.icon;
@@ -399,7 +399,7 @@ export function TeamCreationWizard({
                       isCompleted
                         ? 'bg-green-500 text-white'
                         : isActive
-                        ? 'bg-gold-500 text-black'
+                        ? 'bg-rink-500 text-black'
                         : 'bg-neutral-800 text-neutral-500'
                     )}
                   >
@@ -412,7 +412,7 @@ export function TeamCreationWizard({
                   <span
                     className={cn(
                       'text-xs mt-2 font-medium',
-                      isActive ? 'text-gold-500' : 'text-neutral-500'
+                      isActive ? 'text-rink-500' : 'text-neutral-500'
                     )}
                   >
                     {step.title}
@@ -444,7 +444,7 @@ export function TeamCreationWizard({
       )}
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-gold-500/10 flex items-center justify-between">
+      <div className="px-6 py-4 border-t border-white/[0.06] flex items-center justify-between">
         <div>
           {currentStep > 0 && (
             <button
@@ -482,8 +482,8 @@ export function TeamCreationWizard({
               onClick={handleNext}
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
               )}
             >
               Next
@@ -496,8 +496,8 @@ export function TeamCreationWizard({
               disabled={isSubmitting}
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                'hover:shadow-lg hover:shadow-gold-500/20 transition-all',
+                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >

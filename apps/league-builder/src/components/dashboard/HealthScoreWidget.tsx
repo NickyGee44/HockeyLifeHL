@@ -94,7 +94,7 @@ function HealthScoreCircle({
       case 'Excellent':
         return 'text-emerald-400';
       case 'Good':
-        return 'text-gold-400';
+        return 'text-rink-400';
       case 'Fair':
         return 'text-amber-400';
       default:
@@ -107,7 +107,7 @@ function HealthScoreCircle({
       case 'Excellent':
         return '#22c55e';
       case 'Good':
-        return '#D4AF37';
+        return '#22D3EE';
       case 'Fair':
         return '#f59e0b';
       default:
@@ -153,7 +153,7 @@ function HealthScoreCircle({
 function CategoryScore({ label, value }: { label: string; value: number }) {
   const getValueColor = () => {
     if (value >= 80) return 'text-emerald-400';
-    if (value >= 60) return 'text-gold-400';
+    if (value >= 60) return 'text-rink-400';
     if (value >= 40) return 'text-amber-400';
     return 'text-red-400';
   };
@@ -170,7 +170,7 @@ function CategoryScore({ label, value }: { label: string; value: number }) {
               value >= 80
                 ? 'bg-emerald-500'
                 : value >= 60
-                ? 'bg-gold-500'
+                ? 'bg-rink-500'
                 : value >= 40
                 ? 'bg-amber-500'
                 : 'bg-red-500'

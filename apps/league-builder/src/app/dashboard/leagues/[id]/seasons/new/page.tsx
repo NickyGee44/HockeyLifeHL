@@ -48,7 +48,7 @@ export default async function NewSeasonPage({ params }: PageProps) {
         <div className="mb-8">
           <Link
             href={`/dashboard/leagues/${leagueId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to {league.name}
@@ -57,7 +57,7 @@ export default async function NewSeasonPage({ params }: PageProps) {
           <div className="flex items-center gap-4">
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: league.primary_color || '#D4AF37' }}
+              style={{ backgroundColor: league.primary_color || '#22D3EE' }}
             >
               <Plus className="w-6 h-6 text-white" />
             </div>

@@ -74,7 +74,7 @@ export function LandingPage({
                 className="mb-6"
               >
                 <Image
-                  src="/logo2.png"
+                  src="/logo.png"
                   alt={currentLeague.name}
                   width={250}
                   height={250}

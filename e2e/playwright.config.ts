@@ -83,8 +83,20 @@ export default defineConfig({
       use: {
         ...devices['Desktop Firefox'],
         storageState: 'e2e/.auth/user.json',
+        // Firefox-specific launch options
+        launchOptions: {
+          firefoxUserPrefs: {
+            'media.navigator.streams.fake': true,
+            'media.navigator.permission.disabled': true,
+          },
+        },
+        // Firefox is slower at loading heavy Next.js pages
+        navigationTimeout: 60000, // 60 seconds (default is 30s)
+        actionTimeout: 30000, // 30 seconds for actions
       },
       dependencies: ['setup'],
+      // Exclude auth tests - they run in unauthenticated project
+      testIgnore: /auth\.spec\.ts/,
     },
 
     {
@@ -92,8 +104,14 @@ export default defineConfig({
       use: {
         ...devices['Desktop Safari'],
         storageState: 'e2e/.auth/user.json',
+        // Webkit-specific launch options
+        launchOptions: {
+          args: ['--disable-web-security'],
+        },
       },
       dependencies: ['setup'],
+      // Exclude auth tests - they run in unauthenticated project
+      testIgnore: /auth\.spec\.ts/,
     },
 
     /* Test against mobile viewports */
@@ -104,6 +122,8 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
+      // Exclude auth tests - they run in unauthenticated project
+      testIgnore: /auth\.spec\.ts/,
     },
 
     /* Unauthenticated tests (signup, login) */

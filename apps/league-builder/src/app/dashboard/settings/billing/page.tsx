@@ -1,10 +1,21 @@
+/**
+ * Billing Settings Page
+ *
+ * Shows the setup + processing fee model with Stripe Connect status.
+ * No subscription tiers or monthly plans.
+ */
+
 import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
 import { redirect } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@hockey-life/ui';
-import { CreditCard, Percent, Database, Globe, CheckCircle, TrendingUp } from 'lucide-react';
-import { cn } from '@hockey-life/ui';
+import { CreditCard, Percent, DollarSign, CheckCircle, TrendingUp, Mail } from 'lucide-react';
+import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 
 export const dynamic = 'force-dynamic';
+
+function formatCAD(cents: number): string {
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
+}
 
 export default async function BillingSettingsPage() {
   const userData = await getCurrentUser();
@@ -20,137 +31,85 @@ export default async function BillingSettingsPage() {
     redirect('/dashboard');
   }
 
+  const feeConfig = await getPlatformFeeConfig();
+
   return (
     <div className="space-y-6">
-      {/* Free Platform Banner */}
-      <Card className="bg-gradient-to-br from-gold-500/10 to-gold-600/5 border-gold-500/30">
-        <CardContent className="py-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gold-500 to-gold-600 flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-black" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">Free Forever</h2>
-              <p className="text-neutral-300">
-                Build and manage your leagues at no cost. We only earn when you do.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* How It Works */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
+      {/* Pricing Model */}
+      <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-neutral-100">How Pricing Works</CardTitle>
           <CardDescription className="text-neutral-400">
-            Simple, transparent pricing with no hidden fees
+            Simple, transparent pricing with no hidden fees or subscriptions
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Transaction Fee */}
-            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
-              <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center mb-4">
-                <Percent className="w-6 h-6 text-gold-500" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Setup Fee */}
+            <div className="border border-white/10 rounded-xl p-6 bg-neutral-900/50">
+              <div className="w-12 h-12 rounded-xl bg-rink-500/10 flex items-center justify-center mb-4">
+                <DollarSign className="w-6 h-6 text-rink-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
+                One-Time Setup Fee
+              </h3>
+              <div className="mb-4">
+                <span className="text-3xl font-bold text-rink-500">
+                  {feeConfig.setupFeeCents > 0 ? formatCAD(feeConfig.setupFeeCents) : 'Contact Us'}
+                </span>
+              </div>
+              <p className="text-sm text-neutral-400">
+                Covers onboarding, platform configuration, domain setup, and data migration.
+                Required once per league before going live.
+              </p>
+            </div>
+
+            {/* Processing Fee */}
+            <div className="border border-white/10 rounded-xl p-6 bg-neutral-900/50">
+              <div className="w-12 h-12 rounded-xl bg-rink-500/10 flex items-center justify-center mb-4">
+                <Percent className="w-6 h-6 text-rink-500" />
               </div>
               <h3 className="text-lg font-semibold text-neutral-100 mb-2">
                 Payment Processing
               </h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold text-gold-500">2.99%</span>
+                <span className="text-3xl font-bold text-rink-500">{feeConfig.processingFeePercent}%</span>
                 <span className="text-neutral-400"> per transaction</span>
               </div>
               <p className="text-sm text-neutral-400">
-                We process all player registration payments through Stripe. Our fee covers payment processing, fraud protection, and platform costs.
+                Applied to all player payments processed through the platform.
+                Can be passed to players or absorbed by the league.
+                Stripe card processing fees apply separately.
               </p>
-            </div>
-
-            {/* Data Import */}
-            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
-              <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center mb-4">
-                <Database className="w-6 h-6 text-gold-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
-                Historic Data Import
-              </h3>
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-neutral-100">Custom</span>
-              </div>
-              <p className="text-sm text-neutral-400">
-                Want to import your league's historical stats, standings, and player records? We'll migrate your data for a one-time fee based on league size.
-              </p>
-              <a
-                href="mailto:support@hockeylifehl.com?subject=Historic Data Import"
-                className={cn(
-                  'inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl text-sm font-medium',
-                  'bg-gold-500/10 text-gold-500 border border-gold-500/30',
-                  'hover:bg-gold-500/20 transition-colors'
-                )}
-              >
-                Get a Quote
-              </a>
-            </div>
-
-            {/* Custom Domain */}
-            <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
-              <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center mb-4">
-                <Globe className="w-6 h-6 text-gold-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-neutral-100 mb-2">
-                Custom Domains
-              </h3>
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-neutral-100">Add-on</span>
-              </div>
-              <p className="text-sm text-neutral-400">
-                Use your own domain (e.g., myleague.com) instead of our subdomain. Includes SSL certificate and DNS configuration support.
-              </p>
-              <a
-                href="mailto:support@hockeylifehl.com?subject=Custom Domain Setup"
-                className={cn(
-                  'inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl text-sm font-medium',
-                  'bg-gold-500/10 text-gold-500 border border-gold-500/30',
-                  'hover:bg-gold-500/20 transition-colors'
-                )}
-              >
-                Get a Quote
-              </a>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* What's Included Free */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
+      {/* What's Included */}
+      <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
-          <CardTitle className="text-neutral-100">Everything Included Free</CardTitle>
+          <CardTitle className="text-neutral-100">Everything Included</CardTitle>
           <CardDescription className="text-neutral-400">
-            No limits, no tiers, no surprises
+            Full platform access with no limits or tiers
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
               'Unlimited leagues',
-              'Unlimited teams',
-              'Unlimited players',
-              'Unlimited seasons',
+              'Unlimited teams & players',
               'Schedule generation',
               'Standings & statistics',
               'Player registration',
-              'Team management',
               'Game scorekeeping',
               'Custom branding & colors',
               'Public league website',
               'Email notifications',
-              'Mobile-friendly interface',
               'Analytics dashboard',
-              'Player photo uploads',
-              'Waiver management',
             ].map((feature) => (
               <div key={feature} className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-gold-500 flex-shrink-0" />
+                <CheckCircle className="w-4 h-4 text-rink-500 flex-shrink-0" />
                 <span className="text-sm text-neutral-300">{feature}</span>
               </div>
             ))}
@@ -158,8 +117,8 @@ export default async function BillingSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Payment Method */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
+      {/* Stripe Connect */}
+      <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-neutral-100">Stripe Connect</CardTitle>
           <CardDescription className="text-neutral-400">
@@ -174,19 +133,19 @@ export default async function BillingSettingsPage() {
             </p>
             <a
               href="/dashboard/leagues"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-lg hover:shadow-gold-500/20 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-lg hover:shadow-rink-500/20 transition-all"
             >
               Go to Leagues
             </a>
             <p className="text-xs text-neutral-500 mt-2">
-              Set up Stripe Connect in each league's billing settings
+              Set up Stripe Connect in each league&apos;s billing settings
             </p>
           </div>
         </CardContent>
       </Card>
 
       {/* Transaction History */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
+      <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-neutral-100">Transaction History</CardTitle>
           <CardDescription className="text-neutral-400">
@@ -201,6 +160,21 @@ export default async function BillingSettingsPage() {
             </p>
             <p className="text-xs text-neutral-500 mt-2">
               Transaction history will appear here once players start registering
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contact */}
+      <Card className="bg-neutral-800/50 border-white/10">
+        <CardContent className="py-4">
+          <div className="flex items-center gap-3">
+            <Mail className="h-5 w-5 text-neutral-500" />
+            <p className="text-sm text-neutral-400">
+              Need custom terms, volume pricing, or have billing questions?{' '}
+              <a href="mailto:support@beerleaguehockey.ca" className="text-rink-500 hover:underline">
+                Contact support
+              </a>
             </p>
           </div>
         </CardContent>

@@ -53,7 +53,7 @@ export function getRegistrationApprovedEmail(props: RegistrationApprovedEmailPro
   ];
 
   if (teamName) {
-    details.push({ label: 'Team', value: `<strong style="color: #D4AF37;">${teamName}</strong>` });
+    details.push({ label: 'Team', value: `<strong style="color: #22D3EE;">${teamName}</strong>` });
   }
 
   if (jerseyNumber) {
@@ -69,7 +69,7 @@ export function getRegistrationApprovedEmail(props: RegistrationApprovedEmailPro
   }
 
   if (firstGameDate) {
-    details.push({ label: 'First Game', value: `<strong style="color: #D4AF37;">${firstGameDate}</strong>` });
+    details.push({ label: 'First Game', value: `<strong style="color: #22D3EE;">${firstGameDate}</strong>` });
   }
 
   const nextStepsContent = teamName

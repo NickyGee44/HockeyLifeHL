@@ -16,7 +16,7 @@ interface LogoUploaderProps {
 export function LogoUploader({
   currentLogo,
   teamName,
-  primaryColor = '#D4AF37',
+  primaryColor = '#22D3EE',
   onUpload,
   onRemove,
   className,
@@ -131,7 +131,7 @@ export function LogoUploader({
           'relative rounded-2xl border-2 border-dashed transition-all duration-200',
           'bg-neutral-900/50',
           isDragging
-            ? 'border-gold-500 bg-gold-500/5'
+            ? 'border-rink-500 bg-rink-500/5'
             : 'border-neutral-700 hover:border-neutral-600',
           isUploading && 'pointer-events-none opacity-70'
         )}
@@ -160,7 +160,7 @@ export function LogoUploader({
                 />
                 {isUploading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl">
-                    <Loader2 className="w-6 h-6 text-gold-500 animate-spin" />
+                    <Loader2 className="w-6 h-6 text-rink-500 animate-spin" />
                   </div>
                 )}
               </div>

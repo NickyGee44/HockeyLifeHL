@@ -166,7 +166,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 text-gold-500 animate-spin" />
+        <Loader2 className="w-6 h-6 text-rink-500 animate-spin" />
         <span className="ml-2 text-neutral-400">Loading roster...</span>
       </div>
     );
@@ -236,7 +236,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
                             {player.jersey_number}
                           </span>
                           {player.leadership_role === 'captain' && (
-                            <Crown className="w-4 h-4 text-gold-500" aria-label="Captain" />
+                            <Crown className="w-4 h-4 text-rink-500" aria-label="Captain" />
                           )}
                           {player.leadership_role === 'alternate_captain' && (
                             <Shield className="w-4 h-4 text-silver-500" aria-label="Alternate Captain" />
@@ -325,7 +325,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
 
       {/* Edit Player Dialog */}
       <Dialog open={!!editingPlayer} onOpenChange={() => setEditingPlayer(null)}>
-        <DialogContent className="bg-neutral-900 border-gold-500/20">
+        <DialogContent className="bg-neutral-900 border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">Edit Player</DialogTitle>
             <DialogDescription className="text-neutral-400">
@@ -346,7 +346,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
 
       {/* Remove Player Confirmation */}
       <Dialog open={!!removingPlayer} onOpenChange={() => setRemovingPlayer(null)}>
-        <DialogContent className="bg-neutral-900 border-gold-500/20">
+        <DialogContent className="bg-neutral-900 border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">Remove Player</DialogTitle>
             <DialogDescription className="text-neutral-400">
@@ -437,7 +437,7 @@ function EditPlayerForm({
           onChange={(e) => setPosition(e.target.value)}
           className={cn(
             'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-            'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+            'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
           )}
         >
           {POSITIONS.map((pos) => (
@@ -455,7 +455,7 @@ function EditPlayerForm({
           onChange={(e) => setStatus(e.target.value)}
           className={cn(
             'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-            'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+            'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
           )}
         >
           {STATUSES.map((s) => (
@@ -475,7 +475,7 @@ function EditPlayerForm({
           onChange={(e) => setLeadershipRole(e.target.value)}
           className={cn(
             'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-            'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+            'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
           )}
         >
           <option value="">None</option>
@@ -498,8 +498,8 @@ function EditPlayerForm({
           disabled={isSubmitting}
           className={cn(
             'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold',
-            'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-            'hover:shadow-lg hover:shadow-gold-500/20 transition-all',
+            'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+            'hover:shadow-lg hover:shadow-rink-500/20 transition-all',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
         >

@@ -96,7 +96,7 @@ export default async function SeasonDetailPage({ params }: PageProps) {
         <div className="mb-8">
           <Link
             href={`/dashboard/leagues/${leagueId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to {season.league?.name || 'League'}
@@ -107,7 +107,7 @@ export default async function SeasonDetailPage({ params }: PageProps) {
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center"
                 style={{
-                  backgroundColor: season.league?.primary_color || '#D4AF37',
+                  backgroundColor: season.league?.primary_color || '#22D3EE',
                 }}
               >
                 <Calendar className="w-8 h-8 text-white" />
@@ -163,32 +163,32 @@ export default async function SeasonDetailPage({ params }: PageProps) {
 
         {/* Quick Stats */}
         <div className="grid gap-4 md:grid-cols-4 mb-8">
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
-              <Users className="w-5 h-5 text-gold-500" />
+              <Users className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Teams</span>
             </div>
             <p className="text-2xl font-bold text-white">{teamsCount || 0}</p>
           </div>
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
-              <Play className="w-5 h-5 text-gold-500" />
+              <Play className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Games</span>
             </div>
             <p className="text-2xl font-bold text-white">{gamesCount || 0}</p>
           </div>
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
-              <UserPlus className="w-5 h-5 text-gold-500" />
+              <UserPlus className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Registrations</span>
             </div>
             <p className="text-2xl font-bold text-white">
               {registrationsCount || 0}
             </p>
           </div>
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
-              <BarChart3 className="w-5 h-5 text-gold-500" />
+              <BarChart3 className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Schedule</span>
             </div>
             <p className="text-lg font-bold text-white">
@@ -229,7 +229,7 @@ export default async function SeasonDetailPage({ params }: PageProps) {
             description="Manage player and team registrations"
             badge={
               registrationsCount ? (
-                <span className="text-xs text-gold-400">
+                <span className="text-xs text-rink-400">
                   {registrationsCount} pending
                 </span>
               ) : null
@@ -256,7 +256,7 @@ export default async function SeasonDetailPage({ params }: PageProps) {
         </div>
 
         {/* Season Details */}
-        <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-6">
+        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
           <h2 className="text-lg font-bold text-white mb-4">Season Details</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <DetailItem
@@ -308,16 +308,16 @@ function ActionCard({
       href={href}
       className={cn(
         'flex items-start gap-4 p-5 rounded-2xl transition-all duration-200',
-        'bg-neutral-900 border border-gold-500/20 hover:border-gold-500/40',
+        'bg-white/[0.04] border border-white/10 backdrop-blur-xl hover:border-white/20',
         'group'
       )}
     >
-      <div className="p-3 rounded-xl bg-gold-500/10 text-gold-500 group-hover:scale-110 transition-transform">
+      <div className="p-3 rounded-xl bg-rink-500/10 text-rink-500 group-hover:scale-110 transition-transform">
         {icon}
       </div>
       <div className="flex-1">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-white group-hover:text-gold-500 transition-colors">
+          <h3 className="font-semibold text-white group-hover:text-rink-500 transition-colors">
             {title}
           </h3>
           {badge}

@@ -85,7 +85,7 @@ export function PointsConfigModal({ config, onSave, onClose }: PointsConfigModal
               max={10}
               value={pointsWin}
               onChange={(e) => setPointsWin(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
             />
           </div>
 
@@ -100,7 +100,7 @@ export function PointsConfigModal({ config, onSave, onClose }: PointsConfigModal
               max={10}
               value={pointsLoss}
               onChange={(e) => setPointsLoss(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
             />
           </div>
 
@@ -115,7 +115,7 @@ export function PointsConfigModal({ config, onSave, onClose }: PointsConfigModal
               max={10}
               value={pointsTie}
               onChange={(e) => setPointsTie(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
             />
           </div>
 
@@ -130,7 +130,7 @@ export function PointsConfigModal({ config, onSave, onClose }: PointsConfigModal
               max={32}
               value={playoffTeams}
               onChange={(e) => setPlayoffTeams(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
             />
             <p className="text-xs text-neutral-500 mt-1">
               Teams in the top {playoffTeams} will be highlighted as playoff teams.
@@ -176,7 +176,7 @@ export function PointsConfigModal({ config, onSave, onClose }: PointsConfigModal
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-600 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               {isSaving ? 'Saving...' : 'Save Changes'}

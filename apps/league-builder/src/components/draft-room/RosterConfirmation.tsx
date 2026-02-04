@@ -19,9 +19,9 @@ import type { RosterConfirmationProps, DraftPick } from './types';
 const POSITION_COLORS: Record<string, string> = {
   G: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   D: 'bg-green-500/20 text-green-400 border-green-500/30',
-  C: 'bg-gold-500/20 text-gold-400 border-gold-500/30',
-  LW: 'bg-gold-500/20 text-gold-400 border-gold-500/30',
-  RW: 'bg-gold-500/20 text-gold-400 border-gold-500/30',
+  C: 'bg-rink-500/20 text-rink-400 border-rink-500/30',
+  LW: 'bg-rink-500/20 text-rink-400 border-rink-500/30',
+  RW: 'bg-rink-500/20 text-rink-400 border-rink-500/30',
 };
 
 const POSITION_ICONS: Record<string, typeof Shield> = {
@@ -103,15 +103,15 @@ export function RosterConfirmation({
   }
 
   return (
-    <div className="rounded-xl border border-gold-500/20 bg-neutral-900">
+    <div className="rounded-xl border border-white/10 bg-neutral-900">
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex w-full items-center justify-between p-4"
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-500/20">
-            <Users className="h-5 w-5 text-gold-500" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rink-500/20">
+            <Users className="h-5 w-5 text-rink-500" />
           </div>
           <div className="text-left">
             <h3 className="font-semibold text-white">Confirm Your Roster</h3>
@@ -187,7 +187,7 @@ export function RosterConfirmation({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any concerns or issues with your roster..."
-              className="w-full rounded-xl border border-gold-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-gold-500"
+              className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
               rows={2}
             />
           </div>
@@ -198,7 +198,7 @@ export function RosterConfirmation({
             disabled={isSubmitting}
             className={cn(
               'flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold transition-all',
-              'bg-gold-500 text-black hover:bg-gold-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]',
+              'bg-rink-500 text-black hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]',
               'disabled:cursor-not-allowed disabled:opacity-50'
             )}
           >

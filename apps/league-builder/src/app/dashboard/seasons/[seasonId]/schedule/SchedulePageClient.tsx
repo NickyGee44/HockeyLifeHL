@@ -129,7 +129,7 @@ export function SchedulePageClient({
             className={cn(
               'px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
               viewMode === 'calendar'
-                ? 'bg-gold-500/10 text-gold-500'
+                ? 'bg-rink-500/10 text-rink-500'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
             )}
           >
@@ -141,7 +141,7 @@ export function SchedulePageClient({
             className={cn(
               'px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
               viewMode === 'list'
-                ? 'bg-gold-500/10 text-gold-500'
+                ? 'bg-rink-500/10 text-rink-500'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
             )}
           >
@@ -162,7 +162,7 @@ export function SchedulePageClient({
           )}
           <button
             onClick={() => setShowWizard(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
           >
             <Plus className="w-4 h-4" />
             {hasExistingSchedule ? 'New Schedule' : 'Generate Schedule'}
@@ -181,7 +181,7 @@ export function SchedulePageClient({
           </p>
           <button
             onClick={() => setShowWizard(true)}
-            className="mt-6 px-6 py-3 bg-gold-500 text-black rounded-lg font-medium hover:bg-gold-600 transition-colors"
+            className="mt-6 px-6 py-3 bg-rink-500 text-black rounded-lg font-medium hover:bg-rink-600 transition-colors"
           >
             Generate Schedule
           </button>

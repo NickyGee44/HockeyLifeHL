@@ -44,13 +44,13 @@ export function BulkActionsBar({
         className={cn(
           'fixed bottom-6 left-1/2 -translate-x-1/2 z-50',
           'flex items-center gap-4 px-6 py-3 rounded-2xl',
-          'bg-neutral-800/95 backdrop-blur-md border border-gold-500/30',
+          'bg-neutral-800/95 backdrop-blur-md border border-rink-500/30',
           'shadow-xl shadow-black/20',
           className
         )}
       >
         <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-full bg-gold-500 text-black flex items-center justify-center font-bold text-sm">
+          <span className="w-8 h-8 rounded-full bg-rink-500 text-black flex items-center justify-center font-bold text-sm">
             {selectedCount}
           </span>
           <span className="text-neutral-300 text-sm">
@@ -58,14 +58,14 @@ export function BulkActionsBar({
           </span>
         </div>
 
-        <div className="w-px h-8 bg-gold-500/20" />
+        <div className="w-px h-8 bg-rink-500/20" />
 
         <div className="flex items-center gap-2">
           <Button
             size="sm"
             variant="outline"
             onClick={() => setShowRescheduleModal(true)}
-            className="gap-2 border-gold-500/30 text-gold-500 hover:bg-gold-500/10"
+            className="gap-2 border-rink-500/30 text-rink-500 hover:bg-rink-500/10"
           >
             <CalendarClock className="w-4 h-4" />
             Reschedule
@@ -174,7 +174,7 @@ function BulkCancelModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-neutral-800 border-gold-500/20 max-w-md">
+      <DialogContent className="bg-neutral-800 border-white/10 max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <XCircle className="w-5 h-5 text-red-500" />
@@ -196,7 +196,7 @@ function BulkCancelModal({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Enter the reason for cancellation..."
-                className="bg-neutral-900 border-gold-500/20 text-white focus:ring-gold-500 focus:border-gold-500 min-h-[80px]"
+                className="bg-neutral-900 border-white/10 text-white focus:ring-rink-500 focus:border-rink-500 min-h-[80px]"
               />
             </div>
 
@@ -253,7 +253,7 @@ function BulkCancelModal({
               </div>
             )}
             <DialogFooter>
-              <Button onClick={handleClose} className="bg-gold-500 text-black hover:bg-gold-600">
+              <Button onClick={handleClose} className="bg-rink-500 text-black hover:bg-rink-600">
                 Done
               </Button>
             </DialogFooter>
@@ -325,10 +325,10 @@ function BulkRescheduleModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-neutral-800 border-gold-500/20 max-w-md">
+      <DialogContent className="bg-neutral-800 border-white/10 max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
-            <CalendarClock className="w-5 h-5 text-gold-500" />
+            <CalendarClock className="w-5 h-5 text-rink-500" />
             Reschedule {selectedIds.length} Game{selectedIds.length !== 1 ? 's' : ''}
           </DialogTitle>
           <DialogDescription className="text-neutral-400">
@@ -348,7 +348,7 @@ function BulkRescheduleModal({
                   type="number"
                   value={dayShift}
                   onChange={(e) => setDayShift(e.target.value)}
-                  className="bg-neutral-900 border-gold-500/20 text-white text-center w-24 focus:ring-gold-500 focus:border-gold-500"
+                  className="bg-neutral-900 border-white/10 text-white text-center w-24 focus:ring-rink-500 focus:border-rink-500"
                 />
                 <span className="text-neutral-400 text-sm">
                   {parseInt(dayShift) > 0 ? 'days later' : parseInt(dayShift) < 0 ? 'days earlier' : 'days'}
@@ -368,8 +368,8 @@ function BulkRescheduleModal({
                   className={cn(
                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                     dayShift === days.toString()
-                      ? 'bg-gold-500/20 text-gold-500 border border-gold-500/40'
-                      : 'bg-neutral-900 text-neutral-400 border border-gold-500/10 hover:border-gold-500/30'
+                      ? 'bg-rink-500/20 text-rink-500 border border-rink-500/40'
+                      : 'bg-neutral-900 text-neutral-400 border border-white/[0.06] hover:border-rink-500/30'
                   )}
                 >
                   {days > 0 ? `+${days}` : days} day{Math.abs(days) !== 1 ? 's' : ''}
@@ -377,8 +377,8 @@ function BulkRescheduleModal({
               ))}
             </div>
 
-            <div className="p-3 rounded-lg bg-gold-500/5 border border-gold-500/20">
-              <p className="text-xs text-gold-400">
+            <div className="p-3 rounded-lg bg-rink-500/5 border border-white/10">
+              <p className="text-xs text-rink-400">
                 All games will be marked as rescheduled and their original dates will be preserved.
               </p>
             </div>
@@ -396,7 +396,7 @@ function BulkRescheduleModal({
               <Button
                 type="submit"
                 disabled={loading || !dayShift || parseInt(dayShift) === 0}
-                className="bg-gradient-to-r from-gold-500 to-gold-600 text-black hover:shadow-lg hover:shadow-gold-500/20"
+                className="bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20"
               >
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Reschedule Games
@@ -427,7 +427,7 @@ function BulkRescheduleModal({
               </div>
             )}
             <DialogFooter>
-              <Button onClick={handleClose} className="bg-gold-500 text-black hover:bg-gold-600">
+              <Button onClick={handleClose} className="bg-rink-500 text-black hover:bg-rink-600">
                 Done
               </Button>
             </DialogFooter>

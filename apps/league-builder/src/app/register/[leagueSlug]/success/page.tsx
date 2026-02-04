@@ -14,7 +14,7 @@ export default function RegistrationSuccessPage({
     <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
         {/* Success Card */}
-        <div className="bg-neutral-900 rounded-2xl border border-gold-500/30 p-8 text-center">
+        <div className="bg-neutral-900 rounded-2xl border border-rink-500/30 p-8 text-center">
           {/* Success Icon */}
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
             <Check className="w-10 h-10 text-green-400" />
@@ -76,7 +76,7 @@ export default function RegistrationSuccessPage({
           <div className="space-y-3">
             <Link
               href="/dashboard"
-              className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-lg bg-gold-500 text-black font-semibold hover:bg-gold-400 transition-colors"
+              className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-lg bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
             >
               Go to Dashboard
               <ArrowRight className="w-4 h-4" />

@@ -55,7 +55,7 @@ export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout }: PickCloc
       className={cn(
         'relative flex flex-col items-center justify-center rounded-2xl p-6 transition-all duration-300',
         isPaused && 'bg-muted/50',
-        !isPaused && isMyPick && 'bg-gold-500/10 ring-2 ring-gold-500',
+        !isPaused && isMyPick && 'bg-rink-500/10 ring-2 ring-rink-500',
         !isPaused && !isMyPick && 'bg-card',
         isUrgent && !isPaused && 'animate-pulse bg-red-500/20 ring-red-500'
       )}
@@ -78,7 +78,7 @@ export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout }: PickCloc
             r="56"
             className={cn(
               'fill-none transition-all duration-100',
-              isUrgent ? 'stroke-red-500' : isWarning ? 'stroke-yellow-500' : 'stroke-gold-500'
+              isUrgent ? 'stroke-red-500' : isWarning ? 'stroke-yellow-500' : 'stroke-rink-500'
             )}
             strokeWidth="8"
             strokeDasharray={`${2 * Math.PI * 56}`}
@@ -105,7 +105,7 @@ export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout }: PickCloc
       {/* Status text */}
       <div className="mt-4 text-center">
         {isMyPick && !isPaused && (
-          <p className="text-sm font-medium text-gold-500">Your Pick!</p>
+          <p className="text-sm font-medium text-rink-500">Your Pick!</p>
         )}
         {!isMyPick && !isPaused && (
           <p className="text-sm text-muted-foreground">Waiting...</p>

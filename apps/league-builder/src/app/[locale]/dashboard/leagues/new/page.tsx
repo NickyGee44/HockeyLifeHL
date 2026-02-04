@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { getDraft } from '@/lib/actions/league-wizard';
+import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 import { WizardContainer } from '@/components/league-wizard/wizard-container';
 import { WizardStep } from '@/components/ui/wizard/wizard-steps';
 import { Step1LeagueInfo } from '@/components/league-wizard/steps/step-1-league-info';
@@ -13,7 +14,7 @@ import { Step6WebsiteBranding } from '@/components/league-wizard/steps/step-6-we
 import { Step7Review } from '@/components/league-wizard/steps/step-7-review';
 
 export const metadata = {
-  title: 'Create New League | HockeyLifeHL',
+  title: 'Create New League | Beer League Hockey',
   description: 'Create a new hockey league with our easy step-by-step wizard',
 };
 
@@ -56,6 +57,9 @@ export default async function NewLeaguePage({ params, searchParams }: PageProps)
   const draftResult = await getDraft();
   const draftData = draftResult.success ? draftResult.data : null;
 
+  // Load platform fee config
+  const feeConfig = await getPlatformFeeConfig();
+
   // Get current step from URL (default to 1)
   const currentStepParam = resolvedSearchParams.step;
   const currentStep = currentStepParam ? parseInt(currentStepParam, 10) : 1;
@@ -80,7 +84,7 @@ export default async function NewLeaguePage({ params, searchParams }: PageProps)
         </WizardStep>
 
         <WizardStep step={5} isActive={currentStep === 5}>
-          <Step5PaymentSetup />
+          <Step5PaymentSetup platformFeePercent={feeConfig.processingFeePercent} />
         </WizardStep>
 
         <WizardStep step={6} isActive={currentStep === 6}>

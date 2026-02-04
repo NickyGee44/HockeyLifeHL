@@ -155,7 +155,7 @@ export function ScheduleWizard({
                     <div
                       className={cn(
                         'w-8 h-0.5 mx-2',
-                        isCompleted ? 'bg-gold-500' : 'bg-neutral-700'
+                        isCompleted ? 'bg-rink-500' : 'bg-neutral-700'
                       )}
                     />
                   )}
@@ -164,16 +164,16 @@ export function ScheduleWizard({
                     disabled={index > currentStepIndex}
                     className={cn(
                       'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      isCurrent && 'bg-gold-500/10 text-gold-500 ring-1 ring-gold-500/30',
-                      isCompleted && !isCurrent && 'text-gold-500 hover:bg-neutral-800',
+                      isCurrent && 'bg-rink-500/10 text-rink-500 ring-1 ring-rink-500/30',
+                      isCompleted && !isCurrent && 'text-rink-500 hover:bg-neutral-800',
                       !isCurrent && !isCompleted && 'text-neutral-500 cursor-not-allowed'
                     )}
                   >
                     <span
                       className={cn(
                         'flex items-center justify-center w-6 h-6 rounded-full text-xs',
-                        isCurrent && 'bg-gold-500 text-black',
-                        isCompleted && !isCurrent && 'bg-gold-500/20 text-gold-500',
+                        isCurrent && 'bg-rink-500 text-black',
+                        isCompleted && !isCurrent && 'bg-rink-500/20 text-rink-500',
                         !isCurrent && !isCompleted && 'bg-neutral-700 text-neutral-400'
                       )}
                     >
@@ -271,7 +271,7 @@ export function ScheduleWizard({
           {currentStep !== 'result' && currentStep !== 'preview' && (
             <button
               onClick={goToNext}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
             >
               Next
               <ArrowRight className="w-4 h-4" />
@@ -284,7 +284,7 @@ export function ScheduleWizard({
                 setIsGenerating(true);
                 // The PreviewStep will handle the actual generation
               }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
             >
               {isGenerating ? (
                 <>
@@ -303,7 +303,7 @@ export function ScheduleWizard({
           {currentStep === 'result' && generationResult?.success && (
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
             >
               <Check className="w-4 h-4" />
               Save Schedule

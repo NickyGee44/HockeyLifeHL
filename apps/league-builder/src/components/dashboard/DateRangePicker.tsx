@@ -60,13 +60,13 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-          'bg-neutral-900 border border-gold-500/20',
+          'bg-white/[0.04] border border-white/10 backdrop-blur-xl',
           'text-white font-medium text-sm',
-          'hover:border-gold-500/40 transition-all',
-          'focus:outline-none focus:ring-2 focus:ring-gold-500/50'
+          'hover:border-white/20 transition-all',
+          'focus:outline-none focus:ring-2 focus:ring-rink-500/50'
         )}
       >
-        <CalendarIcon className="w-4 h-4 text-gold-500" />
+        <CalendarIcon className="w-4 h-4 text-rink-500" />
         <span>
           {value.label || `${formatDisplayDate(value.start)} - ${formatDisplayDate(value.end)}`}
         </span>
@@ -92,7 +92,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
             className={cn(
               'absolute right-0 top-full mt-2 z-50',
               'w-80 p-4 rounded-xl',
-              'bg-neutral-900 border border-gold-500/20',
+              'bg-white/[0.04] border border-white/10 backdrop-blur-xl',
               'shadow-lg shadow-black/50'
             )}
           >
@@ -110,7 +110,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                       'px-3 py-2 rounded-lg text-sm font-medium transition-all',
                       'border border-transparent',
                       value.label === preset.label
-                        ? 'bg-gold-500/20 text-gold-400 border-gold-500/40'
+                        ? 'bg-rink-500/20 text-rink-400 border-rink-500/40'
                         : 'text-neutral-300 hover:bg-neutral-800 hover:text-white'
                     )}
                   >
@@ -139,7 +139,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                       'w-full px-3 py-2 rounded-lg text-sm',
                       'bg-neutral-950 border border-neutral-700',
                       'text-white',
-                      'focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500'
+                      'focus:outline-none focus:border-rink-500 focus:ring-1 focus:ring-rink-500'
                     )}
                   />
                 </div>
@@ -153,7 +153,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                       'w-full px-3 py-2 rounded-lg text-sm',
                       'bg-neutral-950 border border-neutral-700',
                       'text-white',
-                      'focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500'
+                      'focus:outline-none focus:border-rink-500 focus:ring-1 focus:ring-rink-500'
                     )}
                   />
                 </div>
@@ -162,8 +162,8 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                 onClick={handleCustomApply}
                 className={cn(
                   'w-full py-2 rounded-lg font-semibold text-sm',
-                  'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                  'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                  'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                  'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
                 )}
               >
                 Apply Custom Range

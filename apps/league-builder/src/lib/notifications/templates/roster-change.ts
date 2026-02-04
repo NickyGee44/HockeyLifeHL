@@ -30,7 +30,7 @@ export function getRosterChangeEmail(props: RosterChangeEmailProps): string {
     reason,
     dashboardUrl,
     unsubscribeUrl,
-    leagueName = 'HockeyLifeHL',
+    leagueName = 'Beer League Hockey',
   } = props;
 
   const isAdded = changeType === 'added';

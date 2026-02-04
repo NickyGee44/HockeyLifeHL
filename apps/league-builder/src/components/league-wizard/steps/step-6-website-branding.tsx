@@ -65,7 +65,7 @@ export function Step6WebsiteBranding() {
 
   // Watch relevant fields
   const leagueName = watch('name') || '';
-  const primaryColor = watch('primary_color') || '#D4AF37';
+  const primaryColor = watch('primary_color') || '#22D3EE';
   const secondaryColor = watch('secondary_color') || '#1a1a1a';
   const isPublic = watch('isPublic') ?? true;
   const themePreset = watch('themePreset') || 'dark';
@@ -88,11 +88,11 @@ export function Step6WebsiteBranding() {
     >
       <div className="space-y-6">
         {/* Subdomain Preview Section */}
-        <Card className="bg-neutral-800/50 border-gold-500/20">
+        <Card className="bg-neutral-800/50 border-white/10">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3 mb-4">
-              <div className="bg-gold-500/10 p-2 rounded-lg">
-                <Globe className="h-5 w-5 text-gold-500" />
+              <div className="bg-rink-500/10 p-2 rounded-lg">
+                <Globe className="h-5 w-5 text-rink-500" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-lg">Your League Website</h3>
@@ -110,7 +110,7 @@ export function Step6WebsiteBranding() {
                     HTTPS
                   </div>
                   <span className="text-lg font-mono">
-                    <span className="text-gold-500">{subdomain || 'your-league'}</span>
+                    <span className="text-rink-500">{subdomain || 'your-league'}</span>
                     <span className="text-muted-foreground">.beerleaguehockey.ca</span>
                   </span>
                 </div>
@@ -120,7 +120,7 @@ export function Step6WebsiteBranding() {
                     variant="ghost"
                     size="sm"
                     onClick={() => window.open(`https://${fullDomain}`, '_blank')}
-                    className="text-muted-foreground hover:text-gold-500"
+                    className="text-muted-foreground hover:text-rink-500"
                   >
                     <ExternalLink className="h-4 w-4 mr-1" />
                     Preview
@@ -217,7 +217,7 @@ export function Step6WebsiteBranding() {
                   onClick={() => setValue('themePreset', preset.value)}
                   className={`relative p-4 rounded-lg border-2 transition-all text-left ${
                     isSelected
-                      ? 'border-gold-500 bg-gold-500/5'
+                      ? 'border-rink-500 bg-rink-500/5'
                       : 'border-neutral-700 hover:border-neutral-600'
                   }`}
                 >
@@ -244,14 +244,14 @@ export function Step6WebsiteBranding() {
                   </div>
 
                   <div className="flex items-center gap-2 mb-1">
-                    <Icon className={`h-4 w-4 ${isSelected ? 'text-gold-500' : 'text-muted-foreground'}`} />
+                    <Icon className={`h-4 w-4 ${isSelected ? 'text-rink-500' : 'text-muted-foreground'}`} />
                     <span className="font-medium">{preset.label}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">{preset.description}</p>
 
                   {/* Selection indicator */}
                   {isSelected && (
-                    <div className="absolute top-2 right-2 bg-gold-500 text-black rounded-full p-1">
+                    <div className="absolute top-2 right-2 bg-rink-500 text-black rounded-full p-1">
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path
                           fillRule="evenodd"
@@ -301,7 +301,7 @@ export function Step6WebsiteBranding() {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-2 text-lg font-semibold hover:text-gold-500 transition-colors w-full"
+            className="flex items-center gap-2 text-lg font-semibold hover:text-rink-500 transition-colors w-full"
           >
             <Sparkles className="h-5 w-5" />
             Advanced Options
@@ -441,22 +441,22 @@ export function Step6WebsiteBranding() {
         </div>
 
         {/* Custom Domain Info Card */}
-        <Card className="bg-gradient-to-r from-gold-500/10 to-gold-500/5 border-gold-500/30">
+        <Card className="bg-gradient-to-r from-rink-500/10 to-rink-500/5 border-rink-500/30">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
-              <div className="bg-gold-500/20 p-3 rounded-lg">
-                <Globe className="h-6 w-6 text-gold-500" />
+              <div className="bg-rink-500/20 p-3 rounded-lg">
+                <Globe className="h-6 w-6 text-rink-500" />
               </div>
               <div className="flex-1">
                 <h4 className="font-semibold text-lg mb-1">Want a Custom Domain?</h4>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Use your own domain like <span className="font-mono text-gold-500">yourleague.com</span> instead
+                  Use your own domain like <span className="font-mono text-rink-500">yourleague.com</span> instead
                   of the subdomain. Perfect for established leagues looking for a professional presence.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <a
                     href="mailto:support@beerleaguehockey.ca?subject=Custom%20Domain%20Setup%20Request"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-gold-500 hover:text-gold-400 transition-colors"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-rink-500 hover:text-rink-400 transition-colors"
                   >
                     <Mail className="h-4 w-4" />
                     Contact us for custom domain setup

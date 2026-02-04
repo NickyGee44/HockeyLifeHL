@@ -79,7 +79,7 @@ export function DivisionTabs({
             className={cn(
               'px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
               activeTab === division.divisionId
-                ? 'bg-gold-500 text-black'
+                ? 'bg-rink-500 text-black'
                 : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
             )}
           >

@@ -38,7 +38,7 @@ export function getLeagueAnnouncementEmail(props: LeagueAnnouncementEmailProps):
     attachmentUrl,
     dashboardUrl,
     unsubscribeUrl,
-    leagueName = 'HockeyLifeHL',
+    leagueName = 'Beer League Hockey',
   } = props;
 
   const priorityBadge = {
@@ -65,7 +65,7 @@ export function getLeagueAnnouncementEmail(props: LeagueAnnouncementEmailProps):
       border-radius: 12px;
       padding: 24px;
       margin: 24px 0;
-      border-left: 4px solid ${priority === 'urgent' ? '#ef4444' : priority === 'high' ? '#eab308' : '#D4AF37'};
+      border-left: 4px solid ${priority === 'urgent' ? '#ef4444' : priority === 'high' ? '#eab308' : '#22D3EE'};
     ">
       <p style="color: #fafafa; margin: 0;">
         ${formattedContent}
@@ -84,7 +84,7 @@ export function getLeagueAnnouncementEmail(props: LeagueAnnouncementEmailProps):
       <span style="font-size: 24px; margin-right: 12px;">📎</span>
       <div>
         <p style="margin: 0; color: #fafafa; font-weight: 500;">Attachment</p>
-        <a href="${attachmentUrl}" style="color: #D4AF37; text-decoration: none; font-size: 14px;">
+        <a href="${attachmentUrl}" style="color: #22D3EE; text-decoration: none; font-size: 14px;">
           ${attachmentName} &rarr;
         </a>
       </div>

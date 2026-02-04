@@ -64,9 +64,9 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
       )}
 
       {/* Season Name */}
-      <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-6 space-y-4">
+      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-6 space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-gold-500" />
+          <Calendar className="w-5 h-5 text-rink-500" />
           Season Information
         </h2>
 
@@ -83,7 +83,7 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
             className={cn(
               'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
               'text-white placeholder-neutral-500',
-              'focus:border-gold-500 focus:outline-none focus:ring-1 focus:ring-gold-500'
+              'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
             )}
           />
         </div>
@@ -101,7 +101,7 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
               className={cn(
                 'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
                 'text-white placeholder-neutral-500',
-                'focus:border-gold-500 focus:outline-none focus:ring-1 focus:ring-gold-500'
+                'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
               )}
             />
           </div>
@@ -117,7 +117,7 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
               className={cn(
                 'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
                 'text-white placeholder-neutral-500',
-                'focus:border-gold-500 focus:outline-none focus:ring-1 focus:ring-gold-500'
+                'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
               )}
             />
           </div>
@@ -125,7 +125,7 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
       </div>
 
       {/* Registration Settings */}
-      <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-6 space-y-4">
+      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-6 space-y-4">
         <h2 className="text-lg font-semibold text-white">Registration Settings</h2>
 
         <div>
@@ -143,7 +143,7 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
             className={cn(
               'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
               'text-white',
-              'focus:border-gold-500 focus:outline-none focus:ring-1 focus:ring-gold-500'
+              'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
             )}
           >
             <option value="open_registration">Open Registration</option>
@@ -174,7 +174,7 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
               className={cn(
                 'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
                 'text-white placeholder-neutral-500',
-                'focus:border-gold-500 focus:outline-none focus:ring-1 focus:ring-gold-500'
+                'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
               )}
             />
           </div>
@@ -195,7 +195,7 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
               className={cn(
                 'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
                 'text-white placeholder-neutral-500',
-                'focus:border-gold-500 focus:outline-none focus:ring-1 focus:ring-gold-500'
+                'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
               )}
             />
           </div>
@@ -234,8 +234,8 @@ export function NewSeasonForm({ leagueId }: NewSeasonFormProps) {
           disabled={isSubmitting}
           className={cn(
             'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-            'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-            'hover:shadow-lg hover:shadow-gold-500/20 transition-all',
+            'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+            'hover:shadow-lg hover:shadow-rink-500/20 transition-all',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
         >

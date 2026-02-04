@@ -35,11 +35,11 @@ export function getCaptainInviteEmail(props: CaptainInviteEmailProps): string {
       'Handle team scheduling and logistics',
     ],
     unsubscribeUrl,
-    leagueName = 'HockeyLifeHL',
+    leagueName = 'Beer League Hockey',
   } = props;
 
   const details = [
-    { label: 'Team', value: `<strong style="color: #D4AF37;">${teamName}</strong>` },
+    { label: 'Team', value: `<strong style="color: #22D3EE;">${teamName}</strong>` },
     { label: 'Season', value: seasonName },
     { label: 'Invited by', value: invitedByName },
   ];
@@ -83,7 +83,7 @@ export function getCaptainInviteEmail(props: CaptainInviteEmailProps): string {
     <div style="text-align: center; margin: 32px 0;">
       <a href="${acceptUrl}" style="
         display: inline-block;
-        background: linear-gradient(135deg, #D4AF37 0%, #9A7B00 100%);
+        background: linear-gradient(135deg, #22D3EE 0%, #0891b2 100%);
         color: #0a0a0a !important;
         font-weight: 600;
         font-size: 16px;
@@ -96,7 +96,7 @@ export function getCaptainInviteEmail(props: CaptainInviteEmailProps): string {
         display: inline-block;
         background: transparent;
         border: 1px solid rgba(212, 175, 55, 0.5);
-        color: #D4AF37 !important;
+        color: #22D3EE !important;
         font-weight: 600;
         font-size: 16px;
         text-decoration: none;

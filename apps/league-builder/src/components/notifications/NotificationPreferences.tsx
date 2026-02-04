@@ -180,7 +180,7 @@ export function NotificationPreferences() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -210,7 +210,7 @@ export function NotificationPreferences() {
           className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.2)] rounded-xl p-6"
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#D4AF37]">
+            <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#22D3EE]">
               {section.icon}
             </div>
             <div>
@@ -242,7 +242,7 @@ export function NotificationPreferences() {
                     disabled={isDisabled}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       preferences[pref.key]
-                        ? 'bg-[#D4AF37]'
+                        ? 'bg-[#22D3EE]'
                         : 'bg-[#404040]'
                     } ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                     role="switch"
@@ -264,7 +264,7 @@ export function NotificationPreferences() {
       {/* Quiet Hours */}
       <div className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.2)] rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#D4AF37]">
+          <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#22D3EE]">
             <Moon className="h-5 w-5" />
           </div>
           <div>
@@ -282,7 +282,7 @@ export function NotificationPreferences() {
             <button
               onClick={handleQuietHoursToggle}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                quietHours.enabled ? 'bg-[#D4AF37]' : 'bg-[#404040]'
+                quietHours.enabled ? 'bg-[#22D3EE]' : 'bg-[#404040]'
               }`}
               role="switch"
               aria-checked={quietHours.enabled}
@@ -303,7 +303,7 @@ export function NotificationPreferences() {
                   type="time"
                   value={quietHours.start}
                   onChange={(e) => handleQuietHoursChange('start', e.target.value)}
-                  className="bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
+                  className="bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
                 />
               </div>
               <div className="text-[#737373] pt-6">to</div>
@@ -313,7 +313,7 @@ export function NotificationPreferences() {
                   type="time"
                   value={quietHours.end}
                   onChange={(e) => handleQuietHoursChange('end', e.target.value)}
-                  className="bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
+                  className="bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
                 />
               </div>
             </div>
@@ -324,7 +324,7 @@ export function NotificationPreferences() {
       {/* Timezone */}
       <div className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.2)] rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#D4AF37]">
+          <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#22D3EE]">
             <Bell className="h-5 w-5" />
           </div>
           <div>
@@ -339,7 +339,7 @@ export function NotificationPreferences() {
             setTimezone(e.target.value);
             await savePreferences({ timezone: e.target.value });
           }}
-          className="w-full bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-4 py-3 text-white focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
+          className="w-full bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-4 py-3 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
         >
           <option value="America/Toronto">Eastern Time (Toronto)</option>
           <option value="America/Chicago">Central Time (Chicago)</option>

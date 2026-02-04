@@ -69,7 +69,7 @@ export function PlayerPool({
             placeholder="Search players..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500"
+            className="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-rink-500"
           />
         </div>
       </div>
@@ -85,7 +85,7 @@ export function PlayerPool({
               className={cn(
                 'rounded-md px-2 py-1 text-xs font-medium transition-colors',
                 positionFilter === pos
-                  ? 'bg-gold-500 text-black'
+                  ? 'bg-rink-500 text-black'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               )}
             >
@@ -108,7 +108,7 @@ export function PlayerPool({
             className={cn(
               'rounded-md px-2 py-1 text-xs font-medium transition-colors',
               skillFilter === skill
-                ? 'bg-gold-500 text-black'
+                ? 'bg-rink-500 text-black'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             )}
           >
@@ -121,7 +121,7 @@ export function PlayerPool({
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center p-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold-500 border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-rink-500 border-t-transparent" />
           </div>
         ) : filteredPlayers.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -140,7 +140,7 @@ export function PlayerPool({
                     canPick && 'hover:bg-muted/50',
                     !canPick && 'cursor-not-allowed opacity-50',
                     selectedPlayerId === player.player_id &&
-                      'bg-gold-500/10 ring-1 ring-inset ring-gold-500'
+                      'bg-rink-500/10 ring-1 ring-inset ring-rink-500'
                   )}
                 >
                   <div className="flex items-center justify-between">
@@ -153,7 +153,7 @@ export function PlayerPool({
                             ? 'bg-blue-500/20 text-blue-500'
                             : player.player_position === 'D'
                               ? 'bg-green-500/20 text-green-500'
-                              : 'bg-gold-500/20 text-gold-500'
+                              : 'bg-rink-500/20 text-rink-500'
                         )}
                       >
                         {player.player_position || '?'}

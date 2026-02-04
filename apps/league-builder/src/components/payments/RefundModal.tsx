@@ -126,7 +126,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-2xl">
+      <div className="relative w-full max-w-lg mx-4 bg-neutral-800 border border-white/10 rounded-2xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-neutral-700">
           <div className="flex items-center gap-3">
@@ -153,8 +153,8 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
             {/* Payment Info */}
             <div className="bg-neutral-900/50 border border-neutral-700 rounded-xl p-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gold-500/10 rounded-full flex items-center justify-center">
-                  <User className="h-5 w-5 text-gold-500" />
+                <div className="w-10 h-10 bg-rink-500/10 rounded-full flex items-center justify-center">
+                  <User className="h-5 w-5 text-rink-500" />
                 </div>
                 <div>
                   <p className="font-medium text-white">{payment.player.full_name}</p>
@@ -186,13 +186,13 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                   onClick={() => setRefundType('full')}
                   className={`p-4 rounded-xl border text-left transition-all ${
                     refundType === 'full'
-                      ? 'bg-gold-500/10 border-gold-500/50'
-                      : 'bg-neutral-900/50 border-neutral-700 hover:border-gold-500/30'
+                      ? 'bg-rink-500/10 border-rink-500/50'
+                      : 'bg-neutral-900/50 border-neutral-700 hover:border-rink-500/30'
                   }`}
                 >
                   <p
                     className={`font-medium ${
-                      refundType === 'full' ? 'text-gold-500' : 'text-neutral-300'
+                      refundType === 'full' ? 'text-rink-500' : 'text-neutral-300'
                     }`}
                   >
                     Full Refund
@@ -207,13 +207,13 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                   onClick={() => setRefundType('partial')}
                   className={`p-4 rounded-xl border text-left transition-all ${
                     refundType === 'partial'
-                      ? 'bg-gold-500/10 border-gold-500/50'
-                      : 'bg-neutral-900/50 border-neutral-700 hover:border-gold-500/30'
+                      ? 'bg-rink-500/10 border-rink-500/50'
+                      : 'bg-neutral-900/50 border-neutral-700 hover:border-rink-500/30'
                   }`}
                 >
                   <p
                     className={`font-medium ${
-                      refundType === 'partial' ? 'text-gold-500' : 'text-neutral-300'
+                      refundType === 'partial' ? 'text-rink-500' : 'text-neutral-300'
                     }`}
                   >
                     Partial Refund
@@ -245,7 +245,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                     max={maxRefundDollars}
                     step="0.01"
                     placeholder="0.00"
-                    className="w-full pl-8 pr-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+                    className="w-full pl-8 pr-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
                   />
                 </div>
                 <p className="mt-1 text-xs text-neutral-500">
@@ -267,15 +267,15 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                     onClick={() => setReason(option.value)}
                     className={`w-full p-3 rounded-xl border text-left transition-all ${
                       reason === option.value
-                        ? 'bg-gold-500/10 border-gold-500/50'
-                        : 'bg-neutral-900/50 border-neutral-700 hover:border-gold-500/30'
+                        ? 'bg-rink-500/10 border-rink-500/50'
+                        : 'bg-neutral-900/50 border-neutral-700 hover:border-rink-500/30'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
                         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                           reason === option.value
-                            ? 'border-gold-500 bg-gold-500'
+                            ? 'border-rink-500 bg-rink-500'
                             : 'border-neutral-500'
                         }`}
                       >
@@ -287,7 +287,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                         <p
                           className={`font-medium ${
                             reason === option.value
-                              ? 'text-gold-500'
+                              ? 'text-rink-500'
                               : 'text-neutral-300'
                           }`}
                         >
@@ -315,7 +315,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 placeholder="Additional notes for the refund record..."
-                className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all resize-none"
+                className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all resize-none"
               />
             </div>
 

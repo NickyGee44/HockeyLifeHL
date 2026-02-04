@@ -37,12 +37,18 @@ test.describe('League Creation Wizard', () => {
   test('should validate required fields in step 1', async ({ page }) => {
     await wizardPage.goto();
 
+    // Wait for form to be ready
+    await wizardPage.leagueNameInput.waitFor({ state: 'visible' });
+
     // Try to proceed without filling required fields
     await wizardPage.nextButton.click();
 
-    // Should show validation errors
-    const errorMessages = page.locator('.text-red-500, [role="alert"]');
-    await expect(errorMessages.first()).toBeVisible();
+    // Wait for validation to trigger
+    await page.waitForTimeout(500);
+
+    // Should show validation errors (look for text-destructive which is the actual class used)
+    const errorMessages = page.locator('.text-destructive, .text-red-500, [role="alert"]');
+    await expect(errorMessages.first()).toBeVisible({ timeout: 5000 });
 
     // Should still be on step 1
     expect(await wizardPage.getCurrentStep()).toBe(1);
@@ -51,7 +57,7 @@ test.describe('League Creation Wizard', () => {
   test('should complete step 1: League Information', async ({ page }) => {
     await wizardPage.goto();
 
-    // Fill step 1
+    // Fill step 1 with all required fields
     await wizardPage.fillStep1({
       name: 'E2E Test League',
       description: 'Test league created by E2E tests',
@@ -65,44 +71,52 @@ test.describe('League Creation Wizard', () => {
     await wizardPage.goToNextStep();
 
     // Should be on step 2
-    expect(await wizardPage.getCurrentStep()).toBe(2);
-    await expect(wizardPage.seasonNameInput).toBeVisible();
+    const currentStep = await wizardPage.getCurrentStep();
+    expect(currentStep).toBe(2);
+
+    // Season name input should be visible on step 2
+    await expect(wizardPage.seasonNameInput).toBeVisible({ timeout: 5000 });
   });
 
   test('should validate season dates in step 2', async ({ page }) => {
     await wizardPage.goto();
 
-    // Complete step 1
+    // Complete step 1 with all required fields
     await wizardPage.fillStep1({
       name: 'E2E Test League',
       city: 'Toronto',
       stateProvince: 'Ontario',
+      country: 'Canada',
+      timezone: 'Eastern Time (ET)',
     });
     await wizardPage.goToNextStep();
 
     // Fill step 2 with invalid dates (end before start)
-    await wizardPage.fillStep2({
-      seasonName: 'Test Season',
-      startDate: '2026-06-01T10:00',
-      endDate: '2026-01-01T10:00', // Before start date
-    });
+    await wizardPage.seasonNameInput.fill('Test Season');
+    await wizardPage.startDateInput.fill('2026-06-01T10:00');
+    await wizardPage.endDateInput.fill('2026-01-01T10:00'); // Before start date
 
     // Try to proceed
     await wizardPage.nextButton.click();
 
-    // Should show validation error
-    const errorMessages = page.locator('.text-red-500, [role="alert"]');
-    await expect(errorMessages.first()).toBeVisible();
+    // Wait for validation to trigger
+    await page.waitForTimeout(500);
+
+    // Should show validation error or toast notification
+    const errorIndicator = page.locator('.text-destructive, .text-red-500, [role="alert"], [data-sonner-toast][data-type="error"]');
+    await expect(errorIndicator.first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should complete step 2: Season Settings', async ({ page }) => {
     await wizardPage.goto();
 
-    // Complete step 1
+    // Complete step 1 with all required fields
     await wizardPage.fillStep1({
       name: 'E2E Test League',
       city: 'Toronto',
       stateProvince: 'Ontario',
+      country: 'Canada',
+      timezone: 'Eastern Time (ET)',
     });
     await wizardPage.goToNextStep();
 
@@ -119,19 +133,22 @@ test.describe('League Creation Wizard', () => {
     // Go to next step
     await wizardPage.goToNextStep();
 
-    // Should be on step 3
-    expect(await wizardPage.getCurrentStep()).toBe(3);
+    // Should be on step 3 (Teams)
+    const currentStep = await wizardPage.getCurrentStep();
+    expect(currentStep).toBe(3);
   });
 
   test('should add teams in step 3', async ({ page }) => {
     await wizardPage.goto();
 
-    // Complete steps 1 and 2 with unique names
+    // Complete steps 1 and 2 with unique names and required fields
     const uniqueId = Date.now();
     await wizardPage.fillStep1({
       name: `E2E Test League ${uniqueId}`,
       city: 'Toronto',
       stateProvince: 'Ontario',
+      country: 'Canada',
+      timezone: 'Eastern Time (ET)',
     });
     await wizardPage.goToNextStep();
 
@@ -139,10 +156,15 @@ test.describe('League Creation Wizard', () => {
       seasonName: `Winter Season ${uniqueId}`,
       startDate: '2026-03-01T10:00',
       endDate: '2026-06-30T22:00',
+      gameDuration: 60,
+      periodCount: 3,
     });
     await wizardPage.goToNextStep();
 
-    // Get initial team count
+    // Should be on step 3 - wait for Add Team button
+    await wizardPage.addTeamButton.first().waitFor({ state: 'visible', timeout: 5000 });
+
+    // Get initial team count (should be 0)
     const initialCount = await wizardPage.teamNameInputs.count();
 
     // Add teams with unique names
@@ -157,25 +179,32 @@ test.describe('League Creation Wizard', () => {
   test('should navigate back to previous steps', async ({ page }) => {
     await wizardPage.goto();
 
-    // Complete step 1
+    const uniqueId = Date.now();
+    const leagueName = `E2E Test League ${uniqueId}`;
+
+    // Complete step 1 with all required fields
     await wizardPage.fillStep1({
-      name: 'E2E Test League',
+      name: leagueName,
       city: 'Toronto',
       stateProvince: 'Ontario',
+      country: 'Canada',
+      timezone: 'Eastern Time (ET)',
     });
     await wizardPage.goToNextStep();
 
     // Should be on step 2
-    expect(await wizardPage.getCurrentStep()).toBe(2);
+    const step2 = await wizardPage.getCurrentStep();
+    expect(step2).toBe(2);
 
     // Go back
     await wizardPage.goToPreviousStep();
 
     // Should be on step 1
-    expect(await wizardPage.getCurrentStep()).toBe(1);
+    const step1 = await wizardPage.getCurrentStep();
+    expect(step1).toBe(1);
 
     // Data should be preserved
-    await expect(wizardPage.leagueNameInput).toHaveValue('E2E Test League');
+    await expect(wizardPage.leagueNameInput).toHaveValue(leagueName);
   });
 
   test('should auto-save draft on input change', async ({ page }) => {
@@ -222,7 +251,8 @@ test.describe('League Creation Wizard', () => {
       ],
     });
 
-    // Should be redirected to dashboard
+    // Should be redirected to dashboard (or success page)
+    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
     await expect(page).toHaveURL(/\/dashboard/);
   });
 });

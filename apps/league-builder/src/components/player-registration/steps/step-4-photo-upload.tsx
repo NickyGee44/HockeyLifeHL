@@ -47,7 +47,7 @@ export function Step4PhotoUpload() {
       {/* Photo Upload Section */}
       <div className="flex flex-col items-center p-8 rounded-xl border border-neutral-700 bg-neutral-800/30">
         <div className="flex items-center gap-2 text-white mb-6">
-          <Camera className="w-5 h-5 text-gold-500" />
+          <Camera className="w-5 h-5 text-rink-500" />
           <h3 className="font-semibold">Your Photo</h3>
         </div>
 
@@ -85,8 +85,8 @@ export function Step4PhotoUpload() {
       </div>
 
       {/* Why it matters */}
-      <div className="p-4 rounded-lg border border-gold-500/30 bg-gold-500/5">
-        <h4 className="font-medium text-gold-400 mb-2">Why add a photo?</h4>
+      <div className="p-4 rounded-lg border border-rink-500/30 bg-rink-500/5">
+        <h4 className="font-medium text-rink-400 mb-2">Why add a photo?</h4>
         <p className="text-sm text-neutral-300">
           Your photo appears on team rosters, game sheets, and your public profile.
           It helps teammates and captains identify you, and makes the league

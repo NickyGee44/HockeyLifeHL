@@ -183,7 +183,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
           onClick={() => setActiveTab('users')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
             activeTab === 'users'
-              ? 'bg-gold-500/10 text-gold-500 border-b-2 border-gold-500'
+              ? 'bg-rink-500/10 text-rink-500 border-b-2 border-rink-500'
               : 'text-neutral-400 hover:text-white'
           }`}
         >
@@ -193,7 +193,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
           onClick={() => setActiveTab('requests')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors flex items-center gap-2 ${
             activeTab === 'requests'
-              ? 'bg-gold-500/10 text-gold-500 border-b-2 border-gold-500'
+              ? 'bg-rink-500/10 text-rink-500 border-b-2 border-rink-500'
               : 'text-neutral-400 hover:text-white'
           }`}
         >
@@ -217,7 +217,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search users..."
-              className="w-full pl-10 pr-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50"
+              className="w-full pl-10 pr-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50"
             />
           </div>
 
@@ -276,7 +276,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
                       <button
                         onClick={() => handlePasswordReset(user.id)}
                         disabled={actionLoading === user.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gold-500/10 text-gold-500 text-sm rounded-lg hover:bg-gold-500/20 transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rink-500/10 text-rink-500 text-sm rounded-lg hover:bg-rink-500/20 transition-colors disabled:opacity-50"
                       >
                         {actionLoading === user.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -328,7 +328,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
           {/* Request List */}
           {loadingRequests ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-gold-500" />
+              <Loader2 className="h-6 w-6 animate-spin text-rink-500" />
             </div>
           ) : recoveryRequests.length === 0 ? (
             <div className="text-center py-8 text-neutral-500">
@@ -354,7 +354,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
                           {request.status}
                         </span>
                       </div>
-                      <p className="text-sm text-gold-500">
+                      <p className="text-sm text-rink-500">
                         {TYPE_LABELS[request.recovery_type as keyof typeof TYPE_LABELS]}
                       </p>
                       <p className="text-sm text-neutral-400 mt-2 line-clamp-2">

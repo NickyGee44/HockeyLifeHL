@@ -217,7 +217,7 @@ export default function ScorekeeperGamePage() {
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col">
       {/* Header */}
-      <header className="bg-neutral-900 border-b border-gold-500/20 px-4 py-3 sticky top-0 z-40">
+      <header className="bg-neutral-900 border-b border-white/10 px-4 py-3 sticky top-0 z-40">
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.push('/scorekeeper')}
@@ -234,7 +234,7 @@ export default function ScorekeeperGamePage() {
           </div>
           <button
             onClick={() => setEntryMode('summary')}
-            className="p-2 -mr-2 text-gold-400 hover:text-gold-300 transition-colors touch-manipulation"
+            className="p-2 -mr-2 text-rink-400 hover:text-rink-300 transition-colors touch-manipulation"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -250,11 +250,11 @@ export default function ScorekeeperGamePage() {
           <div className="flex-1 text-center">
             <div
               className="w-16 h-16 mx-auto rounded-xl flex items-center justify-center mb-2"
-              style={{ backgroundColor: `${game.homeTeam.primaryColor || '#D4AF37'}20` }}
+              style={{ backgroundColor: `${game.homeTeam.primaryColor || '#22D3EE'}20` }}
             >
               <span
                 className="text-2xl font-black"
-                style={{ color: game.homeTeam.primaryColor || '#D4AF37' }}
+                style={{ color: game.homeTeam.primaryColor || '#22D3EE' }}
               >
                 {game.homeTeam.shortName?.[0] || game.homeTeam.name[0]}
               </span>
@@ -262,7 +262,7 @@ export default function ScorekeeperGamePage() {
             <p className="text-sm text-neutral-400 truncate">{game.homeTeam.name}</p>
             <p
               className="text-4xl font-black mt-1"
-              style={{ color: game.homeTeam.primaryColor || '#D4AF37' }}
+              style={{ color: game.homeTeam.primaryColor || '#22D3EE' }}
             >
               {homeGoals}
             </p>
@@ -270,7 +270,7 @@ export default function ScorekeeperGamePage() {
 
           {/* VS */}
           <div className="px-4">
-            <span className="text-gold-500 font-bold text-xl">VS</span>
+            <span className="text-rink-500 font-bold text-xl">VS</span>
           </div>
 
           {/* Away Team */}
@@ -305,7 +305,7 @@ export default function ScorekeeperGamePage() {
             onClick={() => setCurrentPeriod(period)}
             className={`flex-1 py-4 text-base font-semibold transition-all duration-200 touch-manipulation min-h-[56px]
               ${currentPeriod === period
-                ? 'bg-gold-500/10 text-gold-400 border-b-2 border-gold-500'
+                ? 'bg-rink-500/10 text-rink-400 border-b-2 border-rink-500'
                 : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50'
               }`}
           >
@@ -480,7 +480,7 @@ function EventCard({
   onUndo: () => void;
 }) {
   const isHome = event.teamId === homeTeamId;
-  const color = isHome ? (homeColor || '#D4AF37') : (awayColor || '#A3A3A3');
+  const color = isHome ? (homeColor || '#22D3EE') : (awayColor || '#A3A3A3');
 
   const getEventIcon = () => {
     switch (event.eventType) {
@@ -588,7 +588,7 @@ function LoadingState() {
   return (
     <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
       <div className="text-center">
-        <div className="w-16 h-16 border-4 border-gold-500/20 border-t-gold-500 rounded-full animate-spin mx-auto" />
+        <div className="w-16 h-16 border-4 border-white/10 border-t-rink-500 rounded-full animate-spin mx-auto" />
         <p className="text-neutral-400 mt-4">Loading game...</p>
       </div>
     </div>
@@ -609,7 +609,7 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
         <p className="text-neutral-400 mb-6">{error}</p>
         <button
           onClick={onRetry}
-          className="px-6 py-3 bg-gold-500 text-black font-semibold rounded-xl hover:bg-gold-400 transition-colors touch-manipulation min-h-[48px]"
+          className="px-6 py-3 bg-rink-500 text-black font-semibold rounded-xl hover:bg-rink-400 transition-colors touch-manipulation min-h-[48px]"
         >
           Try Again
         </button>

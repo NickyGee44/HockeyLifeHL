@@ -20,7 +20,7 @@ import { revalidatePath } from 'next/cache';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { stripe } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
-import { PLATFORM_FEE_PERCENT, calculateApplicationFee } from '@/lib/leagues/stripe-connect';
+import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
 import type {
   PlayerPayment,
   PlayerPaymentWithDetails,
@@ -261,7 +261,7 @@ export async function createPlayerPayment(
           name: profile.full_name || undefined,
           metadata: {
             player_id: params.playerId,
-            platform: 'hockeylifehl',
+            platform: 'beerleaguehockey',
           },
         },
         { idempotencyKey }
@@ -409,7 +409,7 @@ export async function createCheckoutSession(
     }
 
     // Calculate platform fee
-    const applicationFee = calculateApplicationFee(checkoutAmount);
+    const applicationFee = await calculateApplicationFee(checkoutAmount);
 
     // Idempotency key
     const idempotencyKey = generateIdempotencyKey('create_checkout', {
@@ -450,7 +450,7 @@ export async function createCheckoutSession(
             player_id: payment.player_id,
             league_id: payment.league_id,
             installment_number: (currentInstallment + 1).toString(),
-            platform: 'hockeylifehl',
+            platform: 'beerleaguehockey',
           },
         },
         success_url: params.successUrl,
@@ -666,7 +666,7 @@ export async function refundPlayerPayment(
       if (!txn.stripe_payment_intent_id) continue;
 
       const txnRefundAmount = Math.min(amountToRefund, txn.amount_cents);
-      const feeRefund = calculateApplicationFee(txnRefundAmount);
+      const feeRefund = await calculateApplicationFee(txnRefundAmount);
 
       const idempotencyKey = generateIdempotencyKey('refund_payment', {
         payment_id: params.playerPaymentId,

@@ -202,10 +202,10 @@ export function PreviewStep({
 
       {/* Generation Status */}
       {isGenerating && (
-        <div className="p-6 bg-gold-500/10 border border-gold-500/30 rounded-lg text-center">
-          <Loader2 className="w-8 h-8 text-gold-500 mx-auto mb-3 animate-spin" />
-          <p className="text-gold-400 font-medium">Generating Schedule...</p>
-          <p className="text-sm text-gold-400/80 mt-1">
+        <div className="p-6 bg-rink-500/10 border border-rink-500/30 rounded-lg text-center">
+          <Loader2 className="w-8 h-8 text-rink-500 mx-auto mb-3 animate-spin" />
+          <p className="text-rink-400 font-medium">Generating Schedule...</p>
+          <p className="text-sm text-rink-400/80 mt-1">
             This may take a few seconds depending on the number of teams and constraints.
           </p>
         </div>

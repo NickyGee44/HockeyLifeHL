@@ -1,4 +1,3 @@
-// @ts-nocheck - TODO: Fix missing league_players table reference
 /**
  * Subscription Feature Gating
  *
@@ -180,8 +179,9 @@ export async function canAddPlayer(leagueId?: string): Promise<{
   const leagueIds = leagues?.map((l) => l.id) || [];
 
   // Count total players across all organization's leagues
+  // Note: Using team_rosters table which tracks player assignments to teams
   const { count, error } = await supabase
-    .from('league_players')
+    .from('team_rosters')
     .select('*', { count: 'exact', head: true })
     .in('league_id', leagueIds);
 
@@ -336,8 +336,31 @@ function getTierLimits(tier: SubscriptionTier): {
   apiAccess: boolean;
   prioritySupport: boolean;
 } {
-  // Enterprise-only licensing: all features unlimited
-  const limits = {
+  // All tiers have unlimited features in the free-forever model
+  const limits: Record<SubscriptionTier, {
+    maxLeagues: number | 'unlimited';
+    maxPlayersTotal: number | 'unlimited';
+    maxAdmins: number | 'unlimited';
+    customBranding: boolean;
+    apiAccess: boolean;
+    prioritySupport: boolean;
+  }> = {
+    free: {
+      maxLeagues: 'unlimited' as const,
+      maxPlayersTotal: 'unlimited' as const,
+      maxAdmins: 'unlimited' as const,
+      customBranding: true,
+      apiAccess: false,
+      prioritySupport: false,
+    },
+    custom_domain: {
+      maxLeagues: 'unlimited' as const,
+      maxPlayersTotal: 'unlimited' as const,
+      maxAdmins: 'unlimited' as const,
+      customBranding: true,
+      apiAccess: false,
+      prioritySupport: false,
+    },
     enterprise: {
       maxLeagues: 'unlimited' as const,
       maxPlayersTotal: 'unlimited' as const,

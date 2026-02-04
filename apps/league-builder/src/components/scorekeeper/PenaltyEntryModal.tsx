@@ -252,7 +252,7 @@ function PlayerButton({
   onClick: () => void;
   color: string | null;
 }) {
-  const teamColor = color || '#D4AF37';
+  const teamColor = color || '#22D3EE';
 
   return (
     <button

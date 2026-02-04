@@ -14,7 +14,7 @@ import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Calendar, Plus } from 'lucide-react';
 
 export const metadata = {
-  title: 'Games | HockeyLifeHL',
+  title: 'Games | Beer League Hockey',
   description: 'Manage games for your league',
 };
 
@@ -90,7 +90,7 @@ export default async function LeagueGamesPage({ params }: PageProps) {
         <div className="mb-8">
           <Link
             href={`/dashboard/leagues/${leagueId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to {league.name}
@@ -100,7 +100,7 @@ export default async function LeagueGamesPage({ params }: PageProps) {
             <div className="flex items-center gap-4">
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: league.primary_color || '#D4AF37' }}
+                style={{ backgroundColor: league.primary_color || '#22D3EE' }}
               >
                 <Calendar className="w-6 h-6 text-white" />
               </div>
@@ -114,8 +114,8 @@ export default async function LeagueGamesPage({ params }: PageProps) {
               href={`/dashboard/leagues/${leagueId}/schedule`}
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
               )}
             >
               <Plus className="w-4 h-4" />
@@ -170,14 +170,14 @@ function StatCard({
   color: 'gold' | 'blue' | 'green' | 'red';
 }) {
   const colorClasses = {
-    gold: 'text-gold-500 bg-gold-500/10',
+    gold: 'text-rink-500 bg-rink-500/10',
     blue: 'text-blue-500 bg-blue-500/10',
     green: 'text-green-500 bg-green-500/10',
     red: 'text-red-500 bg-red-500/10',
   };
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-4">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-4">
       <p className="text-sm text-neutral-400 mb-1">{label}</p>
       <p className={cn('text-3xl font-bold', colorClasses[color].split(' ')[0])}>{value}</p>
     </div>

@@ -62,7 +62,7 @@ export function Step3SkillAssessment() {
       {/* Skill Level Section */}
       <div className="space-y-6 p-6 rounded-xl border border-neutral-700 bg-neutral-800/30">
         <div className="flex items-center gap-2 text-white mb-4">
-          <Trophy className="w-5 h-5 text-gold-500" />
+          <Trophy className="w-5 h-5 text-rink-500" />
           <h3 className="font-semibold">Skill Level</h3>
           <span className="text-xs text-red-400 ml-2">*Required</span>
         </div>
@@ -80,9 +80,9 @@ export function Step3SkillAssessment() {
                 onClick={() => setValue('skill_level', level, { shouldValidate: true })}
                 className={cn(
                   'flex flex-col text-left p-4 rounded-lg border-2 transition-all duration-200',
-                  'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-neutral-900',
+                  'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:ring-offset-2 focus:ring-offset-neutral-900',
                   isSelected
-                    ? 'border-gold-500 bg-gold-500/10'
+                    ? 'border-rink-500 bg-rink-500/10'
                     : 'border-neutral-700 hover:border-neutral-600'
                 )}
               >
@@ -90,13 +90,13 @@ export function Step3SkillAssessment() {
                   <span
                     className={cn(
                       'font-semibold',
-                      isSelected ? 'text-gold-500' : 'text-white'
+                      isSelected ? 'text-rink-500' : 'text-white'
                     )}
                   >
                     {formatSkillLevel(level)}
                   </span>
                   {isSelected && (
-                    <div className="w-2 h-2 rounded-full bg-gold-500" />
+                    <div className="w-2 h-2 rounded-full bg-rink-500" />
                   )}
                 </div>
                 <p className="text-sm text-neutral-400 mb-1">{info.description}</p>

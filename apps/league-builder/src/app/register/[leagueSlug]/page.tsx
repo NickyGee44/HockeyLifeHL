@@ -142,7 +142,7 @@ export default async function RegisterPage({
           </p>
           <a
             href="/dashboard"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-gold-500 text-black font-semibold hover:bg-gold-400 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
           >
             Return to Dashboard
           </a>
@@ -183,7 +183,7 @@ export default async function RegisterPage({
             </p>
             <a
               href="/dashboard"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-gold-500 text-black font-semibold hover:bg-gold-400 transition-colors"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
             >
               Go to Dashboard
             </a>
@@ -220,7 +220,7 @@ export default async function RegisterPage({
             </p>
             <a
               href="/dashboard"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-gold-500 text-black font-semibold hover:bg-gold-400 transition-colors"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
             >
               Go to Dashboard
             </a>
@@ -258,7 +258,7 @@ export default async function RegisterPage({
       <Suspense
         fallback={
           <div className="flex items-center justify-center min-h-screen">
-            <Loader2 className="w-8 h-8 animate-spin text-gold-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-rink-500" />
           </div>
         }
       >

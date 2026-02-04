@@ -96,11 +96,11 @@ export function SaveEntryModal({
                   >
                     <div
                       className="w-14 h-14 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${team.primaryColor || '#D4AF37'}20` }}
+                      style={{ backgroundColor: `${team.primaryColor || '#22D3EE'}20` }}
                     >
                       <span
                         className="text-2xl font-bold"
-                        style={{ color: team.primaryColor || '#D4AF37' }}
+                        style={{ color: team.primaryColor || '#22D3EE' }}
                       >
                         {goalie.jerseyNumber}
                       </span>

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Leagues | HockeyLifeHL',
+  title: 'Leagues | Beer League Hockey',
   description: 'Manage your hockey leagues',
 };
 
@@ -58,7 +58,7 @@ export default async function LeaguesPage({ params }: Props) {
           <div>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+              className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Dashboard
@@ -74,8 +74,8 @@ export default async function LeaguesPage({ params }: Props) {
             href="/dashboard/leagues/new"
             className={cn(
               'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-              'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-              'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+              'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+              'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
             )}
           >
             <Plus className="w-4 h-4" />
@@ -85,9 +85,9 @@ export default async function LeaguesPage({ params }: Props) {
 
         {/* Leagues Grid */}
         {allLeagues.length === 0 ? (
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-12 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gold-500/10 flex items-center justify-center">
-              <Trophy className="w-10 h-10 text-gold-500" />
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-rink-500/10 flex items-center justify-center">
+              <Trophy className="w-10 h-10 text-rink-500" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-3">No Leagues Yet</h2>
             <p className="text-neutral-400 mb-8 max-w-md mx-auto">
@@ -98,8 +98,8 @@ export default async function LeaguesPage({ params }: Props) {
               href="/dashboard/leagues/new"
               className={cn(
                 'inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold',
-                'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
               )}
             >
               <Plus className="w-5 h-5" />
@@ -117,13 +117,13 @@ export default async function LeaguesPage({ params }: Props) {
               href="/dashboard/leagues/new"
               className={cn(
                 'flex flex-col items-center justify-center p-8 rounded-2xl transition-all duration-200',
-                'border-2 border-dashed border-gold-500/30 hover:border-gold-500/60',
+                'border-2 border-dashed border-rink-500/30 hover:border-rink-500/60',
                 'bg-neutral-900/50 hover:bg-neutral-900',
                 'group min-h-[200px]'
               )}
             >
-              <div className="w-12 h-12 rounded-full bg-gold-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Plus className="w-6 h-6 text-gold-500" />
+              <div className="w-12 h-12 rounded-full bg-rink-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Plus className="w-6 h-6 text-rink-500" />
               </div>
               <span className="font-semibold text-white">Create New League</span>
               <span className="text-sm text-neutral-500 mt-1">
@@ -139,11 +139,11 @@ export default async function LeaguesPage({ params }: Props) {
 
 function LeagueCard({ league }: { league: any }) {
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden hover:border-gold-500/40 transition-all group">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden hover:border-white/20 transition-all group">
       {/* League Header with Color */}
       <div
         className="h-3"
-        style={{ backgroundColor: league.primary_color || '#D4AF37' }}
+        style={{ backgroundColor: league.primary_color || '#22D3EE' }}
       />
 
       <div className="p-6">
@@ -152,12 +152,12 @@ function LeagueCard({ league }: { league: any }) {
           <div className="flex items-center gap-3">
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: league.primary_color || '#D4AF37' }}
+              style={{ backgroundColor: league.primary_color || '#22D3EE' }}
             >
               <Trophy className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-lg group-hover:text-gold-500 transition-colors">
+              <h3 className="font-bold text-white text-lg group-hover:text-rink-500 transition-colors">
                 {league.name}
               </h3>
               <p className="text-xs text-neutral-500">{league.organizationName}</p>
@@ -178,7 +178,7 @@ function LeagueCard({ league }: { league: any }) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-5 py-4 border-y border-gold-500/10">
+        <div className="grid grid-cols-2 gap-4 mb-5 py-4 border-y border-white/[0.06]">
           <div>
             <div className="flex items-center gap-2 text-neutral-500 mb-1">
               <Users className="w-4 h-4" />
@@ -201,8 +201,8 @@ function LeagueCard({ league }: { league: any }) {
             href={`/dashboard/leagues/${league.id}`}
             className={cn(
               'flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl',
-              'bg-gold-500/10 text-gold-500 border border-gold-500/30',
-              'hover:bg-gold-500/20 transition-colors font-medium text-sm'
+              'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+              'hover:bg-rink-500/20 transition-colors font-medium text-sm'
             )}
           >
             Manage League

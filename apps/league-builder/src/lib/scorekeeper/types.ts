@@ -102,7 +102,7 @@ export interface SyncState {
 }
 
 // IndexedDB store names
-export const DB_NAME = 'hockeylife-scorekeeper';
+export const DB_NAME = 'beerleaguehockey-scorekeeper';
 export const DB_VERSION = 1;
 
 export const STORES = {

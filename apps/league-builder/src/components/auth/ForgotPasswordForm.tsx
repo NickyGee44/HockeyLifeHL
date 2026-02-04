@@ -46,18 +46,18 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
   // Success state
   if (submitted) {
     return (
-      <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
+      <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-6 bg-green-500/10 rounded-full flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
         <h2 className="text-2xl font-bold text-neutral-100 mb-3">Check Your Email</h2>
         <p className="text-neutral-400 mb-6">
-          If an account exists for <span className="text-gold-500">{email}</span>, you'll
+          If an account exists for <span className="text-rink-500">{email}</span>, you'll
           receive a password reset link within a few minutes.
         </p>
-        <div className="bg-neutral-900/50 border border-gold-500/20 rounded-xl p-4 mb-6">
+        <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4 mb-6">
           <p className="text-sm text-neutral-300">
-            <strong className="text-gold-500">Didn't receive an email?</strong>
+            <strong className="text-rink-500">Didn't receive an email?</strong>
             <br />
             Check your spam folder or try again with a different email address.
           </p>
@@ -68,7 +68,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
               setSubmitted(false);
               setEmail('');
             }}
-            className="w-full py-3 px-6 border border-gold-500/30 text-gold-500 font-medium rounded-xl hover:bg-gold-500/10 transition-all"
+            className="w-full py-3 px-6 border border-rink-500/30 text-rink-500 font-medium rounded-xl hover:bg-rink-500/10 transition-all"
           >
             Try Different Email
           </button>
@@ -85,10 +85,10 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
   }
 
   return (
-    <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8">
+    <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8">
       <div className="text-center mb-6">
-        <div className="w-12 h-12 mx-auto mb-4 bg-gold-500/10 rounded-full flex items-center justify-center">
-          <Mail className="h-6 w-6 text-gold-500" />
+        <div className="w-12 h-12 mx-auto mb-4 bg-rink-500/10 rounded-full flex items-center justify-center">
+          <Mail className="h-6 w-6 text-rink-500" />
         </div>
         <h2 className="text-2xl font-bold text-neutral-100 mb-2">Forgot Password?</h2>
         <p className="text-neutral-400 text-sm">
@@ -112,7 +112,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
             required
             autoComplete="email"
             autoFocus
-            className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
             placeholder="you@company.com"
           />
         </div>
@@ -126,7 +126,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         <button
           type="submit"
           disabled={loading || !email}
-          className="w-full py-3 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+          className="w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -142,7 +142,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
       <div className="mt-6">
         <Link
           href="/login"
-          className="flex items-center justify-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors"
+          className="flex items-center justify-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Login
@@ -152,7 +152,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
       <div className="mt-6 pt-6 border-t border-neutral-700">
         <p className="text-xs text-neutral-500 text-center">
           Can't access your email?{' '}
-          <Link href="/account-recovery" className="text-gold-500 hover:underline">
+          <Link href="/account-recovery" className="text-rink-500 hover:underline">
             Contact Support
           </Link>
         </p>

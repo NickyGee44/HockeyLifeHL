@@ -7,7 +7,7 @@ import { TeamCreationWizard } from '@/components/teams';
 import { createClient } from '@/lib/supabase/server';
 
 export const metadata = {
-  title: 'Create Team | HockeyLifeHL',
+  title: 'Create Team | Beer League Hockey',
   description: 'Add a new team to your league',
 };
 
@@ -60,7 +60,7 @@ export default async function NewTeamPage({
         <div className="mb-8">
           <Link
             href={`/dashboard/leagues/${leagueId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to {league.name}

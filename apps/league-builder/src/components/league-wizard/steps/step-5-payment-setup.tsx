@@ -20,8 +20,9 @@ import type { WizardFormData } from '@/lib/schemas/league-wizard';
 // Note: startConnectOnboarding and getConnectAccountStatus from '@/lib/actions/stripe-connect-payments'
 // will be used when integrating with actual Stripe Connect OAuth flow post-league creation
 
-// Platform fee percentage for display
-const PLATFORM_FEE_PERCENT = 2.99;
+interface Step5PaymentSetupProps {
+  platformFeePercent?: number;
+}
 
 // Check if we're in test/development mode
 const isTestMode = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test');
@@ -56,7 +57,8 @@ const STATUS_CONFIG: Record<StripeAccountStatus, StatusDisplayConfig> = {
   },
 };
 
-export function Step5PaymentSetup() {
+export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSetupProps) {
+  const PLATFORM_FEE_PERCENT = platformFeePercent;
   const { setValue, watch } = useFormContext<WizardFormData>();
 
   // Watch form values
@@ -443,11 +445,14 @@ export function Step5PaymentSetup() {
           <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="text-sm text-muted-foreground">
             <p className="font-medium mb-1">About Platform Fees</p>
+            <p className="mb-2">
+              A {PLATFORM_FEE_PERCENT}% platform fee is applied to all player payments.
+              By default, this fee is passed to the player at checkout (added to the total).
+              You can change this to absorb the fee yourself in your league billing settings.
+            </p>
             <p>
-              A {PLATFORM_FEE_PERCENT}% platform fee is applied to all transactions to cover
-              payment processing and platform costs. This fee is automatically deducted
-              from each payment before depositing to your account. Stripe also charges
-              their standard processing fees (2.9% + $0.30 per transaction).
+              Stripe also charges their standard card processing fees separately.
+              A one-time setup fee is required before your league can go live with payments.
             </p>
           </div>
         </div>

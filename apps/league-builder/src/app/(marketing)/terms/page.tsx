@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 
-export default function TermsOfServicePage() {
+export default async function TermsOfServicePage() {
+  const feeConfig = await getPlatformFeeConfig();
   return (
     <div className="min-h-screen bg-neutral-950 py-12">
       <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-4xl font-bold text-gold-500 mb-8">
+        <h1 className="text-4xl font-bold text-rink-500 mb-8">
           Terms of Service
         </h1>
 
@@ -18,7 +20,7 @@ export default function TermsOfServicePage() {
               1. Acceptance of Terms
             </h2>
             <p className="text-neutral-300 mb-4">
-              By accessing and using HockeyLife (&quot;the Service&quot;), you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
+              By accessing and using Beer League Hockey (&quot;the Service&quot;), you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
             </p>
           </section>
 
@@ -27,7 +29,7 @@ export default function TermsOfServicePage() {
               2. Description of Service
             </h2>
             <p className="text-neutral-300 mb-4">
-              HockeyLife is a software-as-a-service (SaaS) platform that provides hockey league management tools, including:
+              Beer League Hockey is a software-as-a-service (SaaS) platform that provides hockey league management tools, including:
             </p>
             <ul className="list-disc list-inside text-neutral-300 mb-4 space-y-2">
               <li>League creation and administration</li>
@@ -67,7 +69,7 @@ export default function TermsOfServicePage() {
             </p>
             <ul className="list-disc list-inside text-neutral-300 mb-4 space-y-2">
               <li>Use the Service for any illegal purpose or in violation of any laws</li>
-              <li>Violate the intellectual property rights of HockeyLife or others</li>
+              <li>Violate the intellectual property rights of Beer League Hockey or others</li>
               <li>Upload or transmit viruses, malware, or malicious code</li>
               <li>Harass, abuse, or harm other users</li>
               <li>Impersonate any person or entity</li>
@@ -83,19 +85,19 @@ export default function TermsOfServicePage() {
               5. Pricing and Payment
             </h2>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Free Platform:</strong> HockeyLife is free to use. All core features including league creation, team management, scheduling, statistics, and player registration are available at no cost.
+              <strong className="text-rink-500">Setup Fee:</strong> A one-time setup fee is required per league to cover onboarding, platform configuration, domain setup assistance, and data migration. Contact us for current pricing.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Transaction Fee:</strong> When you process payments through HockeyLife (e.g., player registration fees), we charge a 2.99% fee on each transaction. This covers Stripe payment processing, fraud protection, and platform operating costs.
+              <strong className="text-rink-500">Transaction Fee:</strong> When you process payments through Beer League Hockey (e.g., player registration fees), a {feeConfig.processingFeePercent}% platform fee is applied to each transaction. This is separate from Stripe&apos;s own card processing fees.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Payment Processing:</strong> All payments are processed securely through Stripe Connect. League administrators receive funds directly to their connected Stripe account, minus the 2.99% transaction fee.
+              <strong className="text-rink-500">Payment Processing:</strong> All payments are processed securely through Stripe Connect. League administrators receive funds directly to their connected Stripe account. The platform fee may be passed to players at checkout or absorbed by the league, depending on the league&apos;s billing settings.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Optional Add-ons:</strong> Additional services such as custom domain setup and historic data import are available for a custom fee. Contact us for pricing on these add-on services.
+              <strong className="text-rink-500">Custom Terms:</strong> Volume discounts, enterprise agreements, and custom pricing are available. Contact us to discuss your league&apos;s needs.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Fee Changes:</strong> We reserve the right to change the transaction fee percentage with 30 days&apos; notice.
+              <strong className="text-rink-500">Fee Changes:</strong> We reserve the right to change fees with 30 days&apos; notice. Per-league fee agreements are honored for their agreed term.
             </p>
           </section>
 
@@ -104,13 +106,13 @@ export default function TermsOfServicePage() {
               6. Intellectual Property
             </h2>
             <p className="text-neutral-300 mb-4">
-              The Service, including its design, code, graphics, and content, is owned by HockeyLife and protected by copyright, trademark, and other intellectual property laws.
+              The Service, including its design, code, graphics, and content, is owned by Beer League Hockey and protected by copyright, trademark, and other intellectual property laws.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">License:</strong> We grant you a limited, non-exclusive, non-transferable license to access and use the Service for your internal league management purposes.
+              <strong className="text-rink-500">License:</strong> We grant you a limited, non-exclusive, non-transferable license to access and use the Service for your internal league management purposes.
             </p>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-gold-500">Your Content:</strong> You retain ownership of content you upload (team names, player rosters, game stats). By uploading content, you grant us a license to use, store, and display it as necessary to provide the Service.
+              <strong className="text-rink-500">Your Content:</strong> You retain ownership of content you upload (team names, player rosters, game stats). By uploading content, you grant us a license to use, store, and display it as necessary to provide the Service.
             </p>
           </section>
 
@@ -120,7 +122,7 @@ export default function TermsOfServicePage() {
             </h2>
             <p className="text-neutral-300 mb-4">
               Your use of the Service is also governed by our{' '}
-              <Link href="/privacy" className="text-gold-500 hover:text-gold-400 hover:underline transition-colors">
+              <Link href="/privacy" className="text-rink-500 hover:text-rink-400 hover:underline transition-colors">
                 Privacy Policy
               </Link>
               , which describes how we collect, use, and protect your personal information.
@@ -135,13 +137,13 @@ export default function TermsOfServicePage() {
             8. Service Availability and Support
           </h2>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Uptime:</strong> We strive for 99.9% uptime but do not guarantee uninterrupted service. Scheduled maintenance will be announced in advance when possible.
+            <strong className="text-rink-500">Uptime:</strong> We strive for 99.9% uptime but do not guarantee uninterrupted service. Scheduled maintenance will be announced in advance when possible.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Support:</strong> We provide email support for all paid subscribers. Response times vary by plan tier.
+            <strong className="text-rink-500">Support:</strong> We provide email support for all paid subscribers. Response times vary by plan tier.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Service Modifications:</strong> We may modify, suspend, or discontinue features of the Service with reasonable notice.
+            <strong className="text-rink-500">Service Modifications:</strong> We may modify, suspend, or discontinue features of the Service with reasonable notice.
           </p>
         </section>
 
@@ -150,13 +152,13 @@ export default function TermsOfServicePage() {
             9. Termination
           </h2>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">By You:</strong> You may terminate your account at any time through your account settings.
+            <strong className="text-rink-500">By You:</strong> You may terminate your account at any time through your account settings.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">By Us:</strong> We may suspend or terminate your account if you violate these Terms, fail to pay subscription fees, or engage in fraudulent activity.
+            <strong className="text-rink-500">By Us:</strong> We may suspend or terminate your account if you violate these Terms, fail to pay subscription fees, or engage in fraudulent activity.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Effect of Termination:</strong> Upon termination, your access to the Service will cease. We will retain your data for 30 days (grace period) before permanent deletion, unless required by law to retain it longer.
+            <strong className="text-rink-500">Effect of Termination:</strong> Upon termination, your access to the Service will cease. We will retain your data for 30 days (grace period) before permanent deletion, unless required by law to retain it longer.
           </p>
         </section>
 
@@ -177,7 +179,7 @@ export default function TermsOfServicePage() {
             11. Limitation of Liability
           </h2>
           <p className="text-neutral-300 mb-4 uppercase font-semibold">
-            TO THE MAXIMUM EXTENT PERMITTED BY LAW, HOCKEYLIFE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR USE, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE.
+            TO THE MAXIMUM EXTENT PERMITTED BY LAW, BEER LEAGUE HOCKEY SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR USE, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE.
           </p>
           <p className="text-neutral-300 mb-4">
             Our total liability to you for any claim arising from the Service shall not exceed the amount you paid us in the 12 months preceding the claim.
@@ -189,7 +191,7 @@ export default function TermsOfServicePage() {
             12. Indemnification
           </h2>
           <p className="text-neutral-300 mb-4">
-            You agree to indemnify and hold harmless HockeyLife from any claims, damages, losses, or expenses (including legal fees) arising from:
+            You agree to indemnify and hold harmless Beer League Hockey from any claims, damages, losses, or expenses (including legal fees) arising from:
           </p>
           <ul className="list-disc list-inside text-neutral-300 mb-4 space-y-2">
             <li>Your use of the Service</li>
@@ -204,13 +206,13 @@ export default function TermsOfServicePage() {
             13. Dispute Resolution
           </h2>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Governing Law:</strong> These Terms are governed by the laws of [Your Jurisdiction], without regard to conflict of law principles.
+            <strong className="text-rink-500">Governing Law:</strong> These Terms are governed by the laws of [Your Jurisdiction], without regard to conflict of law principles.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Arbitration:</strong> Any disputes arising from these Terms or the Service shall be resolved through binding arbitration, except you may bring claims in small claims court if eligible.
+            <strong className="text-rink-500">Arbitration:</strong> Any disputes arising from these Terms or the Service shall be resolved through binding arbitration, except you may bring claims in small claims court if eligible.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Class Action Waiver:</strong> You agree to resolve disputes individually and waive the right to participate in class actions.
+            <strong className="text-rink-500">Class Action Waiver:</strong> You agree to resolve disputes individually and waive the right to participate in class actions.
           </p>
         </section>
 
@@ -228,16 +230,16 @@ export default function TermsOfServicePage() {
             15. Miscellaneous
           </h2>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Entire Agreement:</strong> These Terms, together with our Privacy Policy, constitute the entire agreement between you and HockeyLife.
+            <strong className="text-rink-500">Entire Agreement:</strong> These Terms, together with our Privacy Policy, constitute the entire agreement between you and Beer League Hockey.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Severability:</strong> If any provision of these Terms is found invalid, the remaining provisions remain in effect.
+            <strong className="text-rink-500">Severability:</strong> If any provision of these Terms is found invalid, the remaining provisions remain in effect.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">No Waiver:</strong> Failure to enforce any right or provision does not constitute a waiver.
+            <strong className="text-rink-500">No Waiver:</strong> Failure to enforce any right or provision does not constitute a waiver.
           </p>
           <p className="text-neutral-300 mb-4">
-            <strong className="text-gold-500">Assignment:</strong> You may not assign these Terms without our consent. We may assign these Terms without restriction.
+            <strong className="text-rink-500">Assignment:</strong> You may not assign these Terms without our consent. We may assign these Terms without restriction.
           </p>
         </section>
 
@@ -249,8 +251,8 @@ export default function TermsOfServicePage() {
             If you have questions about these Terms:
           </p>
           <ul className="list-none text-neutral-300 mb-4 space-y-2">
-            <li><strong className="text-gold-500">Email:</strong> legal@hockeylife.com</li>
-            <li><strong className="text-gold-500">Support:</strong> support@hockeylife.com</li>
+            <li><strong className="text-rink-500">Email:</strong> legal@beerleaguehockey.ca</li>
+            <li><strong className="text-rink-500">Support:</strong> support@beerleaguehockey.ca</li>
           </ul>
         </section>
         </div>

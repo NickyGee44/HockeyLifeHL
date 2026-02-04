@@ -183,7 +183,7 @@ export default function PrivacySettingsPage() {
       )}
 
       {/* Data Export Section */}
-      <div className="bg-neutral-800/50 border border-gold-500/20 rounded-2xl p-6 mb-6">
+      <div className="bg-neutral-800/50 border border-white/10 rounded-2xl p-6 mb-6">
         <h2 className="text-xl font-semibold text-neutral-100 mb-4">
           Download Your Data
         </h2>
@@ -199,19 +199,19 @@ export default function PrivacySettingsPage() {
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <dt className="text-neutral-500">Organizations</dt>
-                <dd className="text-gold-500 font-medium">{dataSummary.organizationCount}</dd>
+                <dd className="text-rink-500 font-medium">{dataSummary.organizationCount}</dd>
               </div>
               <div>
                 <dt className="text-neutral-500">Leagues</dt>
-                <dd className="text-gold-500 font-medium">{dataSummary.leagueCount}</dd>
+                <dd className="text-rink-500 font-medium">{dataSummary.leagueCount}</dd>
               </div>
               <div>
                 <dt className="text-neutral-500">Teams</dt>
-                <dd className="text-gold-500 font-medium">{dataSummary.teamCount}</dd>
+                <dd className="text-rink-500 font-medium">{dataSummary.teamCount}</dd>
               </div>
               <div>
                 <dt className="text-neutral-500">Active Sessions</dt>
-                <dd className="text-gold-500 font-medium">{dataSummary.activeSessionCount}</dd>
+                <dd className="text-rink-500 font-medium">{dataSummary.activeSessionCount}</dd>
               </div>
             </dl>
           </div>
@@ -278,18 +278,18 @@ export default function PrivacySettingsPage() {
       )}
 
       {/* Legal Links */}
-      <div className="mt-8 pt-6 border-t border-gold-500/20">
+      <div className="mt-8 pt-6 border-t border-white/10">
         <h3 className="text-sm font-medium text-neutral-300 mb-2">
           More Information
         </h3>
         <div className="flex gap-4 text-sm">
-          <a href="/privacy" target="_blank" className="text-gold-500 hover:text-gold-400 hover:underline transition-colors">
+          <a href="/privacy" target="_blank" className="text-rink-500 hover:text-rink-400 hover:underline transition-colors">
             Privacy Policy
           </a>
-          <a href="/terms" target="_blank" className="text-gold-500 hover:text-gold-400 hover:underline transition-colors">
+          <a href="/terms" target="_blank" className="text-rink-500 hover:text-rink-400 hover:underline transition-colors">
             Terms of Service
           </a>
-          <a href="mailto:privacy@hockeylife.com" className="text-gold-500 hover:text-gold-400 hover:underline transition-colors">
+          <a href="mailto:privacy@beerleaguehockey.ca" className="text-rink-500 hover:text-rink-400 hover:underline transition-colors">
             Contact Privacy Team
           </a>
         </div>

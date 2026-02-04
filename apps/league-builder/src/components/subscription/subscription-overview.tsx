@@ -19,7 +19,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
-export function SubscriptionOverview() {
+interface SubscriptionOverviewProps {
+  platformFeePercent?: number;
+}
+
+export function SubscriptionOverview({ platformFeePercent = 2.99 }: SubscriptionOverviewProps) {
   const [subscription, setSubscription] = useState<OrganizationSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
@@ -122,7 +126,7 @@ export function SubscriptionOverview() {
               <p className="text-2xl font-bold">{tierInfo.name}</p>
               {subscription.tier === 'free' && (
                 <p className="text-sm text-muted-foreground">
-                  2.99% transaction fee on payments
+                  {platformFeePercent}% transaction fee on payments
                 </p>
               )}
             </div>

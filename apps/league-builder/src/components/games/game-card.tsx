@@ -34,20 +34,20 @@ export function GameCard({
     <div
       className={cn(
         'bg-neutral-900 border rounded-2xl overflow-hidden transition-all duration-200',
-        'hover:border-gold-500/40 hover:shadow-lg hover:shadow-gold-500/5',
-        selected ? 'border-gold-500/60' : 'border-gold-500/20',
+        'hover:border-white/20 hover:shadow-lg hover:shadow-rink-500/5',
+        selected ? 'border-rink-500/60' : 'border-white/10',
         className
       )}
     >
       {/* Header with status and date */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gold-500/10">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
           {showCheckbox && (
             <input
               type="checkbox"
               checked={selected}
               onChange={(e) => onSelect?.(e.target.checked)}
-              className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-gold-500 focus:ring-gold-500 focus:ring-offset-0"
+              className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-0"
             />
           )}
           <StatusBadge status={game.status} isRescheduled={game.is_rescheduled} size="sm" />
@@ -71,7 +71,7 @@ export function GameCard({
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: homeTeam?.primary_color || '#D4AF37' }}
+                style={{ backgroundColor: homeTeam?.primary_color || '#22D3EE' }}
               >
                 {homeTeam?.logo_url ? (
                   <img
@@ -154,7 +154,7 @@ export function GameCard({
 
         {/* Location */}
         {game.location && (
-          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gold-500/10">
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
             <MapPin className="w-3.5 h-3.5 text-neutral-500" />
             <span className="text-xs text-neutral-400">{game.location}</span>
           </div>
@@ -172,7 +172,7 @@ export function GameCard({
 
         {/* Round info */}
         {game.round_number && (
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gold-500/10">
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06]">
             <span className="text-xs text-neutral-500">
               Round {game.round_number}
               {game.game_number && `, Game ${game.game_number}`}
@@ -205,8 +205,8 @@ export function GameCardCompact({
     <div
       className={cn(
         'flex items-center gap-4 p-4 bg-neutral-900 border rounded-xl transition-all',
-        'hover:border-gold-500/40 hover:bg-neutral-800/50',
-        selected ? 'border-gold-500/60' : 'border-gold-500/20',
+        'hover:border-white/20 hover:bg-neutral-800/50',
+        selected ? 'border-rink-500/60' : 'border-white/10',
         className
       )}
     >
@@ -215,7 +215,7 @@ export function GameCardCompact({
           type="checkbox"
           checked={selected}
           onChange={(e) => onSelect?.(e.target.checked)}
-          className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-gold-500 focus:ring-gold-500 focus:ring-offset-0"
+          className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-0"
         />
       )}
 
@@ -262,7 +262,7 @@ export function GameCardCompact({
               e.stopPropagation();
               onEdit();
             }}
-            className="p-2 rounded-lg text-neutral-400 hover:text-gold-500 hover:bg-gold-500/10 transition-colors"
+            className="p-2 rounded-lg text-neutral-400 hover:text-rink-500 hover:bg-rink-500/10 transition-colors"
             title="Edit game"
           >
             <Edit className="w-4 h-4" />
@@ -285,7 +285,7 @@ export function GameCardCompact({
             onClick={onClick}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              'bg-gold-500/10 text-gold-500 hover:bg-gold-500/20'
+              'bg-rink-500/10 text-rink-500 hover:bg-rink-500/20'
             )}
           >
             View
@@ -295,7 +295,7 @@ export function GameCardCompact({
             href={`/dashboard/games/${game.id}`}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              'bg-gold-500/10 text-gold-500 hover:bg-gold-500/20'
+              'bg-rink-500/10 text-rink-500 hover:bg-rink-500/20'
             )}
           >
             View

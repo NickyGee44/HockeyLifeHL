@@ -1,7 +1,7 @@
 /**
  * Base Email Template with BRAND-KIT Styling
  *
- * Uses gold (#D4AF37) and black (#0a0a0a) brand colors
+ * Uses cyan (#22D3EE) and Ice Black (#070A0F) brand colors
  * Renders correctly on mobile with responsive design
  * Includes unsubscribe link for compliance
  */
@@ -22,20 +22,20 @@ export interface BaseEmailTemplateProps {
 
 // Default postal address for CAN-SPAM/CASL compliance
 // This should be set via environment variable in production
-const DEFAULT_POSTAL_ADDRESS = process.env.COMPANY_POSTAL_ADDRESS || 'HockeyLifeHL, Toronto, ON, Canada';
+const DEFAULT_POSTAL_ADDRESS = process.env.COMPANY_POSTAL_ADDRESS || 'Beer League Hockey, Toronto, ON, Canada';
 
 const BRAND_COLORS = {
-  gold: '#D4AF37',
-  goldLight: '#FFD54F',
-  goldDark: '#9A7B00',
-  black: '#0a0a0a',
-  darkGray: '#1a1a1a',
+  gold: '#22D3EE',
+  goldLight: '#3B82F6',
+  goldDark: '#0891b2',
+  black: '#070A0F',
+  darkGray: '#0f172a',
   mediumGray: '#404040',
   lightGray: '#a3a3a3',
   white: '#fafafa',
-  success: '#22c55e',
-  warning: '#eab308',
-  error: '#ef4444',
+  success: '#34D399',
+  warning: '#F59E0B',
+  error: '#FB7185',
 };
 
 export function getBaseEmailTemplate({
@@ -46,11 +46,11 @@ export function getBaseEmailTemplate({
   buttonUrl,
   footerNote,
   unsubscribeUrl,
-  leagueName = 'HockeyLifeHL',
+  leagueName = 'Beer League Hockey',
   leagueLogo,
   postalAddress = DEFAULT_POSTAL_ADDRESS,
 }: BaseEmailTemplateProps): string {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://hockeylifehl.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
   const year = new Date().getFullYear();
 
   return `
@@ -114,12 +114,12 @@ export function getBaseEmailTemplate({
       background-color: ${BRAND_COLORS.darkGray};
       border-radius: 16px;
       overflow: hidden;
-      border: 1px solid rgba(212, 175, 55, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.10);
     }
 
     /* Header */
     .email-header {
-      background: linear-gradient(135deg, ${BRAND_COLORS.gold} 0%, ${BRAND_COLORS.goldDark} 100%);
+      background: linear-gradient(to right, #22D3EE, #3B82F6);
       padding: 32px 40px;
       text-align: center;
     }
@@ -167,7 +167,7 @@ export function getBaseEmailTemplate({
 
     /* Info Box */
     .info-box {
-      background-color: rgba(212, 175, 55, 0.1);
+      background-color: rgba(34, 211, 238, 0.1);
       border-left: 4px solid ${BRAND_COLORS.gold};
       border-radius: 0 8px 8px 0;
       padding: 20px;
@@ -220,8 +220,8 @@ export function getBaseEmailTemplate({
 
     .button {
       display: inline-block;
-      background: linear-gradient(135deg, ${BRAND_COLORS.gold} 0%, ${BRAND_COLORS.goldDark} 100%);
-      color: ${BRAND_COLORS.black} !important;
+      background: linear-gradient(to right, #22D3EE, #3B82F6);
+      color: #070A0F !important;
       font-weight: 600;
       font-size: 16px;
       text-decoration: none;
@@ -231,7 +231,7 @@ export function getBaseEmailTemplate({
     }
 
     .button:hover {
-      box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+      box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
     }
 
     /* Footer */
@@ -239,7 +239,7 @@ export function getBaseEmailTemplate({
       background-color: ${BRAND_COLORS.black};
       padding: 32px 40px;
       text-align: center;
-      border-top: 1px solid rgba(212, 175, 55, 0.2);
+      border-top: 1px solid #1e293b;
     }
 
     .footer-note {
@@ -291,22 +291,22 @@ export function getBaseEmailTemplate({
     }
 
     .badge-success {
-      background-color: rgba(34, 197, 94, 0.2);
+      background-color: rgba(52, 211, 153, 0.2);
       color: ${BRAND_COLORS.success};
     }
 
     .badge-warning {
-      background-color: rgba(234, 179, 8, 0.2);
+      background-color: rgba(245, 158, 11, 0.2);
       color: ${BRAND_COLORS.warning};
     }
 
     .badge-error {
-      background-color: rgba(239, 68, 68, 0.2);
+      background-color: rgba(251, 113, 133, 0.2);
       color: ${BRAND_COLORS.error};
     }
 
     .badge-gold {
-      background-color: rgba(212, 175, 55, 0.2);
+      background-color: rgba(34, 211, 238, 0.2);
       color: ${BRAND_COLORS.gold};
     }
 

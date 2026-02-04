@@ -43,7 +43,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
   const hasOvertime = periodCount > 3;
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
       {/* Period Tabs */}
       <div className="flex border-b border-neutral-800">
         {periods.map((period) => (
@@ -54,7 +54,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
               'flex-1 py-4 px-6 text-base font-semibold transition-all duration-200',
               'touch-manipulation min-h-[56px]', // iPad touch optimization
               activePeriod === period
-                ? 'bg-gold-500/10 text-gold-400 border-b-2 border-gold-500'
+                ? 'bg-rink-500/10 text-rink-400 border-b-2 border-rink-500'
                 : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50'
             )}
           >
@@ -75,7 +75,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
 
           {/* VS Divider */}
           <div className="flex flex-col items-center">
-            <span className="text-3xl md:text-4xl font-black text-gold-500">VS</span>
+            <span className="text-3xl md:text-4xl font-black text-rink-500">VS</span>
             <span className="text-xs text-neutral-500 mt-1 uppercase tracking-widest">
               Period {activePeriod}
             </span>
@@ -112,7 +112,7 @@ interface TeamDisplayProps {
 }
 
 function TeamDisplay({ team, score, isHome }: TeamDisplayProps) {
-  const teamColor = team?.primary_color || (isHome ? '#D4AF37' : '#A3A3A3');
+  const teamColor = team?.primary_color || (isHome ? '#22D3EE' : '#A3A3A3');
 
   return (
     <div className="flex-1 text-center">

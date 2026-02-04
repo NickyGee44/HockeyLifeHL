@@ -295,7 +295,7 @@ export async function sendGameReminderNotification(
   hoursUntilGame: number = 24
 ): Promise<NotificationResult> {
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://hockeylifehl.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
 
   // Get game details with players
   const { data: game, error: gameError } = await supabase
@@ -396,7 +396,7 @@ export async function sendRosterChangeNotification(
   reason?: string
 ): Promise<NotificationResult> {
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://hockeylifehl.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
 
   // Get player and team details
   const [playerResult, teamResult, changedByResult] = await Promise.all([
@@ -474,7 +474,7 @@ export async function sendLeagueAnnouncement(params: {
   actionButtonUrl?: string;
 }): Promise<NotificationResult> {
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://hockeylifehl.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
 
   // Get current user (sender)
   const { data: { user } } = await supabase.auth.getUser();

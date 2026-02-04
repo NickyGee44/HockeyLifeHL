@@ -98,7 +98,7 @@ export async function setCustomDomain(
   }
 
   // Check for reserved domains
-  if (cleanDomain.includes('beerleaguehockey.ca') || cleanDomain.includes('hockeylifehl.com')) {
+  if (cleanDomain.includes('beerleaguehockey.ca')) {
     return {
       error: 'Cannot use platform domains',
       verified: false,

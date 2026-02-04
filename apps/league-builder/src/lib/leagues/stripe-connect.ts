@@ -16,27 +16,22 @@
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
+import { calculateApplicationFeeFromConfig } from '@/lib/fees/platform-fees';
 
 // ============================================================================
-// Platform Fee Configuration
+// Platform Fee Configuration (DB-driven)
 // ============================================================================
-
-/**
- * Platform fee percentage collected on all Connect transactions.
- * This is the commission HockeyLifeHL earns on league payments.
- */
-export const PLATFORM_FEE_PERCENT = 5;
 
 /**
  * Calculate the application fee (platform commission) for a given amount.
- * Always rounds up to ensure platform doesn't lose fractions of cents.
+ * Reads the fee percentage from the database via getPlatformFeeConfig().
  *
  * @param amountCents - The total transaction amount in cents
  * @returns The application fee in cents
  */
-export function calculateApplicationFee(amountCents: number): number {
-  if (amountCents <= 0) return 0;
-  return Math.round(amountCents * (PLATFORM_FEE_PERCENT / 100));
+export async function calculateApplicationFee(amountCents: number): Promise<number> {
+  const { fee } = await calculateApplicationFeeFromConfig(amountCents);
+  return fee;
 }
 
 /**
@@ -45,8 +40,9 @@ export function calculateApplicationFee(amountCents: number): number {
  * @param amountCents - The total transaction amount in cents
  * @returns The net amount in cents that goes to the league
  */
-export function calculateNetAmount(amountCents: number): number {
-  return amountCents - calculateApplicationFee(amountCents);
+export async function calculateNetAmount(amountCents: number): Promise<number> {
+  const fee = await calculateApplicationFee(amountCents);
+  return amountCents - fee;
 }
 
 // ============================================================================
@@ -135,7 +131,7 @@ export async function createConnectAccount(
       },
       metadata: {
         league_id: leagueId,
-        platform: 'hockeylifehl',
+        platform: 'beerleaguehockey',
       },
     },
     {
@@ -295,8 +291,9 @@ export async function createPaymentIntent(
     metadata = {},
   } = params;
 
-  // Calculate platform fee (5%)
-  const applicationFee = calculateApplicationFee(amountCents);
+  // Calculate platform fee from DB config
+  const { fee: applicationFee, percent: feePercent } =
+    await calculateApplicationFeeFromConfig(amountCents);
 
   // Idempotency key based on unique transaction parameters
   const idempotencyKey = generateIdempotencyKey('create_payment_intent', {
@@ -316,8 +313,8 @@ export async function createPaymentIntent(
       metadata: {
         ...metadata,
         league_id: leagueId,
-        platform: 'hockeylifehl',
-        platform_fee_percent: PLATFORM_FEE_PERCENT.toString(),
+        platform: 'beerleaguehockey',
+        platform_fee_percent: feePercent.toString(),
       },
       automatic_payment_methods: {
         enabled: true,
@@ -427,7 +424,7 @@ export async function createRefund(params: RefundParams): Promise<RefundResult> 
   // Calculate refunded application fee if any
   let applicationFeeRefunded = 0;
   if (refundApplicationFee && amountCents) {
-    applicationFeeRefunded = calculateApplicationFee(amountCents);
+    applicationFeeRefunded = await calculateApplicationFee(amountCents);
   }
 
   return {

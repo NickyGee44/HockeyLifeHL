@@ -134,13 +134,13 @@ export function PaymentHistoryCard({
   };
 
   return (
-    <div className={`bg-neutral-800 border border-gold-500/20 rounded-2xl overflow-hidden ${className}`}>
+    <div className={`bg-neutral-800 border border-white/10 rounded-2xl overflow-hidden ${className}`}>
       {/* Header */}
       <div className="p-6 border-b border-neutral-700">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gold-500/10 rounded-full flex items-center justify-center">
-              <Receipt className="h-5 w-5 text-gold-500" />
+            <div className="w-10 h-10 bg-rink-500/10 rounded-full flex items-center justify-center">
+              <Receipt className="h-5 w-5 text-rink-500" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">{feeName}</h3>
@@ -174,7 +174,7 @@ export function PaymentHistoryCard({
           <div className="h-2 bg-neutral-700 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                progressPercent >= 100 ? 'bg-green-500' : 'bg-gold-500'
+                progressPercent >= 100 ? 'bg-green-500' : 'bg-rink-500'
               }`}
               style={{ width: `${Math.min(progressPercent, 100)}%` }}
             />
@@ -194,7 +194,7 @@ export function PaymentHistoryCard({
             <div className="mt-4 pt-4 border-t border-neutral-700 grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-neutral-500 mb-1">Remaining Balance</p>
-                <p className="text-lg font-semibold text-gold-500">
+                <p className="text-lg font-semibold text-rink-500">
                   {formatCurrency(payment.total_amount_cents - payment.amount_paid_cents)}
                 </p>
               </div>

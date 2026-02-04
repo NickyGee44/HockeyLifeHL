@@ -18,7 +18,7 @@ const DEFAULT_PRESETS = [
   // Oranges
   '#F97316', '#EA580C', '#C2410C',
   // Yellows / Golds
-  '#D4AF37', '#EAB308', '#CA8A04',
+  '#22D3EE', '#EAB308', '#CA8A04',
   // Greens
   '#22C55E', '#16A34A', '#15803D', '#166534',
   // Blues
@@ -107,8 +107,8 @@ export function ColorPicker({
         className={cn(
           'w-full flex items-center gap-3 p-3 rounded-xl border transition-all',
           'bg-neutral-800 border-neutral-700',
-          'hover:border-gold-500/50 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20',
-          isOpen && 'border-gold-500 ring-2 ring-gold-500/20'
+          'hover:border-rink-500/50 focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20',
+          isOpen && 'border-rink-500 ring-2 ring-rink-500/20'
         )}
       >
         <div
@@ -123,7 +123,7 @@ export function ColorPicker({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full p-4 bg-neutral-900 border border-gold-500/20 rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute z-50 mt-2 w-full p-4 bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Preset Colors Grid */}
           <div className="mb-4">
             <span className="text-xs text-neutral-500 uppercase tracking-wider mb-2 block">
@@ -138,7 +138,7 @@ export function ColorPicker({
                   className={cn(
                     'w-7 h-7 rounded-lg border-2 transition-all hover:scale-110',
                     value === color
-                      ? 'border-gold-500 ring-2 ring-gold-500/30'
+                      ? 'border-rink-500 ring-2 ring-rink-500/30'
                       : 'border-transparent hover:border-neutral-600'
                   )}
                   style={{ backgroundColor: color }}
@@ -180,7 +180,7 @@ export function ColorPicker({
                   className={cn(
                     'w-full pl-7 pr-3 py-2 rounded-lg text-sm font-mono',
                     'bg-neutral-800 border border-neutral-700 text-white',
-                    'focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20',
+                    'focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20',
                     'uppercase'
                   )}
                   placeholder="000000"

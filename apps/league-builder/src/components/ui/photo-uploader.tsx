@@ -282,7 +282,7 @@ export function PhotoUploader({
       {/* Photo Preview or Upload Area */}
       {value ? (
         <div className="relative inline-block">
-          <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-gold-500/50 bg-neutral-800">
+          <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-rink-500/50 bg-neutral-800">
             <img
               src={value}
               alt="Profile photo"
@@ -328,9 +328,9 @@ export function PhotoUploader({
             'w-32 h-32 rounded-full border-2 border-dashed border-neutral-600',
             'flex flex-col items-center justify-center gap-2',
             'bg-neutral-800/50 text-neutral-400',
-            'hover:border-gold-500/50 hover:text-gold-500 hover:bg-neutral-800',
+            'hover:border-rink-500/50 hover:text-rink-500 hover:bg-neutral-800',
             'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-neutral-900',
+            'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:ring-offset-2 focus:ring-offset-neutral-900',
             (disabled || isUploading) && 'opacity-50 cursor-not-allowed'
           )}
         >

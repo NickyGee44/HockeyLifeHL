@@ -176,7 +176,7 @@ export function ScheduleCalendar({
               <div
                 className={cn(
                   'w-7 h-7 flex items-center justify-center rounded-full text-sm mb-1',
-                  isToday && 'bg-gold-500 text-black font-bold',
+                  isToday && 'bg-rink-500 text-black font-bold',
                   !isToday && isCurrentMonth && 'text-white',
                   !isToday && !isCurrentMonth && 'text-neutral-600'
                 )}
@@ -197,7 +197,7 @@ export function ScheduleCalendar({
                       className={cn(
                         'w-full px-1.5 py-1 text-left rounded text-xs truncate transition-colors',
                         selectedGame?.gameNumber === game.gameNumber
-                          ? 'bg-gold-500 text-black'
+                          ? 'bg-rink-500 text-black'
                           : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                       )}
                     >

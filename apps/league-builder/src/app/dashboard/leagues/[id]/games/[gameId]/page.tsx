@@ -24,7 +24,7 @@ import {
 import { format } from 'date-fns';
 
 export const metadata = {
-  title: 'Game Details | HockeyLifeHL',
+  title: 'Game Details | Beer League Hockey',
   description: 'View and manage game details',
 };
 
@@ -100,7 +100,7 @@ export default async function GameDetailPage({ params }: PageProps) {
         <div className="mb-8">
           <Link
             href={`/dashboard/leagues/${leagueId}/games`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Games
@@ -128,13 +128,13 @@ export default async function GameDetailPage({ params }: PageProps) {
         </div>
 
         {/* Matchup Card */}
-        <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-6 mb-8">
+        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 mb-8">
           <div className="flex items-center justify-between">
             {/* Home Team */}
             <div className="flex-1 text-center">
               <div
                 className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-3"
-                style={{ backgroundColor: game.home_team?.primary_color || '#D4AF37' }}
+                style={{ backgroundColor: game.home_team?.primary_color || '#22D3EE' }}
               >
                 <span className="text-2xl font-black text-white">
                   {game.home_team?.short_name?.substring(0, 3).toUpperCase() || 'HOM'}
@@ -174,9 +174,9 @@ export default async function GameDetailPage({ params }: PageProps) {
         {/* Game Info Grid */}
         <div className="grid gap-4 md:grid-cols-2 mb-8">
           {/* Schedule */}
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-5 h-5 text-gold-500" />
+              <Calendar className="w-5 h-5 text-rink-500" />
               <span className="text-sm font-medium text-neutral-400">Date & Time</span>
             </div>
             <p className="text-lg font-semibold text-white">
@@ -196,9 +196,9 @@ export default async function GameDetailPage({ params }: PageProps) {
           </div>
 
           {/* Location */}
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <MapPin className="w-5 h-5 text-gold-500" />
+              <MapPin className="w-5 h-5 text-rink-500" />
               <span className="text-sm font-medium text-neutral-400">Location</span>
             </div>
             <p className="text-lg font-semibold text-white">
@@ -241,9 +241,9 @@ export default async function GameDetailPage({ params }: PageProps) {
         )}
 
         {/* Audit Log */}
-        <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-6">
+        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-6">
-            <History className="w-5 h-5 text-gold-500" />
+            <History className="w-5 h-5 text-rink-500" />
             <h2 className="text-lg font-bold text-white">Activity Log</h2>
           </div>
 
@@ -254,10 +254,10 @@ export default async function GameDetailPage({ params }: PageProps) {
               {auditLog.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-start gap-4 p-4 rounded-xl bg-neutral-800/50 border border-gold-500/10"
+                  className="flex items-start gap-4 p-4 rounded-xl bg-neutral-800/50 border border-white/[0.06]"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gold-500/10 flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4 text-gold-500" />
+                  <div className="w-8 h-8 rounded-full bg-rink-500/10 flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4 text-rink-500" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">

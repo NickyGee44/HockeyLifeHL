@@ -2617,6 +2617,100 @@ export type Database = {
           },
         ]
       }
+      league_billing_settings: {
+        Row: {
+          charges_enabled: boolean
+          created_at: string
+          created_by: string | null
+          details_submitted: boolean
+          id: string
+          league_id: string
+          payouts_enabled: boolean
+          platform_fee_bps: number
+          platform_fee_mode: string
+          setup_fee_amount_cents: number
+          setup_fee_currency: string
+          setup_fee_paid_at: string | null
+          setup_fee_status: string
+          setup_fee_stripe_invoice_id: string | null
+          setup_fee_waived_at: string | null
+          setup_fee_waived_by: string | null
+          setup_fee_waived_reason: string | null
+          stripe_account_id: string | null
+          stripe_account_status: string | null
+          stripe_onboarding_completed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          charges_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          details_submitted?: boolean
+          id?: string
+          league_id: string
+          payouts_enabled?: boolean
+          platform_fee_bps?: number
+          platform_fee_mode?: string
+          setup_fee_amount_cents?: number
+          setup_fee_currency?: string
+          setup_fee_paid_at?: string | null
+          setup_fee_status?: string
+          setup_fee_stripe_invoice_id?: string | null
+          setup_fee_waived_at?: string | null
+          setup_fee_waived_by?: string | null
+          setup_fee_waived_reason?: string | null
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
+          stripe_onboarding_completed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          charges_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          details_submitted?: boolean
+          id?: string
+          league_id?: string
+          payouts_enabled?: boolean
+          platform_fee_bps?: number
+          platform_fee_mode?: string
+          setup_fee_amount_cents?: number
+          setup_fee_currency?: string
+          setup_fee_paid_at?: string | null
+          setup_fee_status?: string
+          setup_fee_stripe_invoice_id?: string | null
+          setup_fee_waived_at?: string | null
+          setup_fee_waived_by?: string | null
+          setup_fee_waived_reason?: string | null
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
+          stripe_onboarding_completed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_billing_settings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: true
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "league_billing_settings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: true
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "league_billing_settings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: true
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       league_join_requests: {
         Row: {
           created_at: string | null
@@ -3887,6 +3981,8 @@ export type Database = {
           created_at: string | null
           current_period_end: string | null
           current_period_start: string | null
+          custom_domain: string | null
+          custom_domain_verified: boolean
           default_payment_method_id: string | null
           discount_end_at: string | null
           id: string
@@ -3917,6 +4013,8 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
+          custom_domain?: string | null
+          custom_domain_verified?: boolean
           default_payment_method_id?: string | null
           discount_end_at?: string | null
           id?: string
@@ -3947,6 +4045,8 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
+          custom_domain?: string | null
+          custom_domain_verified?: boolean
           default_payment_method_id?: string | null
           discount_end_at?: string | null
           id?: string
@@ -4229,6 +4329,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_fee_config: {
+        Row: {
+          created_at: string
+          description: string | null
+          effective_from: string
+          id: string
+          is_active: boolean
+          migration_fee_cents: number
+          migration_fee_label: string
+          processing_fee_percent: number
+          setup_fee_cents: number
+          setup_fee_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          effective_from?: string
+          id?: string
+          is_active?: boolean
+          migration_fee_cents?: number
+          migration_fee_label?: string
+          processing_fee_percent?: number
+          setup_fee_cents?: number
+          setup_fee_label?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          effective_from?: string
+          id?: string
+          is_active?: boolean
+          migration_fee_cents?: number
+          migration_fee_label?: string
+          processing_fee_percent?: number
+          setup_fee_cents?: number
+          setup_fee_label?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       platform_sponsors: {
         Row: {
@@ -8460,6 +8602,22 @@ export type Database = {
           total_saves: number
         }[]
       }
+      get_league_billing_settings: {
+        Args: { p_league_id: string }
+        Returns: {
+          charges_enabled: boolean
+          league_id: string
+          payouts_enabled: boolean
+          platform_fee_bps: number
+          platform_fee_mode: string
+          setup_fee_amount_cents: number
+          setup_fee_currency: string
+          setup_fee_paid_at: string
+          setup_fee_status: string
+          stripe_account_id: string
+          stripe_account_status: string
+        }[]
+      }
       get_league_by_hostname: {
         Args: { hostname: string }
         Returns: {
@@ -8560,6 +8718,21 @@ export type Database = {
           primary_color: string
           slug: string
           state_province: string
+        }[]
+      }
+      get_notification_analytics: {
+        Args: {
+          p_end_date?: string
+          p_league_id?: string
+          p_start_date?: string
+        }
+        Returns: {
+          channel: string
+          count: number
+          league_id: string
+          sent_date: string
+          status: string
+          type: string
         }[]
       }
       get_open_registration_seasons: {
@@ -8668,6 +8841,16 @@ export type Database = {
       get_pending_registration_count: {
         Args: { check_league_id: string }
         Returns: number
+      }
+      get_platform_fee_config: {
+        Args: never
+        Returns: {
+          migration_fee_cents: number
+          migration_fee_label: string
+          processing_fee_percent: number
+          setup_fee_cents: number
+          setup_fee_label: string
+        }[]
       }
       get_player_approval_status: {
         Args: { check_league_id: string; check_player_id: string }

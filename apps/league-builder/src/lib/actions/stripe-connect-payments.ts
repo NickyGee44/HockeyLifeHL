@@ -27,12 +27,12 @@ import {
   createRefund,
   getPayoutInfo,
   calculateApplicationFee,
-  PLATFORM_FEE_PERCENT,
   type ConnectAccountInfo,
   type PaymentIntentResult,
   type PayoutInfo,
   type RefundResult,
 } from '@/lib/leagues/stripe-connect';
+import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 import { getStripeErrorMessage } from '@/lib/stripe/client';
 
 // ============================================================================
@@ -341,7 +341,7 @@ export async function createConnectPaymentIntent(
       payment_intent_id: paymentIntent.paymentIntentId,
       amount_cents: amountCents,
       application_fee_cents: paymentIntent.applicationFee,
-      platform_fee_percent: PLATFORM_FEE_PERCENT,
+      platform_fee_percent: (await getPlatformFeeConfig()).processingFeePercent,
     }, userId);
 
     return { success: true, data: paymentIntent };

@@ -5,13 +5,13 @@ import type { NextRequest } from 'next/server';
  * Multi-tenant subdomain routing middleware for Platform 2 (League Sites)
  *
  * Handles routing for:
- * - [league-slug].hockeylifehl.com -> /[leagueSlug]/...
+ * - [league-slug].beerleaguehockey.ca -> /[leagueSlug]/...
  * - Custom domains (future) -> /[leagueSlug]/...
  *
  * Examples:
- * - metro-hockey.hockeylifehl.com -> /metro-hockey/
- * - metro-hockey.hockeylifehl.com/schedule -> /metro-hockey/schedule
- * - metro-hockey.hockeylifehl.com/teams/dragons -> /metro-hockey/teams/dragons
+ * - metro-hockey.beerleaguehockey.ca -> /metro-hockey/
+ * - metro-hockey.beerleaguehockey.ca/schedule -> /metro-hockey/schedule
+ * - metro-hockey.beerleaguehockey.ca/teams/dragons -> /metro-hockey/teams/dragons
  */
 
 // List of reserved subdomains that should not be treated as league slugs
@@ -29,7 +29,7 @@ const RESERVED_SUBDOMAINS = [
 ];
 
 // Production domain for the league sites
-const PRODUCTION_DOMAIN = 'hockeylifehl.com';
+const PRODUCTION_DOMAIN = 'beerleaguehockey.ca';
 
 // Development domain patterns
 const DEV_DOMAINS = ['localhost', '127.0.0.1', '.local'];
@@ -52,7 +52,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Rewrite URL to include league slug
-  // metro-hockey.hockeylifehl.com/schedule -> /metro-hockey/schedule
+  // metro-hockey.beerleaguehockey.ca/schedule -> /metro-hockey/schedule
   const newPath = `/${subdomain}${url.pathname}`;
   url.pathname = newPath;
 
@@ -67,11 +67,11 @@ export function middleware(request: NextRequest) {
  * Extract subdomain from hostname
  *
  * Examples:
- * - metro-hockey.hockeylifehl.com -> metro-hockey
- * - metro-hockey.sites.hockeylifehl.com -> metro-hockey
+ * - metro-hockey.beerleaguehockey.ca -> metro-hockey
+ * - metro-hockey.sites.beerleaguehockey.ca -> metro-hockey
  * - metro-hockey.localhost:3001 -> metro-hockey
  * - localhost:3001 -> null
- * - hockeylifehl.com -> null
+ * - beerleaguehockey.ca -> null
  */
 function getSubdomain(hostname: string): string | null {
   // Remove port if present
@@ -91,8 +91,8 @@ function getSubdomain(hostname: string): string | null {
     return null;
   }
 
-  // Production: metro-hockey.hockeylifehl.com
-  // or: metro-hockey.sites.hockeylifehl.com
+  // Production: metro-hockey.beerleaguehockey.ca
+  // or: metro-hockey.sites.beerleaguehockey.ca
   if (host.endsWith(PRODUCTION_DOMAIN)) {
     // Remove the base domain
     const withoutBase = host.replace(`.${PRODUCTION_DOMAIN}`, '');

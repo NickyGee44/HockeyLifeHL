@@ -45,12 +45,12 @@ export default async function OrganizationProfilePage() {
             Your unique organization identifier for API integrations
           </p>
         </div>
-        <div className="bg-neutral-800 border border-gold-500/20 rounded-xl p-4 flex items-center justify-between">
-          <code className="text-sm text-gold-500 font-mono">{orgData.id}</code>
+        <div className="bg-neutral-800 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+          <code className="text-sm text-rink-500 font-mono">{orgData.id}</code>
           <button
             className={cn(
               'p-2 rounded-lg transition-colors',
-              'text-neutral-400 hover:text-gold-500 hover:bg-neutral-700'
+              'text-neutral-400 hover:text-rink-500 hover:bg-neutral-700'
             )}
             title="Copy ID"
           >

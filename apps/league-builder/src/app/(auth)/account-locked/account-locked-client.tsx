@@ -14,11 +14,11 @@ function AccountLockedContent() {
   // If no lock time provided, redirect to login
   if (!lockedUntil) {
     return (
-      <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
+      <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 text-center">
         <p className="text-neutral-400">No lock information available.</p>
         <Link
           href="/login"
-          className="inline-block mt-4 text-gold-500 hover:text-gold-400 transition-colors"
+          className="inline-block mt-4 text-rink-500 hover:text-rink-400 transition-colors"
         >
           Back to Login
         </Link>
@@ -36,8 +36,8 @@ function AccountLockedContent() {
 
 function LoadingFallback() {
   return (
-    <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-gold-500" />
+    <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-rink-500" />
     </div>
   );
 }

@@ -49,7 +49,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8">
+    <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8">
       <h2 className="text-2xl font-bold text-neutral-100 mb-6">Sign In</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,7 +68,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
             placeholder="you@company.com"
           />
         </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-xs text-gold-500 hover:text-gold-400 transition-colors"
+              className="text-xs text-rink-500 hover:text-rink-400 transition-colors"
             >
               Forgot password?
             </Link>
@@ -97,7 +97,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full px-4 py-3 pr-12 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 pr-12 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
               placeholder="Enter your password"
             />
             <button
@@ -135,7 +135,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="w-full py-3 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+          className="w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -153,7 +153,7 @@ export default function LoginPage() {
           Don&apos;t have an account?{' '}
           <Link
             href="/signup"
-            className="text-gold-500 hover:text-gold-400 hover:underline font-medium transition-colors"
+            className="text-rink-500 hover:text-rink-400 hover:underline font-medium transition-colors"
           >
             Create one
           </Link>
@@ -163,7 +163,7 @@ export default function LoginPage() {
       <div className="mt-4 pt-4 border-t border-neutral-700 text-center">
         <p className="text-xs text-neutral-500">
           Having trouble?{' '}
-          <Link href="/account-recovery" className="text-gold-500 hover:underline">
+          <Link href="/account-recovery" className="text-rink-500 hover:underline">
             Contact Support
           </Link>
         </p>

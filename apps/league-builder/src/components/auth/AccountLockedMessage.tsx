@@ -59,7 +59,7 @@ export function AccountLockedMessage({
 
   if (isExpired) {
     return (
-      <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
+      <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-6 bg-green-500/10 rounded-full flex items-center justify-center">
           <Lock className="h-8 w-8 text-green-500" />
         </div>
@@ -69,7 +69,7 @@ export function AccountLockedMessage({
         </p>
         <Link
           href="/login"
-          className="inline-block w-full py-3 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
+          className="inline-block w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
         >
           Try Logging In
         </Link>
@@ -94,10 +94,10 @@ export function AccountLockedMessage({
       {/* Countdown Timer */}
       <div className="bg-neutral-900/50 border border-red-500/20 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-center gap-3 mb-2">
-          <Clock className="h-5 w-5 text-gold-500" />
+          <Clock className="h-5 w-5 text-rink-500" />
           <span className="text-sm text-neutral-400">Time until unlock:</span>
         </div>
-        <div className="text-3xl font-bold text-gold-500 text-center font-mono">
+        <div className="text-3xl font-bold text-rink-500 text-center font-mono">
           {timeRemaining}
         </div>
       </div>
@@ -136,9 +136,9 @@ export function AccountLockedMessage({
           href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
           className="flex items-start gap-3 p-3 bg-neutral-900/50 rounded-lg hover:bg-neutral-900/70 transition-colors"
         >
-          <Mail className="h-5 w-5 text-gold-500 flex-shrink-0 mt-0.5" />
+          <Mail className="h-5 w-5 text-rink-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm text-gold-500">Reset your password</p>
+            <p className="text-sm text-rink-500">Reset your password</p>
             <p className="text-xs text-neutral-500">
               Request a password reset link to your email
             </p>
@@ -150,9 +150,9 @@ export function AccountLockedMessage({
           href="/account-recovery"
           className="flex items-start gap-3 p-3 bg-neutral-900/50 rounded-lg hover:bg-neutral-900/70 transition-colors"
         >
-          <HelpCircle className="h-5 w-5 text-gold-500 flex-shrink-0 mt-0.5" />
+          <HelpCircle className="h-5 w-5 text-rink-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm text-gold-500">Contact support</p>
+            <p className="text-sm text-rink-500">Contact support</p>
             <p className="text-xs text-neutral-500">
               If you're locked out and can't reset your password
             </p>
@@ -164,7 +164,7 @@ export function AccountLockedMessage({
       <div className="mt-6 pt-6 border-t border-neutral-700 text-center">
         <Link
           href="/login"
-          className="text-sm text-neutral-400 hover:text-gold-500 transition-colors"
+          className="text-sm text-neutral-400 hover:text-rink-500 transition-colors"
         >
           Back to Login
         </Link>

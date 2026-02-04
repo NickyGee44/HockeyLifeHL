@@ -109,7 +109,7 @@ export function WaiverModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-700 bg-neutral-900/80 backdrop-blur">
           <div className="flex items-center gap-3">
-            <ScrollText className="h-6 w-6 text-gold-500" />
+            <ScrollText className="h-6 w-6 text-rink-500" />
             <div>
               <h2 className="text-lg font-semibold text-white">{title}</h2>
               {leagueName && (
@@ -146,7 +146,7 @@ export function WaiverModal({
                   __html: content
                     .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-white mt-6 mb-3">$1</h3>')
                     .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-8 mb-4">$1</h2>')
-                    .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-gold-500 mb-6">$1</h1>')
+                    .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-rink-500 mb-6">$1</h1>')
                     .replace(/^- (.+)$/gm, '<li class="ml-4 text-neutral-300">$1</li>')
                     .replace(/\n\n/g, '</p><p class="my-4">')
                     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>'),
@@ -160,7 +160,7 @@ export function WaiverModal({
                 <button
                   type="button"
                   onClick={scrollToBottom}
-                  className="w-full flex items-center justify-center gap-2 text-gold-500 hover:text-gold-400 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 text-rink-500 hover:text-rink-400 transition-colors"
                 >
                   <span className="text-sm">Please read the entire waiver</span>
                   <ChevronDown className="h-4 w-4 animate-bounce" />
@@ -202,11 +202,11 @@ export function WaiverModal({
               <div className={cn(
                 'flex items-start gap-3 p-4 rounded-lg border transition-colors',
                 canSign
-                  ? 'border-gold-500/50 bg-gold-500/10'
+                  ? 'border-rink-500/50 bg-rink-500/10'
                   : 'border-neutral-700 bg-neutral-800/50'
               )}>
                 {canSign ? (
-                  <Check className="h-5 w-5 text-gold-500 mt-0.5 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-rink-500 mt-0.5 flex-shrink-0" />
                 ) : (
                   <div className="h-5 w-5 rounded border border-neutral-600 mt-0.5 flex-shrink-0" />
                 )}
@@ -296,7 +296,7 @@ export function InlineWaiver({
               __html: content
                 .replace(/^### (.+)$/gm, '<h4 class="text-sm font-semibold text-white mt-4 mb-2">$1</h4>')
                 .replace(/^## (.+)$/gm, '<h3 class="text-base font-bold text-white mt-6 mb-3">$1</h3>')
-                .replace(/^# (.+)$/gm, '<h2 class="text-lg font-bold text-gold-500 mb-4">$1</h2>')
+                .replace(/^# (.+)$/gm, '<h2 class="text-lg font-bold text-rink-500 mb-4">$1</h2>')
                 .replace(/^- (.+)$/gm, '<li class="ml-4 text-neutral-300 text-sm">$1</li>')
                 .replace(/\n\n/g, '</p><p class="my-3">')
                 .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>'),
@@ -304,7 +304,7 @@ export function InlineWaiver({
           />
         </div>
         {!hasScrolledToBottom && (
-          <p className="text-xs text-gold-500 flex items-center gap-1">
+          <p className="text-xs text-rink-500 flex items-center gap-1">
             <ChevronDown className="h-3 w-3 animate-bounce" />
             Please scroll to read the entire waiver
           </p>
@@ -334,7 +334,7 @@ export function InlineWaiver({
           checked={hasAgreed}
           onChange={(e) => onAgreeChange(e.target.checked)}
           disabled={!hasScrolledToBottom || !signatureData || !signedName}
-          className="mt-1 h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-gold-500 focus:ring-gold-500 focus:ring-offset-neutral-900 disabled:opacity-50"
+          className="mt-1 h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-neutral-900 disabled:opacity-50"
         />
         <span className="text-sm text-neutral-300">
           I have read this waiver, understand its contents, and voluntarily agree to

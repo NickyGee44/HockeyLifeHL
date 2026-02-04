@@ -13,7 +13,7 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@hockeylifehl.com';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@beerleaguehockey.ca';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 // ============================================================================
@@ -65,7 +65,7 @@ function getEmailLayout(content: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HockeyLifeHL</title>
+  <title>Beer League Hockey</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -124,13 +124,13 @@ function getEmailLayout(content: string): string {
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">HockeyLifeHL</div>
+      <div class="logo">Beer League Hockey</div>
     </div>
     <div class="content">
       ${content}
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} HockeyLifeHL. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Beer League Hockey. All rights reserved.</p>
       <p><a href="${SITE_URL}/settings/subscription">Manage Subscription</a> | <a href="${SITE_URL}/support">Contact Support</a></p>
     </div>
   </div>
@@ -152,9 +152,9 @@ export async function sendWelcomeEmail(params: {
   const { to, organizationName, tier, trialEndsAt } = params;
 
   const content = `
-    <h1>Welcome to HockeyLifeHL!</h1>
+    <h1>Welcome to Beer League Hockey!</h1>
     <p>Hi there,</p>
-    <p>Thank you for subscribing to HockeyLifeHL's <strong>${tier.charAt(0).toUpperCase() + tier.slice(1)} plan</strong> for your organization <strong>${organizationName}</strong>.</p>
+    <p>Thank you for subscribing to Beer League Hockey's <strong>${tier.charAt(0).toUpperCase() + tier.slice(1)} plan</strong> for your organization <strong>${organizationName}</strong>.</p>
 
     ${
       trialEndsAt
@@ -178,12 +178,12 @@ export async function sendWelcomeEmail(params: {
     <a href="${SITE_URL}/dashboard" class="button">Go to Dashboard</a>
 
     <p>If you have any questions, our support team is here to help!</p>
-    <p>Best regards,<br>The HockeyLifeHL Team</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
 
   return sendEmail({
     to,
-    subject: `Welcome to HockeyLifeHL ${tier.charAt(0).toUpperCase() + tier.slice(1)}!`,
+    subject: `Welcome to Beer League Hockey ${tier.charAt(0).toUpperCase() + tier.slice(1)}!`,
     html: getEmailLayout(content),
   });
 }
@@ -211,16 +211,16 @@ export async function sendTrialEndingEmail(params: {
     </div>
 
     <h2>Make sure your payment method is ready</h2>
-    <p>To continue enjoying HockeyLifeHL without interruption, please ensure you have a valid payment method on file.</p>
+    <p>To continue enjoying Beer League Hockey without interruption, please ensure you have a valid payment method on file.</p>
 
     <a href="${SITE_URL}/dashboard/settings/subscription" class="button">Manage Subscription</a>
 
-    <p>Best regards,<br>The HockeyLifeHL Team</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
 
   return sendEmail({
     to,
-    subject: `Your HockeyLifeHL trial ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`,
+    subject: `Your Beer League Hockey trial ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`,
     html: getEmailLayout(content),
   });
 }
@@ -254,13 +254,13 @@ export async function sendPaymentSuccessEmail(params: {
         : ''
     }
 
-    <p>Thank you for being a valued HockeyLifeHL customer!</p>
-    <p>Best regards,<br>The HockeyLifeHL Team</p>
+    <p>Thank you for being a valued Beer League Hockey customer!</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
 
   return sendEmail({
     to,
-    subject: 'Payment Received - HockeyLifeHL',
+    subject: 'Payment Received - Beer League Hockey',
     html: getEmailLayout(content),
   });
 }
@@ -289,7 +289,7 @@ export async function sendPaymentFailedEmail(params: {
     </div>
 
     <h2>What you need to do</h2>
-    <p>Please update your payment method to continue using HockeyLifeHL without interruption. We'll automatically retry the payment in a few days.</p>
+    <p>Please update your payment method to continue using Beer League Hockey without interruption. We'll automatically retry the payment in a few days.</p>
 
     ${
       attemptCount >= 3
@@ -300,7 +300,7 @@ export async function sendPaymentFailedEmail(params: {
     <a href="${SITE_URL}/dashboard/settings/subscription" class="button">Update Payment Method</a>
 
     <p>If you believe this is an error, please contact your bank or our support team.</p>
-    <p>Best regards,<br>The HockeyLifeHL Team</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
 
   return sendEmail({
@@ -339,12 +339,12 @@ export async function sendSubscriptionUpgradedEmail(params: {
 
     <a href="${SITE_URL}/dashboard" class="button">Explore New Features</a>
 
-    <p>Best regards,<br>The HockeyLifeHL Team</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
 
   return sendEmail({
     to,
-    subject: 'Subscription Upgraded - HockeyLifeHL',
+    subject: 'Subscription Upgraded - Beer League Hockey',
     html: getEmailLayout(content),
   });
 }
@@ -384,12 +384,12 @@ export async function sendSubscriptionDowngradedEmail(params: {
 
     <a href="${SITE_URL}/dashboard/settings/subscription" class="button">Manage Subscription</a>
 
-    <p>Best regards,<br>The HockeyLifeHL Team</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
 
   return sendEmail({
     to,
-    subject: 'Subscription Downgrade Scheduled - HockeyLifeHL',
+    subject: 'Subscription Downgrade Scheduled - Beer League Hockey',
     html: getEmailLayout(content),
   });
 }
@@ -432,12 +432,12 @@ export async function sendSubscriptionCancelledEmail(params: {
 
     <a href="${SITE_URL}/dashboard/settings/subscription" class="button">Manage Subscription</a>
 
-    <p>Best regards,<br>The HockeyLifeHL Team</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
 
   return sendEmail({
     to,
-    subject: 'Subscription Cancelled - HockeyLifeHL',
+    subject: 'Subscription Cancelled - Beer League Hockey',
     html: getEmailLayout(content),
   });
 }
@@ -465,12 +465,12 @@ export async function sendSubscriptionReactivatedEmail(params: {
 
     <a href="${SITE_URL}/dashboard" class="button">Go to Dashboard</a>
 
-    <p>Best regards,<br>The HockeyLifeHL Team</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
 
   return sendEmail({
     to,
-    subject: 'Subscription Reactivated - HockeyLifeHL',
+    subject: 'Subscription Reactivated - Beer League Hockey',
     html: getEmailLayout(content),
   });
 }

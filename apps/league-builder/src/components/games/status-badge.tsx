@@ -45,9 +45,9 @@ const statusConfig: Record<
   },
   completed: {
     label: 'Completed',
-    bgColor: 'bg-gold-500/10',
-    textColor: 'text-gold-500',
-    borderColor: 'border-gold-500/30',
+    bgColor: 'bg-rink-500/10',
+    textColor: 'text-rink-500',
+    borderColor: 'border-rink-500/30',
     icon: CheckCircle,
   },
   cancelled: {
@@ -138,7 +138,7 @@ export function StatusDot({
         'w-2 h-2 rounded-full',
         status === 'scheduled' && 'bg-blue-500',
         status === 'in_progress' && 'bg-green-500 animate-pulse',
-        status === 'completed' && 'bg-gold-500',
+        status === 'completed' && 'bg-rink-500',
         status === 'cancelled' && 'bg-red-500',
         status === 'postponed' && 'bg-yellow-500',
         className

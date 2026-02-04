@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: { teamId: string } 
     return { title: 'Team Not Found' };
   }
   return {
-    title: `${result.data.name} | HockeyLifeHL`,
+    title: `${result.data.name} | Beer League Hockey`,
     description: `Manage ${result.data.name} team`,
   };
 }
@@ -57,19 +57,19 @@ export default async function TeamDetailPage({
         <div className="mb-8">
           <Link
             href="/dashboard/teams"
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Teams
           </Link>
 
           {/* Team Header Card */}
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
             {/* Color Bar */}
             <div
               className="h-2"
               style={{
-                background: `linear-gradient(to right, ${team.primary_color || '#D4AF37'}, ${team.secondary_color || '#000000'})`,
+                background: `linear-gradient(to right, ${team.primary_color || '#22D3EE'}, ${team.secondary_color || '#000000'})`,
               }}
             />
 
@@ -86,7 +86,7 @@ export default async function TeamDetailPage({
                   ) : (
                     <div
                       className="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
-                      style={{ backgroundColor: team.primary_color || '#D4AF37' }}
+                      style={{ backgroundColor: team.primary_color || '#22D3EE' }}
                     >
                       {team.short_name.slice(0, 2).toUpperCase()}
                     </div>
@@ -146,10 +146,10 @@ export default async function TeamDetailPage({
               </div>
 
               {/* Team Details */}
-              <div className="mt-6 pt-6 border-t border-gold-500/10 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="mt-6 pt-6 border-t border-white/[0.06] grid grid-cols-2 md:grid-cols-4 gap-4">
                 {team.captain_name && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Crown className="w-4 h-4 text-gold-500" />
+                    <Crown className="w-4 h-4 text-rink-500" />
                     <span className="text-neutral-500">Captain:</span>
                     <span className="text-white">{team.captain_name}</span>
                   </div>

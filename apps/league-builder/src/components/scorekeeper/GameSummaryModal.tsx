@@ -99,7 +99,7 @@ export function GameSummaryModal({
       <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center">
         <div className="bg-neutral-900 w-full md:max-w-2xl md:rounded-2xl p-8">
           <div className="flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-gold-500/20 border-t-gold-500 rounded-full animate-spin" />
+            <div className="w-12 h-12 border-4 border-white/10 border-t-rink-500 rounded-full animate-spin" />
           </div>
           <p className="text-neutral-400 text-center mt-4">Loading summary...</p>
         </div>
@@ -109,7 +109,7 @@ export function GameSummaryModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center overflow-auto">
-      <div className="bg-neutral-900 w-full md:max-w-2xl md:rounded-2xl border-t md:border border-gold-500/20 max-h-[95vh] flex flex-col">
+      <div className="bg-neutral-900 w-full md:max-w-2xl md:rounded-2xl border-t md:border border-white/10 max-h-[95vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-800 sticky top-0 bg-neutral-900 z-10">
           <div>
@@ -140,13 +140,13 @@ export function GameSummaryModal({
                 <p className="text-sm text-neutral-400 mb-1">{game.homeTeam.name}</p>
                 <p
                   className="text-5xl font-black"
-                  style={{ color: game.homeTeam.primaryColor || '#D4AF37' }}
+                  style={{ color: game.homeTeam.primaryColor || '#22D3EE' }}
                 >
                   {summary?.homeGoals ?? 0}
                 </p>
               </div>
               <div className="px-4">
-                <span className="text-gold-500 font-bold">-</span>
+                <span className="text-rink-500 font-bold">-</span>
               </div>
               <div className="flex-1 text-center">
                 <p className="text-sm text-neutral-400 mb-1">{game.awayTeam.name}</p>
@@ -227,10 +227,10 @@ export function GameSummaryModal({
                         className="text-xs px-2 py-0.5 rounded font-medium"
                         style={{
                           backgroundColor: scorer.teamType === 'home'
-                            ? `${game.homeTeam.primaryColor || '#D4AF37'}20`
+                            ? `${game.homeTeam.primaryColor || '#22D3EE'}20`
                             : `${game.awayTeam.primaryColor || '#A3A3A3'}20`,
                           color: scorer.teamType === 'home'
-                            ? game.homeTeam.primaryColor || '#D4AF37'
+                            ? game.homeTeam.primaryColor || '#22D3EE'
                             : game.awayTeam.primaryColor || '#A3A3A3',
                         }}
                       >
@@ -245,7 +245,7 @@ export function GameSummaryModal({
                       {scorer.assists > 0 && (
                         <span className="text-blue-400">{scorer.assists}A</span>
                       )}
-                      <span className="text-gold-400 font-bold">{scorer.goals + scorer.assists}P</span>
+                      <span className="text-rink-400 font-bold">{scorer.goals + scorer.assists}P</span>
                     </div>
                   </div>
                 ))}
@@ -272,10 +272,10 @@ export function GameSummaryModal({
                           className="text-xs px-2 py-0.5 rounded font-medium"
                           style={{
                             backgroundColor: goalie.teamType === 'home'
-                              ? `${game.homeTeam.primaryColor || '#D4AF37'}20`
+                              ? `${game.homeTeam.primaryColor || '#22D3EE'}20`
                               : `${game.awayTeam.primaryColor || '#A3A3A3'}20`,
                             color: goalie.teamType === 'home'
-                              ? game.homeTeam.primaryColor || '#D4AF37'
+                              ? game.homeTeam.primaryColor || '#22D3EE'
                               : game.awayTeam.primaryColor || '#A3A3A3',
                           }}
                         >
@@ -286,7 +286,7 @@ export function GameSummaryModal({
                       <div className="flex items-center gap-3 text-sm">
                         <span className="text-blue-400">{goalie.saves} SV</span>
                         <span className="text-red-400">{goalie.goalsAgainst} GA</span>
-                        <span className="text-gold-400 font-bold">{savePercentage}%</span>
+                        <span className="text-rink-400 font-bold">{savePercentage}%</span>
                       </div>
                     </div>
                   );
@@ -297,15 +297,15 @@ export function GameSummaryModal({
 
           {/* Verification Status */}
           {submitted && verificationLinks && (
-            <div className="bg-gold-500/10 border border-gold-500/30 rounded-xl p-4 space-y-4">
+            <div className="bg-rink-500/10 border border-rink-500/30 rounded-xl p-4 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gold-500/20 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-gold-400" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-10 h-10 rounded-full bg-rink-500/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-rink-400" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-gold-400 font-semibold">Submitted for Verification</p>
+                  <p className="text-rink-400 font-semibold">Submitted for Verification</p>
                   <p className="text-sm text-neutral-400">
                     Share verification links with team captains
                   </p>
@@ -321,7 +321,7 @@ export function GameSummaryModal({
                     </code>
                     <button
                       onClick={() => navigator.clipboard.writeText(`${getBaseUrl()}/verify/${verificationLinks.homeToken}`)}
-                      className="p-2 text-gold-400 hover:text-gold-300 transition-colors touch-manipulation"
+                      className="p-2 text-rink-400 hover:text-rink-300 transition-colors touch-manipulation"
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -338,7 +338,7 @@ export function GameSummaryModal({
                     </code>
                     <button
                       onClick={() => navigator.clipboard.writeText(`${getBaseUrl()}/verify/${verificationLinks.awayToken}`)}
-                      className="p-2 text-gold-400 hover:text-gold-300 transition-colors touch-manipulation"
+                      className="p-2 text-rink-400 hover:text-rink-300 transition-colors touch-manipulation"
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -410,8 +410,8 @@ export function GameSummaryModal({
             <button
               onClick={handleSubmitForVerification}
               disabled={isSubmitting}
-              className="flex-1 py-4 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl
-                hover:shadow-lg hover:shadow-gold-500/20 disabled:opacity-50 disabled:cursor-not-allowed
+              className="flex-1 py-4 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl
+                hover:shadow-lg hover:shadow-rink-500/20 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-all touch-manipulation min-h-[56px]"
             >
               {isSubmitting ? 'Submitting...' : 'Submit for Verification'}

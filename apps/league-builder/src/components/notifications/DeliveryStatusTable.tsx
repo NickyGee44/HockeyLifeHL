@@ -145,7 +145,7 @@ export function DeliveryStatusTable({ leagueId }: DeliveryStatusTableProps) {
         </div>
         <div className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.2)] rounded-xl p-4">
           <p className="text-sm text-[#a3a3a3]">Success Rate</p>
-          <p className="text-2xl font-bold text-[#D4AF37]">{stats.successRate}%</p>
+          <p className="text-2xl font-bold text-[#22D3EE]">{stats.successRate}%</p>
         </div>
       </div>
 
@@ -162,7 +162,7 @@ export function DeliveryStatusTable({ leagueId }: DeliveryStatusTableProps) {
             setStatusFilter(e.target.value as StatusFilter);
             setCurrentPage(1);
           }}
-          className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white text-sm focus:border-[#D4AF37] focus:outline-none"
+          className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white text-sm focus:border-[#22D3EE] focus:outline-none"
         >
           <option value="all">All Statuses</option>
           <option value="sent">Delivered</option>
@@ -176,7 +176,7 @@ export function DeliveryStatusTable({ leagueId }: DeliveryStatusTableProps) {
             setTypeFilter(e.target.value as TypeFilter);
             setCurrentPage(1);
           }}
-          className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white text-sm focus:border-[#D4AF37] focus:outline-none"
+          className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white text-sm focus:border-[#22D3EE] focus:outline-none"
         >
           <option value="all">All Types</option>
           <option value="game_reminder">Game Reminders</option>
@@ -190,7 +190,7 @@ export function DeliveryStatusTable({ leagueId }: DeliveryStatusTableProps) {
       <div className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.2)] rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
+            <Loader2 className="h-6 w-6 animate-spin text-[#22D3EE]" />
           </div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-12 text-[#525252]">
@@ -258,7 +258,7 @@ export function DeliveryStatusTable({ leagueId }: DeliveryStatusTableProps) {
                           <button
                             onClick={() => handleResend(notification.id)}
                             disabled={resending === notification.id}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-[#D4AF37] border border-[rgba(212,175,55,0.3)] rounded-lg hover:bg-[rgba(212,175,55,0.1)] disabled:opacity-50"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-[#22D3EE] border border-[rgba(212,175,55,0.3)] rounded-lg hover:bg-[rgba(212,175,55,0.1)] disabled:opacity-50"
                           >
                             {resending === notification.id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />

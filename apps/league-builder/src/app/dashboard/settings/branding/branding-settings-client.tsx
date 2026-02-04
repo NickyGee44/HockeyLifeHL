@@ -146,9 +146,9 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
   if (leagues.length === 0) {
     return (
       <div className="space-y-6">
-        <Card className="bg-neutral-800/50 border-gold-500/20">
+        <Card className="bg-neutral-800/50 border-white/10">
           <CardContent className="py-12 text-center">
-            <Trophy className="w-16 h-16 text-gold-500 mx-auto mb-4" />
+            <Trophy className="w-16 h-16 text-rink-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">No Leagues Yet</h3>
             <p className="text-neutral-400 mb-4">
               Create a league first to customize its branding
@@ -157,8 +157,8 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
               href="/dashboard/leagues/new"
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
               )}
             >
               Create Your First League
@@ -188,7 +188,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
 
       {/* League Selector */}
       {leagues.length > 1 && (
-        <Card className="bg-neutral-800/50 border-gold-500/20">
+        <Card className="bg-neutral-800/50 border-white/10">
           <CardHeader>
             <CardTitle className="text-neutral-100">Select League</CardTitle>
             <CardDescription className="text-neutral-400">
@@ -201,7 +201,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
               onChange={(e) => handleLeagueChange(e.target.value)}
               className={cn(
                 'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-                'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
               )}
             >
               {leagues.map((league) => (
@@ -215,7 +215,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
       )}
 
       {/* Logo Upload */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
+      <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-neutral-100">League Logo</CardTitle>
           <CardDescription className="text-neutral-400">
@@ -235,7 +235,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
             {/* Logo Preview */}
             <div className="relative">
               {logoPreview ? (
-                <div className="relative w-32 h-32 rounded-xl overflow-hidden bg-neutral-900 border border-gold-500/30">
+                <div className="relative w-32 h-32 rounded-xl overflow-hidden bg-neutral-900 border border-rink-500/30">
                   <img
                     src={logoPreview}
                     alt="League logo"
@@ -243,7 +243,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
                   />
                   {isUploading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                      <Loader2 className="w-8 h-8 text-gold-500 animate-spin" />
+                      <Loader2 className="w-8 h-8 text-rink-500 animate-spin" />
                     </div>
                   )}
                 </div>
@@ -266,8 +266,8 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
                   disabled={isUploading}
                   className={cn(
                     'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
-                    'bg-gold-500/10 text-gold-500 border border-gold-500/30',
-                    'hover:bg-gold-500/20 transition-colors',
+                    'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+                    'hover:bg-rink-500/20 transition-colors',
                     'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
                 >
@@ -288,7 +288,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
       </Card>
 
       {/* Color Scheme */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
+      <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-neutral-100">Color Scheme</CardTitle>
           <CardDescription className="text-neutral-400">
@@ -313,7 +313,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
                   type="text"
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-black/50 border border-gold-500/30 rounded-xl font-mono text-sm text-neutral-300"
+                  className="flex-1 px-4 py-2 bg-black/50 border border-rink-500/30 rounded-xl font-mono text-sm text-neutral-300"
                   placeholder="#1E40AF"
                   maxLength={7}
                 />
@@ -336,7 +336,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
                   type="text"
                   value={secondaryColor}
                   onChange={(e) => setSecondaryColor(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-black/50 border border-gold-500/30 rounded-xl font-mono text-sm text-neutral-300"
+                  className="flex-1 px-4 py-2 bg-black/50 border border-rink-500/30 rounded-xl font-mono text-sm text-neutral-300"
                   placeholder="#3B82F6"
                   maxLength={7}
                 />
@@ -359,7 +359,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
                   type="text"
                   value={accentColor}
                   onChange={(e) => setAccentColor(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-black/50 border border-gold-500/30 rounded-xl font-mono text-sm text-neutral-300"
+                  className="flex-1 px-4 py-2 bg-black/50 border border-rink-500/30 rounded-xl font-mono text-sm text-neutral-300"
                   placeholder="#FFD700"
                   maxLength={7}
                 />
@@ -374,8 +374,8 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
               disabled={isSaving}
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                'hover:shadow-lg hover:shadow-gold-500/20 transition-all',
+                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
@@ -396,7 +396,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
       </Card>
 
       {/* Preview */}
-      <Card className="bg-neutral-800/50 border-gold-500/20">
+      <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-neutral-100">Brand Preview</CardTitle>
           <CardDescription className="text-neutral-400">
@@ -404,7 +404,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border border-gold-500/20 rounded-xl p-6 bg-neutral-900/50">
+          <div className="border border-white/10 rounded-xl p-6 bg-neutral-900/50">
             <div className="flex items-center gap-4 mb-6">
               {logoPreview ? (
                 <img

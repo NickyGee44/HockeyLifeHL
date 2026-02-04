@@ -1,10 +1,15 @@
 /**
  * Subscription Types for Platform (Organization-level billing)
  *
- * HockeyLifeHL uses a free platform model with transaction-based pricing:
- * - Platform is free to use
- * - 2.99% fee on payment processing
- * - Optional paid add-ons (custom domains, data import)
+ * Beer League Hockey uses a setup + processing fee model:
+ * - One-time setup fee per league ($4,999 CAD)
+ * - 2.99% processing fee on all player payments (configurable per league)
+ * - Fee can be passed to player or absorbed by league
+ * - No subscription tiers - all features included
+ *
+ * NOTE: The tier types below are retained for backward compatibility with
+ * existing database records and Stripe subscription IDs. New code should
+ * not create new tier-based subscriptions.
  */
 
 // ============================================================================
@@ -116,8 +121,8 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, {
   },
 };
 
-// Platform transaction fee (percentage)
-export const PLATFORM_TRANSACTION_FEE = 2.99;
+// Platform transaction fee is now DB-driven via platform_fee_config table.
+// Use getPlatformFeeConfig() from '@/lib/fees/platform-fees' instead.
 
 // ============================================================================
 // Subscription Status

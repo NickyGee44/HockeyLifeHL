@@ -501,7 +501,7 @@ export function DraftRoom({
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold-500 border-t-transparent" />
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-rink-500 border-t-transparent" />
           <p className="text-muted-foreground">Loading draft room...</p>
         </div>
       </div>
@@ -517,7 +517,7 @@ export function DraftRoom({
           <p className="text-lg font-medium text-red-500">{error}</p>
           <button
             onClick={fetchDraftData}
-            className="rounded-lg bg-gold-500 px-4 py-2 font-medium text-black hover:bg-gold-600"
+            className="rounded-lg bg-rink-500 px-4 py-2 font-medium text-black hover:bg-rink-600"
           >
             Try Again
           </button>
@@ -627,7 +627,7 @@ export function DraftRoom({
             <p className="text-sm text-muted-foreground">
               Round {draft?.current_round || 1} - Pick {draft?.current_pick || 1}
               {draft?.draft_type === 'snake' && (
-                <span className="ml-2 text-gold-500">(Snake Draft)</span>
+                <span className="ml-2 text-rink-500">(Snake Draft)</span>
               )}
             </p>
           </div>
@@ -658,7 +658,7 @@ export function DraftRoom({
 
           {/* Pick status */}
           {isMyPick && !isPaused && (
-            <div className="rounded-lg bg-gold-500/20 px-4 py-2 font-medium text-gold-500">
+            <div className="rounded-lg bg-rink-500/20 px-4 py-2 font-medium text-rink-500">
               Your Pick!
             </div>
           )}
@@ -715,8 +715,8 @@ export function DraftRoom({
                     onClick={handleMakePick}
                     disabled={!canPick || isSubmitting}
                     className={cn(
-                      'rounded-lg bg-gold-500 px-8 py-3 text-lg font-bold text-black',
-                      'hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-50'
+                      'rounded-lg bg-rink-500 px-8 py-3 text-lg font-bold text-black',
+                      'hover:bg-rink-600 disabled:cursor-not-allowed disabled:opacity-50'
                     )}
                   >
                     {isSubmitting ? 'Picking...' : 'Confirm Pick'}

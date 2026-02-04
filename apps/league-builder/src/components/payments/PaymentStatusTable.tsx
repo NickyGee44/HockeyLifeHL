@@ -213,9 +213,9 @@ export function PaymentStatusTable({
 
   if (isLoading) {
     return (
-      <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl p-8">
+      <div className="bg-neutral-800 border border-white/10 rounded-2xl p-8">
         <div className="flex items-center justify-center">
-          <RefreshCw className="h-8 w-8 text-gold-500 animate-spin" />
+          <RefreshCw className="h-8 w-8 text-rink-500 animate-spin" />
           <span className="ml-3 text-neutral-400">Loading payments...</span>
         </div>
       </div>
@@ -223,7 +223,7 @@ export function PaymentStatusTable({
   }
 
   return (
-    <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl overflow-hidden">
+    <div className="bg-neutral-800 border border-white/10 rounded-2xl overflow-hidden">
       {/* Header with Stats */}
       <div className="p-6 border-b border-neutral-700">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
@@ -253,7 +253,7 @@ export function PaymentStatusTable({
           </div>
           <div className="h-2 bg-neutral-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-gold-500 to-gold-600 rounded-full transition-all"
+              className="h-full bg-gradient-to-r from-rink-500 to-arena-500 rounded-full transition-all"
               style={{
                 width: `${stats.totalExpected > 0 ? (stats.totalCollected / stats.totalExpected) * 100 : 0}%`,
               }}
@@ -271,7 +271,7 @@ export function PaymentStatusTable({
               placeholder="Search players or teams..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-black/50 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 bg-black/50 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent"
             />
           </div>
 
@@ -281,7 +281,7 @@ export function PaymentStatusTable({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as PlayerPaymentStatus | 'all')}
-              className="pl-10 pr-8 py-2 bg-black/50 border border-neutral-700 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
+              className="pl-10 pr-8 py-2 bg-black/50 border border-neutral-700 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent"
             >
               <option value="all">All Status</option>
               {Object.entries(STATUS_CONFIG).map(([value, config]) => (
@@ -379,7 +379,7 @@ export function PaymentStatusTable({
                     {/* Player */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gold-500/10 rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-rink-500/10 rounded-full flex items-center justify-center">
                           {payment.player.avatar_url ? (
                             <img
                               src={payment.player.avatar_url}
@@ -387,7 +387,7 @@ export function PaymentStatusTable({
                               className="w-8 h-8 rounded-full object-cover"
                             />
                           ) : (
-                            <span className="text-xs font-medium text-gold-500">
+                            <span className="text-xs font-medium text-rink-500">
                               {payment.player.full_name.charAt(0).toUpperCase()}
                             </span>
                           )}
@@ -437,7 +437,7 @@ export function PaymentStatusTable({
                               progressPercent >= 100
                                 ? 'bg-green-500'
                                 : progressPercent > 0
-                                  ? 'bg-gold-500'
+                                  ? 'bg-rink-500'
                                   : 'bg-neutral-600'
                             }`}
                             style={{ width: `${Math.min(progressPercent, 100)}%` }}

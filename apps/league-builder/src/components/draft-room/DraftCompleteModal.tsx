@@ -30,9 +30,9 @@ interface ConfettiParticle {
 
 // Confetti colors (gold theme)
 const CONFETTI_COLORS = [
-  '#D4AF37', // Gold
+  '#22D3EE', // Gold
   '#FFD700', // Bright Gold
-  '#C19A00', // Dark Gold
+  '#06b6d4', // Dark Gold
   '#FFFFFF', // White
   '#F0E68C', // Khaki
   '#FFC107', // Amber
@@ -167,7 +167,7 @@ export function DraftCompleteModal({
         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
         {/* Modal */}
-        <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-gold-500/30 bg-neutral-900 p-8 shadow-2xl">
+        <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-rink-500/30 bg-neutral-900 p-8 shadow-2xl">
           {/* Close Button */}
           <button
             onClick={onClose}
@@ -178,7 +178,7 @@ export function DraftCompleteModal({
 
           {/* Header with Trophy */}
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-gold-400 to-gold-600 shadow-[0_0_40px_rgba(212,175,55,0.4)]">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rink-400 to-rink-600 shadow-[0_0_40px_rgba(212,175,55,0.4)]">
               <Trophy className="h-10 w-10 text-black" />
             </div>
             <h2 className="text-3xl font-bold text-white">Draft Complete!</h2>
@@ -189,18 +189,18 @@ export function DraftCompleteModal({
 
           {/* Stats Grid */}
           <div className="mb-8 grid grid-cols-3 gap-4">
-            <div className="rounded-xl border border-gold-500/20 bg-gold-500/5 p-4 text-center">
-              <Users className="mx-auto mb-2 h-6 w-6 text-gold-500" />
+            <div className="rounded-xl border border-white/10 bg-rink-500/5 p-4 text-center">
+              <Users className="mx-auto mb-2 h-6 w-6 text-rink-500" />
               <p className="text-2xl font-bold text-white">{teams.length}</p>
               <p className="text-xs text-neutral-400">Teams</p>
             </div>
-            <div className="rounded-xl border border-gold-500/20 bg-gold-500/5 p-4 text-center">
-              <Clock className="mx-auto mb-2 h-6 w-6 text-gold-500" />
+            <div className="rounded-xl border border-white/10 bg-rink-500/5 p-4 text-center">
+              <Clock className="mx-auto mb-2 h-6 w-6 text-rink-500" />
               <p className="text-2xl font-bold text-white">{avgPickTime.toFixed(1)}s</p>
               <p className="text-xs text-neutral-400">Avg Pick Time</p>
             </div>
-            <div className="rounded-xl border border-gold-500/20 bg-gold-500/5 p-4 text-center">
-              <Zap className="mx-auto mb-2 h-6 w-6 text-gold-500" />
+            <div className="rounded-xl border border-white/10 bg-rink-500/5 p-4 text-center">
+              <Zap className="mx-auto mb-2 h-6 w-6 text-rink-500" />
               <p className="text-2xl font-bold text-white">{autoPicks}</p>
               <p className="text-xs text-neutral-400">Auto-Picks</p>
             </div>
@@ -218,7 +218,7 @@ export function DraftCompleteModal({
                   className="flex items-center justify-between rounded-lg bg-neutral-800/50 px-4 py-3"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-500/20 text-sm font-bold text-gold-500">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rink-500/20 text-sm font-bold text-rink-500">
                       {index + 1}
                     </span>
                     <span className="font-medium text-white">{team.name}</span>
@@ -311,7 +311,7 @@ export function DraftCompleteModal({
             </button>
             <button
               onClick={onClose}
-              className="flex items-center gap-2 rounded-lg bg-gold-500 px-6 py-2 font-semibold text-black transition-all hover:bg-gold-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+              className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]"
             >
               <Download className="h-4 w-4" />
               View Full Results

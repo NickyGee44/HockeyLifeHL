@@ -83,7 +83,7 @@ export function RegistrationFunnel({
       label: 'Roster Assigned',
       value: summary.rosterAssigned,
       percentage: summary.signupToRosterRate,
-      color: 'bg-gold-500',
+      color: 'bg-rink-500',
     },
     {
       label: 'Paid',

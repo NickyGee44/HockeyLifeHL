@@ -77,7 +77,7 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
                   'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm',
                   team.roster_count >= (team.max_roster_size ?? 23)
                     ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-gold-500 to-gold-600 text-black hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                    : 'bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20 transition-all'
                 )}
               >
                 <UserPlus className="w-4 h-4" />
@@ -108,9 +108,9 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
             </div>
 
             {/* Placeholder for schedule */}
-            <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-12 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold-500/10 flex items-center justify-center">
-                <Calendar className="w-8 h-8 text-gold-500" />
+            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rink-500/10 flex items-center justify-center">
+                <Calendar className="w-8 h-8 text-rink-500" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">No Games Scheduled</h3>
               <p className="text-neutral-400 mb-6 max-w-md mx-auto">
@@ -120,8 +120,8 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
                 href={`/dashboard/leagues/${team.league_id}/seasons`}
                 className={cn(
                   'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                  'bg-gold-500/10 text-gold-500 border border-gold-500/30',
-                  'hover:bg-gold-500/20 transition-colors'
+                  'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+                  'hover:bg-rink-500/20 transition-colors'
                 )}
               >
                 <Clock className="w-4 h-4" />
@@ -146,9 +146,9 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
             </div>
 
             {/* Placeholder for stats */}
-            <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-12 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold-500/10 flex items-center justify-center">
-                <BarChart3 className="w-8 h-8 text-gold-500" />
+            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rink-500/10 flex items-center justify-center">
+                <BarChart3 className="w-8 h-8 text-rink-500" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">No Stats Yet</h3>
               <p className="text-neutral-400 max-w-md mx-auto">
@@ -166,7 +166,7 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-2">
+      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-2">
         <div className="flex gap-2">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -179,7 +179,7 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
                 className={cn(
                   'flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all',
                   isActive
-                    ? 'bg-gold-500/10 text-gold-500 border border-gold-500/30'
+                    ? 'bg-rink-500/10 text-rink-500 border border-rink-500/30'
                     : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                 )}
               >
@@ -192,7 +192,7 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
       </div>
 
       {/* Tab Content */}
-      <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-6">
+      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
         {renderTabContent()}
       </div>
 

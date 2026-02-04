@@ -40,7 +40,7 @@ export function getScheduleChangeEmail(props: ScheduleChangeEmailProps): string 
     willReschedule,
     dashboardUrl,
     unsubscribeUrl,
-    leagueName = 'HockeyLifeHL',
+    leagueName = 'Beer League Hockey',
   } = props;
 
   const isCancelled = changeType === 'cancelled';
@@ -61,8 +61,8 @@ export function getScheduleChangeEmail(props: ScheduleChangeEmailProps): string 
 
   if (!isCancelled && newDate && newTime) {
     details.push(
-      { label: 'New Date', value: `<strong style="color: #D4AF37;">${newDate}</strong>` },
-      { label: 'New Time', value: `<strong style="color: #D4AF37;">${newTime}</strong>` }
+      { label: 'New Date', value: `<strong style="color: #22D3EE;">${newDate}</strong>` },
+      { label: 'New Time', value: `<strong style="color: #22D3EE;">${newTime}</strong>` }
     );
   }
 

@@ -142,7 +142,7 @@ export function GameCompletionChart({
               />
               <Bar dataKey="completed_count" name="Completed" fill="#22c55e" radius={[4, 4, 0, 0]} />
               <Bar dataKey="cancelled_count" name="Cancelled" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="in_progress_count" name="In Progress" fill="#D4AF37" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="in_progress_count" name="In Progress" fill="#22D3EE" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -158,7 +158,7 @@ function GameTooltip({ active, payload, label }: TooltipProps<number, string>) {
   const date = new Date(label);
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/30 rounded-xl p-3 shadow-lg">
+    <div className="bg-neutral-900 border border-rink-500/30 rounded-xl p-3 shadow-lg">
       <p className="text-sm font-semibold text-white mb-2">
         {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
       </p>
@@ -177,7 +177,7 @@ function GameTooltip({ active, payload, label }: TooltipProps<number, string>) {
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-neutral-400">Rate:</span>
-          <span className="text-gold-400">{formatPercent(data.completion_rate)}</span>
+          <span className="text-rink-400">{formatPercent(data.completion_rate)}</span>
         </div>
       </div>
     </div>

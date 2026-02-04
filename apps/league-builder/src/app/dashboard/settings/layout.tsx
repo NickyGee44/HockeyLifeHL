@@ -16,7 +16,7 @@ export default function SettingsLayout({
         <div className="mb-8">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
@@ -39,7 +39,7 @@ export default function SettingsLayout({
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-6">
+            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
               {children}
             </div>
           </div>

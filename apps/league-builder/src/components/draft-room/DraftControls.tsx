@@ -76,7 +76,7 @@ export function DraftControls({
           disabled={isSubmitting}
           className={cn(
             'flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-all',
-            'border border-gold-500/50 bg-gold-500/10 text-gold-400 hover:bg-gold-500/20',
+            'border border-rink-500/50 bg-rink-500/10 text-rink-400 hover:bg-rink-500/20',
             'disabled:cursor-not-allowed disabled:opacity-50'
           )}
         >

@@ -116,10 +116,10 @@ export function Step6Payment() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-sm text-neutral-400">Registration Fee</p>
-            <p className="text-3xl font-bold text-gold-500">{formattedAmount}</p>
+            <p className="text-3xl font-bold text-rink-500">{formattedAmount}</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-gold-500/20 flex items-center justify-center">
-            <CreditCard className="w-6 h-6 text-gold-500" />
+          <div className="w-12 h-12 rounded-full bg-rink-500/20 flex items-center justify-center">
+            <CreditCard className="w-6 h-6 text-rink-500" />
           </div>
         </div>
 
@@ -133,14 +133,14 @@ export function Step6Payment() {
 
         <div className="flex justify-between text-lg font-semibold pt-4 border-t border-neutral-700">
           <span className="text-white">Total</span>
-          <span className="text-gold-500">{formattedAmount}</span>
+          <span className="text-rink-500">{formattedAmount}</span>
         </div>
       </div>
 
       {/* Payment Form Placeholder */}
       <div className="p-6 rounded-xl border border-neutral-700 bg-neutral-800/30 space-y-6">
         <div className="flex items-center gap-2 text-white mb-2">
-          <CreditCard className="w-5 h-5 text-gold-500" />
+          <CreditCard className="w-5 h-5 text-rink-500" />
           <h3 className="font-semibold">Payment Details</h3>
         </div>
 

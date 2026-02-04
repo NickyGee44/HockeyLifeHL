@@ -141,8 +141,8 @@ export function RegistrationsTable({
     <div className="space-y-4">
       {/* Bulk Actions */}
       {selectedIds.length > 0 && (
-        <div className="flex items-center gap-4 p-4 rounded-lg bg-gold-500/10 border border-gold-500/30">
-          <span className="text-sm text-gold-400">
+        <div className="flex items-center gap-4 p-4 rounded-lg bg-rink-500/10 border border-rink-500/30">
+          <span className="text-sm text-rink-400">
             {selectedIds.length} selected
           </span>
           <div className="flex gap-2">
@@ -183,7 +183,7 @@ export function RegistrationsTable({
                   type="checkbox"
                   checked={allPendingSelected}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="rounded border-neutral-600 bg-neutral-700 text-gold-500 focus:ring-gold-500"
+                  className="rounded border-neutral-600 bg-neutral-700 text-rink-500 focus:ring-rink-500"
                 />
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-neutral-300">
@@ -224,7 +224,7 @@ export function RegistrationsTable({
                       type="checkbox"
                       checked={selectedIds.includes(reg.id)}
                       onChange={(e) => handleSelectOne(reg.id, e.target.checked)}
-                      className="rounded border-neutral-600 bg-neutral-700 text-gold-500 focus:ring-gold-500"
+                      className="rounded border-neutral-600 bg-neutral-700 text-rink-500 focus:ring-rink-500"
                     />
                   )}
                 </td>

@@ -60,7 +60,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
         <div className="mb-8">
           <Link
             href={`/dashboard/leagues/${leagueId}/seasons/${seasonId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to {season.name}
@@ -69,7 +69,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
           <div className="flex items-center gap-4">
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: season.league?.primary_color || '#D4AF37' }}
+              style={{ backgroundColor: season.league?.primary_color || '#22D3EE' }}
             >
               <Edit className="w-6 h-6 text-white" />
             </div>

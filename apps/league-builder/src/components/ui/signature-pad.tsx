@@ -28,7 +28,7 @@ export function SignaturePad({
   onSignedNameChange,
   width = 400,
   height = 200,
-  penColor = '#D4AF37', // Gold
+  penColor = '#22D3EE', // Gold
   backgroundColor = '#1a1a1a', // Dark background
   className,
   disabled = false,
@@ -288,7 +288,7 @@ export function SignaturePad({
         <div className="space-y-2">
           <p className="text-sm text-neutral-400">Saved Signature:</p>
           <div
-            className="inline-block rounded-lg overflow-hidden border border-gold-500/30"
+            className="inline-block rounded-lg overflow-hidden border border-rink-500/30"
             style={{ backgroundColor }}
           >
             <img

@@ -50,7 +50,7 @@ export function LanguageSwitcher({ collapsed = false }: LanguageSwitcherProps) {
         <Globe
           className={cn(
             'w-5 h-5 flex-shrink-0',
-            'text-neutral-500 group-hover:text-gold-500'
+            'text-neutral-500 group-hover:text-rink-500'
           )}
         />
         {!collapsed && (
@@ -74,7 +74,7 @@ export function LanguageSwitcher({ collapsed = false }: LanguageSwitcherProps) {
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 mt-1 py-1 rounded-xl bg-neutral-800 border border-gold-500/20 shadow-lg',
+            'absolute z-50 mt-1 py-1 rounded-xl bg-neutral-800 border border-white/10 shadow-lg',
             collapsed ? 'left-full ml-2 bottom-0' : 'left-0 right-0'
           )}
         >
@@ -85,7 +85,7 @@ export function LanguageSwitcher({ collapsed = false }: LanguageSwitcherProps) {
               className={cn(
                 'flex items-center gap-3 w-full px-3 py-2 text-left transition-colors',
                 'hover:bg-neutral-700',
-                locale === loc ? 'text-gold-500' : 'text-neutral-300'
+                locale === loc ? 'text-rink-500' : 'text-neutral-300'
               )}
             >
               <span className="flex-1 text-sm font-medium">
@@ -95,7 +95,7 @@ export function LanguageSwitcher({ collapsed = false }: LanguageSwitcherProps) {
                 {loc}
               </span>
               {locale === loc && (
-                <Check className="w-4 h-4 text-gold-500" />
+                <Check className="w-4 h-4 text-rink-500" />
               )}
             </button>
           ))}

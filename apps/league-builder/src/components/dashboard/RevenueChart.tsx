@@ -132,8 +132,8 @@ export function RevenueChart({ organizationId, dateRange, className }: RevenueCh
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#D4AF37" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#22D3EE" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#22D3EE" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
@@ -153,7 +153,7 @@ export function RevenueChart({ organizationId, dateRange, className }: RevenueCh
               <Area
                 type="monotone"
                 dataKey="revenue"
-                stroke="#D4AF37"
+                stroke="#22D3EE"
                 strokeWidth={2}
                 fill="url(#revenueGradient)"
               />
@@ -172,12 +172,12 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   const data = payload[0].payload as RevenueDataPoint & { revenue: number };
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/30 rounded-xl p-3 shadow-lg">
+    <div className="bg-neutral-900 border border-rink-500/30 rounded-xl p-3 shadow-lg">
       <p className="text-sm font-semibold text-white mb-2">{label}</p>
       <div className="space-y-1 text-sm">
         <div className="flex justify-between gap-4">
           <span className="text-neutral-400">Revenue:</span>
-          <span className="text-gold-400 font-semibold">{formatCurrency(data.total_revenue_cents)}</span>
+          <span className="text-rink-400 font-semibold">{formatCurrency(data.total_revenue_cents)}</span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-neutral-400">Transactions:</span>
@@ -217,7 +217,7 @@ function GranularityToggle({
           className={cn(
             'px-2.5 py-1 text-xs font-semibold rounded-md transition-all',
             value === opt.value
-              ? 'bg-gold-500/20 text-gold-400'
+              ? 'bg-rink-500/20 text-rink-400'
               : 'text-neutral-400 hover:text-white'
           )}
         >
@@ -243,7 +243,7 @@ export function DashboardCard({
   return (
     <div
       className={cn(
-        'bg-neutral-900 border border-gold-500/20 rounded-2xl p-6',
+        'bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6',
         'shadow-glow-sm',
         className
       )}
@@ -293,7 +293,7 @@ export function ExportButton({
       disabled={disabled}
       className={cn(
         'p-2 rounded-lg transition-all',
-        'text-neutral-400 hover:text-gold-400 hover:bg-gold-500/10',
+        'text-neutral-400 hover:text-rink-400 hover:bg-rink-500/10',
         'disabled:opacity-50 disabled:cursor-not-allowed'
       )}
       title="Export to CSV"

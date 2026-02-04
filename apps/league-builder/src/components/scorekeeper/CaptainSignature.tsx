@@ -37,7 +37,7 @@ function SignatureCanvas({
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = 3;
-    ctx.strokeStyle = '#D4AF37'; // Gold signature color
+    ctx.strokeStyle = '#22D3EE'; // Gold signature color
   }, []);
 
   const getCoordinates = (
@@ -129,7 +129,7 @@ function SignatureCanvas({
           disabled
             ? 'border-neutral-700 bg-neutral-900/50'
             : hasSignature
-            ? 'border-gold-500/50 bg-neutral-950'
+            ? 'border-rink-500/50 bg-neutral-950'
             : 'border-neutral-600 bg-neutral-950'
         )}
       >
@@ -207,7 +207,7 @@ export function CaptainSignature({
   const [signature, setSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const teamColor = team.primary_color || '#D4AF37';
+  const teamColor = team.primary_color || '#22D3EE';
   const isSigned = !!existingSignature || !!signedAt;
 
   const handleSubmit = async () => {
@@ -228,7 +228,7 @@ export function CaptainSignature({
     <div
       className={cn(
         'bg-neutral-900 border rounded-2xl p-6',
-        isSigned ? 'border-emerald-500/30' : 'border-gold-500/20'
+        isSigned ? 'border-emerald-500/30' : 'border-white/10'
       )}
     >
       {/* Header */}
@@ -294,7 +294,7 @@ export function CaptainSignature({
               'w-full py-3 px-4 rounded-xl font-semibold transition-all',
               'touch-manipulation',
               signature && !isSubmitting
-                ? 'bg-gradient-to-r from-gold-500 to-gold-600 text-black hover:shadow-lg hover:shadow-gold-500/20'
+                ? 'bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20'
                 : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
             )}
           >
@@ -392,7 +392,7 @@ export function GameSignatureVerification({
             awayIsSigned
               ? 'bg-emerald-500 text-white'
               : homeIsSigned
-              ? 'bg-gold-500 text-black'
+              ? 'bg-rink-500 text-black'
               : 'bg-neutral-800 text-neutral-400'
           )}
         >
@@ -416,7 +416,7 @@ export function GameSignatureVerification({
           className={cn(
             'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
             bothSigned
-              ? 'bg-gold-500 text-black'
+              ? 'bg-rink-500 text-black'
               : 'bg-neutral-800 text-neutral-400'
           )}
         >
@@ -455,8 +455,8 @@ export function GameSignatureVerification({
             disabled={isSubmitting}
             className={cn(
               'w-full py-4 px-6 rounded-xl font-bold text-lg',
-              'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-              'hover:shadow-lg hover:shadow-gold-500/30 transition-all',
+              'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+              'hover:shadow-lg hover:shadow-rink-500/30 transition-all',
               'touch-manipulation',
               isSubmitting && 'opacity-50 cursor-not-allowed'
             )}

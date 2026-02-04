@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: { teamId: string } 
     return { title: 'Team Not Found' };
   }
   return {
-    title: `Settings - ${result.data.name} | HockeyLifeHL`,
+    title: `Settings - ${result.data.name} | Beer League Hockey`,
     description: `Manage ${result.data.name} team settings`,
   };
 }
@@ -51,7 +51,7 @@ export default async function TeamSettingsPage({
         <div className="mb-8">
           <Link
             href={`/dashboard/teams/${team.id}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Team
@@ -67,7 +67,7 @@ export default async function TeamSettingsPage({
             ) : (
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white"
-                style={{ backgroundColor: team.primary_color || '#D4AF37' }}
+                style={{ backgroundColor: team.primary_color || '#22D3EE' }}
               >
                 {team.short_name.slice(0, 2).toUpperCase()}
               </div>

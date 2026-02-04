@@ -12,8 +12,8 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@hockeylifehl.com';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://hockeylifehl.com';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@beerleaguehockey.ca';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
 
 // Rate limiting configuration
 const RATE_LIMIT = {

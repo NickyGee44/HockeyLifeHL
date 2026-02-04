@@ -32,7 +32,7 @@ export function getRegistrationCompleteEmail(props: RegistrationCompleteEmailPro
     startDate,
     dashboardUrl,
     unsubscribeUrl,
-    leagueName = 'HockeyLifeHL',
+    leagueName = 'Beer League Hockey',
   } = props;
 
   const formattedAmount = amountPaid
@@ -62,7 +62,7 @@ export function getRegistrationCompleteEmail(props: RegistrationCompleteEmailPro
   details.push({ label: 'Season Starts', value: startDate });
 
   if (draftDate && registrationType === 'draft') {
-    details.push({ label: 'Draft Date', value: `<strong style="color: #D4AF37;">${draftDate}</strong>` });
+    details.push({ label: 'Draft Date', value: `<strong style="color: #22D3EE;">${draftDate}</strong>` });
   }
 
   const nextStepsContent = registrationType === 'draft'

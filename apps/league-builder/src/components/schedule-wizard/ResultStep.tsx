@@ -76,19 +76,19 @@ export function ResultStep({ result, teams, onSave }: ResultStepProps) {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-neutral-800/50 rounded-lg p-4 text-center">
-          <Calendar className="w-6 h-6 text-gold-500 mx-auto mb-2" />
+          <Calendar className="w-6 h-6 text-rink-500 mx-auto mb-2" />
           <div className="text-2xl font-bold text-white">{result.totalGames}</div>
           <div className="text-sm text-neutral-400">Total Games</div>
         </div>
 
         <div className="bg-neutral-800/50 rounded-lg p-4 text-center">
-          <Users className="w-6 h-6 text-gold-500 mx-auto mb-2" />
+          <Users className="w-6 h-6 text-rink-500 mx-auto mb-2" />
           <div className="text-2xl font-bold text-white">{teams.length}</div>
           <div className="text-sm text-neutral-400">Teams</div>
         </div>
 
         <div className="bg-neutral-800/50 rounded-lg p-4 text-center">
-          <Clock className="w-6 h-6 text-gold-500 mx-auto mb-2" />
+          <Clock className="w-6 h-6 text-rink-500 mx-auto mb-2" />
           <div className="text-2xl font-bold text-white">{result.durationMs}ms</div>
           <div className="text-sm text-neutral-400">Generation Time</div>
         </div>
@@ -142,7 +142,7 @@ export function ResultStep({ result, teams, onSave }: ResultStepProps) {
               <div className="flex-1 flex items-center gap-2">
                 <div className="flex-1 h-2 bg-neutral-700 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gold-500"
+                    className="h-full bg-rink-500"
                     style={{ width: `${(home / (home + away)) * 100}%` }}
                   />
                 </div>
@@ -225,8 +225,8 @@ export function ResultStep({ result, teams, onSave }: ResultStepProps) {
 
       {/* Save Prompt */}
       {result.success && (
-        <div className="p-4 bg-gold-500/10 border border-gold-500/30 rounded-lg text-center">
-          <p className="text-gold-400">
+        <div className="p-4 bg-rink-500/10 border border-rink-500/30 rounded-lg text-center">
+          <p className="text-rink-400">
             Click <strong>Save Schedule</strong> to apply these games to your season.
           </p>
         </div>

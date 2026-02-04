@@ -22,7 +22,7 @@ export function getPasswordResetEmail(props: PasswordResetEmailProps): string {
     expiresIn,
     ipAddress,
     userAgent,
-    leagueName = 'HockeyLifeHL',
+    leagueName = 'Beer League Hockey',
   } = props;
 
   const greeting = userName ? `Hi ${userName},` : 'Hi there,';
@@ -64,7 +64,7 @@ export function getPasswordResetEmail(props: PasswordResetEmailProps): string {
 
     <p style="color: #737373; font-size: 12px; margin-top: 24px;">
       If you're having trouble with the button above, copy and paste this URL into your browser:<br>
-      <a href="${resetUrl}" style="color: #D4AF37; word-break: break-all; font-size: 11px;">${resetUrl}</a>
+      <a href="${resetUrl}" style="color: #22D3EE; word-break: break-all; font-size: 11px;">${resetUrl}</a>
     </p>
   `;
 

@@ -228,7 +228,7 @@ export async function exportUserData(): Promise<{
 
     // 9. Generate filename
     const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `hockeylife-export-${user.id.substring(0, 8)}-${timestamp}.json`;
+    const filename = `beerleaguehockey-export-${user.id.substring(0, 8)}-${timestamp}.json`;
 
     return {
       success: true,

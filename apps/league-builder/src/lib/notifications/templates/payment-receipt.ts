@@ -32,7 +32,7 @@ export function getPaymentReceiptEmail(props: PaymentReceiptEmailProps): string 
     invoiceUrl,
     dashboardUrl,
     unsubscribeUrl,
-    leagueName = 'HockeyLifeHL',
+    leagueName = 'Beer League Hockey',
   } = props;
 
   const formattedAmount = new Intl.NumberFormat('en-CA', {
@@ -78,7 +78,7 @@ export function getPaymentReceiptEmail(props: PaymentReceiptEmailProps): string 
 
     ${invoiceUrl ? `
     <p style="text-align: center; margin-top: 24px;">
-      <a href="${invoiceUrl}" style="color: #D4AF37; text-decoration: none;">
+      <a href="${invoiceUrl}" style="color: #22D3EE; text-decoration: none;">
         Download PDF Invoice &rarr;
       </a>
     </p>

@@ -3,6 +3,7 @@
  *
  * Free platform model with transaction-based fees.
  * Displays pricing information and optional add-ons.
+ * Fee values are fetched from the platform_fee_config DB table.
  */
 
 'use client';
@@ -11,7 +12,28 @@ import { Check, Percent, Database, Globe } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@hockey-life/ui';
 
-export function SubscriptionPlans() {
+interface SubscriptionPlansProps {
+  processingFeePercent: number;
+  setupFeeCents: number;
+  migrationFeeCents: number;
+  setupFeeLabel: string;
+  migrationFeeLabel: string;
+}
+
+function formatCents(cents: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(cents / 100);
+}
+
+export function SubscriptionPlans({
+  processingFeePercent,
+  setupFeeCents,
+  migrationFeeCents,
+  setupFeeLabel,
+  migrationFeeLabel,
+}: SubscriptionPlansProps) {
   return (
     <div className="space-y-6">
       {/* Free Forever Card */}
@@ -67,7 +89,7 @@ export function SubscriptionPlans() {
             </CardHeader>
             <CardContent>
               <div className="mb-2">
-                <span className="text-2xl font-bold text-primary">2.99%</span>
+                <span className="text-2xl font-bold text-primary">{processingFeePercent}%</span>
                 <span className="text-sm text-muted-foreground"> per transaction</span>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -82,17 +104,19 @@ export function SubscriptionPlans() {
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Database className="w-5 h-5 text-primary" />
               </div>
-              <CardTitle className="text-base">Historic Data Import</CardTitle>
+              <CardTitle className="text-base">{migrationFeeLabel}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="mb-2">
-                <span className="text-2xl font-bold">Custom</span>
+                <span className="text-2xl font-bold">
+                  {migrationFeeCents > 0 ? formatCents(migrationFeeCents) : 'Custom'}
+                </span>
               </div>
               <p className="text-sm text-muted-foreground">
                 One-time fee based on league size to import historical stats and records.
               </p>
               <a
-                href="mailto:support@hockeylifehl.com?subject=Historic Data Import"
+                href="mailto:support@beerleaguehockey.ca?subject=Historic Data Import"
                 className="text-sm text-primary hover:underline mt-2 inline-block"
               >
                 Get a Quote
@@ -100,7 +124,7 @@ export function SubscriptionPlans() {
             </CardContent>
           </Card>
 
-          {/* Custom Domain */}
+          {/* Setup Fee / Custom Domain */}
           <Card>
             <CardHeader className="pb-3">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
@@ -116,7 +140,7 @@ export function SubscriptionPlans() {
                 Use your own domain with SSL certificate included.
               </p>
               <a
-                href="mailto:support@hockeylifehl.com?subject=Custom Domain Setup"
+                href="mailto:support@beerleaguehockey.ca?subject=Custom Domain Setup"
                 className="text-sm text-primary hover:underline mt-2 inline-block"
               >
                 Get a Quote

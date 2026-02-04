@@ -106,8 +106,8 @@ export default function ScorekeeperLoginPage() {
       <div className="relative z-10 w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gold-500/10 border border-gold-500/20 mb-4">
-            <svg className="w-8 h-8 text-gold-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rink-500/10 border border-white/10 mb-4">
+            <svg className="w-8 h-8 text-rink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
@@ -116,7 +116,7 @@ export default function ScorekeeperLoginPage() {
         </div>
 
         {/* Token Entry Card */}
-        <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-6 md:p-8">
+        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Token Input Grid */}
             <div>
@@ -138,9 +138,9 @@ export default function ScorekeeperLoginPage() {
                     onPaste={handlePaste}
                     maxLength={4}
                     className="w-16 md:w-20 h-14 md:h-16 text-center text-xl md:text-2xl font-mono font-bold
-                      bg-neutral-950 border-2 border-gold-500/30 rounded-xl
+                      bg-neutral-950 border-2 border-rink-500/30 rounded-xl
                       text-white placeholder-neutral-600
-                      focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 focus:outline-none
+                      focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none
                       transition-all duration-200
                       touch-manipulation"
                     placeholder="····"
@@ -161,10 +161,10 @@ export default function ScorekeeperLoginPage() {
 
             {/* Game Info Preview */}
             {gameInfo && (
-              <div className="bg-gold-500/10 border border-gold-500/30 rounded-xl p-4 animate-in fade-in duration-300">
+              <div className="bg-rink-500/10 border border-rink-500/30 rounded-xl p-4 animate-in fade-in duration-300">
                 <div className="flex items-center justify-center gap-4 text-white">
                   <span className="font-semibold">{gameInfo.homeTeam}</span>
-                  <span className="text-gold-500 font-bold">vs</span>
+                  <span className="text-rink-500 font-bold">vs</span>
                   <span className="font-semibold">{gameInfo.awayTeam}</span>
                 </div>
                 <p className="text-neutral-400 text-sm text-center mt-2">
@@ -176,7 +176,7 @@ export default function ScorekeeperLoginPage() {
                     minute: '2-digit',
                   })}
                 </p>
-                <p className="text-gold-400 text-sm text-center mt-2 font-medium">
+                <p className="text-rink-400 text-sm text-center mt-2 font-medium">
                   Redirecting to game...
                 </p>
               </div>
@@ -186,9 +186,9 @@ export default function ScorekeeperLoginPage() {
             <button
               type="submit"
               disabled={isValidating || token.length < 8 || !!gameInfo}
-              className="w-full py-4 px-6 bg-gradient-to-r from-gold-500 to-gold-600
+              className="w-full py-4 px-6 bg-gradient-to-r from-rink-500 to-arena-500
                 text-black font-semibold text-lg rounded-xl
-                hover:shadow-lg hover:shadow-gold-500/20 hover:scale-[1.02]
+                hover:shadow-lg hover:shadow-rink-500/20 hover:scale-[1.02]
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
                 transition-all duration-300
                 touch-manipulation min-h-[56px]"
@@ -214,7 +214,7 @@ export default function ScorekeeperLoginPage() {
         <div className="mt-6 text-center">
           <p className="text-neutral-500 text-sm">
             Don&apos;t have a token?{' '}
-            <a href="/contact" className="text-gold-400 hover:text-gold-300 transition-colors">
+            <a href="/contact" className="text-rink-400 hover:text-rink-300 transition-colors">
               Contact your league administrator
             </a>
           </p>

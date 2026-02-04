@@ -187,12 +187,12 @@ export default async function AboutPage({ params }: AboutPageProps) {
             <p className="text-sm text-[var(--color-text-muted)]">
               Powered by{' '}
               <a
-                href="https://hockeylifehl.com"
+                href="https://beerleaguehockey.ca"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gold-500 hover:text-gold-400 font-medium"
               >
-                HockeyLifeHL
+                Beer League Hockey
               </a>
             </p>
           </div>

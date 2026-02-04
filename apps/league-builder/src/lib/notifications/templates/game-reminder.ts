@@ -32,7 +32,7 @@ export function getGameReminderEmail(props: GameReminderEmailProps): string {
     hoursUntilGame,
     dashboardUrl,
     unsubscribeUrl,
-    leagueName = 'HockeyLifeHL',
+    leagueName = 'Beer League Hockey',
   } = props;
 
   const urgencyBadge = hoursUntilGame <= 2

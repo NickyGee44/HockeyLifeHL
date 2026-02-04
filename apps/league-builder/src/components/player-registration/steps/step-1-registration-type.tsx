@@ -77,23 +77,23 @@ export function Step1RegistrationType() {
               disabled={isDisabled}
               className={cn(
                 'relative flex flex-col items-center p-6 rounded-xl border-2 transition-all duration-200',
-                'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-neutral-900',
+                'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:ring-offset-2 focus:ring-offset-neutral-900',
                 isSelected
-                  ? 'border-gold-500 bg-gold-500/10'
+                  ? 'border-rink-500 bg-rink-500/10'
                   : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600',
                 isDisabled && 'opacity-50 cursor-not-allowed'
               )}
             >
               {/* Selected indicator */}
               {isSelected && (
-                <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-gold-500" />
+                <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-rink-500" />
               )}
 
               <div
                 className={cn(
                   'w-14 h-14 rounded-full flex items-center justify-center mb-4',
                   isSelected
-                    ? 'bg-gold-500/20 text-gold-500'
+                    ? 'bg-rink-500/20 text-rink-500'
                     : 'bg-neutral-700 text-neutral-400'
                 )}
               >
@@ -102,7 +102,7 @@ export function Step1RegistrationType() {
 
               <h3 className={cn(
                 'text-lg font-semibold mb-2',
-                isSelected ? 'text-gold-500' : 'text-white'
+                isSelected ? 'text-rink-500' : 'text-white'
               )}>
                 {type.title}
               </h3>

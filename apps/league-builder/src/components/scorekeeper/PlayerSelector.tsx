@@ -55,10 +55,10 @@ export function PlayerSelector({
     }
   }, [setSearchTerm]);
 
-  const teamColor = team?.primary_color || '#D4AF37';
+  const teamColor = team?.primary_color || '#22D3EE';
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white">{label}</h3>
@@ -88,7 +88,7 @@ export function PlayerSelector({
               'w-full px-4 py-4 text-xl font-mono',
               'bg-neutral-950 border border-neutral-700 rounded-xl',
               'text-white placeholder:text-neutral-500',
-              'focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500',
+              'focus:outline-none focus:border-rink-500 focus:ring-1 focus:ring-rink-500',
               'touch-manipulation'
             )}
           />
@@ -118,7 +118,7 @@ export function PlayerSelector({
                   ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
                   : digit === 'backspace'
                   ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                  : 'bg-neutral-800 text-white hover:bg-neutral-700 active:bg-gold-500/20 active:text-gold-400'
+                  : 'bg-neutral-800 text-white hover:bg-neutral-700 active:bg-rink-500/20 active:text-rink-400'
               )}
             >
               {digit === 'clear' ? (
@@ -151,7 +151,7 @@ export function PlayerSelector({
                 onClick={() => onSelect(player)}
                 className={cn(
                   'w-full flex items-center gap-4 p-4 text-left transition-all touch-manipulation',
-                  'hover:bg-neutral-800 active:bg-gold-500/10'
+                  'hover:bg-neutral-800 active:bg-rink-500/10'
                 )}
               >
                 {/* Jersey Number */}
@@ -211,7 +211,7 @@ interface PlayerChipProps {
 }
 
 export function PlayerChip({ player, team, onRemove, size = 'md' }: PlayerChipProps) {
-  const teamColor = team?.primary_color || '#D4AF37';
+  const teamColor = team?.primary_color || '#22D3EE';
 
   const sizeClasses = {
     sm: 'text-sm py-1 px-2',

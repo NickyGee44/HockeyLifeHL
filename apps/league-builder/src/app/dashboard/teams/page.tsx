@@ -8,7 +8,7 @@ import { TeamCard } from '@/components/teams';
 import TeamsListClient from './teams-list-client';
 
 export const metadata = {
-  title: 'Teams | HockeyLifeHL',
+  title: 'Teams | Beer League Hockey',
   description: 'Manage your hockey teams',
 };
 
@@ -50,7 +50,7 @@ export default async function TeamsPage({
           <div>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+              className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Dashboard

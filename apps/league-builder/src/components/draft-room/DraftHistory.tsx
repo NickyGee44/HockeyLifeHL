@@ -56,7 +56,7 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
                 key={pick.id}
                 className={cn(
                   'p-4 transition-colors',
-                  index === 0 && 'bg-gold-500/5'
+                  index === 0 && 'bg-rink-500/5'
                 )}
               >
                 <div className="flex items-start gap-3">
@@ -65,7 +65,7 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
                     className={cn(
                       'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-sm font-bold',
                       index === 0
-                        ? 'bg-gold-500 text-black'
+                        ? 'bg-rink-500 text-black'
                         : 'bg-muted text-muted-foreground'
                     )}
                   >

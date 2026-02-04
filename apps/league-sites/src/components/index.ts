@@ -19,8 +19,9 @@ export { ProgressBar } from './shared/ProgressBar';
 export { ScoreTicker } from './ScoreTicker';
 
 // Schedule Components
-export { WeekPicker } from './schedule/WeekPicker';
+export { WeekPicker, WeekRangeNav, WeekDaySummary } from './schedule/WeekPicker';
 export { ScheduleFilters } from './schedule/ScheduleFilters';
+export { ScheduleTable } from './schedule/ScheduleTable';
 
 // Game Components
 export { GamePreviewHeader } from './game/GamePreviewHeader';

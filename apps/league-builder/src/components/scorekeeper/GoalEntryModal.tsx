@@ -101,7 +101,7 @@ export function GoalEntryModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center">
-      <div className="bg-neutral-900 w-full md:max-w-lg md:rounded-2xl border-t md:border border-gold-500/20 max-h-[90vh] flex flex-col">
+      <div className="bg-neutral-900 w-full md:max-w-lg md:rounded-2xl border-t md:border border-white/10 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
           <div>
@@ -147,9 +147,9 @@ export function GoalEntryModal({
                   placeholder="Search by jersey # or name"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-950 border border-gold-500/30 rounded-xl
+                  className="w-full px-4 py-3 bg-neutral-950 border border-rink-500/30 rounded-xl
                     text-white placeholder-neutral-500
-                    focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 focus:outline-none
+                    focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none
                     transition-all duration-200"
                   autoFocus
                 />
@@ -190,9 +190,9 @@ export function GoalEntryModal({
                   placeholder="Search by jersey # or name"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-950 border border-gold-500/30 rounded-xl
+                  className="w-full px-4 py-3 bg-neutral-950 border border-rink-500/30 rounded-xl
                     text-white placeholder-neutral-500
-                    focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 focus:outline-none
+                    focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none
                     transition-all duration-200"
                   autoFocus
                 />
@@ -289,9 +289,9 @@ export function GoalEntryModal({
                     onChange={(e) => setTimeMinutes(e.target.value)}
                     min="0"
                     max="20"
-                    className="w-20 px-3 py-2 bg-neutral-950 border border-gold-500/30 rounded-lg
+                    className="w-20 px-3 py-2 bg-neutral-950 border border-rink-500/30 rounded-lg
                       text-white text-center
-                      focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 focus:outline-none"
+                      focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none"
                   />
                   <span className="text-neutral-400">:</span>
                   <input
@@ -302,9 +302,9 @@ export function GoalEntryModal({
                     onChange={(e) => setTimeSeconds(e.target.value)}
                     min="0"
                     max="59"
-                    className="w-20 px-3 py-2 bg-neutral-950 border border-gold-500/30 rounded-lg
+                    className="w-20 px-3 py-2 bg-neutral-950 border border-rink-500/30 rounded-lg
                       text-white text-center
-                      focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 focus:outline-none"
+                      focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none"
                   />
                 </div>
               </div>
@@ -410,7 +410,7 @@ function PlayerButton({
   color: string | null;
   disabled?: boolean;
 }) {
-  const teamColor = color || '#D4AF37';
+  const teamColor = color || '#22D3EE';
 
   return (
     <button

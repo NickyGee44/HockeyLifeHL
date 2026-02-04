@@ -12,6 +12,8 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -33,7 +35,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-8 text-center">
+      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
           <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -49,8 +51,16 @@ export default function SignupPage() {
     );
   }
 
+  const inputClasses = cn(
+    'w-full px-4 py-3 rounded-xl',
+    'bg-neutral-800 border border-neutral-700',
+    'text-white placeholder:text-neutral-500',
+    'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent',
+    'transition-all'
+  );
+
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-8">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8">
       <h2 className="text-2xl font-bold text-white mb-2">
         {t('auth.createAccount')}
       </h2>
@@ -59,51 +69,21 @@ export default function SignupPage() {
       </p>
 
       <form action={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="firstName"
-              className="block text-sm font-medium text-neutral-300 mb-2"
-            >
-              {t('auth.firstName')}
-            </label>
-            <input
-              type="text"
-              id="firstName"
-              name="firstName"
-              required
-              className={cn(
-                'w-full px-4 py-3 rounded-xl',
-                'bg-neutral-800 border border-neutral-700',
-                'text-white placeholder:text-neutral-500',
-                'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent',
-                'transition-all'
-              )}
-              placeholder="John"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="lastName"
-              className="block text-sm font-medium text-neutral-300 mb-2"
-            >
-              {t('auth.lastName')}
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              name="lastName"
-              required
-              className={cn(
-                'w-full px-4 py-3 rounded-xl',
-                'bg-neutral-800 border border-neutral-700',
-                'text-white placeholder:text-neutral-500',
-                'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent',
-                'transition-all'
-              )}
-              placeholder="Doe"
-            />
-          </div>
+        <div>
+          <label
+            htmlFor="fullName"
+            className="block text-sm font-medium text-neutral-300 mb-2"
+          >
+            Full Name
+          </label>
+          <input
+            type="text"
+            id="fullName"
+            name="fullName"
+            required
+            className={inputClasses}
+            placeholder="John Doe"
+          />
         </div>
 
         <div>
@@ -118,13 +98,7 @@ export default function SignupPage() {
             id="email"
             name="email"
             required
-            className={cn(
-              'w-full px-4 py-3 rounded-xl',
-              'bg-neutral-800 border border-neutral-700',
-              'text-white placeholder:text-neutral-500',
-              'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent',
-              'transition-all'
-            )}
+            className={inputClasses}
             placeholder="you@example.com"
           />
         </div>
@@ -142,41 +116,83 @@ export default function SignupPage() {
             name="password"
             required
             minLength={8}
-            className={cn(
-              'w-full px-4 py-3 rounded-xl',
-              'bg-neutral-800 border border-neutral-700',
-              'text-white placeholder:text-neutral-500',
-              'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent',
-              'transition-all'
-            )}
-            placeholder="********"
+            className={inputClasses}
+            placeholder="••••••••"
+          />
+          <div className="text-xs text-neutral-500 mt-1.5 space-y-0.5">
+            <p className="font-medium text-neutral-400">Password must contain:</p>
+            <ul className="list-disc list-inside ml-1 space-y-0.5">
+              <li>At least 8 characters</li>
+              <li>One uppercase letter (A-Z)</li>
+              <li>One lowercase letter (a-z)</li>
+              <li>One number (0-9)</li>
+              <li>One special character (!@#$%^&*)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-neutral-700 pt-4">
+          <label
+            htmlFor="organizationName"
+            className="block text-sm font-medium text-neutral-300 mb-2"
+          >
+            Organization Name
+          </label>
+          <input
+            type="text"
+            id="organizationName"
+            name="organizationName"
+            required
+            className={inputClasses}
+            placeholder="My Hockey League"
           />
           <p className="text-xs text-neutral-500 mt-1">
-            {t('validation.minLength', { min: 8 })}
+            This will be the name of your organization that manages leagues
           </p>
         </div>
 
-        <div>
-          <label
-            htmlFor="confirmPassword"
-            className="block text-sm font-medium text-neutral-300 mb-2"
-          >
-            {t('auth.confirmPassword')}
+        <div className="border-t border-neutral-700 pt-4 space-y-3">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              id="acceptTerms"
+              name="acceptTerms"
+              value="true"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-0 cursor-pointer"
+            />
+            <span className="text-sm text-neutral-300 group-hover:text-neutral-200">
+              I accept the{' '}
+              <a href="/terms" target="_blank" className="text-rink-500 hover:text-rink-400 underline" onClick={(e) => e.stopPropagation()}>
+                Terms of Service
+              </a>{' '}
+              <span className="text-red-400">*</span>
+            </span>
           </label>
-          <input
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            required
-            className={cn(
-              'w-full px-4 py-3 rounded-xl',
-              'bg-neutral-800 border border-neutral-700',
-              'text-white placeholder:text-neutral-500',
-              'focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent',
-              'transition-all'
-            )}
-            placeholder="********"
-          />
+
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              id="acceptPrivacy"
+              name="acceptPrivacy"
+              value="true"
+              checked={acceptedPrivacy}
+              onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-0 cursor-pointer"
+            />
+            <span className="text-sm text-neutral-300 group-hover:text-neutral-200">
+              I accept the{' '}
+              <a href="/privacy" target="_blank" className="text-rink-500 hover:text-rink-400 underline" onClick={(e) => e.stopPropagation()}>
+                Privacy Policy
+              </a>{' '}
+              <span className="text-red-400">*</span>
+            </span>
+          </label>
+
+          <p className="text-xs text-neutral-500">
+            <span className="text-red-400">*</span> Required to create an account
+          </p>
         </div>
 
         {error && (
@@ -187,11 +203,11 @@ export default function SignupPage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !acceptedTerms || !acceptedPrivacy}
           className={cn(
             'w-full py-3 px-4 rounded-xl font-semibold text-sm',
-            'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-            'hover:shadow-lg hover:shadow-gold-500/20',
+            'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+            'hover:shadow-lg hover:shadow-rink-500/20',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             'transition-all flex items-center justify-center gap-2'
           )}
@@ -212,7 +228,7 @@ export default function SignupPage() {
           {t('auth.alreadyHaveAccount')}{' '}
           <Link
             href="/login"
-            className="text-gold-500 hover:text-gold-400 font-medium"
+            className="text-rink-500 hover:text-rink-400 font-medium"
           >
             {t('auth.loginNow')}
           </Link>

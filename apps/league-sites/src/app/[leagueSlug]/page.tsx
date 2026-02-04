@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Trophy, Users, TrendingUp, ChevronRight } from 'lucide-react';
+import { Calendar, Trophy, Users, TrendingUp, ChevronRight, ArrowRight } from 'lucide-react';
 import {
   getLeagueBySlug,
   getLeagueStats,
@@ -137,6 +137,17 @@ export default async function HomePage({ params }: HomePageProps) {
                       leagueSlug={leagueSlug}
                     />
                   ))}
+
+                  {/* View Full Schedule CTA */}
+                  <div className="pt-2">
+                    <Link
+                      href={`/${leagueSlug}/schedule`}
+                      className="btn-primary inline-flex items-center gap-2 w-full justify-center"
+                    >
+                      View Full Schedule
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <div className="card p-8 text-center">
@@ -236,7 +247,10 @@ function StatCard({
   label: string;
 }) {
   return (
-    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white">
+    <div
+      className="backdrop-blur-sm rounded-xl p-4 text-white"
+      style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+    >
       <div className="flex items-center gap-2 mb-2 opacity-80">
         {icon}
         <span className="text-sm">{label}</span>

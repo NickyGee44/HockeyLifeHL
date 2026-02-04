@@ -43,7 +43,7 @@ export function GameDetailClient({ game, leagueId }: GameDetailClientProps) {
           variant="outline"
           size="sm"
           onClick={() => setShowEditModal(true)}
-          className="gap-2 border-gold-500/30 text-gold-500 hover:bg-gold-500/10"
+          className="gap-2 border-rink-500/30 text-rink-500 hover:bg-rink-500/10"
         >
           <Edit className="w-4 h-4" />
           Edit

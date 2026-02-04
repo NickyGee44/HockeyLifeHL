@@ -28,8 +28,8 @@ export function SyncStatusBanner() {
         label: 'Syncing...',
         description: `${syncState.pendingCount} event${syncState.pendingCount !== 1 ? 's' : ''} pending`,
         icon: SyncingIcon,
-        bgClass: 'bg-gold-500/10 border-gold-500/30',
-        textClass: 'text-gold-400',
+        bgClass: 'bg-rink-500/10 border-rink-500/30',
+        textClass: 'text-rink-400',
         pulseClass: 'animate-pulse',
       };
     }
@@ -39,8 +39,8 @@ export function SyncStatusBanner() {
         label: 'Pending Sync',
         description: `${syncState.pendingCount} event${syncState.pendingCount !== 1 ? 's' : ''} waiting`,
         icon: PendingIcon,
-        bgClass: 'bg-gold-500/10 border-gold-500/30',
-        textClass: 'text-gold-500',
+        bgClass: 'bg-rink-500/10 border-rink-500/30',
+        textClass: 'text-rink-500',
         pulseClass: '',
       };
     }
@@ -87,7 +87,7 @@ export function SyncStatusBanner() {
         <p className="text-xs text-neutral-400 truncate">{config.description}</p>
       </div>
       {syncState.pendingCount > 0 && (
-        <div className="flex-shrink-0 bg-gold-500/20 text-gold-400 text-xs font-bold px-2 py-0.5 rounded-full">
+        <div className="flex-shrink-0 bg-rink-500/20 text-rink-400 text-xs font-bold px-2 py-0.5 rounded-full">
           {syncState.pendingCount}
         </div>
       )}

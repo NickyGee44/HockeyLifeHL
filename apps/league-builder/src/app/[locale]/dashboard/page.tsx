@@ -70,7 +70,7 @@ export default async function DashboardPage({ params }: Props) {
               totals.total_leagues === 0 ? (
                 <Link
                   href="/dashboard/leagues/new"
-                  className="text-xs text-gold-500 hover:text-gold-400 mt-2 inline-flex items-center gap-1"
+                  className="text-xs text-rink-500 hover:text-rink-400 mt-2 inline-flex items-center gap-1"
                 >
                   <Plus className="h-3 w-3" />
                   {t('navigation.createLeague')}
@@ -134,7 +134,7 @@ export default async function DashboardPage({ params }: Props) {
             {organizations.length > 0 && (
               <Link
                 href="/dashboard/settings/members"
-                className="text-sm text-gold-500 hover:text-gold-400 flex items-center gap-1"
+                className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1"
               >
                 {t('common.view')} <ArrowRight className="w-4 h-4" />
               </Link>
@@ -142,9 +142,9 @@ export default async function DashboardPage({ params }: Props) {
           </div>
 
           {organizations.length === 0 ? (
-            <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gold-500/10 flex items-center justify-center">
-                <Users className="w-8 h-8 text-gold-500" />
+            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rink-500/10 flex items-center justify-center">
+                <Users className="w-8 h-8 text-rink-500" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">{t('common.noResults')}</h3>
               <p className="text-neutral-400 mb-6">
@@ -154,8 +154,8 @@ export default async function DashboardPage({ params }: Props) {
                 href="/dashboard/settings"
                 className={cn(
                   'inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm',
-                  'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                  'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                  'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                  'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
                 )}
               >
                 <Plus className="w-4 h-4" />
@@ -178,7 +178,7 @@ export default async function DashboardPage({ params }: Props) {
               <h2 className="text-lg font-bold text-white">{t('navigation.teams')}</h2>
               <Link
                 href="/dashboard/leagues"
-                className="text-sm text-gold-500 hover:text-gold-400 flex items-center gap-1"
+                className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1"
               >
                 {t('common.all')} <ArrowRight className="w-4 h-4" />
               </Link>
@@ -214,9 +214,9 @@ function StatsCard({
   emptyAction?: React.ReactNode;
 }) {
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-6 hover:border-gold-500/40 transition-colors">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 hover:border-white/20 transition-colors">
       <div className="flex items-start justify-between mb-4">
-        <div className="p-2 rounded-xl bg-gold-500/10 text-gold-500">{icon}</div>
+        <div className="p-2 rounded-xl bg-rink-500/10 text-rink-500">{icon}</div>
         {trend !== null && (
           <span
             className={cn(
@@ -259,14 +259,14 @@ function QuickActionCard({
       className={cn(
         'group flex flex-col p-5 rounded-2xl transition-all duration-200',
         primary
-          ? 'bg-gradient-to-br from-gold-500 to-gold-600 text-black hover:shadow-lg hover:shadow-gold-500/25'
-          : 'bg-neutral-900 border border-gold-500/20 hover:border-gold-500/40 text-white'
+          ? 'bg-gradient-to-br from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20'
+          : 'bg-white/[0.04] border border-white/10 backdrop-blur-xl hover:border-white/20 text-white'
       )}
     >
       <div
         className={cn(
           'p-2 rounded-xl w-fit mb-3 transition-transform group-hover:scale-110',
-          primary ? 'bg-black/20' : 'bg-gold-500/10 text-gold-500'
+          primary ? 'bg-black/20' : 'bg-rink-500/10 text-rink-500'
         )}
       >
         {icon}
@@ -284,7 +284,7 @@ function QuickActionCard({
 // Organization Card Component
 function OrganizationCard({ org, t }: { org: any; t: any }) {
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-6 hover:border-gold-500/40 transition-colors">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 hover:border-white/20 transition-colors">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-bold text-white text-lg">{org.name}</h3>
@@ -294,7 +294,7 @@ function OrganizationCard({ org, t }: { org: any; t: any }) {
           className={cn(
             'px-3 py-1 text-xs font-semibold rounded-full',
             org.subscription_tier === 'enterprise'
-              ? 'bg-gold-500/20 text-gold-500 border border-gold-500/30'
+              ? 'bg-rink-500/20 text-rink-500 border border-rink-500/30'
               : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
           )}
         >
@@ -303,7 +303,7 @@ function OrganizationCard({ org, t }: { org: any; t: any }) {
       </div>
 
       {org.league_count > 0 ? (
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gold-500/10">
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/[0.06]">
           <div>
             <p className="text-xs text-neutral-500">{t('navigation.teams')}</p>
             <p className="text-xl font-bold text-white">{org.league_count}</p>
@@ -322,10 +322,10 @@ function OrganizationCard({ org, t }: { org: any; t: any }) {
           </div>
         </div>
       ) : (
-        <div className="pt-4 border-t border-gold-500/10">
+        <div className="pt-4 border-t border-white/[0.06]">
           <Link
             href="/dashboard/leagues/new"
-            className="text-sm text-gold-500 hover:text-gold-400 flex items-center gap-1"
+            className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1"
           >
             <Plus className="w-4 h-4" />
             {t('navigation.createLeague')}
@@ -341,12 +341,12 @@ function LeagueCard({ league, orgName, t }: { league: any; orgName: string; t: a
   return (
     <Link
       href={`/dashboard/leagues/${league.id}`}
-      className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-5 hover:border-gold-500/40 transition-all group"
+      className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-5 hover:border-white/20 transition-all group"
     >
       <div className="flex items-start justify-between mb-3">
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: league.primary_color || '#D4AF37' }}
+          style={{ backgroundColor: league.primary_color || '#22D3EE' }}
         >
           <Trophy className="w-5 h-5 text-white" />
         </div>
@@ -363,7 +363,7 @@ function LeagueCard({ league, orgName, t }: { league: any; orgName: string; t: a
           {t(`drafts.status.${league.status || 'scheduled'}`)}
         </span>
       </div>
-      <h3 className="font-semibold text-white mb-1 group-hover:text-gold-500 transition-colors">
+      <h3 className="font-semibold text-white mb-1 group-hover:text-rink-500 transition-colors">
         {league.name}
       </h3>
       <p className="text-xs text-neutral-500 mb-3">{orgName}</p>

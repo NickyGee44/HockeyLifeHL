@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /* ============================================================================
-   HOCKEYLIFEHL LEAGUE SITES - GLOBAL STYLES
+   LEAGUE SITES - GLOBAL STYLES
    ============================================================================
    Multi-tenant theming with league color overrides
    Based on BRAND-KIT.md v2.0
@@ -367,11 +367,37 @@ body {
 
 /* Score Ticker */
 .score-ticker {
-  background: var(--color-surface);
+  background: var(--color-background);
   border-bottom: 1px solid var(--color-border);
   overflow: hidden;
   position: relative;
 }
+
+.score-ticker-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.score-ticker-nav:hover {
+  border-color: var(--league-primary);
+  color: var(--league-primary);
+}
+
+.score-ticker-nav.left { left: 0.5rem; }
+.score-ticker-nav.right { right: 0.5rem; }
 
 .score-ticker-track {
   display: flex;
@@ -623,15 +649,15 @@ body {
 }
 
 .schedule-table th {
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
+  background: var(--league-primary);
+  color: var(--color-accent-text, #0a0a0a);
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.75rem 1rem;
   text-align: left;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: none;
 }
 
 .schedule-table td {
@@ -662,6 +688,193 @@ body {
   padding: 0 0.5rem;
 }
 
+/* =============================================================================
+   SCHEDULE CARD CONTAINER
+   ============================================================================= */
+
+.schedule-container {
+  max-width: 72rem; /* 1152px / max-w-6xl */
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.schedule-card {
+  background: var(--color-background-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  padding: 2rem;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .schedule-card {
+    padding: 2.5rem;
+  }
+}
+
+/* =============================================================================
+   SCHEDULE DATE DIVIDER
+   ============================================================================= */
+
+.schedule-date-divider {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  padding: 1rem 0 0.75rem;
+  border-bottom: 2px solid var(--league-primary);
+  margin-bottom: 0;
+  margin-top: 1.5rem;
+}
+
+.schedule-date-divider:first-of-type {
+  margin-top: 0;
+}
+
+/* =============================================================================
+   DATE RANGE NAV
+   ============================================================================= */
+
+.date-range-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  margin-bottom: 1rem;
+}
+
+.date-range-nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.date-range-nav button:hover {
+  border-color: var(--league-primary);
+  color: var(--league-primary);
+}
+
+.date-range-nav span {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 200px;
+  text-align: center;
+}
+
+/* =============================================================================
+   WEEKDAY SUMMARY
+   ============================================================================= */
+
+.weekday-summary {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.weekday-summary-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.weekday-summary-day:hover {
+  border-color: var(--league-primary);
+}
+
+.weekday-summary-day.selected {
+  background: var(--league-primary);
+  border-color: var(--league-primary);
+  color: var(--color-accent-text);
+}
+
+.weekday-summary-day.no-games {
+  opacity: 0.4;
+}
+
+.weekday-summary-day .day-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.weekday-summary-day.selected .day-name {
+  color: var(--color-accent-text);
+}
+
+.weekday-summary-day .day-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.weekday-summary-day .game-count {
+  font-size: 0.625rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-accent-muted);
+  color: var(--league-primary);
+  margin-top: 0.25rem;
+}
+
+.weekday-summary-day.selected .game-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--color-accent-text);
+}
+
+/* =============================================================================
+   SCHEDULE FILTERS
+   ============================================================================= */
+
+.schedule-filters {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-filters select {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  appearance: auto;
+}
+
+.schedule-filters select:focus {
+  outline: none;
+  border-color: var(--league-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--league-primary) 25%, transparent);
+}
+
+@media (max-width: 640px) {
+  .schedule-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Mobile Schedule Cards */
 @media (max-width: 768px) {
   .game-preview-header {
@@ -677,14 +890,6 @@ body {
   .game-preview-home {
     text-align: center;
     padding: 1.5rem;
-  }
-
-  .schedule-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 0.75rem;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
   }
 
   .schedule-card-teams {

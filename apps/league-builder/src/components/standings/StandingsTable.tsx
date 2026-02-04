@@ -141,7 +141,7 @@ export function StandingsTable({
       case 'rank':
         return (
           <span className="flex items-center justify-center gap-1">
-            {team.isPlayoffSpot && <Trophy className="w-3 h-3 text-gold-500" />}
+            {team.isPlayoffSpot && <Trophy className="w-3 h-3 text-rink-500" />}
             {team.rank}
           </span>
         );
@@ -163,7 +163,7 @@ export function StandingsTable({
       case 't':
         return team.ties;
       case 'pts':
-        return <span className="font-bold text-gold-500">{team.points}</span>;
+        return <span className="font-bold text-rink-500">{team.points}</span>;
       case 'gf':
         return team.goalsFor;
       case 'ga':
@@ -240,7 +240,7 @@ export function StandingsTable({
                 key={team.teamId}
                 className={cn(
                   'border-b border-neutral-800 last:border-0 transition-colors',
-                  team.isPlayoffSpot && 'bg-gold-500/5',
+                  team.isPlayoffSpot && 'bg-rink-500/5',
                   !team.isPlayoffSpot && 'hover:bg-neutral-800/50'
                 )}
               >
@@ -266,7 +266,7 @@ export function StandingsTable({
 
       {/* Playoff Line */}
       {playoffSpots > 0 && playoffSpots < standings.length && (
-        <div className="px-4 py-2 bg-gold-500/10 border-t border-gold-500/30 text-xs text-gold-400 text-center">
+        <div className="px-4 py-2 bg-rink-500/10 border-t border-rink-500/30 text-xs text-rink-400 text-center">
           <Trophy className="w-3 h-3 inline mr-1" />
           Top {playoffSpots} teams qualify for playoffs
         </div>

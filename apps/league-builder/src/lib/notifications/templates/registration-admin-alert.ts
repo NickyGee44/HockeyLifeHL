@@ -49,7 +49,7 @@ export function getRegistrationAdminAlertEmail(props: RegistrationAdminAlertEmai
 
   const details: Array<{ label: string; value: string }> = [
     { label: 'Player', value: `<strong>${playerName}</strong>` },
-    { label: 'Email', value: `<a href="mailto:${playerEmail}" style="color: #D4AF37;">${playerEmail}</a>` },
+    { label: 'Email', value: `<a href="mailto:${playerEmail}" style="color: #22D3EE;">${playerEmail}</a>` },
     { label: 'Registration Type', value: registrationTypeLabel },
   ];
 

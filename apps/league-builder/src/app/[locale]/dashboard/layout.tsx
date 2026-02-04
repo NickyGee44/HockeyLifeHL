@@ -54,20 +54,20 @@ export default function DashboardLayout({
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex flex-col',
-          'bg-neutral-900 border-r border-gold-500/20',
+          'bg-neutral-900 border-r border-white/10',
           'transition-all duration-300 ease-in-out',
           sidebarCollapsed ? 'w-16' : 'w-64'
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-gold-500/20">
+        <div className="flex h-16 items-center justify-between px-4 border-b border-white/10">
           {!sidebarCollapsed && (
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-500 to-gold-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rink-500 to-arena-500 flex items-center justify-center">
                 <Trophy className="w-5 h-5 text-black" />
               </div>
               <span className="font-black text-white tracking-tight">
-                HockeyLife<span className="text-gold-500">HL</span>
+                Beer League Hockey
               </span>
             </Link>
           )}
@@ -100,14 +100,14 @@ export default function DashboardLayout({
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
                   'group relative',
                   isActive
-                    ? 'bg-gold-500/10 text-gold-500 border border-gold-500/30'
+                    ? 'bg-rink-500/10 text-rink-500 border border-rink-500/30'
                     : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border border-transparent'
                 )}
               >
                 <item.icon
                   className={cn(
                     'w-5 h-5 flex-shrink-0',
-                    isActive ? 'text-gold-500' : 'text-neutral-500 group-hover:text-gold-500'
+                    isActive ? 'text-rink-500' : 'text-neutral-500 group-hover:text-rink-500'
                   )}
                 />
                 {!sidebarCollapsed && (
@@ -123,7 +123,7 @@ export default function DashboardLayout({
           })}
 
           {/* Divider */}
-          <div className="my-4 border-t border-gold-500/10" />
+          <div className="my-4 border-t border-white/[0.06]" />
 
           {/* Quick Actions */}
           {!sidebarCollapsed && (
@@ -146,7 +146,7 @@ export default function DashboardLayout({
               <item.icon
                 className={cn(
                   'w-5 h-5 flex-shrink-0',
-                  'text-neutral-500 group-hover:text-gold-500'
+                  'text-neutral-500 group-hover:text-rink-500'
                 )}
               />
               {!sidebarCollapsed && (
@@ -161,14 +161,14 @@ export default function DashboardLayout({
           ))}
 
           {/* Divider */}
-          <div className="my-4 border-t border-gold-500/10" />
+          <div className="my-4 border-t border-white/[0.06]" />
 
           {/* Language Switcher */}
           <LanguageSwitcher collapsed={sidebarCollapsed} />
         </nav>
 
         {/* User section */}
-        <div className="p-2 border-t border-gold-500/20">
+        <div className="p-2 border-t border-white/10">
           <Link
             href="/logout"
             className={cn(
@@ -193,7 +193,7 @@ export default function DashboardLayout({
       {/* Main content */}
       <main
         className={cn(
-          'transition-all duration-300 ease-in-out',
+          'transition-all duration-300 ease-in-out aurora-bg',
           sidebarCollapsed ? 'ml-16' : 'ml-64'
         )}
       >

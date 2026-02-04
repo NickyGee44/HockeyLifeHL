@@ -85,12 +85,12 @@ export function TradePickerModal({
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-gold-500/20 bg-neutral-900 p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/10 bg-neutral-900 p-6 shadow-xl">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-500/20">
-              <RefreshCcw className="h-5 w-5 text-gold-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rink-500/20">
+              <RefreshCcw className="h-5 w-5 text-rink-500" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Trade Pick</h2>
@@ -133,7 +133,7 @@ export function TradePickerModal({
                 <select
                   value={selectedRound}
                   onChange={(e) => setSelectedRound(parseInt(e.target.value))}
-                  className="w-full rounded-xl border border-gold-500/30 bg-black/50 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-gold-500"
+                  className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
                 >
                   {availableRounds.map((round) => (
                     <option key={round} value={round}>
@@ -157,7 +157,7 @@ export function TradePickerModal({
                   <select
                     value={fromTeamId}
                     onChange={(e) => setFromTeamId(e.target.value)}
-                    className="w-full rounded-xl border border-gold-500/30 bg-black/50 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
                   >
                     <option value="">Select team...</option>
                     {teams.map((team) => (
@@ -171,7 +171,7 @@ export function TradePickerModal({
                 <button
                   onClick={swapTeams}
                   disabled={!fromTeamId || !toTeamId}
-                  className="mt-6 rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-gold-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-6 rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-rink-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCcw className="h-5 w-5" />
                 </button>
@@ -183,7 +183,7 @@ export function TradePickerModal({
                   <select
                     value={toTeamId}
                     onChange={(e) => setToTeamId(e.target.value)}
-                    className="w-full rounded-xl border border-gold-500/30 bg-black/50 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
                   >
                     <option value="">Select team...</option>
                     {teams
@@ -199,8 +199,8 @@ export function TradePickerModal({
 
               {/* Trade Preview */}
               {fromTeamId && toTeamId && (
-                <div className="rounded-xl border border-gold-500/20 bg-gold-500/5 p-4">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gold-500">
+                <div className="rounded-xl border border-white/10 bg-rink-500/5 p-4">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-rink-500">
                     Trade Preview
                   </p>
                   <div className="flex items-center justify-center gap-4">
@@ -209,7 +209,7 @@ export function TradePickerModal({
                     </span>
                     <div className="flex items-center gap-2 text-neutral-400">
                       <span className="text-sm">Round {selectedRound}</span>
-                      <ArrowRight className="h-4 w-4 text-gold-500" />
+                      <ArrowRight className="h-4 w-4 text-rink-500" />
                     </div>
                     <span className="font-medium text-white">
                       {teams.find((t) => t.id === toTeamId)?.name}
@@ -227,7 +227,7 @@ export function TradePickerModal({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add any notes about this trade..."
-                  className="w-full rounded-xl border border-gold-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-gold-500"
+                  className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
                   rows={2}
                 />
               </div>
@@ -245,8 +245,8 @@ export function TradePickerModal({
                 onClick={handleSubmit}
                 disabled={isSubmitting || !fromTeamId || !toTeamId || availableRounds.length === 0}
                 className={cn(
-                  'flex items-center gap-2 rounded-lg bg-gold-500 px-6 py-2 font-semibold text-black',
-                  'transition-all hover:bg-gold-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]',
+                  'flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black',
+                  'transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]',
                   'disabled:cursor-not-allowed disabled:opacity-50'
                 )}
               >

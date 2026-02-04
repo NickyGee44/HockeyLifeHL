@@ -4,8 +4,11 @@
 @config "../../tailwind.config.ts";
 
 /* ============================================================
-   HockeyLifeHL Design System
-   Version 2.0 - Dark & Light Mode Support
+   Beer League Hockey Design System
+   Version 3.0 — Night Rink Premium
+   Primary: Neon Cyan #22D3EE → Arena Blue #3B82F6
+   Secondary: Power Violet #A78BFA
+   Warm: Foam Amber #FBBF24 (sparingly)
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -13,41 +16,78 @@
    Defines brand colors for Tailwind utility classes
    ------------------------------------------------------------ */
 @theme {
-  /* Gold Brand Colors */
-  --color-gold-50: #FFFDF5;
-  --color-gold-100: #FFF9E6;
-  --color-gold-200: #FFF0BF;
-  --color-gold-300: #FFE699;
-  --color-gold-400: #FFD54F;
-  --color-gold-500: #D4AF37;
-  --color-gold-600: #C19A00;
-  --color-gold-700: #9A7B00;
-  --color-gold-800: #735C00;
-  --color-gold-900: #4D3D00;
+  /* Rink Brand Colors (Neon Cyan Primary) */
+  --color-rink-50: #ecfeff;
+  --color-rink-100: #cffafe;
+  --color-rink-200: #a5f3fc;
+  --color-rink-300: #67e8f9;
+  --color-rink-400: #36d8f2;
+  --color-rink-500: #22D3EE;
+  --color-rink-600: #06b6d4;
+  --color-rink-700: #0891b2;
+  --color-rink-800: #0e7490;
+  --color-rink-900: #155e75;
 
-  /* Neutral Colors (Extended) */
-  --color-neutral-50: #fafafa;
-  --color-neutral-100: #f5f5f5;
-  --color-neutral-150: #ededed;
-  --color-neutral-200: #e5e5e5;
-  --color-neutral-250: #d9d9d9;
-  --color-neutral-300: #d4d4d4;
-  --color-neutral-400: #a3a3a3;
-  --color-neutral-500: #737373;
-  --color-neutral-600: #525252;
-  --color-neutral-700: #404040;
-  --color-neutral-750: #2e2e2e;
-  --color-neutral-800: #1a1a1a;
-  --color-neutral-850: #141414;
-  --color-neutral-900: #111111;
-  --color-neutral-950: #0a0a0a;
+  /* Arena Blue Colors */
+  --color-arena-50: #eff6ff;
+  --color-arena-100: #dbeafe;
+  --color-arena-200: #bfdbfe;
+  --color-arena-300: #93c5fd;
+  --color-arena-400: #60a5fa;
+  --color-arena-500: #3B82F6;
+  --color-arena-600: #2563eb;
+  --color-arena-700: #1d4ed8;
+  --color-arena-800: #1e40af;
+  --color-arena-900: #1e3a8a;
+
+  /* Violet Accent Colors */
+  --color-violet-50: #f5f3ff;
+  --color-violet-100: #ede9fe;
+  --color-violet-200: #ddd6fe;
+  --color-violet-300: #c4b5fd;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #8b5cf6;
+  --color-violet-600: #7c3aed;
+  --color-violet-700: #6d28d9;
+  --color-violet-800: #5b21b6;
+  --color-violet-900: #4c1d95;
+
+  /* Foam Amber Colors (Warm Accent — use sparingly) */
+  --color-foam-50: #fffbeb;
+  --color-foam-100: #fef3c7;
+  --color-foam-200: #fde68a;
+  --color-foam-300: #fcd34d;
+  --color-foam-400: #FBBF24;
+  --color-foam-500: #f59e0b;
+  --color-foam-600: #d97706;
+  --color-foam-700: #b45309;
+  --color-foam-800: #92400e;
+  --color-foam-900: #78350f;
+
+  /* Neutral Colors (Blue-tinted slate for "night rink" vibe) */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-150: #e8edf3;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-250: #d5dce6;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-750: #283548;
+  --color-neutral-800: #1e293b;
+  --color-neutral-850: #152032;
+  --color-neutral-900: #0f172a;
+  --color-neutral-925: #0B0E14;
+  --color-neutral-950: #070A0F;
 
   /* Box Shadows */
-  --shadow-glow-sm: 0 0 20px rgba(212,175,55,0.15);
-  --shadow-glow: 0 0 40px rgba(212,175,55,0.2);
-  --shadow-glow-lg: 0 0 60px rgba(212,175,55,0.3);
-  --shadow-glow-intense: 0 0 80px rgba(212,175,55,0.4);
-  --shadow-gold: 0 4px 14px rgba(212,175,55,0.25);
+  --shadow-glow-sm: 0 0 20px rgba(34,211,238,0.10);
+  --shadow-glow: 0 0 40px rgba(34,211,238,0.12);
+  --shadow-glow-lg: 0 0 60px rgba(34,211,238,0.18);
+  --shadow-glow-intense: 0 0 80px rgba(34,211,238,0.25);
+  --shadow-rink: 0 4px 14px rgba(34,211,238,0.15);
 
   /* Font Family */
   --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -58,230 +98,217 @@
    ------------------------------------------------------------ */
 @layer theme {
   :root {
-    /* Gold Scale (OKLCH for perceptual uniformity) */
-    --color-gold-50: oklch(99% 0.02 85);
-    --color-gold-100: oklch(98% 0.05 85);
-    --color-gold-200: oklch(95% 0.10 85);
-    --color-gold-300: oklch(90% 0.15 85);
-    --color-gold-400: oklch(85% 0.18 85);
-    --color-gold-500: oklch(75% 0.15 85);
-    --color-gold-600: oklch(65% 0.13 85);
-    --color-gold-700: oklch(55% 0.11 85);
-    --color-gold-800: oklch(45% 0.09 85);
-    --color-gold-900: oklch(35% 0.07 85);
-
-    /* Neutral Scale */
-    --color-neutral-50: #fafafa;
-    --color-neutral-100: #f5f5f5;
-    --color-neutral-150: #ededed;
-    --color-neutral-200: #e5e5e5;
-    --color-neutral-250: #d9d9d9;
-    --color-neutral-300: #d4d4d4;
-    --color-neutral-400: #a3a3a3;
-    --color-neutral-500: #737373;
-    --color-neutral-600: #525252;
-    --color-neutral-700: #404040;
-    --color-neutral-750: #2e2e2e;
-    --color-neutral-800: #262626;
-    --color-neutral-850: #1a1a1a;
-    --color-neutral-900: #171717;
-    --color-neutral-925: #141414;
-    --color-neutral-950: #0a0a0a;
-
-    /* Base Brand Colors (Hex for compatibility) */
-    --hhl-gold: #D4AF37;
-    --hhl-gold-light: #FFD54F;
-    --hhl-gold-dark: #B8960F;
-    --hhl-gold-darker: #9A7B00;
-
     /* Status Colors */
-    --color-success: #22c55e;
-    --color-success-dark: #16a34a;
-    --color-warning: #eab308;
-    --color-warning-dark: #ca8a04;
-    --color-error: #ef4444;
-    --color-error-dark: #dc2626;
-    --color-info: #3b82f6;
+    --color-success: #34D399;
+    --color-success-dark: #10b981;
+    --color-warning: #F59E0B;
+    --color-warning-dark: #d97706;
+    --color-error: #FB7185;
+    --color-error-dark: #f43f5e;
+    --color-info: #3B82F6;
     --color-info-dark: #2563eb;
   }
 }
 
 /* ------------------------------------------------------------
    DARK MODE (Default)
-   Premium black & gold theme
+   Premium "night rink" theme — dark, sleek, aurora accents
    ------------------------------------------------------------ */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
 
   /* Semantic Background Colors */
-  --color-background: var(--color-neutral-950);
-  --color-background-elevated: var(--color-neutral-925);
-  --color-background-sunken: #050505;
-  --color-surface: var(--color-neutral-850);
-  --color-surface-hover: var(--color-neutral-750);
-  --color-surface-active: var(--color-neutral-700);
+  --color-background: #070A0F;
+  --color-background-elevated: #0B0E14;
+  --color-background-sunken: #030507;
+  --color-surface: rgba(255,255,255,0.04);
+  --color-surface-hover: rgba(255,255,255,0.06);
+  --color-surface-active: rgba(255,255,255,0.08);
+
+  /* Solid surface variants (for sidebar, structural elements) */
+  --color-surface-solid: #0f172a;
+  --color-surface-solid-hover: #152032;
 
   /* Semantic Border Colors */
-  --color-border: rgba(212, 175, 55, 0.2);
-  --color-border-muted: rgba(255, 255, 255, 0.08);
-  --color-border-emphasis: rgba(212, 175, 55, 0.4);
+  --color-border: rgba(255,255,255,0.10);
+  --color-border-muted: rgba(255,255,255,0.06);
+  --color-border-emphasis: rgba(255,255,255,0.18);
 
   /* Semantic Text Colors */
-  --color-text-primary: var(--color-neutral-50);
-  --color-text-secondary: var(--color-neutral-400);
-  --color-text-muted: var(--color-neutral-600);
-  --color-text-inverse: var(--color-neutral-950);
+  --color-text-primary: rgba(255,255,255,0.92);
+  --color-text-secondary: rgba(255,255,255,0.70);
+  --color-text-muted: rgba(255,255,255,0.52);
+  --color-text-inverse: #070A0F;
 
-  /* Accent Colors */
-  --color-accent: #D4AF37;
-  --color-accent-hover: #C19A00;
-  --color-accent-muted: rgba(212, 175, 55, 0.15);
-  --color-accent-text: var(--color-neutral-950);
-  --color-accent-foreground: #0a0a0a;
+  /* Accent Colors (Neon Cyan) */
+  --color-accent: #22D3EE;
+  --color-accent-hover: #06b6d4;
+  --color-accent-muted: rgba(34,211,238,0.15);
+  --color-accent-text: #070A0F;
+  --color-accent-foreground: #070A0F;
+
+  /* Secondary Accent (Power Violet) */
+  --color-accent-2: #A78BFA;
+  --color-accent-2-muted: rgba(167,139,250,0.15);
+
+  /* Warm Accent (Foam Amber) */
+  --color-warm: #FBBF24;
+  --color-warm-muted: rgba(251,191,36,0.15);
 
   /* Shadows & Glows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 40px rgba(212, 175, 55, 0.2);
-  --shadow-glow-hover: 0 0 60px rgba(212, 175, 55, 0.35);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
-  --shadow-card-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.5), 0 2px 4px -2px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.6), 0 4px 6px -4px rgba(0,0,0,0.5);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.6), 0 8px 10px -6px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 40px rgba(34,211,238,0.12);
+  --shadow-glow-hover: 0 0 60px rgba(34,211,238,0.20);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55);
+  --shadow-card-hover: 0 1px 0 rgba(255,255,255,0.08), 0 30px 80px rgba(0,0,0,0.65);
+  --shadow-surface: 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55);
 
   /* Input States */
-  --color-input-bg: rgba(0, 0, 0, 0.5);
-  --color-input-border: rgba(212, 175, 55, 0.3);
-  --color-input-focus: var(--color-accent);
-  --color-input-placeholder: var(--color-neutral-600);
+  --color-input-bg: rgba(0,0,0,0.3);
+  --color-input-border: rgba(255,255,255,0.10);
+  --color-input-focus: #22D3EE;
+  --color-input-placeholder: rgba(255,255,255,0.40);
 
   /* Status Color Mappings */
   --color-status-success: var(--color-success);
-  --color-status-success-muted: rgba(34, 197, 94, 0.15);
+  --color-status-success-muted: rgba(52,211,153,0.15);
   --color-status-warning: var(--color-warning);
-  --color-status-warning-muted: rgba(234, 179, 8, 0.15);
+  --color-status-warning-muted: rgba(245,158,11,0.15);
   --color-status-error: var(--color-error);
-  --color-status-error-muted: rgba(239, 68, 68, 0.15);
+  --color-status-error-muted: rgba(251,113,133,0.15);
   --color-status-info: var(--color-info);
-  --color-status-info-muted: rgba(59, 130, 246, 0.15);
+  --color-status-info-muted: rgba(59,130,246,0.15);
 
   /* shadcn/ui Compatible Variables (HSL format) */
-  --background: 0 0% 4%;
-  --foreground: 0 0% 98%;
-  --card: 0 0% 10%;
-  --card-foreground: 0 0% 98%;
-  --popover: 0 0% 6%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 45 56% 52%;
-  --primary-foreground: 0 0% 5%;
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 15%;
-  --muted-foreground: 0 0% 65%;
-  --accent: 45 100% 38%;
-  --accent-foreground: 0 0% 5%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 45 56% 52% / 0.2;
-  --input: 0 0% 15%;
-  --ring: 45 56% 52%;
-  --radius: 0.75rem;
+  --background: 218 36% 3%;
+  --foreground: 210 40% 96%;
+  --card: 218 20% 8%;
+  --card-foreground: 210 40% 96%;
+  --popover: 218 30% 5%;
+  --popover-foreground: 210 40% 96%;
+  --primary: 187 85% 53%;
+  --primary-foreground: 218 36% 3%;
+  --secondary: 217 33% 12%;
+  --secondary-foreground: 210 40% 96%;
+  --muted: 217 33% 15%;
+  --muted-foreground: 215 20% 55%;
+  --accent: 258 90% 76%;
+  --accent-foreground: 210 40% 96%;
+  --destructive: 350 89% 73%;
+  --destructive-foreground: 210 40% 96%;
+  --border: 218 15% 13%;
+  --input: 217 33% 12%;
+  --ring: 187 85% 53%;
+  --radius: 1rem;
 
   /* Chart Colors for Data Viz */
-  --chart-1: 45 56% 52%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 200 70% 50%;
+  --chart-1: 187 85% 53%;
+  --chart-2: 160 62% 52%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 258 90% 76%;
+  --chart-5: 217 91% 60%;
 }
 
 /* ------------------------------------------------------------
    LIGHT MODE
-   Clean, professional light theme with gold accents
+   Clean, professional light theme with cyan accents
    ------------------------------------------------------------ */
 [data-theme="light"] {
   color-scheme: light;
 
   /* Semantic Background Colors */
-  --color-background: var(--color-neutral-50);
+  --color-background: #f8fafc;
   --color-background-elevated: #ffffff;
-  --color-background-sunken: var(--color-neutral-100);
+  --color-background-sunken: #f1f5f9;
   --color-surface: #ffffff;
-  --color-surface-hover: var(--color-neutral-100);
-  --color-surface-active: var(--color-neutral-150);
+  --color-surface-hover: #f1f5f9;
+  --color-surface-active: #e8edf3;
+
+  --color-surface-solid: #ffffff;
+  --color-surface-solid-hover: #f1f5f9;
 
   /* Semantic Border Colors */
-  --color-border: var(--color-neutral-200);
-  --color-border-muted: var(--color-neutral-150);
-  --color-border-emphasis: var(--color-neutral-300);
+  --color-border: #e2e8f0;
+  --color-border-muted: #e8edf3;
+  --color-border-emphasis: #cbd5e1;
 
   /* Semantic Text Colors */
-  --color-text-primary: var(--color-neutral-900);
-  --color-text-secondary: var(--color-neutral-600);
-  --color-text-muted: var(--color-neutral-400);
-  --color-text-inverse: var(--color-neutral-50);
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+  --color-text-inverse: #f8fafc;
 
-  /* Accent Colors - Slightly darker for light mode contrast */
-  --color-accent: #B8960F;
-  --color-accent-hover: #9A7B00;
-  --color-accent-muted: rgba(184, 150, 15, 0.1);
+  /* Accent Colors — Darker cyan for light mode contrast */
+  --color-accent: #0891b2;
+  --color-accent-hover: #0e7490;
+  --color-accent-muted: rgba(8,145,178,0.10);
   --color-accent-text: #ffffff;
   --color-accent-foreground: #ffffff;
 
+  --color-accent-2: #7c3aed;
+  --color-accent-2-muted: rgba(124,58,237,0.10);
+
+  --color-warm: #d97706;
+  --color-warm-muted: rgba(217,119,6,0.10);
+
   /* Shadows (Traditional for light mode) */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 4px 14px rgba(184, 150, 15, 0.2);
-  --shadow-glow-hover: 0 8px 25px rgba(184, 150, 15, 0.3);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+  --shadow-glow: 0 4px 14px rgba(8,145,178,0.15);
+  --shadow-glow-hover: 0 8px 25px rgba(8,145,178,0.25);
+  --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  --shadow-surface: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
 
   /* Input States */
   --color-input-bg: #ffffff;
-  --color-input-border: var(--color-neutral-250);
-  --color-input-focus: var(--color-accent);
-  --color-input-placeholder: var(--color-neutral-400);
+  --color-input-border: #e2e8f0;
+  --color-input-focus: #0891b2;
+  --color-input-placeholder: #94a3b8;
 
   /* Status Color Mappings */
   --color-status-success: var(--color-success-dark);
-  --color-status-success-muted: rgba(22, 163, 74, 0.1);
+  --color-status-success-muted: rgba(16,185,129,0.10);
   --color-status-warning: var(--color-warning-dark);
-  --color-status-warning-muted: rgba(202, 138, 4, 0.1);
+  --color-status-warning-muted: rgba(217,119,6,0.10);
   --color-status-error: var(--color-error-dark);
-  --color-status-error-muted: rgba(220, 38, 38, 0.1);
+  --color-status-error-muted: rgba(244,63,94,0.10);
   --color-status-info: var(--color-info-dark);
-  --color-status-info-muted: rgba(37, 99, 235, 0.1);
+  --color-status-info-muted: rgba(37,99,235,0.10);
 
   /* shadcn/ui Compatible Variables (HSL format) */
-  --background: 0 0% 98%;
-  --foreground: 0 0% 9%;
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 9%;
+  --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 9%;
-  --primary: 45 85% 39%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 192 83% 36%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 96%;
-  --secondary-foreground: 0 0% 9%;
-  --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 45%;
-  --accent: 45 85% 39%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 192 83% 36%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 90%;
-  --input: 0 0% 90%;
-  --ring: 45 85% 39%;
+  --destructive: 350 89% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 192 83% 36%;
 
   /* Chart Colors for Data Viz */
-  --chart-1: 45 85% 39%;
-  --chart-2: 160 60% 35%;
-  --chart-3: 30 80% 45%;
-  --chart-4: 280 65% 50%;
-  --chart-5: 200 70% 40%;
+  --chart-1: 192 83% 36%;
+  --chart-2: 160 62% 40%;
+  --chart-3: 38 92% 43%;
+  --chart-4: 258 90% 66%;
+  --chart-5: 217 91% 50%;
 }
 
 /* ------------------------------------------------------------
@@ -292,70 +319,78 @@
   :root:not([data-theme]) {
     color-scheme: light;
 
-    --color-background: var(--color-neutral-50);
+    --color-background: #f8fafc;
     --color-background-elevated: #ffffff;
-    --color-background-sunken: var(--color-neutral-100);
+    --color-background-sunken: #f1f5f9;
     --color-surface: #ffffff;
-    --color-surface-hover: var(--color-neutral-100);
-    --color-surface-active: var(--color-neutral-150);
+    --color-surface-hover: #f1f5f9;
+    --color-surface-active: #e8edf3;
+    --color-surface-solid: #ffffff;
+    --color-surface-solid-hover: #f1f5f9;
 
-    --color-border: var(--color-neutral-200);
-    --color-border-muted: var(--color-neutral-150);
-    --color-border-emphasis: var(--color-neutral-300);
+    --color-border: #e2e8f0;
+    --color-border-muted: #e8edf3;
+    --color-border-emphasis: #cbd5e1;
 
-    --color-text-primary: var(--color-neutral-900);
-    --color-text-secondary: var(--color-neutral-600);
-    --color-text-muted: var(--color-neutral-400);
-    --color-text-inverse: var(--color-neutral-50);
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94a3b8;
+    --color-text-inverse: #f8fafc;
 
-    --color-accent: #B8960F;
-    --color-accent-hover: #9A7B00;
-    --color-accent-muted: rgba(184, 150, 15, 0.1);
+    --color-accent: #0891b2;
+    --color-accent-hover: #0e7490;
+    --color-accent-muted: rgba(8,145,178,0.10);
     --color-accent-text: #ffffff;
     --color-accent-foreground: #ffffff;
 
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    --shadow-glow: 0 4px 14px rgba(184, 150, 15, 0.2);
-    --shadow-glow-hover: 0 8px 25px rgba(184, 150, 15, 0.3);
-    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-    --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --color-accent-2: #7c3aed;
+    --color-accent-2-muted: rgba(124,58,237,0.10);
+    --color-warm: #d97706;
+    --color-warm-muted: rgba(217,119,6,0.10);
+
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+    --shadow-glow: 0 4px 14px rgba(8,145,178,0.15);
+    --shadow-glow-hover: 0 8px 25px rgba(8,145,178,0.25);
+    --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+    --shadow-card-hover: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    --shadow-surface: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
 
     --color-input-bg: #ffffff;
-    --color-input-border: var(--color-neutral-250);
-    --color-input-focus: var(--color-accent);
-    --color-input-placeholder: var(--color-neutral-400);
+    --color-input-border: #e2e8f0;
+    --color-input-focus: #0891b2;
+    --color-input-placeholder: #94a3b8;
 
     --color-status-success: var(--color-success-dark);
-    --color-status-success-muted: rgba(22, 163, 74, 0.1);
+    --color-status-success-muted: rgba(16,185,129,0.10);
     --color-status-warning: var(--color-warning-dark);
-    --color-status-warning-muted: rgba(202, 138, 4, 0.1);
+    --color-status-warning-muted: rgba(217,119,6,0.10);
     --color-status-error: var(--color-error-dark);
-    --color-status-error-muted: rgba(220, 38, 38, 0.1);
+    --color-status-error-muted: rgba(244,63,94,0.10);
     --color-status-info: var(--color-info-dark);
-    --color-status-info-muted: rgba(37, 99, 235, 0.1);
+    --color-status-info-muted: rgba(37,99,235,0.10);
 
-    --background: 0 0% 98%;
-    --foreground: 0 0% 9%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 45 85% 39%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 192 83% 36%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 45 85% 39%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 192 83% 36%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 45 85% 39%;
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 192 83% 36%;
   }
 }
 
@@ -387,7 +422,7 @@ body {
 }
 
 [data-theme="dark"] ::selection {
-  background-color: rgba(212, 175, 55, 0.3);
+  background-color: rgba(34,211,238,0.3);
   color: white;
 }
 
@@ -414,12 +449,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface);
+  background: rgba(255,255,255,0.08);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-surface-hover);
+  background: rgba(255,255,255,0.14);
 }
 
 [data-theme="light"] ::-webkit-scrollbar-thumb {
@@ -434,16 +469,75 @@ body {
    UTILITY CLASSES
    ------------------------------------------------------------ */
 
-/* Gold Gradient Text */
-.text-gradient-gold {
-  background-image: linear-gradient(to right, #FFD54F, #D4AF37, #FFD54F);
+/* Primary Gradient Text (Cyan → Blue) */
+.text-gradient-rink {
+  background-image: linear-gradient(to right, #22D3EE, #3B82F6, #22D3EE);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-[data-theme="light"] .text-gradient-gold {
-  background-image: linear-gradient(to right, #C19A00, #9A7B00, #C19A00);
+[data-theme="light"] .text-gradient-rink {
+  background-image: linear-gradient(to right, #0891b2, #2563eb, #0891b2);
+}
+
+/* Legacy alias */
+.text-gradient-gold {
+  background-image: linear-gradient(to right, #22D3EE, #3B82F6, #22D3EE);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Aurora Background (two blurred gradient blobs) */
+.aurora-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.aurora-bg::before,
+.aurora-bg::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.aurora-bg::before {
+  width: 600px;
+  height: 400px;
+  top: -200px;
+  right: -100px;
+  background: linear-gradient(135deg, #22D3EE, #3B82F6);
+  opacity: 0.12;
+}
+
+.aurora-bg::after {
+  width: 500px;
+  height: 400px;
+  bottom: -200px;
+  left: -100px;
+  background: linear-gradient(135deg, #A78BFA, #6366f1);
+  opacity: 0.10;
+}
+
+/* Premium Surface (glass card recipe) */
+.surface-premium {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 1rem;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55);
+}
+
+[data-theme="light"] .surface-premium {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+  backdrop-filter: none;
 }
 
 /* Button Glow Effect */
@@ -475,7 +569,7 @@ body {
 
 /* Card Hover Animation */
 .card-hover {
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 220ms cubic-bezier(.2,.8,.2,1);
 }
 
 .card-hover:hover {
@@ -503,7 +597,7 @@ body {
   background-color: var(--color-input-bg);
   border: 1px solid var(--color-input-border);
   color: var(--color-text-primary);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   transition: all 200ms;
 }
 
@@ -517,12 +611,12 @@ body {
   box-shadow: 0 0 0 2px var(--color-input-focus), 0 0 0 4px var(--color-accent-muted);
 }
 
-/* Legacy Input Gold (Dark Mode Only) */
+/* Legacy Input (kept for backwards compat) */
 .input-gold {
   background-color: var(--color-input-bg);
   border: 1px solid var(--color-input-border);
   color: var(--color-text-primary);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   transition: all 200ms;
 }
 
@@ -554,58 +648,63 @@ body {
 }
 
 /* Custom Checkbox Styling */
-input[type="checkbox"].checkbox-gold {
+input[type="checkbox"].checkbox-gold,
+input[type="checkbox"].checkbox-rink {
   appearance: none;
   -webkit-appearance: none;
   width: 1.25rem;
   height: 1.25rem;
-  border: 2px solid var(--color-gold-500, #D4AF37);
-  border-radius: 0.25rem;
-  background-color: var(--color-neutral-900, #111);
+  border: 2px solid var(--color-accent);
+  border-radius: 0.375rem;
+  background-color: var(--color-surface-solid);
   cursor: pointer;
   position: relative;
   transition: all 150ms ease;
   flex-shrink: 0;
 }
 
-input[type="checkbox"].checkbox-gold:checked {
-  background-color: var(--color-gold-500, #D4AF37);
-  border-color: var(--color-gold-500, #D4AF37);
+input[type="checkbox"].checkbox-gold:checked,
+input[type="checkbox"].checkbox-rink:checked {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
-input[type="checkbox"].checkbox-gold:checked::after {
+input[type="checkbox"].checkbox-gold:checked::after,
+input[type="checkbox"].checkbox-rink:checked::after {
   content: '';
   position: absolute;
   left: 5px;
   top: 1px;
   width: 6px;
   height: 10px;
-  border: solid black;
+  border: solid var(--color-accent-text);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
 
-input[type="checkbox"].checkbox-gold:focus {
+input[type="checkbox"].checkbox-gold:focus,
+input[type="checkbox"].checkbox-rink:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 0 2px var(--color-accent-muted);
 }
 
-input[type="checkbox"].checkbox-gold:hover {
-  border-color: var(--color-gold-400, #FFD54F);
+input[type="checkbox"].checkbox-gold:hover,
+input[type="checkbox"].checkbox-rink:hover {
+  border-color: var(--color-accent-hover);
 }
 
 /* ------------------------------------------------------------
    BUTTONS
    ------------------------------------------------------------ */
 
-/* Primary Button */
+/* Primary Button (Cyan → Blue gradient) */
 .btn-primary {
   padding: 0.75rem 1.5rem;
-  background-image: linear-gradient(to right, var(--color-accent), var(--color-accent-hover));
-  color: var(--color-accent-text);
-  border-radius: 0.5rem;
+  background-image: linear-gradient(to right, #22D3EE, #3B82F6);
+  color: #070A0F;
+  border-radius: 0.75rem;
   font-weight: 600;
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 220ms cubic-bezier(.2,.8,.2,1);
 }
 
 .btn-primary:hover {
@@ -634,9 +733,9 @@ input[type="checkbox"].checkbox-gold:hover {
   background-color: transparent;
   color: var(--color-accent);
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   font-weight: 600;
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 220ms cubic-bezier(.2,.8,.2,1);
 }
 
 .btn-secondary:hover {
@@ -653,9 +752,9 @@ input[type="checkbox"].checkbox-gold:hover {
 .btn-ghost {
   padding: 0.5rem 1rem;
   color: var(--color-text-secondary);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   font-weight: 500;
-  transition: all 200ms;
+  transition: all 150ms;
 }
 
 .btn-ghost:hover {
@@ -670,16 +769,20 @@ input[type="checkbox"].checkbox-gold:hover {
 .card {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 1.5rem;
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 1rem;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-surface);
+  transition: all 220ms cubic-bezier(.2,.8,.2,1);
 }
 
 .card:hover {
   border-color: var(--color-border-emphasis);
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow-card-hover);
 }
 
 [data-theme="light"] .card {
+  backdrop-filter: none;
   box-shadow: var(--shadow-card);
 }
 
@@ -700,10 +803,11 @@ input[type="checkbox"].checkbox-gold:hover {
   font-weight: 600;
 }
 
-.badge-gold {
+.badge-gold,
+.badge-rink {
   background-color: var(--color-accent-muted);
   color: var(--color-accent);
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(34,211,238,0.20);
 }
 
 .badge-success {
@@ -725,6 +829,13 @@ input[type="checkbox"].checkbox-gold:hover {
   color: var(--color-status-error);
   border: 1px solid currentColor;
   border-opacity: 0.3;
+}
+
+/* Featured / Warm badge (use sparingly) */
+.badge-featured {
+  background-color: var(--color-warm-muted);
+  color: var(--color-warm);
+  border: 1px solid rgba(251,191,36,0.20);
 }
 
 /* ------------------------------------------------------------
@@ -781,6 +892,12 @@ input[type="checkbox"].checkbox-gold:hover {
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px var(--color-accent-muted); }
+  50% { box-shadow: 0 0 40px var(--color-accent-muted); }
+}
+
+/* Legacy alias */
 @keyframes pulseGold {
   0%, 100% { box-shadow: 0 0 20px var(--color-accent-muted); }
   50% { box-shadow: 0 0 40px var(--color-accent-muted); }

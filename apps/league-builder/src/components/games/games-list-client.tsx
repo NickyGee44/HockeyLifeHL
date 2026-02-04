@@ -138,7 +138,7 @@ export function GamesListClient({
                 type="checkbox"
                 checked={isAllSelected}
                 onChange={handleSelectAll}
-                className="w-4 h-4 rounded border-gold-500/30 bg-neutral-800 text-gold-500 focus:ring-gold-500 focus:ring-offset-neutral-900"
+                className="w-4 h-4 rounded border-rink-500/30 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-neutral-900"
               />
               <span className="text-sm text-neutral-400">
                 {isAllSelected ? 'Deselect all' : 'Select all'}
@@ -155,7 +155,7 @@ export function GamesListClient({
           size="sm"
           onClick={refreshGames}
           disabled={isPending}
-          className="gap-2 border-gold-500/20 text-neutral-300 hover:bg-neutral-800"
+          className="gap-2 border-white/10 text-neutral-300 hover:bg-neutral-800"
         >
           {isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -168,8 +168,8 @@ export function GamesListClient({
 
       {/* Games List */}
       {games.length === 0 ? (
-        <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-12 text-center">
-          <Calendar className="w-16 h-16 text-gold-500 mx-auto mb-4" />
+        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
+          <Calendar className="w-16 h-16 text-rink-500 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">No Games Found</h3>
           <p className="text-neutral-400 mb-6 max-w-md mx-auto">
             {Object.keys(filters).length > 0
@@ -180,7 +180,7 @@ export function GamesListClient({
             <Button
               variant="outline"
               onClick={() => handleFiltersChange({})}
-              className="border-gold-500/30 text-gold-500 hover:bg-gold-500/10"
+              className="border-rink-500/30 text-rink-500 hover:bg-rink-500/10"
             >
               Clear Filters
             </Button>

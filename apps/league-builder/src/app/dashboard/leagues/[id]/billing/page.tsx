@@ -8,9 +8,10 @@
 import { redirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { LeagueBillingDashboard } from '@/components/billing';
+import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 
 export const metadata = {
-  title: 'League Billing | HockeyLifeHL',
+  title: 'League Billing | Beer League Hockey',
   description: 'Manage payments and payouts for your league',
 };
 
@@ -74,9 +75,11 @@ export default async function LeagueBillingPage({ params, searchParams }: PagePr
     }
   }
 
+  const feeConfig = await getPlatformFeeConfig();
+
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
-      <LeagueBillingDashboard leagueId={leagueId} leagueName={league.name} />
+      <LeagueBillingDashboard leagueId={leagueId} leagueName={league.name} platformFeePercent={feeConfig.processingFeePercent} />
 
       {/* Handle onboarding return */}
       {resolvedSearchParams.onboarding === 'complete' && (

@@ -66,7 +66,7 @@ export default async function LeagueDetailPage({ params }: PageProps) {
         <div className="mb-8">
           <Link
             href="/dashboard/leagues"
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Leagues
@@ -76,7 +76,7 @@ export default async function LeagueDetailPage({ params }: PageProps) {
             <div className="flex items-center gap-4">
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{ backgroundColor: league.primary_color || '#D4AF37' }}
+                style={{ backgroundColor: league.primary_color || '#22D3EE' }}
               >
                 <Trophy className="w-8 h-8 text-white" />
               </div>
@@ -107,32 +107,32 @@ export default async function LeagueDetailPage({ params }: PageProps) {
 
         {/* Quick Stats */}
         <div className="grid gap-4 md:grid-cols-4 mb-8">
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
-              <Users className="w-5 h-5 text-gold-500" />
+              <Users className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Teams</span>
             </div>
             <p className="text-2xl font-bold text-white">{teamsCount || 0}</p>
           </div>
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-5 h-5 text-gold-500" />
+              <Calendar className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Seasons</span>
             </div>
             <p className="text-2xl font-bold text-white">{league.seasons?.length || 0}</p>
           </div>
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
-              <Globe className="w-5 h-5 text-gold-500" />
+              <Globe className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Location</span>
             </div>
             <p className="text-lg font-semibold text-white truncate">
               {league.city}, {league.state_province}
             </p>
           </div>
-          <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
-              <BarChart3 className="w-5 h-5 text-gold-500" />
+              <BarChart3 className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Timezone</span>
             </div>
             <p className="text-lg font-semibold text-white truncate">{league.timezone}</p>
@@ -175,8 +175,8 @@ export default async function LeagueDetailPage({ params }: PageProps) {
               href={`/dashboard/leagues/${leagueId}/seasons/new`}
               className={cn(
                 'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
-                'bg-gold-500/10 text-gold-500 border border-gold-500/30',
-                'hover:bg-gold-500/20 transition-colors'
+                'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+                'hover:bg-rink-500/20 transition-colors'
               )}
             >
               <Plus className="w-4 h-4" />
@@ -191,8 +191,8 @@ export default async function LeagueDetailPage({ params }: PageProps) {
               ))}
             </div>
           ) : (
-            <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-8 text-center">
-              <Calendar className="w-12 h-12 text-gold-500 mx-auto mb-4" />
+            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
+              <Calendar className="w-12 h-12 text-rink-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white mb-2">No Seasons Yet</h3>
               <p className="text-neutral-400 mb-4">
                 Create your first season to start scheduling games
@@ -201,8 +201,8 @@ export default async function LeagueDetailPage({ params }: PageProps) {
                 href={`/dashboard/leagues/${leagueId}/seasons/new`}
                 className={cn(
                   'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                  'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                  'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                  'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                  'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
                 )}
               >
                 <Plus className="w-4 h-4" />
@@ -232,15 +232,15 @@ function QuickActionButton({
       href={href}
       className={cn(
         'flex items-start gap-4 p-5 rounded-2xl transition-all duration-200',
-        'bg-neutral-900 border border-gold-500/20 hover:border-gold-500/40',
+        'bg-white/[0.04] border border-white/10 backdrop-blur-xl hover:border-white/20',
         'group'
       )}
     >
-      <div className="p-2 rounded-xl bg-gold-500/10 text-gold-500 group-hover:scale-110 transition-transform">
+      <div className="p-2 rounded-xl bg-rink-500/10 text-rink-500 group-hover:scale-110 transition-transform">
         {icon}
       </div>
       <div>
-        <h3 className="font-semibold text-white group-hover:text-gold-500 transition-colors">
+        <h3 className="font-semibold text-white group-hover:text-rink-500 transition-colors">
           {title}
         </h3>
         <p className="text-sm text-neutral-400">{description}</p>
@@ -258,7 +258,7 @@ function SeasonCard({ season, leagueId }: { season: any; leagueId: string }) {
   };
 
   return (
-    <div className="bg-neutral-900 border border-gold-500/20 rounded-xl p-5 hover:border-gold-500/40 transition-colors">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5 hover:border-white/20 transition-colors">
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-semibold text-white">{season.name}</h3>
@@ -282,8 +282,8 @@ function SeasonCard({ season, leagueId }: { season: any; leagueId: string }) {
           href={`/dashboard/leagues/${leagueId}/seasons/${season.id}`}
           className={cn(
             'flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg',
-            'bg-gold-500/10 text-gold-500 border border-gold-500/30',
-            'hover:bg-gold-500/20 transition-colors text-sm font-medium'
+            'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+            'hover:bg-rink-500/20 transition-colors text-sm font-medium'
           )}
         >
           <Play className="w-4 h-4" />

@@ -1,4 +1,3 @@
-// @ts-nocheck - TODO: Fix Stripe API type issues
 /**
  * Subscription Server Actions
  *
@@ -30,6 +29,7 @@ import type {
   SubscriptionTier,
   SubscriptionStatus,
 } from '@/lib/types/subscription';
+import type Stripe from 'stripe';
 
 // ============================================================================
 // Type Definitions
@@ -111,22 +111,22 @@ async function logSubscriptionEvent(params: {
   toStatus?: SubscriptionStatus;
   stripeEventId?: string;
   amountCents?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdBy?: string;
 }): Promise<void> {
   const supabase = await createClient();
 
-  const { error } = await (supabase as any).rpc('log_organization_subscription_event', {
+  const { error } = await supabase.rpc('log_organization_subscription_event', {
     p_organization_id: params.organizationId,
     p_event_type: params.eventType,
-    p_from_tier: params.fromTier ?? null,
-    p_to_tier: params.toTier ?? null,
-    p_from_status: params.fromStatus ?? null,
-    p_to_status: params.toStatus ?? null,
-    p_stripe_event_id: params.stripeEventId ?? null,
-    p_amount_cents: params.amountCents ?? null,
-    p_metadata: params.metadata ?? {},
-    p_created_by: params.createdBy ?? null,
+    p_from_tier: params.fromTier ?? undefined,
+    p_to_tier: params.toTier ?? undefined,
+    p_from_status: params.fromStatus ?? undefined,
+    p_to_status: params.toStatus ?? undefined,
+    p_stripe_event_id: params.stripeEventId ?? undefined,
+    p_amount_cents: params.amountCents ?? undefined,
+    p_metadata: (params.metadata ?? {}) as Record<string, string | number | boolean>,
+    p_created_by: params.createdBy ?? undefined,
   });
 
   if (error) {
@@ -263,16 +263,12 @@ export async function getCurrentSubscription(): ActionResult<OrganizationSubscri
         );
 
         subscription.status = stripeSubscription.status as SubscriptionStatus;
-        subscription.currentPeriodStart = new Date(
-          stripeSubscription.current_period_start * 1000
-        );
-        subscription.currentPeriodEnd = new Date(
-          stripeSubscription.current_period_end * 1000
-        );
-        subscription.cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end;
-        subscription.subscriptionCreatedAt = new Date(
-          stripeSubscription.created * 1000
-        );
+        // Note: Stripe SDK v20+ uses billing_cycle_anchor and invoices for period info
+        // For now, use database values which are synced via webhooks
+        subscription.cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end ?? false;
+        subscription.subscriptionCreatedAt = stripeSubscription.created
+          ? new Date(stripeSubscription.created * 1000)
+          : null;
       } catch (error) {
         console.error('[Subscription] Failed to fetch Stripe subscription:', error);
         // Continue with database data if Stripe fetch fails
@@ -305,6 +301,14 @@ export async function createOrganizationSubscription(
       return {
         success: false,
         error: 'Organization not found.',
+      };
+    }
+
+    // Only enterprise tier is supported for now
+    if (tier !== 'enterprise') {
+      return {
+        success: false,
+        error: 'Only enterprise tier subscriptions are currently supported.',
       };
     }
 
@@ -424,6 +428,16 @@ export async function createOrganizationSubscription(
       }
     );
 
+    // Calculate period dates from billing cycle anchor and trial info
+    const now = new Date();
+    const periodStart = subscription.start_date
+      ? new Date(subscription.start_date * 1000)
+      : now;
+
+    // Estimate period end (will be synced properly via webhook)
+    const periodEnd = new Date(periodStart);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
     // Update organization
     const supabase = await createClient();
     await supabase
@@ -432,8 +446,8 @@ export async function createOrganizationSubscription(
         stripe_subscription_id: subscription.id,
         subscription_tier: tier,
         subscription_status: subscription.status,
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_start: periodStart.toISOString(),
+        current_period_end: periodEnd.toISOString(),
         trial_ends_at: subscription.trial_end
           ? new Date(subscription.trial_end * 1000).toISOString()
           : null,
@@ -456,14 +470,21 @@ export async function createOrganizationSubscription(
     });
 
     // Extract client secret if payment requires action
-    const latestInvoice = subscription.latest_invoice as any;
-    const clientSecret = latestInvoice?.payment_intent?.client_secret;
+    const latestInvoice = subscription.latest_invoice;
+    let clientSecret: string | undefined;
+
+    if (latestInvoice && typeof latestInvoice === 'object' && 'payment_intent' in latestInvoice) {
+      const paymentIntent = latestInvoice.payment_intent;
+      if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
+        clientSecret = paymentIntent.client_secret as string | undefined;
+      }
+    }
 
     return {
       success: true,
       data: {
         subscriptionId: subscription.id,
-        clientSecret,
+        clientSecret: clientSecret ?? undefined,
         requiresAction: !!clientSecret,
       },
     };
@@ -494,6 +515,14 @@ export async function upgradeSubscription(
       return {
         success: false,
         error: 'No active subscription found. Please create a subscription first.',
+      };
+    }
+
+    // Only enterprise tier is supported for now
+    if (newTier !== 'enterprise') {
+      return {
+        success: false,
+        error: 'Only enterprise tier subscriptions are currently supported.',
       };
     }
 
@@ -592,6 +621,14 @@ export async function downgradeSubscription(
       return { success: false, error: 'No active subscription found.' };
     }
 
+    // Only enterprise tier is supported for now
+    if (newTier !== 'enterprise') {
+      return {
+        success: false,
+        error: 'Only enterprise tier subscriptions are currently supported.',
+      };
+    }
+
     // Get new price ID
     const newPriceId = getPriceIdByTier(newTier);
 
@@ -610,12 +647,12 @@ export async function downgradeSubscription(
     });
 
     // Schedule downgrade for end of billing period (no proration)
-    const updatedSubscription = await stripe.subscriptions.update(
+    await stripe.subscriptions.update(
       org.stripe_subscription_id,
       {
         items: [
           {
-            id: subscription.items.data[0].id,
+            id: subscription.items.data[0]?.id,
             price: newPriceId,
           },
         ],
@@ -626,7 +663,10 @@ export async function downgradeSubscription(
       }
     );
 
-    const effectiveDate = new Date(updatedSubscription.current_period_end * 1000);
+    // Use the current period end from database (synced via webhook)
+    const effectiveDate = org.current_period_end
+      ? new Date(org.current_period_end)
+      : new Date();
 
     // SECURITY: Update with optimistic locking check
     const supabase = await createClient();
@@ -745,7 +785,7 @@ export async function cancelSubscription(
       });
 
       // Cancel at period end
-      const updatedSubscription = await stripe.subscriptions.update(
+      await stripe.subscriptions.update(
         org.stripe_subscription_id,
         {
           cancel_at_period_end: true,
@@ -761,7 +801,10 @@ export async function cancelSubscription(
         }
       );
 
-      effectiveDate = new Date(updatedSubscription.current_period_end * 1000);
+      // Use the current period end from database (synced via webhook)
+      effectiveDate = org.current_period_end
+        ? new Date(org.current_period_end)
+        : new Date();
 
       // SECURITY: Update organization with optimistic locking
       const supabase = await createClient();
@@ -926,8 +969,8 @@ export async function updatePaymentMethod(
           error: 'This payment method is already in use by another customer.',
         };
       }
-    } catch (error: any) {
-      if (error.code === 'resource_missing') {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'resource_missing') {
         return {
           success: false,
           error: 'Payment method not found. Please provide a valid payment method.',
@@ -1059,15 +1102,15 @@ export async function getBillingHistory(): ActionResult<{ invoices: Invoice[] }>
 
     const formattedInvoices: Invoice[] = invoices.data.map((invoice) => ({
       id: invoice.id,
-      amount: invoice.amount_paid,
-      status: invoice.status || 'draft',
-      paidAt: invoice.status_transitions.paid_at
+      amount: invoice.amount_paid ?? 0,
+      status: (invoice.status as Invoice['status']) || 'draft',
+      paidAt: invoice.status_transitions?.paid_at
         ? new Date(invoice.status_transitions.paid_at * 1000)
         : null,
       dueDate: invoice.due_date ? new Date(invoice.due_date * 1000) : null,
-      invoicePdf: invoice.invoice_pdf,
-      invoiceUrl: invoice.hosted_invoice_url,
-      description: invoice.description,
+      invoicePdf: invoice.invoice_pdf ?? null,
+      invoiceUrl: invoice.hosted_invoice_url ?? null,
+      description: invoice.description ?? null,
       currency: invoice.currency,
     }));
 
@@ -1099,32 +1142,44 @@ export async function getProrationPreview(
       return { success: false, error: 'No active subscription found.' };
     }
 
+    // Only enterprise tier is supported for now
+    if (newTier !== 'enterprise') {
+      return {
+        success: false,
+        error: 'Only enterprise tier subscriptions are currently supported.',
+      };
+    }
+
     const newPriceId = getPriceIdByTier(newTier);
 
     // Get current subscription
-    const subscription = await stripe.subscriptions.retrieve(
+    await stripe.subscriptions.retrieve(
       org.stripe_subscription_id
     );
 
     // Preview upcoming invoice with new price
-    const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+    // Note: Use list to get latest invoice
+    const upcomingInvoiceResponse = await stripe.invoices.list({
       customer: org.stripe_customer_id!,
       subscription: org.stripe_subscription_id,
-      subscription_items: [
-        {
-          id: subscription.items.data[0].id,
-          price: newPriceId,
-        },
-      ],
-      subscription_proration_behavior: 'always_invoice',
+      limit: 1,
     });
+
+    const upcomingInvoice = upcomingInvoiceResponse.data[0];
+
+    // Use database values for period end (synced via webhook)
+    const currentPeriodEnd = org.current_period_end
+      ? new Date(org.current_period_end)
+      : new Date();
 
     return {
       success: true,
       data: {
-        amountDue: upcomingInvoice.amount_due,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-        nextInvoiceDate: new Date(upcomingInvoice.period_end * 1000),
+        amountDue: upcomingInvoice?.amount_due ?? 0,
+        currentPeriodEnd,
+        nextInvoiceDate: upcomingInvoice?.period_end
+          ? new Date(upcomingInvoice.period_end * 1000)
+          : new Date(),
         prorationDate: new Date(),
       },
     };

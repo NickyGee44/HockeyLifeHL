@@ -76,7 +76,7 @@ export default function TeamSettingsClient({
   const [formData, setFormData] = useState({
     name: team.name,
     shortName: team.short_name,
-    primaryColor: team.primary_color || '#D4AF37',
+    primaryColor: team.primary_color || '#22D3EE',
     secondaryColor: team.secondary_color || '#000000',
     status: (team.status || 'active') as TeamStatus,
     maxRosterSize: team.max_roster_size || 20,
@@ -181,11 +181,11 @@ export default function TeamSettingsClient({
       )}
 
       {/* Basic Info Section */}
-      <section className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-gold-500/10">
+      <section className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gold-500/10">
-              <Info className="w-5 h-5 text-gold-500" />
+            <div className="p-2 rounded-xl bg-rink-500/10">
+              <Info className="w-5 h-5 text-rink-500" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Basic Information</h2>
@@ -228,7 +228,7 @@ export default function TeamSettingsClient({
               onChange={(e) => updateField('status', e.target.value)}
               className={cn(
                 'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-                'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
               )}
             >
               <option value="active">Active</option>
@@ -240,11 +240,11 @@ export default function TeamSettingsClient({
       </section>
 
       {/* Branding Section */}
-      <section className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-gold-500/10">
+      <section className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gold-500/10">
-              <Palette className="w-5 h-5 text-gold-500" />
+            <div className="p-2 rounded-xl bg-rink-500/10">
+              <Palette className="w-5 h-5 text-rink-500" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Branding</h2>
@@ -276,11 +276,11 @@ export default function TeamSettingsClient({
       </section>
 
       {/* Organization Section */}
-      <section className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-gold-500/10">
+      <section className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gold-500/10">
-              <Shield className="w-5 h-5 text-gold-500" />
+            <div className="p-2 rounded-xl bg-rink-500/10">
+              <Shield className="w-5 h-5 text-rink-500" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Organization</h2>
@@ -300,7 +300,7 @@ export default function TeamSettingsClient({
                   onChange={(e) => updateField('divisionId', e.target.value)}
                   className={cn(
                     'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-                    'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                    'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
                   )}
                 >
                   <option value="">No division</option>
@@ -323,7 +323,7 @@ export default function TeamSettingsClient({
                   onChange={(e) => updateField('homeVenueId', e.target.value)}
                   className={cn(
                     'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-                    'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                    'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
                   )}
                 >
                   <option value="">No home venue</option>
@@ -340,11 +340,11 @@ export default function TeamSettingsClient({
       </section>
 
       {/* Roster Section */}
-      <section className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-gold-500/10">
+      <section className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gold-500/10">
-              <Users className="w-5 h-5 text-gold-500" />
+            <div className="p-2 rounded-xl bg-rink-500/10">
+              <Users className="w-5 h-5 text-rink-500" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Roster Settings</h2>
@@ -372,11 +372,11 @@ export default function TeamSettingsClient({
       </section>
 
       {/* Contact Section */}
-      <section className="bg-neutral-900 border border-gold-500/20 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-gold-500/10">
+      <section className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gold-500/10">
-              <MapPin className="w-5 h-5 text-gold-500" />
+            <div className="p-2 rounded-xl bg-rink-500/10">
+              <MapPin className="w-5 h-5 text-rink-500" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Contact Information</h2>
@@ -422,7 +422,7 @@ export default function TeamSettingsClient({
               className={cn(
                 'w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2',
                 'text-sm text-white placeholder:text-neutral-500',
-                'focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                'focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
               )}
             />
           </div>
@@ -447,8 +447,8 @@ export default function TeamSettingsClient({
           disabled={isSaving}
           className={cn(
             'inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm',
-            'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-            'hover:shadow-lg hover:shadow-gold-500/20 transition-all',
+            'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+            'hover:shadow-lg hover:shadow-rink-500/20 transition-all',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
         >
@@ -468,7 +468,7 @@ export default function TeamSettingsClient({
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-neutral-900 border-gold-500/20">
+        <DialogContent className="bg-neutral-900 border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">Delete Team</DialogTitle>
             <DialogDescription className="text-neutral-400">

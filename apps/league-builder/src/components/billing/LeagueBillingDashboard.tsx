@@ -19,11 +19,11 @@ import {
   getPaymentStatistics,
 } from '@/lib/actions/stripe-connect-payments';
 import type { ConnectAccountInfo } from '@/lib/leagues/stripe-connect';
-import { PLATFORM_FEE_PERCENT } from '@/lib/leagues/stripe-connect';
 
 interface LeagueBillingDashboardProps {
   leagueId: string;
   leagueName: string;
+  platformFeePercent: number;
 }
 
 interface PaymentStats {
@@ -45,6 +45,7 @@ function formatCurrency(cents: number): string {
 export function LeagueBillingDashboard({
   leagueId,
   leagueName,
+  platformFeePercent,
 }: LeagueBillingDashboardProps) {
   const [accountInfo, setAccountInfo] = useState<ConnectAccountInfo | null>(null);
   const [stats, setStats] = useState<PaymentStats | null>(null);
@@ -209,8 +210,9 @@ export function LeagueBillingDashboard({
           <div className="flex items-center gap-3">
             <Percent className="h-5 w-5 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              A {PLATFORM_FEE_PERCENT}% platform fee is applied to all transactions.
-              This helps us maintain and improve the HockeyLife platform.
+              A {platformFeePercent}% platform fee is applied to all transactions.
+              This fee is separate from Stripe&apos;s card processing fees.
+              You can configure whether this fee is passed to players or absorbed by the league in your billing settings.
             </p>
           </div>
         </CardContent>

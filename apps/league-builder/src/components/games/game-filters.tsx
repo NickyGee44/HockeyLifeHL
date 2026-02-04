@@ -62,14 +62,14 @@ export function GameFilters({
           variant="outline"
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            'gap-2 border-gold-500/20 text-neutral-300 hover:bg-neutral-800',
-            activeFilterCount > 0 && 'border-gold-500/40'
+            'gap-2 border-white/10 text-neutral-300 hover:bg-neutral-800',
+            activeFilterCount > 0 && 'border-rink-500/40'
           )}
         >
           <Filter className="w-4 h-4" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="w-5 h-5 rounded-full bg-gold-500 text-black text-xs font-bold flex items-center justify-center">
+            <span className="w-5 h-5 rounded-full bg-rink-500 text-black text-xs font-bold flex items-center justify-center">
               {activeFilterCount}
             </span>
           )}
@@ -90,7 +90,7 @@ export function GameFilters({
 
       {/* Filter Panel */}
       {isExpanded && (
-        <div className="p-4 rounded-xl bg-neutral-900 border border-gold-500/20 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-xl grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           {/* Status Filter */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-neutral-400 text-xs">
@@ -105,15 +105,15 @@ export function GameFilters({
                 })
               }
             >
-              <SelectTrigger className="bg-neutral-800 border-gold-500/20 text-white">
+              <SelectTrigger className="bg-neutral-800 border-white/10 text-white">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-gold-500/20">
+              <SelectContent className="bg-neutral-800 border-white/10">
                 {statusOptions.map((option) => (
                   <SelectItem
                     key={option.value}
                     value={option.value}
-                    className="text-white hover:bg-gold-500/10 focus:bg-gold-500/10"
+                    className="text-white hover:bg-rink-500/10 focus:bg-rink-500/10"
                   >
                     {option.label}
                   </SelectItem>
@@ -137,18 +137,18 @@ export function GameFilters({
                 })
               }
             >
-              <SelectTrigger className="bg-neutral-800 border-gold-500/20 text-white">
+              <SelectTrigger className="bg-neutral-800 border-white/10 text-white">
                 <SelectValue placeholder="All Teams" />
               </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-gold-500/20 max-h-[300px]">
-                <SelectItem value="all" className="text-white hover:bg-gold-500/10 focus:bg-gold-500/10">
+              <SelectContent className="bg-neutral-800 border-white/10 max-h-[300px]">
+                <SelectItem value="all" className="text-white hover:bg-rink-500/10 focus:bg-rink-500/10">
                   All Teams
                 </SelectItem>
                 {teams.map((team) => (
                   <SelectItem
                     key={team.id}
                     value={team.id}
-                    className="text-white hover:bg-gold-500/10 focus:bg-gold-500/10"
+                    className="text-white hover:bg-rink-500/10 focus:bg-rink-500/10"
                   >
                     {team.name}
                   </SelectItem>
@@ -172,18 +172,18 @@ export function GameFilters({
                 })
               }
             >
-              <SelectTrigger className="bg-neutral-800 border-gold-500/20 text-white">
+              <SelectTrigger className="bg-neutral-800 border-white/10 text-white">
                 <SelectValue placeholder="All Seasons" />
               </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-gold-500/20">
-                <SelectItem value="all" className="text-white hover:bg-gold-500/10 focus:bg-gold-500/10">
+              <SelectContent className="bg-neutral-800 border-white/10">
+                <SelectItem value="all" className="text-white hover:bg-rink-500/10 focus:bg-rink-500/10">
                   All Seasons
                 </SelectItem>
                 {seasons.map((season) => (
                   <SelectItem
                     key={season.id}
                     value={season.id}
-                    className="text-white hover:bg-gold-500/10 focus:bg-gold-500/10"
+                    className="text-white hover:bg-rink-500/10 focus:bg-rink-500/10"
                   >
                     {season.name}
                   </SelectItem>
@@ -207,7 +207,7 @@ export function GameFilters({
                   dateFrom: e.target.value || undefined,
                 })
               }
-              className="bg-neutral-800 border-gold-500/20 text-white"
+              className="bg-neutral-800 border-white/10 text-white"
             />
           </div>
 
@@ -226,7 +226,7 @@ export function GameFilters({
                   dateTo: e.target.value || undefined,
                 })
               }
-              className="bg-neutral-800 border-gold-500/20 text-white"
+              className="bg-neutral-800 border-white/10 text-white"
             />
           </div>
         </div>
@@ -279,11 +279,11 @@ function FilterTag({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-500 text-xs font-medium border border-gold-500/20">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rink-500/10 text-rink-500 text-xs font-medium border border-white/10">
       {label}
       <button
         onClick={onRemove}
-        className="w-3.5 h-3.5 rounded-full hover:bg-gold-500/20 flex items-center justify-center"
+        className="w-3.5 h-3.5 rounded-full hover:bg-rink-500/20 flex items-center justify-center"
       >
         <X className="w-2.5 h-2.5" />
       </button>

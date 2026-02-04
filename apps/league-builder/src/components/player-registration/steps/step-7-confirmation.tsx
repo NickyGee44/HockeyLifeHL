@@ -55,10 +55,10 @@ export function Step7Confirmation() {
       </div>
 
       {/* Summary Card */}
-      <div className="p-6 rounded-xl border border-gold-500/30 bg-gold-500/5">
+      <div className="p-6 rounded-xl border border-rink-500/30 bg-rink-500/5">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-gold-500/20 flex items-center justify-center">
-            <Users className="w-6 h-6 text-gold-500" />
+          <div className="w-12 h-12 rounded-full bg-rink-500/20 flex items-center justify-center">
+            <Users className="w-6 h-6 text-rink-500" />
           </div>
           <div>
             <p className="text-sm text-neutral-400">Registering for</p>
@@ -66,8 +66,8 @@ export function Step7Confirmation() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-gold-500">
-          <span className="px-3 py-1 rounded-full text-sm font-medium bg-gold-500/20">
+        <div className="flex items-center gap-2 text-rink-500">
+          <span className="px-3 py-1 rounded-full text-sm font-medium bg-rink-500/20">
             {formatRegistrationType(formData.registration_type)}
           </span>
           {selectedTeam && (
@@ -153,7 +153,7 @@ export function Step7Confirmation() {
               <img
                 src={formData.photo_url}
                 alt="Profile"
-                className="w-16 h-16 rounded-full object-cover border-2 border-gold-500/30"
+                className="w-16 h-16 rounded-full object-cover border-2 border-rink-500/30"
               />
               <span className="text-sm text-green-400 flex items-center gap-1">
                 <Check className="w-4 h-4" />
@@ -200,14 +200,14 @@ export function Step7Confirmation() {
       {requiresPayment && (
         <div className="p-6 rounded-xl border border-neutral-700 bg-neutral-800/30">
           <div className="flex items-center gap-3 mb-4">
-            <CreditCard className="w-5 h-5 text-gold-500" />
+            <CreditCard className="w-5 h-5 text-rink-500" />
             <h3 className="font-semibold text-white">Payment</h3>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-neutral-400">Registration Fee</p>
-              <p className="text-2xl font-bold text-gold-500">{formattedAmount}</p>
+              <p className="text-2xl font-bold text-rink-500">{formattedAmount}</p>
             </div>
             {formData.payment_status === 'completed' ? (
               <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 text-green-400">
@@ -236,7 +236,7 @@ export function Step7Confirmation() {
       {/* Submit Reminder */}
       <div className="text-center text-neutral-400">
         <p className="text-sm">
-          Click <span className="text-gold-500 font-medium">Submit Registration</span> below
+          Click <span className="text-rink-500 font-medium">Submit Registration</span> below
           to complete your registration
         </p>
       </div>
@@ -257,7 +257,7 @@ function SummarySection({ icon: Icon, title, onEdit, children }: SummarySectionP
     <div className="p-4 rounded-xl border border-neutral-700 bg-neutral-800/30">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-gold-500" />
+          <Icon className="w-4 h-4 text-rink-500" />
           <h3 className="font-semibold text-white text-sm">{title}</h3>
         </div>
         {/* Edit button - can be connected to navigation later */}

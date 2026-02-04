@@ -112,7 +112,7 @@ export function SupportTicketForm({
   // Success state
   if (submitted && ticketId) {
     return (
-      <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8 text-center">
+      <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-6 bg-green-500/10 rounded-full flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
@@ -122,9 +122,9 @@ export function SupportTicketForm({
         </p>
 
         {/* Ticket ID */}
-        <div className="bg-neutral-900/50 border border-gold-500/20 rounded-xl p-4 mb-6">
+        <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4 mb-6">
           <p className="text-xs text-neutral-500 mb-1">Reference Number</p>
-          <p className="text-lg font-mono text-gold-500">{ticketId.substring(0, 8).toUpperCase()}</p>
+          <p className="text-lg font-mono text-rink-500">{ticketId.substring(0, 8).toUpperCase()}</p>
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 text-left">
@@ -143,7 +143,7 @@ export function SupportTicketForm({
               setTicketId(null);
               setDescription('');
             }}
-            className="w-full py-3 px-6 border border-gold-500/30 text-gold-500 font-medium rounded-xl hover:bg-gold-500/10 transition-all"
+            className="w-full py-3 px-6 border border-rink-500/30 text-rink-500 font-medium rounded-xl hover:bg-rink-500/10 transition-all"
           >
             Submit Another Request
           </button>
@@ -160,11 +160,11 @@ export function SupportTicketForm({
   }
 
   return (
-    <div className="bg-neutral-800 border border-gold-500/20 rounded-2xl shadow-xl p-8">
+    <div className="bg-neutral-800 border border-white/10 rounded-2xl shadow-xl p-8">
       {/* Header */}
       <div className="text-center mb-6">
-        <div className="w-12 h-12 mx-auto mb-4 bg-gold-500/10 rounded-full flex items-center justify-center">
-          <HelpCircle className="h-6 w-6 text-gold-500" />
+        <div className="w-12 h-12 mx-auto mb-4 bg-rink-500/10 rounded-full flex items-center justify-center">
+          <HelpCircle className="h-6 w-6 text-rink-500" />
         </div>
         <h2 className="text-2xl font-bold text-neutral-100 mb-2">Account Recovery</h2>
         <p className="text-neutral-400 text-sm">
@@ -188,7 +188,7 @@ export function SupportTicketForm({
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
             placeholder="you@company.com"
           />
         </div>
@@ -206,19 +206,19 @@ export function SupportTicketForm({
                 onClick={() => setRecoveryType(type.value)}
                 className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all ${
                   recoveryType === type.value
-                    ? 'bg-gold-500/10 border-gold-500/50'
-                    : 'bg-neutral-900/50 border-neutral-700 hover:border-gold-500/30'
+                    ? 'bg-rink-500/10 border-rink-500/50'
+                    : 'bg-neutral-900/50 border-neutral-700 hover:border-rink-500/30'
                 }`}
               >
                 <type.icon
                   className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                    recoveryType === type.value ? 'text-gold-500' : 'text-neutral-500'
+                    recoveryType === type.value ? 'text-rink-500' : 'text-neutral-500'
                   }`}
                 />
                 <div>
                   <p
                     className={`text-sm font-medium ${
-                      recoveryType === type.value ? 'text-gold-500' : 'text-neutral-300'
+                      recoveryType === type.value ? 'text-rink-500' : 'text-neutral-300'
                     }`}
                   >
                     {type.label}
@@ -244,7 +244,7 @@ export function SupportTicketForm({
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={4}
-            className="w-full px-4 py-3 bg-black/50 border border-gold-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent transition-all resize-none"
+            className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all resize-none"
             placeholder="Please describe what happened and any steps you've already tried..."
           />
           <p className="mt-1.5 text-xs text-neutral-500">
@@ -276,7 +276,7 @@ export function SupportTicketForm({
         <button
           type="submit"
           disabled={loading || !email || !recoveryType || !description}
-          className="w-full py-3 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+          className="w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -293,7 +293,7 @@ export function SupportTicketForm({
       <div className="mt-6">
         <Link
           href="/login"
-          className="flex items-center justify-center gap-2 text-sm text-neutral-400 hover:text-gold-500 transition-colors"
+          className="flex items-center justify-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Login
@@ -304,11 +304,11 @@ export function SupportTicketForm({
       <div className="mt-6 pt-6 border-t border-neutral-700">
         <p className="text-xs text-neutral-500 text-center">
           Remember your password?{' '}
-          <Link href="/login" className="text-gold-500 hover:underline">
+          <Link href="/login" className="text-rink-500 hover:underline">
             Sign in
           </Link>
           {' | '}
-          <Link href="/forgot-password" className="text-gold-500 hover:underline">
+          <Link href="/forgot-password" className="text-rink-500 hover:underline">
             Reset password
           </Link>
         </p>

@@ -85,7 +85,7 @@ export function CheckoutButton({
   }
 
   return (
-    <div className={`bg-neutral-800 border border-gold-500/20 rounded-xl overflow-hidden ${className}`}>
+    <div className={`bg-neutral-800 border border-white/10 rounded-xl overflow-hidden ${className}`}>
       {/* Payment Summary */}
       <div className="p-4 border-b border-neutral-700">
         <div className="flex items-center justify-between mb-3">
@@ -108,7 +108,7 @@ export function CheckoutButton({
           </div>
           <div className="flex justify-between font-medium">
             <span className="text-neutral-300">Remaining</span>
-            <span className="text-gold-500">
+            <span className="text-rink-500">
               ${(remainingAmount / 100).toFixed(2)}
             </span>
           </div>
@@ -153,7 +153,7 @@ export function CheckoutButton({
         <button
           onClick={handleCheckout}
           disabled={loading}
-          className="w-full py-3 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+          className="w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

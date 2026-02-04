@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Menu, X, Home, Calendar, Trophy, Users, BarChart3, Info } from 'lucide-react';
+import { Menu, X, Activity, Calendar, Trophy, Users, BarChart3, Info } from 'lucide-react';
 import type { League } from '@/lib/types';
 
 interface LeagueHeaderProps {
@@ -12,7 +12,7 @@ interface LeagueHeaderProps {
 }
 
 const navItems = [
-  { href: '', label: 'Home', icon: Home },
+  { href: '', label: 'Scores', icon: Activity },
   { href: '/schedule', label: 'Schedule', icon: Calendar },
   { href: '/standings', label: 'Standings', icon: Trophy },
   { href: '/teams', label: 'Teams', icon: Users },

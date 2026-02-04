@@ -105,7 +105,7 @@ export default function CaptainVerificationPage() {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gold-500/20 border-t-gold-500 rounded-full animate-spin mx-auto" />
+          <div className="w-16 h-16 border-4 border-white/10 border-t-rink-500 rounded-full animate-spin mx-auto" />
           <p className="text-neutral-400 mt-4">Loading verification...</p>
         </div>
       </div>
@@ -134,15 +134,15 @@ export default function CaptainVerificationPage() {
   return (
     <div className="min-h-screen bg-neutral-950">
       {/* Header */}
-      <header className="bg-neutral-900 border-b border-gold-500/20 px-4 py-6">
+      <header className="bg-neutral-900 border-b border-white/10 px-4 py-6">
         <div className="max-w-lg mx-auto text-center">
           <div
             className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4"
-            style={{ backgroundColor: `${myTeam.primaryColor || '#D4AF37'}20` }}
+            style={{ backgroundColor: `${myTeam.primaryColor || '#22D3EE'}20` }}
           >
             <span
               className="text-2xl font-black"
-              style={{ color: myTeam.primaryColor || '#D4AF37' }}
+              style={{ color: myTeam.primaryColor || '#22D3EE' }}
             >
               {myTeam.shortName?.[0] || myTeam.name[0]}
             </span>
@@ -178,7 +178,7 @@ export default function CaptainVerificationPage() {
               <p className="text-sm text-neutral-400 mb-1">{game.homeTeam.name}</p>
               <p
                 className="text-4xl font-black"
-                style={{ color: game.homeTeam.primaryColor || '#D4AF37' }}
+                style={{ color: game.homeTeam.primaryColor || '#22D3EE' }}
               >
                 {summary?.homeGoals ?? 0}
               </p>
@@ -292,8 +292,8 @@ export default function CaptainVerificationPage() {
             <button
               onClick={handleVerify}
               disabled={isVerifying}
-              className="w-full py-4 px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold text-lg rounded-xl
-                hover:shadow-lg hover:shadow-gold-500/20 disabled:opacity-50 disabled:cursor-not-allowed
+              className="w-full py-4 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold text-lg rounded-xl
+                hover:shadow-lg hover:shadow-rink-500/20 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-all touch-manipulation min-h-[56px]"
             >
               {isVerifying ? (
@@ -316,7 +316,7 @@ export default function CaptainVerificationPage() {
           <div className="text-center">
             <p className="text-neutral-500 text-sm">
               Notice an error?{' '}
-              <a href="#" className="text-gold-400 hover:text-gold-300 transition-colors">
+              <a href="#" className="text-rink-400 hover:text-rink-300 transition-colors">
                 Contest these stats
               </a>
             </p>

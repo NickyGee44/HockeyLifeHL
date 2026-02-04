@@ -113,12 +113,12 @@ export function Step4RegistrationFees() {
     >
       {/* Enable Paid Registration Toggle */}
       <div className="space-y-4">
-        <Card className="bg-neutral-800/50 border-gold-500/20">
+        <Card className="bg-neutral-800/50 border-white/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-start gap-3">
-                <div className="bg-gold-500/10 p-2 rounded-lg">
-                  <CreditCard className="h-5 w-5 text-gold-500" />
+                <div className="bg-rink-500/10 p-2 rounded-lg">
+                  <CreditCard className="h-5 w-5 text-rink-500" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">Enable Paid Registration</h3>
@@ -132,7 +132,7 @@ export function Step4RegistrationFees() {
                 onCheckedChange={(checked) =>
                   setValue('enablePaidRegistration', checked)
                 }
-                className="data-[state=checked]:bg-gold-500"
+                className="data-[state=checked]:bg-rink-500"
               />
             </div>
           </CardContent>
@@ -222,7 +222,7 @@ export function Step4RegistrationFees() {
                           }
                           className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
                             !earlyBirdDiscount.isPercentage
-                              ? 'bg-gold-500/10 border-gold-500 text-gold-500'
+                              ? 'bg-rink-500/10 border-rink-500 text-rink-500'
                               : 'border-neutral-600 hover:border-neutral-500'
                           }`}
                         >
@@ -240,7 +240,7 @@ export function Step4RegistrationFees() {
                           }
                           className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
                             earlyBirdDiscount.isPercentage
-                              ? 'bg-gold-500/10 border-gold-500 text-gold-500'
+                              ? 'bg-rink-500/10 border-rink-500 text-rink-500'
                               : 'border-neutral-600 hover:border-neutral-500'
                           }`}
                         >
@@ -433,7 +433,7 @@ export function Step4RegistrationFees() {
             <div className="space-y-4 pt-6">
               <h3 className="text-lg font-semibold">Fee Structure Preview</h3>
 
-              <Card className="bg-neutral-800/50 border-gold-500/20">
+              <Card className="bg-neutral-800/50 border-white/10">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
                     {/* Base Fee */}

@@ -151,7 +151,7 @@ async function handleCheckoutCompleted(
   // Get payment intent for the actual amount
   const paymentIntent = session.payment_intent as string;
   const amountPaid = session.amount_total || 0;
-  const applicationFee = calculateApplicationFee(amountPaid);
+  const applicationFee = await calculateApplicationFee(amountPaid);
 
   // Record transaction
   const currentInstallment = payment.current_installment ?? 0;

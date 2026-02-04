@@ -120,7 +120,7 @@ export default async function SeasonSchedulePage({ params }: PageProps) {
               <span>{data.season.name}</span>
             </div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Calendar className="w-7 h-7 text-gold-500" />
+              <Calendar className="w-7 h-7 text-rink-500" />
               Schedule Management
             </h1>
           </div>

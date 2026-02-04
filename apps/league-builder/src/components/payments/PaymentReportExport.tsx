@@ -146,10 +146,10 @@ export function PaymentReportExport({
   };
 
   return (
-    <div className={`bg-neutral-800 border border-gold-500/20 rounded-xl p-5 ${className}`}>
+    <div className={`bg-neutral-800 border border-white/10 rounded-xl p-5 ${className}`}>
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-gold-500/10 rounded-full flex items-center justify-center">
-          <Download className="h-5 w-5 text-gold-500" />
+        <div className="w-10 h-10 bg-rink-500/10 rounded-full flex items-center justify-center">
+          <Download className="h-5 w-5 text-rink-500" />
         </div>
         <div>
           <h3 className="font-semibold text-white">Export Payment Report</h3>
@@ -169,8 +169,8 @@ export function PaymentReportExport({
               onClick={() => setFormat('csv')}
               className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
                 format === 'csv'
-                  ? 'bg-gold-500/10 border-gold-500/50 text-gold-500'
-                  : 'bg-neutral-900/50 border-neutral-700 text-neutral-300 hover:border-gold-500/30'
+                  ? 'bg-rink-500/10 border-rink-500/50 text-rink-500'
+                  : 'bg-neutral-900/50 border-neutral-700 text-neutral-300 hover:border-rink-500/30'
               }`}
             >
               <FileSpreadsheet className="h-4 w-4" />
@@ -181,8 +181,8 @@ export function PaymentReportExport({
               onClick={() => setFormat('json')}
               className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${
                 format === 'json'
-                  ? 'bg-gold-500/10 border-gold-500/50 text-gold-500'
-                  : 'bg-neutral-900/50 border-neutral-700 text-neutral-300 hover:border-gold-500/30'
+                  ? 'bg-rink-500/10 border-rink-500/50 text-rink-500'
+                  : 'bg-neutral-900/50 border-neutral-700 text-neutral-300 hover:border-rink-500/30'
               }`}
             >
               <FileText className="h-4 w-4" />
@@ -205,7 +205,7 @@ export function PaymentReportExport({
               id="statusFilter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="w-full pl-10 pr-4 py-2.5 bg-black/50 border border-neutral-700 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 bg-black/50 border border-neutral-700 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -227,7 +227,7 @@ export function PaymentReportExport({
         <button
           onClick={handleExport}
           disabled={loading}
-          className="w-full py-3 px-4 bg-gradient-to-r from-gold-500 to-gold-600 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+          className="w-full py-3 px-4 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

@@ -153,7 +153,7 @@ export function ConstraintStep({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rink-500" />
       </div>
     );
   }
@@ -169,7 +169,7 @@ export function ConstraintStep({
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-600 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Constraint
@@ -195,7 +195,7 @@ export function ConstraintStep({
                     venueId: '',
                   }))
                 }
-                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
               >
                 {CONSTRAINT_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -212,7 +212,7 @@ export function ConstraintStep({
                 <select
                   value={newConstraint.teamId}
                   onChange={(e) => setNewConstraint((prev) => ({ ...prev, teamId: e.target.value }))}
-                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
                 >
                   <option value="">Select team...</option>
                   {teams.map((team) => (
@@ -230,7 +230,7 @@ export function ConstraintStep({
                 <select
                   value={newConstraint.venueId}
                   onChange={(e) => setNewConstraint((prev) => ({ ...prev, venueId: e.target.value }))}
-                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
                 >
                   <option value="">Select venue...</option>
                   {venues.map((venue) => (
@@ -249,7 +249,7 @@ export function ConstraintStep({
                 type="date"
                 value={newConstraint.startDate}
                 onChange={(e) => setNewConstraint((prev) => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
               />
             </div>
 
@@ -259,7 +259,7 @@ export function ConstraintStep({
                 type="date"
                 value={newConstraint.endDate}
                 onChange={(e) => setNewConstraint((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
               />
             </div>
 
@@ -269,7 +269,7 @@ export function ConstraintStep({
               <select
                 value={newConstraint.dayOfWeek}
                 onChange={(e) => setNewConstraint((prev) => ({ ...prev, dayOfWeek: e.target.value }))}
-                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
               >
                 <option value="">Any day</option>
                 {DAY_NAMES.map((name, index) => (
@@ -288,7 +288,7 @@ export function ConstraintStep({
                 value={newConstraint.notes}
                 onChange={(e) => setNewConstraint((prev) => ({ ...prev, notes: e.target.value }))}
                 placeholder="e.g., Tournament weekend"
-                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rink-500"
               />
             </div>
 
@@ -301,7 +301,7 @@ export function ConstraintStep({
                   onChange={(e) =>
                     setNewConstraint((prev) => ({ ...prev, isHardConstraint: e.target.checked }))
                   }
-                  className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-gold-500 focus:ring-gold-500"
+                  className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
                 />
                 <span className="text-sm text-neutral-300">
                   Hard constraint (must not be violated)
@@ -321,7 +321,7 @@ export function ConstraintStep({
             <button
               onClick={handleAddConstraint}
               disabled={isSaving}
-              className="px-3 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-600 transition-colors disabled:opacity-50"
+              className="px-3 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : 'Add Constraint'}
             </button>

@@ -161,7 +161,7 @@ export function AddPlayerModalEnhanced({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="bg-neutral-900 border-gold-500/20 max-w-md">
+      <DialogContent className="bg-neutral-900 border-white/10 max-w-md">
         <DialogHeader>
           <DialogTitle className="text-white">
             {step === 'search' ? 'Add Player to Roster' : 'Player Details'}
@@ -199,7 +199,7 @@ export function AddPlayerModalEnhanced({
             <div className="max-h-64 overflow-y-auto space-y-2">
               {isSearching ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 text-gold-500 animate-spin" />
+                  <Loader2 className="w-5 h-5 text-rink-500 animate-spin" />
                   <span className="ml-2 text-neutral-400">Searching...</span>
                 </div>
               ) : searchResults.length > 0 ? (
@@ -210,7 +210,7 @@ export function AddPlayerModalEnhanced({
                     className={cn(
                       'w-full flex items-center gap-3 p-3 rounded-xl transition-colors',
                       'bg-neutral-800/50 hover:bg-neutral-800 border border-transparent',
-                      'hover:border-gold-500/30'
+                      'hover:border-rink-500/30'
                     )}
                   >
                     {player.avatar_url ? (
@@ -220,8 +220,8 @@ export function AddPlayerModalEnhanced({
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gold-500/10 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gold-500">
+                      <div className="w-10 h-10 rounded-full bg-rink-500/10 flex items-center justify-center">
+                        <span className="text-sm font-medium text-rink-500">
                           {player.full_name
                             .split(' ')
                             .map((n) => n[0])
@@ -263,7 +263,7 @@ export function AddPlayerModalEnhanced({
                 }}
                 className={cn(
                   'w-full flex items-center gap-3 p-3 rounded-xl transition-colors',
-                  'border-2 border-dashed border-neutral-700 hover:border-gold-500/50',
+                  'border-2 border-dashed border-neutral-700 hover:border-rink-500/50',
                   'text-neutral-400 hover:text-white'
                 )}
               >
@@ -283,21 +283,21 @@ export function AddPlayerModalEnhanced({
           <div className="space-y-4">
             {/* Selected Player Info */}
             {selectedPlayer && (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-gold-500/10 border border-gold-500/20">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-rink-500/10 border border-white/10">
                 {selectedPlayer.avatar_url ? (
                   <img
                     src={selectedPlayer.avatar_url}
                     alt={selectedPlayer.full_name}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-gold-500"
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-rink-500"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gold-500/20 flex items-center justify-center ring-2 ring-gold-500">
-                    <Check className="w-5 h-5 text-gold-500" />
+                  <div className="w-10 h-10 rounded-full bg-rink-500/20 flex items-center justify-center ring-2 ring-rink-500">
+                    <Check className="w-5 h-5 text-rink-500" />
                   </div>
                 )}
                 <div>
                   <p className="font-medium text-white">{selectedPlayer.full_name}</p>
-                  <p className="text-sm text-gold-500">Selected for roster</p>
+                  <p className="text-sm text-rink-500">Selected for roster</p>
                 </div>
               </div>
             )}
@@ -328,7 +328,7 @@ export function AddPlayerModalEnhanced({
                 onChange={(e) => setPosition(e.target.value)}
                 className={cn(
                   'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
-                  'text-sm text-white focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20'
+                  'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
                 )}
               >
                 {POSITIONS.map((pos) => (
@@ -366,8 +366,8 @@ export function AddPlayerModalEnhanced({
               disabled={isSubmitting || !jerseyNumber}
               className={cn(
                 'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold',
-                'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                'hover:shadow-lg hover:shadow-gold-500/20 transition-all',
+                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >

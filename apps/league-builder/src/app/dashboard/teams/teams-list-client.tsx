@@ -124,7 +124,7 @@ export default function TeamsListClient({
               className={cn(
                 'px-3 py-2 text-sm font-medium rounded-xl transition-all',
                 statusFilter === filter.value
-                  ? 'bg-gold-500/20 text-gold-500 border border-gold-500/30'
+                  ? 'bg-rink-500/20 text-rink-500 border border-rink-500/30'
                   : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white border border-transparent'
               )}
             >
@@ -157,9 +157,9 @@ export default function TeamsListClient({
 
       {/* Teams Display */}
       {filteredTeams.length === 0 ? (
-        <div className="bg-neutral-900 border border-gold-500/20 rounded-2xl p-12 text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gold-500/10 flex items-center justify-center">
-            <Users className="w-10 h-10 text-gold-500" />
+        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-rink-500/10 flex items-center justify-center">
+            <Users className="w-10 h-10 text-rink-500" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-3">
             {teams.length === 0 ? 'No Teams Yet' : 'No Matching Teams'}
@@ -174,8 +174,8 @@ export default function TeamsListClient({
               href="/dashboard/leagues"
               className={cn(
                 'inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold',
-                'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-                'hover:shadow-lg hover:shadow-gold-500/20 transition-all'
+                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
               )}
             >
               View Leagues
@@ -209,7 +209,7 @@ export default function TeamsListClient({
                   href={`/dashboard/leagues/${leagueId}/teams/new`}
                   className={cn(
                     'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg',
-                    'text-gold-500 hover:text-gold-400 hover:bg-gold-500/10 transition-colors'
+                    'text-rink-500 hover:text-rink-400 hover:bg-rink-500/10 transition-colors'
                   )}
                 >
                   <Plus className="w-4 h-4" />

@@ -36,7 +36,7 @@ export function Step2PersonalInfo() {
       {/* Personal Info Section */}
       <div className="space-y-6 p-6 rounded-xl border border-neutral-700 bg-neutral-800/30">
         <div className="flex items-center gap-2 text-white mb-4">
-          <User className="w-5 h-5 text-gold-500" />
+          <User className="w-5 h-5 text-rink-500" />
           <h3 className="font-semibold">Your Details</h3>
         </div>
 
