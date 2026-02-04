@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HockeyLifeHL - Agentic Workflow Control Center</title>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --border-color: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --accent-blue: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-yellow: #d29922;
+      --accent-red: #f85149;
+      --accent-purple: #a371f7;
+      --accent-orange: #f0883e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 320px 1fr 380px;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100vh;
+      gap: 1px;
+      background: var(--border-color);
+    }
+
+    .header {
+      grid-column: 1 / -1;
+      background: var(--bg-secondary);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .logo h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .logo span {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+
+    .status-dot.idle { background: var(--accent-yellow); }
+    .status-dot.running { background: var(--accent-green); animation: pulse 1.5s infinite; }
+    .status-dot.error { background: var(--accent-red); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .sidebar {
+      background: var(--bg-secondary);
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .main-content {
+      background: var(--bg-primary);
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .right-panel {
+      background: var(--bg-secondary);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .footer {
+      grid-column: 1 / -1;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+
+    .section-toggle {
+      color: var(--text-secondary);
+      font-size: 10px;
+    }
+
+    .phase-selector {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .phase-btn {
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      text-align: left;
+      transition: all 0.2s;
+    }
+
+    .phase-btn:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .phase-btn.active {
+      border-color: var(--accent-blue);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .phase-btn .phase-icon {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .phase-btn .phase-name {
+      font-weight: 500;
+    }
+
+    .agent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .agent-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .agent-btn:hover {
+      border-color: var(--accent-purple);
+    }
+
+    .agent-btn.selected {
+      border-color: var(--accent-purple);
+      background: rgba(163, 113, 247, 0.1);
+    }
+
+    .agent-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .agent-icon.security { background: rgba(248, 81, 73, 0.2); }
+    .agent-icon.payments { background: rgba(63, 185, 80, 0.2); }
+    .agent-icon.backend { background: rgba(88, 166, 255, 0.2); }
+    .agent-icon.privacy { background: rgba(210, 153, 34, 0.2); }
+    .agent-icon.sre { background: rgba(163, 113, 247, 0.2); }
+
+    .agent-info {
+      flex: 1;
+    }
+
+    .agent-name {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .agent-desc {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .quick-action-btn {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .quick-action-btn:hover {
+      border-color: var(--accent-blue);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .prompt-queue {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .queue-title {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .queue-count {
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: var(--bg-tertiary);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .queue-item {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      position: relative;
+    }
+
+    .queue-item.current {
+      border-color: var(--accent-green);
+      background: rgba(63, 185, 80, 0.1);
+    }
+
+    .queue-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .queue-item-number {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent-blue);
+    }
+
+    .queue-item-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .queue-item-btn {
+      width: 22px;
+      height: 22px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .queue-item-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .queue-item-content {
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--text-primary);
+    }
+
+    .queue-item-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+
+    .queue-item-tag {
+      padding: 2px 6px;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+    }
+
+    .add-prompt-section {
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .add-prompt-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 12px;
+      resize: none;
+      min-height: 60px;
+      font-family: inherit;
+    }
+
+    .add-prompt-input:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    .add-prompt-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #4c9aed;
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .btn-success {
+      background: var(--accent-green);
+      color: white;
+    }
+
+    .btn-danger {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    .main-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .main-panel-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .tab {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+    }
+
+    .tab.active {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .prompt-generator {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .generator-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .generator-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .generator-context {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .generated-prompt {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      min-height: 120px;
+      white-space: pre-wrap;
+    }
+
+    .generator-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .test-runner {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .test-runner-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .test-runner-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .test-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .test-btn {
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .test-btn:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .test-btn-icon {
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .test-btn-name {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .test-btn-cmd {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      font-family: monospace;
+    }
+
+    .ralph-controls {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .ralph-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .ralph-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ralph-title h3 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .ralph-status {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: rgba(210, 153, 34, 0.2);
+      color: var(--accent-yellow);
+    }
+
+    .ralph-status.running {
+      background: rgba(63, 185, 80, 0.2);
+      color: var(--accent-green);
+    }
+
+    .ralph-config {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .config-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .config-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .config-input {
+      padding: 8px 10px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 12px;
+    }
+
+    .config-input:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    .ralph-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .output-log {
+      background: var(--bg-primary);
+      padding: 12px 20px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 11px;
+      max-height: 150px;
+      overflow-y: auto;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .log-entry {
+      display: flex;
+      gap: 12px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .log-time {
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .log-type {
+      flex-shrink: 0;
+      padding: 0 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .log-type.info { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+    .log-type.success { background: rgba(63, 185, 80, 0.2); color: var(--accent-green); }
+    .log-type.warning { background: rgba(210, 153, 34, 0.2); color: var(--accent-yellow); }
+    .log-type.error { background: rgba(248, 81, 73, 0.2); color: var(--accent-red); }
+
+    .log-message {
+      color: var(--text-primary);
+    }
+
+    .feature-template {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .feature-template-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .feature-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-field.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      padding: 8px 10px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 12px;
+      font-family: inherit;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+    }
+
+    .checklist-category {
+      margin-bottom: 8px;
+    }
+
+    .checklist-category-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      margin-bottom: 6px;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .checklist-item input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .pricing-tiers {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+    }
+
+    .pricing-tier {
+      text-align: center;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pricing-tier:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .pricing-tier.selected {
+      border-color: var(--accent-green);
+      background: rgba(63, 185, 80, 0.1);
+    }
+
+    .tier-name {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .tier-price {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    .tier-limit {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .context-display {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .context-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 0;
+    }
+
+    .context-label {
+      color: var(--text-secondary);
+    }
+
+    .context-value {
+      font-weight: 500;
+    }
+
+    .copied-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--accent-green);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .copied-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state-text {
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">HL</div>
+        <div>
+          <h1>HockeyLifeHL</h1>
+          <span>Agentic Workflow Control Center</span>
+        </div>
+      </div>
+      <div class="status-bar">
+        <div class="status-indicator">
+          <div class="status-dot" id="status-dot"></div>
+          <span id="status-text">Ready</span>
+        </div>
+        <div class="status-indicator">
+          <span>Phase:</span>
+          <strong id="current-phase">Planning</strong>
+        </div>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Workflow Phase</span>
+        </div>
+        <div class="phase-selector">
+          <button class="phase-btn active" data-phase="planning" onclick="setPhase('planning')">
+            <div class="phase-icon">📋</div>
+            <div class="phase-name">Planning</div>
+          </button>
+          <button class="phase-btn" data-phase="implementation" onclick="setPhase('implementation')">
+            <div class="phase-icon">🔨</div>
+            <div class="phase-name">Implementation</div>
+          </button>
+          <button class="phase-btn" data-phase="testing" onclick="setPhase('testing')">
+            <div class="phase-icon">🧪</div>
+            <div class="phase-name">Testing</div>
+          </button>
+          <button class="phase-btn" data-phase="auditing" onclick="setPhase('auditing')">
+            <div class="phase-icon">🔍</div>
+            <div class="phase-name">Auditing</div>
+          </button>
+          <button class="phase-btn" data-phase="deployment" onclick="setPhase('deployment')">
+            <div class="phase-icon">🚀</div>
+            <div class="phase-name">Deployment</div>
+          </button>
+          <button class="phase-btn" data-phase="maintenance" onclick="setPhase('maintenance')">
+            <div class="phase-icon">🔧</div>
+            <div class="phase-name">Maintenance</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Specialized Agents</span>
+        </div>
+        <div class="agent-list">
+          <button class="agent-btn" data-agent="backend-architect" onclick="selectAgent('backend-architect')">
+            <div class="agent-icon backend">🏗️</div>
+            <div class="agent-info">
+              <div class="agent-name">Backend Architect</div>
+              <div class="agent-desc">DB schema, migrations, RLS</div>
+            </div>
+          </button>
+          <button class="agent-btn" data-agent="security-auditor" onclick="selectAgent('security-auditor')">
+            <div class="agent-icon security">🛡️</div>
+            <div class="agent-info">
+              <div class="agent-name">Security Auditor</div>
+              <div class="agent-desc">Auth, vulnerabilities, RLS</div>
+            </div>
+          </button>
+          <button class="agent-btn" data-agent="payments-billing-auditor" onclick="selectAgent('payments-billing-auditor')">
+            <div class="agent-icon payments">💳</div>
+            <div class="agent-info">
+              <div class="agent-name">Payments Auditor</div>
+              <div class="agent-desc">Stripe, billing, PCI</div>
+            </div>
+          </button>
+          <button class="agent-btn" data-agent="privacy-data-guardian" onclick="selectAgent('privacy-data-guardian')">
+            <div class="agent-icon privacy">🔒</div>
+            <div class="agent-info">
+              <div class="agent-name">Privacy Guardian</div>
+              <div class="agent-desc">GDPR, PII, retention</div>
+            </div>
+          </button>
+          <button class="agent-btn" data-agent="sre-reliability-guardian" onclick="selectAgent('sre-reliability-guardian')">
+            <div class="agent-icon sre">📊</div>
+            <div class="agent-info">
+              <div class="agent-name">SRE Guardian</div>
+              <div class="agent-desc">SLOs, monitoring, reliability</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Quick Actions</span>
+        </div>
+        <div class="quick-actions">
+          <button class="quick-action-btn" onclick="addQuickPrompt('create-pr')">📝 Create PR</button>
+          <button class="quick-action-btn" onclick="addQuickPrompt('security-audit')">🛡️ Security Audit</button>
+          <button class="quick-action-btn" onclick="addQuickPrompt('apply-migration')">🗄️ Apply Migration</button>
+          <button class="quick-action-btn" onclick="addQuickPrompt('check-advisors')">📋 Check Advisors</button>
+          <button class="quick-action-btn" onclick="addQuickPrompt('generate-types')">📄 Generate Types</button>
+          <button class="quick-action-btn" onclick="addQuickPrompt('run-reconciliation')">🔄 Reconcile Stripe</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Project Context</span>
+        </div>
+        <div class="context-display">
+          <div class="context-item">
+            <span class="context-label">Platform 1:</span>
+            <span class="context-value">League Builder</span>
+          </div>
+          <div class="context-item">
+            <span class="context-label">Platform 2:</span>
+            <span class="context-value">League Websites</span>
+          </div>
+          <div class="context-item">
+            <span class="context-label">Stack:</span>
+            <span class="context-value">Next.js 15 + Supabase</span>
+          </div>
+          <div class="context-item">
+            <span class="context-label">Payments:</span>
+            <span class="context-value">Stripe Subscriptions</span>
+          </div>
+        </div>
+        <div class="pricing-tiers">
+          <div class="pricing-tier selected" onclick="selectTier('starter')">
+            <div class="tier-name">Starter</div>
+            <div class="tier-price">$99</div>
+            <div class="tier-limit">100 players</div>
+          </div>
+          <div class="pricing-tier" onclick="selectTier('pro')">
+            <div class="tier-name">Pro</div>
+            <div class="tier-price">$299</div>
+            <div class="tier-limit">500 players</div>
+          </div>
+          <div class="pricing-tier" onclick="selectTier('business')">
+            <div class="tier-name">Business</div>
+            <div class="tier-price">$799</div>
+            <div class="tier-limit">Unlimited</div>
+          </div>
+          <div class="pricing-tier" onclick="selectTier('enterprise')">
+            <div class="tier-name">Enterprise</div>
+            <div class="tier-price">Custom</div>
+            <div class="tier-limit">White-label</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="main-panel-header">
+        <h2 class="main-panel-title">Workflow Dashboard</h2>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('generator')">Prompt Generator</button>
+          <button class="tab" onclick="switchTab('tests')">Test Runner</button>
+          <button class="tab" onclick="switchTab('ralph')">Ralph Loop</button>
+          <button class="tab" onclick="switchTab('template')">Feature Template</button>
+        </div>
+      </div>
+
+      <div id="tab-generator" class="tab-content active">
+        <div class="prompt-generator">
+          <div class="generator-header">
+            <div class="generator-title">Generated Prompt</div>
+            <div class="generator-context">Based on: <span id="generator-context-text">Planning Phase</span></div>
+          </div>
+          <div class="generated-prompt" id="generated-prompt">
+Select a workflow phase and optionally a specialized agent to generate the next action prompt.
+
+Current context:
+- Phase: Planning
+- Platform: League Builder (Platform 1)
+- Tech Stack: Next.js 15, Supabase, Stripe
+
+Click "Generate Next Prompt" to create an actionable prompt for your current workflow phase.
+          </div>
+          <div class="generator-actions">
+            <button class="btn btn-primary" onclick="generatePrompt()">🔄 Generate Next Prompt</button>
+            <button class="btn btn-secondary" onclick="copyPrompt()">📋 Copy to Clipboard</button>
+            <button class="btn btn-secondary" onclick="addToQueue()">➕ Add to Queue</button>
+          </div>
+        </div>
+
+        <div class="test-runner">
+          <div class="test-runner-header">
+            <div class="test-runner-title">Quick Test Commands</div>
+          </div>
+          <div class="test-buttons">
+            <button class="test-btn" onclick="runTest('unit')">
+              <div class="test-btn-icon">🧪</div>
+              <div class="test-btn-name">Unit Tests</div>
+              <div class="test-btn-cmd">pnpm test</div>
+            </button>
+            <button class="test-btn" onclick="runTest('type')">
+              <div class="test-btn-icon">📝</div>
+              <div class="test-btn-name">Type Check</div>
+              <div class="test-btn-cmd">pnpm type-check</div>
+            </button>
+            <button class="test-btn" onclick="runTest('lint')">
+              <div class="test-btn-icon">✨</div>
+              <div class="test-btn-name">Lint</div>
+              <div class="test-btn-cmd">pnpm lint</div>
+            </button>
+            <button class="test-btn" onclick="runTest('build')">
+              <div class="test-btn-icon">📦</div>
+              <div class="test-btn-name">Build</div>
+              <div class="test-btn-cmd">pnpm build</div>
+            </button>
+            <button class="test-btn" onclick="runTest('e2e')">
+              <div class="test-btn-icon">🌐</div>
+              <div class="test-btn-name">E2E Tests</div>
+              <div class="test-btn-cmd">pnpm test:e2e</div>
+            </button>
+            <button class="test-btn" onclick="runTest('all')">
+              <div class="test-btn-icon">🚀</div>
+              <div class="test-btn-name">All Checks</div>
+              <div class="test-btn-cmd">pnpm validate</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-tests" class="tab-content">
+        <div class="test-runner" style="margin-bottom: 20px;">
+          <div class="test-runner-header">
+            <div class="test-runner-title">Test Runner Dashboard</div>
+          </div>
+          <div class="test-buttons" style="grid-template-columns: repeat(2, 1fr);">
+            <button class="test-btn" onclick="runTest('unit')">
+              <div class="test-btn-icon">🧪</div>
+              <div class="test-btn-name">Unit Tests</div>
+              <div class="test-btn-cmd">pnpm test</div>
+            </button>
+            <button class="test-btn" onclick="runTest('integration')">
+              <div class="test-btn-icon">🔗</div>
+              <div class="test-btn-name">Integration Tests</div>
+              <div class="test-btn-cmd">pnpm test:integration</div>
+            </button>
+            <button class="test-btn" onclick="runTest('e2e')">
+              <div class="test-btn-icon">🌐</div>
+              <div class="test-btn-name">E2E Tests</div>
+              <div class="test-btn-cmd">pnpm test:e2e</div>
+            </button>
+            <button class="test-btn" onclick="runTest('coverage')">
+              <div class="test-btn-icon">📊</div>
+              <div class="test-btn-name">Coverage Report</div>
+              <div class="test-btn-cmd">pnpm test:coverage</div>
+            </button>
+          </div>
+        </div>
+
+        <div class="prompt-generator">
+          <div class="generator-header">
+            <div class="generator-title">Test-Specific Prompts</div>
+          </div>
+          <div class="test-buttons" style="grid-template-columns: repeat(3, 1fr);">
+            <button class="test-btn" onclick="generateTestPrompt('fix-failing')">
+              <div class="test-btn-icon">🔧</div>
+              <div class="test-btn-name">Fix Failing Tests</div>
+            </button>
+            <button class="test-btn" onclick="generateTestPrompt('add-tests')">
+              <div class="test-btn-icon">➕</div>
+              <div class="test-btn-name">Add Missing Tests</div>
+            </button>
+            <button class="test-btn" onclick="generateTestPrompt('improve-coverage')">
+              <div class="test-btn-icon">📈</div>
+              <div class="test-btn-name">Improve Coverage</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-ralph" class="tab-content">
+        <div class="ralph-controls">
+          <div class="ralph-header">
+            <div class="ralph-title">
+              <h3>🔄 Ralph Loop Control</h3>
+              <span class="ralph-status" id="ralph-status">Idle</span>
+            </div>
+          </div>
+          <div class="ralph-config">
+            <div class="config-field">
+              <label class="config-label">Max Iterations</label>
+              <input type="number" class="config-input" id="ralph-max-iterations" value="10" min="1" max="100">
+            </div>
+            <div class="config-field">
+              <label class="config-label">Completion Promise</label>
+              <input type="text" class="config-input" id="ralph-promise" placeholder="e.g., All tests pass">
+            </div>
+            <div class="config-field" style="grid-column: 1 / -1;">
+              <label class="config-label">Task Description</label>
+              <textarea class="form-textarea" id="ralph-task" placeholder="Describe the task for Ralph Loop to execute autonomously..."></textarea>
+            </div>
+          </div>
+          <div class="ralph-actions">
+            <button class="btn btn-success" onclick="startRalphLoop()">▶️ Start Ralph Loop</button>
+            <button class="btn btn-danger" onclick="stopRalphLoop()">⏹️ Stop Loop</button>
+            <button class="btn btn-secondary" onclick="copyRalphCommand()">📋 Copy Command</button>
+          </div>
+        </div>
+
+        <div class="prompt-generator">
+          <div class="generator-header">
+            <div class="generator-title">Ralph Loop Command Preview</div>
+          </div>
+          <div class="generated-prompt" id="ralph-command-preview">
+# Ralph Loop Command
+
+```bash
+claude --ralph "Your task description here"
+```
+
+Configure the task above and click "Copy Command" to get the full command.
+
+Options:
+--max-iterations N     Limit number of iterations
+--completion-promise   Stop when condition is met
+--template             Use feature template
+--audit-agents         Run audits automatically
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-template" class="tab-content">
+        <div class="feature-template">
+          <div class="feature-template-header">
+            <div class="generator-title">Feature Template Generator</div>
+          </div>
+          <div class="feature-form">
+            <div class="form-field">
+              <label class="form-label">Feature Name</label>
+              <input type="text" class="form-input" id="feature-name" placeholder="e.g., League Creation Wizard">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Target Platform</label>
+              <select class="form-select" id="feature-platform">
+                <option value="platform1">Platform 1 (League Builder)</option>
+                <option value="platform2">Platform 2 (League Website)</option>
+                <option value="both">Both Platforms</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Priority</label>
+              <select class="form-select" id="feature-priority">
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium" selected>Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Complexity</label>
+              <select class="form-select" id="feature-complexity">
+                <option value="small">Small (&lt; 1 day)</option>
+                <option value="medium" selected>Medium (1-3 days)</option>
+                <option value="large">Large (3-5 days)</option>
+                <option value="xl">XL (&gt; 5 days)</option>
+              </select>
+            </div>
+            <div class="form-field full-width">
+              <label class="form-label">Description / User Story</label>
+              <textarea class="form-textarea" id="feature-description" placeholder="As a league owner, I want to..."></textarea>
+            </div>
+          </div>
+
+          <div class="generator-header" style="margin-top: 16px;">
+            <div class="generator-title">Implementation Checklist</div>
+          </div>
+          <div class="checklist" id="feature-checklist">
+            <div class="checklist-category">
+              <div class="checklist-category-title">📋 Planning</div>
+              <label class="checklist-item"><input type="checkbox"> Define user stories</label>
+              <label class="checklist-item"><input type="checkbox"> Identify acceptance criteria</label>
+              <label class="checklist-item"><input type="checkbox"> List technical requirements</label>
+            </div>
+            <div class="checklist-category">
+              <div class="checklist-category-title">🏗️ Architecture</div>
+              <label class="checklist-item"><input type="checkbox"> Database schema design</label>
+              <label class="checklist-item"><input type="checkbox"> API endpoint design</label>
+              <label class="checklist-item"><input type="checkbox"> UI component design</label>
+              <label class="checklist-item"><input type="checkbox"> RLS policies design</label>
+            </div>
+            <div class="checklist-category">
+              <div class="checklist-category-title">🔨 Implementation</div>
+              <label class="checklist-item"><input type="checkbox"> Write migration SQL</label>
+              <label class="checklist-item"><input type="checkbox"> Create API routes</label>
+              <label class="checklist-item"><input type="checkbox"> Build UI components</label>
+              <label class="checklist-item"><input type="checkbox"> Add validation</label>
+            </div>
+            <div class="checklist-category">
+              <div class="checklist-category-title">🧪 Testing</div>
+              <label class="checklist-item"><input type="checkbox"> Unit tests</label>
+              <label class="checklist-item"><input type="checkbox"> Integration tests</label>
+              <label class="checklist-item"><input type="checkbox"> E2E tests</label>
+              <label class="checklist-item"><input type="checkbox"> Manual testing</label>
+            </div>
+            <div class="checklist-category">
+              <div class="checklist-category-title">🔍 Auditing</div>
+              <label class="checklist-item"><input type="checkbox"> Security audit</label>
+              <label class="checklist-item"><input type="checkbox"> Privacy audit</label>
+              <label class="checklist-item"><input type="checkbox"> Payments audit (if applicable)</label>
+              <label class="checklist-item"><input type="checkbox"> Backend architecture review</label>
+            </div>
+            <div class="checklist-category">
+              <div class="checklist-category-title">🚀 Deployment</div>
+              <label class="checklist-item"><input type="checkbox"> Deploy to staging</label>
+              <label class="checklist-item"><input type="checkbox"> QA verification</label>
+              <label class="checklist-item"><input type="checkbox"> Deploy to production</label>
+              <label class="checklist-item"><input type="checkbox"> Monitor for errors</label>
+            </div>
+          </div>
+
+          <div class="generator-actions" style="margin-top: 16px;">
+            <button class="btn btn-primary" onclick="generateFeaturePrompt()">🔄 Generate Implementation Prompt</button>
+            <button class="btn btn-secondary" onclick="copyFeaturePrompt()">📋 Copy Prompt</button>
+            <button class="btn btn-secondary" onclick="exportChecklist()">📄 Export Checklist</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="right-panel">
+      <div class="prompt-queue">
+        <div class="queue-header">
+          <div class="queue-title">Prompt Queue</div>
+          <div class="queue-count" id="queue-count">0 prompts</div>
+        </div>
+        <div class="queue-list" id="queue-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <div class="empty-state-text">No prompts in queue.<br>Generate or add prompts to get started.</div>
+          </div>
+        </div>
+      </div>
+      <div class="add-prompt-section">
+        <textarea class="add-prompt-input" id="custom-prompt" placeholder="Add a custom prompt to the queue..."></textarea>
+        <div class="add-prompt-actions">
+          <button class="btn btn-primary" onclick="addCustomPrompt()">➕ Add to Queue</button>
+          <button class="btn btn-secondary" onclick="clearQueue()">🗑️ Clear All</button>
+        </div>
+      </div>
+    </aside>
+
+    <footer class="footer">
+      <div class="output-log" id="output-log">
+        <div class="log-entry">
+          <span class="log-time">00:00:00</span>
+          <span class="log-type info">INFO</span>
+          <span class="log-message">Agentic Workflow Control Center initialized. Ready for commands.</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div class="copied-toast" id="copied-toast">Copied to clipboard!</div>
+
+  <script>
+    // State management
+    const state = {
+      phase: 'planning',
+      agent: null,
+      tier: 'starter',
+      queue: [],
+      currentQueueIndex: -1,
+      ralphRunning: false
+    };
+
+    // Phase-specific prompt templates
+    const phasePrompts = {
+      planning: [
+        "Help me plan the implementation of {feature} for Platform 1 (League Builder). Consider database schema, API design, and UI components.",
+        "Create a detailed requirements document for {feature} including user stories, acceptance criteria, and technical requirements.",
+        "Design the database schema for {feature} with proper RLS policies for multi-tenant isolation.",
+        "Outline the API endpoints needed for {feature} with request/response schemas and authorization rules."
+      ],
+      implementation: [
+        "Implement {feature} following the architecture design. Start with database migration, then API routes, then UI components.",
+        "Create the database migration for {feature} with proper indexes and RLS policies.",
+        "Build the server actions for {feature} with input validation and error handling.",
+        "Create the UI components for {feature} using shadcn/ui with proper loading and error states."
+      ],
+      testing: [
+        "Write comprehensive tests for {feature} including unit tests, integration tests, and E2E tests.",
+        "Run all tests and fix any failures. Ensure 80%+ code coverage for new code.",
+        "Test {feature} manually with different user roles (owner, admin, player) and edge cases.",
+        "Verify RLS policies work correctly for multi-tenant isolation in {feature}."
+      ],
+      auditing: [
+        "Run a comprehensive security audit on {feature} checking for auth bypasses, SQL injection, and XSS vulnerabilities.",
+        "Audit {feature} for privacy compliance including PII handling, data retention, and GDPR rights.",
+        "Review the database migration for {feature} checking for performance issues, missing indexes, and RLS gaps.",
+        "Run the payments-billing-auditor on {feature} to verify Stripe integration, webhook handling, and idempotency."
+      ],
+      deployment: [
+        "Prepare {feature} for deployment: run all tests, check types, lint code, and build.",
+        "Create a pull request for {feature} with a comprehensive description and test plan.",
+        "Deploy {feature} to staging and run smoke tests to verify functionality.",
+        "Deploy {feature} to production and monitor for errors in the first 24 hours."
+      ],
+      maintenance: [
+        "Review error logs from the past week and fix any recurring issues.",
+        "Check Supabase security and performance advisors and address any warnings.",
+        "Update dependencies and check for security vulnerabilities.",
+        "Run the subscription reconciliation job to sync Stripe with database."
+      ]
+    };
+
+    // Agent-specific prompt templates
+    const agentPrompts = {
+      'backend-architect': "Using the backend-architect agent, {action}",
+      'security-auditor': "Using the security-auditor agent, {action}",
+      'payments-billing-auditor': "Using the payments-billing-auditor agent, {action}",
+      'privacy-data-guardian': "Using the privacy-data-guardian agent, {action}",
+      'sre-reliability-guardian': "Using the sre-reliability-guardian agent, {action}"
+    };
+
+    // Quick action prompts
+    const quickPrompts = {
+      'create-pr': "Create a pull request for the current changes with a comprehensive description, test plan, and linked issues.",
+      'security-audit': "Run a comprehensive security audit on Platform 1 checking authentication, authorization, RLS policies, and API endpoints.",
+      'apply-migration': "Apply pending database migrations to the development branch and generate updated TypeScript types.",
+      'check-advisors': "Check Supabase security and performance advisors and report any issues that need attention.",
+      'generate-types': "Generate updated TypeScript types from the database schema: pnpm db:generate-types",
+      'run-reconciliation': "Run the Stripe subscription reconciliation job to sync database state with Stripe."
+    };
+
+    // Functions
+    function setPhase(phase) {
+      state.phase = phase;
+      document.querySelectorAll('.phase-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`[data-phase="${phase}"]`).classList.add('active');
+      document.getElementById('current-phase').textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
+      document.getElementById('generator-context-text').textContent = `${phase.charAt(0).toUpperCase() + phase.slice(1)} Phase`;
+      generatePrompt();
+      log('info', `Switched to ${phase} phase`);
+    }
+
+    function selectAgent(agent) {
+      if (state.agent === agent) {
+        state.agent = null;
+        document.querySelectorAll('.agent-btn').forEach(btn => btn.classList.remove('selected'));
+        log('info', 'Agent deselected');
+      } else {
+        state.agent = agent;
+        document.querySelectorAll('.agent-btn').forEach(btn => btn.classList.remove('selected'));
+        document.querySelector(`[data-agent="${agent}"]`).classList.add('selected');
+        log('info', `Selected ${agent} agent`);
+      }
+      generatePrompt();
+    }
+
+    function selectTier(tier) {
+      state.tier = tier;
+      document.querySelectorAll('.pricing-tier').forEach(t => t.classList.remove('selected'));
+      event.target.closest('.pricing-tier').classList.add('selected');
+    }
+
+    function generatePrompt() {
+      const prompts = phasePrompts[state.phase];
+      const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+      let finalPrompt = randomPrompt.replace('{feature}', '[FEATURE_NAME]');
+
+      if (state.agent) {
+        const agentPrefix = agentPrompts[state.agent].replace('{action}', '');
+        finalPrompt = agentPrefix + finalPrompt.charAt(0).toLowerCase() + finalPrompt.slice(1);
+      }
+
+      const contextInfo = `
+# Context
+- Project: HockeyLifeHL (Multi-tenant Hockey SaaS)
+- Phase: ${state.phase.charAt(0).toUpperCase() + state.phase.slice(1)}
+- Stack: Next.js 15, Supabase (PostgreSQL + RLS), Stripe
+- Platform 1: League Builder (admin dashboard)
+- Platform 2: League Websites (custom domains)
+${state.agent ? `- Agent: ${state.agent}` : ''}
+
+# Prompt
+${finalPrompt}
+
+# Additional Context
+- Follow patterns in .claude/DEVELOPMENT_WORKFLOW.md
+- Use .claude/templates/FEATURE_TEMPLATE.md for features
+- Run specialized agents for auditing after implementation
+- All data must be organization-scoped with RLS policies
+`;
+
+      document.getElementById('generated-prompt').textContent = contextInfo;
+    }
+
+    function copyPrompt() {
+      const prompt = document.getElementById('generated-prompt').textContent;
+      navigator.clipboard.writeText(prompt).then(() => {
+        showToast();
+        log('success', 'Prompt copied to clipboard');
+      });
+    }
+
+    function addToQueue() {
+      const prompt = document.getElementById('generated-prompt').textContent;
+      addPromptToQueue(prompt, state.phase, state.agent);
+    }
+
+    function addCustomPrompt() {
+      const textarea = document.getElementById('custom-prompt');
+      const prompt = textarea.value.trim();
+      if (prompt) {
+        addPromptToQueue(prompt, 'custom', null);
+        textarea.value = '';
+      }
+    }
+
+    function addQuickPrompt(action) {
+      const prompt = quickPrompts[action];
+      addPromptToQueue(prompt, 'quick', null);
+      log('info', `Added quick action: ${action}`);
+    }
+
+    function addPromptToQueue(prompt, phase, agent) {
+      const item = {
+        id: Date.now(),
+        prompt: prompt,
+        phase: phase,
+        agent: agent,
+        status: 'pending'
+      };
+      state.queue.push(item);
+      renderQueue();
+      log('success', 'Prompt added to queue');
+    }
+
+    function renderQueue() {
+      const list = document.getElementById('queue-list');
+      const count = document.getElementById('queue-count');
+
+      if (state.queue.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <div class="empty-state-text">No prompts in queue.<br>Generate or add prompts to get started.</div>
+          </div>
+        `;
+        count.textContent = '0 prompts';
+        return;
+      }
+
+      count.textContent = `${state.queue.length} prompt${state.queue.length !== 1 ? 's' : ''}`;
+
+      list.innerHTML = state.queue.map((item, index) => `
+        <div class="queue-item ${index === state.currentQueueIndex ? 'current' : ''}" data-id="${item.id}">
+          <div class="queue-item-header">
+            <span class="queue-item-number">#${index + 1}</span>
+            <div class="queue-item-actions">
+              <button class="queue-item-btn" onclick="copyQueueItem(${item.id})" title="Copy">📋</button>
+              <button class="queue-item-btn" onclick="moveUp(${index})" title="Move up">⬆️</button>
+              <button class="queue-item-btn" onclick="moveDown(${index})" title="Move down">⬇️</button>
+              <button class="queue-item-btn" onclick="removeFromQueue(${item.id})" title="Remove">🗑️</button>
+            </div>
+          </div>
+          <div class="queue-item-content">${item.prompt.substring(0, 150)}${item.prompt.length > 150 ? '...' : ''}</div>
+          <div class="queue-item-meta">
+            <span class="queue-item-tag">${item.phase}</span>
+            ${item.agent ? `<span class="queue-item-tag">${item.agent}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function copyQueueItem(id) {
+      const item = state.queue.find(i => i.id === id);
+      if (item) {
+        navigator.clipboard.writeText(item.prompt).then(() => {
+          showToast();
+          log('success', 'Queue item copied');
+        });
+      }
+    }
+
+    function moveUp(index) {
+      if (index > 0) {
+        [state.queue[index], state.queue[index - 1]] = [state.queue[index - 1], state.queue[index]];
+        renderQueue();
+      }
+    }
+
+    function moveDown(index) {
+      if (index < state.queue.length - 1) {
+        [state.queue[index], state.queue[index + 1]] = [state.queue[index + 1], state.queue[index]];
+        renderQueue();
+      }
+    }
+
+    function removeFromQueue(id) {
+      state.queue = state.queue.filter(item => item.id !== id);
+      renderQueue();
+      log('info', 'Removed item from queue');
+    }
+
+    function clearQueue() {
+      state.queue = [];
+      state.currentQueueIndex = -1;
+      renderQueue();
+      log('info', 'Queue cleared');
+    }
+
+    function runTest(type) {
+      const commands = {
+        unit: 'pnpm test',
+        integration: 'pnpm test:integration',
+        e2e: 'pnpm test:e2e',
+        coverage: 'pnpm test:coverage',
+        type: 'pnpm type-check',
+        lint: 'pnpm lint',
+        build: 'pnpm build',
+        all: 'pnpm type-check && pnpm lint && pnpm test && pnpm build'
+      };
+
+      const prompt = `Run the following command and report results:\n\n\`\`\`bash\n${commands[type]}\n\`\`\`\n\nIf there are any failures, analyze and fix them.`;
+
+      navigator.clipboard.writeText(prompt).then(() => {
+        showToast();
+        log('info', `Test command copied: ${type}`);
+      });
+    }
+
+    function generateTestPrompt(type) {
+      const prompts = {
+        'fix-failing': 'Run all tests, identify any failures, and fix them. Show the error messages and your fixes.',
+        'add-tests': 'Review the codebase for untested functionality and add comprehensive tests for critical paths.',
+        'improve-coverage': 'Run test coverage report, identify areas with low coverage, and add tests to improve coverage to 80%+.'
+      };
+
+      navigator.clipboard.writeText(prompts[type]).then(() => {
+        showToast();
+        log('info', `Test prompt copied: ${type}`);
+      });
+    }
+
+    function startRalphLoop() {
+      const task = document.getElementById('ralph-task').value;
+      const maxIterations = document.getElementById('ralph-max-iterations').value;
+      const promise = document.getElementById('ralph-promise').value;
+
+      if (!task) {
+        log('error', 'Please enter a task description');
+        return;
+      }
+
+      state.ralphRunning = true;
+      document.getElementById('ralph-status').textContent = 'Running';
+      document.getElementById('ralph-status').classList.add('running');
+      document.getElementById('status-dot').classList.add('running');
+      document.getElementById('status-text').textContent = 'Ralph Loop Active';
+
+      updateRalphPreview();
+      log('success', 'Ralph Loop started');
+    }
+
+    function stopRalphLoop() {
+      state.ralphRunning = false;
+      document.getElementById('ralph-status').textContent = 'Idle';
+      document.getElementById('ralph-status').classList.remove('running');
+      document.getElementById('status-dot').classList.remove('running');
+      document.getElementById('status-text').textContent = 'Ready';
+
+      const stopPrompt = '/cancel-ralph';
+      navigator.clipboard.writeText(stopPrompt).then(() => {
+        showToast();
+      });
+
+      log('warning', 'Ralph Loop stopped');
+    }
+
+    function copyRalphCommand() {
+      updateRalphPreview();
+      const command = document.getElementById('ralph-command-preview').textContent;
+      navigator.clipboard.writeText(command).then(() => {
+        showToast();
+        log('success', 'Ralph command copied');
+      });
+    }
+
+    function updateRalphPreview() {
+      const task = document.getElementById('ralph-task').value || 'Your task description here';
+      const maxIterations = document.getElementById('ralph-max-iterations').value;
+      const promise = document.getElementById('ralph-promise').value;
+
+      let command = `# Ralph Loop Command\n\n`;
+      command += `/ralph-loop `;
+
+      if (maxIterations !== '10') {
+        command += `--max-iterations ${maxIterations} `;
+      }
+
+      if (promise) {
+        command += `--completion-promise "${promise}" `;
+      }
+
+      command += `\n\n# Task Description:\n${task}`;
+      command += `\n\n# Options available:\n`;
+      command += `# --max-iterations N     Limit iterations\n`;
+      command += `# --completion-promise   Stop condition\n`;
+      command += `# --template            Use feature template`;
+
+      document.getElementById('ralph-command-preview').textContent = command;
+    }
+
+    function generateFeaturePrompt() {
+      const name = document.getElementById('feature-name').value || '[FEATURE_NAME]';
+      const platform = document.getElementById('feature-platform').value;
+      const priority = document.getElementById('feature-priority').value;
+      const complexity = document.getElementById('feature-complexity').value;
+      const description = document.getElementById('feature-description').value || 'No description provided';
+
+      const platformName = {
+        platform1: 'Platform 1 (League Builder)',
+        platform2: 'Platform 2 (League Website)',
+        both: 'Both Platforms'
+      }[platform];
+
+      const checkedItems = Array.from(document.querySelectorAll('#feature-checklist input:checked'))
+        .map(cb => cb.parentElement.textContent.trim());
+
+      const prompt = `# Feature Implementation: ${name}
+
+## Overview
+- **Platform:** ${platformName}
+- **Priority:** ${priority.toUpperCase()}
+- **Complexity:** ${complexity}
+- **Description:** ${description}
+
+## Implementation Instructions
+
+Using the feature template from .claude/templates/FEATURE_TEMPLATE.md, implement "${name}" for ${platformName}.
+
+### Context
+- Project: HockeyLifeHL Multi-tenant Hockey SaaS
+- Stack: Next.js 15, Supabase (PostgreSQL + RLS), Stripe
+- Pricing Tiers: Starter ($99/100 players), Pro ($299/500), Business ($799/unlimited), Enterprise (custom)
+- All data must be organization-scoped with RLS policies
+
+### Completed Steps
+${checkedItems.length > 0 ? checkedItems.map(item => `- [x] ${item}`).join('\n') : '- No steps completed yet'}
+
+### Implementation Approach
+1. Follow the DEVELOPMENT_WORKFLOW.md patterns
+2. Create database migration with RLS policies
+3. Build API routes with proper authorization
+4. Create UI components using shadcn/ui
+5. Write comprehensive tests
+6. Run security and privacy audits
+7. Deploy to staging first, then production
+
+Please implement this feature step by step, committing progress incrementally.`;
+
+      document.getElementById('generated-prompt').textContent = prompt;
+      switchTab('generator');
+      log('success', 'Feature implementation prompt generated');
+    }
+
+    function copyFeaturePrompt() {
+      generateFeaturePrompt();
+      copyPrompt();
+    }
+
+    function exportChecklist() {
+      const name = document.getElementById('feature-name').value || 'Feature';
+      const items = Array.from(document.querySelectorAll('#feature-checklist .checklist-item'))
+        .map(item => {
+          const checked = item.querySelector('input').checked;
+          const text = item.textContent.trim();
+          return `- [${checked ? 'x' : ' '}] ${text}`;
+        });
+
+      const markdown = `# ${name} Implementation Checklist\n\n${items.join('\n')}`;
+
+      navigator.clipboard.writeText(markdown).then(() => {
+        showToast();
+        log('success', 'Checklist exported to clipboard');
+      });
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    function showToast() {
+      const toast = document.getElementById('copied-toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function log(type, message) {
+      const logContainer = document.getElementById('output-log');
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="log-time">${time}</span>
+        <span class="log-type ${type}">${type.toUpperCase()}</span>
+        <span class="log-message">${message}</span>
+      `;
+
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    // Event listeners
+    document.getElementById('ralph-task').addEventListener('input', updateRalphPreview);
+    document.getElementById('ralph-max-iterations').addEventListener('input', updateRalphPreview);
+    document.getElementById('ralph-promise').addEventListener('input', updateRalphPreview);
+
+    // Initialize
+    generatePrompt();
+    log('info', 'Welcome to HockeyLifeHL Agentic Workflow Control Center');
+    log('info', 'Select a phase and generate prompts to get started');
+  </script>
+</body>
+</html>

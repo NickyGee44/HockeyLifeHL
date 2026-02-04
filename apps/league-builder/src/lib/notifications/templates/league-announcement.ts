@@ -74,7 +74,7 @@ export function getLeagueAnnouncementEmail(props: LeagueAnnouncementEmailProps):
 
     ${attachmentName && attachmentUrl ? `
     <div style="
-      background: rgba(212, 175, 55, 0.1);
+      background: rgba(34, 211, 238, 0.1);
       border-radius: 8px;
       padding: 16px;
       margin: 24px 0;
@@ -94,7 +94,7 @@ export function getLeagueAnnouncementEmail(props: LeagueAnnouncementEmailProps):
     <div style="
       margin-top: 32px;
       padding-top: 24px;
-      border-top: 1px solid rgba(212, 175, 55, 0.2);
+      border-top: 1px solid rgba(34, 211, 238, 0.2);
     ">
       <p style="color: #737373; font-size: 14px; margin: 0;">
         Sent by <strong style="color: #a3a3a3;">${senderName}</strong>

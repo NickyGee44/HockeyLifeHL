@@ -1,0 +1,453 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+/* ============================================
+   THEME CSS VARIABLES
+   ============================================ */
+
+:root {
+  /* Gold Scale */
+  --gold-50: #FFFDF5;
+  --gold-100: #FFF9E6;
+  --gold-200: #FFF0C2;
+  --gold-300: #FFE699;
+  --gold-400: #E6C547;
+  --gold-500: #D4AF37;
+  --gold-600: #B8941F;
+  --gold-700: #9A7B00;
+  --gold-800: #7A6200;
+  --gold-900: #4D3D00;
+
+  /* Neutral Scale (for dark mode surfaces) */
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-850: #1a1a1a;
+  --neutral-900: #171717;
+  --neutral-925: #0d0d0d;
+  --neutral-950: #0a0a0a;
+
+  /* Status Colors */
+  --success: #22c55e;
+  --warning: #eab308;
+  --error: #ef4444;
+  --info: #3b82f6;
+
+  /* Animation Durations */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+}
+
+/* Dark Theme (Default) */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-background: var(--neutral-950);
+  --color-background-elevated: var(--neutral-900);
+  --color-background-card: var(--neutral-850);
+  --color-surface: var(--neutral-800);
+  --color-surface-hover: var(--neutral-700);
+
+  --color-border: rgba(212, 175, 55, 0.2);
+  --color-border-muted: rgba(255, 255, 255, 0.1);
+  --color-border-emphasis: rgba(212, 175, 55, 0.4);
+
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #525252;
+
+  --color-accent: var(--gold-500);
+  --color-accent-hover: var(--gold-400);
+  --color-accent-muted: rgba(212, 175, 55, 0.15);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-background: #fafafa;
+  --color-background-elevated: #ffffff;
+  --color-background-card: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-surface-hover: #e5e5e5;
+
+  --color-border: rgba(212, 175, 55, 0.3);
+  --color-border-muted: #e5e5e5;
+  --color-border-emphasis: var(--gold-500);
+
+  --color-text-primary: #171717;
+  --color-text-secondary: #525252;
+  --color-text-muted: #a3a3a3;
+
+  --color-accent: var(--gold-600);
+  --color-accent-hover: var(--gold-500);
+  --color-accent-muted: rgba(212, 175, 55, 0.1);
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGold {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
+  }
+}
+
+@keyframes shine {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+
+.animate-fade-up {
+  animation: fadeUp 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s ease-out forwards;
+}
+
+.animate-pulse-gold {
+  animation: pulseGold 2s infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animation-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   CUSTOM COMPONENT CLASSES
+   ============================================ */
+
+/* Text Gradient Gold */
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--gold-500) 0%, var(--gold-300) 50%, var(--gold-500) 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold-animated {
+  background: linear-gradient(135deg, var(--gold-500) 0%, var(--gold-300) 50%, var(--gold-500) 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* Button Glow Effect */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transform: translateX(-100%);
+}
+
+.btn-glow:hover::after {
+  animation: shine 0.6s forwards;
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Card Hover Effect */
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+/* Border Glow */
+.border-glow {
+  box-shadow: inset 0 1px 0 0 rgba(212, 175, 55, 0.1);
+}
+
+/* Glass Effect */
+.glass {
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Gold Shadows */
+.shadow-gold-sm {
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.15);
+}
+
+.shadow-gold {
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.2);
+}
+
+.shadow-gold-lg {
+  box-shadow: 0 8px 40px rgba(212, 175, 55, 0.25);
+}
+
+.shadow-gold-xl {
+  box-shadow: 0 12px 60px rgba(212, 175, 55, 0.3);
+}
+
+/* Glow Effects */
+.glow-gold {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.glow-gold-intense {
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.5);
+}
+
+/* ============================================
+   FOCUS STYLES
+   ============================================ */
+
+:focus-visible {
+  outline: 2px solid var(--gold-500);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ============================================
+   SCROLLBAR STYLES
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neutral-700);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-500);
+}
+
+/* ============================================
+   SELECTION STYLES
+   ============================================ */
+
+::selection {
+  background: rgba(212, 175, 55, 0.3);
+  color: var(--color-text-primary);
+}
+
+/* ============================================
+   TAILWIND THEME EXTENSIONS
+   ============================================ */
+
+@theme {
+  /* Gold Colors */
+  --color-gold-50: #FFFDF5;
+  --color-gold-100: #FFF9E6;
+  --color-gold-200: #FFF0C2;
+  --color-gold-300: #FFE699;
+  --color-gold-400: #E6C547;
+  --color-gold-500: #D4AF37;
+  --color-gold-600: #B8941F;
+  --color-gold-700: #9A7B00;
+  --color-gold-800: #7A6200;
+  --color-gold-900: #4D3D00;
+
+  /* Extended Spacing */
+  --spacing-18: 4.5rem;
+  --spacing-22: 5.5rem;
+  --spacing-30: 7.5rem;
+  --spacing-34: 8.5rem;
+  --spacing-38: 9.5rem;
+
+  /* Typography */
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --font-size-display-xl: 4.5rem;
+  --font-size-display-lg: 3.75rem;
+  --font-size-display: 3rem;
+  --font-size-heading-xl: 2.25rem;
+  --font-size-heading-lg: 1.875rem;
+  --font-size-heading: 1.5rem;
+  --font-size-heading-sm: 1.25rem;
+  --font-size-body-lg: 1.125rem;
+  --font-size-body: 1rem;
+  --font-size-body-sm: 0.875rem;
+  --font-size-caption: 0.75rem;
+
+  /* Border Radius */
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+}

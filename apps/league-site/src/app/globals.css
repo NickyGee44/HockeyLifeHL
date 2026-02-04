@@ -1,0 +1,210 @@
+@import 'tailwindcss';
+
+/* HockeyLifeHL Brand System - Platform 2 */
+
+:root {
+  /* Gold (Primary Accent) */
+  --color-gold-50: #FFFDF5;
+  --color-gold-100: #FFF9E6;
+  --color-gold-200: #FFF0BF;
+  --color-gold-300: #FFE699;
+  --color-gold-400: #FFD54F;
+  --color-gold-500: #D4AF37;
+  --color-gold-600: #C19A00;
+  --color-gold-700: #9A7B00;
+  --color-gold-800: #735C00;
+  --color-gold-900: #4D3D00;
+
+  /* Semantic Colors - Dark Mode (Default) */
+  --color-background: #0a0a0a;
+  --color-background-elevated: #141414;
+  --color-background-sunken: #050505;
+  --color-surface: #1a1a1a;
+  --color-surface-hover: #242424;
+  --color-surface-active: #2e2e2e;
+
+  --color-border: rgba(212, 175, 55, 0.2);
+  --color-border-muted: rgba(255, 255, 255, 0.1);
+  --color-border-emphasis: rgba(212, 175, 55, 0.4);
+
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #525252;
+  --color-text-inverse: #0a0a0a;
+
+  --color-accent: #D4AF37;
+  --color-accent-hover: #C19A00;
+  --color-accent-muted: rgba(212, 175, 55, 0.15);
+  --color-accent-text: #0a0a0a;
+
+  /* Status Colors */
+  --color-success: #22c55e;
+  --color-success-muted: rgba(34, 197, 94, 0.15);
+  --color-warning: #eab308;
+  --color-warning-muted: rgba(234, 179, 8, 0.15);
+  --color-error: #ef4444;
+  --color-error-muted: rgba(239, 68, 68, 0.15);
+  --color-info: #3b82f6;
+  --color-info-muted: rgba(59, 130, 246, 0.15);
+
+  /* League Override Colors (can be customized per league) */
+  --league-primary: var(--color-accent);
+  --league-secondary: var(--color-surface);
+  --league-accent: var(--league-primary);
+}
+
+[data-theme='light'] {
+  --color-background: #fafafa;
+  --color-background-elevated: #ffffff;
+  --color-background-sunken: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f5f5;
+  --color-surface-active: #ededed;
+
+  --color-border: #e5e5e5;
+  --color-border-muted: #f0f0f0;
+  --color-border-emphasis: #d4d4d4;
+
+  --color-text-primary: #171717;
+  --color-text-secondary: #525252;
+  --color-text-muted: #a3a3a3;
+  --color-text-inverse: #fafafa;
+
+  --color-accent: #B8960F;
+  --color-accent-hover: #9A7B00;
+  --color-accent-muted: rgba(212, 175, 55, 0.1);
+  --color-accent-text: #ffffff;
+
+  --color-success: #16a34a;
+  --color-success-muted: rgba(22, 163, 74, 0.1);
+  --color-warning: #ca8a04;
+  --color-warning-muted: rgba(202, 138, 4, 0.1);
+  --color-error: #dc2626;
+  --color-error-muted: rgba(220, 38, 38, 0.1);
+  --color-info: #2563eb;
+  --color-info-muted: rgba(37, 99, 235, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGold {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.5s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-pulse-gold {
+  animation: pulseGold 2s infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background-elevated);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-accent-muted);
+  color: var(--color-accent);
+}

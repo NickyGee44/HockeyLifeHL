@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * Account Locked Message Component
@@ -69,7 +69,7 @@ export function AccountLockedMessage({
         </p>
         <Link
           href="/login"
-          className="inline-block w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
+          className="inline-block w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
         >
           Try Logging In
         </Link>

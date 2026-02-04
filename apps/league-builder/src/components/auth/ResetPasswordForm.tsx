@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * Reset Password Form Component
@@ -95,7 +95,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
         </p>
         <Link
           href="/forgot-password"
-          className="inline-block w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
+          className="inline-block w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
         >
           Request New Link
         </Link>
@@ -237,7 +237,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
             password !== confirmPassword ||
             (validation !== null && !validation.valid)
           }
-          className="w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+          className="w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.2)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

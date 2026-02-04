@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -101,7 +101,7 @@ export default function ScorekeeperLoginPage() {
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4">
       {/* Background pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.03)_0%,transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.03)_0%,transparent_70%)]" />
 
       <div className="relative z-10 w-full max-w-md">
         {/* Logo */}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -198,7 +198,7 @@ export function RosterConfirmation({
             disabled={isSubmitting}
             className={cn(
               'flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold transition-all',
-              'bg-rink-500 text-black hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]',
+              'bg-rink-500 text-black hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]',
               'disabled:cursor-not-allowed disabled:opacity-50'
             )}
           >

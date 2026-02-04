@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HockeyLifeHL - Agentic Orchestrator</title>
+  <style>
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #111111;
+      --bg-tertiary: #1a1a1a;
+      --bg-elevated: #242424;
+      --border-color: rgba(212, 175, 55, 0.2);
+      --border-gold: rgba(212, 175, 55, 0.5);
+      --text-primary: #fafafa;
+      --text-secondary: #a3a3a3;
+      --text-muted: #525252;
+      --gold-500: #D4AF37;
+      --gold-600: #C19A00;
+      --gold-400: #FFD54F;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --orange: #f97316;
+      --yellow: #eab308;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 350px 1fr 400px;
+      grid-template-rows: 60px 1fr 200px;
+      min-height: 100vh;
+      gap: 1px;
+      background: var(--border-color);
+    }
+
+    /* Header */
+    .header {
+      grid-column: 1 / -1;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border-gold);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: black;
+      font-size: 16px;
+    }
+
+    .logo-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold-500);
+    }
+
+    .logo-text span {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .master-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover { border-color: var(--gold-500); }
+    .btn.primary { background: var(--gold-500); color: black; border-color: var(--gold-500); }
+    .btn.primary:hover { background: var(--gold-600); }
+    .btn.danger { background: var(--red); border-color: var(--red); }
+    .btn.success { background: var(--green); border-color: var(--green); }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--bg-tertiary);
+      border-radius: 20px;
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--yellow);
+    }
+
+    .status-dot.running { background: var(--green); animation: pulse 1.5s infinite; }
+    .status-dot.error { background: var(--red); }
+    .status-dot.complete { background: var(--blue); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.2); }
+    }
+
+    /* Left Panel - Step Queue */
+    .left-panel {
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gold-500);
+    }
+
+    .step-queue {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .step-item {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .step-item:hover { border-color: var(--gold-500); }
+    .step-item.active { border-color: var(--gold-500); background: rgba(212, 175, 55, 0.1); }
+    .step-item.running { border-color: var(--green); }
+    .step-item.complete { opacity: 0.7; }
+    .step-item.error { border-color: var(--red); }
+
+    .step-number {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      width: 24px;
+      height: 24px;
+      background: var(--gold-500);
+      color: black;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .step-item.complete .step-number { background: var(--green); }
+    .step-item.running .step-number { background: var(--blue); }
+    .step-item.error .step-number { background: var(--red); }
+
+    .step-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      padding-left: 16px;
+    }
+
+    .step-description {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .step-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .step-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .step-actions button {
+      padding: 4px 8px;
+      font-size: 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .step-actions button:hover { color: var(--text-primary); border-color: var(--gold-500); }
+
+    /* Add Steps Form */
+    .add-steps-form {
+      padding: 12px;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+    }
+
+    .add-steps-form textarea {
+      width: 100%;
+      height: 100px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      padding: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+
+    .add-steps-form textarea:focus {
+      outline: none;
+      border-color: var(--gold-500);
+    }
+
+    .add-steps-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Main Content - Progress & Output */
+    .main-content {
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .progress-section {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .progress-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .progress-stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gold-500);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .progress-bar-container {
+      margin-top: 16px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-500), var(--gold-400));
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* Output Console */
+    .output-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .output-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-secondary);
+    }
+
+    .output-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .output-tab {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+    }
+
+    .output-tab.active {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .output-console {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .log-time {
+      color: var(--text-muted);
+      margin-right: 8px;
+    }
+
+    .log-type {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .log-type.info { background: var(--blue); color: white; }
+    .log-type.success { background: var(--green); color: white; }
+    .log-type.error { background: var(--red); color: white; }
+    .log-type.warning { background: var(--yellow); color: black; }
+    .log-type.agent { background: var(--purple); color: white; }
+
+    /* Right Panel - Active Tasks & Agents */
+    .right-panel {
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .agent-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .agent-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .agent-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .agent-card.active { border-color: var(--green); }
+
+    .agent-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .agent-icon.backend { background: var(--blue); }
+    .agent-icon.security { background: var(--red); }
+    .agent-icon.payments { background: var(--green); }
+    .agent-icon.privacy { background: var(--purple); }
+    .agent-icon.sre { background: var(--orange); }
+    .agent-icon.design { background: var(--gold-500); color: black; }
+
+    .agent-info { flex: 1; }
+    .agent-name { font-size: 12px; font-weight: 600; }
+    .agent-status { font-size: 10px; color: var(--text-secondary); }
+
+    /* Current Task Display */
+    .current-task {
+      padding: 16px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .task-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--gold-500);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .task-card h3 {
+      font-size: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .task-card p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .task-progress {
+      margin-top: 12px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .task-progress-step {
+      flex: 1;
+      height: 4px;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+    }
+
+    .task-progress-step.complete { background: var(--green); }
+    .task-progress-step.current { background: var(--gold-500); animation: pulse 1s infinite; }
+
+    /* Email Notification Section */
+    .email-section {
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+    }
+
+    .email-config {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .email-config input {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text-primary);
+      font-size: 12px;
+    }
+
+    .email-config input:focus {
+      outline: none;
+      border-color: var(--gold-500);
+    }
+
+    .email-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* Footer - Quick Actions */
+    .footer {
+      grid-column: 1 / -1;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-gold);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+    }
+
+    .action-btn {
+      padding: 8px 12px;
+      font-size: 11px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .action-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .action-btn.active { background: var(--gold-500); color: black; }
+
+    .timer-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: var(--gold-500);
+    }
+
+    /* Prompt Output */
+    .prompt-output {
+      margin-top: 16px;
+      padding: 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    .prompt-output pre {
+      white-space: pre-wrap;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    /* Auto-generate Section */
+    .auto-generate {
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), transparent);
+      border-top: 1px solid var(--border-gold);
+    }
+
+    .auto-generate-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .auto-generate-header h4 {
+      font-size: 12px;
+      color: var(--gold-500);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gold-500); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">HL</div>
+        <div class="logo-text">
+          <h1>Agentic Orchestrator</h1>
+          <span>Long-form Development Automation</span>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="status-badge">
+          <div class="status-dot" id="globalStatus"></div>
+          <span id="globalStatusText">Idle</span>
+        </div>
+        <div class="master-controls">
+          <button class="btn primary" id="startOrchestrator" onclick="startOrchestration()">
+            ▶ Start All
+          </button>
+          <button class="btn" onclick="pauseOrchestration()">⏸ Pause</button>
+          <button class="btn danger" onclick="stopOrchestration()">⏹ Stop</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Left Panel - Step Queue -->
+    <aside class="left-panel">
+      <div class="panel-header">
+        <span class="panel-title">📋 Step Queue (<span id="stepCount">0</span>/20)</span>
+        <button class="btn" onclick="clearCompleted()" style="padding: 4px 8px; font-size: 10px;">Clear Done</button>
+      </div>
+
+      <div class="step-queue" id="stepQueue">
+        <!-- Steps will be rendered here -->
+      </div>
+
+      <div class="add-steps-form">
+        <textarea id="newStepsInput" placeholder="Paste step prompts here (one per line or JSON array)..."></textarea>
+        <div class="add-steps-actions">
+          <button class="btn primary" onclick="addSteps()" style="flex: 1;">+ Add Steps</button>
+          <button class="btn" onclick="importFromClipboard()">📋 Paste</button>
+        </div>
+      </div>
+
+      <div class="auto-generate">
+        <div class="auto-generate-header">
+          <h4>✨ Auto-Generate Next Steps</h4>
+          <button class="btn" onclick="generateNextSteps()" style="padding: 4px 8px; font-size: 10px;">Generate 10</button>
+        </div>
+        <p style="font-size: 10px; color: var(--text-secondary);">
+          Uses Claude to analyze codebase and create next 10 steps based on progress.
+        </p>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="progress-section">
+        <div class="progress-header">
+          <span class="panel-title">📊 Orchestration Progress</span>
+          <span style="font-size: 12px; color: var(--text-secondary);">
+            Session: <span id="sessionDuration">00:00:00</span>
+          </span>
+        </div>
+
+        <div class="progress-stats">
+          <div class="stat-card">
+            <div class="stat-value" id="stepsCompleted">0</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stepsRunning">0</div>
+            <div class="stat-label">Running</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stepsPending">0</div>
+            <div class="stat-label">Pending</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stepsFailed">0</div>
+            <div class="stat-label">Failed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="testsRun">0</div>
+            <div class="stat-label">Tests Run</div>
+          </div>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+          </div>
+          <div class="progress-text">
+            <span id="progressPercent">0% Complete</span>
+            <span id="estimatedTime">Est. remaining: --</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="output-section">
+        <div class="output-header">
+          <div class="output-tabs">
+            <button class="output-tab active" onclick="switchTab('all')">All Logs</button>
+            <button class="output-tab" onclick="switchTab('agents')">Agents</button>
+            <button class="output-tab" onclick="switchTab('tests')">Tests</button>
+            <button class="output-tab" onclick="switchTab('git')">Git</button>
+            <button class="output-tab" onclick="switchTab('errors')">Errors</button>
+          </div>
+          <div>
+            <button class="btn" onclick="clearLogs()" style="padding: 4px 8px; font-size: 10px;">Clear</button>
+            <button class="btn" onclick="exportLogs()" style="padding: 4px 8px; font-size: 10px;">Export</button>
+          </div>
+        </div>
+        <div class="output-console" id="outputConsole">
+          <div class="log-entry">
+            <span class="log-time">[--:--:--]</span>
+            <span class="log-type info">INFO</span>
+            <span>Orchestrator ready. Add steps and click "Start All" to begin.</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel -->
+    <aside class="right-panel">
+      <div class="agent-section">
+        <div class="panel-header" style="padding: 0 0 12px 0;">
+          <span class="panel-title">🤖 Active Agents</span>
+        </div>
+        <div class="agent-grid" id="agentGrid">
+          <div class="agent-card" id="agent-backend">
+            <div class="agent-icon backend">🏗️</div>
+            <div class="agent-info">
+              <div class="agent-name">Backend Architect</div>
+              <div class="agent-status">Idle</div>
+            </div>
+          </div>
+          <div class="agent-card" id="agent-security">
+            <div class="agent-icon security">🔒</div>
+            <div class="agent-info">
+              <div class="agent-name">Security Auditor</div>
+              <div class="agent-status">Idle</div>
+            </div>
+          </div>
+          <div class="agent-card" id="agent-payments">
+            <div class="agent-icon payments">💳</div>
+            <div class="agent-info">
+              <div class="agent-name">Payments Auditor</div>
+              <div class="agent-status">Idle</div>
+            </div>
+          </div>
+          <div class="agent-card" id="agent-privacy">
+            <div class="agent-icon privacy">🛡️</div>
+            <div class="agent-info">
+              <div class="agent-name">Privacy Guardian</div>
+              <div class="agent-status">Idle</div>
+            </div>
+          </div>
+          <div class="agent-card" id="agent-sre">
+            <div class="agent-icon sre">📡</div>
+            <div class="agent-info">
+              <div class="agent-name">SRE Guardian</div>
+              <div class="agent-status">Idle</div>
+            </div>
+          </div>
+          <div class="agent-card" id="agent-design">
+            <div class="agent-icon design">🎨</div>
+            <div class="agent-info">
+              <div class="agent-name">Product Designer</div>
+              <div class="agent-status">Idle</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="current-task">
+        <div class="panel-header" style="padding: 0 0 12px 0;">
+          <span class="panel-title">📌 Current Step</span>
+        </div>
+        <div id="currentTaskDisplay">
+          <div class="task-card">
+            <h3>⏳ Waiting to Start</h3>
+            <p>Add steps to the queue and click "Start All" to begin orchestration.</p>
+          </div>
+        </div>
+
+        <div id="nextUpSection" style="margin-top: 16px; display: none;">
+          <div class="panel-header" style="padding: 0 0 8px 0;">
+            <span class="panel-title" style="font-size: 11px;">Next Up</span>
+          </div>
+          <div id="nextUpList"></div>
+        </div>
+      </div>
+
+      <div class="email-section">
+        <div class="panel-header" style="padding: 0 0 8px 0;">
+          <span class="panel-title">📧 Progress Emails</span>
+        </div>
+        <div class="email-config">
+          <input type="email" id="emailRecipient" value="grossi16n@hotmail.com" placeholder="Email address">
+          <div style="display: flex; gap: 8px;">
+            <select id="emailFrequency" style="flex: 1; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; color: var(--text-primary); font-size: 12px;">
+              <option value="60">Every hour</option>
+              <option value="30">Every 30 min</option>
+              <option value="120">Every 2 hours</option>
+              <option value="0">On completion only</option>
+            </select>
+            <button class="btn" onclick="testEmail()">Test</button>
+          </div>
+          <div class="email-status">
+            <span>Last sent: <span id="lastEmailSent">Never</span></span>
+            <label style="display: flex; align-items: center; gap: 4px;">
+              <input type="checkbox" id="emailEnabled" checked>
+              <span>Enabled</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="quick-actions">
+        <div class="action-group">
+          <button class="action-btn" onclick="runAllTests()">🧪 Run Tests</button>
+          <button class="action-btn" onclick="runTypeCheck()">✓ Type Check</button>
+          <button class="action-btn" onclick="runLint()">📝 Lint</button>
+          <button class="action-btn" onclick="runBuild()">📦 Build</button>
+        </div>
+        <div class="action-group">
+          <button class="action-btn" onclick="gitCommit()">💾 Commit</button>
+          <button class="action-btn" onclick="gitPush()">⬆️ Push</button>
+          <button class="action-btn" onclick="createPR()">🔀 Create PR</button>
+        </div>
+        <div class="action-group">
+          <button class="action-btn" onclick="checkAdvisors()">🔍 Supabase Advisors</button>
+          <button class="action-btn" onclick="applyMigrations()">📊 Apply Migrations</button>
+        </div>
+      </div>
+      <div class="timer-display">
+        <span>Next email in: </span>
+        <span id="nextEmailTimer">--:--</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // State
+    const state = {
+      steps: [],
+      currentStep: null,
+      isRunning: false,
+      isPaused: false,
+      sessionStart: null,
+      emailLastSent: null,
+      logs: [],
+      stats: {
+        completed: 0,
+        running: 0,
+        pending: 0,
+        failed: 0,
+        testsRun: 0
+      },
+      agents: {
+        backend: { active: false, task: null },
+        security: { active: false, task: null },
+        payments: { active: false, task: null },
+        privacy: { active: false, task: null },
+        sre: { active: false, task: null },
+        design: { active: false, task: null }
+      }
+    };
+
+    // Default 10 steps
+    const DEFAULT_STEPS = [
+      {
+        id: 1,
+        title: "Platform 2: Public League Website Builder",
+        description: "Build the Platform 2 public-facing league website generator with dynamic subdomain routing, Vercel multi-tenant deployment, league branding from database, and 6 pages.",
+        status: "complete",
+        agents: ["design", "backend"]
+      },
+      {
+        id: 2,
+        title: "Real-Time Game Scorekeeper with Offline Sync",
+        description: "Build an offline-first PWA scorekeeper for Platform 1 with iPad-optimized UI, WebSocket sync, IndexedDB for offline, and captain signature verification.",
+        status: "pending",
+        agents: ["sre", "design"]
+      },
+      {
+        id: 3,
+        title: "Stripe Connect Marketplace for League Payments",
+        description: "Implement Stripe Connect Express for league payment processing with 5% platform fee, connected accounts, and billing dashboard.",
+        status: "pending",
+        agents: ["payments", "security"]
+      },
+      {
+        id: 4,
+        title: "Email Notification System with Resend",
+        description: "Build event-driven email notification system with game rescheduled, registration confirmed, draft pick, and invoice triggers.",
+        status: "pending",
+        agents: ["backend"]
+      },
+      {
+        id: 5,
+        title: "Admin Dashboard with Real-Time Analytics",
+        description: "Build comprehensive admin dashboard with revenue charts, player registration funnel, game completion rate, and league health score.",
+        status: "pending",
+        agents: ["design", "backend"]
+      },
+      {
+        id: 6,
+        title: "Draft Room with Real-Time Pick System",
+        description: "Build live draft room experience with real-time draft board, pick timer, available player pool, and captain chat.",
+        status: "pending",
+        agents: ["backend", "sre"]
+      },
+      {
+        id: 7,
+        title: "Mobile-First Player App with Push Notifications",
+        description: "Build PWA player companion app with push notifications, next game countdown, personal schedule, and stats.",
+        status: "pending",
+        agents: ["design", "sre"]
+      },
+      {
+        id: 8,
+        title: "GDPR/CCPA Compliance Suite",
+        description: "Implement comprehensive data privacy compliance with cookie consent, data export, account deletion, and consent tracking.",
+        status: "pending",
+        agents: ["privacy", "security"]
+      },
+      {
+        id: 9,
+        title: "Multi-Language Internationalization (i18n)",
+        description: "Add multi-language support with English and French (Canada), locale detection, and localized routes.",
+        status: "pending",
+        agents: ["backend"]
+      },
+      {
+        id: 10,
+        title: "End-to-End Testing Suite with Playwright",
+        description: "Create comprehensive E2E testing suite with user flows, Page Object Model, fixtures, and CI integration.",
+        status: "pending",
+        agents: ["backend", "sre"]
+      }
+    ];
+
+    // Initialize
+    function init() {
+      state.steps = DEFAULT_STEPS;
+      updateUI();
+      startSessionTimer();
+      startEmailTimer();
+      log('info', 'Orchestrator initialized with 10 default steps');
+      log('success', 'Step 1 (Platform 2) marked as complete from previous session');
+    }
+
+    // Logging
+    function log(type, message) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+      const entry = { time: timeStr, type, message };
+      state.logs.push(entry);
+
+      const console = document.getElementById('outputConsole');
+      const logHtml = `
+        <div class="log-entry">
+          <span class="log-time">[${timeStr}]</span>
+          <span class="log-type ${type}">${type.toUpperCase()}</span>
+          <span>${message}</span>
+        </div>
+      `;
+      console.innerHTML += logHtml;
+      console.scrollTop = console.scrollHeight;
+    }
+
+    // Update UI
+    function updateUI() {
+      // Update step count
+      document.getElementById('stepCount').textContent = state.steps.length;
+
+      // Calculate stats
+      state.stats.completed = state.steps.filter(s => s.status === 'complete').length;
+      state.stats.running = state.steps.filter(s => s.status === 'running').length;
+      state.stats.pending = state.steps.filter(s => s.status === 'pending').length;
+      state.stats.failed = state.steps.filter(s => s.status === 'error').length;
+
+      // Update stat cards
+      document.getElementById('stepsCompleted').textContent = state.stats.completed;
+      document.getElementById('stepsRunning').textContent = state.stats.running;
+      document.getElementById('stepsPending').textContent = state.stats.pending;
+      document.getElementById('stepsFailed').textContent = state.stats.failed;
+
+      // Update progress bar
+      const total = state.steps.length || 1;
+      const percent = Math.round((state.stats.completed / total) * 100);
+      document.getElementById('progressFill').style.width = `${percent}%`;
+      document.getElementById('progressPercent').textContent = `${percent}% Complete`;
+
+      // Render step queue
+      renderStepQueue();
+
+      // Update current task display
+      updateCurrentTask();
+
+      // Update global status
+      updateGlobalStatus();
+    }
+
+    function renderStepQueue() {
+      const queue = document.getElementById('stepQueue');
+      queue.innerHTML = state.steps.map((step, idx) => `
+        <div class="step-item ${step.status}" data-id="${step.id}" onclick="selectStep(${step.id})">
+          <div class="step-number">${idx + 1}</div>
+          <div class="step-title">${step.title}</div>
+          <div class="step-description">${step.description}</div>
+          <div class="step-status">
+            ${step.status === 'complete' ? '✓ Complete' :
+              step.status === 'running' ? '⟳ Running...' :
+              step.status === 'error' ? '✗ Failed' : '○ Pending'}
+            ${step.agents ? ` • Agents: ${step.agents.join(', ')}` : ''}
+          </div>
+          <div class="step-actions">
+            <button onclick="event.stopPropagation(); copyStepPrompt(${step.id})">📋 Copy</button>
+            <button onclick="event.stopPropagation(); runStep(${step.id})">▶ Run</button>
+            <button onclick="event.stopPropagation(); removeStep(${step.id})">✗</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateCurrentTask() {
+      const display = document.getElementById('currentTaskDisplay');
+      const runningStep = state.steps.find(s => s.status === 'running');
+
+      if (runningStep) {
+        display.innerHTML = `
+          <div class="task-card">
+            <h3>🔄 ${runningStep.title}</h3>
+            <p>${runningStep.description}</p>
+            <div class="task-progress">
+              ${Array(5).fill().map((_, i) => `
+                <div class="task-progress-step ${i < 2 ? 'complete' : i === 2 ? 'current' : ''}"></div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+        // Show next up
+        const nextSteps = state.steps.filter(s => s.status === 'pending').slice(0, 3);
+        if (nextSteps.length > 0) {
+          document.getElementById('nextUpSection').style.display = 'block';
+          document.getElementById('nextUpList').innerHTML = nextSteps.map(s => `
+            <div style="padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 4px; font-size: 11px;">
+              ${s.title}
+            </div>
+          `).join('');
+        }
+      } else {
+        display.innerHTML = `
+          <div class="task-card">
+            <h3>⏳ ${state.isRunning ? 'Processing...' : 'Ready'}</h3>
+            <p>${state.steps.filter(s => s.status === 'pending').length} steps remaining in queue.</p>
+          </div>
+        `;
+      }
+    }
+
+    function updateGlobalStatus() {
+      const dot = document.getElementById('globalStatus');
+      const text = document.getElementById('globalStatusText');
+
+      if (state.isRunning) {
+        dot.className = 'status-dot running';
+        text.textContent = `Running (${state.stats.running} active)`;
+      } else if (state.stats.failed > 0) {
+        dot.className = 'status-dot error';
+        text.textContent = `${state.stats.failed} Failed`;
+      } else if (state.stats.completed === state.steps.length && state.steps.length > 0) {
+        dot.className = 'status-dot complete';
+        text.textContent = 'All Complete!';
+      } else {
+        dot.className = 'status-dot';
+        text.textContent = 'Idle';
+      }
+    }
+
+    // Actions
+    function addSteps() {
+      const input = document.getElementById('newStepsInput').value.trim();
+      if (!input) return;
+
+      try {
+        // Try parsing as JSON
+        const parsed = JSON.parse(input);
+        const steps = Array.isArray(parsed) ? parsed : [parsed];
+        steps.forEach((s, i) => {
+          state.steps.push({
+            id: Date.now() + i,
+            title: s.title || `Step ${state.steps.length + 1}`,
+            description: s.description || s,
+            status: 'pending',
+            agents: s.agents || []
+          });
+        });
+      } catch {
+        // Parse as line-separated prompts
+        const lines = input.split('\n').filter(l => l.trim());
+        lines.forEach((line, i) => {
+          state.steps.push({
+            id: Date.now() + i,
+            title: `Custom Step ${state.steps.length + 1}`,
+            description: line.trim(),
+            status: 'pending',
+            agents: []
+          });
+        });
+      }
+
+      document.getElementById('newStepsInput').value = '';
+      updateUI();
+      log('info', `Added ${state.steps.length} new steps to queue`);
+    }
+
+    async function importFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById('newStepsInput').value = text;
+        log('info', 'Pasted content from clipboard');
+      } catch (e) {
+        log('error', 'Failed to read clipboard');
+      }
+    }
+
+    function selectStep(id) {
+      state.currentStep = state.steps.find(s => s.id === id);
+      document.querySelectorAll('.step-item').forEach(el => {
+        el.classList.toggle('active', parseInt(el.dataset.id) === id);
+      });
+    }
+
+    function copyStepPrompt(id) {
+      const step = state.steps.find(s => s.id === id);
+      if (step) {
+        const prompt = `claude --ralph "${step.description}"`;
+        navigator.clipboard.writeText(prompt);
+        log('info', `Copied prompt for: ${step.title}`);
+      }
+    }
+
+    async function runStep(id) {
+      const step = state.steps.find(s => s.id === id);
+      if (!step) return;
+
+      step.status = 'running';
+      updateUI();
+      log('agent', `Starting: ${step.title}`);
+
+      // Activate relevant agents
+      if (step.agents) {
+        step.agents.forEach(agent => {
+          state.agents[agent] = { active: true, task: step.title };
+          const card = document.getElementById(`agent-${agent}`);
+          if (card) {
+            card.classList.add('active');
+            card.querySelector('.agent-status').textContent = `Working on: ${step.title.substring(0, 30)}...`;
+          }
+        });
+      }
+
+      // Simulate work (in real implementation, this would call Claude CLI)
+      log('info', `Agents activated: ${step.agents?.join(', ') || 'none'}`);
+    }
+
+    function removeStep(id) {
+      state.steps = state.steps.filter(s => s.id !== id);
+      updateUI();
+      log('info', `Removed step ${id}`);
+    }
+
+    function clearCompleted() {
+      state.steps = state.steps.filter(s => s.status !== 'complete');
+      updateUI();
+      log('info', 'Cleared completed steps');
+    }
+
+    // Orchestration Controls
+    function startOrchestration() {
+      if (state.steps.filter(s => s.status === 'pending').length === 0) {
+        log('warning', 'No pending steps to run');
+        return;
+      }
+
+      state.isRunning = true;
+      state.sessionStart = new Date();
+      updateUI();
+      log('success', '🚀 Orchestration started!');
+
+      // Start first pending step
+      const firstPending = state.steps.find(s => s.status === 'pending');
+      if (firstPending) {
+        runStep(firstPending.id);
+      }
+    }
+
+    function pauseOrchestration() {
+      state.isPaused = !state.isPaused;
+      log('info', state.isPaused ? '⏸ Orchestration paused' : '▶ Orchestration resumed');
+    }
+
+    function stopOrchestration() {
+      state.isRunning = false;
+      state.steps.forEach(s => {
+        if (s.status === 'running') s.status = 'pending';
+      });
+      Object.keys(state.agents).forEach(agent => {
+        state.agents[agent] = { active: false, task: null };
+        const card = document.getElementById(`agent-${agent}`);
+        if (card) {
+          card.classList.remove('active');
+          card.querySelector('.agent-status').textContent = 'Idle';
+        }
+      });
+      updateUI();
+      log('warning', '⏹ Orchestration stopped');
+    }
+
+    // Auto-generate next steps
+    async function generateNextSteps() {
+      log('agent', '✨ Generating next 10 steps based on codebase analysis...');
+
+      // This would call Claude in real implementation
+      const generatedSteps = [
+        { title: "API Rate Limiting", description: "Implement rate limiting for all API endpoints using Redis", agents: ["security", "backend"] },
+        { title: "Image Upload & Optimization", description: "Add image upload for team logos and player photos with automatic resizing", agents: ["backend"] },
+        { title: "Audit Logging System", description: "Create comprehensive audit log for all admin actions", agents: ["security", "privacy"] },
+        { title: "Webhook Management UI", description: "Build UI for managing webhook subscriptions and viewing delivery logs", agents: ["design", "backend"] },
+        { title: "Season Archive Feature", description: "Archive completed seasons with full data export capability", agents: ["backend"] },
+      ];
+
+      generatedSteps.forEach((s, i) => {
+        state.steps.push({
+          id: Date.now() + i,
+          ...s,
+          status: 'pending'
+        });
+      });
+
+      updateUI();
+      log('success', `Generated ${generatedSteps.length} new steps`);
+    }
+
+    // Quick Actions
+    function runAllTests() {
+      log('info', '🧪 Running all tests...');
+      log('info', 'Command: pnpm test');
+    }
+
+    function runTypeCheck() {
+      log('info', '✓ Running type check...');
+      log('info', 'Command: pnpm type-check');
+    }
+
+    function runLint() {
+      log('info', '📝 Running linter...');
+      log('info', 'Command: pnpm lint');
+    }
+
+    function runBuild() {
+      log('info', '📦 Running build...');
+      log('info', 'Command: pnpm build');
+    }
+
+    function gitCommit() {
+      log('info', '💾 Creating git commit...');
+      log('info', 'Command: git add . && git commit');
+    }
+
+    function gitPush() {
+      log('info', '⬆️ Pushing to remote...');
+      log('info', 'Command: git push');
+    }
+
+    function createPR() {
+      log('info', '🔀 Creating pull request...');
+      log('info', 'Command: gh pr create');
+    }
+
+    function checkAdvisors() {
+      log('info', '🔍 Checking Supabase advisors...');
+    }
+
+    function applyMigrations() {
+      log('info', '📊 Applying database migrations...');
+    }
+
+    // Email functions
+    async function testEmail() {
+      const email = document.getElementById('emailRecipient').value;
+      log('info', `📧 Sending test email to ${email}...`);
+
+      // This would call the edge function
+      try {
+        // In real implementation:
+        // await fetch('/api/send-progress-email', { method: 'POST', body: JSON.stringify({ email, type: 'test' }) });
+        log('success', '📧 Test email sent!');
+      } catch (e) {
+        log('error', 'Failed to send test email');
+      }
+    }
+
+    // Timers
+    function startSessionTimer() {
+      setInterval(() => {
+        if (state.sessionStart) {
+          const elapsed = Date.now() - state.sessionStart.getTime();
+          const hours = Math.floor(elapsed / 3600000);
+          const mins = Math.floor((elapsed % 3600000) / 60000);
+          const secs = Math.floor((elapsed % 60000) / 1000);
+          document.getElementById('sessionDuration').textContent =
+            `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+      }, 1000);
+    }
+
+    function startEmailTimer() {
+      let nextEmail = 60 * 60; // 1 hour in seconds
+      setInterval(() => {
+        if (state.isRunning && document.getElementById('emailEnabled').checked) {
+          nextEmail--;
+          if (nextEmail <= 0) {
+            sendProgressEmail();
+            nextEmail = parseInt(document.getElementById('emailFrequency').value) * 60;
+          }
+          const mins = Math.floor(nextEmail / 60);
+          const secs = nextEmail % 60;
+          document.getElementById('nextEmailTimer').textContent =
+            `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+      }, 1000);
+    }
+
+    async function sendProgressEmail() {
+      const email = document.getElementById('emailRecipient').value;
+      if (!email) return;
+
+      log('info', `📧 Sending hourly progress report to ${email}...`);
+
+      const report = {
+        email,
+        subject: `HockeyLifeHL Progress Report - ${new Date().toLocaleString()}`,
+        stats: state.stats,
+        steps: state.steps.map(s => ({ title: s.title, status: s.status })),
+        logs: state.logs.slice(-50)
+      };
+
+      // This would call the edge function
+      try {
+        // await fetch('/api/send-progress-email', { method: 'POST', body: JSON.stringify(report) });
+        document.getElementById('lastEmailSent').textContent = new Date().toLocaleTimeString();
+        log('success', '📧 Progress email sent!');
+      } catch (e) {
+        log('error', 'Failed to send progress email');
+      }
+    }
+
+    // Log filtering
+    function switchTab(tab) {
+      document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      // Filter logs based on tab (would implement filtering logic)
+    }
+
+    function clearLogs() {
+      state.logs = [];
+      document.getElementById('outputConsole').innerHTML = '';
+      log('info', 'Logs cleared');
+    }
+
+    function exportLogs() {
+      const blob = new Blob([JSON.stringify(state.logs, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orchestrator-logs-${Date.now()}.json`;
+      a.click();
+      log('info', 'Logs exported');
+    }
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

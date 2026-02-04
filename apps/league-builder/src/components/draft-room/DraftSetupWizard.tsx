@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -475,7 +475,7 @@ export function DraftSetupWizard({
         {currentStep < STEPS.length - 1 ? (
           <button
             onClick={handleNext}
-            className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+            className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]"
           >
             Next
             <ArrowRight className="h-4 w-4" />
@@ -484,7 +484,7 @@ export function DraftSetupWizard({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
               <>

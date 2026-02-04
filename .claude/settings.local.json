@@ -21,7 +21,8 @@
       "Bash(cmd.exe /c \"taskkill /PID 171660 /F\")",
       "Bash(powershell -Command \"Stop-Process -Id 171660 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 178592 -Force\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

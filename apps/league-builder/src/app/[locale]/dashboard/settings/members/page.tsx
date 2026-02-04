@@ -2,8 +2,8 @@ import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
 import { getOrganizationMembers } from '@/lib/actions/organization';
 import { redirect } from '@/i18n/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@hockey-life/ui';
-import { MembersTable } from './members-table';
-import { InviteMemberForm } from './invite-member-form';
+import { MembersTable } from '@/components/dashboard/settings/members-table';
+import { InviteMemberForm } from '@/components/dashboard/settings/invite-member-form';
 import { setRequestLocale } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';

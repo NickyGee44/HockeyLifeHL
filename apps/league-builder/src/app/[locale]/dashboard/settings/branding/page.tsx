@@ -1,7 +1,7 @@
 import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
 import { getOrganizationLeagues } from '@/lib/actions/organization';
 import { redirect } from '@/i18n/navigation';
-import { BrandingSettingsClient } from './branding-settings-client';
+import { BrandingSettingsClient } from '@/components/dashboard/settings/branding-settings-client';
 import { setRequestLocale } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';

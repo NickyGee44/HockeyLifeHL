@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * EmailComposer Component
@@ -162,8 +162,8 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
               onClick={() => setRecipientFilter(option.value)}
               className={`p-3 rounded-lg border text-left transition-all ${
                 recipientFilter === option.value
-                  ? 'border-[#22D3EE] bg-[rgba(212,175,55,0.1)]'
-                  : 'border-[rgba(255,255,255,0.1)] bg-[#1a1a1a] hover:border-[rgba(212,175,55,0.3)]'
+                  ? 'border-[#22D3EE] bg-[rgba(34,211,238,0.1)]'
+                  : 'border-[rgba(255,255,255,0.1)] bg-[#1a1a1a] hover:border-[rgba(34,211,238,0.3)]'
               }`}
             >
               <p className="font-medium text-white text-sm">{option.label}</p>
@@ -185,8 +185,8 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
               onClick={() => setPriority(option.value)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
                 priority === option.value
-                  ? 'border-[#22D3EE] bg-[rgba(212,175,55,0.1)]'
-                  : 'border-[rgba(255,255,255,0.1)] bg-[#1a1a1a] hover:border-[rgba(212,175,55,0.3)]'
+                  ? 'border-[#22D3EE] bg-[rgba(34,211,238,0.1)]'
+                  : 'border-[rgba(255,255,255,0.1)] bg-[#1a1a1a] hover:border-[rgba(34,211,238,0.3)]'
               } ${option.color}`}
             >
               {option.icon}
@@ -206,7 +206,7 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="Enter email subject..."
-          className="w-full bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-4 py-3 text-white placeholder-[#525252] focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
+          className="w-full bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg px-4 py-3 text-white placeholder-[#525252] focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
         />
       </div>
 
@@ -252,7 +252,7 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
         </div>
 
         {showPreview ? (
-          <div className="min-h-[200px] bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg p-4 text-[#a3a3a3]">
+          <div className="min-h-[200px] bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg p-4 text-[#a3a3a3]">
             <div dangerouslySetInnerHTML={{ __html: previewContent || '<em>Nothing to preview</em>' }} />
           </div>
         ) : (
@@ -264,7 +264,7 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
 
 You can use **bold** and *italic* formatting."
             rows={8}
-            className="w-full bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-4 py-3 text-white placeholder-[#525252] focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20 resize-y"
+            className="w-full bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg px-4 py-3 text-white placeholder-[#525252] focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20 resize-y"
           />
         )}
         <p className="text-xs text-[#525252] mt-1">
@@ -284,7 +284,7 @@ You can use **bold** and *italic* formatting."
             value={actionButtonText}
             onChange={(e) => setActionButtonText(e.target.value)}
             placeholder="e.g., View Schedule"
-            className="w-full bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-4 py-3 text-white placeholder-[#525252] focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
+            className="w-full bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg px-4 py-3 text-white placeholder-[#525252] focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
           />
         </div>
         <div>
@@ -296,7 +296,7 @@ You can use **bold** and *italic* formatting."
             value={actionButtonUrl}
             onChange={(e) => setActionButtonUrl(e.target.value)}
             placeholder="https://..."
-            className="w-full bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-4 py-3 text-white placeholder-[#525252] focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
+            className="w-full bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg px-4 py-3 text-white placeholder-[#525252] focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
           />
         </div>
       </div>
@@ -322,7 +322,7 @@ You can use **bold** and *italic* formatting."
         <button
           onClick={handleSend}
           disabled={sending || !subject.trim() || !content.trim()}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#22D3EE] to-[#0891b2] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#22D3EE] to-[#0891b2] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {sending ? (
             <>

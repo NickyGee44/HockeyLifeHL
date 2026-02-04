@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getTeam } from '@/lib/actions/teams';
-import { redirect, notFound } from '@/i18n/navigation';
+import { redirect } from '@/i18n/navigation';
+import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import {
@@ -15,7 +16,7 @@ import {
   Mail,
   Edit,
 } from 'lucide-react';
-import TeamDetailClient from './team-detail-client';
+import TeamDetailClient from '@/components/dashboard/teams/team-detail-client';
 import { setRequestLocale } from 'next-intl/server';
 
 type Props = {

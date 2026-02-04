@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import { Plus, Users, ArrowLeft, Search, Filter } from 'lucide-react';
 import { TeamCard } from '@/components/teams';
-import TeamsListClient from './teams-list-client';
+import TeamsListClient from '@/components/dashboard/teams/teams-list-client';
 import { setRequestLocale } from 'next-intl/server';
 
 export const metadata = {

@@ -83,7 +83,7 @@ export function getCaptainInviteEmail(props: CaptainInviteEmailProps): string {
     <div style="text-align: center; margin: 32px 0;">
       <a href="${acceptUrl}" style="
         display: inline-block;
-        background: linear-gradient(135deg, #22D3EE 0%, #0891b2 100%);
+        background: linear-gradient(135deg, #22D3EE 0%, #3B82F6 100%);
         color: #0a0a0a !important;
         font-weight: 600;
         font-size: 16px;
@@ -95,7 +95,7 @@ export function getCaptainInviteEmail(props: CaptainInviteEmailProps): string {
       <a href="${declineUrl}" style="
         display: inline-block;
         background: transparent;
-        border: 1px solid rgba(212, 175, 55, 0.5);
+        border: 1px solid rgba(34, 211, 238, 0.5);
         color: #22D3EE !important;
         font-weight: 600;
         font-size: 16px;

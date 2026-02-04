@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useRef } from 'react';
 import {
@@ -178,7 +178,7 @@ export function DraftCompleteModal({
 
           {/* Header with Trophy */}
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rink-400 to-rink-600 shadow-[0_0_40px_rgba(212,175,55,0.4)]">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rink-400 to-rink-600 shadow-[0_0_40px_rgba(34,211,238,0.4)]">
               <Trophy className="h-10 w-10 text-black" />
             </div>
             <h2 className="text-3xl font-bold text-white">Draft Complete!</h2>
@@ -311,7 +311,7 @@ export function DraftCompleteModal({
             </button>
             <button
               onClick={onClose}
-              className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+              className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]"
             >
               <Download className="h-4 w-4" />
               View Full Results

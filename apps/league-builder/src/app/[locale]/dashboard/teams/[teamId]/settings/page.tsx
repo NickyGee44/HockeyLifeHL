@@ -1,9 +1,10 @@
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getTeam, getLeagueDivisions, getLeagueVenues } from '@/lib/actions/teams';
-import { redirect, notFound } from '@/i18n/navigation';
+import { redirect } from '@/i18n/navigation';
+import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
-import TeamSettingsClient from './team-settings-client';
+import TeamSettingsClient from '@/components/dashboard/teams/team-settings-client';
 import { setRequestLocale } from 'next-intl/server';
 
 type Props = {

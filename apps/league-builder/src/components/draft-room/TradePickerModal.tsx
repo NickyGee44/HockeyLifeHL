@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -246,7 +246,7 @@ export function TradePickerModal({
                 disabled={isSubmitting || !fromTeamId || !toTeamId || availableRounds.length === 0}
                 className={cn(
                   'flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black',
-                  'transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]',
+                  'transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]',
                   'disabled:cursor-not-allowed disabled:opacity-50'
                 )}
               >

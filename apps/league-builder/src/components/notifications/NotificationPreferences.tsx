@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * NotificationPreferences Component
@@ -207,10 +207,10 @@ export function NotificationPreferences() {
       {PREFERENCE_SECTIONS.map((section) => (
         <div
           key={section.title}
-          className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.2)] rounded-xl p-6"
+          className="bg-[#1a1a1a] border border-[rgba(34,211,238,0.2)] rounded-xl p-6"
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#22D3EE]">
+            <div className="p-2 bg-[rgba(34,211,238,0.1)] rounded-lg text-[#22D3EE]">
               {section.icon}
             </div>
             <div>
@@ -262,9 +262,9 @@ export function NotificationPreferences() {
       ))}
 
       {/* Quiet Hours */}
-      <div className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.2)] rounded-xl p-6">
+      <div className="bg-[#1a1a1a] border border-[rgba(34,211,238,0.2)] rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#22D3EE]">
+          <div className="p-2 bg-[rgba(34,211,238,0.1)] rounded-lg text-[#22D3EE]">
             <Moon className="h-5 w-5" />
           </div>
           <div>
@@ -303,7 +303,7 @@ export function NotificationPreferences() {
                   type="time"
                   value={quietHours.start}
                   onChange={(e) => handleQuietHoursChange('start', e.target.value)}
-                  className="bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
+                  className="bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg px-3 py-2 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
                 />
               </div>
               <div className="text-[#737373] pt-6">to</div>
@@ -313,7 +313,7 @@ export function NotificationPreferences() {
                   type="time"
                   value={quietHours.end}
                   onChange={(e) => handleQuietHoursChange('end', e.target.value)}
-                  className="bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-3 py-2 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
+                  className="bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg px-3 py-2 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
                 />
               </div>
             </div>
@@ -322,9 +322,9 @@ export function NotificationPreferences() {
       </div>
 
       {/* Timezone */}
-      <div className="bg-[#1a1a1a] border border-[rgba(212,175,55,0.2)] rounded-xl p-6">
+      <div className="bg-[#1a1a1a] border border-[rgba(34,211,238,0.2)] rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-[rgba(212,175,55,0.1)] rounded-lg text-[#22D3EE]">
+          <div className="p-2 bg-[rgba(34,211,238,0.1)] rounded-lg text-[#22D3EE]">
             <Bell className="h-5 w-5" />
           </div>
           <div>
@@ -339,7 +339,7 @@ export function NotificationPreferences() {
             setTimezone(e.target.value);
             await savePreferences({ timezone: e.target.value });
           }}
-          className="w-full bg-[#0a0a0a] border border-[rgba(212,175,55,0.3)] rounded-lg px-4 py-3 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
+          className="w-full bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg px-4 py-3 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
         >
           <option value="America/Toronto">Eastern Time (Toronto)</option>
           <option value="America/Chicago">Central Time (Chicago)</option>
