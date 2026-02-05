@@ -97,7 +97,7 @@ export function ScheduleTable({
 
 // Helper to determine the winning team
 function getWinner(game: ScheduleGameData): 'home' | 'away' | 'tie' | null {
-  if (game.status !== 'final') return null;
+  if (game.status !== 'final' && game.status !== 'completed') return null;
   const homeScore = game.home_score ?? 0;
   const awayScore = game.away_score ?? 0;
   if (homeScore > awayScore) return 'home';
@@ -128,7 +128,7 @@ function ScheduleTableRow({
   showDivision: boolean;
 }) {
   const gameDate = new Date(game.scheduled_at);
-  const isCompleted = game.status === 'final';
+  const isCompleted = game.status === 'final' || game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const winner = getWinner(game);
 
@@ -278,7 +278,7 @@ function ScheduleCard({
   showDivision: boolean;
 }) {
   const gameDate = new Date(game.scheduled_at);
-  const isCompleted = game.status === 'final';
+  const isCompleted = game.status === 'final' || game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const winner = getWinner(game);
 

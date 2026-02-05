@@ -4,6 +4,40 @@
  * Types for public-facing league website data
  */
 
+/**
+ * Social links configuration stored in league settings
+ */
+export interface SocialLinks {
+  facebook?: string | null;
+  twitter?: string | null;
+  instagram?: string | null;
+  youtube?: string | null;
+  tiktok?: string | null;
+}
+
+/**
+ * Website settings stored in league.settings.website
+ */
+export interface WebsiteSettings {
+  themePreset?: 'dark' | 'light' | 'custom';
+  bannerUrl?: string | null;
+  socialFacebook?: string | null;
+  socialTwitter?: string | null;
+  socialInstagram?: string | null;
+  socialYoutube?: string | null;
+  socialTiktok?: string | null;
+}
+
+/**
+ * League settings JSONB structure
+ */
+export interface LeagueSettings {
+  website?: WebsiteSettings;
+  fees?: Record<string, unknown>;
+  payment?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface League {
   id: string;
   name: string;
@@ -24,6 +58,7 @@ export interface League {
   status: 'draft' | 'active' | 'archived';
   organization_id: string;
   created_at: string;
+  settings?: LeagueSettings | null;
 }
 
 export interface LeagueTheme {
@@ -94,7 +129,7 @@ export interface Game {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
-  status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'final' | 'completed' | 'postponed' | 'cancelled';
   period: number | null;
   period_time: string | null;
   created_at: string;
@@ -105,17 +140,22 @@ export interface Game {
 
 export interface Player {
   id: string;
-  profile_id: string;
+  player_id: string;
   team_id: string;
-  jersey_number: string | null;
+  jersey_number: number | null;
   position: 'C' | 'LW' | 'RW' | 'D' | 'G' | null;
-  is_captain: boolean;
-  is_alternate: boolean;
+  leadership_role: 'captain' | 'alternate_captain' | null;
+  // Computed properties for backwards compatibility
+  is_captain?: boolean;
+  is_alternate?: boolean;
   // Joined data
   profile?: {
-    first_name: string;
-    last_name: string;
+    id?: string;
+    full_name: string | null;
     avatar_url: string | null;
+  };
+  team?: Team & {
+    league_id: string;
   };
 }
 
@@ -178,7 +218,7 @@ export interface TickerGame {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
-  status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'final' | 'completed' | 'postponed' | 'cancelled';
   home_team: {
     id: string;
     name: string;
@@ -211,7 +251,7 @@ export interface ScheduleGame {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
-  status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'final' | 'completed' | 'postponed' | 'cancelled';
   game_type?: string | null;
   division_id?: string | null;
   home_team: {
@@ -262,7 +302,7 @@ export interface GamePreview {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
-  status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'final' | 'completed' | 'postponed' | 'cancelled';
   period: number | null;
   period_time: string | null;
   created_at: string;
@@ -359,10 +399,56 @@ export interface GoalieStats {
   player_name: string;
   jersey_number: string | null;
   team_id: string;
+  team_name?: string;
+  team_logo?: string | null;
   games_played: number;
   wins: number;
   losses: number;
+  ties?: number;
   save_percentage: number;
   goals_against_average: number;
   shutouts: number;
+  saves?: number;
+  goals_against?: number;
+}
+
+/**
+ * Player Game Log Entry
+ */
+export interface PlayerGameLogEntry {
+  game_id: string;
+  date: string;
+  opponent?: string;
+  opponent_name?: string;
+  opponent_logo?: string | null;
+  is_home?: boolean;
+  result: 'W' | 'L' | 'T' | 'OTL' | '-';
+  score?: string; // "5-3"
+  goals: number;
+  assists: number;
+  points: number;
+  pim?: number;
+  penalty_minutes?: number;
+  plus_minus: number;
+  // Goalie specific
+  saves?: number;
+  goals_against?: number;
+  save_percentage?: number;
+}
+
+/**
+ * Player with extended team data
+ */
+export interface PlayerWithTeam extends Player {
+  team?: Team & {
+    league_id: string;
+  };
+}
+
+/**
+ * Score game for scores page (recent completed games)
+ */
+export interface ScoreGame extends RecentGame {
+  overtime?: boolean;
+  shootout?: boolean;
 }

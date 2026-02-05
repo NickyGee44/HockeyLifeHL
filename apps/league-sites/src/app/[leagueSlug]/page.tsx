@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, Trophy, Users, TrendingUp, ChevronRight, ArrowRight } from 'lucide-react';
 import {
@@ -10,6 +9,9 @@ import {
 } from '@/lib/data';
 import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
+import { HeroSection } from '@/components/HeroSection';
+import { Card, CardHeader } from '@/components/ui';
+import { Button } from '@/components/ui';
 
 interface HomePageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -32,80 +34,8 @@ export default async function HomePage({ params }: HomePageProps) {
 
   return (
     <div className="animate-fade-in">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Background with league colors */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(135deg, var(--league-primary) 0%, var(--league-secondary) 100%)`,
-          }}
-        />
-
-        {/* Banner image overlay */}
-        {league.banner_url && (
-          <div className="absolute inset-0">
-            <Image
-              src={league.banner_url}
-              alt={`${league.name} banner`}
-              fill
-              className="object-cover opacity-20"
-              priority
-            />
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="relative container mx-auto px-4 py-16 md:py-24">
-          <div className="flex flex-col items-center text-center">
-            {/* League Logo */}
-            {league.logo_url && (
-              <Image
-                src={league.logo_url}
-                alt={`${league.name} logo`}
-                width={120}
-                height={120}
-                className="rounded-2xl shadow-2xl mb-6"
-                priority
-              />
-            )}
-
-            <h1 className="text-4xl md:text-6xl font-black text-white mb-4">
-              {league.name}
-            </h1>
-
-            {league.description && (
-              <p className="text-lg md:text-xl text-white/80 max-w-2xl mb-8">
-                {league.description}
-              </p>
-            )}
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 w-full max-w-3xl">
-              <StatCard
-                icon={<Users className="w-6 h-6" />}
-                value={stats.totalTeams}
-                label="Teams"
-              />
-              <StatCard
-                icon={<Users className="w-6 h-6" />}
-                value={stats.totalPlayers}
-                label="Players"
-              />
-              <StatCard
-                icon={<Calendar className="w-6 h-6" />}
-                value={stats.gamesPlayed}
-                label="Games Played"
-              />
-              <StatCard
-                icon={<TrendingUp className="w-6 h-6" />}
-                value={stats.upcomingGames}
-                label="Upcoming"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Premium Hero Section */}
+      <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
@@ -121,10 +51,13 @@ export default async function HomePage({ params }: HomePageProps) {
                 </h2>
                 <Link
                   href={`/${leagueSlug}/schedule`}
-                  className="text-sm text-[var(--league-primary)] hover:underline flex items-center gap-1"
+                  className="group text-sm text-[var(--league-primary)] flex items-center gap-1 transition-all duration-300"
                 >
-                  View Full Schedule
-                  <ChevronRight className="w-4 h-4" />
+                  <span className="relative">
+                    View Full Schedule
+                    <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[var(--league-primary)] transition-all duration-300 group-hover:w-full" />
+                  </span>
+                  <ChevronRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>
 
@@ -138,23 +71,25 @@ export default async function HomePage({ params }: HomePageProps) {
                     />
                   ))}
 
-                  {/* View Full Schedule CTA */}
+                  {/* View Full Schedule CTA - Premium Button */}
                   <div className="pt-2">
-                    <Link
+                    <Button
                       href={`/${leagueSlug}/schedule`}
-                      className="btn-primary inline-flex items-center gap-2 w-full justify-center"
+                      variant="primary"
+                      glow
+                      fullWidth
+                      iconRight={<ArrowRight className="w-4 h-4" />}
                     >
                       View Full Schedule
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <div className="card p-8 text-center">
-                  <p className="text-[var(--color-text-secondary)]">
+                <Card variant="glass" padding="lg" hover={false}>
+                  <p className="text-[var(--color-text-secondary)] text-center">
                     No upcoming games scheduled
                   </p>
-                </div>
+                </Card>
               )}
             </section>
 
@@ -179,11 +114,11 @@ export default async function HomePage({ params }: HomePageProps) {
                   ))}
                 </div>
               ) : (
-                <div className="card p-8 text-center">
-                  <p className="text-[var(--color-text-secondary)]">
+                <Card variant="glass" padding="lg" hover={false}>
+                  <p className="text-[var(--color-text-secondary)] text-center">
                     No games played yet
                   </p>
-                </div>
+                </Card>
               )}
             </section>
           </div>
@@ -199,63 +134,45 @@ export default async function HomePage({ params }: HomePageProps) {
                 </h2>
                 <Link
                   href={`/${leagueSlug}/standings`}
-                  className="text-sm text-[var(--league-primary)] hover:underline flex items-center gap-1"
+                  className="group text-sm text-[var(--league-primary)] flex items-center gap-1 transition-all duration-300"
                 >
-                  Full Standings
-                  <ChevronRight className="w-4 h-4" />
+                  <span className="relative">
+                    Full Standings
+                    <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[var(--league-primary)] transition-all duration-300 group-hover:w-full" />
+                  </span>
+                  <ChevronRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>
 
               <StandingsWidget standings={standings.slice(0, 5)} />
             </section>
 
-            {/* Quick Links */}
-            <section className="card p-6">
-              <h3 className="font-bold mb-4">Quick Links</h3>
-              <nav className="space-y-2">
-                <QuickLink
-                  href={`/${leagueSlug}/teams`}
-                  icon={<Users className="w-4 h-4" />}
-                  label="View All Teams"
-                />
-                <QuickLink
-                  href={`/${leagueSlug}/stats`}
-                  icon={<TrendingUp className="w-4 h-4" />}
-                  label="Stats Leaders"
-                />
-                <QuickLink
-                  href={`/${leagueSlug}/about`}
-                  icon={<Calendar className="w-4 h-4" />}
-                  label="Contact League"
-                />
-              </nav>
+            {/* Quick Links - Premium Card with Gradient Border */}
+            <section>
+              <Card variant="gradient" glow hover>
+                <CardHeader title="Quick Links" accent />
+                <nav className="space-y-1">
+                  <QuickLink
+                    href={`/${leagueSlug}/teams`}
+                    icon={<Users className="w-4 h-4" />}
+                    label="View All Teams"
+                  />
+                  <QuickLink
+                    href={`/${leagueSlug}/stats`}
+                    icon={<TrendingUp className="w-4 h-4" />}
+                    label="Stats Leaders"
+                  />
+                  <QuickLink
+                    href={`/${leagueSlug}/about`}
+                    icon={<Calendar className="w-4 h-4" />}
+                    label="Contact League"
+                  />
+                </nav>
+              </Card>
             </section>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: number;
-  label: string;
-}) {
-  return (
-    <div
-      className="backdrop-blur-sm rounded-xl p-4 text-white"
-      style={{ background: 'rgba(255, 255, 255, 0.1)' }}
-    >
-      <div className="flex items-center gap-2 mb-2 opacity-80">
-        {icon}
-        <span className="text-sm">{label}</span>
-      </div>
-      <div className="text-3xl font-bold">{value}</div>
     </div>
   );
 }
@@ -272,11 +189,15 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
+      className="group flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--color-surface-hover)] transition-all duration-300"
     >
-      <span className="text-[var(--league-primary)]">{icon}</span>
-      <span className="text-[var(--color-text-secondary)]">{label}</span>
-      <ChevronRight className="w-4 h-4 ml-auto text-[var(--color-text-muted)]" />
+      <span className="text-[var(--league-primary)] transition-transform duration-300 group-hover:scale-110">
+        {icon}
+      </span>
+      <span className="text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors duration-300 flex-1">
+        {label}
+      </span>
+      <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] transition-all duration-300 group-hover:text-[var(--league-primary)] group-hover:translate-x-1" />
     </Link>
   );
 }

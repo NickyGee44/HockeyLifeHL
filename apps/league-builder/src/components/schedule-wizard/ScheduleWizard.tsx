@@ -9,9 +9,19 @@
 import { useState, useCallback } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Check, Calendar, Settings, AlertCircle, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
-import type { ScheduleConfig, ScheduleTemplate, Team, Venue, ScheduleGenerationResult } from '@/lib/schedule/types';
+import type {
+  ScheduleConfig,
+  ScheduleTemplate,
+  Team,
+  Venue,
+  ScheduleGenerationResult,
+  VenueAvailability,
+  VenueBlackoutDate,
+  TeamSchedulePreference,
+  ScheduleConstraintConfig,
+} from '@/lib/schedule/types';
 import { ScheduleConfigStep } from './ScheduleConfigStep';
-import { ConstraintStep } from './ConstraintStep';
+import { EnhancedConstraintStep, type ConstraintData } from './EnhancedConstraintStep';
 import { PreviewStep } from './PreviewStep';
 import { ResultStep } from './ResultStep';
 
@@ -58,6 +68,8 @@ function getDefaultConfig(startDate: Date, endDate: Date): ScheduleConfig {
     endDate,
     defaultVenueId: null,
     rotateHomeVenue: true,
+    playoffFormat: 'none',
+    playoffTeams: 8,
   };
 }
 
@@ -80,9 +92,16 @@ export function ScheduleWizard({
   const [config, setConfig] = useState<ScheduleConfig>(() => getDefaultConfig(startDate, endDate));
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [constraints, setConstraints] = useState<string[]>([]); // Constraint IDs
+  const [constraintData, setConstraintData] = useState<ConstraintData | null>(null);
   const [generationResult, setGenerationResult] = useState<ScheduleGenerationResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Handle constraint data changes from enhanced constraint step
+  const handleConstraintsChange = useCallback((data: ConstraintData) => {
+    setConstraintData(data);
+    setConstraints(data.basicConstraints.map((c) => c.id));
+  }, []);
 
   // Get current step index
   const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
@@ -216,13 +235,12 @@ export function ScheduleWizard({
         )}
 
         {currentStep === 'constraints' && (
-          <ConstraintStep
+          <EnhancedConstraintStep
             seasonId={seasonId}
             leagueId={leagueId}
             teams={teams}
             venues={venues}
-            constraints={constraints}
-            setConstraints={setConstraints}
+            onConstraintsChange={handleConstraintsChange}
           />
         )}
 

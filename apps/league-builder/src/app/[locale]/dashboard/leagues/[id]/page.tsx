@@ -17,7 +17,9 @@ import {
   Plus,
   Edit,
   Play,
+  LayoutGrid,
 } from 'lucide-react';
+import { LeagueLogo } from '@/components/ui/league-logo';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -52,6 +54,10 @@ export default async function LeagueDetailPage({ params }: Props) {
     .eq('id', leagueId)
     .single();
 
+  if (error) {
+    console.error('[League Page] Error fetching league:', error.message, { leagueId, userId: userData?.id });
+  }
+
   if (error || !league) {
     notFound();
   }
@@ -59,6 +65,12 @@ export default async function LeagueDetailPage({ params }: Props) {
   // Get teams count
   const { count: teamsCount } = await supabase
     .from('teams')
+    .select('*', { count: 'exact', head: true })
+    .eq('league_id', leagueId);
+
+  // Get divisions count
+  const { count: divisionsCount } = await supabase
+    .from('divisions')
     .select('*', { count: 'exact', head: true })
     .eq('league_id', leagueId);
 
@@ -77,12 +89,14 @@ export default async function LeagueDetailPage({ params }: Props) {
 
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{ backgroundColor: league.primary_color || '#22D3EE' }}
-              >
-                <Trophy className="w-8 h-8 text-white" />
-              </div>
+              <LeagueLogo
+                logoUrl={league.logo_url}
+                leagueName={league.name}
+                primaryColor={league.primary_color || '#22D3EE'}
+                size="lg"
+                shape="square"
+                bordered
+              />
               <div>
                 <h1 className="text-3xl font-black text-white tracking-tight">
                   {league.name}
@@ -109,13 +123,20 @@ export default async function LeagueDetailPage({ params }: Props) {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+        <div className="grid gap-4 md:grid-cols-5 mb-8">
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <Users className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Teams</span>
             </div>
             <p className="text-2xl font-bold text-white">{teamsCount || 0}</p>
+          </div>
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <LayoutGrid className="w-5 h-5 text-rink-500" />
+              <span className="text-sm text-neutral-400">Divisions</span>
+            </div>
+            <p className="text-2xl font-bold text-white">{divisionsCount || 0}</p>
           </div>
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
@@ -143,12 +164,18 @@ export default async function LeagueDetailPage({ params }: Props) {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/teams`}
             icon={<Users className="w-5 h-5" />}
             title="Manage Teams"
             description="Add, edit, or remove teams"
+          />
+          <QuickActionButton
+            href={`/${locale}/dashboard/leagues/${leagueId}/divisions`}
+            icon={<LayoutGrid className="w-5 h-5" />}
+            title="Divisions"
+            description="Organize teams by skill"
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/schedule`}

@@ -542,6 +542,7 @@ export async function addGoalEvent(data: {
   isPowerPlay?: boolean;
   isShortHanded?: boolean;
   isEmptyNet?: boolean;
+  goalieInNetId?: string; // The opposing goalie who was in net when the goal was scored
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
     // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
@@ -582,6 +583,7 @@ export async function addGoalEvent(data: {
         is_power_play: data.isPowerPlay || false,
         is_short_handed: data.isShortHanded || false,
         is_empty_net: data.isEmptyNet || false,
+        goalie_in_net_id: data.goalieInNetId || null, // Track which goalie allowed the goal
         entered_by: '00000000-0000-0000-0000-000000000000', // Scorekeeper session
         entered_at: new Date().toISOString(),
       })
@@ -929,10 +931,19 @@ export async function getGameSummary(gameId: string): Promise<{
     awaySaves: number;
     homeShots: number;
     awayShots: number;
+    // Power play / short-handed breakdown
+    homePPGoals: number;
+    awayPPGoals: number;
+    homeSHGoals: number;
+    awaySHGoals: number;
+    homeENGoals: number;
+    awayENGoals: number;
     periods: Array<{
       period: number;
       homeGoals: number;
       awayGoals: number;
+      homeSaves: number;
+      awaySaves: number;
     }>;
     scorers: Array<{
       playerId: string;
@@ -940,6 +951,10 @@ export async function getGameSummary(gameId: string): Promise<{
       teamType: 'home' | 'away';
       goals: number;
       assists: number;
+      ppGoals: number;
+      ppAssists: number;
+      shGoals: number;
+      shAssists: number;
     }>;
     goalies: Array<{
       playerId: string;
@@ -947,6 +962,13 @@ export async function getGameSummary(gameId: string): Promise<{
       teamType: 'home' | 'away';
       saves: number;
       goalsAgainst: number;
+      shotsAgainst: number;
+      savePercentage: number;
+      periodStats: Array<{
+        period: number;
+        saves: number;
+        goalsAgainst: number;
+      }>;
     }>;
   };
   error?: string;
@@ -964,6 +986,10 @@ export async function getGameSummary(gameId: string): Promise<{
         assist2_player_id,
         period,
         penalty_minutes,
+        is_power_play,
+        is_short_handed,
+        is_empty_net,
+        goalie_in_net_id,
         player:profiles!game_events_player_id_fkey(full_name)
       `)
       .eq('game_id', gameId)
@@ -977,27 +1003,38 @@ export async function getGameSummary(gameId: string): Promise<{
     const penalties = events?.filter(e => e.event_type === 'penalty') || [];
     const saves = events?.filter(e => e.event_type === 'save') || [];
 
-    // Calculate period breakdown
+    // Calculate period breakdown with saves
     const periods = [1, 2, 3].map(period => ({
       period,
       homeGoals: goals.filter(g => g.period === period && g.team_type === 'home').length,
       awayGoals: goals.filter(g => g.period === period && g.team_type === 'away').length,
+      homeSaves: saves.filter(s => s.period === period && s.team_type === 'home').length,
+      awaySaves: saves.filter(s => s.period === period && s.team_type === 'away').length,
     }));
 
-    // Calculate scorer stats
+    // Calculate scorer stats with PP/SH breakdown
     const scorerMap = new Map<string, {
       playerId: string;
       playerName: string;
       teamType: 'home' | 'away';
       goals: number;
       assists: number;
+      ppGoals: number;
+      ppAssists: number;
+      shGoals: number;
+      shAssists: number;
     }>();
 
     goals.forEach(g => {
       const key = g.player_id;
       const existing = scorerMap.get(key);
+      const isPP = g.is_power_play || false;
+      const isSH = g.is_short_handed || false;
+
       if (existing) {
         existing.goals += 1;
+        if (isPP) existing.ppGoals += 1;
+        if (isSH) existing.shGoals += 1;
       } else {
         scorerMap.set(key, {
           playerId: g.player_id,
@@ -1005,16 +1042,22 @@ export async function getGameSummary(gameId: string): Promise<{
           teamType: g.team_type as 'home' | 'away',
           goals: 1,
           assists: 0,
+          ppGoals: isPP ? 1 : 0,
+          ppAssists: 0,
+          shGoals: isSH ? 1 : 0,
+          shAssists: 0,
         });
       }
 
-      // Count assists
+      // Count assists with PP/SH tracking
       [g.assist1_player_id, g.assist2_player_id].forEach(assistId => {
         if (assistId) {
           const assistKey = assistId;
           const assistExisting = scorerMap.get(assistKey);
           if (assistExisting) {
             assistExisting.assists += 1;
+            if (isPP) assistExisting.ppAssists += 1;
+            if (isSH) assistExisting.shAssists += 1;
           } else {
             scorerMap.set(assistKey, {
               playerId: assistId,
@@ -1022,19 +1065,25 @@ export async function getGameSummary(gameId: string): Promise<{
               teamType: g.team_type as 'home' | 'away',
               goals: 0,
               assists: 1,
+              ppGoals: 0,
+              ppAssists: isPP ? 1 : 0,
+              shGoals: 0,
+              shAssists: isSH ? 1 : 0,
             });
           }
         }
       });
     });
 
-    // Calculate goalie stats
+    // Calculate goalie stats with period breakdown and proper GA tracking
     const goalieMap = new Map<string, {
       playerId: string;
       playerName: string;
       teamType: 'home' | 'away';
       saves: number;
       goalsAgainst: number;
+      periodSaves: Record<number, number>;
+      periodGA: Record<number, number>;
     }>();
 
     saves.forEach(s => {
@@ -1042,6 +1091,7 @@ export async function getGameSummary(gameId: string): Promise<{
       const existing = goalieMap.get(key);
       if (existing) {
         existing.saves += 1;
+        existing.periodSaves[s.period] = (existing.periodSaves[s.period] || 0) + 1;
       } else {
         goalieMap.set(key, {
           playerId: s.player_id,
@@ -1049,18 +1099,63 @@ export async function getGameSummary(gameId: string): Promise<{
           teamType: s.team_type as 'home' | 'away',
           saves: 1,
           goalsAgainst: 0,
+          periodSaves: { [s.period]: 1 },
+          periodGA: {},
         });
       }
     });
 
-    // Goals against for goalies (opposite team scored)
+    // Goals against for goalies - use goalie_in_net_id if available
     goals.forEach(g => {
-      const oppositeTeam = g.team_type === 'home' ? 'away' : 'home';
-      goalieMap.forEach(goalie => {
-        if (goalie.teamType === oppositeTeam) {
+      if (g.goalie_in_net_id) {
+        // Use the specific goalie who was in net
+        const goalie = goalieMap.get(g.goalie_in_net_id);
+        if (goalie) {
           goalie.goalsAgainst += 1;
+          goalie.periodGA[g.period] = (goalie.periodGA[g.period] || 0) + 1;
+        } else {
+          // Goalie not in map yet (no saves recorded), add them
+          goalieMap.set(g.goalie_in_net_id, {
+            playerId: g.goalie_in_net_id,
+            playerName: 'Unknown',
+            teamType: g.team_type === 'home' ? 'away' : 'home',
+            saves: 0,
+            goalsAgainst: 1,
+            periodSaves: {},
+            periodGA: { [g.period]: 1 },
+          });
         }
-      });
+      } else {
+        // Fallback: distribute to all goalies of opposite team
+        const oppositeTeam = g.team_type === 'home' ? 'away' : 'home';
+        goalieMap.forEach(goalie => {
+          if (goalie.teamType === oppositeTeam) {
+            goalie.goalsAgainst += 1;
+            goalie.periodGA[g.period] = (goalie.periodGA[g.period] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    // Convert goalie map to array with calculated stats
+    const goalies = Array.from(goalieMap.values()).map(g => {
+      const shotsAgainst = g.saves + g.goalsAgainst;
+      const savePercentage = shotsAgainst > 0 ? Math.round((g.saves / shotsAgainst) * 1000) / 10 : 100;
+
+      return {
+        playerId: g.playerId,
+        playerName: g.playerName,
+        teamType: g.teamType,
+        saves: g.saves,
+        goalsAgainst: g.goalsAgainst,
+        shotsAgainst,
+        savePercentage,
+        periodStats: [1, 2, 3].map(period => ({
+          period,
+          saves: g.periodSaves[period] || 0,
+          goalsAgainst: g.periodGA[period] || 0,
+        })),
+      };
     });
 
     const summary = {
@@ -1072,9 +1167,16 @@ export async function getGameSummary(gameId: string): Promise<{
       awaySaves: saves.filter(s => s.team_type === 'away').length,
       homeShots: goals.filter(g => g.team_type === 'away').length + saves.filter(s => s.team_type === 'home').length,
       awayShots: goals.filter(g => g.team_type === 'home').length + saves.filter(s => s.team_type === 'away').length,
+      // PP/SH/EN breakdown
+      homePPGoals: goals.filter(g => g.team_type === 'home' && g.is_power_play).length,
+      awayPPGoals: goals.filter(g => g.team_type === 'away' && g.is_power_play).length,
+      homeSHGoals: goals.filter(g => g.team_type === 'home' && g.is_short_handed).length,
+      awaySHGoals: goals.filter(g => g.team_type === 'away' && g.is_short_handed).length,
+      homeENGoals: goals.filter(g => g.team_type === 'home' && g.is_empty_net).length,
+      awayENGoals: goals.filter(g => g.team_type === 'away' && g.is_empty_net).length,
       periods,
       scorers: Array.from(scorerMap.values()).sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists)),
-      goalies: Array.from(goalieMap.values()),
+      goalies,
     };
 
     return { success: true, summary };

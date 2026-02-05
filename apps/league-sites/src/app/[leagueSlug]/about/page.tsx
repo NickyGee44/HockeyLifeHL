@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import { Info, Mail, Phone, MapPin, Globe, Calendar, Users, Trophy } from 'lucide-react';
 import { getLeagueBySlug, getLeagueStats, getCurrentSeason } from '@/lib/data';
+import { SocialLinks } from '@/components/SocialLinks';
 import type { League } from '@/lib/types';
 
 interface AboutPageProps {
@@ -170,6 +171,14 @@ export default async function AboutPage({ params }: AboutPageProps) {
                 )}
             </div>
           </section>
+
+          {/* Social Links */}
+          {league.settings?.website && (
+            <section className="card p-6">
+              <h3 className="text-lg font-bold mb-4">Follow Us</h3>
+              <SocialLinks settings={league.settings.website} size="md" />
+            </section>
+          )}
 
           {/* Quick Links */}
           <section className="card p-6">

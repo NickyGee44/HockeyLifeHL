@@ -168,9 +168,7 @@ function RosterSection({ title, players }: { title: string; players: Player[] })
 }
 
 function PlayerCard({ player }: { player: Player }) {
-  const fullName = player.profile
-    ? `${player.profile.first_name} ${player.profile.last_name}`
-    : 'Unknown Player';
+  const fullName = player.profile?.full_name || 'Unknown Player';
 
   return (
     <div className="card p-4">
@@ -190,12 +188,12 @@ function PlayerCard({ player }: { player: Player }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h4 className="font-semibold truncate">{fullName}</h4>
-            {player.is_captain && (
-              <span className="text-xs bg-gold-500/20 text-gold-500 px-1.5 py-0.5 rounded font-medium">
+            {player.leadership_role === 'captain' && (
+              <span className="text-xs bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded font-medium">
                 C
               </span>
             )}
-            {player.is_alternate && !player.is_captain && (
+            {player.leadership_role === 'alternate_captain' && (
               <span className="text-xs bg-gray-500/20 text-gray-400 px-1.5 py-0.5 rounded font-medium">
                 A
               </span>

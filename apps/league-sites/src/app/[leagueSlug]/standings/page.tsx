@@ -1,8 +1,7 @@
 import { Metadata } from 'next';
 import { Trophy } from 'lucide-react';
 import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason } from '@/lib/data';
-import { StandingsTabs } from '@/components/StandingsTabs';
-import { StandingsTable } from '@/components/StandingsTable';
+import { StandingsWithSearch } from '@/components/StandingsWithSearch';
 import type { TeamStanding, Division } from '@/lib/types';
 
 interface StandingsPageProps {
@@ -23,7 +22,7 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
   const season = await getCurrentSeason(league.id);
   const [standings, divisions] = await Promise.all([
     getStandings(league.id, season?.id),
-    season ? getDivisions(season.id) : Promise.resolve([]),
+    getDivisions(league.id),
   ]);
 
   // Group standings by division
@@ -46,16 +45,11 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
 
       {/* Standings */}
       {standings.length > 0 ? (
-        divisions.length > 1 ? (
-          <StandingsTabs
-            standingsByDivision={standingsByDivision}
-            divisions={divisions}
-          />
-        ) : (
-          <div className="card overflow-hidden">
-            <StandingsTable standings={standings} />
-          </div>
-        )
+        <StandingsWithSearch
+          standings={standings}
+          divisions={divisions}
+          standingsByDivision={standingsByDivision}
+        />
       ) : (
         <div className="card p-12 text-center">
           <Trophy className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />

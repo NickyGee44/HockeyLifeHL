@@ -27,7 +27,7 @@ export function GamePreviewHeader({
   leagueSlug,
 }: GamePreviewHeaderProps) {
   const gameDate = new Date(game.scheduled_at);
-  const isCompleted = game.status === 'final';
+  const isCompleted = game.status === 'final' || game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const isPostponed = game.status === 'postponed';
   const isCancelled = game.status === 'cancelled';

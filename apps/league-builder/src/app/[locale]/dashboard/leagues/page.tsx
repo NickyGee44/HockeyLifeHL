@@ -13,6 +13,7 @@ import {
   Settings,
   CreditCard,
 } from 'lucide-react';
+import { LeagueLogo } from '@/components/ui/league-logo';
 
 export const metadata = {
   title: 'Leagues | Beer League Hockey',
@@ -150,12 +151,14 @@ function LeagueCard({ league }: { league: any }) {
         {/* Top Row */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: league.primary_color || '#22D3EE' }}
-            >
-              <Trophy className="w-6 h-6 text-white" />
-            </div>
+            <LeagueLogo
+              logoUrl={league.logo_url}
+              leagueName={league.name}
+              primaryColor={league.primary_color || '#22D3EE'}
+              size="md"
+              shape="square"
+              bordered
+            />
             <div>
               <h3 className="font-bold text-white text-lg group-hover:text-rink-500 transition-colors">
                 {league.name}

@@ -1,21 +1,19 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@hockey-life/ui';
-import { updateLeagueBranding, uploadLeagueLogo } from '@/lib/actions/organization';
+import { updateLeagueBranding } from '@/lib/actions/organization';
+import { uploadLeagueLogo, deleteLeagueLogo } from '@/lib/actions/logo';
+import { LogoUploader } from '@/components/ui/logo-uploader';
+import { LeagueLogo } from '@/components/ui/league-logo';
 import {
-  Palette,
-  Upload,
   Save,
   Loader2,
   AlertCircle,
   CheckCircle,
   Trophy,
-  Eye,
-  X,
-  Image,
 } from 'lucide-react';
 
 interface League {
@@ -40,10 +38,8 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
     leagues.length > 0 ? leagues[0].id : null
   );
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state for the selected league
   const selectedLeague = leagues.find((l) => l.id === selectedLeagueId);
@@ -91,55 +87,6 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
       setError('An unexpected error occurred');
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedLeagueId) return;
-
-    // Validate file type
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Invalid file type. Allowed: PNG, JPEG, WebP, SVG');
-      return;
-    }
-
-    // Validate file size (max 2MB)
-    const maxSize = 2 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError('File too large. Maximum size is 2MB');
-      return;
-    }
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setLogoPreview(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload
-    setIsUploading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const result = await uploadLeagueLogo(selectedLeagueId, file);
-
-      if (result.error) {
-        setError(result.error);
-        // Revert preview
-        setLogoPreview(selectedLeague?.logo_url || null);
-      } else {
-        setSuccess('Logo uploaded successfully');
-        router.refresh();
-      }
-    } catch {
-      setError('Failed to upload logo');
-      setLogoPreview(selectedLeague?.logo_url || null);
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -219,71 +166,44 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
         <CardHeader>
           <CardTitle className="text-neutral-100">League Logo</CardTitle>
           <CardDescription className="text-neutral-400">
-            Upload your league's logo for branding
+            Upload your league's logo for branding. Supports crop and resize.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-            onChange={handleFileSelect}
-            className="hidden"
+          <LogoUploader
+            value={logoPreview || ''}
+            onChange={(url) => {
+              setLogoPreview(url || null);
+              if (!url) {
+                setSuccess('Logo removed successfully');
+              } else {
+                setSuccess('Logo uploaded successfully');
+              }
+              router.refresh();
+            }}
+            onUpload={async (file) => {
+              if (!selectedLeagueId) {
+                throw new Error('No league selected');
+              }
+              const result = await uploadLeagueLogo(selectedLeagueId, file);
+              if (!result.success) {
+                throw new Error(result.error);
+              }
+              return result.data;
+            }}
+            onRemove={async () => {
+              if (!selectedLeagueId) {
+                throw new Error('No league selected');
+              }
+              const result = await deleteLeagueLogo(selectedLeagueId);
+              if (!result.success) {
+                throw new Error(result.error);
+              }
+            }}
+            placeholder="Upload Logo"
+            shape="square"
+            showDownload={!!logoPreview}
           />
-
-          <div className="flex items-start gap-6">
-            {/* Logo Preview */}
-            <div className="relative">
-              {logoPreview ? (
-                <div className="relative w-32 h-32 rounded-xl overflow-hidden bg-neutral-900 border border-rink-500/30">
-                  <img
-                    src={logoPreview}
-                    alt="League logo"
-                    className="w-full h-full object-contain p-2"
-                  />
-                  {isUploading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                      <Loader2 className="w-8 h-8 text-rink-500 animate-spin" />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="w-32 h-32 rounded-xl bg-neutral-900 border-2 border-dashed border-neutral-700 flex items-center justify-center">
-                  <Image className="w-12 h-12 text-neutral-600" />
-                </div>
-              )}
-            </div>
-
-            {/* Upload Controls */}
-            <div className="flex-1">
-              <p className="text-sm text-neutral-300 mb-3">
-                Upload your league logo. Recommended size: 500x500px
-              </p>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className={cn(
-                    'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
-                    'bg-rink-500/10 text-rink-500 border border-rink-500/30',
-                    'hover:bg-rink-500/20 transition-colors',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
-                  )}
-                >
-                  {isUploading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4" />
-                  )}
-                  {logoPreview ? 'Change Logo' : 'Upload Logo'}
-                </button>
-              </div>
-              <p className="text-xs text-neutral-500 mt-2">
-                Supported: PNG, JPEG, WebP, SVG (max 2MB)
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -406,20 +326,14 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
         <CardContent>
           <div className="border border-white/10 rounded-xl p-6 bg-neutral-900/50">
             <div className="flex items-center gap-4 mb-6">
-              {logoPreview ? (
-                <img
-                  src={logoPreview}
-                  alt="League logo preview"
-                  className="w-16 h-16 rounded-xl object-contain bg-neutral-800 p-2"
-                />
-              ) : (
-                <div
-                  className="w-16 h-16 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <Trophy className="w-8 h-8 text-white" />
-                </div>
-              )}
+              <LeagueLogo
+                logoUrl={logoPreview}
+                leagueName={selectedLeague?.name || 'Your League'}
+                primaryColor={primaryColor}
+                size="lg"
+                shape="square"
+                bordered
+              />
               <div>
                 <h3 className="text-xl font-bold text-white">
                   {selectedLeague?.name || 'Your League'}

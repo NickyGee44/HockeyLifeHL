@@ -101,6 +101,7 @@ export default function ScorekeeperGamePage() {
     isShortHanded?: boolean;
     isEmptyNet?: boolean;
     gameTimeSeconds?: number;
+    goalieInNetId?: string;
   }) => {
     if (!game || !selectedTeam) return;
 
@@ -119,6 +120,7 @@ export default function ScorekeeperGamePage() {
       isPowerPlay: data.isPowerPlay,
       isShortHanded: data.isShortHanded,
       isEmptyNet: data.isEmptyNet,
+      goalieInNetId: data.goalieInNetId, // Track which goalie allowed the goal
     });
 
     if (result.success) {
@@ -423,6 +425,7 @@ export default function ScorekeeperGamePage() {
       {entryMode === 'goal' && selectedTeam && (
         <GoalEntryModal
           team={selectedTeam === 'home' ? game.homeTeam : game.awayTeam}
+          opposingTeam={selectedTeam === 'home' ? game.awayTeam : game.homeTeam}
           teamType={selectedTeam}
           period={currentPeriod}
           onSubmit={handleAddGoal}

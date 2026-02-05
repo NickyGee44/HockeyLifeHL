@@ -26,6 +26,8 @@ export interface DashboardData {
       created_at: string;
       team_count: number;
       player_count: number;
+      logo_url: string | null;
+      primary_color: string | null;
     }>;
   }>;
   totals: {

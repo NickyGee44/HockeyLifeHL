@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { Info } from 'lucide-react';
+import { Info, ImageIcon } from 'lucide-react';
 import {
   Input,
   Textarea,
@@ -15,6 +15,8 @@ import {
   SelectValue,
 } from '@hockey-life/ui';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
+import { LogoUploader } from '../../ui/logo-uploader';
+import { uploadWizardLogo, deleteWizardLogo } from '@/lib/actions/logo';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
 
 // Common US timezones
@@ -171,11 +173,46 @@ export function Step1LeagueInfo() {
         <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-2">
           <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
-            These colors will be used throughout your league's interface to
+            These colors and logo will be used throughout your league's interface to
             create a consistent brand experience.
           </p>
         </div>
 
+        {/* Logo Upload */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <label className="text-sm font-medium">League Logo</label>
+            <span className="text-xs text-muted-foreground">(optional)</span>
+          </div>
+          <LogoUploader
+            value={watch('logo_url') || ''}
+            onChange={(url) => setValue('logo_url', url)}
+            onUpload={async (file) => {
+              const result = await uploadWizardLogo(file);
+              if (!result.success) {
+                throw new Error(result.error);
+              }
+              return result.data;
+            }}
+            onRemove={async () => {
+              const currentUrl = watch('logo_url');
+              if (currentUrl) {
+                const result = await deleteWizardLogo(currentUrl);
+                if (!result.success) {
+                  throw new Error(result.error);
+                }
+              }
+            }}
+            placeholder="Upload Logo"
+            shape="square"
+          />
+          {errors.logo_url?.message && (
+            <p className="text-sm text-red-500">{errors.logo_url.message}</p>
+          )}
+        </div>
+
+        {/* Colors */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             label="Primary Color"
@@ -209,21 +246,6 @@ export function Step1LeagueInfo() {
             />
           </FormField>
         </div>
-
-        <FormField
-          label="Logo URL"
-          error={errors.logo_url?.message}
-          htmlFor="logo_url"
-          hint="Optional. URL to your league's logo image."
-        >
-          <Input
-            {...register('logo_url')}
-            id="logo_url"
-            type="url"
-            placeholder="https://example.com/logo.png"
-            error={!!errors.logo_url}
-          />
-        </FormField>
       </div>
 
       {/* Contact Information Section */}

@@ -43,13 +43,23 @@ export function GameSummaryModal({
     awaySaves: number;
     homeShots: number;
     awayShots: number;
-    periods: Array<{ period: number; homeGoals: number; awayGoals: number }>;
+    homePPGoals: number;
+    awayPPGoals: number;
+    homeSHGoals: number;
+    awaySHGoals: number;
+    homeENGoals: number;
+    awayENGoals: number;
+    periods: Array<{ period: number; homeGoals: number; awayGoals: number; homeSaves: number; awaySaves: number }>;
     scorers: Array<{
       playerId: string;
       playerName: string;
       teamType: 'home' | 'away';
       goals: number;
       assists: number;
+      ppGoals: number;
+      ppAssists: number;
+      shGoals: number;
+      shAssists: number;
     }>;
     goalies: Array<{
       playerId: string;
@@ -57,6 +67,9 @@ export function GameSummaryModal({
       teamType: 'home' | 'away';
       saves: number;
       goalsAgainst: number;
+      shotsAgainst: number;
+      savePercentage: number;
+      periodStats: Array<{ period: number; saves: number; goalsAgainst: number }>;
     }>;
   } | null>(null);
 
@@ -212,6 +225,34 @@ export function GameSummaryModal({
             </div>
           </div>
 
+          {/* Special Teams Stats */}
+          {summary && (summary.homePPGoals > 0 || summary.awayPPGoals > 0 || summary.homeSHGoals > 0 || summary.awaySHGoals > 0) && (
+            <div className="bg-neutral-800 rounded-xl p-4">
+              <h3 className="text-sm font-medium text-neutral-300 mb-3">Special Teams</h3>
+              <div className="grid grid-cols-3 gap-4 text-center text-sm">
+                <div className="text-neutral-500 font-medium">&nbsp;</div>
+                <div className="text-neutral-500 font-medium">{game.homeTeam.shortName || 'Home'}</div>
+                <div className="text-neutral-500 font-medium">{game.awayTeam.shortName || 'Away'}</div>
+
+                <div className="text-neutral-400 text-left">Power Play Goals</div>
+                <div className="text-amber-400 font-semibold">{summary.homePPGoals}</div>
+                <div className="text-amber-400 font-semibold">{summary.awayPPGoals}</div>
+
+                <div className="text-neutral-400 text-left">Short Handed Goals</div>
+                <div className="text-purple-400 font-semibold">{summary.homeSHGoals}</div>
+                <div className="text-purple-400 font-semibold">{summary.awaySHGoals}</div>
+
+                {(summary.homeENGoals > 0 || summary.awayENGoals > 0) && (
+                  <>
+                    <div className="text-neutral-400 text-left">Empty Net Goals</div>
+                    <div className="text-orange-400 font-semibold">{summary.homeENGoals}</div>
+                    <div className="text-orange-400 font-semibold">{summary.awayENGoals}</div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Top Scorers */}
           {summary && summary.scorers.length > 0 && (
             <div className="bg-neutral-800 rounded-xl p-4">
@@ -238,12 +279,24 @@ export function GameSummaryModal({
                       </span>
                       <span className="text-white font-medium">{scorer.playerName}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-2 text-sm">
                       {scorer.goals > 0 && (
                         <span className="text-emerald-400">{scorer.goals}G</span>
                       )}
                       {scorer.assists > 0 && (
                         <span className="text-blue-400">{scorer.assists}A</span>
+                      )}
+                      {/* Show PP/SH indicators if any */}
+                      {(scorer.ppGoals > 0 || scorer.ppAssists > 0) && (
+                        <span className="text-amber-400 text-xs">
+                          {scorer.ppGoals > 0 && `${scorer.ppGoals}PP`}
+                          {scorer.ppAssists > 0 && `${scorer.ppAssists > 0 ? '+' : ''}${scorer.ppAssists}A`}
+                        </span>
+                      )}
+                      {(scorer.shGoals > 0 || scorer.shAssists > 0) && (
+                        <span className="text-purple-400 text-xs">
+                          {scorer.shGoals > 0 && `${scorer.shGoals}SH`}
+                        </span>
                       )}
                       <span className="text-rink-400 font-bold">{scorer.goals + scorer.assists}P</span>
                     </div>
@@ -257,16 +310,13 @@ export function GameSummaryModal({
           {summary && summary.goalies.length > 0 && (
             <div className="bg-neutral-800 rounded-xl p-4">
               <h3 className="text-sm font-medium text-neutral-300 mb-3">Goalie Summary</h3>
-              <div className="space-y-2">
-                {summary.goalies.map((goalie) => {
-                  const shots = goalie.saves + goalie.goalsAgainst;
-                  const savePercentage = shots > 0 ? ((goalie.saves / shots) * 100).toFixed(1) : '0.0';
-
-                  return (
-                    <div
-                      key={goalie.playerId}
-                      className="flex items-center justify-between py-2 border-b border-neutral-700 last:border-0"
-                    >
+              <div className="space-y-4">
+                {summary.goalies.map((goalie) => (
+                  <div
+                    key={goalie.playerId}
+                    className="border-b border-neutral-700 last:border-0 pb-4 last:pb-0"
+                  >
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span
                           className="text-xs px-2 py-0.5 rounded font-medium"
@@ -286,11 +336,31 @@ export function GameSummaryModal({
                       <div className="flex items-center gap-3 text-sm">
                         <span className="text-blue-400">{goalie.saves} SV</span>
                         <span className="text-red-400">{goalie.goalsAgainst} GA</span>
-                        <span className="text-rink-400 font-bold">{savePercentage}%</span>
+                        <span className="text-rink-400 font-bold">{goalie.savePercentage}%</span>
                       </div>
                     </div>
-                  );
-                })}
+
+                    {/* Period-by-period breakdown */}
+                    {goalie.periodStats && goalie.periodStats.some(p => p.saves > 0 || p.goalsAgainst > 0) && (
+                      <div className="mt-2 grid grid-cols-4 gap-2 text-xs text-center">
+                        <div className="text-neutral-500">Period</div>
+                        {goalie.periodStats.map((ps) => (
+                          <div key={ps.period} className="text-neutral-500">P{ps.period}</div>
+                        ))}
+
+                        <div className="text-neutral-400">Saves</div>
+                        {goalie.periodStats.map((ps) => (
+                          <div key={`sv-${ps.period}`} className="text-blue-400">{ps.saves}</div>
+                        ))}
+
+                        <div className="text-neutral-400">Shots</div>
+                        {goalie.periodStats.map((ps) => (
+                          <div key={`sh-${ps.period}`} className="text-neutral-300">{ps.saves + ps.goalsAgainst}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}

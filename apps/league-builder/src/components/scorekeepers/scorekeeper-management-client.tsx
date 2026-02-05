@@ -1,0 +1,366 @@
+'use client';
+
+import { useState, useCallback, useTransition } from 'react';
+import { cn } from '@hockey-life/ui';
+import { Button } from '@/components/ui/button';
+import {
+  getLeagueScorekepers,
+  removeScorekeeperFromLeague,
+  exportScorekepers,
+  type LeagueScorekeeper,
+} from '@/lib/actions/scorekeeper-management';
+import { ScorekeepersList } from './scorekeepers-list';
+import { AddScorekeeperModal } from './add-scorekeeper-modal';
+import { EditScorekeeperModal } from './edit-scorekeeper-modal';
+import { ImportScorekepersModal } from './import-scorekeepers-modal';
+import { AutoAssignModal } from './auto-assign-modal';
+import { BulkAssignGamesModal } from './bulk-assign-games-modal';
+import {
+  UserPlus,
+  Upload,
+  Download,
+  Wand2,
+  Calendar,
+  Trash2,
+  Loader2,
+} from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/dialog';
+
+interface ScorekeeperManagementClientProps {
+  leagueId: string;
+  initialScorekepers: LeagueScorekeeper[];
+  seasons: Array<{ id: string; name: string }>;
+}
+
+export function ScorekeeperManagementClient({
+  leagueId,
+  initialScorekepers,
+  seasons,
+}: ScorekeeperManagementClientProps) {
+  const [isPending, startTransition] = useTransition();
+  const [scorekeepers, setScorekepers] = useState<LeagueScorekeeper[]>(initialScorekepers);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editScorekeeper, setEditScorekeeper] = useState<LeagueScorekeeper | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showAutoAssignModal, setShowAutoAssignModal] = useState(false);
+  const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
+  const [assignForScorekeeper, setAssignForScorekeeper] = useState<LeagueScorekeeper | null>(null);
+  const [removeScorekeeper, setRemoveScorekeeper] = useState<LeagueScorekeeper | null>(null);
+  const [showBulkRemoveConfirm, setShowBulkRemoveConfirm] = useState(false);
+
+  // Refresh scorekeepers
+  const refreshScorekepers = useCallback(() => {
+    startTransition(async () => {
+      const result = await getLeagueScorekepers(leagueId);
+      if (result.success) {
+        setScorekepers(result.data.scorekeepers);
+      }
+    });
+  }, [leagueId]);
+
+  // Selection handlers
+  const handleSelectScorekeeper = useCallback((id: string, selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedIds.size === scorekeepers.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(scorekeepers.map((sk) => sk.id)));
+    }
+  }, [scorekeepers, selectedIds.size]);
+
+  // Remove scorekeeper
+  const handleRemove = async (scorekeeper: LeagueScorekeeper) => {
+    startTransition(async () => {
+      const result = await removeScorekeeperFromLeague({
+        id: scorekeeper.id,
+        leagueId,
+      });
+
+      if (result.success) {
+        setScorekepers((prev) => prev.filter((sk) => sk.id !== scorekeeper.id));
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(scorekeeper.id);
+          return next;
+        });
+      }
+
+      setRemoveScorekeeper(null);
+    });
+  };
+
+  // Bulk remove
+  const handleBulkRemove = async () => {
+    startTransition(async () => {
+      for (const id of selectedIds) {
+        await removeScorekeeperFromLeague({ id, leagueId });
+      }
+      refreshScorekepers();
+      setSelectedIds(new Set());
+      setShowBulkRemoveConfirm(false);
+    });
+  };
+
+  // Export scorekeepers
+  const handleExport = async () => {
+    const result = await exportScorekepers(leagueId);
+    if (result.success) {
+      const csv = [
+        ['Name', 'Email', 'Status', 'Hourly Rate', 'Total Assignments', 'Completed', 'Hired Date'],
+        ...result.data.map((sk) => [
+          sk.name,
+          sk.email,
+          sk.status,
+          sk.hourlyRate?.toString() || '',
+          sk.totalAssignments.toString(),
+          sk.completedAssignments.toString(),
+          sk.hiredDate || '',
+        ]),
+      ]
+        .map((row) => row.map((cell) => `"${cell}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'scorekeepers.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // Open assign games modal for a specific scorekeeper
+  const handleAssignGames = (scorekeeper: LeagueScorekeeper) => {
+    setAssignForScorekeeper(scorekeeper);
+    setShowBulkAssignModal(true);
+  };
+
+  // Edit success handler
+  const handleEditSuccess = (updated: LeagueScorekeeper) => {
+    setScorekepers((prev) =>
+      prev.map((sk) => (sk.id === updated.id ? updated : sk))
+    );
+    setEditScorekeeper(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Action buttons */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          onClick={() => setShowAddModal(true)}
+          className={cn(
+            'bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold',
+            'hover:shadow-lg hover:shadow-rink-500/20'
+          )}
+        >
+          <UserPlus className="w-4 h-4 mr-2" />
+          Add Scorekeeper
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={() => setShowImportModal(true)}
+          className="border-white/10 text-neutral-300 hover:bg-neutral-800"
+        >
+          <Upload className="w-4 h-4 mr-2" />
+          Import CSV
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={handleExport}
+          className="border-white/10 text-neutral-300 hover:bg-neutral-800"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Export
+        </Button>
+
+        <div className="flex-1" />
+
+        <Button
+          variant="outline"
+          onClick={() => {
+            setAssignForScorekeeper(null);
+            setShowBulkAssignModal(true);
+          }}
+          className="border-rink-500/30 text-rink-500 hover:bg-rink-500/10"
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Bulk Assign
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={() => setShowAutoAssignModal(true)}
+          className="border-rink-500/30 text-rink-500 hover:bg-rink-500/10"
+        >
+          <Wand2 className="w-4 h-4 mr-2" />
+          Auto-Assign
+        </Button>
+      </div>
+
+      {/* Bulk actions for selected */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-neutral-800/50 rounded-lg border border-white/10">
+          <span className="text-sm text-neutral-300">
+            {selectedIds.size} selected
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowBulkRemoveConfirm(true)}
+            className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Remove Selected
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setSelectedIds(new Set())}
+            className="border-white/10 text-neutral-400 hover:bg-neutral-700"
+          >
+            Clear Selection
+          </Button>
+        </div>
+      )}
+
+      {/* Scorekeepers list */}
+      <ScorekeepersList
+        scorekeepers={scorekeepers}
+        selectedIds={selectedIds}
+        onSelectScorekeeper={handleSelectScorekeeper}
+        onSelectAll={handleSelectAll}
+        onEdit={setEditScorekeeper}
+        onRemove={setRemoveScorekeeper}
+        onAssignGames={handleAssignGames}
+        onRefresh={refreshScorekepers}
+        isLoading={isPending}
+      />
+
+      {/* Modals */}
+      <AddScorekeeperModal
+        leagueId={leagueId}
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        onSuccess={refreshScorekepers}
+      />
+
+      {editScorekeeper && (
+        <EditScorekeeperModal
+          scorekeeper={editScorekeeper}
+          leagueId={leagueId}
+          open={!!editScorekeeper}
+          onOpenChange={(open) => !open && setEditScorekeeper(null)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      <ImportScorekepersModal
+        leagueId={leagueId}
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        onSuccess={refreshScorekepers}
+      />
+
+      <AutoAssignModal
+        leagueId={leagueId}
+        seasons={seasons}
+        open={showAutoAssignModal}
+        onOpenChange={setShowAutoAssignModal}
+        onSuccess={refreshScorekepers}
+      />
+
+      <BulkAssignGamesModal
+        leagueId={leagueId}
+        scorekeepers={scorekeepers}
+        selectedScorekeeper={assignForScorekeeper || undefined}
+        seasons={seasons}
+        open={showBulkAssignModal}
+        onOpenChange={(open) => {
+          setShowBulkAssignModal(open);
+          if (!open) setAssignForScorekeeper(null);
+        }}
+        onSuccess={refreshScorekepers}
+      />
+
+      {/* Remove confirmation dialog */}
+      <AlertDialog open={!!removeScorekeeper} onOpenChange={(open) => !open && setRemoveScorekeeper(null)}>
+        <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Scorekeeper</AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-400">
+              Are you sure you want to remove{' '}
+              <span className="text-white font-medium">
+                {removeScorekeeper?.display_name || removeScorekeeper?.profile?.full_name}
+              </span>{' '}
+              from this league? This will not affect their existing game assignments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10 text-neutral-300 hover:bg-neutral-800">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => removeScorekeeper && handleRemove(removeScorekeeper)}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
+              {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk remove confirmation dialog */}
+      <AlertDialog open={showBulkRemoveConfirm} onOpenChange={setShowBulkRemoveConfirm}>
+        <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {selectedIds.size} Scorekeepers</AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-400">
+              Are you sure you want to remove {selectedIds.size} scorekeeper(s) from this league?
+              This will not affect their existing game assignments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10 text-neutral-300 hover:bg-neutral-800">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkRemove}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
+              {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Remove All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

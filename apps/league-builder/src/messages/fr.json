@@ -266,6 +266,9 @@
     "amount": "Montant",
     "status": "Statut",
     "download": "Telecharger",
+    "contactSales": "Contacter les ventes",
+    "manageBilling": "Gerer la facturation",
+    "viewInvoices": "Voir les factures",
     "plans": {
       "free": "Gratuit",
       "starter": "Debutant",

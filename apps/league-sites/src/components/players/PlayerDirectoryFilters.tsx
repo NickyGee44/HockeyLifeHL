@@ -1,0 +1,125 @@
+'use client';
+
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { Search, Filter, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+interface Team {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface PlayerDirectoryFiltersProps {
+  teams: Team[];
+  positions: string[];
+  selectedTeam?: string;
+  selectedPosition?: string;
+  searchQuery?: string;
+  leagueSlug: string;
+}
+
+export function PlayerDirectoryFilters({
+  teams,
+  positions,
+  selectedTeam,
+  selectedPosition,
+  searchQuery,
+  leagueSlug,
+}: PlayerDirectoryFiltersProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchQuery || '');
+
+  useEffect(() => {
+    setSearch(searchQuery || '');
+  }, [searchQuery]);
+
+  const updateFilters = (key: string, value: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateFilters('search', search || null);
+  };
+
+  const clearFilters = () => {
+    router.push(pathname);
+    setSearch('');
+  };
+
+  const hasFilters = selectedTeam || selectedPosition || searchQuery;
+
+  return (
+    <div className="mb-8 space-y-4">
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-muted)]" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search players by name or jersey number..."
+          className="w-full pl-12 pr-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)] focus:border-transparent"
+        />
+      </form>
+
+      {/* Filter Row */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+          <Filter className="w-4 h-4" />
+          <span className="text-sm font-medium">Filter by:</span>
+        </div>
+
+        {/* Team Filter */}
+        <select
+          value={selectedTeam || ''}
+          onChange={(e) => updateFilters('team', e.target.value || null)}
+          className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
+        >
+          <option value="">All Teams</option>
+          {teams.map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Position Filter */}
+        <select
+          value={selectedPosition || ''}
+          onChange={(e) => updateFilters('position', e.target.value || null)}
+          className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
+        >
+          <option value="">All Positions</option>
+          {positions.map((pos) => (
+            <option key={pos} value={pos}>
+              {pos}
+            </option>
+          ))}
+        </select>
+
+        {/* Clear Filters */}
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+          >
+            <X className="w-4 h-4" />
+            Clear filters
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

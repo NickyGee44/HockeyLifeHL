@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-import { BarChart3, Trophy, Target, Shield } from 'lucide-react';
+import Link from 'next/link';
+import { BarChart3, Trophy, Target, Shield, ChevronRight } from 'lucide-react';
 import { getLeagueBySlug, getStatsLeaders, getCurrentSeason } from '@/lib/data';
 import { StatsLeadersTabs } from '@/components/StatsLeadersTabs';
 
@@ -84,6 +85,29 @@ export default async function StatsPage({ params }: StatsPageProps) {
           </div>
         </div>
       )}
+
+      {/* Goalie Stats Link */}
+      <div className="mt-8">
+        <Link
+          href={`/${leagueSlug}/stats/goalies`}
+          className="group card p-6 flex items-center justify-between hover:border-[var(--league-primary)]/50 transition-all"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-lg bg-[var(--league-primary)]/20 flex items-center justify-center">
+              <Shield className="w-6 h-6 text-[var(--league-primary)]" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg group-hover:text-[var(--league-primary)] transition-colors">
+                Goalie Statistics
+              </h3>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                View wins, save percentage, GAA, and shutouts
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] group-hover:text-[var(--league-primary)] group-hover:translate-x-1 transition-all" />
+        </Link>
+      </div>
 
       {/* Legend */}
       <div className="mt-8 card p-4">

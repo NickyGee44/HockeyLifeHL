@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getDivisions, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getDivisions, getCurrentSeason, getVenues } from '@/lib/data';
 import { WeekPicker } from '@/components/schedule/WeekPicker';
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
 import { ScheduleTable } from '@/components/schedule/ScheduleTable';
@@ -15,6 +15,8 @@ interface SchedulePageProps {
     season?: string;
     division?: string;
     type?: string;
+    venue?: string;
+    status?: string;
   }>;
 }
 
@@ -48,7 +50,7 @@ function formatDateDivider(dateKey: string): string {
 
 export default async function SchedulePage({ params, searchParams }: SchedulePageProps) {
   const { leagueSlug } = await params;
-  const { week, day, season: seasonFilter, division: divisionFilter, type: typeFilter } = await searchParams;
+  const { week, day, season: seasonFilter, division: divisionFilter, type: typeFilter, venue: venueFilter, status: statusFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) return null;
@@ -60,14 +62,17 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   const currentSeason = await getCurrentSeason(league.id);
 
   // Fetch remaining data in parallel
-  const [seasons, divisions, games, gameCounts] = await Promise.all([
+  const [seasons, divisions, venues, games, gameCounts] = await Promise.all([
     getSeasons(league.id),
-    currentSeason ? getDivisions(currentSeason.id) : Promise.resolve([]),
+    getDivisions(league.id),
+    getVenues(league.id),
     getWeekGames(league.id, weekStart, {
       day,
       seasonId: seasonFilter,
       divisionId: divisionFilter,
       type: typeFilter,
+      venue: venueFilter,
+      status: statusFilter,
     }),
     getWeekGameCounts(league.id, weekStart),
   ]);
@@ -98,7 +103,8 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
         <ScheduleFilters
           seasons={seasons}
           divisions={divisions}
-          currentFilters={{ season: seasonFilter, division: divisionFilter, type: typeFilter }}
+          venues={venues}
+          currentFilters={{ season: seasonFilter, division: divisionFilter, type: typeFilter, venue: venueFilter, status: statusFilter }}
           leagueSlug={leagueSlug}
         />
 

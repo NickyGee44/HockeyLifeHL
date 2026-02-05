@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     // Allow reading from workspace packages
   },
 
-  // Configure images from Supabase storage
+  // Configure images from Supabase storage and external sources
   images: {
     remotePatterns: [
       {
@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.supabase.in',
         pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
       },
     ],
   },

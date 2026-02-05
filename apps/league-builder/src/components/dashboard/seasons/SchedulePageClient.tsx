@@ -101,8 +101,8 @@ export function SchedulePageClient({
   // Wizard Modal
   if (showWizard) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="w-full max-w-4xl h-[90vh] flex flex-col">
           <ScheduleWizard
             seasonId={seasonId}
             leagueId={leagueId}

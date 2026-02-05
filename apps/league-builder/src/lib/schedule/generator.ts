@@ -20,6 +20,10 @@ import {
   ScheduleGenerationResult,
   ConstraintViolation,
   BlackoutPeriod,
+  VenueAvailability,
+  VenueBlackoutDate,
+  TeamSchedulePreference,
+  ScheduleConstraintConfig,
 } from './types';
 
 // ============================================================================
@@ -669,4 +673,499 @@ export function rescheduleGame(
     violations,
     conflictingGames,
   };
+}
+
+// ============================================================================
+// ENHANCED CONSTRAINT CHECKING
+// ============================================================================
+
+/**
+ * Check if a slot is within venue availability.
+ */
+function isSlotWithinVenueAvailability(
+  slot: Date,
+  venueId: string,
+  availability: VenueAvailability[]
+): boolean {
+  const venueSlots = availability.filter((a) => a.venueId === venueId && a.isAvailable);
+
+  if (venueSlots.length === 0) {
+    // No availability configured = always available
+    return true;
+  }
+
+  const dayOfWeek = slot.getDay();
+  const timeStr = `${slot.getHours().toString().padStart(2, '0')}:${slot.getMinutes().toString().padStart(2, '0')}`;
+
+  return venueSlots.some((a) => {
+    if (a.dayOfWeek !== dayOfWeek) return false;
+    return timeStr >= a.startTime && timeStr <= a.endTime;
+  });
+}
+
+/**
+ * Check if a slot is on a venue blackout date.
+ */
+function isSlotOnVenueBlackout(
+  slot: Date,
+  venueId: string,
+  blackouts: VenueBlackoutDate[]
+): boolean {
+  const dateStr = slot.toISOString().split('T')[0];
+  const timeStr = `${slot.getHours().toString().padStart(2, '0')}:${slot.getMinutes().toString().padStart(2, '0')}`;
+
+  return blackouts.some((b) => {
+    if (b.venueId !== venueId) return false;
+
+    const blackoutDateStr = new Date(b.blackoutDate).toISOString().split('T')[0];
+    if (blackoutDateStr !== dateStr) return false;
+
+    // If no time range specified, entire day is blacked out
+    if (!b.startTime || !b.endTime) return true;
+
+    // Check if time falls within blackout window
+    return timeStr >= b.startTime && timeStr <= b.endTime;
+  });
+}
+
+/**
+ * Get slot category (early morning, late night, etc.)
+ */
+function getSlotCategory(
+  slot: Date,
+  config?: ScheduleConstraintConfig
+): 'early_morning' | 'morning' | 'afternoon' | 'evening' | 'late_night' {
+  const timeStr = `${slot.getHours().toString().padStart(2, '0')}:${slot.getMinutes().toString().padStart(2, '0')}`;
+  const earlyMorningEnd = config?.earlyMorningEndTime ?? '10:00';
+  const lateNightStart = config?.lateNightStartTime ?? '21:00';
+
+  if (timeStr < earlyMorningEnd) return 'early_morning';
+  if (timeStr < '12:00') return 'morning';
+  if (timeStr < '17:00') return 'afternoon';
+  if (timeStr < lateNightStart) return 'evening';
+  return 'late_night';
+}
+
+/**
+ * Check if a slot is preferred for a team.
+ */
+function isSlotPreferredForTeam(
+  slot: Date,
+  teamId: string,
+  preferences: TeamSchedulePreference[]
+): { isPreferred: boolean; isAvoided: boolean; score: number } {
+  const pref = preferences.find((p) => p.teamId === teamId);
+  if (!pref) {
+    return { isPreferred: false, isAvoided: false, score: 0 };
+  }
+
+  const timeStr = `${slot.getHours().toString().padStart(2, '0')}:${slot.getMinutes().toString().padStart(2, '0')}`;
+  const dayOfWeek = slot.getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+  let score = 0;
+
+  // Check time preferences
+  if (pref.preferredGameTimes.includes(timeStr)) {
+    score += 2;
+  }
+  if (pref.avoidedGameTimes.includes(timeStr)) {
+    score -= 2;
+  }
+
+  // Check day preferences
+  if (pref.preferredDays.includes(dayOfWeek)) {
+    score += 1;
+  }
+  if (pref.avoidedDays.includes(dayOfWeek)) {
+    score -= 1;
+  }
+
+  // Weekend preference
+  if (isWeekend && pref.weekendPreference > 0.5) {
+    score += (pref.weekendPreference - 0.5) * 2;
+  } else if (!isWeekend && pref.weekendPreference < 0.5) {
+    score += (0.5 - pref.weekendPreference) * 2;
+  }
+
+  return {
+    isPreferred: score > 0,
+    isAvoided: score < 0,
+    score,
+  };
+}
+
+/**
+ * Count games in a specific time slot category for a team.
+ */
+function countTeamGamesInCategory(
+  teamId: string,
+  category: 'early_morning' | 'late_night',
+  games: ScheduledGame[],
+  config?: ScheduleConstraintConfig
+): number {
+  return games.filter((g) => {
+    if (g.homeTeamId !== teamId && g.awayTeamId !== teamId) return false;
+    return getSlotCategory(g.scheduledAt, config) === category;
+  }).length;
+}
+
+/**
+ * Count games at a venue on a specific day.
+ */
+function countVenueGamesOnDay(
+  venueId: string,
+  date: Date,
+  games: ScheduledGame[]
+): number {
+  const dateStr = date.toISOString().split('T')[0];
+  return games.filter((g) => {
+    if (g.venueId !== venueId) return false;
+    const gameDateStr = g.scheduledAt.toISOString().split('T')[0];
+    return gameDateStr === dateStr;
+  }).length;
+}
+
+/**
+ * Enhanced slot assignment with seniority and preferences.
+ */
+function assignMatchupsToSlotsEnhanced(
+  matchups: GameMatchup[],
+  slots: Date[],
+  options: ScheduleGenerationOptions
+): { games: ScheduledGame[]; violations: ConstraintViolation[] } {
+  const games: ScheduledGame[] = [];
+  const violations: ConstraintViolation[] = [];
+  const usedSlots = new Set<number>();
+
+  const {
+    config,
+    constraints,
+    venues,
+    constraintConfig,
+    teamPreferences = [],
+    venueAvailability = [],
+    venueBlackouts = [],
+  } = options;
+
+  const defaultVenue = venues.find((v) => v.id === config.defaultVenueId) ?? venues[0];
+  const maxGamesPerVenuePerDay = constraintConfig?.maxGamesPerVenuePerDay ?? 4;
+  const enforceSeniority = constraintConfig?.enforceSeniorityPreferences ?? false;
+  const seniorityWeight = constraintConfig?.seniorityWeight ?? 0.5;
+
+  // Sort matchups by team seniority if enabled
+  let sortedMatchups = [...matchups];
+  if (enforceSeniority && teamPreferences.length > 0) {
+    sortedMatchups.sort((a, b) => {
+      const aSeniority = Math.max(
+        teamPreferences.find((p) => p.teamId === a.homeTeamId)?.seniorityLevel ?? 5,
+        teamPreferences.find((p) => p.teamId === a.awayTeamId)?.seniorityLevel ?? 5
+      );
+      const bSeniority = Math.max(
+        teamPreferences.find((p) => p.teamId === b.homeTeamId)?.seniorityLevel ?? 5,
+        teamPreferences.find((p) => p.teamId === b.awayTeamId)?.seniorityLevel ?? 5
+      );
+      return bSeniority - aSeniority; // Higher seniority first
+    });
+  }
+
+  let gameNumber = 1;
+
+  for (const matchup of sortedMatchups) {
+    let bestSlotIndex: number | null = null;
+    let bestSlotScore = -Infinity;
+
+    // Score each available slot
+    for (let slotIndex = 0; slotIndex < slots.length; slotIndex++) {
+      if (usedSlots.has(slotIndex)) continue;
+
+      const slot = slots[slotIndex];
+      let slotScore = 0;
+      let isValid = true;
+
+      // Check back-to-back constraint
+      if (!config.allowBackToBack) {
+        if (
+          hasBackToBackGame(matchup.homeTeamId, slot, games, config.gameDurationMinutes) ||
+          hasBackToBackGame(matchup.awayTeamId, slot, games, config.gameDurationMinutes)
+        ) {
+          continue;
+        }
+      }
+
+      // Check team blackouts
+      if (
+        isSlotBlackedOutForTeam(slot, matchup.homeTeamId, constraints) ||
+        isSlotBlackedOutForTeam(slot, matchup.awayTeamId, constraints)
+      ) {
+        continue;
+      }
+
+      // Determine venue
+      let venueId = defaultVenue?.id ?? null;
+      if (config.rotateHomeVenue && matchup.homeTeam?.homeVenueId) {
+        const homeVenue = venues.find((v) => v.id === matchup.homeTeam?.homeVenueId);
+        if (homeVenue) {
+          venueId = homeVenue.id;
+        }
+      }
+
+      // Check venue availability
+      if (venueId && venueAvailability.length > 0) {
+        if (!isSlotWithinVenueAvailability(slot, venueId, venueAvailability)) {
+          continue;
+        }
+      }
+
+      // Check venue blackouts
+      if (venueId && venueBlackouts.length > 0) {
+        if (isSlotOnVenueBlackout(slot, venueId, venueBlackouts)) {
+          continue;
+        }
+      }
+
+      // Check max games per venue per day
+      if (venueId) {
+        const venueGamesOnDay = countVenueGamesOnDay(venueId, slot, games);
+        if (venueGamesOnDay >= maxGamesPerVenuePerDay) {
+          continue;
+        }
+      }
+
+      // Check late night / early morning limits
+      const category = getSlotCategory(slot, constraintConfig);
+
+      if (category === 'late_night') {
+        const homeLimit = teamPreferences.find((p) => p.teamId === matchup.homeTeamId)?.maxLateNightGames
+          ?? constraintConfig?.globalMaxLateNightGamesPerTeam;
+        const awayLimit = teamPreferences.find((p) => p.teamId === matchup.awayTeamId)?.maxLateNightGames
+          ?? constraintConfig?.globalMaxLateNightGamesPerTeam;
+
+        if (homeLimit != null) {
+          const homeCount = countTeamGamesInCategory(matchup.homeTeamId, 'late_night', games, constraintConfig);
+          if (homeCount >= homeLimit) {
+            slotScore -= 10; // Penalty but not hard constraint
+          }
+        }
+        if (awayLimit != null) {
+          const awayCount = countTeamGamesInCategory(matchup.awayTeamId, 'late_night', games, constraintConfig);
+          if (awayCount >= awayLimit) {
+            slotScore -= 10;
+          }
+        }
+      }
+
+      if (category === 'early_morning') {
+        const homeLimit = teamPreferences.find((p) => p.teamId === matchup.homeTeamId)?.maxEarlyMorningGames
+          ?? constraintConfig?.globalMaxEarlyMorningGamesPerTeam;
+        const awayLimit = teamPreferences.find((p) => p.teamId === matchup.awayTeamId)?.maxEarlyMorningGames
+          ?? constraintConfig?.globalMaxEarlyMorningGamesPerTeam;
+
+        if (homeLimit != null) {
+          const homeCount = countTeamGamesInCategory(matchup.homeTeamId, 'early_morning', games, constraintConfig);
+          if (homeCount >= homeLimit) {
+            slotScore -= 10;
+          }
+        }
+        if (awayLimit != null) {
+          const awayCount = countTeamGamesInCategory(matchup.awayTeamId, 'early_morning', games, constraintConfig);
+          if (awayCount >= awayLimit) {
+            slotScore -= 10;
+          }
+        }
+      }
+
+      // Score based on team preferences
+      if (teamPreferences.length > 0) {
+        const homePrefs = isSlotPreferredForTeam(slot, matchup.homeTeamId, teamPreferences);
+        const awayPrefs = isSlotPreferredForTeam(slot, matchup.awayTeamId, teamPreferences);
+
+        // Weight by seniority if enabled
+        if (enforceSeniority) {
+          const homeSeniority = teamPreferences.find((p) => p.teamId === matchup.homeTeamId)?.seniorityLevel ?? 5;
+          const awaySeniority = teamPreferences.find((p) => p.teamId === matchup.awayTeamId)?.seniorityLevel ?? 5;
+
+          slotScore += homePrefs.score * (homeSeniority / 10) * seniorityWeight;
+          slotScore += awayPrefs.score * (awaySeniority / 10) * seniorityWeight;
+        } else {
+          slotScore += homePrefs.score + awayPrefs.score;
+        }
+      }
+
+      // Prefer earlier slots (to fill schedule from start)
+      slotScore -= slotIndex * 0.001;
+
+      if (isValid && slotScore > bestSlotScore) {
+        bestSlotScore = slotScore;
+        bestSlotIndex = slotIndex;
+      }
+    }
+
+    // Assign to best slot if found
+    if (bestSlotIndex !== null) {
+      const slot = slots[bestSlotIndex];
+
+      // Determine venue
+      let venueId = defaultVenue?.id ?? null;
+      let location = defaultVenue?.name ?? 'TBD';
+
+      if (config.rotateHomeVenue && matchup.homeTeam?.homeVenueId) {
+        const homeVenue = venues.find((v) => v.id === matchup.homeTeam?.homeVenueId);
+        if (homeVenue) {
+          venueId = homeVenue.id;
+          location = homeVenue.name;
+        }
+      }
+
+      const game: ScheduledGame = {
+        ...matchup,
+        scheduledAt: slot,
+        location,
+        venueId,
+        gameNumber,
+      };
+
+      games.push(game);
+      usedSlots.add(bestSlotIndex);
+      gameNumber++;
+    } else {
+      // No valid slot found
+      violations.push({
+        constraintId: 'system',
+        constraintType: 'team_blackout',
+        gameIndex: gameNumber,
+        message: `Could not find valid slot for ${matchup.homeTeam?.name} vs ${matchup.awayTeam?.name}`,
+        severity: 'error',
+      });
+    }
+  }
+
+  return { games, violations };
+}
+
+/**
+ * Generate schedule with enhanced constraints.
+ */
+export async function generateScheduleEnhanced(
+  options: ScheduleGenerationOptions
+): Promise<ScheduleGenerationResult> {
+  const startTime = Date.now();
+
+  try {
+    const { teams, config, constraints, venues } = options;
+
+    // Validate team count
+    if (teams.length < 4) {
+      return {
+        success: false,
+        games: [],
+        totalGames: 0,
+        gamesPerTeam: {},
+        homeGamesPerTeam: {},
+        awayGamesPerTeam: {},
+        constraintViolations: [],
+        hardConstraintFailures: [],
+        durationMs: Date.now() - startTime,
+        error: 'At least 4 teams are required to generate a schedule',
+      };
+    }
+
+    if (teams.length > 16) {
+      return {
+        success: false,
+        games: [],
+        totalGames: 0,
+        gamesPerTeam: {},
+        homeGamesPerTeam: {},
+        awayGamesPerTeam: {},
+        constraintViolations: [],
+        hardConstraintFailures: [],
+        durationMs: Date.now() - startTime,
+        error: 'Maximum 16 teams supported for schedule generation',
+      };
+    }
+
+    // Generate matchups
+    const isDoubleRoundRobin = config.scheduleType === 'double_round_robin';
+    const matchups = generateRoundRobinMatchups(teams, isDoubleRoundRobin);
+
+    // Get available time slots
+    const slots = getAvailableTimeSlots(config, constraints, venues);
+
+    if (slots.length < matchups.length) {
+      return {
+        success: false,
+        games: [],
+        totalGames: 0,
+        gamesPerTeam: {},
+        homeGamesPerTeam: {},
+        awayGamesPerTeam: {},
+        constraintViolations: [],
+        hardConstraintFailures: [],
+        durationMs: Date.now() - startTime,
+        error: `Not enough time slots available. Need ${matchups.length} slots but only ${slots.length} available.`,
+      };
+    }
+
+    // Use enhanced slot assignment if constraint options provided
+    const useEnhanced = options.constraintConfig || options.teamPreferences?.length ||
+                       options.venueAvailability?.length || options.venueBlackouts?.length;
+
+    const result = useEnhanced
+      ? assignMatchupsToSlotsEnhanced(matchups, slots, options)
+      : assignMatchupsToSlots(matchups, slots, options);
+
+    let games = result.games;
+    const violations = result.violations;
+
+    // Optimize home/away balance
+    if (config.homeAwayBalance) {
+      games = optimizeHomeAwayBalance(games, teams);
+    }
+
+    // Calculate statistics
+    const { homeGames, awayGames } = calculateHomeAwayBalance(games, teams);
+    const gamesPerTeam: Record<string, number> = {};
+    for (const team of teams) {
+      gamesPerTeam[team.id] = (homeGames[team.id] ?? 0) + (awayGames[team.id] ?? 0);
+    }
+
+    // Separate hard and soft constraint violations
+    const hardConstraintFailures = violations.filter((v) => v.severity === 'error');
+    const softViolations = violations.filter((v) => v.severity === 'warning');
+
+    // Sort games by date
+    games.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+
+    // Re-number games after sorting
+    games.forEach((game, index) => {
+      game.gameNumber = index + 1;
+    });
+
+    return {
+      success: hardConstraintFailures.length === 0,
+      games,
+      totalGames: games.length,
+      gamesPerTeam,
+      homeGamesPerTeam: homeGames,
+      awayGamesPerTeam: awayGames,
+      constraintViolations: softViolations,
+      hardConstraintFailures,
+      durationMs: Date.now() - startTime,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      games: [],
+      totalGames: 0,
+      gamesPerTeam: {},
+      homeGamesPerTeam: {},
+      awayGamesPerTeam: {},
+      constraintViolations: [],
+      hardConstraintFailures: [],
+      durationMs: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      errorDetails: error instanceof Error ? { stack: error.stack } : undefined,
+    };
+  }
 }

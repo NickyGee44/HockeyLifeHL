@@ -156,7 +156,8 @@ export function TeamCreationWizard({
       if (onSuccess) {
         onSuccess(result.data);
       } else {
-        router.push(`/dashboard/leagues/${leagueId}/teams/${result.data.id}`);
+        // Redirect to the team detail page (exists at /dashboard/teams/[teamId])
+        router.push(`/dashboard/teams/${result.data.id}`);
       }
     } catch (err) {
       setError('An unexpected error occurred');

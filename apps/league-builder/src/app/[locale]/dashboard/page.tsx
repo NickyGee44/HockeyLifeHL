@@ -15,6 +15,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
+import { LeagueLogo } from '@/components/ui/league-logo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -344,12 +345,14 @@ function LeagueCard({ league, orgName, t }: { league: any; orgName: string; t: a
       className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-5 hover:border-white/20 transition-all group"
     >
       <div className="flex items-start justify-between mb-3">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: league.primary_color || '#22D3EE' }}
-        >
-          <Trophy className="w-5 h-5 text-white" />
-        </div>
+        <LeagueLogo
+          logoUrl={league.logo_url}
+          leagueName={league.name}
+          primaryColor={league.primary_color || '#22D3EE'}
+          size="sm"
+          shape="square"
+          bordered
+        />
         <span
           className={cn(
             'px-2 py-1 text-xs font-medium rounded-full',

@@ -4,6 +4,7 @@ import { LeagueHeader } from '@/components/LeagueHeader';
 import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
 import { PreviewModeProvider } from '@/components/PreviewModeProvider';
+import { AuthProvider } from '@/components/auth';
 import { ScoreTicker } from '@/components/ScoreTicker';
 import type { Metadata } from 'next';
 
@@ -70,14 +71,16 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
 
   return (
     <LeagueThemeProvider theme={theme}>
-      <PreviewModeProvider>
-        <div className="min-h-screen flex flex-col">
-          <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
-          <LeagueHeader league={league} leagueSlug={leagueSlug} />
-          <main className="flex-1">{children}</main>
-          <LeagueFooter league={league} leagueSlug={leagueSlug} />
-        </div>
-      </PreviewModeProvider>
+      <AuthProvider>
+        <PreviewModeProvider>
+          <div className="min-h-screen flex flex-col">
+            <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+            <LeagueHeader league={league} leagueSlug={leagueSlug} />
+            <main className="flex-1">{children}</main>
+            <LeagueFooter league={league} leagueSlug={leagueSlug} />
+          </div>
+        </PreviewModeProvider>
+      </AuthProvider>
     </LeagueThemeProvider>
   );
 }

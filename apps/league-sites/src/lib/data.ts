@@ -18,6 +18,8 @@ import type {
   SeasonSeriesGame,
   TeamSeasonStats,
   PlayerStat,
+  GoalieStats,
+  PlayerGameLogEntry,
 } from './types';
 
 // Default brand colors from BRAND-KIT.md
@@ -81,16 +83,16 @@ export async function getCurrentSeason(leagueId: string): Promise<Season | null>
 }
 
 /**
- * Fetch all divisions for a season
+ * Fetch all divisions for a league
  */
-export async function getDivisions(seasonId: string): Promise<Division[]> {
+export async function getDivisions(leagueId: string): Promise<Division[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('divisions')
     .select('*')
-    .eq('season_id', seasonId)
-    .order('sort_order', { ascending: true });
+    .eq('league_id', leagueId)
+    .order('name', { ascending: true });
 
   if (error || !data) {
     return [];
@@ -176,7 +178,7 @@ export async function getTeamRoster(teamId: string): Promise<Player[]> {
     .from('team_rosters')
     .select(`
       *,
-      profile:profiles(first_name, last_name, avatar_url)
+      profile:profiles(full_name, avatar_url)
     `)
     .eq('team_id', teamId)
     .order('jersey_number', { ascending: true });
@@ -198,12 +200,12 @@ export async function getStandings(
 ): Promise<TeamStanding[]> {
   const supabase = await createClient();
 
-  // Try to use standings RPC if available
+  // Try to use standings RPC if available (actual function name: get_team_standings)
   const { data: rpcData, error: rpcError } = await supabase.rpc(
-    'get_league_standings',
+    'get_team_standings',
     {
-      p_league_id: leagueId,
-      p_season_id: seasonId || null,
+      check_league_id: leagueId,
+      check_season_id: seasonId || null,
     }
   );
 
@@ -211,43 +213,52 @@ export async function getStandings(
     return rpcData as TeamStanding[];
   }
 
-  // Fallback: Build standings from teams (basic version)
-  const { data: teams, error } = await supabase
-    .from('teams')
-    .select(`
-      id,
-      name,
-      logo,
-      division_id,
-      divisions(id, name)
-    `)
-    .eq('league_id', leagueId);
+  // Fallback: Query team_standings table directly
+  let standingsQuery = supabase
+    .from('team_standings')
+    .select('*')
+    .order('points', { ascending: false });
 
-  if (error || !teams) {
+  if (seasonId) {
+    standingsQuery = standingsQuery.eq('season_id', seasonId);
+  }
+
+  const { data: standings, error } = await standingsQuery;
+
+  if (error || !standings) {
     return [];
   }
 
-  // Return basic team list as standings (no game data)
-  return teams.map((team) => {
-    // Handle the divisions relation which can be array or object
-    const division = Array.isArray(team.divisions)
-      ? team.divisions[0]
-      : team.divisions;
+  // Get teams with divisions
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, division_id, divisions(id, name)')
+    .eq('league_id', leagueId);
+
+  const teamDivisionMap = new Map(
+    teams?.map((t) => {
+      const div = Array.isArray(t.divisions) ? t.divisions[0] : t.divisions;
+      return [t.id, { division_id: div?.id || t.division_id, division_name: div?.name }];
+    }) || []
+  );
+
+  return standings.map((s) => {
+    const divInfo = teamDivisionMap.get(s.team_id);
     return {
-      team_id: team.id,
-      team_name: team.name,
-      team_logo: team.logo,
-      division_id: division?.id || team.division_id || null,
-      division_name: division?.name || null,
-      games_played: 0,
-      wins: 0,
-      losses: 0,
-      ties: 0,
+      team_id: s.team_id,
+      team_name: s.name,
+      team_logo: s.logo_url,
+      division_id: divInfo?.division_id || null,
+      division_name: divInfo?.division_name || null,
+      games_played: Number(s.games_played) || 0,
+      wins: Number(s.wins) || 0,
+      losses: Number(s.losses) || 0,
+      ties: Number(s.ties) || 0,
       overtime_losses: 0,
-      points: 0,
-      goals_for: 0,
-      goals_against: 0,
-      goal_differential: 0,
+      points: Number(s.points) || 0,
+      goals_for: Number(s.goals_for) || 0,
+      goals_against: Number(s.goals_against) || 0,
+      goal_differential: (Number(s.goals_for) || 0) - (Number(s.goals_against) || 0),
       streak: null,
       last_10: null,
     };
@@ -300,7 +311,7 @@ export async function getRecentGames(
       away_team:teams!games_away_team_id_fkey(id, name, slug, logo, colors)
     `)
     .eq('league_id', leagueId)
-    .eq('status', 'final')
+    .in('status', ['final', 'completed'])
     .order('scheduled_at', { ascending: false })
     .limit(limit);
 
@@ -334,7 +345,7 @@ export async function getTickerGames(
       away_team:teams!games_away_team_id_fkey(id, name, slug, logo, colors, division_id, divisions(name))
     `)
     .eq('league_id', leagueId)
-    .in('status', ['final', 'in_progress', 'scheduled'])
+    .in('status', ['final', 'completed', 'in_progress', 'scheduled'])
     .order('scheduled_at', { ascending: false })
     .limit(limit);
 
@@ -380,6 +391,8 @@ export async function getWeekGames(
     seasonId?: string;
     divisionId?: string;
     type?: string;
+    venue?: string;
+    status?: string;
   }
 ): Promise<ScheduleGame[]> {
   const supabase = await createClient();
@@ -429,6 +442,14 @@ export async function getWeekGames(
 
   if (filters?.type) {
     query = query.eq('game_type', filters.type);
+  }
+
+  if (filters?.venue) {
+    query = query.eq('venue', filters.venue);
+  }
+
+  if (filters?.status) {
+    query = query.eq('status', filters.status);
   }
 
   const { data, error } = await query;
@@ -536,8 +557,36 @@ export async function getStatsLeaders(
     return rpcData as PlayerStats[];
   }
 
-  // Fallback: Return empty (stats not implemented yet)
-  return [];
+  // Fallback: Query player_season_stats view
+  const season = await getCurrentSeason(leagueId);
+  if (!season) return [];
+
+  const orderColumn = statType === 'saves' ? 'games_played' : statType;
+
+  const { data: stats, error } = await supabase
+    .from('player_season_stats')
+    .select('*')
+    .eq('season_id', season.id)
+    .order(orderColumn, { ascending: false })
+    .limit(limit);
+
+  if (error || !stats) {
+    return [];
+  }
+
+  return stats.map((s) => ({
+    player_id: s.player_id,
+    player_name: s.full_name || 'Unknown',
+    team_name: s.team_name || 'Unknown',
+    team_id: '',
+    position: s.position || null,
+    games_played: Number(s.games_played) || 0,
+    goals: Number(s.goals) || 0,
+    assists: Number(s.assists) || 0,
+    points: Number(s.points) || 0,
+    penalty_minutes: 0,
+    plus_minus: 0,
+  })) as PlayerStats[];
 }
 
 /**
@@ -578,7 +627,7 @@ export async function getLeagueStats(leagueId: string): Promise<LeagueStats> {
     .from('games')
     .select('*', { count: 'exact', head: true })
     .eq('league_id', leagueId)
-    .eq('status', 'final');
+    .in('status', ['final', 'completed']);
 
   const { count: upcomingGames } = await supabase
     .from('games')
@@ -683,7 +732,7 @@ export async function getSeasonSeries(
       away_team_id
     `)
     .eq('season_id', seasonId)
-    .eq('status', 'final')
+    .in('status', ['final', 'completed'])
     .or(`and(home_team_id.eq.${teamAId},away_team_id.eq.${teamBId}),and(home_team_id.eq.${teamBId},away_team_id.eq.${teamAId})`)
     .order('scheduled_at', { ascending: false });
 
@@ -731,4 +780,270 @@ export async function getPlayerLeaders(
 
   if (!error && data) return data as PlayerStat[];
   return [];
+}
+
+/**
+ * Fetch recent scores for the Scores page
+ * Gets completed games from the last N days, grouped by date
+ */
+export async function getScores(
+  leagueId: string,
+  options?: {
+    daysBack?: number;
+    seasonId?: string;
+    divisionId?: string;
+    status?: 'final' | 'in_progress' | 'all';
+  }
+): Promise<RecentGame[]> {
+  const supabase = await createClient();
+
+  const daysBack = options?.daysBack || 7;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+
+  let query = supabase
+    .from('games')
+    .select(`
+      *,
+      home_team:teams!games_home_team_id_fkey(id, name, slug, logo, colors),
+      away_team:teams!games_away_team_id_fkey(id, name, slug, logo, colors)
+    `)
+    .eq('league_id', leagueId)
+    .gte('scheduled_at', cutoffDate.toISOString())
+    .lte('scheduled_at', new Date().toISOString())
+    .order('scheduled_at', { ascending: false });
+
+  // Apply status filter (include 'completed' as alias for 'final')
+  if (options?.status === 'final') {
+    query = query.in('status', ['final', 'completed']);
+  } else if (options?.status === 'in_progress') {
+    query = query.eq('status', 'in_progress');
+  } else if (options?.status === 'all') {
+    query = query.in('status', ['final', 'completed', 'in_progress']);
+  } else {
+    // Default: show completed games
+    query = query.in('status', ['final', 'completed']);
+  }
+
+  if (options?.seasonId) {
+    query = query.eq('season_id', options.seasonId);
+  }
+
+  if (options?.divisionId) {
+    query = query.eq('division_id', options.divisionId);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as RecentGame[];
+}
+
+/**
+ * Fetch venues for a league (for venue filter)
+ */
+export async function getVenues(leagueId: string): Promise<string[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('games')
+    .select('venue')
+    .eq('league_id', leagueId)
+    .not('venue', 'is', null);
+
+  if (error || !data) {
+    return [];
+  }
+
+  // Get unique venues
+  const venues = [...new Set(data.map((g: { venue: string | null }) => g.venue).filter(Boolean))] as string[];
+  return venues.sort();
+}
+
+/**
+ * Fetch player profile for player detail page
+ */
+export async function getPlayerProfile(playerId: string): Promise<Player | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('team_rosters')
+    .select(`
+      *,
+      profile:profiles(id, full_name, avatar_url),
+      team:teams(id, name, slug, logo, colors, league_id)
+    `)
+    .eq('id', playerId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as Player;
+}
+
+/**
+ * Fetch player career stats
+ * Uses player_stats table which has per-game stats with proper columns
+ */
+export async function getPlayerCareerStats(
+  playerId: string,
+  seasonId?: string
+): Promise<PlayerStats | null> {
+  const supabase = await createClient();
+
+  // Query player_stats table for player-specific stats
+  let query = supabase
+    .from('player_stats')
+    .select('goals, assists, penalty_minutes')
+    .eq('player_id', playerId);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data || data.length === 0) return null;
+
+  // Aggregate stats across all games
+  const totals = data.reduce(
+    (acc, stat) => ({
+      goals: acc.goals + (stat.goals || 0),
+      assists: acc.assists + (stat.assists || 0),
+      penalty_minutes: acc.penalty_minutes + (stat.penalty_minutes || 0),
+    }),
+    { goals: 0, assists: 0, penalty_minutes: 0 }
+  );
+
+  return {
+    player_id: playerId,
+    player_name: '',
+    team_name: '',
+    team_id: '',
+    position: null,
+    games_played: data.length,
+    goals: totals.goals,
+    assists: totals.assists,
+    points: totals.goals + totals.assists,
+    penalty_minutes: totals.penalty_minutes,
+    plus_minus: 0,
+  } as PlayerStats;
+}
+
+/**
+ * Fetch player game log
+ * Queries player_stats table with game details
+ */
+export async function getPlayerGameLog(
+  playerId: string,
+  seasonId?: string,
+  limit = 20
+): Promise<PlayerGameLogEntry[]> {
+  const supabase = await createClient();
+
+  // Build query for player stats with game details
+  let query = supabase
+    .from('player_stats')
+    .select(`
+      id,
+      goals,
+      assists,
+      penalty_minutes,
+      game_id,
+      game:games(
+        id,
+        scheduled_at,
+        home_score,
+        away_score,
+        status,
+        home_team:teams!games_home_team_id_fkey(id, name, slug),
+        away_team:teams!games_away_team_id_fkey(id, name, slug)
+      )
+    `)
+    .eq('player_id', playerId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data) return [];
+
+  // Transform to expected format
+  return data.map((stat: any) => {
+    const game = Array.isArray(stat.game) ? stat.game[0] : stat.game;
+    return {
+      game_id: game?.id || stat.game_id || '',
+      date: game?.scheduled_at || '',
+      opponent: '',
+      result: game?.status === 'final' || game?.status === 'completed' ? 'W' : '-',
+      goals: stat.goals || 0,
+      assists: stat.assists || 0,
+      points: (stat.goals || 0) + (stat.assists || 0),
+      plus_minus: 0,
+      pim: stat.penalty_minutes || 0,
+    };
+  }) as PlayerGameLogEntry[];
+}
+
+/**
+ * Fetch goalie stats leaders
+ * Uses get_goalie_season_stats RPC with correct parameter names
+ */
+export async function getGoalieLeaders(
+  leagueId: string,
+  seasonId?: string,
+  sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts' = 'wins',
+  limit = 20
+): Promise<GoalieStats[]> {
+  const supabase = await createClient();
+
+  // Use the actual RPC function name with correct parameters
+  const { data, error } = await supabase.rpc('get_goalie_season_stats', {
+    check_league_id: leagueId,
+    check_season_id: seasonId || null,
+  });
+
+  if (error || !data) return [];
+
+  // Transform RPC response to expected format and apply client-side sorting/limiting
+  let results = (data as any[]).map((row) => ({
+    player_id: row.player_id,
+    player_name: row.full_name || 'Unknown',
+    team_id: row.team_id || '',
+    team_name: row.team_name || '',
+    games_played: row.games_played || 0,
+    wins: row.wins || 0,
+    losses: row.losses || 0,
+    save_percentage: row.save_percentage || 0,
+    goals_against_average: row.goals_against_average || 0,
+    shutouts: row.shutouts || 0,
+    saves: row.total_saves || 0,
+    goals_against: row.total_goals_against || 0,
+  }));
+
+  // Sort by requested stat
+  results.sort((a, b) => {
+    switch (sortBy) {
+      case 'save_percentage':
+        return b.save_percentage - a.save_percentage;
+      case 'goals_against_average':
+        return a.goals_against_average - b.goals_against_average; // Lower is better
+      case 'shutouts':
+        return b.shutouts - a.shutouts;
+      case 'wins':
+      default:
+        return b.wins - a.wins;
+    }
+  });
+
+  return results.slice(0, limit) as GoalieStats[];
 }

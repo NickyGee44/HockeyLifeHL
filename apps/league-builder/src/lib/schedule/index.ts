@@ -23,11 +23,18 @@ export type {
   ScheduleGenerationOptions,
   RescheduleRequest,
   RescheduleResult,
+  // Enhanced constraint types
+  VenueAvailability,
+  VenueBlackoutDate,
+  TeamSchedulePreference,
+  ScheduleConstraintConfig,
+  TimeSlotCategory,
 } from './types';
 
 // Generator functions
 export {
   generateSchedule,
+  generateScheduleEnhanced,
   generateRoundRobinMatchups,
   rescheduleGame,
 } from './generator';
@@ -37,10 +44,26 @@ export {
   // Templates
   getScheduleTemplates,
   createScheduleTemplate,
-  // Constraints
+  // Basic Constraints
   getScheduleConstraints,
   addScheduleConstraint,
   deleteScheduleConstraint,
+  // Venue Availability
+  getVenueAvailability,
+  saveVenueAvailability,
+  deleteVenueAvailability,
+  // Venue Blackouts
+  getVenueBlackoutDates,
+  addVenueBlackoutDate,
+  deleteVenueBlackoutDate,
+  // Team Preferences
+  getTeamSchedulePreferences,
+  saveTeamSchedulePreference,
+  deleteTeamSchedulePreference,
+  bulkSaveTeamSchedulePreferences,
+  // Constraint Config
+  getScheduleConstraintConfig,
+  saveScheduleConstraintConfig,
   // Generation
   generateSeasonSchedule,
   saveScheduleGames,

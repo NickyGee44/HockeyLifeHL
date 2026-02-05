@@ -4,10 +4,11 @@
  * Schedule Configuration Step
  *
  * First step of the schedule wizard for configuring schedule parameters.
+ * Includes regular season games per team and playoff structure configuration.
  */
 
 import { cn } from '@hockey-life/ui/lib/utils';
-import { Calendar, Clock, MapPin, Users, Repeat } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Repeat, Trophy, Info } from 'lucide-react';
 import type { ScheduleConfig, ScheduleTemplate, Venue } from '@/lib/schedule/types';
 
 // ============================================================================
@@ -33,6 +34,34 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const SCHEDULE_TYPES = [
   { value: 'round_robin', label: 'Round Robin', description: 'Each team plays every other team once' },
   { value: 'double_round_robin', label: 'Double Round Robin', description: 'Each team plays every other team twice (home and away)' },
+  { value: 'custom', label: 'Custom', description: 'Specify exact number of regular season games per team' },
+];
+
+const PLAYOFF_FORMATS = [
+  {
+    value: 'none',
+    label: 'No Playoffs',
+    description: 'Regular season only, standings determine final rankings',
+  },
+  {
+    value: 'single_elimination',
+    label: 'Single Elimination',
+    description: 'One loss and you\'re out. Quick tournament-style playoffs.',
+    rounds: (teams: number) => Math.ceil(Math.log2(teams)),
+    gamesPerRound: (teams: number, round: number) => Math.ceil(teams / Math.pow(2, round)),
+  },
+  {
+    value: 'best_of_3',
+    label: 'Best of 3 Series',
+    description: 'First team to win 2 games advances. More competitive format.',
+    gamesPerSeries: 3,
+  },
+  {
+    value: 'best_of_5',
+    label: 'Best of 5 Series',
+    description: 'First team to win 3 games advances. Full playoff experience.',
+    gamesPerSeries: 5,
+  },
 ];
 
 // ============================================================================
@@ -103,9 +132,9 @@ export function ScheduleConfigStep({
       <div>
         <label className="block text-sm font-medium text-neutral-300 mb-2">
           <Repeat className="w-4 h-4 inline mr-2" />
-          Schedule Type
+          Regular Season Format
         </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {SCHEDULE_TYPES.map((type) => (
             <button
               key={type.value}
@@ -124,21 +153,128 @@ export function ScheduleConfigStep({
         </div>
       </div>
 
+      {/* Games Per Team Input (for custom mode) */}
+      <div>
+        <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <Users className="w-4 h-4 inline mr-2" />
+          Regular Season Games Per Team
+        </label>
+        <div className="flex items-center gap-4">
+          <input
+            type="number"
+            min={teamCount > 1 ? teamCount - 1 : 1}
+            max={50}
+            value={config.gamesPerTeam}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || teamCount - 1;
+              setConfig((prev) => ({
+                ...prev,
+                gamesPerTeam: Math.max(teamCount - 1, Math.min(50, value)),
+                scheduleType: 'custom', // Switch to custom when manually editing
+              }));
+            }}
+            className="w-24 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-rink-500"
+          />
+          <span className="text-sm text-neutral-400">
+            games per team ({totalGames} total games)
+          </span>
+        </div>
+        <p className="text-xs text-neutral-500 mt-1">
+          Minimum: {teamCount - 1} games (play each team once). Maximum: 50 games.
+        </p>
+      </div>
+
       {/* Team Count & Games Info */}
       <div className="bg-neutral-800/50 rounded-lg p-4">
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 text-sm flex-wrap">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-rink-500" />
             <span className="text-neutral-300">{teamCount} Teams</span>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-rink-500" />
-            <span className="text-neutral-300">{totalGames} Total Games</span>
+            <span className="text-neutral-300">{totalGames} Regular Season Games</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-neutral-400">≈ {Math.ceil(totalGames / teamCount * 2)} games per team</span>
+            <span className="text-neutral-400">{config.gamesPerTeam} games per team</span>
           </div>
         </div>
+      </div>
+
+      {/* Playoff Configuration */}
+      <div className="border-t border-neutral-800 pt-6">
+        <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <Trophy className="w-4 h-4 inline mr-2" />
+          Playoff Format
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {PLAYOFF_FORMATS.map((format) => (
+            <button
+              key={format.value}
+              onClick={() => setConfig((prev) => ({
+                ...prev,
+                playoffFormat: format.value as 'none' | 'single_elimination' | 'best_of_3' | 'best_of_5',
+              }))}
+              className={cn(
+                'p-4 rounded-lg border text-left transition-colors',
+                (config as any).playoffFormat === format.value
+                  ? 'border-rink-500 bg-rink-500/10'
+                  : 'border-neutral-700 hover:border-rink-500/50'
+              )}
+            >
+              <div className="font-medium text-white">{format.label}</div>
+              <div className="text-sm text-neutral-400 mt-1">{format.description}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Playoff Teams Selection */}
+        {(config as any).playoffFormat && (config as any).playoffFormat !== 'none' && (
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Number of Playoff Teams
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[4, 6, 8, 10, 12, 16].filter(n => n <= teamCount).map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setConfig((prev) => ({ ...prev, playoffTeams: num } as any))}
+                  className={cn(
+                    'px-4 py-2 rounded-lg border text-sm transition-colors',
+                    (config as any).playoffTeams === num
+                      ? 'border-rink-500 bg-rink-500/10 text-rink-500'
+                      : 'border-neutral-700 text-neutral-400 hover:border-rink-500/50'
+                  )}
+                >
+                  Top {num}
+                </button>
+              ))}
+            </div>
+
+            {/* Playoff Info */}
+            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-300">
+                  <p>
+                    {(config as any).playoffFormat === 'single_elimination' && (
+                      <>Single elimination bracket with {(config as any).playoffTeams || 8} teams = {Math.ceil(Math.log2((config as any).playoffTeams || 8))} rounds</>
+                    )}
+                    {(config as any).playoffFormat === 'best_of_3' && (
+                      <>Best of 3 series: Up to {((config as any).playoffTeams || 8) / 2 * 3} playoff games</>
+                    )}
+                    {(config as any).playoffFormat === 'best_of_5' && (
+                      <>Best of 5 series: Up to {((config as any).playoffTeams || 8) / 2 * 5} playoff games</>
+                    )}
+                  </p>
+                  <p className="mt-1 text-blue-400/80">
+                    Playoffs will be automatically scheduled after regular season ends.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Game Days */}

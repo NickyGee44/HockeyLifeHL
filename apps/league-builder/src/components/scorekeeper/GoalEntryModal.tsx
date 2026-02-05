@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { TeamData, PlayerData } from '@/lib/actions/scorekeeper';
 
 interface GoalEntryModalProps {
   team: TeamData;
+  opposingTeam: TeamData; // Need opposing team to select their goalie
   teamType: 'home' | 'away';
   period: number;
   onSubmit: (data: {
@@ -15,6 +16,7 @@ interface GoalEntryModalProps {
     isShortHanded?: boolean;
     isEmptyNet?: boolean;
     gameTimeSeconds?: number;
+    goalieInNetId?: string; // The opposing goalie who allowed the goal
   }) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -28,6 +30,7 @@ type Step = 'scorer' | 'assists' | 'modifiers';
  */
 export function GoalEntryModal({
   team,
+  opposingTeam,
   teamType,
   period,
   onSubmit,
@@ -41,9 +44,26 @@ export function GoalEntryModal({
   const [isPowerPlay, setIsPowerPlay] = useState(false);
   const [isShortHanded, setIsShortHanded] = useState(false);
   const [isEmptyNet, setIsEmptyNet] = useState(false);
+  const [goalieInNetId, setGoalieInNetId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [timeMinutes, setTimeMinutes] = useState('');
   const [timeSeconds, setTimeSeconds] = useState('');
+
+  // Get opposing team's goalies
+  const opposingGoalies = useMemo(() => {
+    return opposingTeam.roster.filter(p =>
+      p.position === 'Goalie' ||
+      p.position?.toLowerCase() === 'goalie' ||
+      p.position?.toLowerCase() === 'g'
+    );
+  }, [opposingTeam.roster]);
+
+  // Auto-select goalie if there's only one
+  useMemo(() => {
+    if (opposingGoalies.length === 1 && !goalieInNetId) {
+      setGoalieInNetId(opposingGoalies[0].id);
+    }
+  }, [opposingGoalies, goalieInNetId]);
 
   // Filter players based on search (jersey number prioritized)
   const filteredPlayers = team.roster.filter(player => {
@@ -96,8 +116,11 @@ export function GoalEntryModal({
       isShortHanded,
       isEmptyNet,
       gameTimeSeconds,
+      goalieInNetId: isEmptyNet ? undefined : (goalieInNetId || undefined), // No goalie if empty net
     });
   };
+
+  const selectedGoalie = opposingGoalies.find(g => g.id === goalieInNetId);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center">
@@ -275,6 +298,33 @@ export function GoalEntryModal({
                 )}
               </div>
 
+              {/* Goalie in Net Selection */}
+              {!isEmptyNet && opposingGoalies.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    {opposingTeam.name} Goalie in Net
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {opposingGoalies.map((goalie) => (
+                      <button
+                        key={goalie.id}
+                        onClick={() => setGoalieInNetId(goalie.id)}
+                        className={`px-4 py-3 rounded-xl border font-medium text-sm transition-all duration-200 touch-manipulation
+                          ${goalieInNetId === goalie.id
+                            ? 'bg-red-500/20 border-red-500 text-red-400'
+                            : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                          }`}
+                      >
+                        #{goalie.jerseyNumber} {goalie.fullName}
+                      </button>
+                    ))}
+                  </div>
+                  {opposingGoalies.length === 1 && (
+                    <p className="text-xs text-neutral-500 mt-1">Auto-selected (only goalie on roster)</p>
+                  )}
+                </div>
+              )}
+
               {/* Time Input */}
               <div>
                 <label className="block text-sm font-medium text-neutral-300 mb-2">
@@ -330,7 +380,10 @@ export function GoalEntryModal({
                   <ModifierButton
                     label="Empty Net"
                     isActive={isEmptyNet}
-                    onClick={() => setIsEmptyNet(!isEmptyNet)}
+                    onClick={() => {
+                      setIsEmptyNet(!isEmptyNet);
+                      if (!isEmptyNet) setGoalieInNetId(null); // Clear goalie if empty net
+                    }}
                     color="orange"
                   />
                 </div>

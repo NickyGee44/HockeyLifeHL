@@ -938,3 +938,542 @@ body {
   color: var(--color-text-muted);
   font-size: 0.75rem;
 }
+
+/* =============================================================================
+   PREMIUM ANIMATIONS & MICRO-INTERACTIONS
+   ============================================================================= */
+
+/* Keyframe Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 var(--glow-size) color-mix(in srgb, var(--glow-color) 30%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 calc(var(--glow-size) * 1.5) color-mix(in srgb, var(--glow-color) 50%, transparent);
+  }
+}
+
+@keyframes rank-bounce-up {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes rank-bounce-down {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animation Utility Classes */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 0%,
+    var(--color-surface-hover) 50%,
+    var(--color-surface) 100%
+  );
+  background-size: 200% 100%;
+}
+
+.animate-gradient {
+  animation: gradient-shift 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* =============================================================================
+   GLASS MORPHISM UTILITIES
+   ============================================================================= */
+
+.glass {
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+
+.glass-strong {
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border);
+}
+
+.glass-subtle {
+  background: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
+}
+
+/* =============================================================================
+   GRADIENT TEXT UTILITIES
+   ============================================================================= */
+
+.text-gradient-primary {
+  background: linear-gradient(135deg, var(--league-primary), var(--league-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--color-gold-400), var(--color-gold-600));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-shine {
+  background: linear-gradient(
+    90deg,
+    var(--league-primary) 0%,
+    var(--color-gold-300) 50%,
+    var(--league-primary) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 3s linear infinite;
+}
+
+/* =============================================================================
+   GLOW EFFECT STYLES
+   ============================================================================= */
+
+.glow-effect {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.glow-effect:hover {
+  box-shadow: 0 0 var(--glow-size, 25px) color-mix(in srgb, var(--glow-color, var(--league-primary)) 40%, transparent);
+}
+
+.glow-effect-active {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* =============================================================================
+   SHIMMER EFFECT STYLES
+   ============================================================================= */
+
+.shimmer-effect {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 0%,
+    var(--color-surface-hover) 20%,
+    var(--color-surface-active) 40%,
+    var(--color-surface-hover) 60%,
+    var(--color-surface) 80%,
+    var(--color-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.shimmer-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+/* =============================================================================
+   PULSE RING STYLES
+   ============================================================================= */
+
+.pulse-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-ring-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.pulse-ring-outer {
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.6;
+  animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.pulse-ring-live {
+  color: #ef4444;
+}
+
+.pulse-ring-primary {
+  color: var(--league-primary);
+}
+
+.pulse-ring-success {
+  color: #22c55e;
+}
+
+.pulse-ring-warning {
+  color: #f59e0b;
+}
+
+/* =============================================================================
+   LIVE INDICATOR STYLES
+   ============================================================================= */
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(239, 68, 68, 0.15);
+  border-radius: 9999px;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.live-indicator-label {
+  letter-spacing: 0.05em;
+}
+
+/* =============================================================================
+   RANK CHANGE INDICATOR STYLES
+   ============================================================================= */
+
+.rank-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rank-indicator-arrow {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.rank-indicator-value {
+  font-size: 0.625rem;
+}
+
+.rank-indicator-dash {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.rank-up {
+  color: #22c55e;
+}
+
+.rank-up .rank-indicator-arrow {
+  animation: rank-bounce-up 1s ease-in-out infinite;
+}
+
+.rank-down {
+  color: #ef4444;
+}
+
+.rank-down .rank-indicator-arrow {
+  animation: rank-bounce-down 1s ease-in-out infinite;
+}
+
+.rank-unchanged {
+  color: var(--color-text-muted);
+}
+
+/* =============================================================================
+   ENHANCED GAME CARD ANIMATIONS
+   ============================================================================= */
+
+.game-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.game-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in srgb, var(--league-primary) 8%, transparent) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.game-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.3),
+    0 0 20px color-mix(in srgb, var(--league-primary) 15%, transparent);
+  border-color: color-mix(in srgb, var(--league-primary) 40%, transparent);
+}
+
+.game-card:hover::before {
+  opacity: 1;
+}
+
+.game-card:active {
+  transform: translateY(-2px) scale(1.005);
+}
+
+/* Team color glow on hover */
+.game-card[data-home-color]:hover {
+  --glow-color: var(--home-team-color, var(--league-primary));
+}
+
+.game-card .team {
+  transition: transform 0.3s ease;
+}
+
+.game-card:hover .team {
+  transform: scale(1.02);
+}
+
+.game-card .score {
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    text-shadow 0.3s ease;
+}
+
+.game-card:hover .score {
+  transform: scale(1.1);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--league-primary) 50%, transparent);
+}
+
+/* =============================================================================
+   ENHANCED STANDINGS TABLE ANIMATIONS
+   ============================================================================= */
+
+.standings-table tbody tr {
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.standings-table tbody tr:hover {
+  background: var(--color-surface-hover);
+  transform: scale(1.01);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 15px -5px rgba(0, 0, 0, 0.2);
+}
+
+.standings-table tbody tr:hover td:first-child {
+  color: var(--league-primary);
+}
+
+.standings-table tbody tr td {
+  transition: color 0.2s ease;
+}
+
+/* Animated row entrance */
+.standings-table tbody tr {
+  opacity: 0;
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+.standings-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.standings-table tbody tr:nth-child(2) { animation-delay: 50ms; }
+.standings-table tbody tr:nth-child(3) { animation-delay: 100ms; }
+.standings-table tbody tr:nth-child(4) { animation-delay: 150ms; }
+.standings-table tbody tr:nth-child(5) { animation-delay: 200ms; }
+.standings-table tbody tr:nth-child(6) { animation-delay: 250ms; }
+.standings-table tbody tr:nth-child(7) { animation-delay: 300ms; }
+.standings-table tbody tr:nth-child(8) { animation-delay: 350ms; }
+.standings-table tbody tr:nth-child(9) { animation-delay: 400ms; }
+.standings-table tbody tr:nth-child(10) { animation-delay: 450ms; }
+.standings-table tbody tr:nth-child(n+11) { animation-delay: 500ms; }
+
+/* Top 3 highlight effect */
+.standings-table tbody tr:nth-child(-n+3):hover {
+  box-shadow:
+    0 4px 15px -5px rgba(0, 0, 0, 0.2),
+    0 0 15px color-mix(in srgb, var(--league-primary) 20%, transparent);
+}
+
+/* =============================================================================
+   INTERACTIVE HOVER UTILITIES
+   ============================================================================= */
+
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+}
+
+.hover-scale {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-glow {
+  transition: box-shadow 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 25px color-mix(in srgb, var(--league-primary) 30%, transparent);
+}
+
+.hover-border-accent {
+  transition: border-color 0.3s ease;
+}
+
+.hover-border-accent:hover {
+  border-color: var(--league-primary);
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-slow,
+  .animate-shimmer,
+  .animate-gradient,
+  .animate-fade-in-up,
+  .animate-scale-in,
+  .glow-effect-active,
+  .pulse-ring-outer,
+  .rank-up .rank-indicator-arrow,
+  .rank-down .rank-indicator-arrow {
+    animation: none !important;
+  }
+
+  .game-card,
+  .game-card::before,
+  .game-card .team,
+  .game-card .score,
+  .standings-table tbody tr,
+  .standings-table tbody tr td,
+  .hover-lift,
+  .hover-scale,
+  .hover-glow,
+  .hover-border-accent,
+  .glow-effect {
+    transition: none !important;
+  }
+
+  .standings-table tbody tr {
+    opacity: 1;
+  }
+}

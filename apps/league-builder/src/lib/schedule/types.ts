@@ -14,6 +14,7 @@ export interface Team {
   shortName: string;
   divisionId: string | null;
   homeVenueId: string | null;
+  seniorityLevel?: number;
 }
 
 export interface Venue {
@@ -21,6 +22,90 @@ export interface Venue {
   name: string;
   address: string;
   numberOfRinks: number;
+}
+
+// ============================================================================
+// VENUE AVAILABILITY & BLACKOUTS
+// ============================================================================
+
+export interface VenueAvailability {
+  id: string;
+  leagueId: string;
+  venueId: string;
+  seasonId: string | null;
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  startTime: string; // HH:mm
+  endTime: string;
+  isAvailable: boolean;
+  maxGames: number | null;
+  notes: string | null;
+}
+
+export interface VenueBlackoutDate {
+  id: string;
+  leagueId: string;
+  venueId: string;
+  blackoutDate: Date;
+  startTime: string | null; // null = entire day
+  endTime: string | null;
+  reason: string | null;
+}
+
+// ============================================================================
+// TEAM SCHEDULE PREFERENCES
+// ============================================================================
+
+export interface TeamSchedulePreference {
+  id: string;
+  leagueId: string;
+  teamId: string;
+  seasonId: string | null;
+  homeVenueId: string | null;
+  seniorityLevel: number; // 1-10, higher = more priority
+  preferredGameTimes: string[]; // ["19:00", "20:30"]
+  avoidedGameTimes: string[]; // ["22:00"]
+  preferredDays: number[]; // [1, 3, 5]
+  avoidedDays: number[]; // [0, 6]
+  maxLateNightGames: number | null;
+  maxEarlyMorningGames: number | null;
+  weekendPreference: number; // 0-1, 0.5 = no preference
+  minHoursBetweenGames: number;
+  notes: string | null;
+}
+
+// ============================================================================
+// CONSTRAINT CONFIGURATION
+// ============================================================================
+
+export type TimeSlotCategory = 'early_morning' | 'morning' | 'afternoon' | 'evening' | 'late_night';
+
+export interface ScheduleConstraintConfig {
+  id: string;
+  leagueId: string;
+  seasonId: string;
+
+  // Venue constraints
+  maxGamesPerVenuePerDay: number;
+  enforceHomeVenueAssignments: boolean;
+
+  // Time slot definitions
+  earlyMorningEndTime: string; // HH:mm
+  lateNightStartTime: string;
+
+  // Global limits
+  globalMaxLateNightGamesPerTeam: number | null;
+  globalMaxEarlyMorningGamesPerTeam: number | null;
+
+  // Seniority enforcement
+  enforceSeniorityPreferences: boolean;
+  seniorityWeight: number; // 0-1
+
+  // Weekend distribution
+  targetWeekendGamePercentage: number;
+  weekendTolerancePercentage: number;
+
+  // New team handling
+  newTeamPenaltyWeeks: number;
 }
 
 export interface TimeSlot {
@@ -52,6 +137,8 @@ export interface ScheduledGame extends GameMatchup {
 
 export type ScheduleType = 'round_robin' | 'double_round_robin' | 'custom';
 
+export type PlayoffFormat = 'none' | 'single_elimination' | 'best_of_3' | 'best_of_5';
+
 export interface ScheduleConfig {
   scheduleType: ScheduleType;
   gamesPerTeam: number;
@@ -71,6 +158,10 @@ export interface ScheduleConfig {
   // Venue settings
   defaultVenueId: string | null;
   rotateHomeVenue: boolean;
+
+  // Playoff settings
+  playoffFormat: PlayoffFormat;
+  playoffTeams: number; // Number of teams that make playoffs (4, 6, 8, etc.)
 }
 
 export interface ScheduleTemplate extends ScheduleConfig {
@@ -93,7 +184,11 @@ export type ConstraintType =
   | 'venue_preference'
   | 'time_preference'
   | 'matchup_constraint'
-  | 'division_constraint';
+  | 'division_constraint'
+  | 'late_night_limit'
+  | 'early_morning_limit'
+  | 'weekend_preference'
+  | 'seniority_preference';
 
 export interface ScheduleConstraint {
   id: string;
@@ -117,6 +212,12 @@ export interface ScheduleConstraint {
   priority: number; // 1-10, 10 = must enforce
   isHardConstraint: boolean;
   notes: string | null;
+
+  // Enhanced constraint fields
+  maxOccurrences: number | null;
+  timeSlotCategory: TimeSlotCategory | null;
+  appliesToWeekends: boolean | null;
+  appliesToWeekdays: boolean | null;
 }
 
 export interface BlackoutPeriod {
@@ -195,6 +296,12 @@ export interface ScheduleGenerationOptions {
   config: ScheduleConfig;
   constraints: ScheduleConstraint[];
   venues: Venue[];
+
+  // Enhanced constraint options
+  constraintConfig?: ScheduleConstraintConfig;
+  teamPreferences?: TeamSchedulePreference[];
+  venueAvailability?: VenueAvailability[];
+  venueBlackouts?: VenueBlackoutDate[];
 
   // Generation options
   maxIterations?: number;

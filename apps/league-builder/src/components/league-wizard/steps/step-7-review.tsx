@@ -186,38 +186,61 @@ export function Step7Review() {
               <h3 className="font-semibold text-lg">Branding</h3>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-12 h-12 rounded-md border-2"
-                  style={{ backgroundColor: formData.primary_color }}
-                />
-                <div>
-                  <p className="text-sm font-medium">Primary Color</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formData.primary_color}
-                  </p>
+            <div className="flex items-start gap-6">
+              {/* Logo Preview */}
+              {formData.logo_url ? (
+                <div className="shrink-0">
+                  <p className="text-xs text-muted-foreground mb-2">Logo</p>
+                  <div className="w-20 h-20 rounded-xl border-2 border-primary/20 bg-neutral-800/50 overflow-hidden">
+                    <img
+                      src={formData.logo_url}
+                      alt="League logo"
+                      className="w-full h-full object-contain p-1"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-12 h-12 rounded-md border-2"
-                  style={{ backgroundColor: formData.secondary_color }}
-                />
-                <div>
-                  <p className="text-sm font-medium">Secondary Color</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formData.secondary_color}
-                  </p>
+              ) : (
+                <div className="shrink-0">
+                  <p className="text-xs text-muted-foreground mb-2">Logo</p>
+                  <div
+                    className="w-20 h-20 rounded-xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center"
+                    style={{ backgroundColor: formData.primary_color }}
+                  >
+                    <span className="text-xl font-bold text-white">
+                      {(formData.name || 'HL').substring(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Colors */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-10 h-10 rounded-md border-2"
+                    style={{ backgroundColor: formData.primary_color }}
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Primary Color</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.primary_color}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-10 h-10 rounded-md border-2"
+                    style={{ backgroundColor: formData.secondary_color }}
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Secondary Color</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.secondary_color}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {formData.logo_url && (
-              <div className="mt-4 pt-4 border-t">
-                <ReviewItem label="Logo URL" value={formData.logo_url} />
-              </div>
-            )}
           </CardContent>
         </Card>
 

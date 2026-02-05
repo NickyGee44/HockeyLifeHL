@@ -115,7 +115,89 @@ async function isEventProcessed(eventId: string): Promise<boolean> {
 }
 
 // ============================================================================
-// Handle: checkout.session.completed
+// Handle: checkout.session.completed (Registration Fees)
+// ============================================================================
+
+async function handleRegistrationCheckoutCompleted(
+  session: Stripe.Checkout.Session,
+  eventId: string
+): Promise<WebhookResult> {
+  const registrationId = session.metadata?.registration_id;
+
+  if (!registrationId) {
+    console.error('[Payments Webhook] Missing registration_id in metadata');
+    return { success: false, message: 'Missing registration_id' };
+  }
+
+  const supabase = createServiceRoleClient();
+
+  // Get registration record
+  const { data: registration, error: fetchError } = await supabase
+    .from('registration_submissions')
+    .select('*')
+    .eq('id', registrationId)
+    .single();
+
+  if (fetchError || !registration) {
+    console.error('[Payments Webhook] Registration not found:', registrationId);
+    return { success: false, message: 'Registration not found' };
+  }
+
+  // Get payment intent for the actual amount
+  const paymentIntent = session.payment_intent as string;
+  const amountPaid = session.amount_total || 0;
+
+  // Process payment atomically using database function
+  const { data: result, error: processError } = await supabase.rpc(
+    'process_registration_payment_webhook',
+    {
+      p_registration_id: registrationId,
+      p_checkout_session_id: session.id,
+      p_payment_intent_id: paymentIntent,
+      p_amount_paid_cents: amountPaid,
+      p_idempotency_key: `registration_checkout_${session.id}`,
+    }
+  );
+
+  if (processError) {
+    console.error('[Payments Webhook] Registration payment processing error:', sanitizeErrorForLogging(processError));
+    return { success: false, message: 'Failed to process registration payment atomically' };
+  }
+
+  if (!result || !result.success) {
+    console.error('[Payments Webhook] Registration payment processing failed:', result);
+    return { success: false, message: result?.message || 'Registration payment processing returned failure' };
+  }
+
+  // Check if already processed (idempotent)
+  if (result.already_processed) {
+    console.log('[Payments Webhook] Registration payment already processed:', result.message);
+    return { success: true, message: result.message };
+  }
+
+  await logAuditEvent(
+    registration.league_id,
+    'webhook_registration_checkout_completed',
+    {
+      checkout_session_id: session.id,
+      payment_intent_id: paymentIntent,
+      amount_cents: amountPaid,
+      registration_id: registrationId,
+      new_status: result.new_status,
+      new_amount_paid_cents: result.new_amount_paid_cents,
+    },
+    null, // No player_payment_id for registration payments
+    eventId
+  );
+
+  return {
+    success: true,
+    message: `Registration payment processed: $${(amountPaid / 100).toFixed(2)}. Status: ${result.new_status}`
+  };
+}
+
+// ============================================================================
+// Handle: checkout.session.completed (Player Season Fees)
 // ============================================================================
 
 async function handleCheckoutCompleted(
@@ -128,9 +210,16 @@ async function handleCheckoutCompleted(
     return { success: true, message: 'Event already processed' };
   }
 
+  // Route to appropriate handler based on payment type
+  const paymentType = session.metadata?.type;
+
+  if (paymentType === 'registration_fee') {
+    return await handleRegistrationCheckoutCompleted(session, eventId);
+  }
+
   const playerPaymentId = session.metadata?.player_payment_id;
 
-  if (!playerPaymentId || session.metadata?.type !== 'player_fee') {
+  if (!playerPaymentId || paymentType !== 'player_fee') {
     // Not a player payment checkout
     return { success: true, message: 'Not a player fee checkout' };
   }

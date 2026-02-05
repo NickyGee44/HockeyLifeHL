@@ -36,7 +36,7 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
   // Order: Live first, then upcoming, then completed
   const liveGames = games.filter((g) => g.status === 'in_progress');
   const upcomingGames = games.filter((g) => g.status === 'scheduled');
-  const completedGames = games.filter((g) => g.status === 'final');
+  const completedGames = games.filter((g) => g.status === 'final' || g.status === 'completed');
   const orderedGames = [...liveGames, ...upcomingGames, ...completedGames];
 
   const updateScrollButtons = useCallback(() => {
@@ -141,7 +141,7 @@ interface GameTileProps {
 }
 
 function GameTile({ game, leagueSlug }: GameTileProps) {
-  const isCompleted = game.status === 'final';
+  const isCompleted = game.status === 'final' || game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const gameDate = new Date(game.scheduled_at);
 
@@ -334,7 +334,7 @@ function StatusBadge({ status, gameDate }: StatusBadgeProps) {
     );
   }
 
-  if (status === 'final') {
+  if (status === 'final' || status === 'completed') {
     return (
       <span className="text-[9px] font-medium uppercase text-white/35 px-1.5 py-0.5 rounded bg-white/5">
         Final

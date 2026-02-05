@@ -1474,6 +1474,7 @@ export type Database = {
           event_version: number
           game_id: string
           game_time_seconds: number | null
+          goalie_in_net_id: string | null
           id: string
           is_empty_net: boolean | null
           is_power_play: boolean | null
@@ -1505,6 +1506,7 @@ export type Database = {
           event_version?: number
           game_id: string
           game_time_seconds?: number | null
+          goalie_in_net_id?: string | null
           id?: string
           is_empty_net?: boolean | null
           is_power_play?: boolean | null
@@ -1536,6 +1538,7 @@ export type Database = {
           event_version?: number
           game_id?: string
           game_time_seconds?: number | null
+          goalie_in_net_id?: string | null
           id?: string
           is_empty_net?: boolean | null
           is_power_play?: boolean | null

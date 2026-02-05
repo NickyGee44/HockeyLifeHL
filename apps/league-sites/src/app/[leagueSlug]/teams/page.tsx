@@ -25,7 +25,7 @@ export default async function TeamsPage({ params }: TeamsPageProps) {
     getCurrentSeason(league.id),
   ]);
 
-  const divisions = season ? await getDivisions(season.id) : [];
+  const divisions = await getDivisions(league.id);
 
   // Group teams by division
   const teamsByDivision = groupTeamsByDivision(teams, divisions);
