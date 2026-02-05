@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { TickerGame } from '@/lib/types';
@@ -10,153 +10,142 @@ import type { TickerGame } from '@/lib/types';
 interface ScoreTickerProps {
   games: TickerGame[];
   leagueSlug: string;
-  autoScroll?: boolean;
 }
 
 /**
- * ScoreTicker - BMHL-style horizontal scrolling game ticker
+ * ScoreTicker - BMHL-style compact score ticker
  *
- * Sits at the very top of the page above navigation. Displays a continuous
- * scrolling ticker of recent and upcoming games with date, venue, teams,
- * scores, division, and game status. Auto-scrolls with pause on hover.
- * Includes left/right arrow navigation buttons.
+ * Design specs:
+ * - ~100px total height (utility strip, not hero)
+ * - ~280px card width, dense scoreboard-like tiles
+ * - Left/right arrow scroll (NO auto-scroll)
+ * - Shows: date, venue, teams (logo + name), scores, division, status
+ * - Non-sticky (scrolls away with page)
+ * - Minimal animations - only hover states
  */
-export function ScoreTicker({
-  games,
-  leagueSlug,
-  autoScroll = true,
-}: ScoreTickerProps) {
+export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   // Don't render if no games
   if (!games || games.length === 0) {
     return null;
   }
 
-  // Duplicate games array for seamless loop effect
-  const duplicatedGames = [...games, ...games];
+  // Order: Live first, then upcoming, then completed
+  const liveGames = games.filter((g) => g.status === 'in_progress');
+  const upcomingGames = games.filter((g) => g.status === 'scheduled');
+  const completedGames = games.filter((g) => g.status === 'final');
+  const orderedGames = [...liveGames, ...upcomingGames, ...completedGames];
 
-  const handleScrollLeft = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -320, behavior: 'smooth' });
-    }
-  };
+  const updateScrollButtons = useCallback(() => {
+    if (!scrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    setCanScrollLeft(scrollLeft > 5);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5);
+  }, []);
 
-  const handleScrollRight = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 320, behavior: 'smooth' });
-    }
+  const scroll = (direction: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    const scrollAmount = 300;
+    scrollRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+    setTimeout(updateScrollButtons, 350);
   };
 
   return (
     <div
-      className="relative w-full overflow-hidden"
-      style={{ backgroundColor: 'var(--color-background)' }}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      className="w-full border-b"
+      style={{
+        background: '#0d0d0d',
+        borderColor: 'rgba(255,255,255,0.06)',
+      }}
       role="region"
-      aria-label="Recent games ticker"
+      aria-label="Game scores"
     >
-      {/* Left arrow navigation */}
-      <button
-        onClick={handleScrollLeft}
-        className="absolute left-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-200 opacity-0 hover:opacity-100 focus:opacity-100"
-        style={{
-          background:
-            'linear-gradient(to right, var(--color-background) 60%, transparent)',
-        }}
-        aria-label="Scroll ticker left"
-      >
-        <ChevronLeft
-          className="w-5 h-5"
-          style={{ color: 'var(--color-text-secondary)' }}
-        />
-      </button>
+      <div className="relative max-w-[1400px] mx-auto">
+        {/* Left Arrow */}
+        <button
+          onClick={() => scroll('left')}
+          disabled={!canScrollLeft}
+          className={`absolute left-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-150 ${
+            canScrollLeft
+              ? 'opacity-100 hover:bg-white/5'
+              : 'opacity-20 cursor-not-allowed'
+          }`}
+          style={{
+            background: canScrollLeft
+              ? 'linear-gradient(to right, #0d0d0d 50%, transparent)'
+              : 'transparent',
+          }}
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="w-5 h-5 text-white/60" />
+        </button>
 
-      {/* Scrolling ticker track */}
-      <div
-        ref={scrollRef}
-        className="flex gap-3 py-2 px-12 overflow-x-hidden"
-        style={{
-          animation: autoScroll
-            ? `ticker-scroll ${Math.max(games.length * 6, 30)}s linear infinite`
-            : 'none',
-          animationPlayState: isPaused ? 'paused' : 'running',
-        }}
-      >
-        {duplicatedGames.map((game, index) => (
-          <TickerGameCard
-            key={`${game.id}-${index}`}
-            game={game}
-            leagueSlug={leagueSlug}
-          />
-        ))}
+        {/* Scrollable Track */}
+        <div
+          ref={scrollRef}
+          onScroll={updateScrollButtons}
+          className="flex gap-2 py-2.5 px-12 overflow-x-auto"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          {orderedGames.map((game) => (
+            <GameTile key={game.id} game={game} leagueSlug={leagueSlug} />
+          ))}
+        </div>
+
+        {/* Right Arrow */}
+        <button
+          onClick={() => scroll('right')}
+          disabled={!canScrollRight}
+          className={`absolute right-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-150 ${
+            canScrollRight
+              ? 'opacity-100 hover:bg-white/5'
+              : 'opacity-20 cursor-not-allowed'
+          }`}
+          style={{
+            background: canScrollRight
+              ? 'linear-gradient(to left, #0d0d0d 50%, transparent)'
+              : 'transparent',
+          }}
+          aria-label="Scroll right"
+        >
+          <ChevronRight className="w-5 h-5 text-white/60" />
+        </button>
       </div>
 
-      {/* Right arrow navigation */}
-      <button
-        onClick={handleScrollRight}
-        className="absolute right-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-200 opacity-0 hover:opacity-100 focus:opacity-100"
-        style={{
-          background:
-            'linear-gradient(to left, var(--color-background) 60%, transparent)',
-        }}
-        aria-label="Scroll ticker right"
-      >
-        <ChevronRight
-          className="w-5 h-5"
-          style={{ color: 'var(--color-text-secondary)' }}
-        />
-      </button>
-
-      {/* Gradient fade overlays at edges */}
-      <div
-        className="absolute left-10 top-0 bottom-0 w-8 pointer-events-none z-10"
-        style={{
-          background:
-            'linear-gradient(to right, var(--color-background), transparent)',
-        }}
-      />
-      <div
-        className="absolute right-10 top-0 bottom-0 w-8 pointer-events-none z-10"
-        style={{
-          background:
-            'linear-gradient(to left, var(--color-background), transparent)',
-        }}
-      />
-
-      {/* CSS animation keyframes for the ticker scroll */}
+      {/* Hide scrollbar */}
       <style jsx>{`
-        @keyframes ticker-scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
+        div::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>
   );
 }
 
-interface TickerGameCardProps {
+// =============================================================================
+// Game Tile Component
+// =============================================================================
+
+interface GameTileProps {
   game: TickerGame;
   leagueSlug: string;
 }
 
-function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
+function GameTile({ game, leagueSlug }: GameTileProps) {
   const isCompleted = game.status === 'final';
   const isLive = game.status === 'in_progress';
-  const isScheduled = game.status === 'scheduled';
   const gameDate = new Date(game.scheduled_at);
 
-  // Get division name from either team (they should be in the same division)
-  const divisionName =
-    game.home_team?.divisions?.name || game.away_team?.divisions?.name;
-
-  // Parse team color from colors field (assumed to be primary color or JSON)
+  // Parse team color
   const getTeamColor = (colors: string | null): string | null => {
     if (!colors) return null;
     if (colors.startsWith('#')) return colors;
@@ -168,174 +157,218 @@ function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
     }
   };
 
-  // Determine if a team is winning
+  const awayColor = getTeamColor(game.away_team?.colors || null);
+  const homeColor = getTeamColor(game.home_team?.colors || null);
+
+  // Score comparison
   const awayScore = game.away_score ?? 0;
   const homeScore = game.home_score ?? 0;
   const awayWinning = awayScore > homeScore;
   const homeWinning = homeScore > awayScore;
 
-  // Build the game status line
-  const renderStatus = () => {
-    if (isLive) {
-      return (
-        <span className="inline-flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-          </span>
-          <span className="text-red-400 font-semibold text-xs uppercase">
-            Live
-          </span>
-        </span>
-      );
-    }
-    if (isCompleted) {
-      return (
-        <span
-          className="text-xs uppercase"
-          style={{ color: 'var(--color-text-muted)' }}
-        >
-          Final
-        </span>
-      );
-    }
-    // Scheduled - show time in league primary
-    return (
-      <span
-        className="text-xs font-semibold"
-        style={{ color: 'var(--league-primary)' }}
-      >
-        {format(gameDate, 'h:mm a')}
-      </span>
-    );
+  // Smart date formatting
+  const formatGameDate = () => {
+    if (isToday(gameDate)) return 'Today';
+    if (isTomorrow(gameDate)) return 'Tomorrow';
+    if (isYesterday(gameDate)) return 'Yesterday';
+    return format(gameDate, 'EEE, MMM d');
   };
+
+  const divisionName =
+    game.home_team?.divisions?.name || game.away_team?.divisions?.name;
 
   return (
     <Link
       href={`/${leagueSlug}/games/${game.id}`}
-      className="flex-shrink-0 flex flex-col rounded-lg border transition-all duration-200 hover:shadow-lg overflow-hidden"
+      className="flex-shrink-0 block rounded-md transition-colors duration-100 hover:bg-white/[0.04]"
       style={{
-        minWidth: '300px',
-        backgroundColor: 'var(--color-surface)',
-        borderColor: 'var(--color-border)',
+        width: '280px',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.05)',
       }}
     >
-      {/* Row 1: Date + Venue */}
+      {/* Header: Date + Status */}
       <div
-        className="flex items-center justify-between px-3 py-1.5 border-b"
-        style={{ borderColor: 'var(--color-border)' }}
+        className="flex items-center justify-between px-2.5 py-1 border-b"
+        style={{ borderColor: 'rgba(255,255,255,0.05)' }}
       >
-        <span
-          className="text-xs font-semibold uppercase tracking-wide"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
-          {format(gameDate, 'MMM d')}
+        <span className="text-[10px] font-medium text-white/40 uppercase tracking-wide">
+          {formatGameDate()}
         </span>
-        {game.venue && (
-          <span
-            className="flex items-center gap-1 text-xs truncate max-w-[160px]"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{game.venue}</span>
-          </span>
-        )}
+        <StatusBadge status={game.status} gameDate={gameDate} />
       </div>
 
-      {/* Row 2: Teams + Score */}
-      <div className="flex items-center justify-center gap-3 px-3 py-2.5">
+      {/* Teams and Scores - compact layout */}
+      <div className="px-2.5 py-1.5 space-y-0.5">
         {/* Away Team */}
-        <div className="flex items-center gap-2 flex-1 justify-end">
-          <span
-            className="text-sm font-medium truncate max-w-[80px] text-right"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            {game.away_team?.name || 'TBD'}
-          </span>
-          <TeamLogo
-            logoUrl={game.away_team?.logo || null}
-            teamName={game.away_team?.name || 'TBD'}
-            teamColor={getTeamColor(game.away_team?.colors || null)}
-            size="sm"
-          />
-        </div>
-
-        {/* Score / VS */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {isCompleted || isLive ? (
-            <>
-              <span
-                className="text-lg font-bold tabular-nums min-w-[20px] text-center"
-                style={{
-                  color: awayWinning
-                    ? 'var(--league-primary)'
-                    : 'var(--color-text-secondary)',
-                }}
-              >
-                {game.away_score ?? '-'}
-              </span>
-              <span
-                className="text-sm font-medium"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                -
-              </span>
-              <span
-                className="text-lg font-bold tabular-nums min-w-[20px] text-center"
-                style={{
-                  color: homeWinning
-                    ? 'var(--league-primary)'
-                    : 'var(--color-text-secondary)',
-                }}
-              >
-                {game.home_score ?? '-'}
-              </span>
-            </>
-          ) : (
-            <span
-              className="text-xs font-semibold uppercase"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              vs
-            </span>
-          )}
-        </div>
+        <TeamRow
+          team={game.away_team}
+          score={game.away_score}
+          isWinning={awayWinning && (isCompleted || isLive)}
+          showScore={isCompleted || isLive}
+          teamColor={awayColor}
+        />
 
         {/* Home Team */}
-        <div className="flex items-center gap-2 flex-1 justify-start">
-          <TeamLogo
-            logoUrl={game.home_team?.logo || null}
-            teamName={game.home_team?.name || 'TBD'}
-            teamColor={getTeamColor(game.home_team?.colors || null)}
-            size="sm"
-          />
-          <span
-            className="text-sm font-medium truncate max-w-[80px]"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            {game.home_team?.name || 'TBD'}
-          </span>
-        </div>
+        <TeamRow
+          team={game.home_team}
+          score={game.home_score}
+          isWinning={homeWinning && (isCompleted || isLive)}
+          showScore={isCompleted || isLive}
+          teamColor={homeColor}
+          isHome
+        />
       </div>
 
-      {/* Row 3: Division + Status */}
+      {/* Footer: Venue + Division */}
       <div
-        className="flex items-center justify-between px-3 py-1.5 border-t"
-        style={{ borderColor: 'var(--color-border)' }}
+        className="flex items-center justify-between px-2.5 py-1 border-t"
+        style={{
+          borderColor: 'rgba(255,255,255,0.05)',
+          background: 'rgba(0,0,0,0.15)',
+        }}
       >
-        {divisionName ? (
+        {game.venue ? (
+          <div className="flex items-center gap-1 text-white/30 min-w-0 flex-1">
+            <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+            <span className="text-[9px] truncate">{game.venue}</span>
+          </div>
+        ) : (
+          <div />
+        )}
+        {divisionName && (
           <span
-            className="text-xs"
-            style={{ color: 'var(--color-text-muted)' }}
+            className="text-[8px] font-semibold px-1.5 py-0.5 rounded"
+            style={{
+              background: 'var(--league-primary)',
+              color: 'white',
+            }}
           >
             {divisionName}
           </span>
-        ) : (
-          <span />
         )}
-        {renderStatus()}
       </div>
     </Link>
+  );
+}
+
+// =============================================================================
+// Team Row Component
+// =============================================================================
+
+interface TeamRowProps {
+  team: TickerGame['home_team'];
+  score: number | null;
+  isWinning: boolean;
+  showScore: boolean;
+  teamColor: string | null;
+  isHome?: boolean;
+}
+
+function TeamRow({
+  team,
+  score,
+  isWinning,
+  showScore,
+  teamColor,
+  isHome = false,
+}: TeamRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        <TeamLogo
+          logoUrl={team?.logo || null}
+          teamName={team?.name || 'TBD'}
+          teamColor={teamColor}
+          size="xs"
+        />
+        <span
+          className={`text-xs font-medium truncate ${
+            isWinning ? 'text-white' : 'text-white/50'
+          }`}
+        >
+          {team?.name || 'TBD'}
+        </span>
+        {isHome && (
+          <span className="text-[7px] text-white/25 font-medium">(H)</span>
+        )}
+      </div>
+
+      {showScore && (
+        <div className="flex items-center gap-1">
+          {isWinning && (
+            <div
+              className="w-1 h-1 rounded-full"
+              style={{ background: 'var(--league-primary)' }}
+            />
+          )}
+          <span
+            className={`text-sm font-bold tabular-nums ${
+              isWinning ? 'text-white' : 'text-white/35'
+            }`}
+          >
+            {score ?? '-'}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Status Badge Component
+// =============================================================================
+
+interface StatusBadgeProps {
+  status: TickerGame['status'];
+  gameDate: Date;
+}
+
+function StatusBadge({ status, gameDate }: StatusBadgeProps) {
+  if (status === 'in_progress') {
+    return (
+      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/15">
+        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+        <span className="text-[9px] font-bold uppercase text-red-400">Live</span>
+      </div>
+    );
+  }
+
+  if (status === 'final') {
+    return (
+      <span className="text-[9px] font-medium uppercase text-white/35 px-1.5 py-0.5 rounded bg-white/5">
+        Final
+      </span>
+    );
+  }
+
+  if (status === 'postponed') {
+    return (
+      <span className="text-[9px] font-medium uppercase text-amber-400/70 px-1.5 py-0.5 rounded bg-amber-500/10">
+        PPD
+      </span>
+    );
+  }
+
+  if (status === 'cancelled') {
+    return (
+      <span className="text-[9px] font-medium uppercase text-white/35 px-1.5 py-0.5 rounded bg-white/5 line-through">
+        Cancelled
+      </span>
+    );
+  }
+
+  // Scheduled - show time
+  return (
+    <span
+      className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+      style={{
+        color: 'var(--league-primary)',
+        background: 'rgba(255,255,255,0.05)',
+      }}
+    >
+      {format(gameDate, 'h:mm a')}
+    </span>
   );
 }
 
