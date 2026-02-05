@@ -543,3 +543,222 @@ export async function sendUpcomingPaymentEmail(params: {
     html: getEmailLayout(content),
   });
 }
+
+// ============================================================================
+// 6. Chargeback Alert Email (Admin Notification)
+// ============================================================================
+
+export async function sendChargebackAlertEmail(params: {
+  to: string;
+  adminName: string;
+  leagueName: string;
+  playerName: string;
+  playerEmail: string;
+  feeName: string;
+  disputeAmount: number;
+  disputeReason: string;
+  evidenceDueBy: string | null;
+  disputeId: string;
+  dashboardUrl: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const {
+    to,
+    adminName,
+    leagueName,
+    playerName,
+    playerEmail,
+    feeName,
+    disputeAmount,
+    disputeReason,
+    evidenceDueBy,
+    disputeId,
+    dashboardUrl,
+  } = params;
+
+  const formatDisputeReason = (reason: string): string => {
+    const reasonMap: Record<string, string> = {
+      duplicate: 'Duplicate charge',
+      fraudulent: 'Fraudulent transaction',
+      subscription_canceled: 'Subscription was canceled',
+      product_unacceptable: 'Product/service unacceptable',
+      product_not_received: 'Product/service not received',
+      unrecognized: 'Unrecognized charge',
+      credit_not_processed: 'Credit not processed',
+      general: 'General dispute',
+    };
+    return reasonMap[reason] || reason;
+  };
+
+  const evidenceDate = evidenceDueBy
+    ? new Date(evidenceDueBy).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : 'Not specified';
+
+  const daysUntilDue = evidenceDueBy
+    ? Math.ceil((new Date(evidenceDueBy).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const content = `
+    <h1 style="color: #FB7185;">Chargeback Alert</h1>
+    <p>Hi ${adminName},</p>
+    <p>A chargeback has been filed against a payment in <strong>${leagueName}</strong>. Immediate action may be required.</p>
+
+    <div class="warning">
+      <p><strong>Important:</strong> You may need to submit evidence to dispute this chargeback. ${
+        daysUntilDue !== null && daysUntilDue > 0
+          ? `You have <strong>${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''}</strong> to respond.`
+          : 'Check your Stripe dashboard for the deadline.'
+      }</p>
+    </div>
+
+    <div class="payment-details">
+      <table>
+        <tr>
+          <td class="label">Dispute Amount</td>
+          <td class="value" style="color: #FB7185; font-size: 20px;">$${(disputeAmount / 100).toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td class="label">Reason</td>
+          <td class="value">${formatDisputeReason(disputeReason)}</td>
+        </tr>
+        <tr>
+          <td class="label">Evidence Due By</td>
+          <td class="value">${evidenceDate}</td>
+        </tr>
+        <tr>
+          <td class="label">Fee</td>
+          <td class="value">${feeName}</td>
+        </tr>
+        <tr>
+          <td class="label">Player</td>
+          <td class="value">${playerName}</td>
+        </tr>
+        <tr>
+          <td class="label">Player Email</td>
+          <td class="value">${playerEmail}</td>
+        </tr>
+        <tr>
+          <td class="label">Dispute ID</td>
+          <td class="value" style="font-family: monospace; font-size: 12px;">${disputeId}</td>
+        </tr>
+      </table>
+    </div>
+
+    <h2>Recommended Actions</h2>
+    <ol style="color: #a3a3a3;">
+      <li><strong>Review the dispute</strong> in your Stripe dashboard</li>
+      <li><strong>Gather evidence</strong> - registration confirmation, communication with player, proof of service</li>
+      <li><strong>Submit evidence</strong> before the deadline to contest the chargeback</li>
+      <li><strong>Contact the player</strong> if appropriate to resolve the issue directly</li>
+    </ol>
+
+    <a href="${dashboardUrl}" class="button">View in Dashboard</a>
+    <a href="https://dashboard.stripe.com/disputes/${disputeId}" class="button button-secondary" style="margin-left: 10px;">View in Stripe</a>
+
+    <div class="highlight" style="margin-top: 30px;">
+      <p><strong>What happens next?</strong></p>
+      <p>If you don't respond, the chargeback will automatically be ruled in the customer's favor, and the disputed amount plus a chargeback fee will be deducted from your account.</p>
+    </div>
+
+    <p>Best regards,<br>The HockeyLife Team</p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `[ACTION REQUIRED] Chargeback Filed - ${leagueName} ($${(disputeAmount / 100).toFixed(2)})`,
+    html: getEmailLayout(content),
+  });
+}
+
+// ============================================================================
+// 7. Chargeback Resolution Email (Admin Notification)
+// ============================================================================
+
+export async function sendChargebackResolutionEmail(params: {
+  to: string;
+  adminName: string;
+  leagueName: string;
+  playerName: string;
+  disputeAmount: number;
+  outcome: 'won' | 'lost';
+  disputeId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const {
+    to,
+    adminName,
+    leagueName,
+    playerName,
+    disputeAmount,
+    outcome,
+    disputeId,
+  } = params;
+
+  const isWon = outcome === 'won';
+
+  const content = `
+    <h1>${isWon ? 'Chargeback Won' : 'Chargeback Lost'}</h1>
+    <p>Hi ${adminName},</p>
+    <p>The chargeback dispute for <strong>${leagueName}</strong> has been resolved.</p>
+
+    ${
+      isWon
+        ? `
+    <div class="success">
+      <p><strong>Good news!</strong> You won this dispute. The funds have been returned to your account.</p>
+    </div>
+    `
+        : `
+    <div class="warning">
+      <p><strong>Unfortunately,</strong> this dispute was ruled in the customer's favor. The disputed amount and chargeback fee have been deducted from your account.</p>
+    </div>
+    `
+    }
+
+    <div class="payment-details">
+      <table>
+        <tr>
+          <td class="label">Dispute Amount</td>
+          <td class="value">$${(disputeAmount / 100).toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td class="label">Outcome</td>
+          <td class="value" style="color: ${isWon ? '#34D399' : '#FB7185'};">${isWon ? 'Won' : 'Lost'}</td>
+        </tr>
+        <tr>
+          <td class="label">Player</td>
+          <td class="value">${playerName}</td>
+        </tr>
+        <tr>
+          <td class="label">Dispute ID</td>
+          <td class="value" style="font-family: monospace; font-size: 12px;">${disputeId}</td>
+        </tr>
+      </table>
+    </div>
+
+    ${
+      !isWon
+        ? `
+    <h2>Preventing Future Chargebacks</h2>
+    <ul style="color: #a3a3a3;">
+      <li>Ensure clear communication about fees and policies during registration</li>
+      <li>Send payment confirmations promptly</li>
+      <li>Respond quickly to player inquiries about charges</li>
+      <li>Keep records of all player communications</li>
+    </ul>
+    `
+        : ''
+    }
+
+    <p>Best regards,<br>The HockeyLife Team</p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Chargeback ${isWon ? 'Won' : 'Lost'} - ${leagueName} ($${(disputeAmount / 100).toFixed(2)})`,
+    html: getEmailLayout(content),
+  });
+}

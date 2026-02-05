@@ -18,6 +18,7 @@ import { stripe } from '@/lib/stripe/client';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
+import { sendChargebackAlertEmail, sendChargebackResolutionEmail } from '@/lib/email/payment-emails';
 import type { Json } from '@hockey-life/database';
 
 // ============================================================================
@@ -455,8 +456,68 @@ async function handleDisputeCreated(
     eventId
   );
 
-  // TODO: Send email alert to league admin about chargeback
-  // This should be done via an email service to notify the league admin immediately
+  // Send email alert to league admin about chargeback
+  try {
+    // Fetch league admin info and player details
+    const { data: leagueData } = await supabase
+      .from('leagues')
+      .select(`
+        name,
+        organization_id,
+        organizations!inner (
+          owner_id,
+          profiles:owner_id (
+            email,
+            full_name
+          )
+        )
+      `)
+      .eq('id', payment.league_id)
+      .single();
+
+    const { data: playerData } = await supabase
+      .from('registrations')
+      .select('profiles!inner (email, full_name)')
+      .eq('id', payment.registration_id)
+      .single();
+
+    const { data: feeData } = await supabase
+      .from('season_fees')
+      .select('name')
+      .eq('id', payment.season_fee_id)
+      .single();
+
+    if (leagueData?.organizations?.profiles?.email) {
+      const adminEmail = leagueData.organizations.profiles.email;
+      const adminName = leagueData.organizations.profiles.full_name || 'League Admin';
+      const playerName = playerData?.profiles?.full_name || 'Unknown Player';
+      const playerEmail = playerData?.profiles?.email || 'Unknown';
+      const feeName = feeData?.name || 'Season Fee';
+
+      const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+      await sendChargebackAlertEmail({
+        to: adminEmail,
+        adminName,
+        leagueName: leagueData.name,
+        playerName,
+        playerEmail,
+        feeName,
+        disputeAmount: dispute.amount,
+        disputeReason: dispute.reason || 'general',
+        evidenceDueBy,
+        disputeId: dispute.id,
+        dashboardUrl: `${SITE_URL}/dashboard/leagues/${payment.league_id}/payments`,
+      });
+
+      console.log('[Payments Webhook] Chargeback alert email sent to:', adminEmail);
+    } else {
+      console.warn('[Payments Webhook] Could not send chargeback alert - admin email not found');
+    }
+  } catch (emailError) {
+    // Don't fail the webhook if email fails - log and continue
+    console.error('[Payments Webhook] Failed to send chargeback alert email:', sanitizeErrorForLogging(emailError));
+  }
 
   return {
     success: true,
@@ -513,6 +574,57 @@ async function handleDisputeClosed(
       dispute_record.player_payment_id,
       eventId
     );
+
+    // Send email notification about dispute resolution
+    try {
+      const { data: leagueData } = await supabase
+        .from('leagues')
+        .select(`
+          name,
+          organization_id,
+          organizations!inner (
+            owner_id,
+            profiles:owner_id (
+              email,
+              full_name
+            )
+          )
+        `)
+        .eq('id', dispute_record.league_id)
+        .single();
+
+      const { data: paymentData } = await supabase
+        .from('player_payments')
+        .select(`
+          registration_id,
+          registrations!inner (
+            profiles!inner (full_name)
+          )
+        `)
+        .eq('id', dispute_record.player_payment_id)
+        .single();
+
+      if (leagueData?.organizations?.profiles?.email) {
+        const adminEmail = leagueData.organizations.profiles.email;
+        const adminName = leagueData.organizations.profiles.full_name || 'League Admin';
+        const playerName = paymentData?.registrations?.profiles?.full_name || 'Unknown Player';
+
+        await sendChargebackResolutionEmail({
+          to: adminEmail,
+          adminName,
+          leagueName: leagueData.name,
+          playerName,
+          disputeAmount: dispute.amount,
+          outcome: dispute.status === 'won' ? 'won' : 'lost',
+          disputeId: dispute.id,
+        });
+
+        console.log('[Payments Webhook] Chargeback resolution email sent to:', adminEmail);
+      }
+    } catch (emailError) {
+      // Don't fail the webhook if email fails - log and continue
+      console.error('[Payments Webhook] Failed to send chargeback resolution email:', sanitizeErrorForLogging(emailError));
+    }
   }
 
   return {
