@@ -14,7 +14,7 @@
 
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 import crypto from 'crypto';
 
@@ -229,9 +229,9 @@ export async function createRegistrationCheckout(
 
       stripeCustomerId = customer.id;
 
-      // Save customer ID to profile (use service role client to bypass RLS)
-      // NOTE: This should use createServiceRoleClient in production
-      await supabase
+      // Save customer ID to profile (use service role to bypass RLS on profile updates)
+      const serviceClient = createServiceRoleClient();
+      await serviceClient
         .from('profiles')
         .update({ stripe_customer_id: customer.id })
         .eq('id', playerId);

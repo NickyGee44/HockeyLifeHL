@@ -267,6 +267,9 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
   error?: string;
 }> {
   try {
+    // CRITICAL SECURITY: Verify active scorekeeper session before exposing game data
+    await verifyActiveScorekeeperSession(gameId);
+
     const supabase = await createServiceRoleClient();
 
     // Get game with teams
@@ -441,6 +444,9 @@ export async function getGameEvents(gameId: string): Promise<{
   error?: string;
 }> {
   try {
+    // CRITICAL SECURITY: Verify active scorekeeper session before exposing event data
+    await verifyActiveScorekeeperSession(gameId);
+
     const supabase = await createServiceRoleClient();
 
     const { data: events, error } = await supabase
@@ -546,7 +552,7 @@ export async function addGoalEvent(data: {
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
     // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
-    await verifyActiveScorekeeperSession(data.gameId);
+    const sessionId = await verifyActiveScorekeeperSession(data.gameId);
 
     const supabase = await createServiceRoleClient();
 
@@ -583,8 +589,8 @@ export async function addGoalEvent(data: {
         is_power_play: data.isPowerPlay || false,
         is_short_handed: data.isShortHanded || false,
         is_empty_net: data.isEmptyNet || false,
-        goalie_in_net_id: data.goalieInNetId || null, // Track which goalie allowed the goal
-        entered_by: '00000000-0000-0000-0000-000000000000', // Scorekeeper session
+        goalie_in_net_id: data.goalieInNetId || null,
+        entered_by: sessionId,
         entered_at: new Date().toISOString(),
       })
       .select('id')
@@ -624,7 +630,7 @@ export async function addPenaltyEvent(data: {
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
     // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
-    await verifyActiveScorekeeperSession(data.gameId);
+    const sessionId = await verifyActiveScorekeeperSession(data.gameId);
 
     const supabase = await createServiceRoleClient();
 
@@ -658,7 +664,7 @@ export async function addPenaltyEvent(data: {
         game_time_seconds: data.gameTimeSeconds || null,
         penalty_type: data.penaltyType,
         penalty_minutes: data.penaltyMinutes,
-        entered_by: '00000000-0000-0000-0000-000000000000',
+        entered_by: sessionId,
         entered_at: new Date().toISOString(),
       })
       .select('id')
@@ -689,7 +695,7 @@ export async function addSaveEvent(data: {
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
     // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
-    await verifyActiveScorekeeperSession(data.gameId);
+    const sessionId = await verifyActiveScorekeeperSession(data.gameId);
 
     const supabase = await createServiceRoleClient();
 
@@ -721,7 +727,7 @@ export async function addSaveEvent(data: {
         event_type: 'save',
         period: data.period,
         game_time_seconds: data.gameTimeSeconds || null,
-        entered_by: '00000000-0000-0000-0000-000000000000',
+        entered_by: sessionId,
         entered_at: new Date().toISOString(),
       })
       .select('id')
@@ -761,13 +767,13 @@ export async function undoEvent(eventId: string): Promise<{
     }
 
     // CRITICAL SECURITY: Verify active scorekeeper session BEFORE allowing stats modification
-    await verifyActiveScorekeeperSession(event.game_id);
+    const sessionId = await verifyActiveScorekeeperSession(event.game_id);
 
     const { error } = await supabase
       .from('game_events')
       .update({
         deleted_at: new Date().toISOString(),
-        deleted_by: '00000000-0000-0000-0000-000000000000',
+        deleted_by: sessionId,
       })
       .eq('id', eventId);
 
@@ -793,6 +799,9 @@ export async function submitGameForVerification(gameId: string): Promise<{
   error?: string;
 }> {
   try {
+    // CRITICAL SECURITY: Verify active scorekeeper session before generating verification tokens
+    await verifyActiveScorekeeperSession(gameId);
+
     const supabase = await createServiceRoleClient();
 
     // Generate cryptographically secure verification tokens
@@ -881,11 +890,12 @@ export async function verifyCaptainStats(
   try {
     const supabase = await createServiceRoleClient();
 
-    // Find game by verification token
+    // Find game by verification token (sanitize to prevent filter injection)
+    const safeToken = token.replace(/[,.()"\\]/g, '');
     const { data: game, error: findError } = await supabase
       .from('games')
       .select('id, home_verification_token, away_verification_token')
-      .or(`home_verification_token.eq.${token},away_verification_token.eq.${token}`)
+      .or(`home_verification_token.eq.${safeToken},away_verification_token.eq.${safeToken}`)
       .single();
 
     if (findError || !game) {
@@ -931,7 +941,6 @@ export async function getGameSummary(gameId: string): Promise<{
     awaySaves: number;
     homeShots: number;
     awayShots: number;
-    // Power play / short-handed breakdown
     homePPGoals: number;
     awayPPGoals: number;
     homeSHGoals: number;
@@ -974,6 +983,9 @@ export async function getGameSummary(gameId: string): Promise<{
   error?: string;
 }> {
   try {
+    // CRITICAL SECURITY: Verify active scorekeeper session before exposing summary data
+    await verifyActiveScorekeeperSession(gameId);
+
     const supabase = await createServiceRoleClient();
 
     const { data: events, error } = await supabase
@@ -1194,6 +1206,9 @@ export async function finalizeGameStats(gameId: string): Promise<{
   error?: string;
 }> {
   try {
+    // CRITICAL SECURITY: Verify active scorekeeper session before finalizing stats
+    await verifyActiveScorekeeperSession(gameId);
+
     const supabase = await createServiceRoleClient();
 
     // Call the rollup RPC function if it exists

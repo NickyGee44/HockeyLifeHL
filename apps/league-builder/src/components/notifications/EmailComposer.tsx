@@ -141,8 +141,12 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
     }
   };
 
-  // Convert markdown preview
+  // Convert markdown preview (sanitize HTML entities first to prevent XSS)
   const previewContent = content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/\n/g, '<br>');

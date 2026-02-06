@@ -7,6 +7,11 @@ import { verifyCaptainOrAdminAccess, verifyLeagueOwnerAccess } from './permissio
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
+/** Sanitize input for use in PostgREST filter strings to prevent filter injection */
+function sanitizeFilterInput(input: string): string {
+  return input.replace(/[,.()"\\]/g, '');
+}
+
 // Types
 export type TeamStatus = 'active' | 'inactive' | 'pending';
 
@@ -93,7 +98,8 @@ export async function getLeagueTeams(leagueId: string, options?: { status?: Team
     }
 
     if (options?.search) {
-      query = query.or(`name.ilike.%${options.search}%,short_name.ilike.%${options.search}%`);
+      const safeSearch = sanitizeFilterInput(options.search);
+      query = query.or(`name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%`);
     }
 
     const { data: teams, error } = await query;
@@ -543,25 +549,37 @@ export async function getUserTeams(options?: { status?: TeamStatus; search?: str
   }
 
   try {
-    // Get all leagues the user has access to
+    // Get organizations owned by user first (avoid FK join RLS issues)
+    const { data: orgs } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('owner_user_id', user.id);
+
+    if (!orgs || orgs.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const orgIds = orgs.map(o => o.id);
+
+    // Get all leagues in user's organizations
     const { data: leagues } = await supabase
       .from('leagues')
-      .select('id, name, organizations!inner(owner_user_id)')
-      .eq('organizations.owner_user_id', user.id);
+      .select('id, name')
+      .in('organization_id', orgIds);
 
     if (!leagues || leagues.length === 0) {
       return { success: true, data: [] };
     }
 
     const leagueIds = leagues.map(l => l.id);
+    const leagueMap = new Map(leagues.map(l => [l.id, l.name]));
 
+    // Get teams without FK joins
     let query = supabase
       .from('teams')
       .select(`
         *,
-        leagues!inner(id, name),
-        divisions:division_id (name),
-        captain:captain_id (full_name)
+        divisions:division_id (name)
       `)
       .in('league_id', leagueIds)
       .order('name');
@@ -571,7 +589,8 @@ export async function getUserTeams(options?: { status?: TeamStatus; search?: str
     }
 
     if (options?.search) {
-      query = query.or(`name.ilike.%${options.search}%,short_name.ilike.%${options.search}%`);
+      const safeSearch = sanitizeFilterInput(options.search);
+      query = query.or(`name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%`);
     }
 
     const { data: teams, error } = await query;
@@ -596,12 +615,23 @@ export async function getUserTeams(options?: { status?: TeamStatus; search?: str
       countMap.set(r.team_id, (countMap.get(r.team_id) || 0) + 1);
     });
 
+    // Fetch captain info separately to avoid FK join RLS issues
+    const captainIds = teams?.filter(t => t.captain_id).map(t => t.captain_id).filter((id): id is string => id !== null) || [];
+    const captainMap = new Map<string, string>();
+    if (captainIds.length > 0) {
+      const { data: captains } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', captainIds);
+      captains?.forEach(c => captainMap.set(c.id, c.full_name || ''));
+    }
+
     const teamsWithStats = teams?.map(team => ({
       ...team,
       roster_count: countMap.get(team.id) || 0,
-      captain_name: (team.captain as any)?.full_name || null,
+      captain_name: team.captain_id ? captainMap.get(team.captain_id) || null : null,
       division_name: (team.divisions as any)?.name || null,
-      league_name: (team.leagues as any)?.name || null,
+      league_name: leagueMap.get(team.league_id) || null,
     })) || [];
 
     return { success: true, data: teamsWithStats };
