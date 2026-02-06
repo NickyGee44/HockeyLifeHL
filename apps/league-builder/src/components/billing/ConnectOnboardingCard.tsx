@@ -265,7 +265,7 @@ export function ConnectOnboardingCard({
 
         {/* Platform Fee Notice */}
         <p className="text-xs text-muted-foreground text-center pt-2">
-          A 5% platform fee applies to all transactions
+          A 2.99% platform fee applies to all transactions
         </p>
       </CardContent>
     </Card>
