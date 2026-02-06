@@ -1,4 +1,125 @@
 {
+  "homepage": {
+    "nav": {
+      "login": "Connexion",
+      "signup": "S'inscrire"
+    },
+    "hero": {
+      "headline": "Moins d'admin.",
+      "headlineAccent": "Plus de hockey.",
+      "subheadline": "De beaux sites web de ligue, des outils de gestion puissants et une experience joueur que les gens adorent.",
+      "ctaPrimary": "Commencer gratuitement",
+      "ctaSecondary": "Voir une ligue en direct"
+    },
+    "trust": {
+      "headline": "Concu pour de vraies ligues",
+      "stats": {
+        "players": "Joueurs inscrits",
+        "games": "Matchs suivis",
+        "leagues": "Ligues alimentees"
+      },
+      "testimonial": {
+        "quote": "Enfin, une plateforme de gestion de ligue qui ne semble pas avoir ete construite en 2005. Nos joueurs l'adorent.",
+        "author": "Mike Johnson",
+        "role": "Ligue de hockey adulte du centre-ville"
+      }
+    },
+    "pillars": {
+      "headline": "Tout ce qu'il vous faut pour",
+      "headlineAccent": "dominer",
+      "subheadline": "Trois piliers qui rendent la gestion de votre ligue sans effort.",
+      "websites": {
+        "title": "Beaux sites web de ligue",
+        "description": "Sites web generes automatiquement qui donnent a votre ligue une apparence professionnelle des le premier jour.",
+        "benefit1": "Calendriers, classements et statistiques mis a jour automatiquement",
+        "benefit2": "Design adapte aux mobiles qui fonctionne partout",
+        "benefit3": "Image de marque personnalisee avec les couleurs et le logo de votre ligue"
+      },
+      "operations": {
+        "title": "Operations sans effort",
+        "description": "Tous les outils d'administration dont vous avez besoin, sans la complexite inutile.",
+        "benefit1": "Generation intelligente de calendrier avec gestion des arenas",
+        "benefit2": "Inscription et collecte de paiement faciles",
+        "benefit3": "Marquage en temps reel depuis n'importe quel appareil"
+      },
+      "experience": {
+        "title": "Experience joueur qu'ils adorent",
+        "description": "Gardez les joueurs engages et fideles saison apres saison.",
+        "benefit1": "Suivi des statistiques personnelles et historique de carriere",
+        "benefit2": "Inscription d'equipe facile et gestion des effectifs",
+        "benefit3": "Notifications de match et rappels de calendrier"
+      }
+    },
+    "modules": {
+      "headline": "Tout ce qu'il vous faut",
+      "subheadline": "Des outils puissants concus pour les commissaires de ligue de hockey qui veulent passer moins de temps sur l'administration et plus de temps sur la glace.",
+      "comingSoon": "Bientot disponible",
+      "websites": {
+        "title": "Sites web de ligue",
+        "description": "Sites web professionnels et adaptes aux mobiles qui se mettent a jour automatiquement avec vos derniers calendriers et classements."
+      },
+      "schedule": {
+        "title": "Calendrier et scores",
+        "description": "Generation intelligente de calendrier avec detection de conflits, gestion des arenas et suivi des scores en temps reel."
+      },
+      "stats": {
+        "title": "Stats et centre de match",
+        "description": "Suivi complet des statistiques avec classements, profils de joueurs et belles visualisations."
+      },
+      "payments": {
+        "title": "Inscription et paiements",
+        "description": "Flux d'inscription fluides avec traitement integre des paiements et recus automatiques."
+      },
+      "dashboard": {
+        "title": "Tableau de bord admin",
+        "description": "Gerez toute votre ligue depuis un seul tableau de bord puissant avec des insights en temps reel."
+      },
+      "playerApp": {
+        "title": "Application joueur",
+        "description": "Application mobile native pour que les joueurs consultent les calendriers, les stats et restent connectes avec leur equipe."
+      }
+    },
+    "pricing": {
+      "badge": "Tarification simple",
+      "headline": "Gratuit pour commencer. Payez seulement quand vous etes paye.",
+      "subheadline": "Pas de frais mensuels. Pas de couts caches. Juste de petits frais de transaction quand vous traitez des paiements.",
+      "fee": "Seulement",
+      "feeContext": "sur le traitement des paiements",
+      "benefit1": "Equipes et joueurs illimites",
+      "benefit2": "Site web de ligue complet inclus",
+      "benefit3": "Saisons et calendriers illimites",
+      "benefit4": "Tous les outils et fonctionnalites d'administration",
+      "cta": "Commencer gratuitement",
+      "noCard": "Aucune carte de credit requise"
+    },
+    "finalCta": {
+      "headline": "Pret a elever votre ligue?",
+      "subheadline": "Rejoignez les ligues a travers le Canada qui utilisent deja Beer League Hockey pour simplifier leurs operations.",
+      "cta": "Commencer gratuitement"
+    },
+    "footer": {
+      "tagline": "La facon moderne de gerer une ligue de hockey.",
+      "rights": "Tous droits reserves.",
+      "madeWith": "Fait avec amour pour le hockey",
+      "product": {
+        "title": "Produit",
+        "signup": "S'inscrire",
+        "login": "Connexion",
+        "demo": "Voir la demo"
+      },
+      "resources": {
+        "title": "Ressources",
+        "help": "Centre d'aide",
+        "contact": "Nous contacter",
+        "blog": "Blogue"
+      },
+      "legal": {
+        "title": "Legal",
+        "privacy": "Politique de confidentialite",
+        "terms": "Conditions d'utilisation"
+      }
+    }
+  },
   "common": {
     "loading": "Chargement...",
     "save": "Enregistrer",
@@ -208,7 +329,9 @@
       "scheduled": "Planifie",
       "inProgress": "En cours",
       "completed": "Termine",
-      "paused": "En pause"
+      "paused": "En pause",
+      "active": "Actif",
+      "draft": "Brouillon"
     },
     "types": {
       "snake": "Repechage serpentin",
@@ -255,8 +378,53 @@
     "deleteLeague": "Supprimer la ligue",
     "saved": "Parametres enregistres"
   },
+  "company": {
+    "profile": "Profil de l'entreprise",
+    "profileDescription": "Gerez les informations et les parametres de votre entreprise",
+    "yourCompany": "Votre entreprise",
+    "manageProfile": "Gerer le profil",
+    "noCompany": "Aucun profil d'entreprise",
+    "setupCompany": "Configurez votre profil d'entreprise pour creer des ligues",
+    "createCompany": "Creer une entreprise",
+    "leagues": "Ligues",
+    "owner": "Proprietaire",
+    "member": "Membre",
+    "yourLeagues": "Vos ligues",
+    "noLeagues": "Aucune ligue",
+    "createFirstLeague": "Creez votre premiere ligue pour commencer",
+    "accountSettings": "Parametres du compte",
+    "accountSettingsDescription": "Gerez les preferences de votre compte",
+    "billingDescription": "Voir la facturation et le traitement des paiements",
+    "teamMembers": "Membres de l'equipe",
+    "teamMembersDescription": "Gerez les acces"
+  },
   "billing": {
     "title": "Facturation",
+    "description": "Gerez votre facturation et le traitement des paiements",
+    "platformFree": "La plateforme est GRATUITE pour toujours",
+    "platformFreeDescription": "Pas de frais mensuels, pas de couts caches. Utilisez toutes les fonctionnalites gratuitement.",
+    "included": {
+      "unlimitedTeams": "Equipes et joueurs illimites",
+      "leagueWebsite": "Site web de ligue complet inclus",
+      "unlimitedSeasons": "Saisons et calendriers illimites",
+      "allAdminTools": "Tous les outils et fonctionnalites d'administration"
+    },
+    "paymentProcessing": "Traitement des paiements",
+    "paymentProcessingDescription": "Lorsque vous collectez des frais d'inscription des joueurs, nous facturons de petits frais de transaction",
+    "perTransaction": "par transaction",
+    "feeDescription": "Ces frais couvrent les couts de traitement Stripe et la maintenance de la plateforme. Vous gardez le reste.",
+    "leagueBilling": "Parametres de paiement par ligue",
+    "stripeConnected": "Stripe connecte",
+    "setupRequired": "Configuration requise",
+    "pendingSetup": "Configuration en attente",
+    "noLeagues": "Aucune ligue",
+    "noLeaguesDescription": "Creez une ligue pour commencer a collecter des paiements",
+    "premiumServices": "Extensions premium",
+    "customDomain": "Domaine personnalise",
+    "customDomainDescription": "Utilisez votre propre domaine pour le site de votre ligue (ex: maligue.com)",
+    "dataImport": "Importation de donnees historiques",
+    "dataImportDescription": "Importez l'historique, les stats et les records de votre ligue existante",
+    "contactForQuote": "Contactez-nous pour un devis",
     "currentPlan": "Forfait actuel",
     "changePlan": "Changer de forfait",
     "paymentMethod": "Mode de paiement",
@@ -344,5 +512,44 @@
     "days": "{count, plural, =1 {1 jour} other {# jours}}",
     "ago": "il y a {time}",
     "remaining": "{time} restant"
+  },
+  "captain": {
+    "roster": {
+      "importFromPreviousSeason": "Importer de la saison precedente",
+      "importPlayers": "Importer les joueurs",
+      "selectSourceSeason": "Selectionner la saison source",
+      "noSeasonHistory": "Aucune saison precedente trouvee",
+      "playersToImport": "Joueurs a importer",
+      "selectAll": "Tout selectionner",
+      "deselectAll": "Tout deselectionner",
+      "importSelected": "Importer la selection",
+      "importing": "Importation...",
+      "willImport": "Sera importe",
+      "conflict": "Conflit",
+      "jerseyTaken": "Numero deja pris",
+      "alreadyOnRoster": "Deja dans la formation",
+      "importSuccess": "{count} joueurs importes avec succes",
+      "importError": "Echec de l'importation de certains joueurs",
+      "noPlayersToImport": "Aucun joueur disponible a importer"
+    }
+  },
+  "season": {
+    "new": "Nouvelle saison",
+    "createSeason": "Creer une saison",
+    "wizard": {
+      "step1": "Info saison",
+      "step2": "Equipes",
+      "step3": "Formations",
+      "step4": "Revision",
+      "seasonName": "Nom de la saison",
+      "startDate": "Date de debut",
+      "endDate": "Date de fin",
+      "carryForwardTeams": "Conserver les equipes",
+      "startFresh": "Recommencer a zero",
+      "importRosters": "Importer les formations",
+      "importAll": "Tout importer",
+      "reviewAndCreate": "Reviser et creer",
+      "creating": "Creation de la saison..."
+    }
   }
 }

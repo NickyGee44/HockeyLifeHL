@@ -59,7 +59,7 @@ async function verifyActiveScorekeeperSession(gameId: string): Promise<string> {
   }
 
   // Return session ID for audit logging
-  return session.id;
+  return session.session_id;
 }
 
 export interface ScorekeeperSession {
@@ -1203,7 +1203,7 @@ export async function finalizeGameStats(gameId: string): Promise<{
 
     if (error) {
       // If RPC doesn't exist, just update game status
-      console.log('Rollup RPC not found, updating game status only');
+      console.warn('Rollup RPC not found, updating game status only');
     }
 
     // Update game status to completed

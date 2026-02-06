@@ -16,6 +16,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
+import crypto from 'crypto';
+
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // ============================================================================
 // Types
@@ -72,8 +75,6 @@ function generateIdempotencyKey(
   operation: string,
   data: Record<string, unknown>
 ): string {
-  const crypto = require('crypto');
-
   // Sort keys for deterministic stringification
   const sortedData = Object.keys(data)
     .sort()
@@ -295,13 +296,14 @@ export async function createRegistrationCheckout(
       })
       .eq('id', registrationId);
 
-    // Log audit event (optional - create audit log table if needed)
-    console.log('[Registration Payments] Checkout session created:', {
-      registration_id: registrationId,
-      session_id: session.id,
-      amount: amountOwed,
-      application_fee: applicationFee,
-    });
+    if (isDevelopment) {
+      console.log('[Registration Payments] Checkout session created:', {
+        registration_id: registrationId,
+        session_id: session.id,
+        amount: amountOwed,
+        application_fee: applicationFee,
+      });
+    }
 
     return {
       success: true,
@@ -312,6 +314,216 @@ export async function createRegistrationCheckout(
     };
   } catch (error) {
     console.error('[Registration Payments] Create checkout error:', error);
+
+    if (error instanceof Stripe.errors.StripeError) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: false, error: 'Failed to create payment session. Please try again.' };
+  }
+}
+
+// ============================================================================
+// Action: Create Embedded Checkout Session
+// ============================================================================
+
+interface EmbeddedCheckoutResult {
+  clientSecret: string;
+  sessionId: string;
+}
+
+export async function createEmbeddedCheckout(
+  registrationId: string,
+  returnUrl: string
+): Promise<ActionResult<EmbeddedCheckoutResult>> {
+  try {
+    const playerId = await getCurrentPlayerId();
+    if (!playerId) {
+      return { success: false, error: 'Authentication required. Please sign in.' };
+    }
+
+    const supabase = await createClient();
+
+    // Fetch registration with league details
+    const { data: registration, error: fetchError } = await supabase
+      .from('registration_submissions')
+      .select(`
+        id,
+        player_id,
+        league_id,
+        season_id,
+        team_id,
+        registration_type,
+        payment_status,
+        amount_paid_cents,
+        fee_amount_cents,
+        currency,
+        stripe_checkout_session_id,
+        leagues!inner (
+          id,
+          name,
+          stripe_account_id,
+          stripe_account_status
+        )
+      `)
+      .eq('id', registrationId)
+      .single();
+
+    if (fetchError || !registration) {
+      console.error('[Registration Payments] Fetch error:', fetchError);
+      return { success: false, error: 'Registration not found.' };
+    }
+
+    // Verify player owns this registration
+    if (registration.player_id !== playerId) {
+      return { success: false, error: 'You can only pay for your own registrations.' };
+    }
+
+    // Check payment status
+    if (registration.payment_status === 'completed') {
+      return { success: false, error: 'This registration has already been paid in full.' };
+    }
+
+    if (registration.payment_status === 'not_required') {
+      return { success: false, error: 'This registration does not require payment.' };
+    }
+
+    const league = registration.leagues as any;
+
+    // Verify league has Stripe Connect account
+    if (!league?.stripe_account_id || league.stripe_account_status !== 'complete') {
+      return {
+        success: false,
+        error: 'This league has not set up payment processing yet. Please contact the league administrator.',
+      };
+    }
+
+    // Calculate amount owed
+    const feeAmount = registration.fee_amount_cents || 0;
+    const amountPaid = registration.amount_paid_cents || 0;
+    const amountOwed = feeAmount - amountPaid;
+
+    if (amountOwed <= 0) {
+      return { success: false, error: 'No payment is due for this registration.' };
+    }
+
+    // Calculate platform application fee (2.99%)
+    const applicationFee = calculateApplicationFee(amountOwed);
+
+    // Get or create Stripe customer
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id, email, full_name')
+      .eq('id', playerId)
+      .single();
+
+    let stripeCustomerId = profile?.stripe_customer_id;
+
+    if (!stripeCustomerId && profile?.email) {
+      const stripe = getStripeClient();
+      const customerIdempotencyKey = generateIdempotencyKey('create_customer', {
+        player_id: playerId,
+        email: profile.email,
+      });
+
+      const customer = await stripe.customers.create(
+        {
+          email: profile.email,
+          name: profile.full_name || undefined,
+          metadata: {
+            player_id: playerId,
+            platform: 'beerleaguehockey',
+          },
+        },
+        { idempotencyKey: customerIdempotencyKey }
+      );
+
+      stripeCustomerId = customer.id;
+
+      await supabase
+        .from('profiles')
+        .update({ stripe_customer_id: customer.id })
+        .eq('id', playerId);
+    }
+
+    // Create Embedded Checkout Session
+    const stripe = getStripeClient();
+    const idempotencyKey = generateIdempotencyKey('create_embedded_checkout', {
+      registration_id: registrationId,
+      amount: amountOwed,
+      timestamp: Math.floor(Date.now() / 60000).toString(), // 1-minute granularity
+    });
+
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: 'payment',
+        ui_mode: 'embedded', // Key difference for embedded checkout
+        customer: stripeCustomerId || undefined,
+        customer_email: stripeCustomerId ? undefined : (profile?.email || undefined),
+        line_items: [
+          {
+            price_data: {
+              currency: registration.currency || 'cad',
+              product_data: {
+                name: `${registration.registration_type} Registration`,
+                description: `${league.name} - Registration Fee`,
+              },
+              unit_amount: amountOwed,
+            },
+            quantity: 1,
+          },
+        ],
+        payment_intent_data: {
+          application_fee_amount: applicationFee,
+          transfer_data: {
+            destination: league.stripe_account_id,
+          },
+          metadata: {
+            registration_id: registrationId,
+            player_id: playerId,
+            league_id: registration.league_id,
+            season_id: registration.season_id,
+            platform: 'hockeylifehl',
+          },
+        },
+        return_url: returnUrl,
+        metadata: {
+          registration_id: registrationId,
+          type: 'registration_fee',
+        },
+      },
+      {
+        idempotencyKey,
+      }
+    );
+
+    // Store checkout session ID for tracking
+    await supabase
+      .from('registration_submissions')
+      .update({
+        stripe_checkout_session_id: session.id,
+        payment_status: 'pending',
+      })
+      .eq('id', registrationId);
+
+    if (isDevelopment) {
+      console.log('[Registration Payments] Embedded checkout session created:', {
+        registration_id: registrationId,
+        session_id: session.id,
+        amount: amountOwed,
+        application_fee: applicationFee,
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        clientSecret: session.client_secret!,
+        sessionId: session.id,
+      },
+    };
+  } catch (error) {
+    console.error('[Registration Payments] Create embedded checkout error:', error);
 
     if (error instanceof Stripe.errors.StripeError) {
       return { success: false, error: error.message };
