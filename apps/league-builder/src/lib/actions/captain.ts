@@ -6,6 +6,30 @@ import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
+// Types for roster import
+export interface RosterImportConflict {
+  playerId: string;
+  playerName: string;
+  reason: 'already_on_roster' | 'jersey_taken';
+  jerseyNumber?: number;
+}
+
+export interface RosterImportResult {
+  success: boolean;
+  copiedCount?: number;
+  skippedCount?: number;
+  conflicts?: RosterImportConflict[];
+  error?: string;
+}
+
+export interface PreviousSeasonPlayer {
+  player_id: string;
+  player_name: string;
+  jersey_number: number | null;
+  position: string | null;
+  email: string | null;
+}
+
 // Types
 export interface TeamJoinRequest {
   id: string;
@@ -164,8 +188,8 @@ export async function getCaptainTeams() {
       .select('home_team_id, away_team_id')
       .in('home_team_id', teamIds)
       .or(`away_team_id.in.(${teamIds.join(',')})`)
-      .gte('game_date', new Date().toISOString())
-      .order('game_date', { ascending: true });
+      .gte('scheduled_at', new Date().toISOString())
+      .order('scheduled_at', { ascending: true });
 
     const upcomingGamesMap = new Map<string, number>();
     upcomingGames?.forEach(g => {
@@ -257,22 +281,27 @@ export async function getCaptainDashboard(teamId: string) {
       .single();
 
     // Get upcoming games
-    const { data: upcomingGames } = await supabase
+    const { data: upcomingGamesRaw } = await supabase
       .from('games')
       .select(`
         id,
-        game_date,
-        game_time,
+        scheduled_at,
         home_team_id,
         away_team_id,
-        home_team:home_team_id(id, name, short_name, logo_url),
-        away_team:away_team_id(id, name, short_name, logo_url),
-        venue:venue_id(id, name, address)
+        location,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, logo_url)
       `)
       .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
-      .gte('game_date', new Date().toISOString())
-      .order('game_date', { ascending: true })
+      .gte('scheduled_at', new Date().toISOString())
+      .order('scheduled_at', { ascending: true })
       .limit(5);
+
+    // Transform to expected Game type - there's no FK to venues, use location string
+    const upcomingGames = (upcomingGamesRaw || []).map(g => ({
+      ...g,
+      venue: g.location ? { id: '', name: g.location, address: null } : undefined,
+    }));
 
     return {
       success: true,
@@ -497,8 +526,7 @@ export async function getCaptainTeamRoster(teamId: string) {
       .from('team_rosters')
       .select(`
         *,
-        player:player_id(id, full_name, email, phone),
-        position:position_id(id, name, abbreviation)
+        player:player_id(id, full_name, email, phone)
       `)
       .eq('team_id', teamId)
       .eq('status', 'active')
@@ -559,5 +587,225 @@ export async function removePlayerFromRoster(teamId: string, playerId: string) {
       console.error('Unexpected error in removePlayerFromRoster:', sanitizeErrorForLogging(error));
     }
     return { error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Get previous seasons for a team's league (for roster import)
+ */
+export async function getTeamPreviousSeasons(teamId: string) {
+  // Verify captain access
+  const access = await verifyCaptainAccess(teamId);
+  if (!access.authorized) {
+    return { error: access.error || 'Not authorized' };
+  }
+
+  const supabase = await createClient();
+
+  try {
+    // Get the team's league
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('league_id')
+      .eq('id', teamId)
+      .single();
+
+    if (teamError || !team) {
+      return { error: 'Team not found' };
+    }
+
+    // Get all seasons for this league that have ended
+    const { data: seasons, error: seasonsError } = await supabase
+      .from('seasons')
+      .select('id, name, start_date, end_date')
+      .eq('league_id', team.league_id)
+      .lt('end_date', new Date().toISOString())
+      .order('end_date', { ascending: false });
+
+    if (seasonsError) {
+      if (isDevelopment) {
+        console.error('Error fetching previous seasons:', sanitizeErrorForLogging(seasonsError));
+      }
+      return { error: 'Failed to fetch previous seasons' };
+    }
+
+    return { success: true, data: seasons || [] };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Unexpected error in getTeamPreviousSeasons:', sanitizeErrorForLogging(error));
+    }
+    return { error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Get roster from a previous season for import preview
+ */
+export async function getPreviousSeasonRoster(teamId: string, seasonId: string) {
+  // Verify captain access
+  const access = await verifyCaptainAccess(teamId);
+  if (!access.authorized) {
+    return { error: access.error || 'Not authorized' };
+  }
+
+  const supabase = await createClient();
+
+  try {
+    const { data: roster, error } = await supabase
+      .from('team_rosters')
+      .select(`
+        player_id,
+        jersey_number,
+        position,
+        player:player_id(full_name, email)
+      `)
+      .eq('team_id', teamId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active');
+
+    if (error) {
+      if (isDevelopment) {
+        console.error('Error fetching previous season roster:', sanitizeErrorForLogging(error));
+      }
+      return { error: 'Failed to fetch previous season roster' };
+    }
+
+    // Transform to expected format
+    const players: PreviousSeasonPlayer[] = (roster || []).map((entry: any) => ({
+      player_id: entry.player_id,
+      player_name: entry.player?.full_name || 'Unknown',
+      jersey_number: entry.jersey_number,
+      position: entry.position,
+      email: entry.player?.email || null,
+    }));
+
+    return { success: true, data: players };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Unexpected error in getPreviousSeasonRoster:', sanitizeErrorForLogging(error));
+    }
+    return { error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Get current season for a team
+ */
+export async function getTeamCurrentSeason(teamId: string) {
+  const supabase = await createClient();
+
+  try {
+    // Get the team's league
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('league_id')
+      .eq('id', teamId)
+      .single();
+
+    if (teamError || !team) {
+      return { error: 'Team not found' };
+    }
+
+    // Get current season
+    const now = new Date().toISOString();
+    const { data: season, error: seasonError } = await supabase
+      .from('seasons')
+      .select('id, name, start_date, end_date')
+      .eq('league_id', team.league_id)
+      .lte('start_date', now)
+      .gte('end_date', now)
+      .single();
+
+    if (seasonError && seasonError.code !== 'PGRST116') {
+      if (isDevelopment) {
+        console.error('Error fetching current season:', sanitizeErrorForLogging(seasonError));
+      }
+      return { error: 'Failed to fetch current season' };
+    }
+
+    // If no current season, get the most recent upcoming season
+    if (!season) {
+      const { data: upcomingSeason } = await supabase
+        .from('seasons')
+        .select('id, name, start_date, end_date')
+        .eq('league_id', team.league_id)
+        .gte('start_date', now)
+        .order('start_date', { ascending: true })
+        .limit(1)
+        .single();
+
+      return { success: true, data: upcomingSeason || null };
+    }
+
+    return { success: true, data: season };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Unexpected error in getTeamCurrentSeason:', sanitizeErrorForLogging(error));
+    }
+    return { error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Import players from a previous season to the current season
+ */
+export async function importPlayersFromPreviousSeason(params: {
+  teamId: string;
+  fromSeasonId: string;
+  toSeasonId: string;
+  selectedPlayerIds?: string[];
+}): Promise<RosterImportResult> {
+  const { teamId, fromSeasonId, toSeasonId, selectedPlayerIds } = params;
+
+  // Verify captain access
+  const access = await verifyCaptainAccess(teamId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  const supabase = await createClient();
+
+  try {
+    // Call the database function
+    const { data, error } = await supabase.rpc('copy_roster_between_seasons', {
+      p_team_id: teamId,
+      p_from_season_id: fromSeasonId,
+      p_to_season_id: toSeasonId,
+      p_player_ids: selectedPlayerIds || undefined,
+    });
+
+    if (error) {
+      if (isDevelopment) {
+        console.error('Error importing roster:', sanitizeErrorForLogging(error));
+      }
+      return { success: false, error: 'Failed to import players' };
+    }
+
+    // The RPC returns Json, cast to expected shape
+    const result = data as {
+      success: boolean;
+      error?: string;
+      copiedCount?: number;
+      skippedCount?: number;
+      conflicts?: RosterImportConflict[];
+    } | null;
+
+    if (!result || !result.success) {
+      return { success: false, error: result?.error || 'Import failed' };
+    }
+
+    revalidatePath(`/dashboard/captain/${teamId}`);
+
+    return {
+      success: true,
+      copiedCount: result.copiedCount,
+      skippedCount: result.skippedCount,
+      conflicts: result.conflicts || [],
+    };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Unexpected error in importPlayersFromPreviousSeason:', sanitizeErrorForLogging(error));
+    }
+    return { success: false, error: 'An unexpected error occurred' };
   }
 }
