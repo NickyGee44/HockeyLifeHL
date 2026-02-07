@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
-import { getLeagueBySlug, getGoalieLeaders, getCurrentSeason, getSeasons, getDivisions } from '@/lib/data';
+import { getLeagueBySlug, getGoalieLeaders, getCurrentSeason, getSeasons } from '@/lib/data';
 import { GoalieStatsTable } from '@/components/stats/GoalieStatsTable';
 import { GoalieStatsFilters } from '@/components/stats/GoalieStatsFilters';
 

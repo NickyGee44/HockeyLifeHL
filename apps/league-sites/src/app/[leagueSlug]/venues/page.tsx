@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getLeagueBySlug, getVenues, getWeekGames } from '@/lib/data';
+import { getLeagueBySlug, getVenues } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { MapPin, Calendar, Clock, ChevronRight, Building2 } from 'lucide-react';
 import type { Metadata } from 'next';

@@ -63,7 +63,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
             <div className="text-center sm:text-left">
               <h1 className="text-2xl md:text-3xl font-bold mb-1">Contact {league.name}</h1>
               <p className="text-[var(--color-text-secondary)]">
-                Have questions? We're here to help.
+                Have questions? We&apos;re here to help.
               </p>
             </div>
           </div>
