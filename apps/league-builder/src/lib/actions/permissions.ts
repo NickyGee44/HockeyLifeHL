@@ -134,10 +134,10 @@ export async function verifyCaptainOrAdminAccess(teamId: string): Promise<Extend
       };
     }
 
-    // Step 2: Check organization owner access
+    // Step 2: Check organization owner access (fetch separately to avoid FK join RLS issues)
     const { data: team, error: teamError } = await supabase
       .from('teams')
-      .select('*, leagues!inner(organization_id, organizations!inner(owner_user_id))')
+      .select('*')
       .eq('id', teamId)
       .single();
 
@@ -148,15 +148,29 @@ export async function verifyCaptainOrAdminAccess(teamId: string): Promise<Extend
       return { authorized: false, error: 'Team not found' };
     }
 
-    // Check if user owns the organization
-    const orgOwnerId = (team.leagues as any).organizations.owner_user_id;
-    if (orgOwnerId === user.id) {
-      return {
-        authorized: true,
-        accessType: 'org_owner',
-        team: team as Team,
-        organizationId: (team.leagues as any).organization_id
-      };
+    // Fetch league and organization separately
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('id, organization_id')
+      .eq('id', team.league_id)
+      .single();
+
+    if (league?.organization_id) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('owner_user_id')
+        .eq('id', league.organization_id)
+        .single();
+
+      // Check if user owns the organization
+      if (org?.owner_user_id === user.id) {
+        return {
+          authorized: true,
+          accessType: 'org_owner',
+          team: team as Team,
+          organizationId: league.organization_id
+        };
+      }
     }
 
     // Step 3: Check league admin access
@@ -170,6 +184,21 @@ export async function verifyCaptainOrAdminAccess(teamId: string): Promise<Extend
       .single();
 
     if (leagueMembership) {
+      return {
+        authorized: true,
+        accessType: 'league_admin',
+        team: team as Team
+      };
+    }
+
+    // Step 4: Fallback check for platform admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_platform_admin')
+      .eq('id', user.id)
+      .single();
+
+    if ((profile as any)?.is_platform_admin === true) {
       return {
         authorized: true,
         accessType: 'league_admin',
@@ -313,14 +342,28 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
     }
 
     const orgOwnerId = (league.organizations as any).owner_user_id;
-    if (orgOwnerId !== user.id) {
-      return { authorized: false, error: 'Not authorized to manage this league' };
+    if (orgOwnerId === user.id) {
+      return {
+        authorized: true,
+        organizationId: league.organization_id ?? undefined
+      };
     }
 
-    return {
-      authorized: true,
-      organizationId: league.organization_id ?? undefined
-    };
+    // Fallback: platform admins can manage any league
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('is_platform_admin')
+      .eq('id', user.id)
+      .single();
+
+    if ((adminProfile as any)?.is_platform_admin === true) {
+      return {
+        authorized: true,
+        organizationId: league.organization_id ?? undefined
+      };
+    }
+
+    return { authorized: false, error: 'Not authorized to manage this league' };
   } catch (error) {
     if (isDevelopment) {
       console.error('Error in verifyLeagueOwnerAccess:', error);

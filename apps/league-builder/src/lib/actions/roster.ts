@@ -153,10 +153,10 @@ export async function updateJerseyNumber(params: UpdateJerseyNumberParams) {
   const supabase = await createClient();
 
   try {
-    // Get current roster entry
+    // Get current roster entry (avoid nested FK joins - use separate queries)
     const { data: currentRoster, error: fetchError } = await supabase
       .from('team_rosters')
-      .select('*, teams!inner(id, league_id, leagues!inner(organization_id, organizations!inner(owner_user_id)))')
+      .select('*')
       .eq('id', rosterId)
       .single();
 
@@ -164,7 +164,7 @@ export async function updateJerseyNumber(params: UpdateJerseyNumberParams) {
       return { error: 'Roster entry not found' };
     }
 
-    // Verify access (captain or organization owner)
+    // Verify access (captain or organization owner) - this handles auth separately
     const access = await verifyCaptainOrAdminAccess(currentRoster.team_id);
     if (!access.authorized) {
       return { error: access.error || 'Not authorized' };

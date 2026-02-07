@@ -11,7 +11,7 @@ const intlMiddleware = createMiddleware({
 });
 
 // Public routes that don't require authentication (without locale prefix)
-const PUBLIC_ROUTES = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy'];
 
 // Auth routes that authenticated users should be redirected away from
 const AUTH_ROUTES = ['/login', '/signup', '/forgot-password'];

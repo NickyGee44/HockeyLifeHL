@@ -19,7 +19,8 @@ export type PlayerPaymentStatus =
   | 'refunded'
   | 'partially_refunded'
   | 'cancelled'
-  | 'failed';
+  | 'failed'
+  | 'disputed';
 
 export type PaymentTransactionType =
   | 'payment'

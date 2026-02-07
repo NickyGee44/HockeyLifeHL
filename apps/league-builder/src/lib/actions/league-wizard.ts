@@ -433,6 +433,7 @@ export async function createLeague(
         primary_color: data.primary_color,
         secondary_color: data.secondary_color,
         logo_url: data.logo_url || null,
+        banner_url: data.bannerUrl || null,
         contact_email: data.contact_email || null,
         contact_phone: data.contact_phone || null,
         website_url: data.website_url || null,

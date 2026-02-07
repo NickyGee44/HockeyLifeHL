@@ -51,6 +51,21 @@ async function verifyLeagueAdminAccess(
     .eq('user_id', user.id)
     .single();
 
+  if (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active') {
+    return { userId: user.id };
+  }
+
+  // Fallback: platform admins get owner-level access to all leagues
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', user.id)
+    .single();
+
+  if ((profile as any)?.is_platform_admin === true) {
+    return { userId: user.id };
+  }
+
   if (membershipError || !membership) {
     return { error: 'You do not have access to this league.' };
   }
@@ -59,11 +74,7 @@ async function verifyLeagueAdminAccess(
     return { error: 'Only league owners and admins can manage fees.' };
   }
 
-  if (membership.status !== 'active') {
-    return { error: 'Your league membership is not active.' };
-  }
-
-  return { userId: user.id };
+  return { error: 'Your league membership is not active.' };
 }
 
 // ============================================================================

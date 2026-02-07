@@ -1,7 +1,10 @@
 'use server';
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { redirect } from '@/i18n/navigation';
+import { redirect as nextRedirect } from 'next/navigation';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
+import { getLocale } from 'next-intl/server';
 
 // Password validation function
 function validatePassword(password: string): { valid: boolean; error?: string } {
@@ -191,8 +194,12 @@ export async function signUp(formData: FormData) {
     }
 
     // Redirect from server action to ensure cookies are set
-    redirect('/dashboard');
+    const locale = await getLocale();
+    redirect({ href: '/dashboard', locale });
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     if (isDevelopment) {
       console.error('💥 Unexpected error during signup:', error);
     }
@@ -203,6 +210,7 @@ export async function signUp(formData: FormData) {
 export async function signIn(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+  const redirectTo = formData.get('redirectTo') as string | null;
 
   const supabase = await createClient();
   const serviceSupabase = createServiceRoleClient();
@@ -275,13 +283,26 @@ export async function signIn(formData: FormData) {
     success: true,
   });
 
-  redirect('/dashboard');
+  const locale = await getLocale();
+  const safeRedirect =
+    redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+      ? redirectTo
+      : '/dashboard';
+  const normalizedRedirect = safeRedirect.replace(/^\/(en|fr)(?=\/|$)/, '') || '/';
+
+  // Player registration route is not locale-prefixed in this app.
+  if (normalizedRedirect.startsWith('/register/')) {
+    nextRedirect(normalizedRedirect);
+  }
+
+  redirect({ href: normalizedRedirect, locale });
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect('/login');
+  const locale = await getLocale();
+  redirect({ href: '/login', locale });
 }
 
 export async function getCurrentUser() {
@@ -319,10 +340,10 @@ export async function getUserOrganizations() {
     .select('*')
     .eq('owner_user_id', user.id);
 
-  // Then, get organizations where user is a member
-  const { data: memberOrgs, error: memberError } = await supabase
+  // Then, get organizations where user is a member (fetch separately to avoid FK join issues)
+  const { data: memberOrgIds, error: memberError } = await supabase
     .from('organization_members')
-    .select('organization:organizations(*)')
+    .select('organization_id')
     .eq('user_id', user.id)
     .eq('status', 'active');
 
@@ -343,12 +364,21 @@ export async function getUserOrganizations() {
     }
   }
 
-  // Add member organizations
-  if (memberOrgs) {
-    for (const memberOrg of memberOrgs) {
-      const org = (memberOrg as any).organization;
-      if (org && !allOrgs.has(org.id)) {
-        allOrgs.set(org.id, org);
+  // Fetch member organizations separately to avoid FK join RLS issues
+  if (memberOrgIds && memberOrgIds.length > 0) {
+    const orgIds = memberOrgIds.map((m) => m.organization_id).filter((id): id is string => id != null);
+    const uniqueOrgIds = [...new Set(orgIds)].filter((id) => !allOrgs.has(id));
+
+    if (uniqueOrgIds.length > 0) {
+      const { data: memberOrgs } = await supabase
+        .from('organizations')
+        .select('*')
+        .in('id', uniqueOrgIds);
+
+      if (memberOrgs) {
+        for (const org of memberOrgs) {
+          allOrgs.set(org.id, org);
+        }
       }
     }
   }

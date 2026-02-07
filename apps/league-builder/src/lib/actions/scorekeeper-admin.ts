@@ -5,6 +5,20 @@ import { sendScorekeeperAssignmentEmail } from '@/lib/email/scorekeeper-emails';
 import { randomBytes } from 'crypto';
 
 /**
+ * Check if the current user is a platform admin.
+ * Used as fallback when league membership check fails.
+ */
+async function checkPlatformAdmin(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', userId)
+    .single();
+  return (profile as any)?.is_platform_admin === true;
+}
+
+/**
  * Generate a cryptographically secure 6-character alphanumeric token
  *
  * Security: Uses crypto.randomBytes() instead of Math.random() to prevent
@@ -100,7 +114,11 @@ export async function assignScorekeeperToGame(params: {
       (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
 
     if (!isAuthorized) {
-      return { success: false, error: 'Not authorized to assign scorekeepers for this game' };
+      // Fallback: platform admins get owner-level access to all leagues
+      const isPlatformAdmin = await checkPlatformAdmin(user.id);
+      if (!isPlatformAdmin) {
+        return { success: false, error: 'Not authorized to assign scorekeepers for this game' };
+      }
     }
 
     // Generate unique token
@@ -259,7 +277,11 @@ export async function getScorekeeperAssignments(leagueId: string): Promise<{
       (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
 
     if (!isAuthorized) {
-      return { success: false, error: 'Not authorized to view scorekeeper assignments' };
+      // Fallback: platform admins get owner-level access to all leagues
+      const isPlatformAdmin = await checkPlatformAdmin(user.id);
+      if (!isPlatformAdmin) {
+        return { success: false, error: 'Not authorized to view scorekeeper assignments' };
+      }
     }
 
     // Get all scorekeeper sessions for this league
@@ -376,7 +398,11 @@ export async function getGameScorekeeperAssignment(gameId: string): Promise<{
       (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
 
     if (!isAuthorized) {
-      return { success: false, error: 'Not authorized' };
+      // Fallback: platform admins get owner-level access to all leagues
+      const isPlatformAdmin = await checkPlatformAdmin(user.id);
+      if (!isPlatformAdmin) {
+        return { success: false, error: 'Not authorized' };
+      }
     }
 
     // Get active scorekeeper session for this game

@@ -184,7 +184,31 @@ export const step6Schema = z.object({
   payment_intent_id: z.string().optional(),
   payment_status: z.enum(['not_required', 'pending', 'completed', 'failed']).default('not_required'),
   amount_cents: z.number().int().min(0).optional(),
-});
+}).refine(
+  (data) => {
+    // If payment is completed, a payment_intent_id must be present
+    if (data.payment_status === 'completed' && !data.payment_intent_id) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Payment intent ID is required when payment is completed',
+    path: ['payment_intent_id'],
+  }
+).refine(
+  (data) => {
+    // If payment is completed, amount_cents must be > 0
+    if (data.payment_status === 'completed' && (!data.amount_cents || data.amount_cents <= 0)) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Amount must be greater than 0 for completed payments',
+    path: ['amount_cents'],
+  }
+);
 
 export type Step6FormData = z.infer<typeof step6Schema>;
 
@@ -252,6 +276,30 @@ export const registrationSchema = z.object({
   {
     message: 'Team is required for team registration',
     path: ['team_id'],
+  }
+).refine(
+  (data) => {
+    // If payment is completed, payment_intent_id must be present
+    if (data.payment_status === 'completed' && !data.payment_intent_id) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Payment intent ID is required when payment is completed',
+    path: ['payment_intent_id'],
+  }
+).refine(
+  (data) => {
+    // If payment is completed, amount_cents must be > 0
+    if (data.payment_status === 'completed' && (!data.amount_cents || data.amount_cents <= 0)) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Amount must be greater than 0 for completed payments',
+    path: ['amount_cents'],
   }
 );
 

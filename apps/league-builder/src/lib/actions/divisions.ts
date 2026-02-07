@@ -152,7 +152,7 @@ export async function getDivisionTeams(divisionId: string): Promise<ActionResult
         primary_color,
         secondary_color,
         status,
-        captain:captain_id (id, full_name, email)
+        captain_id
       `)
       .eq('division_id', divisionId)
       .order('name');
@@ -164,7 +164,22 @@ export async function getDivisionTeams(divisionId: string): Promise<ActionResult
       return { success: false, error: 'Failed to fetch teams' };
     }
 
-    return { success: true, data: teams || [] };
+    // Fetch captain details separately to avoid FK join issues
+    const teamsWithCaptains = await Promise.all(
+      (teams || []).map(async (team) => {
+        if (team.captain_id) {
+          const { data: captain } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('id', team.captain_id)
+            .single();
+          return { ...team, captain: captain || null };
+        }
+        return { ...team, captain: null };
+      })
+    );
+
+    return { success: true, data: teamsWithCaptains };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in getDivisionTeams:', sanitizeErrorForLogging(error));
@@ -190,7 +205,7 @@ export async function getUnassignedTeams(leagueId: string): Promise<ActionResult
         primary_color,
         secondary_color,
         status,
-        captain:captain_id (id, full_name, email)
+        captain_id
       `)
       .eq('league_id', leagueId)
       .is('division_id', null)
@@ -204,7 +219,22 @@ export async function getUnassignedTeams(leagueId: string): Promise<ActionResult
       return { success: false, error: 'Failed to fetch unassigned teams' };
     }
 
-    return { success: true, data: teams || [] };
+    // Fetch captain details separately to avoid FK join issues
+    const teamsWithCaptains = await Promise.all(
+      (teams || []).map(async (team) => {
+        if (team.captain_id) {
+          const { data: captain } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('id', team.captain_id)
+            .single();
+          return { ...team, captain: captain || null };
+        }
+        return { ...team, captain: null };
+      })
+    );
+
+    return { success: true, data: teamsWithCaptains };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in getUnassignedTeams:', sanitizeErrorForLogging(error));

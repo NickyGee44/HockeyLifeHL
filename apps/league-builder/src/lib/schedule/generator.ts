@@ -109,7 +109,7 @@ export function generateRoundRobinMatchups(
 function getAvailableTimeSlots(
   config: ScheduleConfig,
   constraints: ScheduleConstraint[],
-  venues: Venue[]
+  _venues: Venue[]
 ): Date[] {
   const slots: Date[] = [];
   const startDate = new Date(config.startDate);
@@ -209,7 +209,7 @@ function isSlotBlackedOutForTeam(
 function validateGameAgainstConstraints(
   game: ScheduledGame,
   constraints: ScheduleConstraint[],
-  existingGames: ScheduledGame[]
+  _existingGames: ScheduledGame[]
 ): ConstraintViolation[] {
   const violations: ConstraintViolation[] = [];
 
@@ -854,7 +854,7 @@ function assignMatchupsToSlotsEnhanced(
   const seniorityWeight = constraintConfig?.seniorityWeight ?? 0.5;
 
   // Sort matchups by team seniority if enabled
-  let sortedMatchups = [...matchups];
+  const sortedMatchups = [...matchups];
   if (enforceSeniority && teamPreferences.length > 0) {
     sortedMatchups.sort((a, b) => {
       const aSeniority = Math.max(
@@ -881,7 +881,7 @@ function assignMatchupsToSlotsEnhanced(
 
       const slot = slots[slotIndex];
       let slotScore = 0;
-      let isValid = true;
+      const isValid = true;
 
       // Check back-to-back constraint
       if (!config.allowBackToBack) {

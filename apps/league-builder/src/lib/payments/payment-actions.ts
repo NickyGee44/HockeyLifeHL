@@ -646,16 +646,30 @@ export async function refundPlayerPayment(
     // This ensures all database updates happen in a single transaction
     const serviceSupabase = createServiceRoleClient();
 
-    const { data: bulkRefundResult, error: bulkRefundError } = await serviceSupabase.rpc(
+    const { data: bulkRefundData, error: bulkRefundError } = await serviceSupabase.rpc(
       'process_bulk_refund',
       {
         p_payment_id: params.playerPaymentId,
         p_total_refund_amount_cents: refundAmount,
         p_reason: params.reason,
-        p_notes: params.notes || null,
+        p_notes: params.notes ?? '',
         p_created_by: access.userId,
       }
     );
+
+    // Cast the Json return type to the expected structure
+    const bulkRefundResult = bulkRefundData as {
+      success: boolean;
+      message?: string;
+      refund_transactions?: Array<{
+        refund_transaction_id: string;
+        stripe_payment_intent_id: string;
+        refund_amount_cents: number;
+        fee_refund_cents: number;
+      }>;
+      new_status?: string;
+      new_amount_paid_cents?: number;
+    } | null;
 
     if (bulkRefundError) {
       console.error('[Payments] Bulk refund preparation error:', sanitizeErrorForLogging(bulkRefundError));
@@ -733,9 +747,7 @@ export async function refundPlayerPayment(
       };
     }
 
-    const newStatus = bulkRefundResult.new_status;
-    const newAmountPaid = bulkRefundResult.new_amount_paid_cents;
-
+    const newStatus = bulkRefundResult.new_status ?? 'refunded';
     await logPaymentAuditEvent(
       payment.league_id,
       'payment_refunded',

@@ -8,7 +8,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { generateSchedule, rescheduleGame } from './generator';
+import { generateSchedule } from './generator';
 import type {
   Team,
   Venue,
@@ -446,8 +446,9 @@ export async function saveScheduleGames(
     return { success: false, gamesCreated: 0, error: error.message };
   }
 
-  // RPC returns JSONB directly, not an array
-  const result = data as { success: boolean; games_created: number; error_message: string | null } | null;
+  // RPC returns an array with a single result object
+  const results = data as Array<{ success: boolean; games_created: number; error_message: string }> | null;
+  const result = results?.[0];
   if (!result?.success) {
     return {
       success: false,
@@ -577,528 +578,168 @@ export async function getGenerationLogs(seasonId: string): Promise<GenerationLog
 
 // ============================================================================
 // VENUE AVAILABILITY ACTIONS
+// Note: These functions are stubs until the venue_availability table is created
 // ============================================================================
 
 /**
  * Get venue availability for a league.
+ * @stub Table venue_availability not yet implemented in database
  */
 export async function getVenueAvailability(
-  leagueId: string,
-  seasonId?: string
+  _leagueId: string,
+  _seasonId?: string
 ): Promise<VenueAvailability[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('venue_availability')
-    .select('*')
-    .eq('league_id', leagueId);
-
-  if (seasonId) {
-    query = query.or(`season_id.eq.${seasonId},season_id.is.null`);
-  }
-
-  const { data, error } = await query.order('venue_id').order('day_of_week').order('start_time');
-
-  if (error) {
-    console.error('Error fetching venue availability:', error);
-    return [];
-  }
-
-  return (data ?? []).map((v) => ({
-    id: v.id,
-    leagueId: v.league_id,
-    venueId: v.venue_id,
-    seasonId: v.season_id,
-    dayOfWeek: v.day_of_week,
-    startTime: v.start_time,
-    endTime: v.end_time,
-    isAvailable: v.is_available,
-    maxGames: v.max_games,
-    notes: v.notes,
-  }));
+  // Table does not exist yet - return empty array
+  console.warn('getVenueAvailability: venue_availability table not implemented');
+  return [];
 }
 
 /**
  * Save venue availability.
+ * @stub Table venue_availability not yet implemented in database
  */
 export async function saveVenueAvailability(
-  leagueId: string,
-  venueId: string,
-  availability: Partial<VenueAvailability>
+  _leagueId: string,
+  _venueId: string,
+  _availability: Partial<VenueAvailability>
 ): Promise<{ success: boolean; availability?: VenueAvailability; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, error: 'Not authenticated' };
-  }
-
-  const { data, error } = await supabase
-    .from('venue_availability')
-    .upsert({
-      id: availability.id,
-      league_id: leagueId,
-      venue_id: venueId,
-      season_id: availability.seasonId ?? null,
-      day_of_week: availability.dayOfWeek ?? 0,
-      start_time: availability.startTime ?? '18:00',
-      end_time: availability.endTime ?? '22:00',
-      is_available: availability.isAvailable ?? true,
-      max_games: availability.maxGames ?? null,
-      notes: availability.notes ?? null,
-      created_by: userData.user.id,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error saving venue availability:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/dashboard');
-
-  return {
-    success: true,
-    availability: {
-      id: data.id,
-      leagueId: data.league_id,
-      venueId: data.venue_id,
-      seasonId: data.season_id,
-      dayOfWeek: data.day_of_week,
-      startTime: data.start_time,
-      endTime: data.end_time,
-      isAvailable: data.is_available,
-      maxGames: data.max_games,
-      notes: data.notes,
-    },
-  };
+  // Table does not exist yet
+  return { success: false, error: 'venue_availability table not yet implemented' };
 }
 
 /**
  * Delete venue availability.
+ * @stub Table venue_availability not yet implemented in database
  */
 export async function deleteVenueAvailability(
-  availabilityId: string
+  _availabilityId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from('venue_availability')
-    .delete()
-    .eq('id', availabilityId);
-
-  if (error) {
-    console.error('Error deleting venue availability:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/dashboard');
-  return { success: true };
+  // Table does not exist yet
+  return { success: false, error: 'venue_availability table not yet implemented' };
 }
 
 // ============================================================================
 // VENUE BLACKOUT DATE ACTIONS
+// Note: These functions are stubs until the venue_blackout_dates table is created
 // ============================================================================
 
 /**
  * Get venue blackout dates for a league.
+ * @stub Table venue_blackout_dates not yet implemented in database
  */
 export async function getVenueBlackoutDates(
-  leagueId: string,
-  venueId?: string
+  _leagueId: string,
+  _venueId?: string
 ): Promise<VenueBlackoutDate[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('venue_blackout_dates')
-    .select('*')
-    .eq('league_id', leagueId);
-
-  if (venueId) {
-    query = query.eq('venue_id', venueId);
-  }
-
-  const { data, error } = await query.order('blackout_date');
-
-  if (error) {
-    console.error('Error fetching venue blackout dates:', error);
-    return [];
-  }
-
-  return (data ?? []).map((b) => ({
-    id: b.id,
-    leagueId: b.league_id,
-    venueId: b.venue_id,
-    blackoutDate: new Date(b.blackout_date),
-    startTime: b.start_time,
-    endTime: b.end_time,
-    reason: b.reason,
-  }));
+  // Table does not exist yet - return empty array
+  console.warn('getVenueBlackoutDates: venue_blackout_dates table not implemented');
+  return [];
 }
 
 /**
  * Add a venue blackout date.
+ * @stub Table venue_blackout_dates not yet implemented in database
  */
 export async function addVenueBlackoutDate(
-  leagueId: string,
-  venueId: string,
-  blackout: Partial<VenueBlackoutDate>
+  _leagueId: string,
+  _venueId: string,
+  _blackout: Partial<VenueBlackoutDate>
 ): Promise<{ success: boolean; blackout?: VenueBlackoutDate; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, error: 'Not authenticated' };
-  }
-
-  const { data, error } = await supabase
-    .from('venue_blackout_dates')
-    .insert({
-      league_id: leagueId,
-      venue_id: venueId,
-      blackout_date: blackout.blackoutDate?.toISOString().split('T')[0] ?? new Date().toISOString().split('T')[0],
-      start_time: blackout.startTime ?? null,
-      end_time: blackout.endTime ?? null,
-      reason: blackout.reason ?? null,
-      created_by: userData.user.id,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error adding venue blackout date:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/dashboard');
-
-  return {
-    success: true,
-    blackout: {
-      id: data.id,
-      leagueId: data.league_id,
-      venueId: data.venue_id,
-      blackoutDate: new Date(data.blackout_date),
-      startTime: data.start_time,
-      endTime: data.end_time,
-      reason: data.reason,
-    },
-  };
+  // Table does not exist yet
+  return { success: false, error: 'venue_blackout_dates table not yet implemented' };
 }
 
 /**
  * Delete a venue blackout date.
+ * @stub Table venue_blackout_dates not yet implemented in database
  */
 export async function deleteVenueBlackoutDate(
-  blackoutId: string
+  _blackoutId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from('venue_blackout_dates')
-    .delete()
-    .eq('id', blackoutId);
-
-  if (error) {
-    console.error('Error deleting venue blackout date:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/dashboard');
-  return { success: true };
+  // Table does not exist yet
+  return { success: false, error: 'venue_blackout_dates table not yet implemented' };
 }
 
 // ============================================================================
 // TEAM SCHEDULE PREFERENCES ACTIONS
+// Note: These functions are stubs until the team_schedule_preferences table is created
 // ============================================================================
 
 /**
  * Get team schedule preferences for a season.
+ * @stub Table team_schedule_preferences not yet implemented in database
  */
 export async function getTeamSchedulePreferences(
-  leagueId: string,
-  seasonId?: string
+  _leagueId: string,
+  _seasonId?: string
 ): Promise<TeamSchedulePreference[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('team_schedule_preferences')
-    .select('*')
-    .eq('league_id', leagueId);
-
-  if (seasonId) {
-    query = query.or(`season_id.eq.${seasonId},season_id.is.null`);
-  }
-
-  const { data, error } = await query.order('seniority_level', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching team schedule preferences:', error);
-    return [];
-  }
-
-  return (data ?? []).map((p) => ({
-    id: p.id,
-    leagueId: p.league_id,
-    teamId: p.team_id,
-    seasonId: p.season_id,
-    homeVenueId: p.home_venue_id,
-    seniorityLevel: p.seniority_level ?? 5,
-    preferredGameTimes: (p.preferred_game_times as string[]) ?? [],
-    avoidedGameTimes: (p.avoided_game_times as string[]) ?? [],
-    preferredDays: (p.preferred_days as number[]) ?? [],
-    avoidedDays: (p.avoided_days as number[]) ?? [],
-    maxLateNightGames: p.max_late_night_games,
-    maxEarlyMorningGames: p.max_early_morning_games,
-    weekendPreference: p.weekend_preference ?? 0.5,
-    minHoursBetweenGames: p.min_hours_between_games ?? 24,
-    notes: p.notes,
-  }));
+  // Table does not exist yet - return empty array
+  console.warn('getTeamSchedulePreferences: team_schedule_preferences table not implemented');
+  return [];
 }
 
 /**
  * Save team schedule preference.
+ * @stub Table team_schedule_preferences not yet implemented in database
  */
 export async function saveTeamSchedulePreference(
-  leagueId: string,
-  teamId: string,
-  preference: Partial<TeamSchedulePreference>
+  _leagueId: string,
+  _teamId: string,
+  _preference: Partial<TeamSchedulePreference>
 ): Promise<{ success: boolean; preference?: TeamSchedulePreference; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, error: 'Not authenticated' };
-  }
-
-  const { data, error } = await supabase
-    .from('team_schedule_preferences')
-    .upsert({
-      id: preference.id,
-      league_id: leagueId,
-      team_id: teamId,
-      season_id: preference.seasonId ?? null,
-      home_venue_id: preference.homeVenueId ?? null,
-      seniority_level: preference.seniorityLevel ?? 5,
-      preferred_game_times: preference.preferredGameTimes ?? [],
-      avoided_game_times: preference.avoidedGameTimes ?? [],
-      preferred_days: preference.preferredDays ?? [],
-      avoided_days: preference.avoidedDays ?? [],
-      max_late_night_games: preference.maxLateNightGames ?? null,
-      max_early_morning_games: preference.maxEarlyMorningGames ?? null,
-      weekend_preference: preference.weekendPreference ?? 0.5,
-      min_hours_between_games: preference.minHoursBetweenGames ?? 24,
-      notes: preference.notes ?? null,
-      created_by: userData.user.id,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error saving team schedule preference:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/dashboard');
-
-  return {
-    success: true,
-    preference: {
-      id: data.id,
-      leagueId: data.league_id,
-      teamId: data.team_id,
-      seasonId: data.season_id,
-      homeVenueId: data.home_venue_id,
-      seniorityLevel: data.seniority_level ?? 5,
-      preferredGameTimes: (data.preferred_game_times as string[]) ?? [],
-      avoidedGameTimes: (data.avoided_game_times as string[]) ?? [],
-      preferredDays: (data.preferred_days as number[]) ?? [],
-      avoidedDays: (data.avoided_days as number[]) ?? [],
-      maxLateNightGames: data.max_late_night_games,
-      maxEarlyMorningGames: data.max_early_morning_games,
-      weekendPreference: data.weekend_preference ?? 0.5,
-      minHoursBetweenGames: data.min_hours_between_games ?? 24,
-      notes: data.notes,
-    },
-  };
+  // Table does not exist yet
+  return { success: false, error: 'team_schedule_preferences table not yet implemented' };
 }
 
 /**
  * Delete a team schedule preference.
+ * @stub Table team_schedule_preferences not yet implemented in database
  */
 export async function deleteTeamSchedulePreference(
-  preferenceId: string
+  _preferenceId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from('team_schedule_preferences')
-    .delete()
-    .eq('id', preferenceId);
-
-  if (error) {
-    console.error('Error deleting team schedule preference:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/dashboard');
-  return { success: true };
+  // Table does not exist yet
+  return { success: false, error: 'team_schedule_preferences table not yet implemented' };
 }
 
 // ============================================================================
 // CONSTRAINT CONFIG ACTIONS
+// Note: These functions are stubs until the schedule_constraint_configs table is created
 // ============================================================================
 
 /**
  * Get schedule constraint config for a season.
+ * @stub Table schedule_constraint_configs not yet implemented in database
  */
 export async function getScheduleConstraintConfig(
-  seasonId: string
+  _seasonId: string
 ): Promise<ScheduleConstraintConfig | null> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('schedule_constraint_configs')
-    .select('*')
-    .eq('season_id', seasonId)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      // No config found
-      return null;
-    }
-    console.error('Error fetching schedule constraint config:', error);
-    return null;
-  }
-
-  return {
-    id: data.id,
-    leagueId: data.league_id,
-    seasonId: data.season_id,
-    maxGamesPerVenuePerDay: data.max_games_per_venue_per_day ?? 4,
-    enforceHomeVenueAssignments: data.enforce_home_venue_assignments ?? true,
-    earlyMorningEndTime: data.early_morning_end_time ?? '10:00',
-    lateNightStartTime: data.late_night_start_time ?? '21:00',
-    globalMaxLateNightGamesPerTeam: data.global_max_late_night_games_per_team,
-    globalMaxEarlyMorningGamesPerTeam: data.global_max_early_morning_games_per_team,
-    enforceSeniorityPreferences: data.enforce_seniority_preferences ?? false,
-    seniorityWeight: data.seniority_weight ?? 0.5,
-    targetWeekendGamePercentage: data.target_weekend_game_percentage ?? 50,
-    weekendTolerancePercentage: data.weekend_tolerance_percentage ?? 10,
-    newTeamPenaltyWeeks: data.new_team_penalty_weeks ?? 0,
-  };
+  // Table does not exist yet - return null (no config)
+  console.warn('getScheduleConstraintConfig: schedule_constraint_configs table not implemented');
+  return null;
 }
 
 /**
  * Save schedule constraint config for a season.
+ * @stub Table schedule_constraint_configs not yet implemented in database
  */
 export async function saveScheduleConstraintConfig(
-  leagueId: string,
-  seasonId: string,
-  config: Partial<ScheduleConstraintConfig>
+  _leagueId: string,
+  _seasonId: string,
+  _config: Partial<ScheduleConstraintConfig>
 ): Promise<{ success: boolean; config?: ScheduleConstraintConfig; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, error: 'Not authenticated' };
-  }
-
-  const { data, error } = await supabase
-    .from('schedule_constraint_configs')
-    .upsert({
-      id: config.id,
-      league_id: leagueId,
-      season_id: seasonId,
-      max_games_per_venue_per_day: config.maxGamesPerVenuePerDay ?? 4,
-      enforce_home_venue_assignments: config.enforceHomeVenueAssignments ?? true,
-      early_morning_end_time: config.earlyMorningEndTime ?? '10:00',
-      late_night_start_time: config.lateNightStartTime ?? '21:00',
-      global_max_late_night_games_per_team: config.globalMaxLateNightGamesPerTeam ?? null,
-      global_max_early_morning_games_per_team: config.globalMaxEarlyMorningGamesPerTeam ?? null,
-      enforce_seniority_preferences: config.enforceSeniorityPreferences ?? false,
-      seniority_weight: config.seniorityWeight ?? 0.5,
-      target_weekend_game_percentage: config.targetWeekendGamePercentage ?? 50,
-      weekend_tolerance_percentage: config.weekendTolerancePercentage ?? 10,
-      new_team_penalty_weeks: config.newTeamPenaltyWeeks ?? 0,
-      created_by: userData.user.id,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error saving schedule constraint config:', error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath('/dashboard');
-
-  return {
-    success: true,
-    config: {
-      id: data.id,
-      leagueId: data.league_id,
-      seasonId: data.season_id,
-      maxGamesPerVenuePerDay: data.max_games_per_venue_per_day ?? 4,
-      enforceHomeVenueAssignments: data.enforce_home_venue_assignments ?? true,
-      earlyMorningEndTime: data.early_morning_end_time ?? '10:00',
-      lateNightStartTime: data.late_night_start_time ?? '21:00',
-      globalMaxLateNightGamesPerTeam: data.global_max_late_night_games_per_team,
-      globalMaxEarlyMorningGamesPerTeam: data.global_max_early_morning_games_per_team,
-      enforceSeniorityPreferences: data.enforce_seniority_preferences ?? false,
-      seniorityWeight: data.seniority_weight ?? 0.5,
-      targetWeekendGamePercentage: data.target_weekend_game_percentage ?? 50,
-      weekendTolerancePercentage: data.weekend_tolerance_percentage ?? 10,
-      newTeamPenaltyWeeks: data.new_team_penalty_weeks ?? 0,
-    },
-  };
+  // Table does not exist yet
+  return { success: false, error: 'schedule_constraint_configs table not yet implemented' };
 }
 
 /**
  * Bulk save team schedule preferences for multiple teams.
+ * @stub Table team_schedule_preferences not yet implemented in database
  */
 export async function bulkSaveTeamSchedulePreferences(
-  leagueId: string,
-  preferences: Array<{ teamId: string; preference: Partial<TeamSchedulePreference> }>
+  _leagueId: string,
+  _preferences: Array<{ teamId: string; preference: Partial<TeamSchedulePreference> }>
 ): Promise<{ success: boolean; savedCount: number; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, savedCount: 0, error: 'Not authenticated' };
-  }
-
-  const records = preferences.map(({ teamId, preference }) => ({
-    league_id: leagueId,
-    team_id: teamId,
-    season_id: preference.seasonId ?? null,
-    home_venue_id: preference.homeVenueId ?? null,
-    seniority_level: preference.seniorityLevel ?? 5,
-    preferred_game_times: preference.preferredGameTimes ?? [],
-    avoided_game_times: preference.avoidedGameTimes ?? [],
-    preferred_days: preference.preferredDays ?? [],
-    avoided_days: preference.avoidedDays ?? [],
-    max_late_night_games: preference.maxLateNightGames ?? null,
-    max_early_morning_games: preference.maxEarlyMorningGames ?? null,
-    weekend_preference: preference.weekendPreference ?? 0.5,
-    min_hours_between_games: preference.minHoursBetweenGames ?? 24,
-    notes: preference.notes ?? null,
-    created_by: userData.user.id,
-  }));
-
-  const { data, error } = await supabase
-    .from('team_schedule_preferences')
-    .upsert(records, { onConflict: 'team_id,season_id' })
-    .select();
-
-  if (error) {
-    console.error('Error bulk saving team schedule preferences:', error);
-    return { success: false, savedCount: 0, error: error.message };
-  }
-
-  revalidatePath('/dashboard');
-
-  return { success: true, savedCount: data?.length ?? 0 };
+  // Table does not exist yet
+  return { success: false, savedCount: 0, error: 'team_schedule_preferences table not yet implemented' };
 }

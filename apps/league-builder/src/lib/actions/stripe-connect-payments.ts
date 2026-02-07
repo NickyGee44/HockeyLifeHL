@@ -117,6 +117,21 @@ async function verifyLeagueAdminAccess(
     .eq('user_id', user.id)
     .single();
 
+  if (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active') {
+    return { league: league as League, userId: user.id };
+  }
+
+  // Fallback: platform admins get owner-level access to all leagues
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', user.id)
+    .single();
+
+  if ((profile as any)?.is_platform_admin === true) {
+    return { league: league as League, userId: user.id };
+  }
+
   if (membershipError || !membership) {
     return { error: 'You do not have access to this league.' };
   }
@@ -125,11 +140,7 @@ async function verifyLeagueAdminAccess(
     return { error: 'Only league owners and admins can manage payments.' };
   }
 
-  if (membership.status !== 'active') {
-    return { error: 'Your league membership is not active.' };
-  }
-
-  return { league: league as League, userId: user.id };
+  return { error: 'Your league membership is not active.' };
 }
 
 // ============================================================================
@@ -531,7 +542,67 @@ export async function getLeaguePayoutInfo(
 }
 
 // ============================================================================
-// 9. Get Payment Statistics
+// 9. Create Account Session (for Embedded Components)
+// ============================================================================
+
+interface AccountSessionResult {
+  clientSecret: string;
+  expiresAt: number;
+}
+
+export async function createConnectAccountSession(
+  leagueId: string
+): ActionResult<AccountSessionResult> {
+  try {
+    const result = await verifyLeagueAdminAccess(leagueId);
+    if ('error' in result) {
+      return { success: false, error: result.error };
+    }
+    const { league } = result;
+
+    if (!league.stripe_account_id) {
+      return { success: false, error: 'No Stripe account connected. Please complete onboarding first.' };
+    }
+
+    // Import stripe directly here to avoid circular deps
+    const { stripe } = await import('@/lib/stripe/client');
+
+    // Create account session with all components enabled
+    const accountSession = await stripe.accountSessions.create({
+      account: league.stripe_account_id,
+      components: {
+        // Embedded onboarding
+        account_onboarding: { enabled: true },
+        // Account management dashboard
+        account_management: { enabled: true },
+        // Payments received
+        payments: { enabled: true, features: { refund_management: true } },
+        // Payouts
+        payouts: { enabled: true },
+        // Payment details
+        payment_details: { enabled: true, features: { refund_management: true } },
+        // Balances
+        balances: { enabled: true },
+        // Notification banner
+        notification_banner: { enabled: true },
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        clientSecret: accountSession.client_secret,
+        expiresAt: accountSession.expires_at,
+      },
+    };
+  } catch (error) {
+    console.error('[Stripe Connect] Create account session error:', error);
+    return { success: false, error: getStripeErrorMessage(error) };
+  }
+}
+
+// ============================================================================
+// 10. Get Payment Statistics
 // ============================================================================
 
 interface PaymentStats {

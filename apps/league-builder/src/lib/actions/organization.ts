@@ -120,15 +120,10 @@ export async function getOrganizationMembers(organizationId: string) {
     return null;
   }
 
+  // First get the members
   const { data: members, error } = await supabase
     .from('organization_members')
-    .select(`
-      *,
-      profiles:user_id (
-        email,
-        full_name
-      )
-    `)
+    .select('*')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: true });
 
@@ -139,7 +134,19 @@ export async function getOrganizationMembers(organizationId: string) {
     return null;
   }
 
-  return members;
+  // Then fetch profile details separately to avoid FK join issues
+  const membersWithProfiles = await Promise.all(
+    (members || []).map(async (member) => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', member.user_id)
+        .single();
+      return { ...member, profiles: profile || null };
+    })
+  );
+
+  return membersWithProfiles;
 }
 
 export async function inviteOrganizationMember(formData: FormData) {
@@ -373,7 +380,7 @@ export async function getOrganizationLeagues(organizationId: string) {
     // Get leagues for this organization
     const { data: leagues, error: leaguesError } = await supabase
       .from('leagues')
-      .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color, status')
+      .select('id, name, slug, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings')
       .eq('organization_id', organizationId)
       .neq('status', 'draft')
       .order('name');
@@ -395,6 +402,36 @@ export async function getOrganizationLeagues(organizationId: string) {
 }
 
 /**
+ * Deep-merge two plain objects. Arrays are replaced, not concatenated.
+ */
+function deepMerge(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>
+): Record<string, unknown> {
+  const output: Record<string, unknown> = { ...target };
+  for (const key of Object.keys(source)) {
+    const sourceVal = source[key];
+    const targetVal = target[key];
+    if (
+      sourceVal &&
+      typeof sourceVal === 'object' &&
+      !Array.isArray(sourceVal) &&
+      targetVal &&
+      typeof targetVal === 'object' &&
+      !Array.isArray(targetVal)
+    ) {
+      output[key] = deepMerge(
+        targetVal as Record<string, unknown>,
+        sourceVal as Record<string, unknown>
+      );
+    } else {
+      output[key] = sourceVal;
+    }
+  }
+  return output;
+}
+
+/**
  * Update league branding (colors, logo)
  */
 export async function updateLeagueBranding(formData: {
@@ -403,6 +440,17 @@ export async function updateLeagueBranding(formData: {
   secondaryColor?: string;
   accentColor?: string;
   logoUrl?: string | null;
+  bannerUrl?: string | null;
+  faviconUrl?: string | null;
+  tagline?: string;
+  description?: string;
+  fontFamily?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  websiteUrl?: string;
+  customCss?: string;
+  isPublic?: boolean;
+  settings?: Record<string, unknown>;
 }) {
   const supabase = await createClient();
 
@@ -445,6 +493,49 @@ export async function updateLeagueBranding(formData: {
     if (formData.logoUrl !== undefined) {
       updateData.logo_url = formData.logoUrl;
     }
+    if (formData.bannerUrl !== undefined) {
+      updateData.banner_url = formData.bannerUrl;
+    }
+    if (formData.faviconUrl !== undefined) {
+      updateData.favicon_url = formData.faviconUrl;
+    }
+    if (formData.tagline !== undefined) {
+      updateData.tagline = formData.tagline;
+    }
+    if (formData.description !== undefined) {
+      updateData.description = formData.description;
+    }
+    if (formData.fontFamily !== undefined) {
+      updateData.font_family = formData.fontFamily;
+    }
+    if (formData.contactEmail !== undefined) {
+      updateData.contact_email = formData.contactEmail;
+    }
+    if (formData.contactPhone !== undefined) {
+      updateData.contact_phone = formData.contactPhone;
+    }
+    if (formData.websiteUrl !== undefined) {
+      updateData.website_url = formData.websiteUrl;
+    }
+    if (formData.customCss !== undefined) {
+      updateData.custom_css = formData.customCss;
+    }
+    if (formData.isPublic !== undefined) {
+      updateData.is_public = formData.isPublic;
+    }
+
+    // Deep-merge settings JSONB: read current, merge with incoming, write back
+    if (formData.settings !== undefined) {
+      const { data: currentLeague } = await supabase
+        .from('leagues')
+        .select('settings')
+        .eq('id', formData.leagueId)
+        .single();
+
+      const existingSettings = (currentLeague?.settings as Record<string, unknown>) ?? {};
+      const mergedSettings = deepMerge(existingSettings, formData.settings);
+      updateData.settings = mergedSettings;
+    }
 
     // Update league
     const { error: updateError } = await supabase
@@ -459,8 +550,38 @@ export async function updateLeagueBranding(formData: {
       return { error: 'Failed to update branding' };
     }
 
-    revalidatePath('/dashboard/settings/branding');
+    // Revalidate league-builder pages
+    revalidatePath('/website-editor');
     revalidatePath(`/dashboard/leagues/${formData.leagueId}`);
+
+    // Trigger revalidation on the public league site
+    // Fetch the league slug for revalidation
+    const { data: leagueForSlug } = await supabase
+      .from('leagues')
+      .select('slug')
+      .eq('id', formData.leagueId)
+      .single();
+
+    if (leagueForSlug?.slug) {
+      // Trigger revalidation on league-sites
+      const leagueSitesUrl = process.env.LEAGUE_SITES_URL || 'http://localhost:3001';
+      try {
+        await fetch(`${leagueSitesUrl}/api/revalidate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slug: leagueForSlug.slug,
+            secret: process.env.REVALIDATION_SECRET,
+            type: 'branding',
+          }),
+        });
+      } catch (revalidateError) {
+        // Don't fail the whole operation if revalidation fails
+        if (isDevelopment) {
+          console.warn('Failed to trigger league-sites revalidation:', revalidateError);
+        }
+      }
+    }
 
     return { success: true };
   } catch (error) {

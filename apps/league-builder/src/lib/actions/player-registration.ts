@@ -126,14 +126,29 @@ async function verifyLeagueAdminAccess(leagueId: string) {
 
   const supabase = await createClient();
 
-  const { data: membership, error } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from('league_memberships')
     .select('role, status')
     .eq('league_id', leagueId)
     .eq('user_id', user.id)
     .single();
 
-  if (error || !membership) {
+  if (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active') {
+    return { userId: user.id };
+  }
+
+  // Fallback: platform admins get owner-level access to all leagues
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', user.id)
+    .single();
+
+  if ((profile as any)?.is_platform_admin === true) {
+    return { userId: user.id };
+  }
+
+  if (membershipError || !membership) {
     return { error: 'You do not have access to this league.' };
   }
 
@@ -141,11 +156,7 @@ async function verifyLeagueAdminAccess(leagueId: string) {
     return { error: 'Only league owners and admins can manage registrations.' };
   }
 
-  if (membership.status !== 'active') {
-    return { error: 'Your league membership is not active.' };
-  }
-
-  return { userId: user.id };
+  return { error: 'Your league membership is not active.' };
 }
 
 // ============================================================================
@@ -656,6 +667,42 @@ export async function submitPlayerRegistration(
     }
 
     const serviceSupabase = createServiceRoleClient();
+
+    // Server-side payment enforcement: resolve expected fee from season_fees
+    const { data: seasonFee } = await serviceSupabase
+      .from('season_fees')
+      .select('amount_cents')
+      .eq('league_id', data.league_id)
+      .eq('season_id', data.season_id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const expectedFeeCents = seasonFee?.amount_cents ?? 0;
+
+    if (expectedFeeCents > 0) {
+      // Payment is required - reject if not completed
+      if (data.payment_status !== 'completed') {
+        return {
+          success: false,
+          error: 'Payment is required for this registration. Please complete payment before submitting.',
+        };
+      }
+      if (!data.payment_intent_id) {
+        return {
+          success: false,
+          error: 'Missing payment confirmation. Please complete the payment step.',
+        };
+      }
+      // Enforce the correct fee amount from the database (don't trust client)
+      data.amount_cents = expectedFeeCents;
+    } else {
+      // No fee expected - normalize as free registration
+      data.payment_status = 'not_required';
+      data.amount_cents = 0;
+      data.payment_intent_id = undefined;
+    }
 
     // 1. First, save the waiver if not already saved
     let waiverId = null;

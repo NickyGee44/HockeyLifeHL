@@ -11,21 +11,8 @@ import { sendEmail, sendBatchEmails, getUnsubscribeUrl, type BatchEmailRecipient
 import {
   getGameReminderEmail,
   getRosterChangeEmail,
-  getScheduleChangeEmail,
-  getPaymentReceiptEmail,
-  getRegistrationCompleteEmail,
-  getPasswordResetEmail,
-  getCaptainInviteEmail,
   getLeagueAnnouncementEmail,
   sanitizeAnnouncementContent,
-  type GameReminderEmailProps,
-  type RosterChangeEmailProps,
-  type ScheduleChangeEmailProps,
-  type PaymentReceiptEmailProps,
-  type RegistrationCompleteEmailProps,
-  type PasswordResetEmailProps,
-  type CaptainInviteEmailProps,
-  type LeagueAnnouncementEmailProps,
 } from './templates';
 
 // =============================================================================

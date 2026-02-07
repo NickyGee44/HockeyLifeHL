@@ -70,7 +70,8 @@ export interface CaptainTeamOverview {
 }
 
 /**
- * Verify that the current user is the captain of the specified team
+ * Verify that the current user is the captain of the specified team.
+ * Platform admins are granted access as a fallback.
  */
 async function verifyCaptainAccess(teamId: string): Promise<{ authorized: boolean; error?: string }> {
   const supabase = await createClient();
@@ -94,11 +95,22 @@ async function verifyCaptainAccess(teamId: string): Promise<{ authorized: boolea
     return { authorized: false, error: 'Team not found' };
   }
 
-  if (team.captain_id !== user.id) {
-    return { authorized: false, error: 'You must be the team captain to access this page' };
+  if (team.captain_id === user.id) {
+    return { authorized: true };
   }
 
-  return { authorized: true };
+  // Fallback: platform admins can access any team's captain view
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', user.id)
+    .single();
+
+  if ((profile as any)?.is_platform_admin === true) {
+    return { authorized: true };
+  }
+
+  return { authorized: false, error: 'You must be the team captain to access this page' };
 }
 
 /**

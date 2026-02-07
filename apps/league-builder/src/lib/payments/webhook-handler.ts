@@ -148,7 +148,7 @@ async function handleRegistrationCheckoutCompleted(
   const amountPaid = session.amount_total || 0;
 
   // Process payment atomically using database function
-  const { data: result, error: processError } = await supabase.rpc(
+  const { data: resultData, error: processError } = await supabase.rpc(
     'process_registration_payment_webhook',
     {
       p_registration_id: registrationId,
@@ -158,6 +158,15 @@ async function handleRegistrationCheckoutCompleted(
       p_idempotency_key: `registration_checkout_${session.id}`,
     }
   );
+
+  // Cast the Json return type to the expected structure
+  const result = resultData as {
+    success: boolean;
+    message?: string;
+    already_processed?: boolean;
+    new_status?: string;
+    new_amount_paid_cents?: number;
+  } | null;
 
   if (processError) {
     console.error('[Payments Webhook] Registration payment processing error:', sanitizeErrorForLogging(processError));
@@ -172,7 +181,7 @@ async function handleRegistrationCheckoutCompleted(
   // Check if already processed (idempotent)
   if (result.already_processed) {
     console.log('[Payments Webhook] Registration payment already processed:', result.message);
-    return { success: true, message: result.message };
+    return { success: true, message: result.message ?? 'Already processed' };
   }
 
   await logAuditEvent(
@@ -186,13 +195,13 @@ async function handleRegistrationCheckoutCompleted(
       new_status: result.new_status,
       new_amount_paid_cents: result.new_amount_paid_cents,
     },
-    null, // No player_payment_id for registration payments
+    undefined, // No player_payment_id for registration payments
     eventId
   );
 
   return {
     success: true,
-    message: `Registration payment processed: $${(amountPaid / 100).toFixed(2)}. Status: ${result.new_status}`
+    message: `Registration payment processed: $${(amountPaid / 100).toFixed(2)}. Status: ${result.new_status ?? 'paid'}`
   };
 }
 
@@ -245,7 +254,7 @@ async function handleCheckoutCompleted(
 
   // Process payment atomically using database function (FIX ISSUE #1)
   // This ensures transaction insert AND payment update happen in a single atomic operation
-  const { data: result, error: processError } = await supabase.rpc(
+  const { data: checkoutResultData, error: processError } = await supabase.rpc(
     'process_checkout_completed',
     {
       p_payment_id: playerPaymentId,
@@ -257,6 +266,16 @@ async function handleCheckoutCompleted(
       p_idempotency_key: `checkout_${session.id}`,
     }
   );
+
+  // Cast the Json return type to the expected structure
+  const result = checkoutResultData as {
+    success: boolean;
+    message?: string;
+    already_processed?: boolean;
+    is_fully_paid?: boolean;
+    payment?: typeof payment;
+    transaction_id?: string;
+  } | null;
 
   if (processError) {
     console.error('[Payments Webhook] Atomic processing error:', sanitizeErrorForLogging(processError));
@@ -271,7 +290,7 @@ async function handleCheckoutCompleted(
   // Check if already processed (idempotent)
   if (result.already_processed) {
     console.log('[Payments Webhook] Payment already processed:', result.message);
-    return { success: true, message: result.message };
+    return { success: true, message: result.message ?? 'Already processed' };
   }
 
   // Extract results from atomic function
@@ -403,7 +422,7 @@ async function handleChargeRefunded(
     return { success: false, message: 'No refund data found' };
   }
 
-  const { data: refundResult, error: refundError } = await supabase.rpc(
+  const { data: refundResultData, error: refundError } = await supabase.rpc(
     'process_refund',
     {
       p_payment_id: payment.id,
@@ -416,6 +435,16 @@ async function handleChargeRefunded(
       p_is_full_refund: charge.refunded, // True if fully refunded
     }
   );
+
+  // Cast the Json return type to the expected structure
+  const refundResult = refundResultData as {
+    success: boolean;
+    message?: string;
+    already_processed?: boolean;
+    new_status?: string;
+    new_amount_paid_cents?: number;
+    transaction_id?: string;
+  } | null;
 
   if (refundError) {
     console.error('[Payments Webhook] Refund processing error:', sanitizeErrorForLogging(refundError));
@@ -430,7 +459,7 @@ async function handleChargeRefunded(
   // Check if already processed
   if (refundResult.already_processed) {
     console.log('[Payments Webhook] Refund already processed:', refundResult.message);
-    return { success: true, message: refundResult.message };
+    return { success: true, message: refundResult.message ?? 'Already processed' };
   }
 
   await logAuditEvent(
@@ -498,20 +527,28 @@ async function handleDisputeCreated(
     ? new Date(dispute.evidence_details.due_by * 1000).toISOString()
     : null;
 
-  const { data: disputeResult, error: disputeError } = await supabase.rpc(
+  const { data: disputeResultData, error: disputeError } = await supabase.rpc(
     'record_chargeback',
     {
       p_payment_id: payment.id,
       p_dispute_id: dispute.id,
       p_charge_id: chargeId,
-      p_payment_intent_id: transaction.stripe_payment_intent_id,
+      p_payment_intent_id: transaction.stripe_payment_intent_id ?? '',
       p_amount_cents: dispute.amount,
       p_currency: dispute.currency,
       p_reason: dispute.reason,
       p_status: dispute.status,
-      p_evidence_due_by: evidenceDueBy,
+      p_evidence_due_by: evidenceDueBy ?? '',
     }
   );
+
+  // Cast the Json return type to the expected structure
+  const disputeResult = disputeResultData as {
+    success: boolean;
+    message?: string;
+    already_processed?: boolean;
+    dispute_id?: string;
+  } | null;
 
   if (disputeError) {
     console.error('[Payments Webhook] Dispute recording error:', sanitizeErrorForLogging(disputeError));
@@ -526,7 +563,7 @@ async function handleDisputeCreated(
   // Check if already processed
   if (disputeResult.already_processed) {
     console.log('[Payments Webhook] Dispute already processed:', disputeResult.message);
-    return { success: true, message: disputeResult.message };
+    return { success: true, message: disputeResult.message ?? 'Already processed' };
   }
 
   await logAuditEvent(
@@ -547,28 +584,50 @@ async function handleDisputeCreated(
 
   // Send email alert to league admin about chargeback
   try {
-    // Fetch league admin info and player details
+    // Fetch league info
     const { data: leagueData } = await supabase
       .from('leagues')
-      .select(`
-        name,
-        organization_id,
-        organizations!inner (
-          owner_id,
-          profiles:owner_id (
-            email,
-            full_name
-          )
-        )
-      `)
+      .select('name, organization_id')
       .eq('id', payment.league_id)
       .single();
 
-    const { data: playerData } = await supabase
-      .from('registrations')
-      .select('profiles!inner (email, full_name)')
-      .eq('id', payment.registration_id)
-      .single();
+    // Get organization owner email separately to avoid complex join issues
+    let adminEmail: string | undefined;
+    let adminName = 'League Admin';
+    if (leagueData?.organization_id) {
+      // Note: owner_id exists in schema but may not be in generated types
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('owner_id')
+        .eq('id', leagueData.organization_id)
+        .single();
+
+      const ownerId = (orgData as { owner_id?: string } | null)?.owner_id;
+      if (ownerId) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', ownerId)
+          .single();
+
+        adminEmail = profileData?.email ?? undefined;
+        adminName = profileData?.full_name || 'League Admin';
+      }
+    }
+
+    // Get player info directly from player_id
+    let playerName = 'Unknown Player';
+    let playerEmail = 'Unknown';
+    if (payment.player_id) {
+      const { data: playerProfile } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', payment.player_id)
+        .single();
+
+      playerName = playerProfile?.full_name || 'Unknown Player';
+      playerEmail = playerProfile?.email || 'Unknown';
+    }
 
     const { data: feeData } = await supabase
       .from('season_fees')
@@ -576,19 +635,15 @@ async function handleDisputeCreated(
       .eq('id', payment.season_fee_id)
       .single();
 
-    if (leagueData?.organizations?.profiles?.email) {
-      const adminEmail = leagueData.organizations.profiles.email;
-      const adminName = leagueData.organizations.profiles.full_name || 'League Admin';
-      const playerName = playerData?.profiles?.full_name || 'Unknown Player';
-      const playerEmail = playerData?.profiles?.email || 'Unknown';
-      const feeName = feeData?.name || 'Season Fee';
+    const feeName = feeData?.name || 'Season Fee';
 
+    if (adminEmail) {
       const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
       await sendChargebackAlertEmail({
         to: adminEmail,
         adminName,
-        leagueName: leagueData.name,
+        leagueName: leagueData?.name ?? 'League',
         playerName,
         playerEmail,
         feeName,
@@ -625,7 +680,7 @@ async function handleDisputeClosed(
   const supabase = createServiceRoleClient();
 
   // Update dispute status
-  const { data: updateResult, error: updateError } = await supabase.rpc(
+  const { data: updateResultData, error: updateError } = await supabase.rpc(
     'update_dispute_status',
     {
       p_dispute_id: dispute.id,
@@ -633,6 +688,12 @@ async function handleDisputeClosed(
       p_resolved: true,
     }
   );
+
+  // Cast the Json return type to the expected structure
+  const updateResult = updateResultData as {
+    success: boolean;
+    message?: string;
+  } | null;
 
   if (updateError) {
     console.error('[Payments Webhook] Dispute update error:', sanitizeErrorForLogging(updateError));
@@ -660,7 +721,7 @@ async function handleDisputeClosed(
         status: dispute.status,
         outcome: dispute.status === 'won' ? 'League won' : 'League lost',
       },
-      dispute_record.player_payment_id,
+      dispute_record.player_payment_id ?? undefined,
       eventId
     );
 
@@ -670,38 +731,60 @@ async function handleDisputeClosed(
         .from('leagues')
         .select(`
           name,
-          organization_id,
-          organizations!inner (
-            owner_id,
-            profiles:owner_id (
-              email,
-              full_name
-            )
-          )
+          organization_id
         `)
         .eq('id', dispute_record.league_id)
         .single();
 
-      const { data: paymentData } = await supabase
-        .from('player_payments')
-        .select(`
-          registration_id,
-          registrations!inner (
-            profiles!inner (full_name)
-          )
-        `)
-        .eq('id', dispute_record.player_payment_id)
-        .single();
+      // Get organization owner email separately to avoid complex join issues
+      let adminEmail: string | undefined;
+      let adminName = 'League Admin';
+      if (leagueData?.organization_id) {
+        // Note: owner_id exists in schema but may not be in generated types
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('owner_id')
+          .eq('id', leagueData.organization_id)
+          .single();
 
-      if (leagueData?.organizations?.profiles?.email) {
-        const adminEmail = leagueData.organizations.profiles.email;
-        const adminName = leagueData.organizations.profiles.full_name || 'League Admin';
-        const playerName = paymentData?.registrations?.profiles?.full_name || 'Unknown Player';
+        const ownerId = (orgData as { owner_id?: string } | null)?.owner_id;
+        if (ownerId) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', ownerId)
+            .single();
 
+          adminEmail = profileData?.email ?? undefined;
+          adminName = profileData?.full_name || 'League Admin';
+        }
+      }
+
+      // Get player name - use direct player lookup instead of registrations join
+      let playerName = 'Unknown Player';
+      if (dispute_record.player_payment_id) {
+        const { data: paymentData } = await supabase
+          .from('player_payments')
+          .select('player_id')
+          .eq('id', dispute_record.player_payment_id)
+          .single();
+
+        if (paymentData?.player_id) {
+          const { data: playerProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', paymentData.player_id)
+            .single();
+
+          playerName = playerProfile?.full_name || 'Unknown Player';
+        }
+      }
+
+      if (adminEmail) {
         await sendChargebackResolutionEmail({
           to: adminEmail,
           adminName,
-          leagueName: leagueData.name,
+          leagueName: leagueData?.name ?? 'League',
           playerName,
           disputeAmount: dispute.amount,
           outcome: dispute.status === 'won' ? 'won' : 'lost',

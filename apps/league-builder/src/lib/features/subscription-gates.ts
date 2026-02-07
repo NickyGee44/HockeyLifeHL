@@ -140,7 +140,7 @@ export async function canCreateLeague(): Promise<{
 /**
  * Check if organization can add more players (checks TOTAL across all leagues)
  */
-export async function canAddPlayer(leagueId?: string): Promise<{
+export async function canAddPlayer(_leagueId?: string): Promise<{
   allowed: boolean;
   current: number;
   limit: number | 'unlimited';

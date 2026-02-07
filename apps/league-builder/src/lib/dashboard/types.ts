@@ -19,7 +19,7 @@ export interface RevenueDataPoint {
 }
 
 export interface GameStatsDataPoint {
-  game_date: string;
+  scheduled_at: string;
   total_scheduled: number;
   completed_count: number;
   cancelled_count: number;
