@@ -1,0 +1,103 @@
+'use client';
+
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { loadConnectAndInitialize, StripeConnectInstance } from '@stripe/connect-js';
+import { createConnectAccountSession } from '@/lib/actions/stripe-connect-payments';
+
+interface ConnectContextValue {
+  stripeConnectInstance: StripeConnectInstance | null;
+  isLoading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+const ConnectContext = createContext<ConnectContextValue>({
+  stripeConnectInstance: null,
+  isLoading: true,
+  error: null,
+  refresh: async () => {},
+});
+
+export function useStripeConnect() {
+  return useContext(ConnectContext);
+}
+
+interface ConnectProviderProps {
+  leagueId: string;
+  children: React.ReactNode;
+}
+
+export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
+  const [stripeConnectInstance, setStripeConnectInstance] = useState<StripeConnectInstance | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const initializeConnect = useCallback(async () => {
+    if (!leagueId) {
+      setError('League ID is required');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch client secret from server
+      const result = await createConnectAccountSession(leagueId);
+
+      if (!result.success) {
+        setError(result.error);
+        setIsLoading(false);
+        return;
+      }
+
+      const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+      if (!publishableKey) {
+        setError('Stripe publishable key not configured');
+        setIsLoading(false);
+        return;
+      }
+
+      // Initialize Stripe Connect
+      const instance = await loadConnectAndInitialize({
+        publishableKey,
+        fetchClientSecret: async () => result.data.clientSecret,
+        appearance: {
+          overlays: 'dialog',
+          variables: {
+            colorPrimary: '#10b981', // emerald-500 to match app theme
+            colorBackground: '#0a0a0a',
+            colorText: '#ffffff',
+            colorDanger: '#ef4444',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            fontSizeBase: '14px',
+            borderRadius: '8px',
+            spacingUnit: '4px',
+          },
+        },
+      });
+
+      setStripeConnectInstance(instance);
+      setIsLoading(false);
+    } catch (err) {
+      console.error('[ConnectProvider] Initialization error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to initialize Stripe Connect');
+      setIsLoading(false);
+    }
+  }, [leagueId]);
+
+  useEffect(() => {
+    initializeConnect();
+  }, [initializeConnect]);
+
+  const refresh = useCallback(async () => {
+    await initializeConnect();
+  }, [initializeConnect]);
+
+  return (
+    <ConnectContext.Provider value={{ stripeConnectInstance, isLoading, error, refresh }}>
+      {children}
+    </ConnectContext.Provider>
+  );
+}
