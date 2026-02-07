@@ -9,13 +9,14 @@ import {
   ExternalLink,
   Loader2,
   Shield,
-  Ban,
   Clock,
   Info,
+  ArrowRight,
 } from 'lucide-react';
 import { Button, Card, CardContent } from '@hockey-life/ui';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
+import { useTranslations } from 'next-intl';
 
 // Note: startConnectOnboarding and getConnectAccountStatus from '@/lib/actions/stripe-connect-payments'
 // will be used when integrating with actual Stripe Connect OAuth flow post-league creation
@@ -29,48 +30,19 @@ const isTestMode = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('p
 
 type StripeAccountStatus = 'not_connected' | 'pending' | 'active';
 
-interface StatusDisplayConfig {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: string;
-}
-
-const STATUS_CONFIG: Record<StripeAccountStatus, StatusDisplayConfig> = {
-  not_connected: {
-    icon: <Ban className="h-6 w-6" />,
-    title: 'Not Connected',
-    description: 'Connect your Stripe account to start accepting payments.',
-    color: 'text-muted-foreground',
-  },
-  pending: {
-    icon: <Clock className="h-6 w-6" />,
-    title: 'Pending Verification',
-    description: 'Your Stripe account is being verified. This usually takes 1-2 business days.',
-    color: 'text-yellow-600',
-  },
-  active: {
-    icon: <CheckCircle2 className="h-6 w-6" />,
-    title: 'Connected',
-    description: 'Your Stripe account is active and ready to accept payments.',
-    color: 'text-green-600',
-  },
-};
-
 export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSetupProps) {
   const PLATFORM_FEE_PERCENT = platformFeePercent;
   const { setValue, watch } = useFormContext<WizardFormData>();
+  const t = useTranslations('wizard.paymentStep');
 
   // Watch form values
   const enablePaidRegistration = watch('enablePaidRegistration');
-  const stripeAccountId = watch('stripeAccountId');
   const stripeAccountStatus = watch('stripeAccountStatus') as StripeAccountStatus;
   const skipPaymentSetup = watch('skipPaymentSetup');
   const registrationFee = watch('registrationFee');
 
   // Local state
   const [isConnecting, setIsConnecting] = React.useState(false);
-  const [isCheckingStatus, setIsCheckingStatus] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   // Format fee for display
@@ -81,53 +53,18 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
     }).format(cents / 100);
   };
 
-  // Check Stripe account status
-  const checkAccountStatus = React.useCallback(async () => {
-    if (!stripeAccountId) return;
-
-    setIsCheckingStatus(true);
-    setError(null);
-
-    try {
-      // We need a league ID to check status, but in wizard we don't have one yet
-      // For now, we'll rely on the webhook to update the status after redirect
-      // This is a placeholder for future implementation
-      console.log('Checking account status for:', stripeAccountId);
-    } catch (err) {
-      console.error('Failed to check account status:', err);
-    } finally {
-      setIsCheckingStatus(false);
-    }
-  }, [stripeAccountId]);
-
-  // Check account status on mount if we have an account ID
-  React.useEffect(() => {
-    if (stripeAccountId && stripeAccountStatus !== 'active') {
-      checkAccountStatus();
-    }
-  }, [stripeAccountId, stripeAccountStatus, checkAccountStatus]);
-
   // Handle Stripe Connect onboarding
   const handleConnectStripe = async () => {
     setIsConnecting(true);
     setError(null);
 
     try {
-      // For the wizard, we create a temporary session-based flow
-      // The actual account creation will happen when the league is created
-      // The following URLs will be used post-league creation for Stripe OAuth:
-      // - Return URL: `${window.location.origin}/wizard?step=5&stripe_connect=complete`
-      // - Refresh URL: `${window.location.origin}/wizard?step=5&stripe_connect=refresh`
-
       // We need a league ID to start onboarding, but we don't have one in the wizard yet
       // Store intent to connect and handle it after league creation
       setValue('skipPaymentSetup', false);
 
       // Show a message that Stripe will be connected after league creation
-      setError(
-        'Stripe Connect will be set up after your league is created. ' +
-        'Click "Create League" to continue, then complete Stripe onboarding.'
-      );
+      setError(t('stripeAfterCreation'));
 
       // Mark that user wants to connect Stripe (not skipping)
       setValue('stripeAccountStatus', 'pending');
@@ -154,8 +91,8 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
   if (!enablePaidRegistration) {
     return (
       <WizardStepContainer
-        title="Payment Setup"
-        description="Configure how you'll collect payments from players."
+        title={t('title')}
+        description={t('description')}
       >
         <Card>
           <CardContent className="pt-6">
@@ -163,18 +100,15 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle2 className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Free League</h3>
+              <h3 className="text-xl font-semibold mb-2">{t('freeLeagueTitle')}</h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                You have chosen to run a free league. Players will be able to register
-                without making any payment. You can always enable paid registration later
-                in your league settings.
+                {t('freeLeagueDescription')}
               </p>
               <div className="bg-muted/50 p-4 rounded-lg max-w-md mx-auto">
                 <div className="flex items-start gap-2">
                   <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                   <p className="text-sm text-muted-foreground text-left">
-                    No payment processing is required for free leagues. Simply continue
-                    to the next step to complete your league setup.
+                    {t('freeLeagueHint')}
                   </p>
                 </div>
               </div>
@@ -185,39 +119,34 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
     );
   }
 
-  // If user has skipped payment setup
+  // If user has skipped payment setup - show deferred messaging
   if (skipPaymentSetup) {
     return (
       <WizardStepContainer
-        title="Payment Setup"
-        description="Configure how you'll collect payments from players."
+        title={t('title')}
+        description={t('description')}
       >
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-                <AlertCircle className="h-8 w-8 text-yellow-600" />
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Clock className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Payment Setup Skipped</h3>
+              <h3 className="text-xl font-semibold mb-2">{t('skippedTitle')}</h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                You have chosen to skip Stripe Connect setup for now. You can complete
-                this later in your league settings, but players will not be able to pay
-                online until you do.
+                {t('skippedDescription')}
               </p>
-              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg max-w-md mx-auto mb-6">
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg max-w-md mx-auto mb-6">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
-                  <div className="text-sm text-yellow-800 text-left">
-                    <p className="font-medium mb-1">Important</p>
-                    <p>
-                      Without Stripe Connect, you will need to collect payments manually
-                      (cash, check, e-transfer, etc.) and track them yourself.
-                    </p>
+                  <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800 text-left">
+                    <p className="font-medium mb-1">{t('skippedImportant')}</p>
+                    <p>{t('skippedDetail')}</p>
                   </div>
                 </div>
               </div>
               <Button variant="outline" onClick={handleUndoSkip}>
-                Connect Stripe Instead
+                {t('connectStripeInstead')}
               </Button>
             </div>
           </CardContent>
@@ -226,20 +155,46 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
     );
   }
 
-  // Main payment setup view (fees enabled, not skipped)
-  const statusConfig = STATUS_CONFIG[stripeAccountStatus] || STATUS_CONFIG.not_connected;
+  // Status display config based on current status
+  const getStatusDisplay = (status: StripeAccountStatus) => {
+    switch (status) {
+      case 'active':
+        return {
+          icon: <CheckCircle2 className="h-6 w-6" />,
+          title: t('activeTitle'),
+          description: t('activeDescription'),
+          color: 'text-green-600',
+        };
+      case 'pending':
+        return {
+          icon: <Clock className="h-6 w-6" />,
+          title: t('pendingTitle'),
+          description: t('pendingDescription'),
+          color: 'text-blue-600',
+        };
+      default:
+        return {
+          icon: <ArrowRight className="h-6 w-6" />,
+          title: t('notConnectedTitle'),
+          description: t('notConnectedDescription'),
+          color: 'text-muted-foreground',
+        };
+    }
+  };
+
+  const statusConfig = getStatusDisplay(stripeAccountStatus);
 
   return (
     <WizardStepContainer
-      title="Payment Setup"
-      description="Connect your Stripe account to securely collect registration fees from players."
+      title={t('title')}
+      description={t('description')}
     >
       {/* Test Mode Banner */}
       {isTestMode && (
         <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg flex items-center gap-2 mb-4">
           <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0" />
           <p className="text-sm text-yellow-800">
-            <strong>Test Mode:</strong> You are using Stripe test keys. No real charges will be made.
+            <strong>Test Mode:</strong> {t('testModeBanner')}
           </p>
         </div>
       )}
@@ -249,21 +204,21 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
         <CardContent className="pt-6">
           <div className="flex items-center gap-3 mb-4">
             <CreditCard className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-lg">Registration Fee Summary</h3>
+            <h3 className="font-semibold text-lg">{t('feeSummaryTitle')}</h3>
           </div>
           <div className="bg-muted/50 p-4 rounded-lg">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Base Registration Fee</span>
+              <span className="text-muted-foreground">{t('baseFee')}</span>
               <span className="font-semibold">{formatFee(registrationFee || 0)}</span>
             </div>
             <div className="flex justify-between items-center mt-2 text-sm">
-              <span className="text-muted-foreground">Platform Fee ({PLATFORM_FEE_PERCENT}%)</span>
+              <span className="text-muted-foreground">{t('platformFee', { percent: PLATFORM_FEE_PERCENT })}</span>
               <span className="text-muted-foreground">
                 {formatFee(Math.round((registrationFee || 0) * (PLATFORM_FEE_PERCENT / 100)))}
               </span>
             </div>
             <div className="border-t mt-3 pt-3 flex justify-between items-center">
-              <span className="font-medium">You Receive</span>
+              <span className="font-medium">{t('youReceive')}</span>
               <span className="font-semibold text-green-600">
                 {formatFee((registrationFee || 0) - Math.round((registrationFee || 0) * (PLATFORM_FEE_PERCENT / 100)))}
               </span>
@@ -287,9 +242,9 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold">Stripe Connect</h3>
+                <h3 className="font-semibold">{t('stripeConnect')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Secure payment processing
+                  {t('securePayments')}
                 </p>
               </div>
             </div>
@@ -304,7 +259,7 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
             <p className="text-sm text-muted-foreground">{statusConfig.description}</p>
           </div>
 
-          {/* Error Display */}
+          {/* Error / Info Display */}
           {error && (
             <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
               <div className="flex items-start gap-2">
@@ -326,12 +281,12 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
                   {isConnecting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connecting...
+                      {t('connecting')}
                     </>
                   ) : (
                     <>
                       <CreditCard className="mr-2 h-4 w-4" />
-                      Connect with Stripe
+                      {t('connectStripe')}
                     </>
                   )}
                 </Button>
@@ -340,7 +295,7 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
                   onClick={handleSkipSetup}
                   disabled={isConnecting}
                 >
-                  Skip for Now
+                  {t('skipForNow')}
                 </Button>
               </>
             )}
@@ -355,36 +310,30 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
                   {isConnecting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
+                      {t('loading')}
                     </>
                   ) : (
                     <>
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Continue Setup
+                      {t('continueSetup')}
                     </>
                   )}
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={checkAccountStatus}
-                  disabled={isCheckingStatus}
-                >
-                  {isCheckingStatus ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Checking...
-                    </>
-                  ) : (
-                    'Refresh Status'
-                  )}
-                </Button>
+                 <Button
+                   variant="outline"
+                   onClick={() => {
+                     setError(t('stripeAfterCreation'));
+                   }}
+                 >
+                   {t('howThisWorks')}
+                 </Button>
               </>
             )}
 
             {stripeAccountStatus === 'active' && (
               <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle2 className="h-5 w-5" />
-                <span className="font-medium">Ready to accept payments</span>
+                <span className="font-medium">{t('activeDescription')}</span>
               </div>
             )}
           </div>
@@ -396,43 +345,35 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
         <CardContent className="pt-6">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Secure Payments</h3>
+            <h3 className="font-semibold">{t('securePaymentsTitle')}</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">PCI Compliant</p>
-                <p className="text-xs text-muted-foreground">
-                  Stripe handles all sensitive card data
-                </p>
+                <p className="font-medium text-sm">{t('pciCompliant')}</p>
+                <p className="text-xs text-muted-foreground">{t('pciDescription')}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">Encrypted Transactions</p>
-                <p className="text-xs text-muted-foreground">
-                  256-bit SSL encryption on all payments
-                </p>
+                <p className="font-medium text-sm">{t('encrypted')}</p>
+                <p className="text-xs text-muted-foreground">{t('encryptedDescription')}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">Direct Deposits</p>
-                <p className="text-xs text-muted-foreground">
-                  Funds deposited directly to your bank
-                </p>
+                <p className="font-medium text-sm">{t('directDeposits')}</p>
+                <p className="text-xs text-muted-foreground">{t('directDepositsDescription')}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">Fraud Protection</p>
-                <p className="text-xs text-muted-foreground">
-                  Built-in fraud detection and prevention
-                </p>
+                <p className="font-medium text-sm">{t('fraudProtection')}</p>
+                <p className="text-xs text-muted-foreground">{t('fraudDescription')}</p>
               </div>
             </div>
           </div>
@@ -444,16 +385,11 @@ export function Step5PaymentSetup({ platformFeePercent = 2.99 }: Step5PaymentSet
         <div className="flex items-start gap-2">
           <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-1">About Platform Fees</p>
+            <p className="font-medium mb-1">{t('aboutPlatformFees')}</p>
             <p className="mb-2">
-              A {PLATFORM_FEE_PERCENT}% platform fee is applied to all player payments.
-              By default, this fee is passed to the player at checkout (added to the total).
-              You can change this to absorb the fee yourself in your league billing settings.
+              {t('platformFeeInfo', { percent: PLATFORM_FEE_PERCENT })}
             </p>
-            <p>
-              Stripe also charges their standard card processing fees separately.
-              A one-time setup fee is required before your league can go live with payments.
-            </p>
+            <p>{t('stripeFeeInfo')}</p>
           </div>
         </div>
       </div>

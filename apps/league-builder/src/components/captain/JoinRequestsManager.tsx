@@ -39,7 +39,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
     if (result.error) {
       setError(result.error);
     } else {
-      setRequests(result.data || []);
+      setRequests((result.data || []) as unknown as TeamJoinRequest[]);
     }
     setLoading(false);
   };

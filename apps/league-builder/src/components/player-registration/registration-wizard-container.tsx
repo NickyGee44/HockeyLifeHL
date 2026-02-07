@@ -31,6 +31,7 @@ const AUTO_SAVE_DELAY = 2000; // 2 seconds
 
 export interface RegistrationWizardContainerProps {
   leagueId: string;
+  leagueSlug: string;
   seasonId: string;
   leagueName: string;
   initialData?: Partial<RegistrationDraftData> | null;
@@ -44,6 +45,7 @@ export interface RegistrationWizardContainerProps {
 
 export function RegistrationWizardContainer({
   leagueId,
+  leagueSlug,
   seasonId,
   leagueName,
   initialData,
@@ -189,6 +191,20 @@ export function RegistrationWizardContainer({
   const handleSubmit = async (data: RegistrationFormData) => {
     console.log('Submitting registration:', data);
 
+    // Client-side payment gate: if fee > 0, payment must be completed
+    if (requiresPayment && data.payment_status !== 'completed') {
+      toast.error('Payment is required to complete registration. Please complete the payment step.');
+      return;
+    }
+
+    // Ensure fee metadata is consistent
+    if (requiresPayment) {
+      data.amount_cents = registrationFee;
+    } else {
+      data.payment_status = 'not_required';
+      data.amount_cents = 0;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -202,8 +218,8 @@ export function RegistrationWizardContainer({
 
       toast.success('Registration submitted successfully!');
 
-      // Redirect to confirmation or dashboard
-      router.push(`/register/${leagueId}/success?id=${result.data?.registrationId}`);
+      // Redirect to confirmation or dashboard (use slug for slug-based route)
+      router.push(`/register/${leagueSlug}/success?id=${result.data?.registrationId}`);
     } catch (error) {
       console.error('Submission error:', error);
       toast.error('An unexpected error occurred');
@@ -259,6 +275,7 @@ export function RegistrationWizardContainer({
   // Provide context to child steps
   const contextValue = {
     leagueId,
+    leagueSlug,
     seasonId,
     leagueName,
     teams,
@@ -322,6 +339,7 @@ export function RegistrationWizardContainer({
 // Context for passing data to steps
 export interface RegistrationContextValue {
   leagueId: string;
+  leagueSlug: string;
   seasonId: string;
   leagueName: string;
   teams: Array<{ id: string; name: string }>;

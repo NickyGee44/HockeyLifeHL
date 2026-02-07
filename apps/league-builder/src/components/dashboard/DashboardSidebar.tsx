@@ -19,6 +19,8 @@ import {
   Users,
 } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { signOut } from '@/lib/actions/auth';
+import { useSidebar } from './SidebarContext';
 import type { CaptainTeamOverview } from '@/lib/actions/captain';
 
 interface DashboardSidebarProps {
@@ -29,7 +31,7 @@ export default function DashboardSidebar({ captainTeams }: DashboardSidebarProps
   const t = useTranslations('navigation');
   const locale = useLocale();
   const pathname = usePathname();
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const { isCollapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebar();
 
   const navigation = [
     { name: t('dashboard'), href: '/dashboard', icon: Home },
@@ -77,7 +79,7 @@ export default function DashboardSidebar({ captainTeams }: DashboardSidebarProps
           </Link>
         )}
         <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onClick={toggleSidebar}
           className={cn(
             'p-1.5 rounded-lg transition-colors',
             'text-neutral-400 hover:text-white hover:bg-neutral-800',
@@ -236,24 +238,26 @@ export default function DashboardSidebar({ captainTeams }: DashboardSidebarProps
 
       {/* User section */}
       <div className="p-2 border-t border-white/10">
-        <Link
-          href="/logout"
-          className={cn(
-            'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
-            'text-neutral-400 hover:text-red-400 hover:bg-red-500/10',
-            'group relative'
-          )}
-        >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {!sidebarCollapsed && (
-            <span className="font-medium text-sm">{t('logout')}</span>
-          )}
-          {sidebarCollapsed && (
-            <div className="absolute left-full ml-2 px-2 py-1 bg-neutral-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
-              {t('logout')}
-            </div>
-          )}
-        </Link>
+        <form action={signOut}>
+          <button
+            type="submit"
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
+              'text-neutral-400 hover:text-red-400 hover:bg-red-500/10',
+              'group relative'
+            )}
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {!sidebarCollapsed && (
+              <span className="font-medium text-sm">{t('logout')}</span>
+            )}
+            {sidebarCollapsed && (
+              <div className="absolute left-full ml-2 px-2 py-1 bg-neutral-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
+                {t('logout')}
+              </div>
+            )}
+          </button>
+        </form>
       </div>
     </aside>
   );

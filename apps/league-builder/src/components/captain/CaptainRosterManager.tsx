@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import {
   Users,
@@ -11,20 +12,16 @@ import {
   Loader2,
   UserX,
   Shield,
+  Download,
 } from 'lucide-react';
 import { getCaptainTeamRoster, removePlayerFromRoster } from '@/lib/actions/captain';
+import ImportRosterModal from './ImportRosterModal';
 
 interface Player {
   id: string;
-  full_name: string;
-  email: string;
+  full_name: string | null;
+  email: string | null;
   phone?: string | null;
-}
-
-interface Position {
-  id: string;
-  name: string;
-  abbreviation: string;
 }
 
 interface RosterEntry {
@@ -33,7 +30,7 @@ interface RosterEntry {
   jersey_number: number | null;
   status: string;
   player?: Player;
-  position?: Position;
+  position?: string | null;
 }
 
 interface CaptainRosterManagerProps {
@@ -42,11 +39,13 @@ interface CaptainRosterManagerProps {
 }
 
 export default function CaptainRosterManager({ teamId, captainId }: CaptainRosterManagerProps) {
+  const t = useTranslations('captain.roster');
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   useEffect(() => {
     loadRoster();
@@ -86,8 +85,8 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
   };
 
   const filteredRoster = roster.filter((entry) => {
-    const playerName = entry.player?.full_name.toLowerCase() || '';
-    const playerEmail = entry.player?.email.toLowerCase() || '';
+    const playerName = (entry.player?.full_name ?? '').toLowerCase();
+    const playerEmail = (entry.player?.email ?? '').toLowerCase();
     const search = searchTerm.toLowerCase();
     return playerName.includes(search) || playerEmail.includes(search);
   });
@@ -110,15 +109,28 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
             {roster.length} player{roster.length !== 1 ? 's' : ''} on roster
           </p>
         </div>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search players..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-64 px-4 py-2 pl-10 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-rink-500"
-          />
-          <Users className="absolute left-3 top-2.5 w-4 h-4 text-neutral-500" />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setImportModalOpen(true)}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium',
+              'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+              'hover:bg-rink-500/20 transition-colors'
+            )}
+          >
+            <Download className="w-4 h-4" />
+            {t('importFromPreviousSeason')}
+          </button>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search players..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64 px-4 py-2 pl-10 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-rink-500"
+            />
+            <Users className="absolute left-3 top-2.5 w-4 h-4 text-neutral-500" />
+          </div>
         </div>
       </div>
 
@@ -212,7 +224,7 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
                     <td className="py-4 px-4">
                       {entry.position ? (
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-neutral-800 text-neutral-300 text-xs font-medium">
-                          {entry.position.abbreviation}
+                          {entry.position}
                         </span>
                       ) : (
                         <span className="text-neutral-600 text-sm">—</span>
@@ -268,6 +280,14 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
           </table>
         </div>
       )}
+
+      {/* Import Roster Modal */}
+      <ImportRosterModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        teamId={teamId}
+        onImportComplete={loadRoster}
+      />
     </div>
   );
 }

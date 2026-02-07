@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import {
   Trophy,
   Calendar,
@@ -17,9 +17,13 @@ import {
   MapPin,
   Rocket,
   ArrowRight,
+  CreditCard,
+  Palette,
+  AlertCircle,
 } from 'lucide-react';
 import { Button, Card, CardContent, cn } from '@hockey-life/ui';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 // Confetti particle type
 interface ConfettiParticle {
@@ -151,6 +155,7 @@ export interface WizardSuccessProps {
   seasonEndDate?: string;
   teamCount?: number;
   location?: string;
+  needsPaymentSetup?: boolean;
 }
 
 export function WizardSuccess({
@@ -163,9 +168,11 @@ export function WizardSuccess({
   seasonEndDate,
   teamCount = 0,
   location,
+  needsPaymentSetup = false,
 }: WizardSuccessProps) {
   const [showConfetti, setShowConfetti] = useState(true);
   const [copied, setCopied] = useState(false);
+  const t = useTranslations('wizard.success');
 
   // Stop confetti after 6 seconds
   useEffect(() => {
@@ -173,19 +180,58 @@ export function WizardSuccess({
     return () => clearTimeout(timer);
   }, []);
 
-  // Generate the registration link
-  const registrationLink = subdomain
-    ? `https://${subdomain}.beerleaguehockey.ca/register`
-    : `https://beerleaguehockey.ca/leagues/${leagueSlug}/register`;
+  const configuredSitesBaseUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL?.replace(/\/+$/, '');
+  const configuredBuilderBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '');
 
-  // Generate the public website link
-  const websiteLink = subdomain
-    ? `https://${subdomain}.beerleaguehockey.ca`
-    : `https://beerleaguehockey.ca/leagues/${leagueSlug}`;
+  const resolveBaseUrl = () => {
+    if (configuredSitesBaseUrl) {
+      return configuredSitesBaseUrl;
+    }
+
+    if (typeof window !== 'undefined') {
+      return `${window.location.protocol}//${window.location.host}`;
+    }
+
+    return '';
+  };
+
+  const buildWebsiteLink = () => {
+    const baseUrl = resolveBaseUrl();
+    if (!baseUrl) {
+      return `/${leagueSlug}`;
+    }
+
+    try {
+      const parsed = new URL(baseUrl);
+      if (subdomain) {
+        return `${parsed.protocol}//${subdomain}.${parsed.host}`;
+      }
+    } catch {
+      // Fallback to path-based URL if parsing fails
+    }
+
+    return `${baseUrl}/${leagueSlug}`;
+  };
+
+  const buildRegistrationLink = () => {
+    const baseUrl = configuredBuilderBaseUrl;
+    if (!baseUrl) {
+      return `/register/${leagueSlug}`;
+    }
+
+    return `${baseUrl}/register/${leagueSlug}`;
+  };
+
+  const websiteLink = buildWebsiteLink();
+  const registrationLink = buildRegistrationLink();
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(registrationLink);
+      const linkToCopy =
+        registrationLink.startsWith('/') && typeof window !== 'undefined'
+          ? `${window.location.origin}${registrationLink}`
+          : registrationLink;
+      await navigator.clipboard.writeText(linkToCopy);
       setCopied(true);
       toast.success('Registration link copied to clipboard!');
       setTimeout(() => setCopied(false), 3000);
@@ -223,9 +269,9 @@ export function WizardSuccess({
           </div>
 
           {/* Success Message */}
-          <h1 className="text-4xl font-bold mb-3">Your League is Ready!</h1>
+          <h1 className="text-4xl font-bold mb-3">{t('title')}</h1>
           <p className="text-xl text-muted-foreground">
-            Congratulations! <span className="font-semibold text-foreground">{leagueName}</span> has been created.
+            {t('congratulations', { leagueName })}
           </p>
         </div>
 
@@ -271,82 +317,151 @@ export function WizardSuccess({
           </CardContent>
         </Card>
 
-        {/* Quick Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <QuickActionCard
-            icon={<Calendar className="h-6 w-6" />}
-            title="Generate Schedule"
-            description="Create your game schedule for the season"
-            href={`/dashboard/leagues/${leagueId}/schedule`}
-          />
+        {/* Payment Setup Banner (if needed) */}
+        {needsPaymentSetup && (
+          <Card className="mb-8 border-blue-500/30 bg-blue-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="bg-blue-100 rounded-lg p-3 text-blue-600 shrink-0">
+                  <CreditCard className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">{t('paymentsNotSetUp')}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {t('paymentsSetUpHint')}
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/dashboard/leagues/${leagueId}/settings`}>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      {t('setupPayments')}
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          <QuickActionCard
-            icon={<Users className="h-6 w-6" />}
-            title="Invite Team Captains"
-            description="Send invitations to manage their teams"
-            href={`/dashboard/leagues/${leagueId}/teams`}
-          />
+        {/* Priority Action Cards - Immediate Next Steps */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Rocket className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold text-lg">{t('immediateActions')}</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            {t('immediateActionsDescription')}
+          </p>
 
-          <QuickActionCard
-            icon={<Share2 className="h-6 w-6" />}
-            title="Share Registration Link"
-            description="Copy the link for players to register"
-            onClick={handleCopyLink}
-            actionLabel={copied ? 'Copied!' : 'Copy Link'}
-            actionIcon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Website Editor - Most prominent */}
+            <QuickActionCard
+              icon={<Palette className="h-6 w-6" />}
+              title={t('customizeWebsite')}
+              description={t('customizeWebsiteDescription')}
+              href="/website-editor"
+              priority
+            />
 
-          <QuickActionCard
-            icon={<ExternalLink className="h-6 w-6" />}
-            title="Preview Your Website"
-            description="See your league's public website"
-            href={websiteLink}
-            external
-          />
+            {/* Payment Setup - Show prominently if needed */}
+            {needsPaymentSetup && (
+              <QuickActionCard
+                icon={<CreditCard className="h-6 w-6" />}
+                title={t('setupPayments')}
+                description={t('setupPaymentsDescription')}
+                href={`/dashboard/leagues/${leagueId}/settings`}
+                attention
+              />
+            )}
+
+            {/* Generate Schedule */}
+            <QuickActionCard
+              icon={<Calendar className="h-6 w-6" />}
+              title={t('generateSchedule')}
+              description={t('generateScheduleDescription')}
+              href={`/dashboard/leagues/${leagueId}/schedule`}
+            />
+
+            {/* Invite Team Captains */}
+            <QuickActionCard
+              icon={<Users className="h-6 w-6" />}
+              title={t('inviteCaptains')}
+              description={t('inviteCaptainsDescription')}
+              href={`/dashboard/leagues/${leagueId}/teams`}
+            />
+
+            {/* Share Registration Link */}
+            <QuickActionCard
+              icon={<Share2 className="h-6 w-6" />}
+              title={t('shareRegistration')}
+              description={t('shareRegistrationDescription')}
+              onClick={handleCopyLink}
+              actionLabel={copied ? t('copied') : t('copyLink')}
+              actionIcon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            />
+
+            {/* Preview Website */}
+            <QuickActionCard
+              icon={<ExternalLink className="h-6 w-6" />}
+              title={t('previewWebsite')}
+              description={t('previewWebsiteDescription')}
+              href={websiteLink}
+              external
+            />
+          </div>
         </div>
 
         {/* Recommended Next Steps Checklist */}
         <Card className="mb-8">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4">
-              <Rocket className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold text-lg">Recommended Next Steps</h2>
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold text-lg">{t('nextStepsTitle')}</h2>
             </div>
 
             <div className="space-y-3">
               <NextStepItem
                 completed={teamCount > 0}
-                title="Add teams to your league"
-                description="Create team profiles for each team that will participate"
+                title={t('stepAddTeams')}
+                description={t('stepAddTeamsDescription')}
                 href={`/dashboard/leagues/${leagueId}/teams`}
               />
 
               <NextStepItem
                 completed={false}
-                title="Configure your venues"
-                description="Add ice rinks and arenas where games will be played"
-                href={`/dashboard/leagues/${leagueId}/venues`}
+                title={t('stepConfigureDivisions')}
+                description={t('stepConfigureDivisionsDescription')}
+                href={`/dashboard/leagues/${leagueId}/divisions`}
               />
 
               <NextStepItem
                 completed={false}
-                title="Set up your game schedule"
-                description="Use the schedule wizard to generate your season schedule"
+                title={t('stepSetupSchedule')}
+                description={t('stepSetupScheduleDescription')}
                 href={`/dashboard/leagues/${leagueId}/schedule`}
               />
 
+              {needsPaymentSetup && (
+                <NextStepItem
+                  completed={false}
+                  title={t('stepConnectStripe')}
+                  description={t('stepConnectStripeDescription')}
+                  href={`/dashboard/leagues/${leagueId}/settings`}
+                  highlight
+                />
+              )}
+
               <NextStepItem
                 completed={false}
-                title="Invite players and captains"
-                description="Send registration links to players and captain invites to team managers"
-                href={`/dashboard/leagues/${leagueId}/players`}
+                title={t('stepReviewRegistrations')}
+                description={t('stepReviewRegistrationsDescription')}
+                href={`/dashboard/leagues/${leagueId}/registrations`}
               />
 
               <NextStepItem
                 completed={false}
-                title="Customize your website"
-                description="Add your logo, update content, and configure your public league page"
-                href={`/dashboard/leagues/${leagueId}/settings`}
+                title={t('stepCustomizeWebsite')}
+                description={t('stepCustomizeWebsiteDescription')}
+                href="/website-editor"
               />
             </div>
           </CardContent>
@@ -357,12 +472,12 @@ export function WizardSuccess({
           <Button asChild size="lg" className="min-w-[200px]">
             <Link href="/dashboard">
               <LayoutDashboard className="mr-2 h-5 w-5" />
-              Go to Dashboard
+              {t('goToDashboard')}
             </Link>
           </Button>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            You can always access your league settings from the dashboard.
+            {t('dashboardHint')}
           </p>
         </div>
       </div>
@@ -401,6 +516,8 @@ interface QuickActionCardProps {
   actionLabel?: string;
   actionIcon?: React.ReactNode;
   external?: boolean;
+  priority?: boolean;
+  attention?: boolean;
 }
 
 function QuickActionCard({
@@ -412,18 +529,43 @@ function QuickActionCard({
   actionLabel,
   actionIcon,
   external,
+  priority,
+  attention,
 }: QuickActionCardProps) {
   const content = (
-    <Card className="h-full transition-all hover:border-primary/50 hover:shadow-md cursor-pointer">
+    <Card
+      className={cn(
+        'h-full transition-all hover:shadow-md cursor-pointer',
+        priority
+          ? 'border-primary/50 bg-primary/5 hover:border-primary/70'
+          : attention
+            ? 'border-blue-500/30 bg-blue-500/5 hover:border-blue-500/50'
+            : 'hover:border-primary/50'
+      )}
+    >
       <CardContent className="pt-6 h-full flex flex-col">
         <div className="flex items-start gap-4">
-          <div className="bg-primary/10 rounded-lg p-3 text-primary shrink-0">
+          <div
+            className={cn(
+              'rounded-lg p-3 shrink-0',
+              priority
+                ? 'bg-primary/20 text-primary'
+                : attention
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'bg-primary/10 text-primary'
+            )}
+          >
             {icon}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold mb-1 flex items-center gap-2">
               {title}
               {external && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
+              {priority && (
+                <span className="text-xs font-normal bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  Recommended
+                </span>
+              )}
             </h3>
             <p className="text-sm text-muted-foreground">{description}</p>
           </div>
@@ -473,9 +615,10 @@ interface NextStepItemProps {
   title: string;
   description: string;
   href: string;
+  highlight?: boolean;
 }
 
-function NextStepItem({ completed, title, description, href }: NextStepItemProps) {
+function NextStepItem({ completed, title, description, href, highlight }: NextStepItemProps) {
   return (
     <Link
       href={href}
@@ -483,7 +626,9 @@ function NextStepItem({ completed, title, description, href }: NextStepItemProps
         'flex items-start gap-3 p-3 rounded-lg border transition-all',
         completed
           ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800/30'
-          : 'hover:bg-muted/50 hover:border-muted-foreground/20'
+          : highlight
+            ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800/30 hover:border-blue-300'
+            : 'hover:bg-muted/50 hover:border-muted-foreground/20'
       )}
     >
       <div
@@ -491,17 +636,25 @@ function NextStepItem({ completed, title, description, href }: NextStepItemProps
           'w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5',
           completed
             ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-            : 'bg-muted text-muted-foreground'
+            : highlight
+              ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+              : 'bg-muted text-muted-foreground'
         )}
       >
         {completed ? (
           <CheckCircle2 className="h-4 w-4" />
+        ) : highlight ? (
+          <AlertCircle className="h-4 w-4" />
         ) : (
           <span className="text-xs font-medium">?</span>
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn('font-medium text-sm', completed && 'text-green-700 dark:text-green-400')}>
+        <p className={cn(
+          'font-medium text-sm',
+          completed && 'text-green-700 dark:text-green-400',
+          highlight && !completed && 'text-blue-700 dark:text-blue-400'
+        )}>
           {title}
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>

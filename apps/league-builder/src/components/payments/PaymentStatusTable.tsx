@@ -89,6 +89,11 @@ const STATUS_CONFIG: Record<
     icon: XCircle,
     className: 'bg-red-500/10 text-red-500 border-red-500/30',
   },
+  disputed: {
+    label: 'Disputed',
+    icon: AlertCircle,
+    className: 'bg-orange-500/10 text-orange-500 border-orange-500/30',
+  },
 };
 
 const PAYMENT_PLAN_LABELS: Record<PaymentPlanType, string> = {

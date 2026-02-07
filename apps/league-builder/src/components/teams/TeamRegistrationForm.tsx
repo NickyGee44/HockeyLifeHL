@@ -100,7 +100,7 @@ export function TeamRegistrationForm({
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, email')
-          .eq('id', user?.id)
+          .eq('id', user?.id ?? '')
           .single();
 
         // Send confirmation email to requester

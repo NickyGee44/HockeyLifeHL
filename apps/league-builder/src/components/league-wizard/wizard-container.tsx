@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { FormProvider } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useWizardForm } from '@/lib/hooks/use-wizard-form';
@@ -232,6 +233,10 @@ export function WizardContainer({
   // Show success screen after league creation
   if (isComplete && createdLeague) {
     const formData = form.getValues();
+    const needsPaymentSetup =
+      formData.enablePaidRegistration &&
+      !!formData.registrationFee &&
+      formData.stripeAccountStatus !== 'active';
     return (
       <WizardSuccess
         leagueId={createdLeague.leagueId}
@@ -242,6 +247,7 @@ export function WizardContainer({
         seasonEndDate={formData.season_end_date}
         location={`${formData.city}, ${formData.state_province}`}
         teamCount={formData.teams?.length || 0}
+        needsPaymentSetup={needsPaymentSetup}
       />
     );
   }

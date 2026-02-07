@@ -73,13 +73,46 @@ export function Step6WebsiteBranding() {
   const socialFacebook = watch('socialFacebook') || '';
   const socialInstagram = watch('socialInstagram') || '';
   const socialTwitter = watch('socialTwitter') || '';
+  const configuredSitesUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL?.replace(/\/+$/, '');
+  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@hockeylifehl.com';
+
+  const resolvedDomain = React.useMemo(() => {
+    if (!configuredSitesUrl) return 'hockeylifehl.com';
+
+    try {
+      const parsed = new URL(configuredSitesUrl);
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+        return parsed.host;
+      }
+      const parts = parsed.hostname.split('.');
+      return parts.length > 2 ? parts.slice(-2).join('.') : parsed.hostname;
+    } catch {
+      return 'hockeylifehl.com';
+    }
+  }, [configuredSitesUrl]);
+
+  const usePathPreview = React.useMemo(() => {
+    if (!configuredSitesUrl) return false;
+    try {
+      const parsed = new URL(configuredSitesUrl);
+      return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    } catch {
+      return false;
+    }
+  }, [configuredSitesUrl]);
 
   // State for advanced options collapse
   const [showAdvanced, setShowAdvanced] = React.useState(false);
 
   // Generate subdomain from league name
   const subdomain = generateSlug(leagueName);
-  const fullDomain = subdomain ? `${subdomain}.beerleaguehockey.ca` : 'your-league.beerleaguehockey.ca';
+  const fullDomain = subdomain ? `${subdomain}.${resolvedDomain}` : `your-league.${resolvedDomain}`;
+  const previewUrl = subdomain
+    ? usePathPreview && configuredSitesUrl
+      ? `${configuredSitesUrl}/${subdomain}`
+      : `https://${fullDomain}`
+    : '';
+  const previewDisplay = subdomain ? previewUrl.replace(/^https?:\/\//, '') : fullDomain;
 
   return (
     <WizardStepContainer
@@ -110,8 +143,7 @@ export function Step6WebsiteBranding() {
                     HTTPS
                   </div>
                   <span className="text-lg font-mono">
-                    <span className="text-rink-500">{subdomain || 'your-league'}</span>
-                    <span className="text-muted-foreground">.beerleaguehockey.ca</span>
+                    <span className="text-rink-500">{previewDisplay}</span>
                   </span>
                 </div>
                 {subdomain && (
@@ -119,7 +151,7 @@ export function Step6WebsiteBranding() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.open(`https://${fullDomain}`, '_blank')}
+                    onClick={() => window.open(previewUrl, '_blank')}
                     className="text-muted-foreground hover:text-rink-500"
                   >
                     <ExternalLink className="h-4 w-4 mr-1" />
@@ -455,7 +487,7 @@ export function Step6WebsiteBranding() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <a
-                    href="mailto:support@beerleaguehockey.ca?subject=Custom%20Domain%20Setup%20Request"
+                    href={`mailto:${supportEmail}?subject=Custom%20Domain%20Setup%20Request`}
                     className="inline-flex items-center gap-2 text-sm font-medium text-rink-500 hover:text-rink-400 transition-colors"
                   >
                     <Mail className="h-4 w-4" />
@@ -477,7 +509,7 @@ export function Step6WebsiteBranding() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">Domain</p>
-              <p className="font-mono truncate">{fullDomain}</p>
+              <p className="font-mono truncate">{previewDisplay}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Visibility</p>

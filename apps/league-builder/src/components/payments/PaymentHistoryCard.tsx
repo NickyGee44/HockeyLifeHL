@@ -83,6 +83,11 @@ const STATUS_CONFIG: Record<
     icon: XCircle,
     className: 'bg-red-500/10 text-red-500',
   },
+  disputed: {
+    label: 'Disputed',
+    icon: AlertCircle,
+    className: 'bg-orange-500/10 text-orange-500',
+  },
 };
 
 const TRANSACTION_TYPE_CONFIG: Record<

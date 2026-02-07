@@ -5,6 +5,7 @@
  */
 
 export { LeagueBillingDashboard } from './LeagueBillingDashboard';
+export { EmbeddedBillingDashboard } from './EmbeddedBillingDashboard';
 export { ConnectOnboardingCard } from './ConnectOnboardingCard';
 export { PaymentHistoryTable } from './PaymentHistoryTable';
 export { PayoutInfoCard } from './PayoutInfoCard';

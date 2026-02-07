@@ -16,11 +16,12 @@ import {
   Rocket,
   Info,
   Check,
-  X,
+  ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent, cn } from '@hockey-life/ui';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
+import { useTranslations } from 'next-intl';
 
 // Helper function to convert cents to dollars for display
 function centsToDollars(cents: number): string {
@@ -29,42 +30,106 @@ function centsToDollars(cents: number): string {
 
 export function Step7Review() {
   const { watch } = useFormContext<WizardFormData>();
+  const t = useTranslations('wizard.reviewStep');
 
   const formData = watch();
 
-  // Check for incomplete optional items
-  const warnings = getWarnings(formData);
+  // Separate items into "ready" and "needs attention"
+  const checklistItems = getChecklistItems(formData, t);
+  const readyItems = checklistItems.filter((item) => item.status === 'complete');
+  const optionalItems = checklistItems.filter((item) => item.status === 'optional');
+  const attentionItems = checklistItems.filter((item) => item.status === 'incomplete');
+
+  // Check for warnings
+  const warnings = getWarnings(formData, t);
   const hasWarnings = warnings.length > 0;
 
-  // Generate checklist status
-  const checklistItems = getChecklistItems(formData);
+  // Check if payment setup needs attention
+  const needsPaymentSetup =
+    formData.enablePaidRegistration &&
+    formData.registrationFee &&
+    formData.stripeAccountStatus !== 'active';
 
   return (
     <WizardStepContainer
-      title="Review & Launch"
-      description="Review your league configuration before launching. You can go back to edit any information."
+      title={t('title')}
+      description={t('description')}
     >
       <div className="space-y-4">
-        {/* Configuration Checklist Summary */}
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">Configuration Checklist</h3>
-            </div>
+        {/* Ready to Launch Section */}
+        {readyItems.length > 0 && (
+          <Card className="border-green-500/30 bg-green-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <h3 className="font-semibold text-lg text-green-800 dark:text-green-200">
+                  {t('readyToLaunch')}
+                </h3>
+              </div>
+              <p className="text-sm text-green-700 dark:text-green-300 mb-4">
+                {t('readyToLaunchDescription')}
+              </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {checklistItems.map((item, index) => (
-                <ChecklistItem
-                  key={index}
-                  label={item.label}
-                  status={item.status}
-                  detail={item.detail}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {readyItems.map((item, index) => (
+                  <ChecklistItem
+                    key={index}
+                    label={item.label}
+                    status={item.status}
+                    detail={item.detail}
+                  />
+                ))}
+                {optionalItems.map((item, index) => (
+                  <ChecklistItem
+                    key={`opt-${index}`}
+                    label={item.label}
+                    status={item.status}
+                    detail={item.detail}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Needs Attention After Launch Section */}
+        {(attentionItems.length > 0 || needsPaymentSetup) && (
+          <Card className="border-blue-500/30 bg-blue-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <h3 className="font-semibold text-lg text-blue-800 dark:text-blue-200">
+                  {t('needsAttention')}
+                </h3>
+              </div>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                {t('needsAttentionDescription')}
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {attentionItems.map((item, index) => (
+                  <ChecklistItem
+                    key={index}
+                    label={item.label}
+                    status={item.status}
+                    detail={item.detail}
+                  />
+                ))}
+              </div>
+
+              {needsPaymentSetup && (
+                <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      {t('paymentSetupReminder')}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Warnings for incomplete optional items */}
         {hasWarnings && (
@@ -73,7 +138,7 @@ export function Step7Review() {
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="h-5 w-5 text-yellow-600" />
                 <h3 className="font-semibold text-lg text-yellow-800 dark:text-yellow-200">
-                  Optional Items Not Configured
+                  {t('warningsTitle')}
                 </h3>
               </div>
 
@@ -87,7 +152,7 @@ export function Step7Review() {
               </div>
 
               <p className="mt-4 text-xs text-yellow-700 dark:text-yellow-300">
-                These items are optional and can be configured later from your dashboard.
+                {t('warningsDescription')}
               </p>
             </CardContent>
           </Card>
@@ -148,7 +213,7 @@ export function Step7Review() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">Season Settings</h3>
+              <h3 className="font-semibold text-lg">{t('seasonSettings')}</h3>
             </div>
 
             <div className="space-y-3">
@@ -251,7 +316,7 @@ export function Step7Review() {
               <div className="flex items-center gap-2 mb-4">
                 <Users className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold text-lg">
-                  Teams ({formData.teams.length})
+                  {t('teams')} ({formData.teams.length})
                 </h3>
               </div>
 
@@ -285,7 +350,7 @@ export function Step7Review() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4">
               <DollarSign className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">Registration & Fees</h3>
+              <h3 className="font-semibold text-lg">{t('registrationFees')}</h3>
             </div>
 
             {formData.enablePaidRegistration ? (
@@ -341,7 +406,7 @@ export function Step7Review() {
             ) : (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span>Free registration - no fees required</span>
+                <span>{t('freeRegistration')}</span>
               </div>
             )}
           </CardContent>
@@ -349,22 +414,24 @@ export function Step7Review() {
 
         {/* Payment Setup Status */}
         {formData.enablePaidRegistration && (
-          <Card>
+          <Card className={needsPaymentSetup ? 'border-blue-500/30' : ''}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 mb-4">
                 <CreditCard className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-lg">Payment Setup</h3>
+                <h3 className="font-semibold text-lg">{t('paymentProcessing')}</h3>
               </div>
 
               <div className="space-y-3">
                 <ReviewItem
-                  label="Stripe Status"
+                  label={t('stripeStatus')}
                   value={formatStripeStatus(formData.stripeAccountStatus)}
                 />
-                {formData.skipPaymentSetup && (
-                  <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-sm text-yellow-800">
-                    You've chosen to skip Stripe setup. You can complete this
-                    later in your league settings.
+                {(formData.skipPaymentSetup || formData.stripeAccountStatus !== 'active') && (
+                  <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-800">
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                      <span>{t('stripeSkippedBanner')}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -377,7 +444,7 @@ export function Step7Review() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4">
               <Globe className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">Website Settings</h3>
+              <h3 className="font-semibold text-lg">{t('websiteSettings')}</h3>
             </div>
 
             <div className="space-y-3">
@@ -421,28 +488,39 @@ export function Step7Review() {
               <Rocket className="h-6 w-6 text-primary-foreground" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-2">Ready to Launch Your League!</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('readyToLaunchCta')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Once launched, your league will be active and you can start:
+                {t('readyToLaunchInfo')}
               </p>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />
-                  Inviting players and team captains
+                  {t('ctaInvitePlayers')}
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />
-                  Generating your game schedule
+                  {t('ctaGenerateSchedule')}
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />
-                  Accepting player registrations
+                  {t('ctaAcceptRegistrations')}
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />
-                  Managing your league from the dashboard
+                  {t('ctaManageLeague')}
                 </li>
               </ul>
+
+              {needsPaymentSetup && (
+                <div className="mt-4 pt-4 border-t border-primary/20">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-sm text-muted-foreground">
+                      {t('paymentSetupReminder')}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -483,12 +561,12 @@ function ChecklistItem({ label, status, detail }: ChecklistItemProps) {
         className={cn(
           'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
           status === 'complete' && 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-          status === 'incomplete' && 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+          status === 'incomplete' && 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
           status === 'optional' && 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
         )}
       >
         {status === 'complete' && <Check className="h-4 w-4" />}
-        {status === 'incomplete' && <X className="h-4 w-4" />}
+        {status === 'incomplete' && <ArrowRight className="h-3 w-3" />}
         {status === 'optional' && <Info className="h-3 w-3" />}
       </div>
       <div className="flex-1 min-w-0">
@@ -534,9 +612,9 @@ function formatStripeStatus(status: string | undefined): string {
   if (!status) return 'Not connected';
   switch (status) {
     case 'not_connected':
-      return 'Not connected';
+      return 'Not connected -- set up after launch';
     case 'pending':
-      return 'Pending verification';
+      return 'Will be configured after league creation';
     case 'active':
       return 'Connected and active';
     default:
@@ -558,85 +636,94 @@ function formatTheme(theme: string | undefined): string {
   }
 }
 
-function getChecklistItems(formData: WizardFormData): { label: string; status: 'complete' | 'incomplete' | 'optional'; detail?: string }[] {
+// Use the translation function for checklist labels and details
+function getChecklistItems(
+  formData: WizardFormData,
+  t: (key: string, values?: Record<string, string | number>) => string
+): { label: string; status: 'complete' | 'incomplete' | 'optional'; detail?: string }[] {
   const items: { label: string; status: 'complete' | 'incomplete' | 'optional'; detail?: string }[] = [];
 
   // League Info
   items.push({
-    label: 'League Information',
+    label: t('leagueInfo'),
     status: formData.name && formData.city ? 'complete' : 'incomplete',
     detail: formData.name || 'Required',
   });
 
   // Season Settings
   items.push({
-    label: 'Season Settings',
+    label: t('seasonSettings'),
     status: formData.season_name && formData.season_start_date ? 'complete' : 'incomplete',
     detail: formData.season_name || 'Required',
   });
 
   // Teams
   items.push({
-    label: 'Teams',
+    label: t('teams'),
     status: formData.teams && formData.teams.length > 0 ? 'complete' : 'optional',
     detail: formData.teams && formData.teams.length > 0
-      ? `${formData.teams.length} teams configured`
-      : 'Can be added later',
+      ? t('teamsConfigured', { count: formData.teams.length })
+      : t('canBeAddedLater'),
   });
 
   // Registration Fees
   items.push({
-    label: 'Registration Fees',
+    label: t('registrationFees'),
     status: formData.enablePaidRegistration !== undefined ? 'complete' : 'optional',
     detail: formData.enablePaidRegistration && formData.registrationFee
       ? `$${centsToDollars(formData.registrationFee)}`
-      : 'Free registration',
+      : t('freeRegistration'),
   });
 
-  // Payment Settings
+  // Payment Settings - now uses "incomplete" (blue) instead of "red" to indicate deferred setup
   const needsPayment = formData.enablePaidRegistration && formData.registrationFee;
   items.push({
-    label: 'Payment Processing',
+    label: t('paymentProcessing'),
     status: formData.stripeAccountStatus === 'active'
       ? 'complete'
-      : needsPayment && !formData.skipPaymentSetup
+      : needsPayment
         ? 'incomplete'
         : 'optional',
     detail: formData.stripeAccountStatus === 'active'
-      ? 'Stripe connected'
+      ? t('stripeConnected')
       : needsPayment
-        ? formData.skipPaymentSetup ? 'Skipped - can configure later' : 'Required for fees'
-        : 'Not needed',
+        ? formData.skipPaymentSetup
+          ? t('stripeSkipped')
+          : t('stripeNotConnected')
+        : t('notNeeded'),
   });
 
   // Website Settings
   items.push({
-    label: 'Website Settings',
+    label: t('websiteSettings'),
     status: formData.isPublic !== undefined ? 'complete' : 'optional',
-    detail: formData.isPublic ? 'Public website enabled' : 'Website is private',
+    detail: formData.isPublic ? t('publicEnabled') : t('privateWebsite'),
   });
 
   return items;
 }
 
-function getWarnings(formData: WizardFormData): string[] {
+function getWarnings(
+  formData: WizardFormData,
+  t: (key: string) => string
+): string[] {
   const warnings: string[] = [];
 
   // Check for incomplete optional items that might be important
   if (!formData.teams || formData.teams.length === 0) {
-    warnings.push('No teams have been added. You can add teams later from your dashboard.');
+    warnings.push(t('warningNoTeams'));
   }
 
-  if (formData.enablePaidRegistration && formData.registrationFee && formData.stripeAccountStatus !== 'active' && !formData.skipPaymentSetup) {
-    warnings.push('Registration fees are configured but Stripe is not connected. Players will not be able to pay online.');
+  if (formData.enablePaidRegistration && formData.registrationFee && formData.stripeAccountStatus !== 'active') {
+    warnings.push(t('warningStripeNotConnected'));
   }
 
   if (!formData.contact_email && !formData.contact_phone) {
-    warnings.push('No contact information provided. Consider adding an email or phone number so players can reach you.');
+    warnings.push(t('warningNoContact'));
   }
 
   if (!formData.logo_url) {
-    warnings.push('No logo uploaded. Adding a logo helps establish your league\'s brand identity.');
+    warnings.push(t('warningNoLogo'));
   }
 
   return warnings;

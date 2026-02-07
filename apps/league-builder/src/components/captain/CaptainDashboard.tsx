@@ -31,8 +31,7 @@ interface Team {
 
 interface Game {
   id: string;
-  game_date: string;
-  game_time: string | null;
+  scheduled_at: string;
   home_team_id: string;
   away_team_id: string;
   home_team?: {
@@ -99,13 +98,13 @@ export default function CaptainDashboard({
     }).format(date);
   };
 
-  const formatTime = (timeString: string | null) => {
-    if (!timeString) return 'TBD';
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
   };
 
   const renderTabContent = () => {
@@ -160,13 +159,13 @@ export default function CaptainDashboard({
                             {/* Date */}
                             <div className="text-center min-w-[60px]">
                               <div className="text-xs text-neutral-500">
-                                {formatDate(game.game_date).split(',')[0]}
+                                {formatDate(game.scheduled_at).split(',')[0]}
                               </div>
                               <div className="text-lg font-bold text-white">
-                                {new Date(game.game_date).getDate()}
+                                {new Date(game.scheduled_at).getDate()}
                               </div>
                               <div className="text-xs text-neutral-500">
-                                {formatDate(game.game_date).split(' ')[0]}
+                                {formatDate(game.scheduled_at).split(' ')[0]}
                               </div>
                             </div>
 
@@ -196,7 +195,7 @@ export default function CaptainDashboard({
                           <div className="text-right">
                             <div className="flex items-center gap-1 text-sm text-white mb-1">
                               <Clock className="w-4 h-4" />
-                              {formatTime(game.game_time)}
+                              {formatTime(game.scheduled_at)}
                             </div>
                             {game.venue && (
                               <div className="flex items-center gap-1 text-xs text-neutral-400">

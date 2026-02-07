@@ -56,7 +56,7 @@ export function GameCompletionChart({
   const handleExport = () => {
     if (data) {
       exportToCSV(data as unknown as Record<string, unknown>[], 'game_stats', [
-        { key: 'game_date', label: 'Date' },
+        { key: 'scheduled_at', label: 'Date' },
         { key: 'total_scheduled', label: 'Scheduled' },
         { key: 'completed_count', label: 'Completed' },
         { key: 'cancelled_count', label: 'Cancelled' },
@@ -121,7 +121,7 @@ export function GameCompletionChart({
             <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
               <XAxis
-                dataKey="game_date"
+                dataKey="scheduled_at"
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#737373', fontSize: 12 }}

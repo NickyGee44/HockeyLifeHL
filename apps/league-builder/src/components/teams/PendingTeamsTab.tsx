@@ -65,7 +65,7 @@ export function PendingTeamsTab({
       ]);
 
       if (requestsResult.success && requestsResult.data) {
-        setRequests(requestsResult.data as TeamRegistrationRequestWithDetails[]);
+        setRequests(requestsResult.data as unknown as TeamRegistrationRequestWithDetails[]);
       } else {
         setError(requestsResult.error || 'Failed to fetch requests');
       }

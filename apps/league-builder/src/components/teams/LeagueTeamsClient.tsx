@@ -26,7 +26,7 @@ import { getPendingTeamRegistrationRequestsCount } from '@/lib/actions/team-regi
 interface Team {
   id: string;
   name: string;
-  abbreviation: string | null;
+  short_name: string | null;
   primary_color: string | null;
   secondary_color: string | null;
   logo_url: string | null;
@@ -249,7 +249,7 @@ function TeamCardInner({
             className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold"
             style={{ backgroundColor: team.primary_color || '#22D3EE' }}
           >
-            {team.abbreviation || team.name.substring(0, 2).toUpperCase()}
+            {team.short_name || team.name.substring(0, 2).toUpperCase()}
           </div>
           <div>
             <h3 className="font-semibold text-white group-hover:text-rink-500 transition-colors">
