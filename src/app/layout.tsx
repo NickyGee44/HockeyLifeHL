@@ -6,6 +6,7 @@ import { ThemeColorManager } from "@/components/layout/ThemeColorManager";
 import { QuickActionMenu } from "@/components/ui/quick-action-menu";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { currentLeague, platformConfig } from "@/lib/league-config";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -114,6 +115,7 @@ export default function RootLayout({
           {children}
           <QuickActionMenu />
           <Toaster richColors position="top-right" />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
