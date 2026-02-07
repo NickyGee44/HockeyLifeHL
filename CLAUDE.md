@@ -7,6 +7,7 @@ Multi-tenant SaaS hockey league management platform (70% complete, live at beerl
 - Next.js 16.1.1 (App Router), React 19, TypeScript 5
 - Supabase (PostgreSQL + RLS), Stripe Connect
 - Turbo monorepo with pnpm 9.0.0
+- next-intl for i18n (English + French)
 
 ## Critical Commands
 ```bash
@@ -17,32 +18,66 @@ pnpm type-check     # TypeScript validation
 pnpm lint           # ESLint check
 ```
 
+## Claude Code Skills
+```bash
+/audit              # Quick security audit on recent changes
+/doctor             # Environment health check
+/ship               # Pre-deployment checklist
+/migrate            # Database migration workflow with RLS validation
+/sync-types         # Regenerate & sync Supabase TypeScript types
+/payments-check     # Stripe payment & billing audit
+/cleanup            # Dead code, i18n gaps, and consistency scan
+/review             # Self-review before commit
+```
+
 ## Monorepo Structure
 ```
 apps/
-  league-builder/   # Main platform (@hockey-life/league-builder)
-  league-sites/     # Public website generator (@hockey-life/league-sites)
+  league-builder/     # Admin platform - league owners & admins (port 3000)
+  league-sites/       # Public websites for leagues (port 3001)
+  player-companion/   # Player PWA - offline-first mobile experience
+  blh/                # BMHL-specific implementation
 packages/
-  auth/             # Authentication utilities
-  database/         # Supabase client and types
-  ui/               # Shared UI components
+  auth/               # Authentication utilities
+  database/           # Supabase client and types (source of truth)
+  ui/                 # Shared UI components (shadcn/ui based)
 ```
+
+## i18n
+- Translation files: `apps/league-builder/src/messages/{en,fr}.json`
+- Always update BOTH en.json and fr.json when adding/changing UI strings
+- Use `useTranslations` hook from next-intl for all user-facing text
+- Never hardcode user-facing strings in components
 
 ## Database
 - Supabase with Row Level Security (RLS)
 - Always use RLS policies for new tables
+- Types source of truth: `packages/database/src/types.ts`
 - Generate types after migrations: `mcp__supabase__generate_typescript_types`
+- Use `/migrate` skill for structured migration workflow
+- Use `/sync-types` skill when types get out of sync
 
 ## Deployment
 - Vercel (auto-deploy)
 - `main` branch → Preview environment
 - `production` branch → Production environment
 - Never push directly to `production` - merge from `main`
+- Use `/ship` skill before production deploys
 
 ## Known Issues & Gotchas
 <!-- Update this section when Claude makes mistakes to prevent repeats -->
 - domain.ts has TypeScript errors related to custom_domain column not in generated Supabase types
 - Radix UI Select components cause hydration mismatch - use mounted state pattern to fix
+- `packages/auth/node_modules/@hockey-life/database/src/types.ts` can go stale - run `pnpm install` to refresh symlinks after type changes
+- Stripe SDK version mismatches between apps - keep versions aligned
+
+## Key Features (Active Development)
+- **Captain Dashboard** - roster management, join requests, import roster
+- **Scorekeeper System** - offline-first PWA, real-time game scoring
+- **Stripe Connect Payments** - registration fees (2.99% platform fee), chargebacks, refunds
+- **Website Editor** - theme customization, custom domains, branding
+- **Schedule Management** - game scheduling with conflict detection
+- **League Setup Wizard** - 7-step guided league creation (see below)
 
 ## League Setup Wizard (7 Steps)
 Location: `apps/league-builder/src/components/league-wizard/`
@@ -63,13 +98,6 @@ Location: `apps/league-builder/src/components/league-wizard/`
 - `lib/schemas/league-wizard.ts` - Zod validation schemas
 - `lib/actions/league-wizard.ts` - Server actions (saveDraft, createLeague)
 
-**Features:**
-- Auto-save drafts (2s debounce)
-- Draft persistence and resume
-- Atomic league creation with rollback
-- Stripe Connect OAuth flow for paid leagues
-- Post-creation success screen with guided next steps
-
 ## League Sites Templates (Platform 2)
 Location: `apps/league-sites/`
 
@@ -83,6 +111,8 @@ Location: `apps/league-sites/`
 **Key Pages:**
 - `/[leagueSlug]/schedule` - Week-based schedule with filters
 - `/[leagueSlug]/games/[gameId]` - Game preview with stats
+- `/[leagueSlug]/me` - Player dashboard (upcoming games, results, team)
+- `/[leagueSlug]/captain` - Captain duties and roster management
 
 **CSS Variables for Theming:**
 - `--league-primary`, `--league-secondary` - League colors
@@ -102,8 +132,17 @@ Location: `apps/league-sites/`
 - No half-finished code
 - Use existing components from packages/ui before creating new ones
 - Keep API routes in apps/league-builder/app/api/
+- Always verify auth in server actions with `getServerSession`
+- Use `/review` skill before committing to catch issues
 
 ## Git Workflow
 - Work on `main` branch for development
 - Merge `main` → `production` for production deploys
 - Use worktrees for parallel feature/bugfix work
+
+## Design System
+- See `docs/BRAND-KIT.md` for full design system (colors, typography, spacing, components)
+- Gold + neutral color palette with OKLCH values
+- Inter font family, 4px spacing rhythm
+- Dark and light mode support with CSS variables
+- Multi-tenant theming via league-specific CSS custom properties
