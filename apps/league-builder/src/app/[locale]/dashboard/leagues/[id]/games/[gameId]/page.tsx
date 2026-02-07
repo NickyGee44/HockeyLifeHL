@@ -7,7 +7,6 @@
 
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { redirect } from '@/i18n/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getGame, getGameAuditLog } from '@/lib/actions/games';
@@ -75,7 +74,7 @@ export default async function GameDetailPage({ params }: Props) {
     isCreator || (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
 
   if (!isAuthorized) {
-    redirect({ href: '/dashboard', locale, query: { error: 'unauthorized' } });
+    nextRedirect(`/${locale}/dashboard?error=unauthorized`);
   }
 
   // Get game details

@@ -18,6 +18,8 @@ import {
   Edit,
   Play,
   LayoutGrid,
+  Newspaper,
+  Handshake,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 
@@ -55,7 +57,7 @@ export default async function LeagueDetailPage({ params }: Props) {
     .single();
 
   if (error) {
-    console.error('[League Page] Error fetching league:', error.message, { leagueId, userId: userData?.id });
+    console.error('[League Page] Error fetching league:', error.message, { leagueId, userId: userData?.user?.id });
   }
 
   if (error || !league) {
@@ -151,7 +153,7 @@ export default async function LeagueDetailPage({ params }: Props) {
               <span className="text-sm text-neutral-400">Location</span>
             </div>
             <p className="text-lg font-semibold text-white truncate">
-              {league.city}, {league.state_province}
+              {league.city || 'Unknown'}{league.city && league.state_province ? ', ' : ''}{league.state_province || ''}
             </p>
           </div>
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
@@ -159,12 +161,12 @@ export default async function LeagueDetailPage({ params }: Props) {
               <BarChart3 className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">Timezone</span>
             </div>
-            <p className="text-lg font-semibold text-white truncate">{league.timezone}</p>
+            <p className="text-lg font-semibold text-white truncate">{league.timezone || 'Not set'}</p>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/teams`}
             icon={<Users className="w-5 h-5" />}
@@ -184,6 +186,13 @@ export default async function LeagueDetailPage({ params }: Props) {
             description="View and manage games"
           />
           <QuickActionButton
+            href={`/${locale}/website-editor`}
+            icon={<Globe className="w-5 h-5" />}
+            title="Website Editor"
+            description="Customize your league site"
+            highlight
+          />
+          <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/payments`}
             icon={<CreditCard className="w-5 h-5" />}
             title="Player Payments"
@@ -194,6 +203,24 @@ export default async function LeagueDetailPage({ params }: Props) {
             icon={<Settings className="w-5 h-5" />}
             title="Settings"
             description="League configuration"
+          />
+          <QuickActionButton
+            href={`/${locale}/dashboard/leagues/${leagueId}/news`}
+            icon={<Newspaper className="w-5 h-5" />}
+            title="News & Articles"
+            description="Publish league news"
+          />
+          <QuickActionButton
+            href={`/${locale}/dashboard/leagues/${leagueId}/sponsors`}
+            icon={<Handshake className="w-5 h-5" />}
+            title="Sponsors"
+            description="Manage league sponsors"
+          />
+          <QuickActionButton
+            href={`/${locale}/dashboard/leagues/${leagueId}/awards`}
+            icon={<Trophy className="w-5 h-5" />}
+            title="Awards"
+            description="Recognize players & teams"
           />
         </div>
 
@@ -251,22 +278,32 @@ function QuickActionButton({
   icon,
   title,
   description,
+  highlight,
 }: {
   href: string;
   icon: React.ReactNode;
   title: string;
   description: string;
+  highlight?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={cn(
         'flex items-start gap-4 p-5 rounded-2xl transition-all duration-200',
-        'bg-white/[0.04] border border-white/10 backdrop-blur-xl hover:border-white/20',
-        'group'
+        'backdrop-blur-xl',
+        'group',
+        highlight
+          ? 'bg-gradient-to-br from-rink-500/10 to-arena-500/10 border border-rink-500/30 hover:border-rink-500/50'
+          : 'bg-white/[0.04] border border-white/10 hover:border-white/20'
       )}
     >
-      <div className="p-2 rounded-xl bg-rink-500/10 text-rink-500 group-hover:scale-110 transition-transform">
+      <div className={cn(
+        "p-2 rounded-xl group-hover:scale-110 transition-transform",
+        highlight
+          ? "bg-gradient-to-r from-rink-500 to-arena-500 text-black"
+          : "bg-rink-500/10 text-rink-500"
+      )}>
         {icon}
       </div>
       <div>

@@ -15,17 +15,12 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 };
 
-// Root layout - Next.js 15+ requires html and body tags
+// Root layout - passes through to locale layout which has html/body tags
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-neutral-950 text-white antialiased">
-        {children}
-      </body>
-    </html>
-  );
+  // Don't wrap in html/body here - the [locale]/layout.tsx handles that
+  return children;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { Trophy } from 'lucide-react';
 
 export default function AuthLayout({
@@ -8,6 +9,8 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const t = useTranslations();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-950 aurora-bg">
 
@@ -23,7 +26,7 @@ export default function AuthLayout({
             Beer League Hockey
           </h1>
           <p className="text-sm text-neutral-400 mt-2">
-            Run the league. Enjoy the game.
+            {t('auth.tagline')}
           </p>
         </div>
 
@@ -36,14 +39,14 @@ export default function AuthLayout({
               href="/privacy"
               className="hover:text-rink-500 transition-colors"
             >
-              Privacy Policy
+              {t('footer.legal.privacy')}
             </Link>
             <span>|</span>
             <Link
               href="/terms"
               className="hover:text-rink-500 transition-colors"
             >
-              Terms of Service
+              {t('footer.legal.terms')}
             </Link>
           </div>
         </div>

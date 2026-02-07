@@ -61,8 +61,8 @@ export default async function LeagueSchedulePage({ params }: Props) {
       status,
       home_score,
       away_score,
-      home_team:teams!games_home_team_id_fkey (id, name, abbreviation, primary_color),
-      away_team:teams!games_away_team_id_fkey (id, name, abbreviation, primary_color),
+      home_team:teams!games_home_team_id_fkey (id, name, short_name, primary_color),
+      away_team:teams!games_away_team_id_fkey (id, name, short_name, primary_color),
       venue:venues (id, name)
     `)
     .eq('league_id', leagueId)
@@ -218,7 +218,7 @@ function GameCard({
             className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white"
             style={{ backgroundColor: game.home_team?.primary_color || '#22D3EE' }}
           >
-            {game.home_team?.abbreviation || 'H'}
+            {game.home_team?.short_name || 'H'}
           </div>
           <span className="font-medium text-white">{game.home_team?.name || 'Home Team'}</span>
           <span className="text-neutral-500">vs</span>
@@ -226,7 +226,7 @@ function GameCard({
             className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white"
             style={{ backgroundColor: game.away_team?.primary_color || '#3B82F6' }}
           >
-            {game.away_team?.abbreviation || 'A'}
+            {game.away_team?.short_name || 'A'}
           </div>
           <span className="font-medium text-white">{game.away_team?.name || 'Away Team'}</span>
         </div>

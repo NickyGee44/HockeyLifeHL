@@ -18,7 +18,8 @@ export default async function OrganizationProfilePage({ params }: Props) {
   const userData = await getCurrentUser();
 
   if (!userData) {
-    redirect('/login');
+    redirect({ href: '/login', locale });
+    return null; // TypeScript needs this after redirect
   }
 
   const organizations = await getUserOrganizations();
@@ -27,7 +28,8 @@ export default async function OrganizationProfilePage({ params }: Props) {
   const organization = organizations[0];
 
   if (!organization) {
-    redirect('/dashboard');
+    redirect({ href: '/dashboard', locale });
+    return null; // TypeScript needs this after redirect
   }
 
   const orgData = organization as any;

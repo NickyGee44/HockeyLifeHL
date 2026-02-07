@@ -59,7 +59,7 @@ export default async function LeagueSettingsPage({ params }: Props) {
       title: 'Website Editor',
       description: 'Customize your league website with live preview',
       icon: Eye,
-      href: `/${locale}/dashboard/settings/website-editor`,
+      href: `/${locale}/website-editor`,
       available: true,
       highlight: true,
     },

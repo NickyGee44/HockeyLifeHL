@@ -223,6 +223,8 @@ export default async function SeasonSchedulePage({ params }: Props) {
               endDate: new Date(data.season.end_date ?? FALLBACK_DATE),
               defaultVenueId: t.default_venue_id,
               rotateHomeVenue: t.rotate_home_venue ?? true,
+              playoffFormat: 'none' as const,
+              playoffTeams: 8,
               isDefault: t.is_default ?? false,
               createdAt: new Date(t.created_at ?? FALLBACK_DATE),
               updatedAt: new Date(t.updated_at ?? FALLBACK_DATE),

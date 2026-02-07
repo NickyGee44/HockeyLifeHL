@@ -13,6 +13,8 @@ import {
   ArrowRight,
   TrendingUp,
   CreditCard,
+  Palette,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import { LeagueLogo } from '@/components/ui/league-logo';
@@ -47,7 +49,7 @@ export default async function DashboardPage({ params }: Props) {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-black text-white tracking-tight">
-            {t('dashboard.welcome', { name: (profile as any)?.full_name || user.email?.split('@')[0] })}
+            {t('dashboard.welcome', { name: profile?.full_name || user.email?.split('@')[0] || 'User' })}
           </h1>
           <p className="text-neutral-400 mt-2">
             {t('dashboard.overview')}
@@ -57,18 +59,18 @@ export default async function DashboardPage({ params }: Props) {
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <StatsCard
-            title={t('dashboard.totalTeams')}
-            value={totals.total_organizations}
-            icon={<Users className="w-5 h-5" />}
-            trend={null}
-          />
-          <StatsCard
-            title={t('navigation.teams')}
+            title={t('company.leagues')}
             value={totals.total_leagues}
             icon={<Trophy className="w-5 h-5" />}
             trend={null}
+          />
+          <StatsCard
+            title={t('teams.title')}
+            value={totals.total_teams}
+            icon={<Users className="w-5 h-5" />}
+            trend={null}
             emptyAction={
-              totals.total_leagues === 0 ? (
+              totals.total_teams === 0 ? (
                 <Link
                   href="/dashboard/leagues/new"
                   className="text-xs text-rink-500 hover:text-rink-400 mt-2 inline-flex items-center gap-1"
@@ -80,13 +82,10 @@ export default async function DashboardPage({ params }: Props) {
             }
           />
           <StatsCard
-            title={t('navigation.teams')}
-            value={totals.total_teams}
+            title={t('players.title')}
+            value={totals.total_players}
             icon={<Calendar className="w-5 h-5" />}
             trend={null}
-            subtitle={
-              totals.total_teams > 0 ? t('teams.players', { count: totals.total_players }) : undefined
-            }
           />
           <StatsCard
             title={t('dashboard.gamesPlayed')}
@@ -96,48 +95,103 @@ export default async function DashboardPage({ params }: Props) {
           />
         </div>
 
+        {/* New League CTA - prominent for owners with no leagues */}
+        {totals.total_leagues === 0 && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-br from-rink-500/10 via-arena-500/5 to-transparent border border-rink-500/20 rounded-2xl p-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rink-500/10 flex items-center justify-center">
+                <Trophy className="w-8 h-8 text-rink-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">{t('dashboardCta.createLeague')}</h3>
+              <p className="text-neutral-400 mb-6 max-w-md mx-auto">
+                {t('dashboardCta.createLeagueDescription')}
+              </p>
+              <Link
+                href="/dashboard/leagues/new"
+                className={cn(
+                  'inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base',
+                  'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                  'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
+                )}
+              >
+                <Plus className="w-5 h-5" />
+                {t('navigation.createLeague')}
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Website Editor - Featured Action */}
+        {totals.total_leagues > 0 && (
+          <div className="mb-8">
+            <Link
+              href="/website-editor"
+              className={cn(
+                'flex items-center gap-4 p-6 rounded-2xl',
+                'bg-gradient-to-r from-arena-500/20 via-rink-500/10 to-arena-500/20',
+                'border border-arena-500/30 hover:border-arena-500/50',
+                'group transition-all duration-300 hover:shadow-lg hover:shadow-arena-500/10'
+              )}
+            >
+              <div className="p-3 rounded-xl bg-arena-500/20 text-arena-400 group-hover:scale-110 transition-transform">
+                <Palette className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                  {t('dashboardCta.websiteEditor')}
+                  <Globe className="w-4 h-4 text-arena-400" />
+                </h3>
+                <p className="text-neutral-400 text-sm">
+                  {t('dashboardCta.websiteEditorDescription')}
+                </p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-arena-400 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-lg font-bold text-white mb-4">{t('dashboard.quickActions')}</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <QuickActionCard
-              title={t('navigation.createLeague')}
-              description={t('teams.createFirstTeam')}
+              title={t('dashboardCta.createLeague')}
+              description={t('dashboardCta.createLeagueDescription')}
               href="/dashboard/leagues/new"
               icon={<Plus className="w-5 h-5" />}
               primary
             />
             <QuickActionCard
-              title={t('navigation.standings')}
-              description={t('dashboard.leagueStats')}
-              href="/dashboard/analytics"
+              title={t('dashboardCta.viewStandings')}
+              description={t('dashboardCta.viewStandingsDescription')}
+              href="/dashboard/leagues"
               icon={<BarChart3 className="w-5 h-5" />}
             />
             <QuickActionCard
-              title={t('navigation.billing')}
-              description={t('billing.paymentMethod')}
+              title={t('dashboardCta.manageBilling')}
+              description={t('dashboardCta.manageBillingDescription')}
               href="/dashboard/settings/billing"
               icon={<CreditCard className="w-5 h-5" />}
             />
             <QuickActionCard
-              title={t('navigation.settings')}
-              description={t('settings.general')}
+              title={t('dashboardCta.accountSettings')}
+              description={t('dashboardCta.accountSettingsDescription')}
               href="/dashboard/settings"
               icon={<Settings className="w-5 h-5" />}
             />
           </div>
         </div>
 
-        {/* Organizations Section */}
+        {/* Your Company Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white">{t('dashboard.overview')}</h2>
+            <h2 className="text-lg font-bold text-white">{t('company.yourCompany')}</h2>
             {organizations.length > 0 && (
               <Link
-                href="/dashboard/settings/members"
+                href="/dashboard/company"
                 className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1"
               >
-                {t('common.view')} <ArrowRight className="w-4 h-4" />
+                {t('company.manageProfile')} <ArrowRight className="w-4 h-4" />
               </Link>
             )}
           </div>
@@ -147,9 +201,9 @@ export default async function DashboardPage({ params }: Props) {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rink-500/10 flex items-center justify-center">
                 <Users className="w-8 h-8 text-rink-500" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">{t('common.noResults')}</h3>
+              <h3 className="text-xl font-bold text-white mb-2">{t('company.noCompany')}</h3>
               <p className="text-neutral-400 mb-6">
-                {t('teams.createFirstTeam')}
+                {t('company.setupCompany')}
               </p>
               <Link
                 href="/dashboard/settings"
@@ -160,13 +214,13 @@ export default async function DashboardPage({ params }: Props) {
                 )}
               >
                 <Plus className="w-4 h-4" />
-                {t('common.create')}
+                {t('company.createCompany')}
               </Link>
             </div>
           ) : (
             <div className="space-y-4">
               {organizations.map((org) => (
-                <OrganizationCard key={org.id} org={org} t={t} />
+                <CompanyCard key={org.id} org={org} t={t} />
               ))}
             </div>
           )}
@@ -282,31 +336,28 @@ function QuickActionCard({
   );
 }
 
-// Organization Card Component
-function OrganizationCard({ org, t }: { org: any; t: any }) {
+// Company Card Component (formerly Organization)
+function CompanyCard({ org, t }: { org: any; t: any }) {
   return (
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 hover:border-white/20 transition-colors">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-bold text-white text-lg">{org.name}</h3>
-          <p className="text-sm text-neutral-500">{org.slug}</p>
+          <p className="text-sm text-neutral-500">{t('company.profile')}</p>
         </div>
-        <span
-          className={cn(
-            'px-3 py-1 text-xs font-semibold rounded-full',
-            org.subscription_tier === 'enterprise'
-              ? 'bg-rink-500/20 text-rink-500 border border-rink-500/30'
-              : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
-          )}
+        <Link
+          href="/dashboard/company"
+          className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1"
         >
-          {org.subscription_tier === 'enterprise' ? t('billing.plans.enterprise') : t('billing.contactSales')}
-        </span>
+          <Settings className="w-4 h-4" />
+          {t('company.manageProfile')}
+        </Link>
       </div>
 
       {org.league_count > 0 ? (
         <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/[0.06]">
           <div>
-            <p className="text-xs text-neutral-500">{t('navigation.teams')}</p>
+            <p className="text-xs text-neutral-500">{t('company.leagues')}</p>
             <p className="text-xl font-bold text-white">{org.league_count}</p>
           </div>
           <div>
@@ -373,7 +424,7 @@ function LeagueCard({ league, orgName, t }: { league: any; orgName: string; t: a
       <div className="flex items-center gap-4 text-sm text-neutral-400">
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
-          {t('teams.players', { count: league.team_count })}
+          {t('teams.teamCount', { count: league.team_count })}
         </span>
         <span className="flex items-center gap-1">
           <Calendar className="w-4 h-4" />

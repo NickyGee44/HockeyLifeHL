@@ -6,12 +6,12 @@ import { Link } from '@/i18n/navigation';
 import { useState } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 export default function SignupPage() {
   const t = useTranslations();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
@@ -23,32 +23,15 @@ export default function SignupPage() {
       const result = await signUp(formData);
       if (result?.error) {
         setError(result.error);
-      } else {
-        setSuccess(true);
       }
-    } catch {
+    } catch (error) {
+      if (isRedirectError(error)) {
+        throw error;
+      }
       setError(t('errors.generic'));
     } finally {
       setLoading(false);
     }
-  }
-
-  if (success) {
-    return (
-      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
-          <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-2">
-          {t('auth.checkEmail')}
-        </h2>
-        <p className="text-sm text-neutral-400">
-          {t('auth.passwordResetSent')}
-        </p>
-      </div>
-    );
   }
 
   const inputClasses = cn(
@@ -74,7 +57,7 @@ export default function SignupPage() {
             htmlFor="fullName"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            Full Name
+            {t('auth.fullName')}
           </label>
           <input
             type="text"
@@ -82,7 +65,7 @@ export default function SignupPage() {
             name="fullName"
             required
             className={inputClasses}
-            placeholder="John Doe"
+            placeholder={t('auth.fullNamePlaceholder')}
           />
         </div>
 
@@ -120,13 +103,13 @@ export default function SignupPage() {
             placeholder="••••••••"
           />
           <div className="text-xs text-neutral-500 mt-1.5 space-y-0.5">
-            <p className="font-medium text-neutral-400">Password must contain:</p>
+            <p className="font-medium text-neutral-400">{t('auth.passwordMustContain')}</p>
             <ul className="list-disc list-inside ml-1 space-y-0.5">
-              <li>At least 8 characters</li>
-              <li>One uppercase letter (A-Z)</li>
-              <li>One lowercase letter (a-z)</li>
-              <li>One number (0-9)</li>
-              <li>One special character (!@#$%^&*)</li>
+              <li>{t('auth.passwordRuleLength')}</li>
+              <li>{t('auth.passwordRuleUppercase')}</li>
+              <li>{t('auth.passwordRuleLowercase')}</li>
+              <li>{t('auth.passwordRuleNumber')}</li>
+              <li>{t('auth.passwordRuleSpecial')}</li>
             </ul>
           </div>
         </div>
@@ -136,7 +119,7 @@ export default function SignupPage() {
             htmlFor="organizationName"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            Organization Name
+            {t('auth.companyName')}
           </label>
           <input
             type="text"
@@ -144,10 +127,13 @@ export default function SignupPage() {
             name="organizationName"
             required
             className={inputClasses}
-            placeholder="My Hockey League"
+            placeholder={t('auth.companyNamePlaceholder')}
           />
           <p className="text-xs text-neutral-500 mt-1">
-            This will be the name of your organization that manages leagues
+            {t('auth.companyNameDescription')}
+          </p>
+          <p className="text-xs text-neutral-600 mt-0.5">
+            {t('auth.companyNameExample')}
           </p>
         </div>
 
@@ -163,10 +149,13 @@ export default function SignupPage() {
               className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-0 cursor-pointer"
             />
             <span className="text-sm text-neutral-300 group-hover:text-neutral-200">
-              I accept the{' '}
-              <a href="/terms" target="_blank" className="text-rink-500 hover:text-rink-400 underline" onClick={(e) => e.stopPropagation()}>
-                Terms of Service
-              </a>{' '}
+              {t.rich('auth.acceptTerms', {
+                link: (chunks) => (
+                  <Link href="/terms" target="_blank" className="text-rink-500 hover:text-rink-400 underline" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                    {chunks}
+                  </Link>
+                ),
+              })}{' '}
               <span className="text-red-400">*</span>
             </span>
           </label>
@@ -182,16 +171,19 @@ export default function SignupPage() {
               className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-0 cursor-pointer"
             />
             <span className="text-sm text-neutral-300 group-hover:text-neutral-200">
-              I accept the{' '}
-              <a href="/privacy" target="_blank" className="text-rink-500 hover:text-rink-400 underline" onClick={(e) => e.stopPropagation()}>
-                Privacy Policy
-              </a>{' '}
+              {t.rich('auth.acceptPrivacy', {
+                link: (chunks) => (
+                  <Link href="/privacy" target="_blank" className="text-rink-500 hover:text-rink-400 underline" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                    {chunks}
+                  </Link>
+                ),
+              })}{' '}
               <span className="text-red-400">*</span>
             </span>
           </label>
 
           <p className="text-xs text-neutral-500">
-            <span className="text-red-400">*</span> Required to create an account
+            <span className="text-red-400">*</span> {t('auth.requiredField')}
           </p>
         </div>
 

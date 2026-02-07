@@ -4,13 +4,17 @@ import { signIn } from '@/lib/actions/auth';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 export default function LoginPage() {
   const t = useTranslations();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const redirectTo = searchParams.get('redirect');
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -21,7 +25,10 @@ export default function LoginPage() {
       if (result?.error) {
         setError(result.error);
       }
-    } catch {
+    } catch (error) {
+      if (isRedirectError(error)) {
+        throw error;
+      }
       setError(t('errors.generic'));
     } finally {
       setLoading(false);
@@ -38,6 +45,7 @@ export default function LoginPage() {
       </p>
 
       <form action={handleSubmit} className="space-y-4">
+        {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
         <div>
           <label
             htmlFor="email"

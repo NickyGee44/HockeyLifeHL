@@ -176,7 +176,7 @@ function LeagueCard({ league }: { league: any }) {
                 : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
             )}
           >
-            {league.status?.charAt(0).toUpperCase() + league.status?.slice(1) || 'Active'}
+            {league.status ? league.status.charAt(0).toUpperCase() + league.status.slice(1) : 'Active'}
           </span>
         </div>
 

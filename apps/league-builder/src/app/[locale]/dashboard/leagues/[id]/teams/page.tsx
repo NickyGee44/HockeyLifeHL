@@ -47,7 +47,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
     .select(`
       id,
       name,
-      abbreviation,
+      short_name,
       primary_color,
       secondary_color,
       logo_url,

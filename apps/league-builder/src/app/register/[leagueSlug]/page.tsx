@@ -66,6 +66,8 @@ async function getLeagueBySlug(slug: string) {
       id,
       name,
       slug,
+      stripe_account_id,
+      stripe_account_status,
       seasons (
         id,
         name,
@@ -89,6 +91,30 @@ async function getLeagueBySlug(slug: string) {
   }
 
   return league;
+}
+
+/**
+ * Fetch the active registration fee for a league + season from the season_fees table.
+ * Returns the fee amount in cents, or 0 if no active fee exists.
+ */
+async function getSeasonRegistrationFee(leagueId: string, seasonId: string): Promise<number> {
+  const supabase = await createClient();
+
+  const { data: fee, error } = await supabase
+    .from('season_fees')
+    .select('amount_cents')
+    .eq('league_id', leagueId)
+    .eq('season_id', seasonId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !fee) {
+    return 0;
+  }
+
+  return fee.amount_cents;
 }
 
 async function getCurrentUser() {
@@ -251,6 +277,9 @@ export default async function RegisterPage({
     name: team.name,
   }));
 
+  // Fetch the actual registration fee from the season_fees table
+  const registrationFee = await getSeasonRegistrationFee(league.id, activeSeason.id);
+
   // Determine current step from URL
   const currentStep = searchParams.step ? parseInt(searchParams.step, 10) : 1;
 
@@ -269,10 +298,11 @@ export default async function RegisterPage({
         <StripeProvider publishableKey={stripePublishableKey}>
           <RegistrationWizardContainer
             leagueId={league.id}
+            leagueSlug={league.slug}
             seasonId={activeSeason.id}
             leagueName={league.name}
             initialData={initialData}
-            registrationFee={0}
+            registrationFee={registrationFee}
             teams={teams}
             waiverContent={waiver.content}
             waiverVersion={waiver.version}

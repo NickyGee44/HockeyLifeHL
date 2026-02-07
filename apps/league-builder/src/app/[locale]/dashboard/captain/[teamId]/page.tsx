@@ -31,7 +31,8 @@ export default async function CaptainDashboardPage({ params, searchParams }: Pro
   const userData = await getCurrentUser();
 
   if (!userData) {
-    redirect('/login');
+    redirect({ href: '/login', locale });
+    return null; // TypeScript needs this after redirect
   }
 
   const result = await getCaptainDashboard(teamId);

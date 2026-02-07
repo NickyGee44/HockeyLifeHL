@@ -7,9 +7,8 @@
 
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { redirect } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { LeagueBillingDashboard } from '@/components/billing';
+import { EmbeddedBillingDashboard } from '@/components/billing';
 import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 
 export const metadata = {
@@ -62,16 +61,16 @@ export default async function LeagueBillingPage({ params, searchParams }: Props)
   if (membershipError || !membership) {
     // Check if they created the league (owner via leagues.created_by)
     if (league && (league as any).created_by !== user.id) {
-      redirect({ href: '/dashboard', locale, query: { error: 'unauthorized' } });
+      nextRedirect(`/${locale}/dashboard?error=unauthorized`);
     }
   } else {
     // Check membership role
     if (!['owner', 'admin'].includes(membership.role)) {
-      redirect({ href: '/dashboard', locale, query: { error: 'unauthorized' } });
+      nextRedirect(`/${locale}/dashboard?error=unauthorized`);
     }
 
     if (membership.status !== 'active') {
-      redirect({ href: '/dashboard', locale, query: { error: 'membership-inactive' } });
+      nextRedirect(`/${locale}/dashboard?error=membership-inactive`);
     }
   }
 
@@ -79,7 +78,7 @@ export default async function LeagueBillingPage({ params, searchParams }: Props)
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
-      <LeagueBillingDashboard leagueId={leagueId} leagueName={league.name} platformFeePercent={feeConfig.processingFeePercent} />
+      <EmbeddedBillingDashboard leagueId={leagueId} leagueName={league.name} platformFeePercent={feeConfig.processingFeePercent} />
 
       {/* Handle onboarding return */}
       {resolvedSearchParams.onboarding === 'complete' && (

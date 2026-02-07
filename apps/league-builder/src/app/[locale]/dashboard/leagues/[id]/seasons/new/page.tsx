@@ -1,41 +1,41 @@
 /**
- * New Season Page
+ * New Season Wizard Page
  *
- * Form for creating a new season within a league.
+ * Guided wizard for creating a new season with roster import from previous seasons.
  */
 
-import { setRequestLocale } from 'next-intl/server';
-import { redirect as nextRedirect, notFound } from 'next/navigation';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
+import { redirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
-import { cn } from '@hockey-life/ui';
-import { ArrowLeft, Calendar, Plus } from 'lucide-react';
-import { NewSeasonForm } from '@/components/dashboard/leagues/NewSeasonForm';
+import NewSeasonWizard from './wizard-client';
+
+export const dynamic = 'force-dynamic';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
-  searchParams?: Promise<{ [key: string]: string }>;
 };
 
 export default async function NewSeasonPage({ params }: Props) {
-  const awaited = await params;
-  const { locale, id: leagueId } = awaited;
+  const { locale, id: leagueId } = await params;
   setRequestLocale(locale);
 
-  const supabase = await createClient();
+  const t = await getTranslations();
 
-  // Get current user
+  // Check authentication
+  const supabase = await createClient();
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
-  if (!user) {
-    nextRedirect(`/${locale}/login`);
+
+  if (authError || !user) {
+    redirect(`/${locale}/login`);
   }
 
-  // Get league info
+  // Get league details
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
-    .select('id, name, slug, primary_color')
+    .select('id, name, organization_id')
     .eq('id', leagueId)
     .single();
 
@@ -43,37 +43,33 @@ export default async function NewSeasonPage({ params }: Props) {
     notFound();
   }
 
+  // Get previous season (if any)
+  const { data: previousSeason } = await supabase
+    .from('seasons')
+    .select('id, name, start_date, end_date')
+    .eq('league_id', leagueId)
+    .order('end_date', { ascending: false })
+    .limit(1)
+    .single();
+
+  // Get teams in the league
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, name, short_name, logo_url, primary_color')
+    .eq('league_id', leagueId)
+    .eq('status', 'active')
+    .order('name');
+
   return (
     <div className="min-h-screen bg-neutral-950">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to {league.name}
-          </Link>
-
-          <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: league.primary_color || '#22D3EE' }}
-            >
-              <Plus className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Create New Season</h1>
-              <p className="text-neutral-400 mt-1">
-                Set up a new season for {league.name}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
-        <NewSeasonForm leagueId={leagueId} />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <NewSeasonWizard
+          leagueId={leagueId}
+          leagueName={league.name}
+          previousSeason={previousSeason}
+          teams={teams || []}
+          locale={locale}
+        />
       </div>
     </div>
   );

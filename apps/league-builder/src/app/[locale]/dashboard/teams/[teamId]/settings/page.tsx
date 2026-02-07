@@ -30,7 +30,8 @@ export default async function TeamSettingsPage({ params }: Props) {
   const userData = await getCurrentUser();
 
   if (!userData) {
-    redirect('/login');
+    redirect({ href: '/login', locale });
+    return null; // TypeScript needs this after redirect
   }
 
   const result = await getTeam(teamId);

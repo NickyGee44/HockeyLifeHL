@@ -25,7 +25,8 @@ export default async function TeamsPage({ params, searchParams }: Props) {
   const userData = await getCurrentUser();
 
   if (!userData) {
-    redirect('/login');
+    redirect({ href: '/login', locale });
+    return null; // TypeScript needs this after redirect
   }
 
   const resolvedSearchParams = await searchParams;

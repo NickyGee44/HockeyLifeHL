@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import Script from 'next/script';
 import '../globals.css';
+import { Toaster } from 'sonner';
 import { ThemeProvider, themeScript } from '@/components/ThemeProvider';
 import { locales, type Locale } from '@/i18n/config';
 
@@ -56,6 +57,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider defaultTheme="dark" enableSystem enableTransition>
             {children}
+            <Toaster theme="dark" position="bottom-right" richColors />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

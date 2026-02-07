@@ -24,6 +24,7 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
   const userData = await getCurrentUser();
   if (!userData) {
     nextRedirect(`/${locale}/login`);
+    return null;
   }
 
   const supabase = await createClient();
@@ -33,7 +34,7 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
     .from('league_memberships')
     .select('role, status')
     .eq('league_id', leagueId)
-    .eq('user_id', userData.id)
+    .eq('user_id', userData.user.id)
     .single();
 
   if (membershipError || !membership) {
@@ -113,8 +114,8 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
       locale={locale}
       leagueId={leagueId}
       leagueName={league.name}
-      seasons={seasons || []}
-      selectedSeason={activeSeason}
+      seasons={(seasons || []).map(s => ({ ...s, status: s.status ?? 'draft' }))}
+      selectedSeason={activeSeason ? { ...activeSeason, status: activeSeason.status ?? 'draft' } : null}
       payments={payments}
       summary={summary}
       total={total}

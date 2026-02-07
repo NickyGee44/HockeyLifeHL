@@ -16,14 +16,16 @@ export default async function NotificationSettingsPage({ params }: Props) {
   const userData = await getCurrentUser();
 
   if (!userData) {
-    redirect('/login');
+    redirect({ href: '/login', locale });
+    return null; // TypeScript needs this after redirect
   }
 
   const organizations = await getUserOrganizations();
   const organization = organizations[0];
 
   if (!organization) {
-    redirect('/dashboard');
+    redirect({ href: '/dashboard', locale });
+    return null; // TypeScript needs this after redirect
   }
 
   return (
