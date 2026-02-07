@@ -27,6 +27,8 @@ async function requireOwner(): Promise<OwnerAuthResult> {
     .eq("id", user.id)
     .single();
 
+  // Note: profile.role here is the platform-level role (set at signup), not league membership role.
+  // 'owner' means organization owner. For cross-league admin access, check is_platform_admin instead.
   if (profile?.role !== "owner") {
     return { error: "Not authorized - owner access required", isOwner: false };
   }

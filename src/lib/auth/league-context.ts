@@ -28,6 +28,29 @@ export type LeagueMembership = {
   };
 };
 
+type ProfileAccess = {
+  is_platform_admin: boolean | null;
+  role: string | null;
+};
+
+async function getProfileAccess(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<ProfileAccess | null> {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin, role')
+    .eq('id', userId)
+    .single();
+
+  return (profile as ProfileAccess | null) ?? null;
+}
+
+function hasPlatformAdminAccess(profile: ProfileAccess | null): boolean {
+  if (!profile) return false;
+  return profile.is_platform_admin === true;
+}
+
 /**
  * Get the active league ID from the session/cookie
  * This is used to scope all queries to the current league
@@ -56,17 +79,33 @@ export async function setActiveLeagueId(leagueId: string): Promise<{ error?: str
       return { error: 'Not authenticated' };
     }
 
-    // Verify user has access to this league
-    const { data: membership, error } = await supabase
-      .from('league_memberships')
-      .select('league_id')
-      .eq('user_id', user.id)
-      .eq('league_id', leagueId)
-      .eq('status', 'active')
-      .single();
+    const profile = await getProfileAccess(supabase, user.id);
+    const isPlatformAdmin = hasPlatformAdminAccess(profile);
 
-    if (error || !membership) {
-      return { error: 'You do not have access to this league' };
+    if (isPlatformAdmin) {
+      const { data: league, error: leagueError } = await supabase
+        .from('leagues')
+        .select('id')
+        .eq('id', leagueId)
+        .eq('status', 'active')
+        .single();
+
+      if (leagueError || !league) {
+        return { error: 'League not found or inactive' };
+      }
+    } else {
+      // Verify user has access to this league
+      const { data: membership, error } = await supabase
+        .from('league_memberships')
+        .select('league_id')
+        .eq('user_id', user.id)
+        .eq('league_id', leagueId)
+        .eq('status', 'active')
+        .single();
+
+      if (error || !membership) {
+        return { error: 'You do not have access to this league' };
+      }
     }
 
     // Set the cookie
@@ -97,6 +136,9 @@ export async function getUserLeagues(): Promise<{ leagues: LeagueMembership[]; e
       return { leagues: [], error: 'Not authenticated' };
     }
 
+    const profile = await getProfileAccess(supabase, user.id);
+    const isPlatformAdmin = hasPlatformAdminAccess(profile);
+
     const { data: memberships, error } = await supabase
       .from('league_memberships')
       .select(`
@@ -124,7 +166,44 @@ export async function getUserLeagues(): Promise<{ leagues: LeagueMembership[]; e
       return { leagues: [], error: error.message };
     }
 
-    return { leagues: (memberships as any[]) || [] };
+    const membershipLeagues = (memberships as any[]) || [];
+
+    if (!isPlatformAdmin) {
+      return { leagues: membershipLeagues };
+    }
+
+    const { data: allLeagues, error: leaguesError } = await supabase
+      .from('leagues')
+      .select('id, name, slug, logo_url, primary_color, custom_domain, custom_domain_verified, created_at')
+      .eq('status', 'active')
+      .order('name', { ascending: true });
+
+    if (leaguesError || !allLeagues) {
+      return { leagues: membershipLeagues };
+    }
+
+    const membershipByLeagueId = new Map(
+      membershipLeagues.map((membership: any) => [membership.league_id, membership]),
+    );
+
+    const merged: LeagueMembership[] = allLeagues.map((league: any) => {
+      const membership = membershipByLeagueId.get(league.id);
+      if (membership) {
+        return membership as LeagueMembership;
+      }
+
+      return {
+        league_id: league.id,
+        user_id: user.id,
+        role: 'owner',
+        status: 'active',
+        created_at: league.created_at,
+        league,
+        _isPlatformAdminAccess: true,
+      } as LeagueMembership & { _isPlatformAdminAccess: boolean };
+    });
+
+    return { leagues: merged };
   } catch (error: any) {
     console.error('Error in getUserLeagues:', error);
     return { leagues: [], error: error.message || 'Failed to fetch leagues' };
@@ -134,7 +213,7 @@ export async function getUserLeagues(): Promise<{ leagues: LeagueMembership[]; e
 /**
  * Get the user's role in a specific league
  */
-export async function getUserRoleInLeague(leagueId: string): Promise<{ role: LeagueRole | null; error?: string }> {
+export async function getUserRoleInLeague(leagueId: string): Promise<{ role: LeagueRole | null; isPlatformAdmin?: boolean; error?: string }> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -151,11 +230,16 @@ export async function getUserRoleInLeague(leagueId: string): Promise<{ role: Lea
       .eq('status', 'active')
       .single();
 
-    if (error || !membership) {
-      return { role: null };
+    if (!error && membership) {
+      return { role: membership.role as LeagueRole };
     }
 
-    return { role: membership.role as LeagueRole };
+    const profile = await getProfileAccess(supabase, user.id);
+    if (hasPlatformAdminAccess(profile)) {
+      return { role: 'owner', isPlatformAdmin: true };
+    }
+
+    return { role: null };
   } catch (error: any) {
     console.error('Error getting user role:', error);
     return { role: null, error: error.message };
@@ -263,6 +347,11 @@ export async function validateLeagueAccess(leagueId: string): Promise<{ hasAcces
 
     if (!user) {
       return { hasAccess: false, error: 'Not authenticated' };
+    }
+
+    const profile = await getProfileAccess(supabase, user.id);
+    if (hasPlatformAdminAccess(profile)) {
+      return { hasAccess: true };
     }
 
     const { data: membership, error } = await supabase

@@ -22,7 +22,7 @@ export type LeagueManagementResult = {
 
 /**
  * Helper function to check if user is a platform admin
- * Checks is_platform_admin field or owner role
+ * Checks is_platform_admin field
  */
 async function requirePlatformAdmin(): Promise<{ error?: string; userId?: string }> {
   const supabase = await createClient();
@@ -42,8 +42,8 @@ async function requirePlatformAdmin(): Promise<{ error?: string; userId?: string
     return { error: 'Profile not found' };
   }
 
-  // Check if user is platform admin or has owner role (backwards compatibility)
-  if (!(profile as any).is_platform_admin && (profile as any).role !== 'owner') {
+  // Only explicit platform admins can access cross-league management.
+  if (!(profile as any).is_platform_admin) {
     return { error: 'Platform admin access required' };
   }
 
