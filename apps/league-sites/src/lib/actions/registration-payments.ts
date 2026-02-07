@@ -14,7 +14,7 @@
 
 'use server';
 
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 import crypto from 'crypto';
 

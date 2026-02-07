@@ -21,7 +21,7 @@ interface TeamMembership {
     logo: string | null;
     league_id: string;
     division_id: string | null;
-  };
+  } | null;
   jersey_number: number | null;
   position: string | null;
   leadership_role: 'captain' | 'alternate_captain' | null;
@@ -85,7 +85,7 @@ export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
           jersey_number,
           position,
           leadership_role,
-          team:teams(id, name, slug, logo, league_id, division_id)
+          team:teams(id, name, slug, logo_url, league_id, division_id)
         `)
         .eq('player_id', user.id);
 
@@ -94,16 +94,27 @@ export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
       }
 
       // Transform the data - convert leadership_role enum to is_captain/is_alternate booleans
-      const memberships: TeamMembership[] = (teamsData || []).map((item: any) => ({
-        id: item.id,
-        team_id: item.team_id,
-        team: Array.isArray(item.team) ? item.team[0] : item.team,
-        jersey_number: item.jersey_number,
-        position: item.position,
-        leadership_role: item.leadership_role,
-        is_captain: item.leadership_role === 'captain',
-        is_alternate: item.leadership_role === 'alternate_captain',
-      }));
+      // and map logo_url to logo for consistency
+      const memberships: TeamMembership[] = (teamsData || []).map((item: any) => {
+        const rawTeam = Array.isArray(item.team) ? item.team[0] : item.team;
+        return {
+          id: item.id,
+          team_id: item.team_id,
+          team: rawTeam ? {
+            id: rawTeam.id,
+            name: rawTeam.name,
+            slug: rawTeam.slug,
+            logo: rawTeam.logo_url || null,
+            league_id: rawTeam.league_id,
+            division_id: rawTeam.division_id,
+          } : null,
+          jersey_number: item.jersey_number,
+          position: item.position,
+          leadership_role: item.leadership_role,
+          is_captain: item.leadership_role === 'captain',
+          is_alternate: item.leadership_role === 'alternate_captain',
+        };
+      });
 
       setTeams(memberships);
     } catch (err) {

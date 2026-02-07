@@ -1,18 +1,43 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createBrowserClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+
+/**
+ * Next.js-safe fetch that always bypasses the data cache.
+ * @supabase/ssr's createServerClient ignores the `global.fetch` option
+ * for PostgREST calls in Next.js 16, so we use @supabase/supabase-js
+ * directly with a custom fetch for public data reads.
+ */
+const noStoreFetch: typeof globalThis.fetch = (input, init) =>
+  fetch(input, { ...init, cache: 'no-store' });
 
 /**
  * Create a Supabase client for server-side usage in Platform 2 (League Sites)
  *
- * This client is used for:
- * - Server Components fetching league data
- * - API routes serving public data
- * - Static generation (generateStaticParams)
+ * Uses @supabase/supabase-js with a custom fetch that forces
+ * `cache: 'no-store'` so Next.js never caches PostgREST responses.
  *
- * RLS policies ensure only published/public data is accessible
- * No authentication cookies are used for public league sites
+ * RLS policies ensure only published/public data is accessible.
  */
 export async function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: { fetch: noStoreFetch },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    },
+  );
+}
+
+/**
+ * Create a Supabase SSR client that reads auth cookies.
+ * Use this only for routes requiring authentication (player profile, captain, etc.)
+ */
+export async function createAuthClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -34,7 +59,7 @@ export async function createClient() {
           }
         },
       },
-    }
+    },
   );
 }
 

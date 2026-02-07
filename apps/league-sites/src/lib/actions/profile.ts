@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAuthClient as createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export type ProfileActionResult<T = void> =

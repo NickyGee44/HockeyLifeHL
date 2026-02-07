@@ -15,17 +15,22 @@ export interface SocialLinks {
   tiktok?: string | null;
 }
 
+export type ThemePreset = 'dark' | 'light' | 'custom';
+
 /**
  * Website settings stored in league.settings.website
  */
 export interface WebsiteSettings {
-  themePreset?: 'dark' | 'light' | 'custom';
+  themePreset?: ThemePreset;
   bannerUrl?: string | null;
   socialFacebook?: string | null;
   socialTwitter?: string | null;
   socialInstagram?: string | null;
   socialYoutube?: string | null;
   socialTiktok?: string | null;
+  visiblePages?: Record<string, boolean>;
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 /**
@@ -41,6 +46,7 @@ export interface LeagueSettings {
 export interface League {
   id: string;
   name: string;
+  short_name: string | null;
   slug: string;
   description: string | null;
   primary_color: string | null;
@@ -48,6 +54,7 @@ export interface League {
   accent_color: string | null;
   logo_url: string | null;
   banner_url: string | null;
+  font_family: string | null;
   website_url: string | null;
   contact_email: string | null;
   contact_phone: string | null;
@@ -67,6 +74,8 @@ export interface LeagueTheme {
   accentColor: string;
   logoUrl: string | null;
   bannerUrl: string | null;
+  fontFamily: string;
+  templateVariant: ThemePreset;
 }
 
 export interface Season {
@@ -91,11 +100,21 @@ export interface Team {
   id: string;
   name: string;
   slug: string;
+  // Color fields - DB uses primary_color/secondary_color, some code uses 'colors'
   colors: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  // Logo fields - DB uses logo_url, some code uses 'logo'
   logo: string | null;
+  logo_url?: string | null;
+  // Team info
   league_id: string;
   division_id: string | null;
   created_at: string;
+  // Contact info
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  captain_id?: string | null;
   // Joined data
   division?: Division;
 }
@@ -129,7 +148,7 @@ export interface Game {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
-  status: 'scheduled' | 'in_progress' | 'final' | 'completed' | 'postponed' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'pending_verification' | 'postponed' | 'cancelled';
   period: number | null;
   period_time: string | null;
   created_at: string;
@@ -143,8 +162,9 @@ export interface Player {
   player_id: string;
   team_id: string;
   jersey_number: number | null;
-  position: 'C' | 'LW' | 'RW' | 'D' | 'G' | null;
+  position: 'C' | 'LW' | 'RW' | 'D' | 'G' | 'Forward' | 'Defense' | 'Goalie' | null;
   leadership_role: 'captain' | 'alternate_captain' | null;
+  is_goalie?: boolean;
   // Computed properties for backwards compatibility
   is_captain?: boolean;
   is_alternate?: boolean;
@@ -218,7 +238,7 @@ export interface TickerGame {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
-  status: 'scheduled' | 'in_progress' | 'final' | 'completed' | 'postponed' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'pending_verification' | 'postponed' | 'cancelled';
   home_team: {
     id: string;
     name: string;
@@ -251,7 +271,7 @@ export interface ScheduleGame {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
-  status: 'scheduled' | 'in_progress' | 'final' | 'completed' | 'postponed' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'pending_verification' | 'postponed' | 'cancelled';
   game_type?: string | null;
   division_id?: string | null;
   home_team: {
@@ -302,7 +322,7 @@ export interface GamePreview {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
-  status: 'scheduled' | 'in_progress' | 'final' | 'completed' | 'postponed' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'pending_verification' | 'postponed' | 'cancelled';
   period: number | null;
   period_time: string | null;
   created_at: string;
@@ -398,6 +418,7 @@ export interface GoalieStats {
   player_id: string;
   player_name: string;
   jersey_number: string | null;
+  avatar_url?: string | null;
   team_id: string;
   team_name?: string;
   team_logo?: string | null;
@@ -451,4 +472,142 @@ export interface PlayerWithTeam extends Player {
 export interface ScoreGame extends RecentGame {
   overtime?: boolean;
   shootout?: boolean;
+}
+
+// =============================================================================
+// Advanced Stats, Suspensions, and Content Types
+// =============================================================================
+
+/** Special teams stats from DB view */
+export interface SpecialTeamsLeader {
+  league_id: string;
+  season_id: string;
+  player_id: string;
+  team_id: string;
+  full_name: string;
+  pp_goals: number;
+  pp_assists: number;
+  pp_points: number;
+  sh_goals: number;
+  sh_assists: number;
+  gwg: number;
+  eng: number;
+}
+
+/** Suspension record */
+export interface Suspension {
+  id: string;
+  player_id: string;
+  league_id: string;
+  team_id: string | null;
+  season_id: string | null;
+  game_id: string | null;
+  reason: string;
+  games_remaining: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+  issued_by: string | null;
+  created_at: string;
+  player?: { full_name: string; avatar_url: string | null } | null;
+  team?: { name: string; logo_url: string | null } | null;
+}
+
+/** News article */
+export interface NewsArticle {
+  id: string;
+  title: string;
+  content: string;
+  excerpt: string | null;
+  image_url: string | null;
+  slug: string | null;
+  author_id: string | null;
+  published: boolean;
+  published_at: string | null;
+  created_at: string;
+  type: string;
+  league_id: string;
+  author?: { full_name: string; avatar_url: string | null } | null;
+}
+
+/** League event */
+export interface LeagueEvent {
+  id: string;
+  league_id: string;
+  title: string;
+  description: string | null;
+  event_type: string;
+  location: string | null;
+  start_time: string;
+  end_time: string | null;
+  is_published: boolean;
+  created_at: string;
+}
+
+/** Gallery album */
+export interface GalleryAlbum {
+  id: string;
+  league_id: string;
+  season_id: string | null;
+  title: string;
+  description: string | null;
+  cover_photo_url: string | null;
+  is_published: boolean;
+  created_at: string;
+  photo_count?: number;
+}
+
+/** Gallery photo */
+export interface GalleryPhoto {
+  id: string;
+  gallery_id: string;
+  url: string;
+  thumbnail_url: string | null;
+  caption: string | null;
+  display_order: number;
+  created_at: string;
+}
+
+/** Staff member */
+export interface StaffMember {
+  id: string;
+  league_id: string;
+  name: string;
+  role_title: string;
+  email: string | null;
+  phone: string | null;
+  photo_url: string | null;
+  bio: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
+/** Sponsor */
+export interface LeagueSponsor {
+  id: string;
+  league_id: string;
+  name: string;
+  logo_url: string | null;
+  website_url: string | null;
+  tier: string | null;
+  description: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
+/** Award */
+export interface LeagueAward {
+  id: string;
+  league_id: string;
+  season_id: string | null;
+  player_id: string | null;
+  team_id: string | null;
+  award_name: string;
+  category: string;
+  description: string | null;
+  image_url: string | null;
+  created_at: string;
+  player?: { full_name: string; avatar_url: string | null } | null;
+  team?: { name: string; logo_url: string | null } | null;
+  season?: { name: string } | null;
 }
