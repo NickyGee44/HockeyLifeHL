@@ -3,6 +3,7 @@ import { getOrganizationLeagues } from '@/lib/actions/organization';
 import { redirect } from '@/i18n/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { WebsiteEditorClient } from '@/components/website-editor/WebsiteEditorClient';
+import type { LeagueEditorData } from '@/components/website-editor/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,22 +23,25 @@ export default async function WebsiteEditorPage({ params }: Props) {
   const userData = await getCurrentUser();
 
   if (!userData) {
-    redirect('/login');
+    redirect({ href: '/login', locale });
+    return null;
   }
 
   const organizations = await getUserOrganizations();
   const organization = organizations[0];
 
   if (!organization) {
-    redirect('/dashboard');
+    redirect({ href: '/dashboard', locale });
+    return null;
   }
 
-  // Get leagues for this organization
+  // Get leagues for this organization (cast to LeagueEditorData for the editor)
   const leaguesResult = await getOrganizationLeagues(organization.id);
-  const leagues = leaguesResult.success ? leaguesResult.data : [];
+  const leagues = (leaguesResult.success ? leaguesResult.data : []) as LeagueEditorData[];
 
   if (!leagues || leagues.length === 0) {
-    redirect('/dashboard/leagues/new');
+    redirect({ href: '/dashboard/leagues/new', locale });
+    return null;
   }
 
   // Get the platform 2 base URL for preview
