@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getDivisions, getCurrentSeason, getVenues } from '@/lib/data';
+import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getVenues } from '@/lib/data';
 import { WeekPicker } from '@/components/schedule/WeekPicker';
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
 import { ScheduleTable } from '@/components/schedule/ScheduleTable';
@@ -58,13 +58,9 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   // Parse week or default to current week
   const weekStart = week ? new Date(week) : getStartOfWeek(new Date());
 
-  // Fetch current season first to get divisions
-  const currentSeason = await getCurrentSeason(league.id);
-
-  // Fetch remaining data in parallel
-  const [seasons, divisions, venues, games, gameCounts] = await Promise.all([
+  // Fetch all data in parallel
+  const [seasons, venues, games, gameCounts] = await Promise.all([
     getSeasons(league.id),
-    getDivisions(league.id),
     getVenues(league.id),
     getWeekGames(league.id, weekStart, {
       day,
@@ -74,7 +70,13 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       venue: venueFilter,
       status: statusFilter,
     }),
-    getWeekGameCounts(league.id, weekStart),
+    getWeekGameCounts(league.id, weekStart, {
+      seasonId: seasonFilter,
+      divisionId: divisionFilter,
+      type: typeFilter,
+      venue: venueFilter,
+      status: statusFilter,
+    }),
   ]);
 
   // Build days array for WeekPicker
@@ -84,99 +86,103 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   const gamesByDate = groupGamesByDate(games as ScheduleGame[]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Centered BMHL-style card container */}
-      <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-2xl shadow-lg max-w-5xl mx-auto p-6 md:p-8">
-
-        {/* 1. Schedule Header Row */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-extrabold text-[var(--color-text-primary)]">
-            Schedule
-          </h1>
-          <Calendar className="w-7 h-7 text-[var(--league-primary)]" />
+    <div className="min-h-screen py-8 px-4" style={{ background: 'var(--color-background)' }}>
+      {/* Centered BMHL-style white card */}
+      <div
+        className="max-w-[1200px] mx-auto rounded-2xl shadow-xl overflow-hidden"
+        style={{
+          background: 'var(--color-background-elevated)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        {/* Schedule Header */}
+        <div className="px-6 md:px-8 pt-6 md:pt-8 pb-4">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-8 h-8 text-[var(--league-primary)]" />
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
+              Schedule
+            </h1>
+          </div>
         </div>
 
-        {/* 2. Date Range Selector (week navigation) */}
-        <DateRangeNav weekStart={weekStart} />
+        {/* Filter Row: Week selector + Dropdowns on left, Sponsor tile on right */}
+        <div className="px-6 md:px-8 pb-4">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left: Filters */}
+            <div className="flex-1 min-w-0">
+              <ScheduleFilters
+                seasons={seasons}
+                venues={venues}
+                currentFilters={{ season: seasonFilter, division: divisionFilter, type: typeFilter, venue: venueFilter, status: statusFilter }}
+                leagueSlug={leagueSlug}
+                weekStart={weekStart}
+              />
+            </div>
 
-        {/* 3. Filter Row */}
-        <ScheduleFilters
-          seasons={seasons}
-          divisions={divisions}
-          venues={venues}
-          currentFilters={{ season: seasonFilter, division: divisionFilter, type: typeFilter, venue: venueFilter, status: statusFilter }}
-          leagueSlug={leagueSlug}
-        />
-
-        {/* 4. Weekday Summary Strip */}
-        <WeekPicker
-          weekStart={weekStart}
-          days={days}
-          selectedDay={day || null}
-          leagueSlug={leagueSlug}
-        />
-
-        {/* 5. Date-Grouped Game List */}
-        {games.length > 0 ? (
-          <div className="mt-6 space-y-8">
-            {Array.from(gamesByDate.entries()).map(([dateKey, dateGames]) => (
-              <div key={dateKey}>
-                {/* Date Divider */}
-                <div className="flex items-center gap-4 mb-4">
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--league-primary)] whitespace-nowrap">
-                    {formatDateDivider(dateKey)}
-                  </h2>
-                  <div className="flex-1 h-px bg-[var(--color-border)]" />
-                  <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap">
-                    {dateGames.length} {dateGames.length === 1 ? 'game' : 'games'}
-                  </span>
-                </div>
-
-                {/* Games for this date */}
-                <ScheduleTable games={dateGames} leagueSlug={leagueSlug} showDivision />
+            {/* Right: Sponsor Tile placeholder */}
+            <div className="hidden lg:flex flex-shrink-0 w-[280px]">
+              <div
+                className="w-full rounded-xl flex items-center justify-center text-[var(--color-text-muted)] text-sm"
+                style={{
+                  background: 'color-mix(in srgb, var(--color-surface) 50%, transparent)',
+                  border: '2px dashed var(--color-border)',
+                  minHeight: '140px',
+                }}
+              >
+                Sponsor Space
               </div>
-            ))}
+            </div>
           </div>
-        ) : (
-          <div className="mt-6 p-12 text-center">
-            <Calendar className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Games Scheduled</h3>
-            <p className="text-[var(--color-text-secondary)]">
-              {day ? 'No games on this day.' : 'No games this week.'}
-            </p>
-          </div>
-        )}
+        </div>
+
+        {/* Weekday Summary Strip */}
+        <div className="px-6 md:px-8 pb-4">
+          <WeekPicker
+            weekStart={weekStart}
+            days={days}
+            selectedDay={day || null}
+            leagueSlug={leagueSlug}
+          />
+        </div>
+
+        {/* Date-Grouped Game List */}
+        <div className="px-6 md:px-8 pb-6 md:pb-8">
+          {games.length > 0 ? (
+            <div className="space-y-6">
+              {Array.from(gamesByDate.entries()).map(([dateKey, dateGames]) => (
+                <div key={dateKey}>
+                  {/* Date Divider Header - uses league secondary color */}
+                  <div
+                    className="flex items-center justify-between px-4 py-2.5 rounded-t-lg"
+                    style={{
+                      background: 'var(--league-secondary)',
+                      color: 'var(--league-secondary-contrast)',
+                    }}
+                  >
+                    <h2 className="text-sm font-bold uppercase tracking-wider">
+                      {formatDateDivider(dateKey)}
+                    </h2>
+                    <span className="text-xs font-medium opacity-80">
+                      {dateGames.length} {dateGames.length === 1 ? 'game' : 'games'}
+                    </span>
+                  </div>
+
+                  {/* Games for this date */}
+                  <ScheduleTable games={dateGames} leagueSlug={leagueSlug} showDivision />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-16 text-center">
+              <Calendar className="w-14 h-14 text-[var(--color-text-muted)] mx-auto mb-4 opacity-40" />
+              <h3 className="text-xl font-bold mb-2 text-[var(--color-text-primary)]">No Games Scheduled</h3>
+              <p className="text-[var(--color-text-secondary)]">
+                {day ? 'No games on this day.' : 'No games this week. Try selecting a different week.'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
-
-/**
- * DateRangeNav - Displays the week date range with prev/next navigation arrows.
- * This is a server-rendered display; actual navigation is handled by WeekPicker.
- * Renders: "< Jan 25 - 31, 2026 >"
- */
-function DateRangeNav({ weekStart }: { weekStart: Date }) {
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-
-  // Format: "Jan 25 - 31" or "Jan 25 - Feb 1" if crossing months
-  const startMonth = format(weekStart, 'MMM');
-  const endMonth = format(weekEnd, 'MMM');
-  const startDay = format(weekStart, 'd');
-  const endDay = format(weekEnd, 'd');
-  const year = format(weekEnd, 'yyyy');
-
-  const rangeDisplay =
-    startMonth === endMonth
-      ? `${startMonth} ${startDay} - ${endDay}, ${year}`
-      : `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
-
-  return (
-    <div className="flex items-center justify-center gap-3 mb-6">
-      <span className="text-lg font-semibold text-[var(--color-text-primary)]">
-        {rangeDisplay}
-      </span>
     </div>
   );
 }

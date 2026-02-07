@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Activity, ChevronRight } from 'lucide-react';
 import { format, isToday, isYesterday, subDays } from 'date-fns';
-import { getLeagueBySlug, getScores, getSeasons, getDivisions, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getScores, getSeasons, getCurrentSeason } from '@/lib/data';
 import { ScoreCard } from '@/components/scores/ScoreCard';
 import { ScoresFilters } from '@/components/scores/ScoresFilters';
 import type { RecentGame } from '@/lib/types';
@@ -53,7 +53,7 @@ function formatDateDivider(dateKey: string): string {
 
 export default async function ScoresPage({ params, searchParams }: ScoresPageProps) {
   const { leagueSlug } = await params;
-  const { period = '7days', season: seasonFilter, division: divisionFilter } = await searchParams;
+  const { period = 'today', season: seasonFilter, division: divisionFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) return null;
@@ -62,12 +62,11 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
   const daysBack = period === 'today' ? 1 : period === 'yesterday' ? 2 : period === '30days' ? 30 : 7;
 
   // Fetch current season first to get divisions
-  const currentSeason = await getCurrentSeason(league.id);
+  await getCurrentSeason(league.id);
 
   // Fetch data in parallel
-  const [seasons, divisions, games] = await Promise.all([
+  const [seasons, games] = await Promise.all([
     getSeasons(league.id),
-    getDivisions(league.id),
     getScores(league.id, {
       daysBack,
       seasonId: seasonFilter,
@@ -82,6 +81,21 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
   // Group games by date
   const gamesByDate = groupGamesByDate(filteredGames);
 
+  const buildPeriodHref = (nextPeriod: 'today' | 'yesterday' | '7days' | '30days') => {
+    const params = new URLSearchParams();
+    params.set('period', nextPeriod);
+
+    if (seasonFilter) {
+      params.set('season', seasonFilter);
+    }
+
+    if (divisionFilter) {
+      params.set('division', divisionFilter);
+    }
+
+    return `/${leagueSlug}/scores?${params.toString()}`;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-2xl shadow-lg max-w-4xl mx-auto p-6 md:p-8">
@@ -95,16 +109,15 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
 
         {/* Period Chips */}
         <div className="flex flex-wrap gap-2 mb-6">
-          <PeriodChip href={`/${leagueSlug}/scores?period=today`} label="Today" active={period === 'today'} />
-          <PeriodChip href={`/${leagueSlug}/scores?period=yesterday`} label="Yesterday" active={period === 'yesterday'} />
-          <PeriodChip href={`/${leagueSlug}/scores?period=7days`} label="Last 7 Days" active={period === '7days'} />
-          <PeriodChip href={`/${leagueSlug}/scores?period=30days`} label="Last 30 Days" active={period === '30days'} />
+          <PeriodChip href={buildPeriodHref('today')} label="Today" active={period === 'today'} />
+          <PeriodChip href={buildPeriodHref('yesterday')} label="Yesterday" active={period === 'yesterday'} />
+          <PeriodChip href={buildPeriodHref('7days')} label="Last 7 Days" active={period === '7days'} />
+          <PeriodChip href={buildPeriodHref('30days')} label="Last 30 Days" active={period === '30days'} />
         </div>
 
         {/* Filters */}
         <ScoresFilters
           seasons={seasons}
-          divisions={divisions}
           currentFilters={{ season: seasonFilter, division: divisionFilter, period }}
           leagueSlug={leagueSlug}
         />
@@ -175,7 +188,7 @@ function PeriodChip({
         px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
         ${
           active
-            ? 'bg-[var(--league-primary)] text-[var(--color-background)] shadow-md'
+            ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)] shadow-md'
             : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]'
         }
       `}

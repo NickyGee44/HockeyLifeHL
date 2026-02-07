@@ -15,22 +15,22 @@ export default function RootPage() {
         <h1 className="text-4xl font-bold mb-4 text-gold-500">
           Beer League Hockey - League Sites
         </h1>
-        <p className="text-lg text-gray-400 mb-8">
+        <p className="text-lg text-[var(--color-text-secondary)] mb-8">
           This is Platform 2 - the public-facing league website generator.
         </p>
 
         <div className="card p-6">
           <h2 className="text-xl font-semibold mb-4">How it works</h2>
-          <ul className="text-left text-gray-300 space-y-2">
+          <ul className="text-left text-[var(--color-text-secondary)] space-y-2">
             <li>
               <strong className="text-gold-400">Production:</strong> Access leagues via{' '}
-              <code className="bg-neutral-800 px-2 py-1 rounded">
+              <code className="bg-[var(--color-surface)] px-2 py-1 rounded">
                 [league-slug].beerleaguehockey.ca
               </code>
             </li>
             <li>
               <strong className="text-gold-400">Development:</strong> Access leagues via{' '}
-              <code className="bg-neutral-800 px-2 py-1 rounded">
+              <code className="bg-[var(--color-surface)] px-2 py-1 rounded">
                 [league-slug].localhost:3001
               </code>
             </li>
@@ -38,7 +38,7 @@ export default function RootPage() {
         </div>
 
         <div className="mt-8">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--color-text-muted)]">
             Looking to manage your league?{' '}
             <Link
               href="https://app.beerleaguehockey.ca"

@@ -4,7 +4,8 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { createClient } from '@/lib/supabase/client';
-import { createRegistrationCheckout, getRegistrationPaymentHistory } from '@/lib/actions/registration-payments';
+import { getRegistrationPaymentHistory } from '@/lib/actions/registration-payments';
+import { PaymentModal } from '@/components/payments';
 import {
   CreditCard,
   CheckCircle2,
@@ -15,7 +16,6 @@ import {
   Receipt,
   Calendar,
   DollarSign,
-  ExternalLink,
 } from 'lucide-react';
 
 interface Payment {
@@ -60,11 +60,17 @@ interface PaymentsPageProps {
 
 export default function PaymentsPage({ params }: PaymentsPageProps) {
   const { leagueSlug } = use(params);
-  const { profile, currentTeam, isLoading: profileLoading } = usePlayerProfile();
+  const { profile, isLoading: profileLoading } = usePlayerProfile();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentModal, setPaymentModal] = useState<{
+    isOpen: boolean;
+    registrationId: string;
+    registrationName: string;
+    amount: number;
+  } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,7 +109,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
           created_at,
           registration_type,
           season:seasons(id, name, start_date, end_date),
-          team:teams(id, name, logo)
+          team:teams(id, name, logo_url)
         `)
         .eq('player_id', profile.id)
         .eq('league_id', league.id)
@@ -111,17 +117,20 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
         .order('created_at', { ascending: false });
 
       if (regsData) {
-        // Transform nested arrays and add registration_type as an object
-        const transformedRegs = regsData.map((reg: any) => ({
-          ...reg,
-          season: Array.isArray(reg.season) ? reg.season[0] : reg.season,
-          team: Array.isArray(reg.team) ? reg.team[0] : reg.team,
-          registration_type: {
-            id: reg.id,
-            name: `${reg.registration_type} Registration`,
-            fee_amount_cents: reg.fee_amount_cents || 0,
-          },
-        }));
+        // Transform nested arrays, map logo_url to logo, and add registration_type as an object
+        const transformedRegs = regsData.map((reg: any) => {
+          const rawTeam = Array.isArray(reg.team) ? reg.team[0] : reg.team;
+          return {
+            ...reg,
+            season: Array.isArray(reg.season) ? reg.season[0] : reg.season,
+            team: rawTeam ? { ...rawTeam, logo: rawTeam.logo_url } : null,
+            registration_type: {
+              id: reg.id,
+              name: `${reg.registration_type} Registration`,
+              fee_amount_cents: reg.fee_amount_cents || 0,
+            },
+          };
+        });
         setRegistrations(transformedRegs);
       }
 
@@ -202,32 +211,23 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
     .filter((p) => p.status === 'succeeded')
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const handlePayNow = async (registrationId: string, amount: number) => {
-    setIsProcessing(true);
+  const handlePayNow = (registrationId: string, amount: number, registrationName: string) => {
+    setPaymentModal({
+      isOpen: true,
+      registrationId,
+      registrationName,
+      amount,
+    });
+  };
 
-    try {
-      // Create Stripe Checkout session via server action
-      const successUrl = `${window.location.origin}/${leagueSlug}/me/payments?success=true`;
-      const cancelUrl = `${window.location.origin}/${leagueSlug}/me/payments?cancelled=true`;
+  const handleClosePaymentModal = () => {
+    setPaymentModal(null);
+  };
 
-      const result = await createRegistrationCheckout(
-        registrationId,
-        successUrl,
-        cancelUrl
-      );
-
-      if (result.success && result.data) {
-        // Redirect to Stripe Checkout
-        window.location.href = result.data.checkoutUrl;
-      } else {
-        alert(result.error || 'Failed to create payment session. Please try again.');
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handlePaymentComplete = () => {
+    // Refresh the data after payment
+    setPaymentModal(null);
+    window.location.reload();
   };
 
   if (isLoading || profileLoading) {
@@ -359,9 +359,9 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                         </p>
                       </div>
                       <button
-                        onClick={() => handlePayNow(reg.id, balance)}
+                        onClick={() => handlePayNow(reg.id, balance, reg.registration_type?.name || reg.season?.name || 'Registration')}
                         disabled={isProcessing}
-                        className="flex items-center justify-center gap-2 px-6 py-2 bg-[var(--league-primary)] text-[var(--color-background)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 px-6 py-2 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                       >
                         {isProcessing ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -454,6 +454,19 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
           </div>
         )}
       </div>
+
+      {/* Payment Modal */}
+      {paymentModal && (
+        <PaymentModal
+          isOpen={paymentModal.isOpen}
+          onClose={handleClosePaymentModal}
+          registrationId={paymentModal.registrationId}
+          registrationName={paymentModal.registrationName}
+          amount={paymentModal.amount}
+          leagueSlug={leagueSlug}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </div>
   );
 }

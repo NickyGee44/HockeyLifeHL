@@ -9,7 +9,6 @@ import {
   Shield,
   Users,
   Mail,
-  Phone,
   ArrowLeft,
   Loader2,
   AlertCircle,
@@ -17,7 +16,6 @@ import {
   Trophy,
   DollarSign,
   CheckCircle2,
-  Clock,
   User,
 } from 'lucide-react';
 
@@ -49,7 +47,7 @@ interface TeamStats {
 
 export default function CaptainPage({ params }: CaptainPageProps) {
   const { leagueSlug } = use(params);
-  const { profile, currentTeam, isLoading: profileLoading } = usePlayerProfile();
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile();
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +56,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!currentTeam || !isCaptain) {
+      if (!currentTeam || !currentTeam.team || !isCaptain) {
         setIsLoading(false);
         return;
       }
@@ -133,7 +131,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     );
   }
 
-  if (!currentTeam) {
+  if (!currentTeam || !currentTeam.team) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6 text-center">
@@ -146,7 +144,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
           </p>
           <Link
             href={`/${leagueSlug}/teams`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--league-primary)] text-[var(--color-background)] rounded-lg font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium"
           >
             Browse Teams
           </Link>
@@ -334,7 +332,20 @@ export default function CaptainPage({ params }: CaptainPageProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link
+          href={`/${leagueSlug}/captain/duties`}
+          className="flex items-center gap-4 p-4 bg-[var(--league-primary)]/10 border border-[var(--league-primary)]/20 rounded-xl hover:bg-[var(--league-primary)]/20 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/20 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5 text-[var(--league-primary)]" />
+          </div>
+          <div>
+            <p className="font-medium text-[var(--league-primary)]">Game Duties</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">Assign pucks, scoresheet</p>
+          </div>
+        </Link>
+
         <Link
           href={`/${leagueSlug}/schedule?team=${currentTeam.team_id}`}
           className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"

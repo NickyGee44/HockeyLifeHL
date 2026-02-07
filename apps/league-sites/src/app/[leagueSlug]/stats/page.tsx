@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { BarChart3, Trophy, Target, Shield, ChevronRight } from 'lucide-react';
-import { getLeagueBySlug, getStatsLeaders, getCurrentSeason } from '@/lib/data';
+import { BarChart3, Trophy, Target, Shield, ChevronRight, Zap } from 'lucide-react';
+import { getLeagueBySlug, getStatsLeaders, getCurrentSeason, getSpecialTeamsLeaders } from '@/lib/data';
 import { StatsLeadersTabs } from '@/components/StatsLeadersTabs';
+import { SpecialTeamsTable } from '@/components/stats/SpecialTeamsTable';
+import { StatLeaders } from '@/components/stats/StatLeaders';
 
 interface StatsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -21,11 +23,12 @@ export default async function StatsPage({ params }: StatsPageProps) {
 
   const season = await getCurrentSeason(league.id);
 
-  // Fetch different stat categories
-  const [pointsLeaders, goalsLeaders, assistsLeaders] = await Promise.all([
+  // Fetch different stat categories in parallel
+  const [pointsLeaders, goalsLeaders, assistsLeaders, specialTeamsLeaders] = await Promise.all([
     getStatsLeaders(league.id, 'points', 10),
     getStatsLeaders(league.id, 'goals', 10),
     getStatsLeaders(league.id, 'assists', 10),
+    getSpecialTeamsLeaders(league.id, season?.id),
   ]);
 
   const hasStats =
@@ -86,6 +89,28 @@ export default async function StatsPage({ params }: StatsPageProps) {
         </div>
       )}
 
+      {/* Special Teams Leader Cards */}
+      {specialTeamsLeaders.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+            <Zap className="w-5 h-5 text-[var(--league-primary)]" />
+            Special Teams Leaders
+          </h2>
+          <StatLeaders leaders={specialTeamsLeaders} leagueSlug={leagueSlug} />
+        </div>
+      )}
+
+      {/* Special Teams Full Table */}
+      {specialTeamsLeaders.length > 0 && (
+        <div className="mt-8 card p-6">
+          <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+            <Zap className="w-5 h-5 text-[var(--league-primary)]" />
+            Special Teams Stats
+          </h2>
+          <SpecialTeamsTable leaders={specialTeamsLeaders} leagueSlug={leagueSlug} />
+        </div>
+      )}
+
       {/* Goalie Stats Link */}
       <div className="mt-8">
         <Link
@@ -119,6 +144,13 @@ export default async function StatsPage({ params }: StatsPageProps) {
           <span><strong>PTS</strong> - Points</span>
           <span><strong>PIM</strong> - Penalty Minutes</span>
           <span><strong>+/-</strong> - Plus/Minus</span>
+          <span><strong>PPG</strong> - Power Play Goals</span>
+          <span><strong>PPA</strong> - Power Play Assists</span>
+          <span><strong>PPP</strong> - Power Play Points</span>
+          <span><strong>SHG</strong> - Short-Handed Goals</span>
+          <span><strong>SHA</strong> - Short-Handed Assists</span>
+          <span><strong>GWG</strong> - Game-Winning Goals</span>
+          <span><strong>ENG</strong> - Empty-Net Goals</span>
         </div>
       </div>
     </div>

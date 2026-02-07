@@ -1,12 +1,19 @@
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames } from '@/lib/data';
+import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
 import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
 import { PreviewModeProvider } from '@/components/PreviewModeProvider';
 import { AuthProvider } from '@/components/auth';
 import { ScoreTicker } from '@/components/ScoreTicker';
+import { DivisionFilterProvider } from '@/components/DivisionFilterProvider';
 import type { Metadata } from 'next';
+
+/**
+ * Force dynamic rendering so branding/theme changes reflect immediately.
+ * The Supabase client uses cache: 'no-store' for fresh data on every request.
+ */
+export const dynamic = 'force-dynamic';
 
 interface LeagueLayoutProps {
   children: React.ReactNode;
@@ -64,21 +71,25 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     notFound();
   }
 
-  const [theme, tickerGames] = await Promise.all([
+  const [theme, tickerGames, divisions] = await Promise.all([
     Promise.resolve(getLeagueTheme(league)),
     getTickerGames(league.id),
+    getDivisions(league.id),
   ]);
+  const templateClass = `league-template-${theme.templateVariant}`;
 
   return (
     <LeagueThemeProvider theme={theme}>
       <AuthProvider>
         <PreviewModeProvider>
-          <div className="min-h-screen flex flex-col">
-            <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
-            <LeagueHeader league={league} leagueSlug={leagueSlug} />
-            <main className="flex-1">{children}</main>
-            <LeagueFooter league={league} leagueSlug={leagueSlug} />
-          </div>
+          <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
+            <div className={`min-h-screen flex flex-col ${templateClass}`}>
+              <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+              <LeagueHeader league={league} leagueSlug={leagueSlug} />
+              <main className="flex-1">{children}</main>
+              <LeagueFooter league={league} leagueSlug={leagueSlug} />
+            </div>
+          </DivisionFilterProvider>
         </PreviewModeProvider>
       </AuthProvider>
     </LeagueThemeProvider>

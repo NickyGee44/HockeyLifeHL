@@ -84,8 +84,11 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
 function groupByDivision(standings: TeamStanding[], divisions: Division[]): Record<string, TeamStanding[]> {
   const result: Record<string, TeamStanding[]> = {};
 
-  // Add "All" division first
-  result['all'] = standings;
+  // For single/no division leagues, show all standings under "all"
+  // For multi-division leagues, only show per-division (no combined "all")
+  if (divisions.length <= 1) {
+    result['all'] = standings;
+  }
 
   // Group by actual divisions
   divisions.forEach((division) => {

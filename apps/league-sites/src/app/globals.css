@@ -29,6 +29,8 @@
   --league-secondary: #1a1a1a;
   --league-accent: var(--league-primary);
   --league-glow-color: rgba(212, 175, 55, 0.2);
+  --league-secondary-contrast: #ffffff;
+  --league-font-family: "Rajdhani", "Sora", "Inter", system-ui, -apple-system, sans-serif;
 }
 
 /* =============================================================================
@@ -52,13 +54,16 @@
 
   --color-text-primary: #fafafa;
   --color-text-secondary: #a3a3a3;
-  --color-text-muted: #525252;
+  --color-text-muted: #737373; /* Improved contrast: ~5:1 vs #0a0a0a background */
   --color-text-inverse: #0a0a0a;
 
   --color-accent: var(--league-primary, #D4AF37);
   --color-accent-hover: var(--league-primary-hover, #C19A00);
   --color-accent-muted: rgba(212, 175, 55, 0.15);
   --color-accent-text: #0a0a0a;
+
+  --glass-opacity: 72%;
+  --glass-border-opacity: 60%;
 }
 
 /* =============================================================================
@@ -88,6 +93,9 @@
   --color-accent-hover: var(--league-primary-hover, #9A7B00);
   --color-accent-muted: rgba(212, 175, 55, 0.1);
   --color-accent-text: #ffffff;
+
+  --glass-opacity: 78%;
+  --glass-border-opacity: 70%;
 }
 
 /* =============================================================================
@@ -99,12 +107,25 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--league-font-family);
   background-color: var(--color-background);
+  background-image:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--league-primary) 24%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 88% -12%, color-mix(in srgb, var(--league-accent) 20%, transparent) 0%, transparent 45%),
+    radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--league-primary) 8%, transparent) 0%, transparent 55%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: var(--color-text-primary);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme='light'] body {
+  background-image:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--league-primary) 14%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 88% -12%, color-mix(in srgb, var(--league-accent) 10%, transparent) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--league-primary) 6%, transparent) 0%, transparent 60%);
 }
 
 /* =============================================================================
@@ -118,6 +139,194 @@ body {
 
   /* Adjust glow color based on league primary */
   --league-glow-color: color-mix(in srgb, var(--league-primary) 20%, transparent);
+}
+
+/* -----------------------------------------------------------------------------
+   LEAGUE TEMPLATE VARIANTS - DARK VISITOR MODE
+   Each template gets its dark-mode flavor (navy, blue-white, purple)
+   ----------------------------------------------------------------------------- */
+
+[data-theme='dark'][data-league-template='dark'] {
+  --color-background: #080b12;
+  --color-background-elevated: #101726;
+  --color-background-sunken: #040710;
+  --color-surface: #151f31;
+  --color-surface-hover: #1b2a41;
+  --color-surface-active: #223350;
+  --color-border: color-mix(in srgb, var(--league-primary) 22%, #2a3344);
+  --color-border-muted: rgba(255, 255, 255, 0.08);
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 38%, #31435e);
+  --glass-opacity: 70%;
+  --glass-border-opacity: 55%;
+}
+
+[data-theme='dark'][data-league-template='light'] {
+  --color-background: #0a0f1a;
+  --color-background-elevated: #141b2e;
+  --color-background-sunken: #060a14;
+  --color-surface: #1a2338;
+  --color-surface-hover: #212d46;
+  --color-surface-active: #283654;
+  --color-border: color-mix(in srgb, var(--league-primary) 18%, #2a3650);
+  --color-border-muted: rgba(255, 255, 255, 0.08);
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 34%, #3a4d70);
+  --glass-opacity: 70%;
+  --glass-border-opacity: 55%;
+}
+
+[data-theme='dark'][data-league-template='custom'] {
+  --color-background: #0f0a1f;
+  --color-background-elevated: #1a1234;
+  --color-background-sunken: #08061a;
+  --color-surface: #23184a;
+  --color-surface-hover: #2d2160;
+  --color-surface-active: #362870;
+  --color-border: color-mix(in srgb, var(--league-primary) 30%, #382866);
+  --color-border-muted: rgba(255, 255, 255, 0.08);
+  --color-border-emphasis: color-mix(in srgb, var(--league-accent) 45%, #4a3491);
+  --league-glow-color: color-mix(in srgb, var(--league-accent) 28%, transparent);
+  --glass-opacity: 68%;
+  --glass-border-opacity: 50%;
+}
+
+/* -----------------------------------------------------------------------------
+   LEAGUE TEMPLATE VARIANTS - LIGHT VISITOR MODE
+   Light backgrounds with subtle tinting from the league template flavor
+   ----------------------------------------------------------------------------- */
+
+[data-theme='light'][data-league-template='dark'] {
+  --color-background: #f0f3f8;
+  --color-background-elevated: #ffffff;
+  --color-background-sunken: #e8ecf4;
+  --color-surface: #ffffff;
+  --color-surface-hover: #edf1f8;
+  --color-surface-active: #e2e8f2;
+  --color-border: color-mix(in srgb, var(--league-primary) 15%, #d0d8e6);
+  --color-border-muted: #e8ecf4;
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 30%, #b8c4d8);
+  --color-text-primary: #0f1724;
+  --color-text-secondary: #3d4f6a;
+  --color-text-muted: #7888a0;
+  --color-text-inverse: #f0f3f8;
+  --glass-opacity: 80%;
+  --glass-border-opacity: 65%;
+}
+
+[data-theme='light'][data-league-template='light'] {
+  --color-background: #f4f7ff;
+  --color-background-elevated: #ffffff;
+  --color-background-sunken: #eaeffc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #eef2ff;
+  --color-surface-active: #e2e9fc;
+  --color-border: color-mix(in srgb, var(--league-primary) 18%, #d8def2);
+  --color-border-muted: #edf0fa;
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 34%, #bcc8e6);
+  --color-text-primary: #10182b;
+  --color-text-secondary: #445072;
+  --color-text-muted: #657092;
+  --color-text-inverse: #f8fbff;
+  --glass-opacity: 82%;
+  --glass-border-opacity: 68%;
+}
+
+[data-theme='light'][data-league-template='custom'] {
+  --color-background: #f5f2fa;
+  --color-background-elevated: #ffffff;
+  --color-background-sunken: #ece8f4;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f0ecf8;
+  --color-surface-active: #e6e0f2;
+  --color-border: color-mix(in srgb, var(--league-primary) 18%, #d4cce6);
+  --color-border-muted: #ece8f4;
+  --color-border-emphasis: color-mix(in srgb, var(--league-accent) 35%, #c0b4da);
+  --color-text-primary: #1a1230;
+  --color-text-secondary: #4e3d72;
+  --color-text-muted: #7a6a96;
+  --color-text-inverse: #f5f2fa;
+  --league-glow-color: color-mix(in srgb, var(--league-accent) 15%, transparent);
+  --glass-opacity: 80%;
+  --glass-border-opacity: 65%;
+}
+
+.league-site-shell {
+  position: relative;
+}
+
+.league-home-light .card,
+.league-home-light [class*='variant-glass'] {
+  box-shadow: 0 20px 40px rgba(37, 66, 130, 0.08);
+}
+
+.league-home-custom .card {
+  border-color: color-mix(in srgb, var(--league-primary) 32%, var(--color-border));
+}
+
+.league-home-custom h2 {
+  letter-spacing: 0.01em;
+}
+
+.league-home-shell {
+  position: relative;
+}
+
+.league-home-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--league-primary) 10%, transparent), transparent 55%),
+    radial-gradient(circle at 88% 100%, color-mix(in srgb, var(--league-accent) 8%, transparent), transparent 50%);
+  opacity: 0.7;
+}
+
+.league-shell-panel {
+  background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  box-shadow: 0 18px 44px -14px rgba(0, 0, 0, 0.24);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.league-shell-panel:hover {
+  border-color: var(--color-border-emphasis);
+  box-shadow: 0 22px 54px -16px rgba(0, 0, 0, 0.32);
+  transform: translateY(-2px);
+}
+
+.league-pulse-link {
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.league-pulse-link:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-emphasis);
+  box-shadow: 0 14px 34px -14px var(--league-glow-color);
+}
+
+.league-feature-band {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) 82%, transparent) 0%,
+      color-mix(in srgb, var(--color-background-elevated) 90%, transparent) 100%
+    );
+}
+
+.league-home-light .league-shell-panel,
+.league-home-light .league-pulse-link {
+  box-shadow: 0 20px 42px -18px rgba(28, 52, 110, 0.2);
+}
+
+.league-home-custom .league-shell-panel,
+.league-home-custom .league-pulse-link {
+  border-color: color-mix(in srgb, var(--league-primary) 34%, var(--color-border));
 }
 
 /* League hero section uses league colors prominently */
@@ -140,20 +349,52 @@ body {
 }
 
 /* =============================================================================
+   HEADER TOKENS
+   Header adapts to visitor light/dark mode while preserving league identity.
+   ============================================================================= */
+
+.league-header {
+  --header-bg: var(--color-background-elevated);
+  --header-surface: var(--color-surface);
+  --header-surface-hover: var(--color-surface-hover);
+  --header-text: var(--color-text-primary);
+  --header-text-secondary: var(--color-text-secondary);
+  --header-text-muted: var(--color-text-muted);
+  --header-border: var(--color-border);
+}
+
+[data-theme='light'] .league-header {
+  --header-bg: color-mix(in srgb, var(--color-background-elevated) 94%, var(--league-primary) 6%);
+  --header-surface: var(--color-background-elevated);
+  --header-surface-hover: color-mix(in srgb, var(--league-primary) 10%, var(--color-surface-hover));
+  --header-text: var(--color-text-primary);
+  --header-text-secondary: var(--color-text-secondary);
+  --header-text-muted: var(--color-text-muted);
+  --header-border: color-mix(in srgb, var(--league-primary) 20%, var(--color-border));
+}
+
+/* =============================================================================
    COMPONENT STYLES
    ============================================================================= */
 
-/* Cards with league theming */
+/* Cards with league theming + glassmorphism */
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
   border-radius: 1rem;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
 }
 
 .card:hover {
   border-color: var(--color-border-emphasis);
   box-shadow: 0 0 20px var(--league-glow-color);
+}
+
+[data-theme='light'] .card:hover {
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.12);
 }
 
 /* Buttons */
@@ -196,7 +437,9 @@ body {
 }
 
 .standings-table th {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--color-text-secondary);
   font-weight: 600;
   font-size: 0.75rem;
@@ -227,20 +470,59 @@ body {
    ============================================================================= */
 
 .game-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
   border-radius: 1rem;
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.game-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in srgb, var(--league-primary) 8%, transparent) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .game-card:hover {
-  border-color: var(--color-border-emphasis);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-4px) scale(1.01);
+  border-color: color-mix(in srgb, var(--league-primary) 40%, transparent);
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.3),
+    0 0 20px color-mix(in srgb, var(--league-primary) 15%, transparent);
+}
+
+.game-card:hover::before {
+  opacity: 1;
+}
+
+.game-card:active {
+  transform: translateY(-2px) scale(1.005);
+}
+
+[data-theme='light'] .game-card:hover {
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.12),
+    0 0 20px color-mix(in srgb, var(--league-primary) 10%, transparent);
 }
 
 .game-card .team {
@@ -275,9 +557,22 @@ body {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  border-color: var(--color-border-emphasis);
+  box-shadow: 0 0 20px var(--league-glow-color);
+}
+
+[data-theme='light'] .stat-card:hover {
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.12);
 }
 
 .stat-card .rank {
@@ -489,11 +784,11 @@ body {
 .week-picker-day.selected {
   background: var(--league-primary);
   border-color: var(--league-primary);
-  color: var(--color-text-inverse);
+  color: var(--color-accent-text);
 }
 
 .week-picker-day.selected .week-picker-day-name {
-  color: var(--color-text-inverse);
+  color: var(--color-accent-text);
 }
 
 .week-picker-day-name {
@@ -518,8 +813,8 @@ body {
 }
 
 .week-picker-day.selected .week-picker-day-count {
-  background: rgba(255, 255, 255, 0.2);
-  color: var(--color-text-inverse);
+  background: color-mix(in srgb, var(--color-accent-text) 20%, transparent);
+  color: var(--color-accent-text);
 }
 
 /* Game Preview Header */
@@ -573,20 +868,20 @@ body {
 
 .game-preview-center {
   text-align: center;
-  color: white;
+  color: var(--color-accent-text);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .game-preview-team-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: white;
+  color: var(--league-secondary-contrast);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .game-preview-record {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--league-secondary-contrast) 80%, transparent);
 }
 
 /* Stats Bar */
@@ -649,7 +944,9 @@ body {
 }
 
 .schedule-table th {
-  background: var(--league-primary);
+  background: color-mix(in srgb, var(--league-primary) 90%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--color-accent-text, #0a0a0a);
   font-weight: 600;
   font-size: 0.75rem;
@@ -699,12 +996,23 @@ body {
 }
 
 .schedule-card {
-  background: var(--color-background-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, var(--color-background-elevated) var(--glass-opacity), transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
   padding: 2rem;
   overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.schedule-card:hover {
+  border-color: var(--color-border-emphasis);
+}
+
+[data-theme='light'] .schedule-card {
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.06);
 }
 
 @media (min-width: 768px) {
@@ -835,7 +1143,7 @@ body {
 }
 
 .weekday-summary-day.selected .game-count {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-accent-text) 20%, transparent);
   color: var(--color-accent-text);
 }
 
@@ -1046,6 +1354,15 @@ body {
 }
 
 /* Animation Utility Classes */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out both;
+}
+
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -1285,48 +1602,7 @@ body {
   color: var(--color-text-muted);
 }
 
-/* =============================================================================
-   ENHANCED GAME CARD ANIMATIONS
-   ============================================================================= */
-
-.game-card {
-  position: relative;
-  overflow: hidden;
-  transition:
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.3s ease,
-    border-color 0.3s ease;
-}
-
-.game-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    color-mix(in srgb, var(--league-primary) 8%, transparent) 0%,
-    transparent 50%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.game-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.3),
-    0 0 20px color-mix(in srgb, var(--league-primary) 15%, transparent);
-  border-color: color-mix(in srgb, var(--league-primary) 40%, transparent);
-}
-
-.game-card:hover::before {
-  opacity: 1;
-}
-
-.game-card:active {
-  transform: translateY(-2px) scale(1.005);
-}
+/* Game card child element animations (teams, scores) */
 
 /* Team color glow on hover */
 .game-card[data-home-color]:hover {
@@ -1446,6 +1722,7 @@ body {
    ============================================================================= */
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
   .animate-float,
   .animate-pulse-slow,
   .animate-shimmer,

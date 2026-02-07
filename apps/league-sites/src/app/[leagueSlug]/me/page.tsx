@@ -161,7 +161,6 @@ export default function PlayerDashboard() {
  * Join Team View - shown when player is not on a team in this league
  */
 function JoinTeamView({
-  leagueSlug,
   leagueId,
   seasonId,
   playerName,
@@ -273,7 +272,7 @@ function JoinTeamView({
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-500/20 text-gray-400 rounded-full text-xs font-medium">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] rounded-full text-xs font-medium">
             {status}
           </span>
         );
@@ -307,7 +306,7 @@ function JoinTeamView({
           Welcome, {firstName}!
         </h1>
         <p className="text-[var(--color-text-secondary)]">
-          You're not on a team in this league yet. Request to join a team below.
+          You&apos;re not on a team in this league yet. Request to join a team below.
         </p>
       </div>
 
@@ -439,7 +438,7 @@ function JoinTeamView({
               <button
                 type="submit"
                 disabled={!selectedTeam || isPending}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--league-primary)] text-[var(--color-background)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPending ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -461,8 +460,8 @@ function JoinTeamView({
               <ul className="space-y-1 text-[var(--color-text-muted)]">
                 <li>1. Select a team and submit your request</li>
                 <li>2. The team captain will review your request</li>
-                <li>3. You'll be notified when they respond</li>
-                <li>4. Once accepted, you'll have full access to your team dashboard</li>
+                <li>3. You&apos;ll be notified when they respond</li>
+                <li>4. Once accepted, you&apos;ll have full access to your team dashboard</li>
               </ul>
             </div>
           </div>

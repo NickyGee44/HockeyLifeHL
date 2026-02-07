@@ -1,9 +1,7 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
 import { getLeagueBySlug, getTeams } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
-import { User, Users, Search, Filter } from 'lucide-react';
+import { User, Users } from 'lucide-react';
 import { PlayerDirectoryFilters } from '@/components/players/PlayerDirectoryFilters';
 import { PlayerGrid } from '@/components/players/PlayerGrid';
 import type { Metadata } from 'next';
@@ -75,7 +73,7 @@ async function getPlayers(
       position,
       leadership_role,
       profile:profiles(id, full_name, avatar_url),
-      team:teams(id, name, slug, logo)
+      team:teams(id, name, slug, logo_url)
     `)
     .in('team_id', teamIds);
 
@@ -93,12 +91,15 @@ async function getPlayers(
     return [];
   }
 
-  // Transform and filter
-  let players: PlayerWithTeam[] = data.map((p: any) => ({
-    ...p,
-    profile: Array.isArray(p.profile) ? p.profile[0] : p.profile,
-    team: Array.isArray(p.team) ? p.team[0] : p.team,
-  }));
+  // Transform and filter, map logo_url to logo
+  let players: PlayerWithTeam[] = data.map((p: any) => {
+    const rawTeam = Array.isArray(p.team) ? p.team[0] : p.team;
+    return {
+      ...p,
+      profile: Array.isArray(p.profile) ? p.profile[0] : p.profile,
+      team: rawTeam ? { ...rawTeam, logo: rawTeam.logo_url } : null,
+    };
+  });
 
   // Client-side search filter
   if (filters?.search) {

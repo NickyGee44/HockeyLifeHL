@@ -115,7 +115,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           <div className="flex items-start gap-6">
             <PhotoUpload
               currentPhotoUrl={profile?.avatar_url ?? null}
-              onUploadSuccess={(newUrl) => {
+              onUploadSuccess={() => {
                 // Refetch profile to update the avatar URL across the app
                 refetch();
               }}
@@ -221,7 +221,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="flex items-center gap-2 px-6 py-2 bg-[var(--league-primary)] text-[var(--color-background)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {isSaving ? (
                   <>

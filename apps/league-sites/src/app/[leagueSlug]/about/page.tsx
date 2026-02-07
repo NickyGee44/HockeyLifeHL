@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
 import { Info, Mail, Phone, MapPin, Globe, Calendar, Users, Trophy } from 'lucide-react';
-import { getLeagueBySlug, getLeagueStats, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getLeagueStats, getCurrentSeason, getLeagueStaff } from '@/lib/data';
 import { SocialLinks } from '@/components/SocialLinks';
+import { StaffGrid } from '@/components/about/StaffGrid';
+import { RulesContent } from '@/components/about/RulesContent';
 import type { League } from '@/lib/types';
 
 interface AboutPageProps {
@@ -11,7 +13,7 @@ interface AboutPageProps {
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'League information and contact details',
+  description: 'League information, staff directory, and contact details',
 };
 
 export default async function AboutPage({ params }: AboutPageProps) {
@@ -20,10 +22,13 @@ export default async function AboutPage({ params }: AboutPageProps) {
 
   if (!league) return null;
 
-  const [stats, season] = await Promise.all([
+  const [stats, season, staff] = await Promise.all([
     getLeagueStats(league.id),
     getCurrentSeason(league.id),
+    getLeagueStaff(league.id),
   ]);
+
+  const rulesContent = (league.settings as Record<string, unknown>)?.rules as string | undefined;
 
   return (
     <div className="container mx-auto px-4 py-12 animate-fade-in">
@@ -111,6 +116,25 @@ export default async function AboutPage({ params }: AboutPageProps) {
               </div>
             )}
           </section>
+
+          {/* Staff Directory */}
+          {staff.length > 0 && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <Users className="w-6 h-6 text-[var(--league-primary)]" />
+                Staff Directory
+              </h2>
+              <StaffGrid staff={staff} />
+            </section>
+          )}
+
+          {/* League Rules */}
+          {rulesContent && (
+            <section className="card p-8">
+              <h2 className="text-2xl font-bold mb-6">League Rules</h2>
+              <RulesContent content={rulesContent} />
+            </section>
+          )}
         </div>
 
         {/* Sidebar - Contact Info */}

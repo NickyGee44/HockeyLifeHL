@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use, useCallback, useMemo } from 'react';
+import { useState, useEffect, use, useCallback } from 'react';
 import Link from 'next/link';
 import DOMPurify from 'isomorphic-dompurify';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
@@ -14,7 +14,6 @@ import {
   AlertCircle,
   ArrowLeft,
   Loader2,
-  RefreshCw,
 } from 'lucide-react';
 
 /**
@@ -27,7 +26,7 @@ import {
  * - Blocks data: URLs which can be used for XSS
  * - Prevents DOM clobbering attacks
  */
-const DOMPURIFY_CONFIG: DOMPurify.Config = {
+const DOMPURIFY_CONFIG = {
   ALLOWED_TAGS: [
     'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -46,6 +45,8 @@ const DOMPURIFY_CONFIG: DOMPurify.Config = {
   ALLOW_DATA_ATTR: false,
   // Prevent DOM clobbering attacks
   SANITIZE_DOM: true,
+  // Return string instead of TrustedHTML
+  RETURN_TRUSTED_TYPE: false,
 };
 
 /**
@@ -55,14 +56,14 @@ const DOMPURIFY_CONFIG: DOMPurify.Config = {
 function sanitizeWaiverContent(content: string | undefined): string {
   if (!content) return '';
 
-  // First sanitize with DOMPurify
-  let sanitized = DOMPurify.sanitize(content, DOMPURIFY_CONFIG);
+  // First sanitize with DOMPurify - cast to string since we disabled TrustedType
+  let sanitized = DOMPurify.sanitize(content, DOMPURIFY_CONFIG) as string;
 
   // Post-process: ensure all anchor tags have secure attributes
   // This adds target="_blank" and rel="noopener noreferrer" to prevent tabnabbing attacks
   sanitized = sanitized.replace(
     /<a\s+([^>]*?)>/gi,
-    (match, attrs) => {
+    (_match: string, attrs: string) => {
       // Remove any existing target/rel attributes to avoid duplicates
       const cleanAttrs = attrs
         .replace(/\s*target\s*=\s*["'][^"']*["']/gi, '')
@@ -407,7 +408,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
                   <button
                     onClick={handleSign}
                     disabled={!signedName.trim() || !agreedToTerms || isSigning}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[var(--league-primary)] text-[var(--color-background)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSigning ? (
                       <>
