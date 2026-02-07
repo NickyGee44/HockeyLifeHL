@@ -27,7 +27,7 @@ interface QuickAction {
 }
 
 export function QuickActions({ leagueSlug }: QuickActionsProps) {
-  const { currentTeam, isLoading: profileLoading, error } = usePlayerProfile();
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
 

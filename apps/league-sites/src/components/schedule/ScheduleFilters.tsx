@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { Season, Division } from '@/lib/types';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, addDays, subDays } from 'date-fns';
+import { useDivisionFilter } from '@/components/DivisionFilterProvider';
+import type { Season } from '@/lib/types';
 
 interface ScheduleFiltersProps {
   seasons: Season[];
-  divisions: Division[];
   venues?: string[];
   currentFilters: {
     season?: string;
@@ -15,9 +18,9 @@ interface ScheduleFiltersProps {
     status?: string;
   };
   leagueSlug: string;
+  weekStart: Date;
 }
 
-// Season types for filtering
 const SEASON_TYPES = [
   { value: '', label: 'All Games' },
   { value: 'regular', label: 'Regular Season' },
@@ -25,42 +28,71 @@ const SEASON_TYPES = [
   { value: 'exhibition', label: 'Exhibition' },
 ] as const;
 
-// Game status for filtering
-const GAME_STATUSES = [
-  { value: '', label: 'All Statuses' },
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'final', label: 'Final' },
-  { value: 'postponed', label: 'Postponed' },
-] as const;
-
 /**
- * ScheduleFilters - Clean inline native select dropdowns for schedule filtering
+ * ScheduleFilters - BMHL-style filter bar with integrated week selector
  *
- * Layout: [Season] [Division] [Season Type] in a horizontal row, equal width.
- * Uses native <select> elements with consistent styling.
- * URL-driven state via searchParams for shareable URLs.
+ * Row 1: < Prev  |  Jan 25 - 31, 2026  |  Next >
+ * Row 2: [Season] [Type] [Venue]
+ *
+ * Division filtering is handled by the global nav bar filter.
  */
 export function ScheduleFilters({
   seasons,
-  divisions,
   venues = [],
   currentFilters,
   leagueSlug,
+  weekStart,
 }: ScheduleFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { selectedDivisionId } = useDivisionFilter();
+  const prevDivisionRef = useRef(currentFilters.division || null);
+
+  // Sync global division filter → URL param so server-side query picks it up
+  useEffect(() => {
+    if (prevDivisionRef.current === selectedDivisionId) return;
+    prevDivisionRef.current = selectedDivisionId;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedDivisionId) {
+      params.set('division', selectedDivisionId);
+    } else {
+      params.delete('division');
+    }
+    router.push(`/${leagueSlug}/schedule?${params.toString()}`);
+  }, [selectedDivisionId, searchParams, router, leagueSlug]);
 
   // Handle filter change - update URL params
   const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-
     if (value) {
       params.set(key, value);
     } else {
       params.delete(key);
     }
+    router.push(`/${leagueSlug}/schedule?${params.toString()}`);
+  };
 
+  // Week navigation
+  const weekEnd = addDays(weekStart, 6);
+  const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+  const weekRangeDisplay = sameMonth
+    ? `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'd, yyyy')}`
+    : `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+
+  const handlePrevWeek = () => {
+    const prevWeek = subDays(weekStart, 7);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('week', format(prevWeek, 'yyyy-MM-dd'));
+    params.delete('day');
+    router.push(`/${leagueSlug}/schedule?${params.toString()}`);
+  };
+
+  const handleNextWeek = () => {
+    const nextWeek = addDays(weekStart, 7);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('week', format(nextWeek, 'yyyy-MM-dd'));
+    params.delete('day');
     router.push(`/${leagueSlug}/schedule?${params.toString()}`);
   };
 
@@ -68,14 +100,37 @@ export function ScheduleFilters({
     'flex-1 min-w-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-transparent transition-all cursor-pointer appearance-none';
 
   return (
-    <div className="space-y-3 mb-6">
-      {/* Primary Filters Row */}
-      <div className="flex flex-col sm:flex-row gap-3">
+    <div className="space-y-3">
+      {/* Row 1: Week Navigation */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={handlePrevWeek}
+          className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]"
+          aria-label="Previous week"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span className="text-sm font-medium hidden sm:inline">Prev</span>
+        </button>
+
+        <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+          {weekRangeDisplay}
+        </h2>
+
+        <button
+          onClick={handleNextWeek}
+          className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]"
+          aria-label="Next week"
+        >
+          <span className="text-sm font-medium hidden sm:inline">Next</span>
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Row 2: Dropdown Filters (division is handled globally in nav bar) */}
+      <div className="flex flex-col sm:flex-row gap-2">
         {/* Season Filter */}
         <div className="flex-1">
-          <label htmlFor="season-filter" className="sr-only">
-            Season
-          </label>
+          <label htmlFor="season-filter" className="sr-only">Season</label>
           <select
             id="season-filter"
             value={currentFilters.season || ''}
@@ -85,28 +140,7 @@ export function ScheduleFilters({
             <option value="">All Seasons</option>
             {seasons.map((season) => (
               <option key={season.id} value={season.id}>
-                {season.name}
-                {season.is_current ? ' (Current)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Division Filter */}
-        <div className="flex-1">
-          <label htmlFor="division-filter" className="sr-only">
-            Division
-          </label>
-          <select
-            id="division-filter"
-            value={currentFilters.division || ''}
-            onChange={(e) => handleFilterChange('division', e.target.value)}
-            className={selectClass}
-          >
-            <option value="">All Divisions</option>
-            {divisions.map((division) => (
-              <option key={division.id} value={division.id}>
-                {division.name}
+                {season.name}{season.is_current ? ' (Current)' : ''}
               </option>
             ))}
           </select>
@@ -114,9 +148,7 @@ export function ScheduleFilters({
 
         {/* Season Type Filter */}
         <div className="flex-1">
-          <label htmlFor="type-filter" className="sr-only">
-            Season Type
-          </label>
+          <label htmlFor="type-filter" className="sr-only">Season Type</label>
           <select
             id="type-filter"
             value={currentFilters.type || ''}
@@ -124,22 +156,15 @@ export function ScheduleFilters({
             className={selectClass}
           >
             {SEASON_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
+              <option key={type.value} value={type.value}>{type.label}</option>
             ))}
           </select>
         </div>
-      </div>
 
-      {/* Secondary Filters Row (Venue & Status) */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Venue Filter */}
+        {/* Venue Filter (only if venues exist) */}
         {venues.length > 0 && (
           <div className="flex-1">
-            <label htmlFor="venue-filter" className="sr-only">
-              Venue
-            </label>
+            <label htmlFor="venue-filter" className="sr-only">Venue</label>
             <select
               id="venue-filter"
               value={currentFilters.venue || ''}
@@ -148,32 +173,11 @@ export function ScheduleFilters({
             >
               <option value="">All Venues</option>
               {venues.map((venue) => (
-                <option key={venue} value={venue}>
-                  {venue}
-                </option>
+                <option key={venue} value={venue}>{venue}</option>
               ))}
             </select>
           </div>
         )}
-
-        {/* Game Status Filter */}
-        <div className="flex-1">
-          <label htmlFor="status-filter" className="sr-only">
-            Game Status
-          </label>
-          <select
-            id="status-filter"
-            value={currentFilters.status || ''}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className={selectClass}
-          >
-            {GAME_STATUSES.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
     </div>
   );

@@ -53,29 +53,29 @@ export function SeasonSeriesCard({
       </div>
       <div className="p-4">
         {/* Team logos and series record */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col items-center gap-2">
             <TeamLogo
               logoUrl={awayTeam.logo}
               teamName={awayTeam.name}
               teamColor={awayPrimary}
-              size="sm"
+              size="xl"
             />
-            <span className="text-2xl font-bold">{teamBWins}</span>
+            <span className="text-3xl font-bold text-[var(--color-text-primary)]">{teamBWins}</span>
           </div>
           <div className="text-center">
-            <span className="text-[var(--color-text-muted)] text-xs uppercase tracking-wide">
+            <span className="text-[var(--color-text-secondary)] text-sm uppercase tracking-wide font-medium">
               {ties > 0 ? `${ties} tie${ties > 1 ? 's' : ''}` : 'vs'}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">{teamAWins}</span>
+          <div className="flex flex-col items-center gap-2">
             <TeamLogo
               logoUrl={homeTeam.logo}
               teamName={homeTeam.name}
               teamColor={homePrimary}
-              size="sm"
+              size="xl"
             />
+            <span className="text-3xl font-bold text-[var(--color-text-primary)]">{teamAWins}</span>
           </div>
         </div>
 

@@ -17,8 +17,9 @@ interface GameCardProps {
 export function GameCard({ game, leagueSlug, showScore = false }: GameCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const gameDate = new Date(game.scheduled_at);
-  const isCompleted = game.status === 'final' || game.status === 'completed';
+  const isCompleted = game.status === 'completed';
   const isLive = game.status === 'in_progress';
+  const statusLabel = isLive ? 'Live' : isCompleted ? 'Final' : 'Scheduled';
 
   // Track mouse position for radial gradient effect
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -33,7 +34,7 @@ export function GameCard({ game, leagueSlug, showScore = false }: GameCardProps)
   return (
     <div
       ref={cardRef}
-      className="game-card group"
+      className="game-card group relative overflow-hidden"
       onMouseMove={handleMouseMove}
       style={
         {
@@ -42,6 +43,18 @@ export function GameCard({ game, leagueSlug, showScore = false }: GameCardProps)
         } as React.CSSProperties
       }
     >
+      <span
+        className={`absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+          isLive
+            ? 'bg-red-500/15 text-red-300'
+            : isCompleted
+              ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]'
+              : 'bg-[var(--league-primary)]/14 text-[var(--league-primary)]'
+        }`}
+      >
+        {statusLabel}
+      </span>
+
       {/* Away Team */}
       <div className="team away">
         <div className="flex flex-col items-end">
@@ -145,7 +158,7 @@ function TeamInitial({ name, logo }: TeamInitialProps) {
       className="w-12 h-12 rounded-lg flex items-center justify-center text-lg font-bold relative overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg"
       style={{
         backgroundColor: 'var(--league-primary)',
-        color: 'var(--color-background)',
+        color: 'var(--color-accent-text)',
       }}
     >
       <span className="relative z-10">{name.charAt(0)}</span>

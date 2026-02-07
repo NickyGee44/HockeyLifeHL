@@ -50,7 +50,7 @@ export function ScheduleList({
                   key={game.id}
                   game={game as Game & { home_team: NonNullable<Game['home_team']>; away_team: NonNullable<Game['away_team']> }}
                   leagueSlug={leagueSlug}
-                  showScore={game.status === 'final' || game.status === 'completed'}
+                  showScore={game.status === 'completed'}
                 />
               ))}
             </div>

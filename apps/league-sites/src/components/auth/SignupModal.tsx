@@ -11,7 +11,7 @@ interface SignupModalProps {
   onSuccess?: () => void;
 }
 
-export function SignupModal({ isOpen, onClose, onLoginClick, onSuccess }: SignupModalProps) {
+export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps) {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -94,7 +94,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick, onSuccess }: Signup
               </div>
               <h2 className="text-2xl font-bold mb-2">Check Your Email</h2>
               <p className="text-[var(--color-text-secondary)] mb-6">
-                We've sent a confirmation link to <strong>{formData.email}</strong>
+                We&apos;ve sent a confirmation link to <strong>{formData.email}</strong>
               </p>
               <p className="text-sm text-[var(--color-text-muted)] mb-6">
                 Click the link in your email to activate your account.
@@ -256,7 +256,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick, onSuccess }: Signup
                   disabled={isLoading}
                   className="
                     w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg
-                    bg-[var(--league-primary)] text-[var(--color-background)] font-semibold
+                    bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold
                     hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
                     transition-all duration-200
                   "

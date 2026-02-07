@@ -50,7 +50,7 @@ export function StatsLeadersTabs({
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-[var(--league-primary)] text-[var(--color-background)]'
+                  ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                   : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
               }`}
             >
@@ -127,7 +127,7 @@ export function StatsLeadersTabs({
                           originalRank === 0
                             ? 'bg-gold-500 text-black'
                             : originalRank === 1
-                            ? 'bg-gray-400 text-black'
+                            ? 'bg-gray-400 text-gray-900'
                             : originalRank === 2
                             ? 'bg-amber-700 text-white'
                             : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
@@ -181,7 +181,7 @@ export function StatsLeadersTabs({
           <div className="p-12 text-center">
             <Search className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-3" />
             <p className="text-[var(--color-text-secondary)]">
-              No players found matching "{searchTerm}"
+              No players found matching &quot;{searchTerm}&quot;
             </p>
           </div>
         ) : (

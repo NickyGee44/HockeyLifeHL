@@ -54,21 +54,25 @@ export function MyRecentResults({ teamId, leagueSlug }: MyRecentResultsProps) {
           away_score,
           home_team_id,
           away_team_id,
-          home_team:teams!games_home_team_id_fkey(id, name, slug, logo),
-          away_team:teams!games_away_team_id_fkey(id, name, slug, logo)
+          home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url),
+          away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url)
         `)
         .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
-        .in('status', ['final', 'completed'])
+        .in('status', ['completed'])
         .order('scheduled_at', { ascending: false })
         .limit(5);
 
       if (!error && data) {
-        // Transform nested arrays to single objects
-        const transformedGames = data.map((game: any) => ({
-          ...game,
-          home_team: Array.isArray(game.home_team) ? game.home_team[0] : game.home_team,
-          away_team: Array.isArray(game.away_team) ? game.away_team[0] : game.away_team,
-        }));
+        // Transform nested arrays to single objects and map logo_url to logo
+        const transformedGames = data.map((game: any) => {
+          const rawHomeTeam = Array.isArray(game.home_team) ? game.home_team[0] : game.home_team;
+          const rawAwayTeam = Array.isArray(game.away_team) ? game.away_team[0] : game.away_team;
+          return {
+            ...game,
+            home_team: rawHomeTeam ? { ...rawHomeTeam, logo: rawHomeTeam.logo_url } : null,
+            away_team: rawAwayTeam ? { ...rawAwayTeam, logo: rawAwayTeam.logo_url } : null,
+          };
+        });
         setGames(transformedGames);
       }
       setIsLoading(false);

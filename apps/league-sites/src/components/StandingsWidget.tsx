@@ -102,7 +102,7 @@ export function StandingsWidget({
                       transition-all duration-300
                       ${
                         isTopThree
-                          ? 'bg-[var(--league-primary)] text-[var(--color-background)] font-bold'
+                          ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)] font-bold'
                           : 'text-[var(--color-text-muted)]'
                       }
                     `}
@@ -129,14 +129,14 @@ export function StandingsWidget({
                         className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-all duration-300 group-hover/team:scale-110"
                         style={{
                           backgroundColor: 'var(--league-primary)',
-                          color: 'var(--color-background)',
+                          color: 'var(--color-accent-text)',
                         }}
                       >
-                        {team.team_name.charAt(0)}
+                        {(team.team_name || 'T').charAt(0)}
                       </div>
                     )}
                     <span className="font-medium truncate max-w-[120px] transition-colors duration-300 group-hover/team:text-[var(--league-primary)]">
-                      {team.team_name}
+                      {team.team_name || 'Unknown Team'}
                     </span>
                   </div>
                 </td>

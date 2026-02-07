@@ -30,7 +30,7 @@ export function StandingsTabs({
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? 'bg-[var(--league-primary)] text-[var(--color-background)]'
+                ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                 : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
             }`}
           >

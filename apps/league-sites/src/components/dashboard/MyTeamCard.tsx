@@ -16,7 +16,7 @@ interface TeamMembership {
     logo: string | null;
     league_id: string;
     division_id: string | null;
-  };
+  } | null;
   jersey_number: number | null;
   position: string | null;
   leadership_role: 'captain' | 'alternate_captain' | null;
@@ -44,7 +44,7 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
   const [isRetrying, setIsRetrying] = useState(false);
 
   const fetchStats = useCallback(async () => {
-    if (!team) {
+    if (!team || !team.team) {
       setIsLoading(false);
       return;
     }
@@ -104,7 +104,7 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
     await fetchStats();
   };
 
-  if (!team) {
+  if (!team || !team.team) {
     return (
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
         <div className="text-center space-y-4">
@@ -114,12 +114,12 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
           <div>
             <h3 className="font-semibold text-[var(--color-text-primary)]">No Team</h3>
             <p className="text-sm text-[var(--color-text-secondary)]">
-              You're not currently on a team in this league
+              You&apos;re not currently on a team in this league
             </p>
           </div>
           <Link
             href={`/${leagueSlug}/teams`}
-            className="inline-block px-4 py-2 bg-[var(--league-primary)] text-[var(--color-background)] rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+            className="inline-block px-4 py-2 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
           >
             Browse Teams
           </Link>
@@ -149,7 +149,7 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
               className="rounded-lg group-hover:scale-105 transition-transform"
             />
           ) : (
-            <div className="w-16 h-16 bg-[var(--league-primary)] rounded-lg flex items-center justify-center text-2xl font-bold text-[var(--color-background)]">
+            <div className="w-16 h-16 bg-[var(--league-primary)] rounded-lg flex items-center justify-center text-2xl font-bold text-[var(--color-accent-text)]">
               {team.team.name.charAt(0)}
             </div>
           )}

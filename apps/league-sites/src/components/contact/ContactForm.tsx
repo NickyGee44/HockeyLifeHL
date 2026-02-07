@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { Send, Check, AlertCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface ContactFormProps {
   leagueId: string;
   leagueEmail?: string;
 }
 
-export function ContactForm({ leagueId, leagueEmail }: ContactFormProps) {
+export function ContactForm({ leagueId }: ContactFormProps) {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [formData, setFormData] = useState({
     name: '',
@@ -21,22 +22,24 @@ export function ContactForm({ leagueId, leagueEmail }: ContactFormProps) {
     e.preventDefault();
     setFormState('submitting');
 
-    // For now, if there's a league email, open mailto
-    // In a future version, this would call an API endpoint
-    if (leagueEmail) {
-      const subject = encodeURIComponent(formData.subject || 'Contact Form Submission');
-      const body = encodeURIComponent(
-        `From: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`
-      );
-      window.location.href = `mailto:${leagueEmail}?subject=${subject}&body=${body}`;
-      setFormState('success');
-      return;
-    }
-
-    // Simulate API call for demonstration
-    // TODO: Replace with actual API endpoint when edge function is created
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const supabase = createClient();
+
+      const { error: insertError } = await supabase
+        .from('contact_submissions')
+        .insert({
+          league_id: leagueId,
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          subject: formData.subject.trim() || null,
+          message: formData.message.trim(),
+          is_read: false,
+        });
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+
       setFormState('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch {
@@ -164,7 +167,7 @@ export function ContactForm({ leagueId, leagueEmail }: ContactFormProps) {
         disabled={formState === 'submitting'}
         className="
           w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg
-          bg-[var(--league-primary)] text-[var(--color-background)] font-semibold
+          bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold
           hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
           transition-all duration-200
         "

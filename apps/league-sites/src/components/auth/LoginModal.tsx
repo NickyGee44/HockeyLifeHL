@@ -88,7 +88,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onSuccess }: LoginM
             <>
               <h2 className="text-2xl font-bold mb-2">Reset Password</h2>
               <p className="text-[var(--color-text-secondary)] mb-6">
-                Enter your email and we'll send you a reset link.
+                Enter your email and we&apos;ll send you a reset link.
               </p>
 
               {resetEmailSent ? (
@@ -98,7 +98,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onSuccess }: LoginM
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Check Your Email</h3>
                   <p className="text-[var(--color-text-secondary)] mb-4">
-                    We've sent a password reset link to {email}
+                    We&apos;ve sent a password reset link to {email}
                   </p>
                   <button
                     onClick={() => {
@@ -148,7 +148,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onSuccess }: LoginM
                     disabled={isLoading}
                     className="
                       w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg
-                      bg-[var(--league-primary)] text-[var(--color-background)] font-semibold
+                      bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold
                       hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
                       transition-all duration-200
                     "
@@ -252,7 +252,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onSuccess }: LoginM
                   disabled={isLoading}
                   className="
                     w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg
-                    bg-[var(--league-primary)] text-[var(--color-background)] font-semibold
+                    bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold
                     hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
                     transition-all duration-200
                   "
@@ -269,7 +269,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onSuccess }: LoginM
               </form>
 
               <div className="mt-6 text-center">
-                <span className="text-[var(--color-text-secondary)]">Don't have an account? </span>
+                <span className="text-[var(--color-text-secondary)]">Don&apos;t have an account? </span>
                 <button
                   onClick={onSignupClick}
                   className="text-[var(--league-primary)] font-medium hover:underline"

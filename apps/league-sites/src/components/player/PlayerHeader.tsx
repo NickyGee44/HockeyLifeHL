@@ -80,7 +80,7 @@ export function PlayerHeader({ player, playerName, leagueSlug }: PlayerHeaderPro
               </span>
             )}
             {player.leadership_role === 'alternate_captain' && (
-              <span className="px-3 py-1 bg-gray-500/20 text-gray-400 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] rounded-full text-sm font-medium">
                 Alternate Captain
               </span>
             )}

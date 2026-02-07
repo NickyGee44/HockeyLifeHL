@@ -144,7 +144,23 @@ function PlayerStatRow({ player, maxValue, color, align }: PlayerStatRowProps) {
       <div
         className={`flex items-center gap-2 mb-1 ${isLeft ? '' : 'flex-row-reverse'}`}
       >
-        <span className="font-medium text-sm truncate max-w-[120px]">
+        {/* Player avatar */}
+        {player.avatar_url ? (
+          <img
+            src={player.avatar_url}
+            alt={player.player_name}
+            className="w-7 h-7 rounded-full object-cover border-2 flex-shrink-0"
+            style={{ borderColor: color }}
+          />
+        ) : (
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+            style={{ backgroundColor: color }}
+          >
+            {player.player_name.charAt(0)}
+          </div>
+        )}
+        <span className="font-medium text-sm truncate max-w-[100px]">
           {player.player_name}
         </span>
         {player.jersey_number && (

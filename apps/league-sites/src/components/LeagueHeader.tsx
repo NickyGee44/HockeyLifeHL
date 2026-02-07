@@ -2,10 +2,27 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { Activity, Calendar, Trophy, Users, BarChart3, Info } from 'lucide-react';
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import {
+  Activity,
+  Calendar,
+  Trophy,
+  Users,
+  BarChart3,
+  Info,
+  Newspaper,
+  CalendarDays,
+  Camera,
+  Menu,
+  X,
+  MapPin,
+} from 'lucide-react';
 import type { League } from '@/lib/types';
 import { AuthButton } from './auth/AuthButton';
+import { usePreviewMode } from './PreviewModeProvider';
+import { ThemeToggle } from './ThemeToggle';
+import { useDivisionFilter } from './DivisionFilterProvider';
 
 interface LeagueHeaderProps {
   league: League;
@@ -18,178 +35,187 @@ const navItems = [
   { href: '/standings', label: 'Standings', icon: Trophy },
   { href: '/teams', label: 'Teams', icon: Users },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
+  { href: '/news', label: 'News', icon: Newspaper },
+  { href: '/events', label: 'Events', icon: CalendarDays },
+  { href: '/gallery', label: 'Gallery', icon: Camera },
   { href: '/about', label: 'About', icon: Info },
 ];
 
 export function LeagueHeader({ league, leagueSlug }: LeagueHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const pathname = usePathname();
+  const { isPreviewMode, theme } = usePreviewMode();
+  const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
 
-  // Track scroll position for shadow effect
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+  const logoUrl = isPreviewMode && theme?.logoUrl !== undefined ? theme.logoUrl : league.logo_url;
+  const displayName = league.short_name || league.name;
+  const initials = league.name
+    .split(' ')
+    .slice(0, 3)
+    .map((word) => word.charAt(0))
+    .join('')
+    .toUpperCase();
+  const location = [league.city, league.state].filter(Boolean).join(', ');
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const isItemActive = (href: string) => {
+    const path = `/${leagueSlug}${href}`;
+    return pathname === path || pathname.startsWith(`${path}/`);
+  };
 
   return (
     <header
-      className={`
-        sticky top-0 z-50 w-full
-        border-b border-[var(--color-border)]
-        bg-[var(--color-background)]/80
-        backdrop-blur-xl
-        transition-all duration-300
-        ${isScrolled ? 'shadow-lg shadow-black/20' : ''}
-      `}
-      style={{
-        // Glass morphism effect with league color tint
-        background: isScrolled
-          ? 'rgba(10, 10, 10, 0.85)'
-          : 'rgba(10, 10, 10, 0.6)',
-      }}
+      className="league-header sticky top-0 z-50 border-b border-[var(--header-border)] bg-[color-mix(in_srgb,var(--header-bg)_92%,transparent)] text-[var(--header-text)] backdrop-blur-xl"
+      data-testid="league-header"
     >
-      {/* Gradient accent line at top */}
       <div
-        className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+        className="h-[2px]"
         style={{
-          background: `linear-gradient(90deg, transparent, var(--league-primary), transparent)`,
+          background: 'linear-gradient(90deg, transparent, var(--league-primary), transparent)',
         }}
       />
 
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo and League Name */}
-          <Link
-            href={`/${leagueSlug}`}
-            className="group flex items-center gap-3 transition-all duration-300"
-          >
-            {league.logo_url ? (
-              <div className="relative">
-                <Image
-                  src={league.logo_url}
-                  alt={`${league.name} logo`}
-                  width={40}
-                  height={40}
-                  className="rounded-lg transition-transform duration-300 group-hover:scale-110"
-                />
-                {/* Pulse glow on hover */}
-                <div
-                  className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse"
-                  style={{
-                    boxShadow: `0 0 20px var(--league-primary)`,
-                  }}
-                />
-              </div>
+      <div className="mx-auto max-w-[1400px] px-6">
+        <div className="flex h-[72px] items-center justify-between">
+          <Link href={`/${leagueSlug}`} className="group flex min-w-0 items-center gap-3">
+            {logoUrl ? (
+              <Image
+                src={logoUrl}
+                alt={`${league.name} logo`}
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-xl object-contain"
+              />
             ) : (
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
-                style={{
-                  backgroundColor: league.primary_color || '#D4AF37',
-                  color: '#0a0a0a',
-                  boxShadow: 'none',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = `0 0 20px ${league.primary_color || '#D4AF37'}`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                {league.name.charAt(0)}
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--league-primary)] text-xl font-black text-[var(--color-accent-text)]">
+                {initials.slice(0, 3)}
               </div>
             )}
-            <span className="font-bold text-lg hidden sm:inline-block group-hover:text-[var(--league-primary)] transition-colors duration-300">
-              {league.name}
-            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--header-text-muted)]">
+                Official League Site
+              </p>
+              <p className="truncate text-lg font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)]">
+                {displayName}
+              </p>
+              {location && (
+                <p className="hidden items-center gap-1 text-xs text-[var(--header-text-secondary)] sm:inline-flex">
+                  <MapPin className="h-3 w-3 text-[var(--league-primary)]" />
+                  {location}
+                </p>
+              )}
+            </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={`/${leagueSlug}${item.href}`}
-                className="group relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all duration-300"
-              >
-                <item.icon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-                <span>{item.label}</span>
-                {/* Animated underline */}
-                <span
-                  className="absolute bottom-0 left-1/2 w-0 h-[2px] bg-[var(--league-primary)] transition-all duration-300 group-hover:w-3/4 group-hover:left-[12.5%]"
-                />
-              </Link>
-            ))}
+          <div className="hidden items-center gap-2 lg:flex">
+            <ThemeToggle />
+            <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
+          </div>
 
-            {/* Auth Button */}
-            <div className="ml-2 pl-2 border-l border-[var(--color-border)]">
-              <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
-            </div>
-          </nav>
-
-          {/* Animated Hamburger Menu Button */}
           <button
-            className="md:hidden relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors duration-300"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            type="button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--header-border)] text-[var(--header-text)] lg:hidden"
+            onClick={() => setIsMobileMenuOpen((open) => !open)}
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            data-testid="mobile-menu-toggle"
           >
-            <div className="relative w-6 h-5 flex flex-col justify-center items-center">
-              <span
-                className={`
-                  absolute h-0.5 w-6 bg-current rounded-full transform transition-all duration-300 ease-in-out
-                  ${isMobileMenuOpen ? 'rotate-45 translate-y-0' : '-translate-y-2'}
-                `}
-              />
-              <span
-                className={`
-                  absolute h-0.5 w-6 bg-current rounded-full transition-all duration-300 ease-in-out
-                  ${isMobileMenuOpen ? 'opacity-0 scale-0' : 'opacity-100 scale-100'}
-                `}
-              />
-              <span
-                className={`
-                  absolute h-0.5 w-6 bg-current rounded-full transform transition-all duration-300 ease-in-out
-                  ${isMobileMenuOpen ? '-rotate-45 translate-y-0' : 'translate-y-2'}
-                `}
-              />
-            </div>
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
-        <nav
-          className={`
-            md:hidden overflow-hidden transition-all duration-300 ease-in-out
-            ${isMobileMenuOpen ? 'max-h-96 opacity-100 pb-4' : 'max-h-0 opacity-0'}
-          `}
-        >
-          <div className="pt-4 border-t border-[var(--color-border)]">
-            <div className="flex flex-col gap-1">
-              {navItems.map((item, index) => (
-                <Link
-                  key={item.href}
-                  href={`/${leagueSlug}${item.href}`}
-                  className="group flex items-center gap-3 px-4 py-3 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition-all duration-300"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  style={{
-                    transitionDelay: isMobileMenuOpen ? `${index * 50}ms` : '0ms',
-                    transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(-10px)',
-                    opacity: isMobileMenuOpen ? 1 : 0,
-                  }}
-                >
-                  <item.icon className="w-5 h-5 text-[var(--league-primary)] transition-transform duration-300 group-hover:scale-110" />
-                  <span className="flex-1">{item.label}</span>
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-[var(--league-primary)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  />
-                </Link>
-              ))}
+        <nav className="hidden items-center justify-end gap-1 pb-3 lg:flex" data-testid="desktop-nav">
+          {navItems.map((item) => {
+            const active = isItemActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={`/${leagueSlug}${item.href}`}
+                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+                  active
+                    ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                    : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
+                }`}
+              >
+                <item.icon className={`h-4 w-4 ${active ? 'text-[var(--league-primary)]' : 'text-[var(--league-primary)]/80'}`} />
+                {item.label}
+              </Link>
+            );
+          })}
+
+          {/* Division Filter - right side of nav */}
+          {divisions.length > 1 && (
+            <div className="ml-2 pl-2 border-l border-[var(--header-border)]">
+              <select
+                value={selectedDivisionId || ''}
+                onChange={(e) => setDivision(e.target.value || null)}
+                className="appearance-none rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                style={{
+                  background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
+                  color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
+                  border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
+                }}
+                aria-label="Filter by division"
+                data-testid="division-filter"
+              >
+                <option value="">All Divisions</option>
+                {divisions.map((div) => (
+                  <option key={div.id} value={div.id}>{div.name}</option>
+                ))}
+              </select>
             </div>
-          </div>
+          )}
         </nav>
+
+        {isMobileMenuOpen && (
+          <nav className="border-t border-[var(--header-border)] pb-4 pt-3 lg:hidden" data-testid="mobile-nav">
+            {/* Mobile Division Filter */}
+            {divisions.length > 1 && (
+              <div className="mb-3 px-1">
+                <select
+                  value={selectedDivisionId || ''}
+                  onChange={(e) => setDivision(e.target.value || null)}
+                  className="w-full appearance-none rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                  style={{
+                    background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
+                    color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
+                    border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
+                  }}
+                  aria-label="Filter by division"
+                  data-testid="division-filter-mobile"
+                >
+                  <option value="">All Divisions</option>
+                  {divisions.map((div) => (
+                    <option key={div.id} value={div.id}>{div.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+              {navItems.map((item) => {
+                const active = isItemActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={`/${leagueSlug}${item.href}`}
+                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      active
+                        ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                        : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <item.icon className="h-4 w-4 text-[var(--league-primary)]" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex items-center justify-between border-t border-[var(--header-border)] pt-3">
+              <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
+              <ThemeToggle />
+            </div>
+          </nav>
+        )}
       </div>
     </header>
   );

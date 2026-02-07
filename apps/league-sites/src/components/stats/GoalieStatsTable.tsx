@@ -14,20 +14,24 @@ interface GoalieStatsTableProps {
 
 type SortKey = 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts';
 
-export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieStatsTableProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const handleSort = (sort: SortKey) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('sort', sort);
-    router.push(`/${leagueSlug}/stats/goalies?${params.toString()}`);
-  };
-
-  const SortHeader = ({ label, sortKey, className = '' }: { label: string; sortKey: SortKey; className?: string }) => (
+// Extracted SortHeader component to fix lint error (components should not be created during render)
+function SortHeader({
+  label,
+  sortKey,
+  className = '',
+  currentSort,
+  onSort
+}: {
+  label: string;
+  sortKey: SortKey;
+  className?: string;
+  currentSort: SortKey;
+  onSort: (key: SortKey) => void;
+}) {
+  return (
     <th
       className={`py-3 px-2 font-medium text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text-primary)] transition-colors ${className}`}
-      onClick={() => handleSort(sortKey)}
+      onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center justify-center gap-1">
         {label}
@@ -39,6 +43,17 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieSta
       </div>
     </th>
   );
+}
+
+export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieStatsTableProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const handleSort = (sort: SortKey) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('sort', sort);
+    router.push(`/${leagueSlug}/stats/goalies?${params.toString()}`);
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -49,11 +64,11 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieSta
             <th className="text-left py-3 px-2 font-medium text-[var(--color-text-muted)]">Player</th>
             <th className="text-left py-3 px-2 font-medium text-[var(--color-text-muted)]">Team</th>
             <th className="text-center py-3 px-2 font-medium text-[var(--color-text-muted)]">GP</th>
-            <SortHeader label="W" sortKey="wins" className="text-center" />
+            <SortHeader label="W" sortKey="wins" className="text-center" currentSort={currentSort} onSort={handleSort} />
             <th className="text-center py-3 px-2 font-medium text-[var(--color-text-muted)]">L</th>
-            <SortHeader label="GAA" sortKey="goals_against_average" className="text-center" />
-            <SortHeader label="SV%" sortKey="save_percentage" className="text-center" />
-            <SortHeader label="SO" sortKey="shutouts" className="text-center" />
+            <SortHeader label="GAA" sortKey="goals_against_average" className="text-center" currentSort={currentSort} onSort={handleSort} />
+            <SortHeader label="SV%" sortKey="save_percentage" className="text-center" currentSort={currentSort} onSort={handleSort} />
+            <SortHeader label="SO" sortKey="shutouts" className="text-center" currentSort={currentSort} onSort={handleSort} />
           </tr>
         </thead>
         <tbody>
@@ -130,8 +145,8 @@ function RankBadge({ rank }: { rank: number }) {
   }
   if (rank === 2) {
     return (
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-400/20">
-        <Medal className="w-4 h-4 text-gray-400" />
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-surface-hover)]">
+        <Medal className="w-4 h-4 text-[var(--color-text-secondary)]" />
       </span>
     );
   }

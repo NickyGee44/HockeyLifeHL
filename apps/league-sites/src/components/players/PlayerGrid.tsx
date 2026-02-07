@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, Shield } from 'lucide-react';
 
 interface PlayerWithTeam {
   id: string;

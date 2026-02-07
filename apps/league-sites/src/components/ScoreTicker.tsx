@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { format, isToday, isTomorrow, isYesterday, differenceInMinutes } from 'date-fns';
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { TickerGame } from '@/lib/types';
@@ -10,6 +10,25 @@ import type { TickerGame } from '@/lib/types';
 interface ScoreTickerProps {
   games: TickerGame[];
   leagueSlug: string;
+}
+
+/**
+ * Check if a game should be considered "live" based on time
+ * A game is considered live if:
+ * - It has status 'in_progress', OR
+ * - It's scheduled and the current time is within 1 hour of the start time
+ */
+function isGameLive(game: TickerGame): boolean {
+  if (game.status === 'in_progress') return true;
+  if (game.status !== 'scheduled') return false;
+
+  const now = new Date();
+  const gameTime = new Date(game.scheduled_at);
+  const minutesDiff = differenceInMinutes(now, gameTime);
+
+  // Game is "live" if we're within -60 to +120 minutes of start time
+  // (60 min before to 120 min after, to cover typical game duration)
+  return minutesDiff >= -60 && minutesDiff <= 120;
 }
 
 /**
@@ -28,17 +47,6 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // Don't render if no games
-  if (!games || games.length === 0) {
-    return null;
-  }
-
-  // Order: Live first, then upcoming, then completed
-  const liveGames = games.filter((g) => g.status === 'in_progress');
-  const upcomingGames = games.filter((g) => g.status === 'scheduled');
-  const completedGames = games.filter((g) => g.status === 'final' || g.status === 'completed');
-  const orderedGames = [...liveGames, ...upcomingGames, ...completedGames];
-
   const updateScrollButtons = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
@@ -46,7 +54,7 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
     setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5);
   }, []);
 
-  const scroll = (direction: 'left' | 'right') => {
+  const scroll = useCallback((direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
     const scrollAmount = 300;
     scrollRef.current.scrollBy({
@@ -54,71 +62,72 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
       behavior: 'smooth',
     });
     setTimeout(updateScrollButtons, 350);
-  };
+  }, [updateScrollButtons]);
+
+  // Don't render if no games (check after all hooks to satisfy rules of hooks)
+  if (!games || games.length === 0) {
+    return null;
+  }
+
+  // Order: Live first (including games within 1 hour of start), then upcoming, then completed
+  const liveGames = games.filter((g) => isGameLive(g));
+  const upcomingGames = games.filter((g) => g.status === 'scheduled' && !isGameLive(g));
+  const completedGames = games.filter((g) => g.status === 'completed');
+  const orderedGames = [...liveGames, ...upcomingGames, ...completedGames];
 
   return (
     <div
-      className="w-full border-b"
-      style={{
-        background: '#0d0d0d',
-        borderColor: 'rgba(255,255,255,0.06)',
-      }}
+      className="score-ticker w-full border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_80%,transparent)] backdrop-blur-sm"
       role="region"
       aria-label="Game scores"
+      data-testid="score-ticker"
     >
-      <div className="relative max-w-[1400px] mx-auto">
-        {/* Left Arrow */}
-        <button
-          onClick={() => scroll('left')}
-          disabled={!canScrollLeft}
-          className={`absolute left-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-150 ${
-            canScrollLeft
-              ? 'opacity-100 hover:bg-white/5'
-              : 'opacity-20 cursor-not-allowed'
-          }`}
-          style={{
-            background: canScrollLeft
-              ? 'linear-gradient(to right, #0d0d0d 50%, transparent)'
-              : 'transparent',
-          }}
-          aria-label="Scroll left"
-        >
-          <ChevronLeft className="w-5 h-5 text-white/60" />
-        </button>
+      <div className="relative mx-auto max-w-[1400px] flex items-stretch px-6">
+        {/* Ticker area - full width */}
+        <div className="relative flex-1 min-w-0">
+          {/* Left Arrow */}
+          <button
+            onClick={() => scroll('left')}
+            disabled={!canScrollLeft}
+            className={`absolute left-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-150 ${
+              canScrollLeft
+                ? 'opacity-100 bg-gradient-to-r from-[var(--color-background-elevated)] via-[var(--color-background-elevated)]/55 to-transparent'
+                : 'opacity-20 cursor-not-allowed'
+            }`}
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
+          </button>
 
-        {/* Scrollable Track */}
-        <div
-          ref={scrollRef}
-          onScroll={updateScrollButtons}
-          className="flex gap-2 py-2.5 px-12 overflow-x-auto"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {orderedGames.map((game) => (
-            <GameTile key={game.id} game={game} leagueSlug={leagueSlug} />
-          ))}
+          {/* Scrollable Track */}
+          <div
+            ref={scrollRef}
+            onScroll={updateScrollButtons}
+            className="flex gap-2 py-2.5 px-12 overflow-x-auto"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {orderedGames.map((game) => (
+              <GameTile key={game.id} game={game} leagueSlug={leagueSlug} />
+            ))}
+          </div>
+
+          {/* Right Arrow */}
+          <button
+            onClick={() => scroll('right')}
+            disabled={!canScrollRight}
+            className={`absolute right-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-150 ${
+              canScrollRight
+                ? 'opacity-100 bg-gradient-to-l from-[var(--color-background-elevated)] via-[var(--color-background-elevated)]/55 to-transparent'
+                : 'opacity-20 cursor-not-allowed'
+            }`}
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="w-5 h-5 text-[var(--color-text-secondary)]" />
+          </button>
         </div>
-
-        {/* Right Arrow */}
-        <button
-          onClick={() => scroll('right')}
-          disabled={!canScrollRight}
-          className={`absolute right-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-150 ${
-            canScrollRight
-              ? 'opacity-100 hover:bg-white/5'
-              : 'opacity-20 cursor-not-allowed'
-          }`}
-          style={{
-            background: canScrollRight
-              ? 'linear-gradient(to left, #0d0d0d 50%, transparent)'
-              : 'transparent',
-          }}
-          aria-label="Scroll right"
-        >
-          <ChevronRight className="w-5 h-5 text-white/60" />
-        </button>
       </div>
 
       {/* Hide scrollbar */}
@@ -141,8 +150,8 @@ interface GameTileProps {
 }
 
 function GameTile({ game, leagueSlug }: GameTileProps) {
-  const isCompleted = game.status === 'final' || game.status === 'completed';
-  const isLive = game.status === 'in_progress';
+  const isCompleted = game.status === 'completed';
+  const isLive = isGameLive(game); // Use smart live detection (within 1 hour of start)
   const gameDate = new Date(game.scheduled_at);
 
   // Parse team color
@@ -180,26 +189,20 @@ function GameTile({ game, leagueSlug }: GameTileProps) {
   return (
     <Link
       href={`/${leagueSlug}/games/${game.id}`}
-      className="flex-shrink-0 block rounded-md transition-colors duration-100 hover:bg-white/[0.04]"
-      style={{
-        width: '280px',
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-      }}
+      className="flex-shrink-0 block w-[300px] rounded-lg border border-[color-mix(in_srgb,var(--color-border)_60%,transparent)] bg-[color-mix(in_srgb,var(--color-surface)_70%,transparent)] backdrop-blur-sm transition-all duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-emphasis)]"
     >
       {/* Header: Date + Status */}
       <div
-        className="flex items-center justify-between px-2.5 py-1 border-b"
-        style={{ borderColor: 'rgba(255,255,255,0.05)' }}
+        className="flex items-center justify-between px-2.5 py-1.5 border-b border-[var(--color-border-muted)]"
       >
-        <span className="text-[10px] font-medium text-white/40 uppercase tracking-wide">
+        <span className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">
           {formatGameDate()}
         </span>
-        <StatusBadge status={game.status} gameDate={gameDate} />
+        <StatusBadge game={game} gameDate={gameDate} />
       </div>
 
-      {/* Teams and Scores - compact layout */}
-      <div className="px-2.5 py-1.5 space-y-0.5">
+      {/* Teams and Scores - improved spacing for logos */}
+      <div className="px-2.5 py-2 space-y-1.5">
         {/* Away Team */}
         <TeamRow
           team={game.away_team}
@@ -222,27 +225,19 @@ function GameTile({ game, leagueSlug }: GameTileProps) {
 
       {/* Footer: Venue + Division */}
       <div
-        className="flex items-center justify-between px-2.5 py-1 border-t"
-        style={{
-          borderColor: 'rgba(255,255,255,0.05)',
-          background: 'rgba(0,0,0,0.15)',
-        }}
+        className="flex items-center justify-between px-2.5 py-1.5 border-t border-[var(--color-border-muted)] bg-[color-mix(in_srgb,var(--color-surface-hover)_72%,transparent)]"
       >
         {game.venue ? (
-          <div className="flex items-center gap-1 text-white/30 min-w-0 flex-1">
-            <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-            <span className="text-[9px] truncate">{game.venue}</span>
+          <div className="flex items-center gap-1 text-[var(--color-text-muted)] min-w-0 flex-1">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <span className="text-[10px] truncate">{game.venue}</span>
           </div>
         ) : (
           <div />
         )}
         {divisionName && (
           <span
-            className="text-[8px] font-semibold px-1.5 py-0.5 rounded"
-            style={{
-              background: 'var(--league-primary)',
-              color: 'white',
-            }}
+            className="text-[9px] font-bold px-2 py-0.5 rounded bg-[var(--league-primary)] text-[var(--color-text-inverse)]"
           >
             {divisionName}
           </span>
@@ -275,36 +270,39 @@ function TeamRow({
 }: TeamRowProps) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        <TeamLogo
-          logoUrl={team?.logo || null}
-          teamName={team?.name || 'TBD'}
-          teamColor={teamColor}
-          size="xs"
-        />
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        {/* Team Logo - slightly larger for visibility */}
+        <div className="flex-shrink-0">
+          <TeamLogo
+            logoUrl={team?.logo || null}
+            teamName={team?.name || 'TBD'}
+            teamColor={teamColor}
+            size="sm"
+          />
+        </div>
+        {/* Team Name - improved contrast */}
         <span
-          className={`text-xs font-medium truncate ${
-            isWinning ? 'text-white' : 'text-white/50'
+          className={`text-xs font-semibold truncate ${
+            isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
           }`}
         >
           {team?.name || 'TBD'}
         </span>
         {isHome && (
-          <span className="text-[7px] text-white/25 font-medium">(H)</span>
+          <span className="text-[8px] text-[var(--color-text-muted)] font-medium">(H)</span>
         )}
       </div>
 
       {showScore && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {isWinning && (
             <div
-              className="w-1 h-1 rounded-full"
-              style={{ background: 'var(--league-primary)' }}
+              className="w-1.5 h-1.5 rounded-full bg-[var(--league-primary)]"
             />
           )}
           <span
-            className={`text-sm font-bold tabular-nums ${
-              isWinning ? 'text-white' : 'text-white/35'
+            className={`text-base font-bold tabular-nums ${
+              isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}
           >
             {score ?? '-'}
@@ -320,12 +318,16 @@ function TeamRow({
 // =============================================================================
 
 interface StatusBadgeProps {
-  status: TickerGame['status'];
+  game: TickerGame;
   gameDate: Date;
 }
 
-function StatusBadge({ status, gameDate }: StatusBadgeProps) {
-  if (status === 'in_progress') {
+function StatusBadge({ game, gameDate }: StatusBadgeProps) {
+  const { status } = game;
+  const isLive = isGameLive(game);
+
+  // Show live badge if game is in progress OR within 1 hour of start time
+  if (isLive && status !== 'completed') {
     return (
       <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/15">
         <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -334,38 +336,34 @@ function StatusBadge({ status, gameDate }: StatusBadgeProps) {
     );
   }
 
-  if (status === 'final' || status === 'completed') {
-    return (
-      <span className="text-[9px] font-medium uppercase text-white/35 px-1.5 py-0.5 rounded bg-white/5">
-        Final
-      </span>
-    );
-  }
+    if (status === 'completed') {
+      return (
+        <span className="text-[9px] font-medium uppercase text-[var(--color-text-muted)] px-1.5 py-0.5 rounded bg-[var(--color-surface-hover)]">
+          Final
+        </span>
+      );
+    }
 
   if (status === 'postponed') {
-    return (
-      <span className="text-[9px] font-medium uppercase text-amber-400/70 px-1.5 py-0.5 rounded bg-amber-500/10">
-        PPD
-      </span>
-    );
+      return (
+        <span className="text-[9px] font-medium uppercase text-amber-400/70 px-1.5 py-0.5 rounded bg-amber-500/10">
+          PPD
+        </span>
+      );
   }
 
-  if (status === 'cancelled') {
-    return (
-      <span className="text-[9px] font-medium uppercase text-white/35 px-1.5 py-0.5 rounded bg-white/5 line-through">
-        Cancelled
-      </span>
-    );
-  }
+    if (status === 'cancelled') {
+      return (
+        <span className="text-[9px] font-medium uppercase text-[var(--color-text-muted)] px-1.5 py-0.5 rounded bg-[var(--color-surface-hover)] line-through">
+          Cancelled
+        </span>
+      );
+    }
 
   // Scheduled - show time
   return (
     <span
-      className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-      style={{
-        color: 'var(--league-primary)',
-        background: 'rgba(255,255,255,0.05)',
-      }}
+      className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[var(--league-primary)] bg-[color-mix(in_srgb,var(--league-primary)_12%,transparent)]"
     >
       {format(gameDate, 'h:mm a')}
     </span>

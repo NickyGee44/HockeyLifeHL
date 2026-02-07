@@ -91,7 +91,7 @@ export function PhotoUpload({
         setErrorMessage(result.error);
         setPreviewUrl(null);
       }
-    } catch (error) {
+    } catch {
       clearInterval(progressInterval);
       setUploadState('error');
       setErrorMessage('Failed to upload photo. Please try again.');

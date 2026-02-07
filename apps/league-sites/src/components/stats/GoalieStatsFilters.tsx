@@ -116,7 +116,7 @@ function SortChip({
         px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
         ${
           isActive
-            ? 'bg-[var(--league-primary)] text-[var(--color-background)]'
+            ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
             : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]'
         }
       `}

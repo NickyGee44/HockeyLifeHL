@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, MapPin, X } from 'lucide-react';
@@ -39,15 +39,10 @@ export function PremiumScoreTicker({
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
 
-  // Don't render if no games
-  if (!games || games.length === 0) {
-    return null;
-  }
-
-  // Separate games by status for smart ordering
-  const liveGames = games.filter((g) => g.status === 'in_progress');
-  const upcomingGames = games.filter((g) => g.status === 'scheduled');
-  const completedGames = games.filter((g) => g.status === 'final');
+  // Separate games by status for smart ordering (compute even if empty to keep hooks order consistent)
+  const liveGames = (games || []).filter((g) => g.status === 'in_progress');
+  const upcomingGames = (games || []).filter((g) => g.status === 'scheduled');
+  const completedGames = (games || []).filter((g) => g.status === 'completed');
 
   // Order: Live games first, then upcoming, then completed
   const orderedGames = [...liveGames, ...upcomingGames, ...completedGames];
@@ -56,9 +51,11 @@ export function PremiumScoreTicker({
   const duplicatedGames = [...orderedGames, ...orderedGames];
 
   // Smooth scroll animation using requestAnimationFrame
-  const animate = useCallback(
-    (currentTime: number) => {
-      if (!scrollRef.current || isPaused || !autoScroll) {
+  useEffect(() => {
+    if (!autoScroll) return;
+
+    const animate = (currentTime: number) => {
+      if (!scrollRef.current || isPaused) {
         lastTimeRef.current = currentTime;
         animationRef.current = requestAnimationFrame(animate);
         return;
@@ -72,29 +69,25 @@ export function PremiumScoreTicker({
       lastTimeRef.current = currentTime;
 
       const scrollWidth = scrollRef.current.scrollWidth / 2;
-      let newPosition = scrollPosition + scrollSpeed * deltaTime;
-
-      // Reset to beginning when we've scrolled through half (the original set)
-      if (newPosition >= scrollWidth) {
-        newPosition = 0;
-      }
-
-      setScrollPosition(newPosition);
+      setScrollPosition((prev) => {
+        let newPosition = prev + scrollSpeed * deltaTime;
+        // Reset to beginning when we've scrolled through half (the original set)
+        if (newPosition >= scrollWidth) {
+          newPosition = 0;
+        }
+        return newPosition;
+      });
       animationRef.current = requestAnimationFrame(animate);
-    },
-    [isPaused, autoScroll, scrollSpeed, scrollPosition]
-  );
+    };
 
-  useEffect(() => {
-    if (autoScroll) {
-      animationRef.current = requestAnimationFrame(animate);
-    }
+    animationRef.current = requestAnimationFrame(animate);
+
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [animate, autoScroll]);
+  }, [autoScroll, isPaused, scrollSpeed]);
 
   const handleScrollLeft = () => {
     setScrollPosition((prev) => Math.max(0, prev - 350));
@@ -122,6 +115,11 @@ export function PremiumScoreTicker({
     ? orderedGames.find((g) => g.id === expandedGameId)
     : null;
 
+  // Don't render if no games (check after all hooks to satisfy rules of hooks)
+  if (!games || games.length === 0) {
+    return null;
+  }
+
   return (
     <div className="relative w-full">
       {/* Main Ticker Container */}
@@ -129,8 +127,8 @@ export function PremiumScoreTicker({
         className="relative w-full overflow-hidden backdrop-blur-md"
         style={{
           background:
-            'linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 100%)',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
+            'linear-gradient(180deg, color-mix(in srgb, var(--color-background) 95%, transparent) 0%, color-mix(in srgb, var(--color-background) 85%, transparent) 100%)',
+          borderBottom: '1px solid var(--color-border-muted)',
         }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => {
@@ -162,18 +160,18 @@ export function PremiumScoreTicker({
           className="absolute left-0 top-0 bottom-0 z-30 flex items-center justify-center w-12 transition-all duration-300 opacity-0 hover:opacity-100 focus:opacity-100 group"
           style={{
             background:
-              'linear-gradient(to right, rgba(0,0,0,0.95) 40%, transparent)',
+              'linear-gradient(to right, color-mix(in srgb, var(--color-background) 95%, transparent) 40%, transparent)',
           }}
           aria-label="Scroll left"
         >
           <div
             className="p-2 rounded-full transition-all duration-200 group-hover:scale-110"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: 'var(--color-surface-hover)',
               backdropFilter: 'blur(4px)',
             }}
           >
-            <ChevronLeft className="w-5 h-5 text-white/80" />
+            <ChevronLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
           </div>
         </button>
 
@@ -204,18 +202,18 @@ export function PremiumScoreTicker({
           className="absolute right-0 top-0 bottom-0 z-30 flex items-center justify-center w-12 transition-all duration-300 opacity-0 hover:opacity-100 focus:opacity-100 group"
           style={{
             background:
-              'linear-gradient(to left, rgba(0,0,0,0.95) 40%, transparent)',
+              'linear-gradient(to left, color-mix(in srgb, var(--color-background) 95%, transparent) 40%, transparent)',
           }}
           aria-label="Scroll right"
         >
           <div
             className="p-2 rounded-full transition-all duration-200 group-hover:scale-110"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: 'var(--color-surface-hover)',
               backdropFilter: 'blur(4px)',
             }}
           >
-            <ChevronRight className="w-5 h-5 text-white/80" />
+            <ChevronRight className="w-5 h-5 text-[var(--color-text-secondary)]" />
           </div>
         </button>
 
@@ -223,13 +221,13 @@ export function PremiumScoreTicker({
         <div
           className="absolute left-12 top-0 bottom-0 w-6 pointer-events-none z-10"
           style={{
-            background: 'linear-gradient(to right, rgba(0,0,0,0.9), transparent)',
+            background: 'linear-gradient(to right, color-mix(in srgb, var(--color-background) 90%, transparent), transparent)',
           }}
         />
         <div
           className="absolute right-12 top-0 bottom-0 w-6 pointer-events-none z-10"
           style={{
-            background: 'linear-gradient(to left, rgba(0,0,0,0.9), transparent)',
+            background: 'linear-gradient(to left, color-mix(in srgb, var(--color-background) 90%, transparent), transparent)',
           }}
         />
       </div>
@@ -276,11 +274,10 @@ interface TickerGameCardProps {
 
 function TickerGameCard({
   game,
-  leagueSlug,
   isExpanded,
   onExpand,
 }: TickerGameCardProps) {
-  const isCompleted = game.status === 'final';
+  const isCompleted = game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const isScheduled = game.status === 'scheduled';
   const gameDate = new Date(game.scheduled_at);
@@ -323,14 +320,14 @@ function TickerGameCard({
       {/* Card Container with Glass Effect */}
       <div
         className={`relative rounded-xl overflow-hidden transition-all duration-300 ${
-          isExpanded ? 'ring-2 ring-white/30' : 'hover:ring-1 hover:ring-white/20'
+          isExpanded ? 'ring-2 ring-[var(--color-border-emphasis)]' : 'hover:ring-1 hover:ring-[var(--color-border)]'
         }`}
         style={{
           background: isLive
-            ? 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(30,30,30,0.95) 50%)'
-            : 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(30,30,30,0.95) 100%)',
+            ? 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, color-mix(in srgb, var(--color-surface) 95%, transparent) 50%)'
+            : 'linear-gradient(135deg, color-mix(in srgb, var(--color-surface-hover) 40%, transparent) 0%, color-mix(in srgb, var(--color-surface) 95%, transparent) 100%)',
           backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid var(--color-border-muted)',
         }}
       >
         {/* Team Color Accent Bars */}
@@ -355,7 +352,7 @@ function TickerGameCard({
         <div className="pt-3 pb-2.5 px-3">
           {/* Status Row */}
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
               {formatGameDate()}
             </span>
             <GameStatusBadge status={game.status} gameDate={gameDate} />
@@ -375,13 +372,13 @@ function TickerGameCard({
 
             {/* Divider */}
             <div className="flex items-center gap-2 px-1">
-              <div className="flex-1 h-px bg-white/10" />
+              <div className="flex-1 h-px bg-[var(--color-border-muted)]" />
               {isScheduled && (
-                <span className="text-[9px] font-bold uppercase tracking-widest text-white/30">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
                   vs
                 </span>
               )}
-              <div className="flex-1 h-px bg-white/10" />
+              <div className="flex-1 h-px bg-[var(--color-border-muted)]" />
             </div>
 
             {/* Home Team */}
@@ -398,9 +395,9 @@ function TickerGameCard({
 
           {/* Venue (subtle) */}
           {game.venue && (
-            <div className="mt-2 pt-2 border-t border-white/5 flex items-center gap-1">
-              <MapPin className="w-2.5 h-2.5 text-white/30" />
-              <span className="text-[9px] text-white/40 truncate">
+            <div className="mt-2 pt-2 border-t border-[var(--color-border-muted)] flex items-center gap-1">
+              <MapPin className="w-2.5 h-2.5 text-[var(--color-text-muted)]" />
+              <span className="text-[9px] text-[var(--color-text-secondary)] truncate">
                 {game.venue}
               </span>
             </div>
@@ -412,7 +409,7 @@ function TickerGameCard({
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={{
             background:
-              'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.03) 50%, transparent 60%)',
+              'linear-gradient(105deg, transparent 40%, color-mix(in srgb, var(--color-surface-hover) 20%, transparent) 50%, transparent 60%)',
           }}
         />
       </div>
@@ -457,10 +454,10 @@ function TeamRow({
           {/* Home indicator */}
           {isHome && (
             <div
-              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-black/50 flex items-center justify-center"
+              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-[var(--color-border)] flex items-center justify-center"
               style={{ backgroundColor: 'var(--league-primary)' }}
             >
-              <span className="text-[6px] font-bold text-white">H</span>
+              <span className="text-[6px] font-bold text-[var(--color-text-inverse)]">H</span>
             </div>
           )}
         </div>
@@ -468,7 +465,7 @@ function TeamRow({
         {/* Team Name */}
         <span
           className={`text-sm font-semibold truncate transition-all duration-200 ${
-            isWinning ? 'text-white' : 'text-white/70'
+            isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
           }`}
         >
           {team?.name || 'TBD'}
@@ -490,7 +487,7 @@ function TeamRow({
           )}
           <span
             className={`text-xl font-bold tabular-nums ${
-              isWinning ? 'text-white' : 'text-white/50'
+              isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}
           >
             {score ?? '-'}
@@ -525,9 +522,9 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
     );
   }
 
-  if (status === 'final') {
+  if (status === 'completed') {
     return (
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40 px-2 py-0.5 rounded-full bg-white/5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] px-2 py-0.5 rounded-full bg-[var(--color-surface-hover)]">
         Final
       </span>
     );
@@ -543,7 +540,7 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
 
   if (status === 'cancelled') {
     return (
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40 px-2 py-0.5 rounded-full bg-white/5 line-through">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] px-2 py-0.5 rounded-full bg-[var(--color-surface-hover)] line-through">
         Cancelled
       </span>
     );
@@ -551,8 +548,8 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
 
   // Scheduled - show time
   return (
-    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5">
-      <Clock className="w-2.5 h-2.5 text-white/40" />
+    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-surface-hover)]">
+      <Clock className="w-2.5 h-2.5 text-[var(--color-text-secondary)]" />
       <span
         className="text-[10px] font-bold"
         style={{ color: 'var(--league-primary)' }}
@@ -578,7 +575,7 @@ function ExpandedGameDetails({
   leagueSlug,
   onClose,
 }: ExpandedGameDetailsProps) {
-  const isCompleted = game.status === 'final';
+  const isCompleted = game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const gameDate = new Date(game.scheduled_at);
 
@@ -618,9 +615,9 @@ function ExpandedGameDetails({
           className="rounded-2xl overflow-hidden shadow-2xl"
           style={{
             background:
-              'linear-gradient(180deg, rgba(20,20,20,0.98) 0%, rgba(10,10,10,0.98) 100%)',
+              'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 98%, transparent) 0%, color-mix(in srgb, var(--color-background) 98%, transparent) 100%)',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--color-border)',
           }}
         >
           {/* Team Color Header Bar */}
@@ -643,15 +640,15 @@ function ExpandedGameDetails({
           <div className="relative px-6 pt-4 pb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <GameStatusBadge status={game.status} gameDate={gameDate} />
-              <span className="text-xs text-white/40">
+              <span className="text-xs text-[var(--color-text-secondary)]">
                 {format(gameDate, 'EEEE, MMMM d, yyyy')}
               </span>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full hover:bg-[var(--color-border-muted)] transition-colors"
             >
-              <X className="w-4 h-4 text-white/60" />
+              <X className="w-4 h-4 text-[var(--color-text-muted)]" />
             </button>
           </div>
 
@@ -678,12 +675,12 @@ function ExpandedGameDetails({
                   </div>
                 </div>
                 <h3
-                  className={`text-lg font-bold ${awayWinning ? 'text-white' : 'text-white/70'}`}
+                  className={`text-lg font-bold ${awayWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}
                 >
                   {game.away_team?.name || 'TBD'}
                 </h3>
                 {game.away_team?.divisions?.name && (
-                  <p className="text-xs text-white/40 mt-0.5">
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                     {game.away_team.divisions.name}
                   </p>
                 )}
@@ -696,15 +693,15 @@ function ExpandedGameDetails({
                     <div className="flex items-center gap-3">
                       <span
                         className={`text-5xl font-black tabular-nums ${
-                          awayWinning ? 'text-white' : 'text-white/40'
+                          awayWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
                         }`}
                       >
                         {game.away_score ?? '-'}
                       </span>
-                      <span className="text-2xl text-white/20 font-light">-</span>
+                      <span className="text-2xl text-[var(--color-text-muted)] font-light">-</span>
                       <span
                         className={`text-5xl font-black tabular-nums ${
-                          homeWinning ? 'text-white' : 'text-white/40'
+                          homeWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
                         }`}
                       >
                         {game.home_score ?? '-'}
@@ -731,7 +728,7 @@ function ExpandedGameDetails({
                       VS
                     </div>
                     <div className="mt-2 text-center">
-                      <div className="text-xl font-bold text-white">
+                      <div className="text-xl font-bold text-[var(--color-text-primary)]">
                         {format(gameDate, 'h:mm a')}
                       </div>
                     </div>
@@ -759,12 +756,12 @@ function ExpandedGameDetails({
                   </div>
                 </div>
                 <h3
-                  className={`text-lg font-bold ${homeWinning ? 'text-white' : 'text-white/70'}`}
+                  className={`text-lg font-bold ${homeWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}
                 >
                   {game.home_team?.name || 'TBD'}
                 </h3>
                 {game.home_team?.divisions?.name && (
-                  <p className="text-xs text-white/40 mt-0.5">
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                     {game.home_team.divisions.name}
                   </p>
                 )}
@@ -773,9 +770,9 @@ function ExpandedGameDetails({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-[var(--color-border)] flex items-center justify-between">
             {game.venue && (
-              <div className="flex items-center gap-2 text-white/50">
+              <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
                 <MapPin className="w-4 h-4" />
                 <span className="text-sm">{game.venue}</span>
               </div>
@@ -785,7 +782,7 @@ function ExpandedGameDetails({
               className="px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 hover:scale-105"
               style={{
                 backgroundColor: 'var(--league-primary)',
-                color: 'white',
+                color: 'var(--color-text-inverse)',
               }}
             >
               View Full Details

@@ -11,10 +11,10 @@ interface StandingsTableProps {
 export function StandingsTable({ standings, searchTerm = '' }: StandingsTableProps) {
   const normalizedSearch = searchTerm.toLowerCase().trim();
 
-  // Filter standings based on search
+  // Filter standings based on search (safely handle undefined team_name)
   const filteredStandings = normalizedSearch
     ? standings.filter((team) =>
-        team.team_name.toLowerCase().includes(normalizedSearch)
+        (team.team_name || '').toLowerCase().includes(normalizedSearch)
       )
     : standings;
 
@@ -40,7 +40,8 @@ export function StandingsTable({ standings, searchTerm = '' }: StandingsTablePro
           {filteredStandings.map((team) => {
             // Find original rank
             const originalRank = standings.findIndex((s) => s.team_id === team.team_id) + 1;
-            const isHighlighted = normalizedSearch && team.team_name.toLowerCase().includes(normalizedSearch);
+            const teamName = team.team_name || 'Unknown Team';
+            const isHighlighted = normalizedSearch && teamName.toLowerCase().includes(normalizedSearch);
 
             return (
               <tr
@@ -55,7 +56,7 @@ export function StandingsTable({ standings, searchTerm = '' }: StandingsTablePro
                     {team.team_logo ? (
                       <Image
                         src={team.team_logo}
-                        alt={team.team_name}
+                        alt={teamName}
                         width={32}
                         height={32}
                         className="rounded"
@@ -65,14 +66,14 @@ export function StandingsTable({ standings, searchTerm = '' }: StandingsTablePro
                         className="w-8 h-8 rounded flex items-center justify-center text-sm font-bold"
                         style={{
                           backgroundColor: 'var(--league-primary)',
-                          color: 'var(--color-background)',
+                          color: 'var(--color-accent-text)',
                         }}
                       >
-                        {team.team_name.charAt(0)}
+                        {teamName.charAt(0)}
                       </div>
                     )}
                     <span className={`font-medium ${isHighlighted ? 'text-[var(--league-primary)]' : ''}`}>
-                      {team.team_name}
+                      {teamName}
                     </span>
                   </div>
                 </td>

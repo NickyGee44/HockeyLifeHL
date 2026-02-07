@@ -77,6 +77,9 @@ export function LeagueFooter({ league, leagueSlug }: LeagueFooterProps) {
               <FooterLink href={`/${leagueSlug}/teams`}>Teams</FooterLink>
               <FooterLink href={`/${leagueSlug}/stats`}>Stats</FooterLink>
               <FooterLink href={`/${leagueSlug}/players`}>Players</FooterLink>
+              <FooterLink href={`/${leagueSlug}/news`}>News</FooterLink>
+              <FooterLink href={`/${leagueSlug}/events`}>Events</FooterLink>
+              <FooterLink href={`/${leagueSlug}/gallery`}>Gallery</FooterLink>
             </nav>
           </div>
 
@@ -86,6 +89,7 @@ export function LeagueFooter({ league, leagueSlug }: LeagueFooterProps) {
             <nav className="flex flex-col gap-2">
               <FooterLink href={`/${leagueSlug}/venues`}>Venues</FooterLink>
               <FooterLink href={`/${leagueSlug}/history`}>History</FooterLink>
+              <FooterLink href={`/${leagueSlug}/suspensions`}>Suspensions</FooterLink>
               <FooterLink href={`/${leagueSlug}/about`}>About</FooterLink>
               <FooterLink href={`/${leagueSlug}/contact`}>Contact</FooterLink>
             </nav>

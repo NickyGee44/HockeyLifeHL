@@ -151,9 +151,9 @@ function ResultBadge({ result }: { result: 'W' | 'L' | 'T' | 'OTL' | '-' }) {
   const colors: Record<string, string> = {
     W: 'bg-green-500/20 text-green-400',
     L: 'bg-red-500/20 text-red-400',
-    T: 'bg-gray-500/20 text-gray-400',
+    T: 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]',
     OTL: 'bg-orange-500/20 text-orange-400',
-    '-': 'bg-gray-500/20 text-gray-400',
+    '-': 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]',
   };
 
   return (

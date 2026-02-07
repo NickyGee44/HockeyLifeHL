@@ -25,7 +25,6 @@ export function PlayerDirectoryFilters({
   selectedTeam,
   selectedPosition,
   searchQuery,
-  leagueSlug,
 }: PlayerDirectoryFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();

@@ -14,12 +14,11 @@ interface ScoreCardProps {
 
 export function ScoreCard({ game, leagueSlug }: ScoreCardProps) {
   const gameDate = new Date(game.scheduled_at);
-  const isCompleted = game.status === 'final' || game.status === 'completed';
+  const isCompleted = game.status === 'completed';
   const isLive = game.status === 'in_progress';
 
   const homeWon = (game.home_score || 0) > (game.away_score || 0);
   const awayWon = (game.away_score || 0) > (game.home_score || 0);
-  const isTie = game.home_score === game.away_score;
 
   return (
     <Link
@@ -161,7 +160,7 @@ function TeamLogo({ name, logo }: { name: string; logo?: string }) {
       className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 transition-all duration-300 group-hover:scale-105"
       style={{
         backgroundColor: 'var(--league-primary)',
-        color: 'var(--color-background)',
+        color: 'var(--color-accent-text)',
       }}
     >
       {name.charAt(0)}

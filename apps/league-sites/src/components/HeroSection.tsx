@@ -1,14 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Trophy, Users, TrendingUp } from 'lucide-react';
-import type { League, LeagueStats } from '@/lib/types';
-
-// =============================================================================
-// Types
-// =============================================================================
+import { Calendar, Trophy, Users, TrendingUp, ArrowRight, MapPin, ShieldCheck } from 'lucide-react';
+import type { League, LeagueStats, ThemePreset } from '@/lib/types';
+import { usePreviewMode } from './PreviewModeProvider';
 
 interface HeroSectionProps {
   league: League;
@@ -16,214 +13,205 @@ interface HeroSectionProps {
   leagueSlug: string;
 }
 
-// =============================================================================
-// Stat Card Component
-// =============================================================================
-
 interface StatCardProps {
   value: number;
   label: string;
   icon: React.ReactNode;
 }
 
+function getTemplateVariant(league: League): ThemePreset {
+  const preset = league.settings?.website?.themePreset;
+  if (preset === 'light' || preset === 'custom') {
+    return preset;
+  }
+  return 'dark';
+}
+
 function StatCard({ value, label, icon }: StatCardProps) {
   return (
-    <div
-      className="relative overflow-hidden rounded-xl p-5 transition-all duration-300 hover:scale-[1.02]"
-      style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-      }}
-    >
-      <div className="flex items-center gap-3 mb-2 text-white/60">
-        <span
-          className="p-2 rounded-lg"
-          style={{ background: 'rgba(255, 255, 255, 0.08)' }}
-        >
+    <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_var(--glass-opacity),transparent)] p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-border-emphasis)] hover:shadow-[0_0_20px_var(--league-glow-color)]">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--league-primary)] to-transparent opacity-70" />
+      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--league-primary)_16%,transparent)] text-[var(--league-primary)]">
           {icon}
         </span>
-        <span className="text-xs font-medium tracking-wide uppercase">{label}</span>
+        {label}
       </div>
-      <div
-        className="text-3xl md:text-4xl font-bold text-white tabular-nums"
-        style={{ color: 'var(--league-primary)' }}
-      >
+      <div className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
         {value.toLocaleString()}
       </div>
     </div>
   );
 }
 
-// =============================================================================
-// Main Hero Section Component
-// =============================================================================
-
 export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const { isPreviewMode, theme } = usePreviewMode();
 
-  // Simple fade-in on mount
+  const logoUrl = isPreviewMode && theme?.logoUrl !== undefined ? theme.logoUrl : league.logo_url;
+  const bannerUrl = isPreviewMode && theme?.bannerUrl !== undefined ? theme.bannerUrl : league.banner_url;
+  const previewTagline = isPreviewMode && theme?.tagline !== undefined ? theme.tagline : null;
+  const previewDescription = isPreviewMode && theme?.description !== undefined ? theme.description : null;
+
+  const variant = useMemo(() => getTemplateVariant(league), [league]);
+  const location = [league.city, league.state].filter(Boolean).join(', ');
+  const description = previewDescription || league.description;
+  const tagline = previewTagline || location || 'Built for league owners who want a polished player experience.';
+
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 50);
+    const timer = setTimeout(() => setIsLoaded(true), 40);
     return () => clearTimeout(timer);
   }, []);
 
-  return (
-    <section className="relative min-h-[70vh] md:min-h-[80vh] overflow-hidden flex items-center">
-      {/* Background Gradient */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `
-            linear-gradient(180deg,
-              color-mix(in srgb, var(--league-primary) 20%, black) 0%,
-              #0a0a0a 100%)
-          `,
-        }}
-      />
+  const backgroundStyle = `radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--league-primary) 24%, transparent), transparent 50%),
+           radial-gradient(circle at 84% -8%, color-mix(in srgb, var(--league-accent) 18%, transparent), transparent 44%),
+           linear-gradient(135deg, var(--color-background) 0%, var(--color-background-elevated) 45%, var(--color-background-sunken) 100%)`;
 
-      {/* Banner Image */}
-      {league.banner_url && (
+  const panelClass =
+    'bg-[color-mix(in_srgb,var(--color-surface)_var(--glass-opacity),transparent)] border-[var(--color-border)] shadow-[0_25px_60px_rgba(0,0,0,0.14)]';
+
+  const ctaPrimaryText = variant === 'light' ? 'Explore Schedule' : 'View Schedule';
+  const sectionBadge =
+    variant === 'custom' ? 'Signature Experience' : variant === 'light' ? 'Community Hub' : 'League Central';
+
+  return (
+    <section className="relative isolate overflow-hidden border-b border-[var(--color-border)]" data-testid="hero-section">
+      <div className="absolute inset-0" style={{ background: backgroundStyle }} />
+
+      {bannerUrl && (
         <div className="absolute inset-0">
           <Image
-            src={league.banner_url}
+            src={bannerUrl}
             alt={`${league.name} banner`}
             fill
-            className="object-cover opacity-15"
             priority
             quality={85}
+            className="object-cover opacity-20"
           />
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(180deg,
-                rgba(0, 0, 0, 0.5) 0%,
-                rgba(10, 10, 10, 1) 100%)`,
+              background:
+                'linear-gradient(160deg, color-mix(in srgb, var(--color-background) 78%, transparent) 0%, color-mix(in srgb, var(--color-background) 94%, transparent) 100%)',
             }}
           />
         </div>
       )}
 
-      {/* Content Container */}
-      <div className="relative container mx-auto px-4 py-16 md:py-24">
-        <div className="flex flex-col items-center text-center">
-          {/* League Logo */}
-          {league.logo_url && (
-            <div
-              className={`relative mb-6 transition-all duration-700 ease-out ${
-                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-            >
-              <Image
-                src={league.logo_url}
-                alt={`${league.name} logo`}
-                width={120}
-                height={120}
-                className="rounded-2xl shadow-xl"
-                style={{
-                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-                }}
-                priority
-              />
-            </div>
-          )}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-25"
+        style={{
+          background:
+            'repeating-linear-gradient(125deg, color-mix(in srgb, var(--league-primary) 8%, transparent) 0px, color-mix(in srgb, var(--league-primary) 8%, transparent) 1px, transparent 1px, transparent 28px)',
+        }}
+      />
+      <div className="pointer-events-none absolute -left-20 top-16 h-56 w-56 rounded-full bg-[var(--league-primary)]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-[var(--league-accent)]/20 blur-3xl" />
 
-          {/* League Name */}
-          <h1
-            className={`text-3xl md:text-5xl lg:text-6xl font-bold mb-4 text-white transition-all duration-700 ease-out ${
-              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-            style={{ transitionDelay: '100ms' }}
-          >
-            {league.name}
-          </h1>
-
-          {/* League Description */}
-          {league.description && (
-            <p
-              className={`text-base md:text-lg text-white/70 max-w-2xl mb-8 leading-relaxed transition-all duration-700 ease-out ${
-                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-              style={{ transitionDelay: '200ms' }}
-            >
-              {league.description}
-            </p>
-          )}
-
-          {/* CTA Buttons */}
+      <div className="relative container mx-auto px-4 py-16 md:py-20 lg:py-28">
+        <div className="grid items-end gap-10 lg:grid-cols-[1.22fr_0.78fr]">
           <div
-            className={`flex flex-col sm:flex-row gap-3 mb-12 transition-all duration-700 ease-out ${
-              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            className={`rounded-3xl border p-6 backdrop-blur-xl transition-all duration-700 md:p-8 ${panelClass} ${
+              isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
-            style={{ transitionDelay: '300ms' }}
           >
-            <Link
-              href={`/${leagueSlug}/schedule`}
-              className="px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 hover:brightness-110"
-              style={{
-                background: 'var(--league-primary)',
-              }}
-            >
-              <span className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                View Schedule
-              </span>
-            </Link>
+            <span className="inline-flex items-center rounded-full border border-[var(--league-primary)]/30 bg-[var(--league-primary)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
+              {sectionBadge}
+            </span>
 
-            <Link
-              href={`/${leagueSlug}/standings`}
-              className="px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 hover:bg-white/15"
-              style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-              }}
-            >
-              <span className="flex items-center gap-2">
-                <Trophy className="w-4 h-4" />
-                See Standings
+            <div className="mt-4 flex items-center gap-5">
+              {logoUrl ? (
+                <Image
+                  src={logoUrl}
+                  alt={`${league.name} logo`}
+                  width={128}
+                  height={128}
+                  className="h-28 w-28 rounded-2xl object-contain md:h-32 md:w-32"
+                  priority
+                />
+              ) : (
+                <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-[var(--league-primary)] text-4xl font-black text-[var(--color-accent-text)] md:h-32 md:w-32">
+                  {league.name.charAt(0)}
+                </div>
+              )}
+
+              <div className="min-w-0">
+                <p className="text-sm font-medium uppercase tracking-[0.15em] text-[var(--color-text-secondary)]">
+                  {tagline}
+                </p>
+                {location && (
+                  <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-hover)] px-2.5 py-1 text-xs text-[var(--color-text-secondary)]">
+                    <MapPin className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+                    {location}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <h1 className="mt-5 text-4xl font-black leading-[0.92] tracking-tight text-[var(--color-text-primary)] text-balance sm:text-5xl md:text-6xl lg:text-7xl">
+              {league.name}
+            </h1>
+
+            {description && (
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--color-text-secondary)] md:text-lg lg:text-xl">
+                {description}
+              </p>
+            )}
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
+                <ShieldCheck className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+                Verified League
               </span>
-            </Link>
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
+                <Users className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+                {stats.totalTeams} Teams
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
+                <Calendar className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+                {stats.upcomingGames} Upcoming
+              </span>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href={`/${leagueSlug}/schedule`}
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--league-primary)] px-6 py-3.5 text-sm font-bold text-[var(--color-accent-text)] shadow-lg shadow-[var(--league-glow-color)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[var(--league-glow-color)]"
+              >
+                <Calendar className="h-4 w-4" />
+                {ctaPrimaryText}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href={`/${leagueSlug}/standings`}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border-emphasis)] bg-[color-mix(in_srgb,var(--color-surface)_65%,transparent)] px-6 py-3.5 text-sm font-bold text-[var(--color-text-primary)] backdrop-blur-sm transition-all duration-200 hover:bg-[var(--color-surface-hover)] hover:border-[var(--league-primary)]"
+              >
+                <Trophy className="h-4 w-4 text-[var(--league-primary)]" />
+                Standings
+              </Link>
+              <Link
+                href={`/${leagueSlug}/scores`}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-transparent px-6 py-3.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-all duration-200 hover:border-[var(--color-border-emphasis)] hover:text-[var(--color-text-primary)]"
+              >
+                <TrendingUp className="h-4 w-4 text-[var(--league-primary)]" />
+                Latest Scores
+              </Link>
+            </div>
           </div>
 
-          {/* Stats Grid */}
           <div
-            className={`grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 w-full max-w-3xl transition-all duration-700 ease-out ${
-              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            className={`grid grid-cols-2 gap-3 transition-all duration-700 md:gap-4 ${
+              isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
-            style={{ transitionDelay: '400ms' }}
+            style={{ transitionDelay: '120ms' }}
           >
-            <StatCard
-              value={stats.totalTeams}
-              label="Teams"
-              icon={<Users className="w-4 h-4" />}
-            />
-            <StatCard
-              value={stats.totalPlayers}
-              label="Players"
-              icon={<Users className="w-4 h-4" />}
-            />
-            <StatCard
-              value={stats.gamesPlayed}
-              label="Games Played"
-              icon={<Calendar className="w-4 h-4" />}
-            />
-            <StatCard
-              value={stats.upcomingGames}
-              label="Upcoming"
-              icon={<TrendingUp className="w-4 h-4" />}
-            />
+            <StatCard value={stats.totalTeams} label="Teams" icon={<Users className="h-4 w-4" />} />
+            <StatCard value={stats.totalPlayers} label="Players" icon={<Users className="h-4 w-4" />} />
+            <StatCard value={stats.gamesPlayed} label="Games Played" icon={<Calendar className="h-4 w-4" />} />
+            <StatCard value={stats.upcomingGames} label="Upcoming" icon={<TrendingUp className="h-4 w-4" />} />
           </div>
         </div>
       </div>
-
-      {/* Bottom Gradient Fade */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-        style={{
-          background: 'linear-gradient(to top, #0a0a0a, transparent)',
-        }}
-      />
     </section>
   );
 }
