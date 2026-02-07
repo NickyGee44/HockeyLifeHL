@@ -309,7 +309,7 @@ test.describe('League Detail', () => {
 
   test('should display league details', async ({ page }) => {
     // Find and click on a league
-    const leagueCard = page.locator('a[href^="/dashboard/leagues/"]:not([href*="new"])').first();
+    const leagueCard = page.locator('a[href*="/dashboard/leagues/"]:not([href*="new"]):not([href$="/leagues"])').first();
 
     if (await leagueCard.isVisible()) {
       await leagueCard.click();
@@ -324,7 +324,7 @@ test.describe('League Detail', () => {
   });
 
   test('should navigate to league billing', async ({ page }) => {
-    const leagueCard = page.locator('a[href^="/dashboard/leagues/"]:not([href*="new"])').first();
+    const leagueCard = page.locator('a[href*="/dashboard/leagues/"]:not([href*="new"]):not([href$="/leagues"])').first();
 
     if (await leagueCard.isVisible()) {
       await leagueCard.click();
@@ -341,7 +341,7 @@ test.describe('League Detail', () => {
   });
 
   test('should navigate to league settings', async ({ page }) => {
-    const leagueCard = page.locator('a[href^="/dashboard/leagues/"]:not([href*="new"])').first();
+    const leagueCard = page.locator('a[href*="/dashboard/leagues/"]:not([href*="new"]):not([href$="/leagues"])').first();
 
     if (await leagueCard.isVisible()) {
       await leagueCard.click();

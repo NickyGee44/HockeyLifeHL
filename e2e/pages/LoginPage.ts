@@ -84,6 +84,12 @@ export class LoginPage extends BasePage {
 
 /**
  * Signup Page Object Model
+ *
+ * Updated for the new signup form which includes:
+ * - Full name, email, password fields
+ * - Organization/company name field
+ * - Separate Terms of Service and Privacy Policy checkboxes
+ * - Submit button disabled until both checkboxes are checked
  */
 export class SignupPage extends BasePage {
   // Locators
@@ -91,9 +97,11 @@ export class SignupPage extends BasePage {
   readonly passwordInput: Locator;
   readonly confirmPasswordInput: Locator;
   readonly fullNameInput: Locator;
+  readonly organizationNameInput: Locator;
   readonly signupButton: Locator;
   readonly loginLink: Locator;
   readonly termsCheckbox: Locator;
+  readonly privacyCheckbox: Locator;
   readonly errorMessage: Locator;
   readonly successMessage: Locator;
 
@@ -107,11 +115,14 @@ export class SignupPage extends BasePage {
     this.confirmPasswordInput = page.locator(
       'input[name*="confirm"], input[type="password"]:last-of-type'
     );
-    this.fullNameInput = page.locator('input[name="name"], input[name="fullName"], input[name="full_name"]');
+    this.fullNameInput = page.locator('input[name="name"], input[name="fullName"], input[name="full_name"], input#fullName');
+    this.organizationNameInput = page.locator('input[name="organizationName"], input#organizationName');
     this.signupButton = page.locator('button[type="submit"]');
     this.loginLink = page.locator('a:has-text("Log in"), a:has-text("Sign in")');
-    this.termsCheckbox = page.locator('input[type="checkbox"]');
-    this.errorMessage = page.locator('[role="alert"], .error-message, .text-red-500');
+    // Separate locators for the two required checkboxes
+    this.termsCheckbox = page.locator('input#acceptTerms');
+    this.privacyCheckbox = page.locator('input#acceptPrivacy');
+    this.errorMessage = page.locator('[role="alert"], .error-message, .text-red-400, .text-red-500');
     this.successMessage = page.locator('.text-green-500, [data-success]');
   }
 
@@ -122,8 +133,15 @@ export class SignupPage extends BasePage {
     email: string;
     password: string;
     fullName?: string;
+    organizationName?: string;
     acceptTerms?: boolean;
+    acceptPrivacy?: boolean;
   }): Promise<void> {
+    // Fill name if provided
+    if (data.fullName && (await this.fullNameInput.isVisible())) {
+      await this.fullNameInput.fill(data.fullName);
+    }
+
     await this.emailInput.fill(data.email);
     await this.passwordInput.fill(data.password);
 
@@ -132,14 +150,19 @@ export class SignupPage extends BasePage {
       await this.confirmPasswordInput.fill(data.password);
     }
 
-    // Fill name if field exists
-    if (data.fullName && (await this.fullNameInput.isVisible())) {
-      await this.fullNameInput.fill(data.fullName);
+    // Fill organization name if field exists
+    if (data.organizationName && (await this.organizationNameInput.isVisible())) {
+      await this.organizationNameInput.fill(data.organizationName);
     }
 
-    // Accept terms if checkbox exists
+    // Accept Terms of Service checkbox
     if (data.acceptTerms !== false && (await this.termsCheckbox.isVisible())) {
       await this.termsCheckbox.check();
+    }
+
+    // Accept Privacy Policy checkbox
+    if (data.acceptPrivacy !== false && (await this.privacyCheckbox.isVisible())) {
+      await this.privacyCheckbox.check();
     }
   }
 
@@ -157,8 +180,16 @@ export class SignupPage extends BasePage {
     email: string;
     password: string;
     fullName?: string;
+    organizationName?: string;
+    acceptTerms?: boolean;
+    acceptPrivacy?: boolean;
   }): Promise<void> {
-    await this.fillSignupForm(data);
+    await this.fillSignupForm({
+      ...data,
+      // Default both checkboxes to true for signup convenience
+      acceptTerms: data.acceptTerms ?? true,
+      acceptPrivacy: data.acceptPrivacy ?? true,
+    });
     await this.submitSignup();
   }
 

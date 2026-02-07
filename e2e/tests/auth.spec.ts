@@ -88,7 +88,15 @@ test.describe('Authentication', () => {
       await signupPage.fillSignupForm({
         email: 'notanemail',
         password: '123', // Too short
+        acceptTerms: true,
       });
+
+      // The signup page now requires both terms and privacy checkboxes
+      // Check both so the submit button becomes enabled
+      const privacyCheckbox = page.locator('input#acceptPrivacy');
+      if (await privacyCheckbox.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await privacyCheckbox.check();
+      }
 
       await signupPage.submitSignup();
 
@@ -101,10 +109,13 @@ test.describe('Authentication', () => {
       await signupPage.goto();
 
       // Try to signup with existing test user email
+      // The signup page now requires both terms and privacy checkboxes
       await signupPage.signup({
         email: process.env.E2E_TEST_USER_EMAIL || TEST_USERS.organizer.email,
         password: 'TestPassword123!',
         fullName: 'Duplicate User',
+        acceptTerms: true,
+        acceptPrivacy: true,
       });
 
       // Should show error about existing account
@@ -123,6 +134,9 @@ test.describe('Authentication', () => {
         email: uniqueEmail,
         password: 'TestPassword123!',
         fullName: 'E2E New User',
+        organizationName: 'E2E Test Org',
+        acceptTerms: true,
+        acceptPrivacy: true,
       });
 
       // Should redirect to verification or dashboard
@@ -207,6 +221,9 @@ test.describe('User Onboarding Journey', () => {
         email: testEmail,
         password: testPassword,
         fullName: 'E2E Onboarding User',
+        organizationName: 'E2E Test Organization',
+        acceptTerms: true,
+        acceptPrivacy: true,
       });
 
       // Wait for email verification or auto-login

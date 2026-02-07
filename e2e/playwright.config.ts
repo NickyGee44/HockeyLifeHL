@@ -74,8 +74,8 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
-      // Exclude auth tests - they run in unauthenticated project
-      testIgnore: /auth\.spec\.ts/,
+      // Exclude auth and league-site tests - they run in their own projects
+      testIgnore: [/auth.*\.spec\.ts/, /league-site.*\.spec\.ts/],
     },
 
     {
@@ -95,8 +95,8 @@ export default defineConfig({
         actionTimeout: 30000, // 30 seconds for actions
       },
       dependencies: ['setup'],
-      // Exclude auth tests - they run in unauthenticated project
-      testIgnore: /auth\.spec\.ts/,
+      // Exclude auth and league-site tests - they run in their own projects
+      testIgnore: [/auth.*\.spec\.ts/, /league-site.*\.spec\.ts/],
     },
 
     {
@@ -110,8 +110,8 @@ export default defineConfig({
         },
       },
       dependencies: ['setup'],
-      // Exclude auth tests - they run in unauthenticated project
-      testIgnore: /auth\.spec\.ts/,
+      // Exclude auth and league-site tests - they run in their own projects
+      testIgnore: [/auth.*\.spec\.ts/, /league-site.*\.spec\.ts/],
     },
 
     /* Test against mobile viewports */
@@ -122,16 +122,27 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
-      // Exclude auth tests - they run in unauthenticated project
-      testIgnore: /auth\.spec\.ts/,
+      // Exclude auth and league-site tests - they run in their own projects
+      testIgnore: [/auth.*\.spec\.ts/, /league-site.*\.spec\.ts/],
     },
 
-    /* Unauthenticated tests (signup, login) */
+    /* Unauthenticated tests (signup, login, locale-aware auth pages) */
     {
       name: 'unauthenticated',
-      testMatch: /auth\.spec\.ts/,
+      testMatch: /auth.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+
+    /* League Sites smoke tests (targets port 3001) */
+    {
+      name: 'league-sites',
+      testMatch: /league-site.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.LEAGUE_SITES_URL || 'http://localhost:3001',
         storageState: { cookies: [], origins: [] },
       },
     },
