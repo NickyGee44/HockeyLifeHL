@@ -30,7 +30,7 @@ export default function LoginPage() {
       }
 
       router.push('/');
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -131,7 +131,7 @@ export default function LoginPage() {
       {/* Footer */}
       <div className="mt-auto pt-8 pb-4 text-center">
         <p className="text-xs text-neutral-600">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <a href="https://hockeylifehl.com/signup" className="text-gold-500">
             Sign up
           </a>
