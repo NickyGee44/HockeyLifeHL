@@ -14,11 +14,11 @@ on:
 
 env:
   # Supabase test environment
-  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://placeholder.supabase.co' }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'placeholder' }}
   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
   # Stripe test keys
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_TEST }}
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_TEST || 'pk_test_placeholder' }}
   STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
   STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_TEST }}
   # Test user credentials
@@ -53,6 +53,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
+        working-directory: e2e
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Build application
@@ -61,8 +62,8 @@ jobs:
           NODE_ENV: production
 
       - name: Run E2E tests
+        working-directory: e2e
         run: pnpm exec playwright test --project=chromium
-        continue-on-error: false
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -83,7 +84,7 @@ jobs:
           retention-days: 7
 
       - name: Notify on failure
-        if: failure() && github.ref == 'refs/heads/main'
+        if: failure() && github.ref == 'refs/heads/main' && secrets.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
@@ -162,6 +163,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install all Playwright browsers
+        working-directory: e2e
         run: pnpm exec playwright install --with-deps
 
       - name: Build application
@@ -170,6 +172,7 @@ jobs:
           NODE_ENV: production
 
       - name: Run E2E tests (all browsers)
+        working-directory: e2e
         run: pnpm exec playwright test
 
       - name: Upload test report
@@ -205,12 +208,14 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
+        working-directory: e2e
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Build application
         run: pnpm --filter league-builder build
 
       - name: Run visual tests
+        working-directory: e2e
         run: pnpm exec playwright test --project=chromium --grep @visual
         env:
           PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}

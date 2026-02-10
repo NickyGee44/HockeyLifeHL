@@ -3,9 +3,6 @@ import { Page, Locator, expect } from '@playwright/test';
 // Default locale for URLs
 const DEFAULT_LOCALE = 'en';
 
-// Routes that exist under [locale] - add locale prefix
-const LOCALE_ROUTES = ['/dashboard', '/login', '/signup'];
-
 /**
  * Base Page Object
  * Contains common methods and utilities used across all pages
@@ -18,9 +15,11 @@ export abstract class BasePage {
   constructor(page: Page, url: string = '/', locale: string = DEFAULT_LOCALE) {
     this.page = page;
     this.locale = locale;
-    // Add locale prefix for routes that require it
-    const needsLocale = LOCALE_ROUTES.some(route => url === route || url.startsWith(route + '/'));
-    this.url = needsLocale ? `/${locale}${url}` : url;
+    // All app routes live under [locale] — always add locale prefix
+    // unless already prefixed or it's a root path
+    const alreadyPrefixed = url.startsWith(`/${locale}/`) || url === `/${locale}`;
+    const isRoot = url === '/';
+    this.url = (!isRoot && !alreadyPrefixed) ? `/${locale}${url}` : url;
   }
 
   /**
