@@ -39,14 +39,14 @@ export default function AuthLayout({
               href="/privacy"
               className="hover:text-rink-500 transition-colors"
             >
-              {t('footer.legal.privacy')}
+              {t('homepage.footer.legal.privacy')}
             </Link>
             <span>|</span>
             <Link
               href="/terms"
               className="hover:text-rink-500 transition-colors"
             >
-              {t('footer.legal.terms')}
+              {t('homepage.footer.legal.terms')}
             </Link>
           </div>
         </div>
