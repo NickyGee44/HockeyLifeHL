@@ -31,7 +31,7 @@ interface PlayerGridProps {
 
 export function PlayerGrid({ players, leagueSlug, badges }: PlayerGridProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       {players.map((player) => (
         <PlayerCard
           key={player.id}
@@ -102,8 +102,8 @@ function PlayerCard({
       </div>
 
       {/* Info */}
-      <div className="p-3">
-        <h3 className="font-medium text-[var(--color-text-primary)] truncate group-hover:text-[var(--league-primary)] transition-colors">
+      <div className="p-4">
+        <h3 className="text-base font-medium text-[var(--color-text-primary)] truncate group-hover:text-[var(--league-primary)] transition-colors">
           {name}
         </h3>
         {playerBadges && playerBadges.length > 0 && (
@@ -118,8 +118,8 @@ function PlayerCard({
                 <Image
                   src={player.team.logo}
                   alt={player.team.name}
-                  width={16}
-                  height={16}
+                  width={24}
+                  height={24}
                   className="rounded"
                 />
               )}

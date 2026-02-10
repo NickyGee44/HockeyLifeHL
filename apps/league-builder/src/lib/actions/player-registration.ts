@@ -1328,6 +1328,53 @@ export async function rejectRegistration(
 }
 
 /**
+ * Move a registration to the waitlist
+ */
+export async function waitlistRegistration(
+  registrationId: string
+): ActionResult {
+  try {
+    const supabase = await createClient();
+
+    const { data: registration } = await supabase
+      .from('registration_submissions')
+      .select('league_id')
+      .eq('id', registrationId)
+      .single();
+
+    if (!registration) {
+      return { success: false, error: 'Registration not found.' };
+    }
+
+    const result = await verifyLeagueAdminAccess(registration.league_id);
+    if ('error' in result) {
+      return { success: false, error: result.error || 'Access denied' };
+    }
+
+    const { error } = await supabase
+      .from('registration_submissions')
+      .update({
+        status: 'waitlisted',
+        reviewed_by: result.userId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', registrationId);
+
+    if (error) {
+      console.error('Waitlist registration error:', error);
+      return { success: false, error: 'Failed to waitlist registration.' };
+    }
+
+    revalidatePath('/dashboard');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Waitlist registration error:', error);
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+/**
  * Bulk update registrations
  */
 export async function bulkUpdateRegistrations(

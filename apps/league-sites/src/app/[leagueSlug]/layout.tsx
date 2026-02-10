@@ -94,7 +94,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
       <AuthProvider>
         <PreviewModeProvider>
           <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
-            <div className={`min-h-screen flex flex-col ${templateClass}`}>
+            <div className={`relative z-[1] min-h-screen flex flex-col ${templateClass}`}>
               <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
               <LeagueHeader
                 league={league}

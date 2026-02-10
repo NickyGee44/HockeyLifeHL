@@ -11,6 +11,7 @@ import {
   getTeamSeasonStats,
   getPlayerLeaders,
   getTeamGoalies,
+  getGameRecap,
 } from '@/lib/data';
 import { GamePreviewHeader } from '@/components/game/GamePreviewHeader';
 import { PlayerStatsComparison } from '@/components/game/PlayerStatsComparison';
@@ -18,6 +19,7 @@ import { SeasonSeriesCard } from '@/components/game/SeasonSeriesCard';
 import { TeamStatsComparison } from '@/components/game/TeamStatsComparison';
 import { GoalieComparison } from '@/components/game/GoalieComparison';
 import { TeamLogo } from '@/components/shared/TeamLogo';
+import { GameRecapSection } from '@/components/game/GameRecapSection';
 
 interface GamePageProps {
   params: Promise<{ leagueSlug: string; gameId: string }>;
@@ -69,6 +71,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
     awayLeaders,
     homeGoalies,
     awayGoalies,
+    gameRecap,
   ] = await Promise.all([
     getSeasonSeries(game.home_team.id, game.away_team.id, game.season_id),
     getFutureMatchups(game.home_team.id, game.away_team.id, game.season_id),
@@ -78,6 +81,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
     getPlayerLeaders(game.away_team.id, game.season_id, 'points'),
     getTeamGoalies(game.home_team.id, game.season_id),
     getTeamGoalies(game.away_team.id, game.season_id),
+    getGameRecap(gameId),
   ]);
 
   // Parse team colors for future matchups
@@ -95,6 +99,11 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
         awayTeam={game.away_team}
         leagueSlug={leagueSlug}
       />
+
+      {/* AI Game Recap */}
+      {gameRecap && game.status === 'completed' && (
+        <GameRecapSection recap={gameRecap} leagueSlug={leagueSlug} />
+      )}
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

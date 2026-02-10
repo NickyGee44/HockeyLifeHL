@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Newspaper } from 'lucide-react';
-import { getLeagueBySlug, getNewsArticles } from '@/lib/data';
+import { getLeagueBySlug, getAllArticles } from '@/lib/data';
 import { NewsList } from '@/components/news/NewsList';
 
 interface NewsPageProps {
@@ -25,7 +25,7 @@ export default async function NewsPage({ params }: NewsPageProps) {
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) return null;
 
-  const articles = await getNewsArticles(league.id);
+  const articles = await getAllArticles(league.id);
 
   return (
     <div className="container mx-auto px-4 py-8">

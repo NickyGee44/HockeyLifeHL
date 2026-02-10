@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import { LeagueLogo } from '@/components/ui/league-logo';
+import { AddOnsSection } from '@/components/billing/AddOnsSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -198,6 +199,12 @@ export default async function BillingSettingsPage({ params }: Props) {
           </div>
         )}
       </div>
+
+      {/* Premium Add-Ons Section */}
+      <AddOnsSection
+        orgId={organization.id}
+        hasStripeCustomer={!!organization.stripe_customer_id}
+      />
 
       {/* Premium Services Section */}
       <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-6">

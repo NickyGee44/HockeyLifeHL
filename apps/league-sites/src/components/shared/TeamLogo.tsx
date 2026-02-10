@@ -4,7 +4,7 @@ interface TeamLogoProps {
   logoUrl: string | null;
   teamName: string;
   teamColor?: string | null;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 }
 
 const sizeMap = {
@@ -13,6 +13,8 @@ const sizeMap = {
   md: 48,
   lg: 64,
   xl: 96,
+  '2xl': 128,
+  '3xl': 160,
 } as const;
 
 /**
@@ -38,6 +40,8 @@ export function TeamLogo({
     md: 'text-lg',
     lg: 'text-2xl',
     xl: 'text-4xl',
+    '2xl': 'text-5xl',
+    '3xl': 'text-6xl',
   } as const;
 
   if (logoUrl) {

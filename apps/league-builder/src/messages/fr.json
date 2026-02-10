@@ -478,6 +478,35 @@
       "pending": "En attente",
       "overdue": "En retard",
       "cancelled": "Annulee"
+    },
+    "addons": {
+      "title": "Extensions premium",
+      "description": "Ameliorez votre ligue avec des fonctionnalites premium puissantes",
+      "platform_subscription": {
+        "name": "Plateforme mensuelle",
+        "description": "Support prioritaire, branding personnalise et outils d'administration avances"
+      },
+      "advanced_stats": {
+        "name": "Stats avancees",
+        "description": "Analyses approfondies, comparaisons de joueurs et suivi des stats de la ligue"
+      },
+      "ai_news": {
+        "name": "Redacteur IA",
+        "description": "Recaps de matchs generes automatiquement, resumes hebdomadaires et portraits de joueurs"
+      },
+      "statusActive": "Actif",
+      "renewsOn": "Renouvellement le {date}",
+      "cancellingAtPeriodEnd": "Annulation a la fin de la periode de facturation",
+      "pastDue": "Paiement en retard - veuillez mettre a jour votre mode de paiement",
+      "activate": "Activer",
+      "cancelSubscription": "Annuler l'abonnement",
+      "activationFailed": "Echec de l'activation",
+      "cancelledSuccess": "Abonnement marque pour annulation",
+      "cancelFailed": "Echec de l'annulation de l'abonnement"
+    },
+    "portal": {
+      "manage": "Gerer la facturation",
+      "error": "Echec de l'ouverture du portail de facturation"
     }
   },
   "notifications": {
@@ -569,8 +598,58 @@
       "alreadyOnRoster": "Deja dans la formation",
       "importSuccess": "{count} joueurs importes avec succes",
       "importError": "Echec de l'importation de certains joueurs",
-      "noPlayersToImport": "Aucun joueur disponible a importer"
+      "noPlayersToImport": "Aucun joueur disponible a importer",
+      "playerType": "Type de joueur",
+      "regular": "Regulier",
+      "sub": "Substitut",
+      "partTime": "Temps partiel"
+    },
+    "attendance": {
+      "title": "Presence de l'equipe",
+      "confirmed": "Confirme",
+      "tentative": "Incertain",
+      "out": "Absent",
+      "noResponse": "Pas de reponse",
+      "shortRoster": "Formation incomplete",
+      "requestSub": "Demander un substitut",
+      "loading": "Chargement des presences..."
+    },
+    "subs": {
+      "inviteSub": "Inviter un substitut",
+      "searchPlayers": "Rechercher par nom ou courriel...",
+      "noSubsAvailable": "Aucun joueur substitut disponible dans cette ligue",
+      "registerAsSub": "Les joueurs doivent etre inscrits comme substituts ou joueurs a temps partiel",
+      "optionalMessage": "Message optionnel au joueur...",
+      "invited": "Invite",
+      "invite": "Inviter",
+      "done": "Termine",
+      "alreadyInvited": "Ce joueur a deja ete invite a ce match",
+      "subInvitations": "Invitations de substitut",
+      "needsSub": "{team} a besoin d'un substitut",
+      "invitedBy": "Invite par {name}",
+      "accept": "Accepter",
+      "decline": "Refuser"
     }
+  },
+  "checkin": {
+    "upcomingGames": "Matchs a venir",
+    "joinTeamPrompt": "Rejoignez une equipe pour voir vos matchs a venir",
+    "noGames": "Aucun match a venir",
+    "rsvp": "RSVP",
+    "in": "Present",
+    "maybe": "Peut-etre",
+    "out": "Absent",
+    "updating": "Mise a jour...",
+    "showAllSeason": "Afficher tous les matchs de la saison",
+    "showLess": "Afficher moins",
+    "showMoreWeeks": "Afficher {count} semaines de plus",
+    "markAllIn": "Tout marquer present ({count} restants)",
+    "thisWeek": "Cette semaine",
+    "nextWeek": "Semaine prochaine",
+    "weekOf": "Semaine du {start} au {end}",
+    "confirmed": "confirme",
+    "games": "{count, plural, =1 {1 match} other {# matchs}}",
+    "bulkCheckin": "Confirmation groupee"
   },
   "season": {
     "new": "Nouvelle saison",
@@ -729,7 +808,14 @@
     "noArticles": "Aucun article pour le moment. Creez votre premier article !",
     "save": "Enregistrer l'article",
     "create": "Creer l'article",
-    "confirmDelete": "Etes-vous sur de vouloir supprimer cet article ?"
+    "confirmDelete": "Etes-vous sur de vouloir supprimer cet article ?",
+    "aiGenerated": "Généré par IA",
+    "gameRecap": "Résumé de match",
+    "weeklyWrap": "Bilan hebdomadaire",
+    "regenerate": "Régénérer",
+    "addPhoto": "Ajouter une photo",
+    "aiNewsNotEnabled": "Le rédacteur IA n'est pas activé pour cette ligue.",
+    "enableAiNews": "Activer AI News - 14,99 $/mois"
   },
   "sponsors": {
     "title": "Commanditaires",
@@ -1069,5 +1155,214 @@
     "recalculated": "Statistiques recalculees. Score final : {home} - {away}",
     "noEvents": "Aucun evenement trouve",
     "deleted": "Supprime"
+  },
+  "eligibility": {
+    "title": "Admissibilite aux eliminatoires",
+    "description": "Voir et gerer l'admissibilite aux eliminatoires pour toutes les equipes",
+    "settings": "Parametres d'admissibilite",
+    "minGamesPct": "Minimum de matchs joues (%)",
+    "minGamesPctHint": "Pourcentage des matchs de l'equipe qu'un joueur doit jouer",
+    "minGames": "Minimum de matchs (absolu)",
+    "minGamesHint": "Minimum requis independamment du pourcentage",
+    "saveSettings": "Enregistrer les parametres",
+    "settingsSaved": "Parametres enregistres. Rechargez pour voir l'admissibilite mise a jour.",
+    "noRulesTitle": "Aucune regle d'admissibilite configuree",
+    "noRulesDescription": "Definissez un pourcentage minimum de matchs ou un minimum absolu ci-dessus pour activer le suivi de l'admissibilite.",
+    "enableToggle": "Exiger un minimum de matchs pour l'admissibilite aux eliminatoires",
+    "enabledHint": "Les joueurs qui ne remplissent pas le minimum de matchs seront marques comme inadmissibles aux eliminatoires. Les capitaines peuvent voir le statut d'admissibilite sur leur effectif.",
+    "disabledHint": "Tous les joueurs inscrits seront admissibles aux eliminatoires quel que soit le nombre de matchs joues. Vous pouvez activer les regles d'admissibilite plus tard dans les parametres de votre saison.",
+    "totalPlayers": "Total des joueurs",
+    "eligible": "Admissibles",
+    "ineligible": "Inadmissibles",
+    "filterByTeam": "Filtrer par equipe",
+    "allTeams": "Toutes les equipes",
+    "player": "Joueur",
+    "jerseyNumber": "#",
+    "gamesPlayed": "MJ",
+    "gamesPlayedPct": "%",
+    "eligibleColumn": "Admissible",
+    "gpOverride": "MJ manuels",
+    "needsMore": "Besoin de {count} de plus",
+    "of": "sur",
+    "playoffEligibility": "Admissibilite aux eliminatoires",
+    "sectionTitle": "Admissibilite aux eliminatoires",
+    "sectionDescription": "Definissez les exigences minimales de matchs pour que les joueurs soient admissibles aux eliminatoires."
+  },
+  "registrations": {
+    "admin": {
+      "title": "Gestion des inscriptions",
+      "subtitle": "Examiner et gerer les demandes d'inscription des joueurs",
+      "noResults": "Aucune inscription trouvee",
+      "noResultsDescription": "Aucune inscription de joueur ne correspond a vos filtres actuels.",
+      "filters": {
+        "search": "Rechercher par nom ou courriel...",
+        "status": "Statut",
+        "type": "Type d'inscription",
+        "season": "Saison",
+        "allStatuses": "Tous les statuts",
+        "allTypes": "Tous les types",
+        "allSeasons": "Toutes les saisons",
+        "clearAll": "Tout effacer",
+        "activeFilters": "Filtres actifs"
+      },
+      "table": {
+        "player": "Joueur",
+        "email": "Courriel",
+        "position": "Position",
+        "skill": "Niveau de competence",
+        "team": "Equipe",
+        "waiver": "Decharge",
+        "payment": "Paiement",
+        "status": "Statut",
+        "submitted": "Soumise",
+        "actions": "Actions",
+        "showing": "Affichage {from}-{to} sur {total}"
+      },
+      "actions": {
+        "approve": "Approuver",
+        "reject": "Rejeter",
+        "waitlist": "Liste d'attente",
+        "viewDetails": "Voir les details",
+        "expand": "Developper",
+        "collapse": "Reduire"
+      },
+      "status": {
+        "pending": "En attente",
+        "approved": "Approuvee",
+        "rejected": "Rejetee",
+        "waitlisted": "En liste d'attente",
+        "cancelled": "Annulee"
+      },
+      "bulk": {
+        "selected": "{count} selectionne(s)",
+        "approveAll": "Tout approuver",
+        "rejectAll": "Tout rejeter",
+        "waitlistAll": "Tout mettre en liste d'attente"
+      },
+      "stats": {
+        "total": "Total",
+        "pending": "En attente",
+        "approved": "Approuvees",
+        "rejected": "Rejetees",
+        "waitlisted": "En liste d'attente"
+      },
+      "detail": {
+        "personalInfo": "Informations personnelles",
+        "emergencyContact": "Contact d'urgence",
+        "skillAssessment": "Evaluation des competences",
+        "preferences": "Preferences",
+        "waiverStatus": "Decharge",
+        "paymentStatus": "Paiement",
+        "reviewHistory": "Historique de revision",
+        "contact": "Contact",
+        "playingDetails": "Details de jeu",
+        "additional": "Supplementaire"
+      },
+      "toast": {
+        "approved": "Inscription approuvee",
+        "rejected": "Inscription rejetee",
+        "waitlisted": "Inscription mise en liste d'attente",
+        "bulkUpdated": "{count} inscriptions mises a jour",
+        "noneSelected": "Aucune inscription selectionnee"
+      },
+      "payment": {
+        "notRequired": "S/O",
+        "pending": "En attente",
+        "paid": "Paye",
+        "failed": "Echoue",
+        "refunded": "Rembourse"
+      },
+      "waiver": {
+        "signed": "Signee",
+        "missing": "Manquante"
+      }
+    }
+  },
+  "scorekeeper": {
+    "title": "Marqueur",
+    "tokenEntry": {
+      "heading": "Acces marqueur",
+      "description": "Entrez votre jeton de marqueur pour commencer",
+      "placeholder": "Entrez le jeton (ex. ABC123XYZ)",
+      "submit": "Commencer le pointage",
+      "validating": "Validation...",
+      "invalidToken": "Jeton expire ou invalide",
+      "enterToken": "Veuillez entrer un jeton",
+      "helpText": "Votre jeton a ete fourni par l'administrateur de la ligue. Contactez-le si vous en avez besoin d'un nouveau."
+    },
+    "gameSelector": {
+      "heading": "Vos matchs",
+      "description": "Selectionnez un match a marquer",
+      "live": "En cours",
+      "done": "Termine"
+    },
+    "timer": {
+      "startGame": "Commencer le match",
+      "start": "Demarrer le chrono",
+      "stop": "Arreter le chrono",
+      "endPeriod": "Fin de periode",
+      "startOT": "Prolongation",
+      "startPeriod": "Commencer P{period}"
+    },
+    "scoring": {
+      "selectTeam": "Selectionnez une equipe et appuyez sur une action ci-dessous",
+      "noEvents": "Aucun evenement enregistre. Selectionnez une equipe et appuyez sur une action ci-dessous.",
+      "home": "Domicile",
+      "away": "Visiteur",
+      "vs": "c.",
+      "all": "Tous"
+    },
+    "actions": {
+      "goal": "But",
+      "penalty": "Punition",
+      "save": "Arret",
+      "undo": "Annuler"
+    },
+    "goal": {
+      "confirmTitle": "Confirmer le but",
+      "scorer": "BUT",
+      "assist1": "PAS 1",
+      "assist2": "PAS 2",
+      "selectScorer": "Buteur",
+      "selectAssist1": "Premiere passe (optionnel)",
+      "selectAssist2": "Deuxieme passe (optionnel)",
+      "unassisted": "But sans aide",
+      "noSecondAssist": "Pas de deuxieme passe",
+      "confirm": "Confirmer le but",
+      "saving": "Sauvegarde..."
+    },
+    "penalty": {
+      "confirmTitle": "Confirmer la punition",
+      "selectPlayer": "Punition - Choisir un joueur",
+      "selectType": "Choisir le type de punition",
+      "player": "JOUEUR",
+      "type": "TYPE",
+      "time": "TEMPS",
+      "minutes": "{minutes} minutes",
+      "showAll": "Voir toutes les punitions",
+      "confirm": "Confirmer la punition",
+      "saving": "Sauvegarde..."
+    },
+    "shot": {
+      "selectGoalie": "Quel gardien a fait l'arret?",
+      "selectShooter": "Tire par (optionnel)",
+      "saveWithoutShooter": "Arret sans tireur",
+      "saving": "Sauvegarde..."
+    },
+    "goalie": {
+      "pullGoalie": "Retirer le gardien",
+      "returnGoalie": "Remettre le gardien"
+    },
+    "flags": {
+      "pp": "AN",
+      "sh": "DN",
+      "en": "FD",
+      "gwg": "BV"
+    },
+    "status": {
+      "live": "EN COURS",
+      "scheduled": "PREVU",
+      "completed": "TERMINE"
+    }
   }
 }

@@ -5,14 +5,13 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  Activity,
   Calendar,
   Trophy,
   Users,
   BarChart3,
   Info,
   Newspaper,
-  CalendarDays,
+  Crown,
   Camera,
   Menu,
   X,
@@ -33,13 +32,12 @@ interface LeagueHeaderProps {
 }
 
 const navItems = [
-  { href: '/scores', label: 'Scores', icon: Activity },
   { href: '/schedule', label: 'Schedule', icon: Calendar },
   { href: '/standings', label: 'Standings', icon: Trophy },
   { href: '/teams', label: 'Teams', icon: Users },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
   { href: '/news', label: 'News', icon: Newspaper },
-  { href: '/events', label: 'Events', icon: CalendarDays },
+  { href: '/history', label: 'History', icon: Crown },
   { href: '/gallery', label: 'Gallery', icon: Camera },
   { href: '/about', label: 'About', icon: Info },
 ];
@@ -87,17 +85,17 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
 
       <div className="mx-auto max-w-[1400px] px-6">
         <div className="flex h-[64px] items-center gap-4">
-          <Link href={`/${leagueSlug}`} className="group flex shrink-0 items-center gap-2.5">
+          <Link href={`/${leagueSlug}`} className="group relative z-10 flex shrink-0 items-center gap-3 -my-2 md:-my-7">
             {logoUrl ? (
               <Image
                 src={logoUrl}
                 alt={`${league.name} logo`}
-                width={40}
-                height={40}
-                className="h-10 w-10 rounded-lg object-contain"
+                width={120}
+                height={120}
+                className="h-[80px] w-[80px] md:h-[120px] md:w-[120px] rounded-xl object-contain drop-shadow-lg"
               />
             ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--league-primary)] text-sm font-black text-[var(--color-accent-text)]">
+              <div className="flex h-[80px] w-[80px] md:h-[120px] md:w-[120px] items-center justify-center rounded-xl bg-[var(--league-primary)] text-2xl md:text-3xl font-black text-[var(--color-accent-text)] drop-shadow-lg">
                 {initials.slice(0, 3)}
               </div>
             )}

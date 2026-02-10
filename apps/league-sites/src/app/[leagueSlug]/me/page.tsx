@@ -7,6 +7,7 @@ import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
 import { MyTeamCard } from '@/components/dashboard/MyTeamCard';
 import { MyUpcomingGames } from '@/components/dashboard/MyUpcomingGames';
+import { MySubInvitations } from '@/components/dashboard/MySubInvitations';
 import { MyRecentResults } from '@/components/dashboard/MyRecentResults';
 import { MyStats } from '@/components/dashboard/MyStats';
 import { QuickActions } from '@/components/dashboard/QuickActions';
@@ -157,6 +158,13 @@ export default function PlayerDashboard() {
           >
             Pay Now
           </a>
+        </div>
+      )}
+
+      {/* Sub Invitations (only shown if there are pending invites) */}
+      {league?.id && (
+        <div className="mb-6">
+          <MySubInvitations leagueId={league.id} />
         </div>
       )}
 

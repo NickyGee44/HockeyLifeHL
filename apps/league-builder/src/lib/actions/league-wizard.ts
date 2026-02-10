@@ -109,6 +109,9 @@ export async function saveDraft(
           game_duration_minutes: data.game_duration_minutes,
           period_count: data.period_count,
           scorekeeping_mode: data.scorekeeping_mode ?? 'self_scorekeeping',
+          playoff_eligibility_enabled: data.playoff_eligibility_enabled ?? false,
+          playoff_eligibility_min_games_pct: data.playoff_eligibility_min_games_pct ?? 60,
+          playoff_eligibility_min_games: data.playoff_eligibility_min_games ?? null,
           // Step 4 - Teams
           teams: data.teams || [],
           // Step 5 - Website & Pages
@@ -463,6 +466,7 @@ export async function createLeague(
           scorekeepingMode: data.scorekeeping_mode ?? 'self_scorekeeping',
           allowPlayerRegistration: true,
           requireApproval: data.registration_type !== 'open',
+          isDraftLeague: data.registration_type === 'draft',
           emailNotifications: true,
           allowTrades: false,
           // Organization business info
@@ -565,10 +569,11 @@ export async function createLeague(
       // Map wizard registration_type to database enum values
       const registrationTypeMap: Record<string, string> = {
         'open': 'open_registration',
-        'approval_required': 'draft',
+        'approval_required': 'open_registration',
         'invite_only': 'captain_invite_only',
+        'draft': 'draft',
       };
-      const dbRegistrationType = registrationTypeMap[data.registration_type] || 'draft';
+      const dbRegistrationType = registrationTypeMap[data.registration_type] || 'open_registration';
 
       const { data: season, error: seasonError } = await (serviceSupabase
         .from('seasons') as any)
@@ -583,6 +588,12 @@ export async function createLeague(
           status: 'active', // Valid enum: active, playoffs, completed, draft, archived
           game_duration_minutes: data.game_duration_minutes,
           period_count: data.period_count,
+          playoff_eligibility_min_games_pct: data.playoff_eligibility_enabled
+            ? data.playoff_eligibility_min_games_pct
+            : null,
+          playoff_eligibility_min_games: data.playoff_eligibility_enabled
+            ? data.playoff_eligibility_min_games
+            : null,
         })
         .select('id')
         .single();

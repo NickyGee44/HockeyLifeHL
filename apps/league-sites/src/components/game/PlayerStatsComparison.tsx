@@ -149,12 +149,12 @@ function PlayerStatRow({ player, maxValue, color, align }: PlayerStatRowProps) {
           <img
             src={player.avatar_url}
             alt={player.player_name}
-            className="w-7 h-7 rounded-full object-cover border-2 flex-shrink-0"
+            className="w-10 h-10 rounded-full object-cover border-2 flex-shrink-0"
             style={{ borderColor: color }}
           />
         ) : (
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
             style={{ backgroundColor: color }}
           >
             {player.player_name.charAt(0)}

@@ -13,12 +13,12 @@ export const DEFAULT_COLORS = {
 } as const;
 
 export const DEFAULT_VISIBLE_PAGES: Record<string, boolean> = {
-  scores: true,
   schedule: true,
   standings: true,
   teams: true,
   stats: true,
   about: true,
+  history: false,
 };
 
 export const COLOR_PRESETS = [

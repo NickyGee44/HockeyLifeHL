@@ -85,7 +85,7 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
       <div className="pointer-events-none absolute -left-20 top-16 h-56 w-56 rounded-full bg-[var(--league-primary)]/20 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-[var(--league-accent)]/20 blur-3xl" />
 
-      <div className="relative container mx-auto px-4 py-10 md:py-14 lg:py-16">
+      <div className="relative container mx-auto px-4 py-8 md:py-10 lg:py-12">
         <div className="mx-auto max-w-6xl">
           <div
             className={`rounded-3xl border p-6 backdrop-blur-xl transition-all duration-700 md:p-8 ${panelClass} ${
@@ -101,13 +101,13 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
                 <Image
                   src={logoUrl}
                   alt={`${league.name} logo`}
-                  width={128}
-                  height={128}
-                  className="h-28 w-28 rounded-2xl object-contain md:h-32 md:w-32"
+                  width={176}
+                  height={176}
+                  className="h-36 w-36 rounded-2xl object-contain md:h-44 md:w-44"
                   priority
                 />
               ) : (
-                <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-[var(--league-primary)] text-4xl font-black text-[var(--color-accent-text)] md:h-32 md:w-32">
+                <div className="flex h-36 w-36 items-center justify-center rounded-2xl bg-[var(--league-primary)] text-5xl font-black text-[var(--color-accent-text)] md:h-44 md:w-44">
                   {league.name.charAt(0)}
                 </div>
               )}

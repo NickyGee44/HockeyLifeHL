@@ -1315,6 +1315,11 @@ export async function finalizeGameStats(gameId: string): Promise<{
       })
       .eq('id', gameId);
 
+    // Fire-and-forget: generate AI game recap
+    supabase.functions.invoke('generate-ai-article', {
+      body: { action: 'game_recap', game_id: gameId },
+    }).catch(() => {});
+
     return { success: true };
   } catch (error) {
     console.error('Finalize stats error:', error);

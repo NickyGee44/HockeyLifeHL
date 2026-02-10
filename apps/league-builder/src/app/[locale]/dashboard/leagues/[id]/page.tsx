@@ -20,6 +20,7 @@ import {
   LayoutGrid,
   Newspaper,
   Handshake,
+  Shuffle,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 
@@ -50,7 +51,8 @@ export default async function LeagueDetailPage({ params }: Props) {
         name,
         status,
         start_date,
-        end_date
+        end_date,
+        registration_type
       )
     `)
     .eq('id', leagueId)
@@ -167,6 +169,15 @@ export default async function LeagueDetailPage({ params }: Props) {
 
         {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          {(league.seasons as any[])?.some((s: any) => s.registration_type === 'draft') && (
+            <QuickActionButton
+              href={`/${locale}/dashboard/leagues/${leagueId}/draft`}
+              icon={<Shuffle className="w-5 h-5" />}
+              title="Draft Room"
+              description="Set up and run the live draft"
+              highlight
+            />
+          )}
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/teams`}
             icon={<Users className="w-5 h-5" />}

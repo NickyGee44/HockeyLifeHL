@@ -110,7 +110,7 @@ export function GamePreviewHeader({
                 logoUrl={awayTeam.logo}
                 teamName={awayTeam.name}
                 teamColor={awayPrimary}
-                size="xl"
+                size="2xl"
               />
             </Link>
             <div>
@@ -183,7 +183,7 @@ export function GamePreviewHeader({
                 logoUrl={homeTeam.logo}
                 teamName={homeTeam.name}
                 teamColor={homePrimary}
-                size="xl"
+                size="2xl"
               />
             </Link>
             <div>

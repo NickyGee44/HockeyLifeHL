@@ -1,5 +1,36 @@
 # HockeyLifeHL - Claude Code Context
 
+---
+
+## ABSOLUTE RULE: NO SECRETS IN GIT — ZERO TOLERANCE
+
+**This is the single most important rule in this entire project. Violating it is an immediate, unrecoverable security incident.**
+
+### NEVER commit, stage, write, or output ANY of the following:
+- Supabase service role keys, JWTs, or anon keys (real values)
+- Stripe secret keys, webhook secrets, or connect tokens
+- Database connection strings or passwords
+- API keys, tokens, or credentials of any kind
+- `.env`, `.env.local`, `.env.production` files
+- Any string that looks like `eyJ...`, `sk_live_...`, `sk_test_...`, `whsec_...`, `sbp_...`
+
+### Mandatory behaviors:
+1. **NEVER use `git add .` or `git add -A`** — always stage specific files by name
+2. **Before every commit**, run `git diff --cached` and scan for secrets, keys, tokens, or credentials
+3. **If a file path contains `.env`** — REFUSE to stage or commit it, no exceptions
+4. **Environment variables go in `.env.local` only** (gitignored) — never in source code, config files, or markdown
+5. **Use `.env.example` for templates** — placeholder values only (e.g., `your-key-here`), never real values
+6. **Reference env vars by name only** in docs/code (e.g., "set `SUPABASE_SERVICE_ROLE_KEY` in your `.env.local`")
+7. **If you accidentally see a real secret value**, do NOT echo/output it — warn the user immediately
+
+### If a secret is exposed:
+1. **Rotate immediately** — the key is compromised the moment it hits any branch
+2. Supabase: Dashboard → Settings → API → Regenerate keys
+3. Stripe: Dashboard → Developers → API keys → Roll key
+4. GitHub: Settings → Secrets → Update all affected secrets
+
+---
+
 ## Project Overview
 Multi-tenant SaaS hockey league management platform (70% complete, live at beerleaguehockey.ca)
 
@@ -120,12 +151,18 @@ Location: `apps/league-sites/`
 - All components fall back gracefully when branding is missing
 
 ## Pricing Model
-- Platform is FREE forever
-- 2.99% transaction fee on payment processing
-- Custom domains - paid add-on (contact for quote)
-- Historic data import - paid add-on (contact for quote)
+- Platform is FREE forever — $0/month for all core features
+- 2.99% transaction fee on payment processing (minimum $0.50 per transaction)
+- Optional premium add-ons (billed monthly via Stripe):
+  - Platform Monthly: $299.99/mo — priority support, custom branding, advanced admin tools
+  - Advanced Stats: $14.99/mo — deep analytics, player comparisons, league-wide stat tracking
+  - AI News Writer: $14.99/mo — auto-generated game recaps, weekly roundups, player spotlights
+- Custom domains — paid add-on (contact for quote)
+- Historic data import — paid add-on (contact for quote, varies per league)
 
 ## Coding Standards
+- **NEVER commit secrets, keys, tokens, or .env files** (see ABSOLUTE RULE above)
+- **NEVER use `git add .` or `git add -A`** — stage specific files by name only
 - Always use RLS policies for new tables
 - Follow existing patterns in codebase
 - Commit after each logical chunk

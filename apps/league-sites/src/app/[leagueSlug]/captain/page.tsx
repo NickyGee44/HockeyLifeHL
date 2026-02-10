@@ -16,6 +16,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { RosterManager } from '@/components/captain/RosterManager';
+import { TeamAttendance } from '@/components/captain/TeamAttendance';
+import { SubInviteModal } from '@/components/captain/SubInviteModal';
 import {
   getTeamRoster,
   getJoinRequests,
@@ -42,15 +44,18 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [subInviteGameId, setSubInviteGameId] = useState<string | null>(null);
 
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
 
+  const teamId = currentTeam?.team_id;
+
   const fetchRosterData = useCallback(async () => {
-    if (!currentTeam?.team_id) return;
+    if (!teamId) return;
 
     const [rosterResult, requestsResult] = await Promise.all([
-      getTeamRoster(currentTeam.team_id),
-      getJoinRequests(currentTeam.team_id),
+      getTeamRoster(teamId),
+      getJoinRequests(teamId),
     ]);
 
     if (rosterResult.success && rosterResult.data) {
@@ -59,7 +64,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     if (requestsResult.success && requestsResult.data) {
       setJoinRequests(requestsResult.data);
     }
-  }, [currentTeam?.team_id]);
+  }, [teamId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -220,6 +225,28 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         joinRequests={joinRequests}
         onRosterUpdate={fetchRosterData}
       />
+
+      {/* Team Attendance Matrix */}
+      <div className="mt-8">
+        <TeamAttendance
+          teamId={currentTeam.team_id}
+          roster={roster}
+          leagueSlug={leagueSlug}
+          onRequestSub={(gameId) => setSubInviteGameId(gameId)}
+        />
+      </div>
+
+      {/* Sub Invite Modal */}
+      {subInviteGameId && currentTeam.team && (
+        <SubInviteModal
+          isOpen={!!subInviteGameId}
+          onClose={() => setSubInviteGameId(null)}
+          gameId={subInviteGameId}
+          teamId={currentTeam.team_id}
+          leagueId={currentTeam.team.league_id}
+          roster={roster}
+        />
+      )}
 
       {/* Quick Actions */}
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

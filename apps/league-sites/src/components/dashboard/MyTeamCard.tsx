@@ -144,12 +144,12 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
             <Image
               src={team.team.logo}
               alt={team.team.name}
-              width={64}
-              height={64}
+              width={80}
+              height={80}
               className="rounded-lg group-hover:scale-105 transition-transform"
             />
           ) : (
-            <div className="w-16 h-16 bg-[var(--league-primary)] rounded-lg flex items-center justify-center text-2xl font-bold text-[var(--color-accent-text)]">
+            <div className="w-20 h-20 bg-[var(--league-primary)] rounded-lg flex items-center justify-center text-3xl font-bold text-[var(--color-accent-text)]">
               {team.team.name.charAt(0)}
             </div>
           )}

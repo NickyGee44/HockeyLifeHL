@@ -29,8 +29,14 @@ export function NewsCard({ article, leagueSlug }: NewsCardProps) {
             alt={article.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute left-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-white backdrop-blur-sm">
-            News
+          <div className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-white backdrop-blur-sm ${
+            article.type === 'game_recap' ? 'bg-emerald-600/70' :
+            article.type === 'weekly_wrap' ? 'bg-purple-600/70' :
+            'bg-black/50'
+          }`}>
+            {article.type === 'game_recap' ? 'Game Recap' :
+             article.type === 'weekly_wrap' ? 'Weekly Wrap' :
+             'News'}
           </div>
         </div>
       ) : (

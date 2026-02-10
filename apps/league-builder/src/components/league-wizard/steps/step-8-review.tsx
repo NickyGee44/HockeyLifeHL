@@ -34,9 +34,7 @@ function centsToDollars(cents: number): string {
 }
 
 // Pricing constants
-const PLATFORM_BASE_PRICE = 299.99;
 const ADDON_INDIVIDUAL_PRICE = 14.99;
-const ADDON_BUNDLE_PRICE = 29.99;
 
 export function Step8Review() {
   const { watch } = useFormContext<WizardFormData>();
@@ -61,12 +59,9 @@ export function Step8Review() {
     formData.stripeAccountStatus !== 'active';
 
   // Calculate monthly total
-  const bothAddons = formData.enableAdvancedStats && formData.enableAiNews;
-  const addonsTotal = bothAddons
-    ? ADDON_BUNDLE_PRICE
-    : (formData.enableAdvancedStats ? ADDON_INDIVIDUAL_PRICE : 0) +
-      (formData.enableAiNews ? ADDON_INDIVIDUAL_PRICE : 0);
-  const monthlyTotal = PLATFORM_BASE_PRICE + addonsTotal;
+  const addonsTotal = (formData.enableAdvancedStats ? ADDON_INDIVIDUAL_PRICE : 0)
+    + (formData.enableAiNews ? ADDON_INDIVIDUAL_PRICE : 0);
+  const monthlyTotal = addonsTotal;
 
   return (
     <WizardStepContainer
@@ -254,6 +249,14 @@ export function Step8Review() {
                 label="Scorekeeping Mode"
                 value={formData.scorekeeping_mode === 'standard' ? 'Standard (assigned scorekeepers)' : 'Self Scorekeeping (team captains)'}
               />
+              <ReviewItem
+                label="Playoff Eligibility"
+                value={
+                  formData.playoff_eligibility_enabled
+                    ? `Min ${formData.playoff_eligibility_min_games_pct}% of games${formData.playoff_eligibility_min_games ? ` or ${formData.playoff_eligibility_min_games} games` : ''}`
+                    : 'No minimum games required'
+                }
+              />
             </div>
           </CardContent>
         </Card>
@@ -398,7 +401,7 @@ export function Step8Review() {
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-muted-foreground">Platform Base (Hosting & Maintenance)</span>
-                <span className="font-semibold">${PLATFORM_BASE_PRICE.toFixed(2)}/mo</span>
+                <span className="font-semibold text-green-600">FREE</span>
               </div>
 
               {formData.enableAdvancedStats && (
@@ -407,9 +410,7 @@ export function Step8Review() {
                     <BarChart3 className="h-4 w-4 text-primary" />
                     <span className="text-muted-foreground">Advanced Stats Tracking</span>
                   </div>
-                  <span className="font-semibold">
-                    {bothAddons ? 'Bundled' : `$${ADDON_INDIVIDUAL_PRICE.toFixed(2)}/mo`}
-                  </span>
+                  <span className="font-semibold">${ADDON_INDIVIDUAL_PRICE.toFixed(2)}/mo</span>
                 </div>
               )}
 
@@ -419,16 +420,7 @@ export function Step8Review() {
                     <Newspaper className="h-4 w-4 text-primary" />
                     <span className="text-muted-foreground">AI News & Summaries</span>
                   </div>
-                  <span className="font-semibold">
-                    {bothAddons ? 'Bundled' : `$${ADDON_INDIVIDUAL_PRICE.toFixed(2)}/mo`}
-                  </span>
-                </div>
-              )}
-
-              {bothAddons && (
-                <div className="flex items-center justify-between py-2 border-b">
-                  <span className="text-green-500 text-sm">Add-ons Bundle</span>
-                  <span className="font-semibold text-green-500">${ADDON_BUNDLE_PRICE.toFixed(2)}/mo</span>
+                  <span className="font-semibold">${ADDON_INDIVIDUAL_PRICE.toFixed(2)}/mo</span>
                 </div>
               )}
 
@@ -599,6 +591,7 @@ function formatRegistrationType(type: string | undefined): string {
     case 'open': return 'Open Registration';
     case 'approval_required': return 'Approval Required';
     case 'invite_only': return 'Invite Only';
+    case 'draft': return 'Draft League';
     default: return type;
   }
 }
@@ -641,12 +634,20 @@ function getChecklistItems(
   });
 
   // Teams
+  const isDraft = formData.registration_type === 'draft';
+  const hasEnoughTeams = formData.teams && formData.teams.length >= (isDraft ? 2 : 1);
   items.push({
     label: t('teams'),
-    status: formData.teams && formData.teams.length > 0 ? 'complete' : 'optional',
+    status: hasEnoughTeams
+      ? 'complete'
+      : isDraft
+        ? 'incomplete'
+        : 'optional',
     detail: formData.teams && formData.teams.length > 0
       ? t('teamsConfigured', { count: formData.teams.length })
-      : t('canBeAddedLater'),
+      : isDraft
+        ? 'At least 2 teams required for draft'
+        : t('canBeAddedLater'),
   });
 
   // Website
@@ -692,7 +693,9 @@ function getWarnings(
 ): string[] {
   const warnings: string[] = [];
 
-  if (!formData.teams || formData.teams.length === 0) {
+  if (formData.registration_type === 'draft' && (!formData.teams || formData.teams.length < 2)) {
+    warnings.push('Draft leagues require at least 2 teams. Please go back to Step 4 and add teams.');
+  } else if (!formData.teams || formData.teams.length === 0) {
     warnings.push(t('warningNoTeams'));
   }
 

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   ExternalLink,
   Sparkles,
+  Shuffle,
 } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
 
@@ -24,6 +25,7 @@ interface Step9NextStepsProps {
   needsPaymentSetup: boolean;
   addonsSelected: boolean;
   domainRequested: boolean;
+  isDraftLeague: boolean;
 }
 
 function formatDate(dateString: string): string {
@@ -86,6 +88,7 @@ export function Step9NextSteps({
   needsPaymentSetup,
   addonsSelected,
   domainRequested,
+  isDraftLeague,
 }: Step9NextStepsProps) {
   const sitesBaseUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL?.replace(/\/+$/, '') ?? '';
   const leagueSiteUrl = sitesBaseUrl ? `${sitesBaseUrl}/${leagueSlug}` : `/${leagueSlug}`;
@@ -142,6 +145,16 @@ export function Step9NextSteps({
             description="Send invitations to team captains so they can set up their rosters"
             buttonLabel="Invite Captains"
             href={`/dashboard/leagues/${leagueId}/teams`}
+          />
+        )}
+
+        {isDraftLeague && (
+          <ActionCard
+            icon={<Shuffle className="h-5 w-5 text-primary" />}
+            title="Set Up Draft"
+            description="Configure draft settings, populate the player pool, and launch the draft room"
+            buttonLabel="Draft Setup"
+            href={`/dashboard/leagues/${leagueId}/draft`}
           />
         )}
 

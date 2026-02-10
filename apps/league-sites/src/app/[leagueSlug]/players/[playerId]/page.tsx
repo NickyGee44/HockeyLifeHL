@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, User, Calendar, BarChart3, History } from 'lucide-react';
+import { ArrowLeft, User, Calendar, BarChart3, History, Newspaper } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import {
   getLeagueBySlug,
@@ -10,12 +10,14 @@ import {
   getSeasons,
   getCurrentSeason,
   getPlayerBadges,
+  getPlayerArticles,
 } from '@/lib/data';
 import { PlayerHeader } from '@/components/player/PlayerHeader';
 import { PlayerBadgesSection } from '@/components/player/PlayerBadgesSection';
 import { PlayerStatsCards } from '@/components/player/PlayerStatsCards';
 import { PlayerGameLog } from '@/components/player/PlayerGameLog';
 import { SeasonSelector } from '@/components/player/SeasonSelector';
+import { PlayerArticleCard } from '@/components/player/PlayerArticleCard';
 
 interface PlayerPageProps {
   params: Promise<{ leagueSlug: string; playerId: string }>;
@@ -61,11 +63,12 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   const profileId = player.player_id;
 
   // Fetch data in parallel
-  const [seasons, stats, gameLog, badges] = await Promise.all([
+  const [seasons, stats, gameLog, badges, playerArticles] = await Promise.all([
     getSeasons(league.id),
     getPlayerCareerStats(profileId, seasonId),
     getPlayerGameLog(profileId, seasonId, 20),
     getPlayerBadges(profileId),
+    getPlayerArticles(profileId, 5),
   ]);
 
   const playerName = player.profile?.full_name || 'Unknown Player';
@@ -140,6 +143,25 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
             </div>
           )}
         </div>
+
+        {/* In The News */}
+        {playerArticles && playerArticles.length > 0 && (
+          <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Newspaper className="w-5 h-5 text-[var(--league-primary)]" />
+              <h2 className="text-xl font-bold">In The News</h2>
+            </div>
+            <div className="space-y-3">
+              {playerArticles.map((article) => (
+                <PlayerArticleCard
+                  key={article.id}
+                  article={article}
+                  leagueSlug={leagueSlug}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Season History (show other seasons this player has) */}
         {seasons.length > 1 && (

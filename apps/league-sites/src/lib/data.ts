@@ -1999,6 +1999,107 @@ export async function getNewsArticleBySlug(leagueId: string, slug: string): Prom
   return data as unknown as NewsArticle;
 }
 
+/**
+ * Check if a league has an active AI News addon
+ */
+export async function hasAiNewsAddon(leagueId: string): Promise<boolean> {
+  const supabase = await createClient();
+
+  // Get league's organization
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('organization_id')
+    .eq('id', leagueId)
+    .single();
+
+  if (!league?.organization_id) return false;
+
+  const { data: addon } = await supabase
+    .from('organization_addons')
+    .select('id')
+    .eq('organization_id', league.organization_id)
+    .eq('addon_type', 'ai_news')
+    .in('status', ['active', 'trialing'])
+    .maybeSingle();
+
+  return !!addon;
+}
+
+/**
+ * Get all published articles (news + AI types)
+ * If AI News addon is not active, only returns 'news' type articles
+ */
+export async function getAllArticles(leagueId: string, limit = 20): Promise<NewsArticle[]> {
+  const supabase = await createClient();
+
+  const hasAddon = await hasAiNewsAddon(leagueId);
+
+  let query = supabase
+    .from('articles')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .eq('league_id', leagueId)
+    .eq('published', true)
+    .order('published_at', { ascending: false })
+    .limit(limit);
+
+  if (hasAddon) {
+    query = query.in('type', ['news', 'game_recap', 'weekly_wrap']);
+  } else {
+    query = query.eq('type', 'news');
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+  return data as unknown as NewsArticle[];
+}
+
+/**
+ * Get game recap article for a specific game
+ */
+export async function getGameRecap(gameId: string): Promise<NewsArticle | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('articles')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .eq('game_id', gameId)
+    .eq('type', 'game_recap')
+    .eq('published', true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as unknown as NewsArticle;
+}
+
+/**
+ * Get articles that tag a specific player
+ */
+export async function getPlayerArticles(playerId: string, limit = 10): Promise<NewsArticle[]> {
+  const supabase = await createClient();
+
+  // Get article IDs from player tags
+  const { data: tags, error: tagsError } = await supabase
+    .from('article_player_tags')
+    .select('article_id')
+    .eq('player_id', playerId)
+    .limit(limit);
+
+  if (tagsError || !tags || tags.length === 0) return [];
+
+  const articleIds = tags.map(t => t.article_id);
+
+  // Get the articles
+  const { data: articles, error } = await supabase
+    .from('articles')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .in('id', articleIds)
+    .eq('published', true)
+    .order('published_at', { ascending: false });
+
+  if (error || !articles) return [];
+  return articles as unknown as NewsArticle[];
+}
+
 // ========== EVENTS ==========
 export async function getLeagueEvents(leagueId: string): Promise<LeagueEvent[]> {
   const supabase = await createClient();

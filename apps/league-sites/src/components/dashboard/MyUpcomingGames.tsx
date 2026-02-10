@@ -9,32 +9,23 @@ import {
   Clock,
   MapPin,
   ChevronRight,
+  ChevronDown,
   Check,
   HelpCircle,
   X,
   Loader2,
+  CheckCheck,
 } from 'lucide-react';
-import { updateGameCheckin, type CheckinStatus } from '@/lib/actions/checkins';
-
-interface UpcomingGame {
-  id: string;
-  scheduled_at: string;
-  venue: string | null;
-  home_team_id: string;
-  away_team_id: string;
-  home_team: {
-    id: string;
-    name: string;
-    slug: string;
-    logo: string | null;
-  } | null;
-  away_team: {
-    id: string;
-    name: string;
-    slug: string;
-    logo: string | null;
-  } | null;
-}
+import {
+  updateGameCheckin,
+  bulkUpdateCheckins,
+  type CheckinStatus,
+} from '@/lib/actions/checkins';
+import {
+  type GameWithCheckin,
+  useWeekGroupedGames,
+  WeekHeader,
+} from './WeekGroupedGames';
 
 interface MyUpcomingGamesProps {
   teamId?: string;
@@ -42,11 +33,18 @@ interface MyUpcomingGamesProps {
 }
 
 export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
-  const [games, setGames] = useState<UpcomingGame[]>([]);
+  const [games, setGames] = useState<GameWithCheckin[]>([]);
   const [checkins, setCheckins] = useState<Record<string, CheckinStatus>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
+  const [showAllGames, setShowAllGames] = useState(false);
+  const [bulkWeek, setBulkWeek] = useState<string | null>(null);
+
+  const weekGroups = useWeekGroupedGames(games);
+
+  // Show first 3 weeks by default, all if toggled
+  const visibleGroups = showAllGames ? weekGroups : weekGroups.slice(0, 3);
 
   useEffect(() => {
     if (!teamId) {
@@ -57,7 +55,7 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
     const fetchData = async () => {
       const supabase = createClient();
 
-      // Fetch games
+      // Fetch all upcoming games (no limit)
       const { data: gamesData, error: gamesError } = await supabase
         .from('games')
         .select(`
@@ -72,8 +70,7 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
         .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
         .in('status', ['scheduled', 'in_progress'])
         .gte('scheduled_at', new Date().toISOString())
-        .order('scheduled_at', { ascending: true })
-        .limit(5);
+        .order('scheduled_at', { ascending: true });
 
       if (!gamesError && gamesData) {
         const transformedGames = gamesData.map((game: any) => {
@@ -136,6 +133,25 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
     });
   };
 
+  const handleBulkCheckin = async (weekLabel: string, gameIds: string[]) => {
+    if (!teamId) return;
+
+    setBulkWeek(weekLabel);
+    startTransition(async () => {
+      const result = await bulkUpdateCheckins(gameIds, teamId, 'confirmed');
+      if (result.success) {
+        setCheckins((prev) => {
+          const updated = { ...prev };
+          for (const id of gameIds) {
+            updated[id] = 'confirmed';
+          }
+          return updated;
+        });
+      }
+      setBulkWeek(null);
+    });
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
@@ -182,14 +198,32 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
         <h3 className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
           <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
           Upcoming Games
+          {games.length > 0 && (
+            <span className="text-sm font-normal text-[var(--color-text-muted)]">
+              ({games.length})
+            </span>
+          )}
         </h3>
-        <Link
-          href={`/${leagueSlug}/schedule`}
-          className="text-sm text-[var(--league-primary)] hover:underline flex items-center gap-1"
-        >
-          View All
-          <ChevronRight className="w-4 h-4" />
-        </Link>
+        <div className="flex items-center gap-3">
+          {weekGroups.length > 3 && (
+            <button
+              onClick={() => setShowAllGames(!showAllGames)}
+              className="text-xs text-[var(--league-primary)] hover:underline flex items-center gap-1"
+            >
+              {showAllGames ? 'Show Less' : 'Show All Season Games'}
+              <ChevronDown
+                className={`w-3 h-3 transition-transform ${showAllGames ? 'rotate-180' : ''}`}
+              />
+            </button>
+          )}
+          <Link
+            href={`/${leagueSlug}/schedule`}
+            className="text-sm text-[var(--league-primary)] hover:underline flex items-center gap-1"
+          >
+            Schedule
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
       {isLoading ? (
@@ -207,122 +241,174 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-[var(--color-border)]">
-          {games.map((game) => {
-            const isHome = game.home_team_id === teamId;
-            const opponent = isHome ? game.away_team : game.home_team;
-            const currentStatus = checkins[game.id];
-            const isUpdating = updatingGame === game.id;
+        <div>
+          {visibleGroups.map((group) => {
+            const weekConfirmed = group.games.filter(
+              (g) => checkins[g.id] === 'confirmed'
+            ).length;
+            const unconfirmedIds = group.games
+              .filter((g) => checkins[g.id] !== 'confirmed')
+              .map((g) => g.id);
 
             return (
-              <div key={game.id} className="p-4">
-                <Link
-                  href={`/${leagueSlug}/games/${game.id}`}
-                  className="block hover:bg-[var(--color-surface-hover)] -m-2 p-2 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Opponent Logo */}
-                    {opponent?.logo ? (
-                      <Image
-                        src={opponent.logo}
-                        alt={opponent.name}
-                        width={40}
-                        height={40}
-                        className="rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-[var(--color-surface-hover)] rounded-lg flex items-center justify-center text-lg font-bold text-[var(--color-text-secondary)]">
-                        {opponent?.name?.charAt(0) || '?'}
-                      </div>
-                    )}
+              <div key={group.label}>
+                <WeekHeader
+                  label={group.label}
+                  gameCount={group.games.length}
+                  confirmedCount={weekConfirmed}
+                />
 
-                    {/* Game Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-[var(--color-text-secondary)] uppercase">
-                          {isHome ? 'vs' : '@'}
-                        </span>
-                        <span className="font-medium text-[var(--color-text-primary)] truncate">
-                          {opponent?.name || 'TBD'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] mt-1">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {formatTime(game.scheduled_at)}
-                        </span>
-                        {game.venue && (
-                          <span className="flex items-center gap-1 truncate">
-                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="truncate">{game.venue}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Date Badge */}
-                    <div className="text-right flex-shrink-0">
-                      <span className="inline-block px-2 py-1 bg-[var(--color-surface-hover)] rounded text-xs font-medium text-[var(--color-text-secondary)]">
-                        {formatDate(game.scheduled_at)}
-                      </span>
-                    </div>
+                {/* Bulk check-in for week */}
+                {unconfirmedIds.length > 0 && (
+                  <div className="px-4 py-1.5 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+                    <button
+                      onClick={() =>
+                        handleBulkCheckin(group.label, unconfirmedIds)
+                      }
+                      disabled={isPending || bulkWeek === group.label}
+                      className="inline-flex items-center gap-1.5 text-xs text-[var(--league-primary)] hover:underline disabled:opacity-50"
+                    >
+                      {bulkWeek === group.label ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <CheckCheck className="w-3 h-3" />
+                      )}
+                      Mark all as In ({unconfirmedIds.length} remaining)
+                    </button>
                   </div>
-                </Link>
+                )}
 
-                {/* Check-in Buttons */}
-                <div className="mt-3 flex items-center gap-2">
-                  <span className="text-xs text-[var(--color-text-muted)] mr-1">
-                    RSVP:
-                  </span>
-                  {isUpdating ? (
-                    <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-xs">Updating...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => handleCheckin(game.id, 'confirmed')}
-                        disabled={isPending}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                          currentStatus === 'confirmed'
-                            ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
-                            : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-green-500/10 hover:text-green-400'
-                        }`}
-                      >
-                        <Check className="w-3 h-3" />
-                        In
-                      </button>
-                      <button
-                        onClick={() => handleCheckin(game.id, 'tentative')}
-                        disabled={isPending}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                          currentStatus === 'tentative'
-                            ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30'
-                            : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-amber-500/10 hover:text-amber-400'
-                        }`}
-                      >
-                        <HelpCircle className="w-3 h-3" />
-                        Maybe
-                      </button>
-                      <button
-                        onClick={() => handleCheckin(game.id, 'out')}
-                        disabled={isPending}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                          currentStatus === 'out'
-                            ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30'
-                            : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-red-500/10 hover:text-red-400'
-                        }`}
-                      >
-                        <X className="w-3 h-3" />
-                        Out
-                      </button>
-                    </>
-                  )}
+                <div className="divide-y divide-[var(--color-border)]">
+                  {group.games.map((game) => {
+                    const isHome = game.home_team_id === teamId;
+                    const opponent = isHome ? game.away_team : game.home_team;
+                    const currentStatus = checkins[game.id];
+                    const isUpdating = updatingGame === game.id;
+
+                    return (
+                      <div key={game.id} className="p-4">
+                        <Link
+                          href={`/${leagueSlug}/games/${game.id}`}
+                          className="block hover:bg-[var(--color-surface-hover)] -m-2 p-2 rounded-lg transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            {/* Opponent Logo */}
+                            {opponent?.logo ? (
+                              <Image
+                                src={opponent.logo}
+                                alt={opponent.name}
+                                width={40}
+                                height={40}
+                                className="rounded-lg"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-[var(--color-surface-hover)] rounded-lg flex items-center justify-center text-lg font-bold text-[var(--color-text-secondary)]">
+                                {opponent?.name?.charAt(0) || '?'}
+                              </div>
+                            )}
+
+                            {/* Game Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-[var(--color-text-secondary)] uppercase">
+                                  {isHome ? 'vs' : '@'}
+                                </span>
+                                <span className="font-medium text-[var(--color-text-primary)] truncate">
+                                  {opponent?.name || 'TBD'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] mt-1">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {formatTime(game.scheduled_at)}
+                                </span>
+                                {game.venue && (
+                                  <span className="flex items-center gap-1 truncate">
+                                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span className="truncate">{game.venue}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Date Badge */}
+                            <div className="text-right flex-shrink-0">
+                              <span className="inline-block px-2 py-1 bg-[var(--color-surface-hover)] rounded text-xs font-medium text-[var(--color-text-secondary)]">
+                                {formatDate(game.scheduled_at)}
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+
+                        {/* Check-in Buttons */}
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-xs text-[var(--color-text-muted)] mr-1">
+                            RSVP:
+                          </span>
+                          {isUpdating ? (
+                            <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span className="text-xs">Updating...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleCheckin(game.id, 'confirmed')}
+                                disabled={isPending}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                  currentStatus === 'confirmed'
+                                    ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
+                                    : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-green-500/10 hover:text-green-400'
+                                }`}
+                              >
+                                <Check className="w-3 h-3" />
+                                In
+                              </button>
+                              <button
+                                onClick={() => handleCheckin(game.id, 'tentative')}
+                                disabled={isPending}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                  currentStatus === 'tentative'
+                                    ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30'
+                                    : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-amber-500/10 hover:text-amber-400'
+                                }`}
+                              >
+                                <HelpCircle className="w-3 h-3" />
+                                Maybe
+                              </button>
+                              <button
+                                onClick={() => handleCheckin(game.id, 'out')}
+                                disabled={isPending}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                  currentStatus === 'out'
+                                    ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30'
+                                    : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-red-500/10 hover:text-red-400'
+                                }`}
+                              >
+                                <X className="w-3 h-3" />
+                                Out
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
+
+          {!showAllGames && weekGroups.length > 3 && (
+            <div className="p-3 text-center border-t border-[var(--color-border)]">
+              <button
+                onClick={() => setShowAllGames(true)}
+                className="text-sm text-[var(--league-primary)] hover:underline"
+              >
+                Show {weekGroups.length - 3} more weeks
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

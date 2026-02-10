@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { Calendar, Clock, Info, ClipboardList, Users2 } from 'lucide-react';
+import { Calendar, Clock, Info, ClipboardList, Users2, Shuffle, Shield } from 'lucide-react';
 import {
   Input,
   FormField,
@@ -13,7 +13,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Label,
 } from '@hockey-life/ui';
+import { Switch } from '@/components/ui/switch';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
 
@@ -32,6 +34,11 @@ const REGISTRATION_TYPES = [
     value: 'invite_only',
     label: 'Invite Only',
     description: 'Players must be invited by admins',
+  },
+  {
+    value: 'draft',
+    label: 'Draft League',
+    description: 'Players register individually, then teams draft from the player pool',
   },
 ];
 
@@ -60,6 +67,7 @@ export function Step3SeasonScorekeeping() {
 
   const registrationType = watch('registration_type');
   const scorekeepingMode = watch('scorekeeping_mode') || 'self_scorekeeping';
+  const eligibilityEnabled = watch('playoff_eligibility_enabled');
 
   return (
     <WizardStepContainer
@@ -168,10 +176,31 @@ export function Step3SeasonScorekeeping() {
                   <strong>Invite Only</strong>: Perfect for private or
                   invite-based leagues
                 </li>
+                <li>
+                  <strong>Draft League</strong>: Players sign up individually,
+                  then team captains draft from the player pool in a live draft
+                </li>
               </ul>
             </div>
           </div>
         </div>
+
+        {registrationType === 'draft' && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 rounded-lg">
+            <div className="flex gap-2">
+              <Shuffle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-800 dark:text-amber-200">
+                <p className="font-medium mb-1">Draft League Mode</p>
+                <p>
+                  In a draft league, players register individually and are placed
+                  into a player pool. Team captains then pick players in a live
+                  draft event. You&apos;ll need at least 2 teams to run a draft.
+                  Players are rated from A to D based on skill level.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
@@ -336,6 +365,88 @@ export function Step3SeasonScorekeeping() {
                 {scorekeepingMode === 'standard'
                   ? 'Standard mode requires assigning scorekeepers to each game. They can enter stats in real-time using the scorekeeper app.'
                   : 'Self scorekeeping is the most popular choice for beer leagues. Team captains submit their game stats after each game, keeping things simple and flexible.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Playoff Eligibility */}
+      <div className="space-y-4 pt-6">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          Playoff Eligibility
+        </h3>
+
+        <p className="text-sm text-muted-foreground">
+          Set minimum game requirements for players to be eligible for playoffs.
+        </p>
+
+        <div className="flex items-center gap-3">
+          <Switch
+            id="playoff_eligibility_enabled"
+            checked={eligibilityEnabled}
+            onCheckedChange={(checked: boolean) =>
+              setValue('playoff_eligibility_enabled', checked)
+            }
+          />
+          <Label htmlFor="playoff_eligibility_enabled" className="text-sm font-medium">
+            Require minimum games for playoff eligibility
+          </Label>
+        </div>
+
+        {eligibilityEnabled && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <FormField
+              label="Minimum Games Played (%)"
+              error={errors.playoff_eligibility_min_games_pct?.message}
+              htmlFor="playoff_eligibility_min_games_pct"
+              hint="Percentage of team's total games a player must play"
+            >
+              <Input
+                {...register('playoff_eligibility_min_games_pct', {
+                  valueAsNumber: true,
+                })}
+                id="playoff_eligibility_min_games_pct"
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder="60"
+                error={!!errors.playoff_eligibility_min_games_pct}
+              />
+            </FormField>
+
+            <FormField
+              label="Minimum Games (Absolute)"
+              error={errors.playoff_eligibility_min_games?.message}
+              htmlFor="playoff_eligibility_min_games"
+              hint="Optional. Hard minimum regardless of percentage"
+            >
+              <Input
+                {...register('playoff_eligibility_min_games', {
+                  setValueAs: (v: string) => (v === '' ? null : parseInt(v, 10)),
+                })}
+                id="playoff_eligibility_min_games"
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                placeholder="Optional"
+                error={!!errors.playoff_eligibility_min_games}
+              />
+            </FormField>
+          </div>
+        )}
+
+        <Card className="bg-muted/30">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">
+                {eligibilityEnabled
+                  ? 'Players who don\'t meet the minimum games requirement will be flagged as ineligible for playoffs. Captains can see eligibility status on their roster.'
+                  : 'All rostered players will be eligible for playoffs regardless of games played. You can enable eligibility rules later from your season settings.'}
               </p>
             </div>
           </CardContent>

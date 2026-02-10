@@ -25,6 +25,7 @@ import {
   type RosterPlayer,
   type JoinRequest,
 } from '@/lib/actions/captain-roster';
+import { updatePlayerType } from '@/lib/actions/sub-invitations';
 
 const POSITIONS = ['Forward', 'Defense', 'Goalie'] as const;
 
@@ -254,6 +255,9 @@ function RosterTable({
               <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Position
               </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
+                Type
+              </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Email
               </th>
@@ -276,7 +280,7 @@ function RosterTable({
             ))}
             {roster.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-[var(--color-text-secondary)]">
+                <td colSpan={7} className="px-4 py-8 text-center text-[var(--color-text-secondary)]">
                   No players on the roster yet.
                 </td>
               </tr>
@@ -298,11 +302,12 @@ function EditableRosterRow({
   onUpdate: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [editingField, setEditingField] = useState<'jersey' | 'position' | null>(null);
+  const [editingField, setEditingField] = useState<'jersey' | 'position' | 'player_type' | null>(null);
   const [jerseyValue, setJerseyValue] = useState(
     player.jersey_number?.toString() ?? ''
   );
   const [positionValue, setPositionValue] = useState(player.position ?? '');
+  const [playerTypeValue, setPlayerTypeValue] = useState<'regular' | 'sub' | 'part_time'>(player.player_type ?? 'regular');
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -340,6 +345,23 @@ function EditableRosterRow({
     });
   };
 
+  const handleSavePlayerType = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await updatePlayerType(
+        teamId,
+        player.id,
+        playerTypeValue as 'regular' | 'sub' | 'part_time'
+      );
+      if (result.success) {
+        setEditingField(null);
+        onUpdate();
+      } else {
+        setError(result.error || 'Failed to update');
+      }
+    });
+  };
+
   const handleRemove = () => {
     setError(null);
     startTransition(async () => {
@@ -357,6 +379,7 @@ function EditableRosterRow({
     setEditingField(null);
     setJerseyValue(player.jersey_number?.toString() ?? '');
     setPositionValue(player.position ?? '');
+    setPlayerTypeValue(player.player_type ?? 'regular');
     setError(null);
   };
 
@@ -483,6 +506,51 @@ function EditableRosterRow({
           )}
         </td>
 
+        {/* Player Type */}
+        <td className="px-4 py-3 text-center">
+          {editingField === 'player_type' ? (
+            <div className="flex items-center justify-center gap-1">
+              <select
+                value={playerTypeValue}
+                onChange={(e) => setPlayerTypeValue(e.target.value as 'regular' | 'sub' | 'part_time')}
+                className="px-2 py-1 text-sm bg-[var(--color-surface-hover)] border border-[var(--league-primary)] rounded text-[var(--color-text-primary)] focus:outline-none"
+                autoFocus
+                disabled={isPending}
+              >
+                <option value="regular">Regular</option>
+                <option value="sub">Sub</option>
+                <option value="part_time">Part Time</option>
+              </select>
+              <button
+                onClick={handleSavePlayerType}
+                disabled={isPending}
+                className="p-1 text-green-400 hover:bg-green-500/10 rounded"
+              >
+                {isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Check className="w-3.5 h-3.5" />
+                )}
+              </button>
+              <button
+                onClick={cancelEdit}
+                className="p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] rounded"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditingField('player_type')}
+              className="group inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--color-surface-hover)] transition-colors"
+              title="Edit player type"
+            >
+              <PlayerTypeBadge type={player.player_type} />
+              <Pencil className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          )}
+        </td>
+
         {/* Email */}
         <td className="px-4 py-3">
           {player.profile?.email ? (
@@ -556,7 +624,7 @@ function EditableRosterRow({
 
       {error && (
         <tr>
-          <td colSpan={6} className="px-4 py-2">
+          <td colSpan={7} className="px-4 py-2">
             <p className="text-sm text-red-400 flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
               {error}
@@ -566,4 +634,27 @@ function EditableRosterRow({
       )}
     </>
   );
+}
+
+function PlayerTypeBadge({ type }: { type: string }) {
+  switch (type) {
+    case 'sub':
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-medium">
+          Sub
+        </span>
+      );
+    case 'part_time':
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs font-medium">
+          Part Time
+        </span>
+      );
+    default:
+      return (
+        <span className="text-[var(--color-text-muted)] text-xs">
+          Regular
+        </span>
+      );
+  }
 }

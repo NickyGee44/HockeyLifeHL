@@ -230,6 +230,7 @@ export function WizardContainer({
       formData.stripeAccountStatus !== 'active';
     const addonsSelected = formData.enableAdvancedStats || formData.enableAiNews;
     const domainRequested = formData.wantCustomDomain && !!formData.customDomainName;
+    const isDraftLeague = formData.registration_type === 'draft';
     return (
       <Step9NextSteps
         leagueId={createdLeague.leagueId}
@@ -243,6 +244,7 @@ export function WizardContainer({
         needsPaymentSetup={needsPaymentSetup}
         addonsSelected={addonsSelected}
         domainRequested={domainRequested}
+        isDraftLeague={isDraftLeague}
       />
     );
   }

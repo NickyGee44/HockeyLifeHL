@@ -478,6 +478,35 @@
       "pending": "Pending",
       "overdue": "Overdue",
       "cancelled": "Cancelled"
+    },
+    "addons": {
+      "title": "Premium Add-Ons",
+      "description": "Upgrade your league with powerful premium features",
+      "platform_subscription": {
+        "name": "Platform Monthly",
+        "description": "Priority support, custom branding, and advanced admin tools"
+      },
+      "advanced_stats": {
+        "name": "Advanced Stats",
+        "description": "Deep analytics, player comparisons, and league-wide stat tracking"
+      },
+      "ai_news": {
+        "name": "AI News Writer",
+        "description": "Auto-generated game recaps, weekly roundups, and player spotlights"
+      },
+      "statusActive": "Active",
+      "renewsOn": "Renews {date}",
+      "cancellingAtPeriodEnd": "Cancelling at end of billing period",
+      "pastDue": "Payment past due - please update your payment method",
+      "activate": "Activate",
+      "cancelSubscription": "Cancel Subscription",
+      "activationFailed": "Failed to start activation",
+      "cancelledSuccess": "Subscription marked for cancellation",
+      "cancelFailed": "Failed to cancel subscription"
+    },
+    "portal": {
+      "manage": "Manage Billing",
+      "error": "Failed to open billing portal"
     }
   },
   "notifications": {
@@ -569,8 +598,58 @@
       "alreadyOnRoster": "Already on roster",
       "importSuccess": "Successfully imported {count} players",
       "importError": "Failed to import some players",
-      "noPlayersToImport": "No players available to import"
+      "noPlayersToImport": "No players available to import",
+      "playerType": "Player Type",
+      "regular": "Regular",
+      "sub": "Sub",
+      "partTime": "Part Time"
+    },
+    "attendance": {
+      "title": "Team Attendance",
+      "confirmed": "Confirmed",
+      "tentative": "Tentative",
+      "out": "Out",
+      "noResponse": "No Response",
+      "shortRoster": "Short Roster",
+      "requestSub": "Request Sub",
+      "loading": "Loading attendance..."
+    },
+    "subs": {
+      "inviteSub": "Invite Sub",
+      "searchPlayers": "Search by name or email...",
+      "noSubsAvailable": "No sub players available in this league",
+      "registerAsSub": "Players need to be registered as subs or part-time players",
+      "optionalMessage": "Optional message to the player...",
+      "invited": "Invited",
+      "invite": "Invite",
+      "done": "Done",
+      "alreadyInvited": "This player has already been invited to this game",
+      "subInvitations": "Sub Invitations",
+      "needsSub": "{team} needs a sub",
+      "invitedBy": "Invited by {name}",
+      "accept": "Accept",
+      "decline": "Decline"
     }
+  },
+  "checkin": {
+    "upcomingGames": "Upcoming Games",
+    "joinTeamPrompt": "Join a team to see your upcoming games",
+    "noGames": "No upcoming games scheduled",
+    "rsvp": "RSVP",
+    "in": "In",
+    "maybe": "Maybe",
+    "out": "Out",
+    "updating": "Updating...",
+    "showAllSeason": "Show All Season Games",
+    "showLess": "Show Less",
+    "showMoreWeeks": "Show {count} more weeks",
+    "markAllIn": "Mark all as In ({count} remaining)",
+    "thisWeek": "This Week",
+    "nextWeek": "Next Week",
+    "weekOf": "Week of {start} - {end}",
+    "confirmed": "confirmed",
+    "games": "{count, plural, =1 {1 game} other {# games}}",
+    "bulkCheckin": "Bulk check-in"
   },
   "season": {
     "new": "New Season",
@@ -729,7 +808,14 @@
     "noArticles": "No articles yet. Create your first article!",
     "save": "Save Article",
     "create": "Create Article",
-    "confirmDelete": "Are you sure you want to delete this article?"
+    "confirmDelete": "Are you sure you want to delete this article?",
+    "aiGenerated": "AI Generated",
+    "gameRecap": "Game Recap",
+    "weeklyWrap": "Weekly Wrap",
+    "regenerate": "Regenerate",
+    "addPhoto": "Add Photo",
+    "aiNewsNotEnabled": "AI News Writer is not enabled for this league.",
+    "enableAiNews": "Enable AI News - $14.99/mo"
   },
   "sponsors": {
     "title": "Sponsors",
@@ -1069,5 +1155,214 @@
     "recalculated": "Stats recalculated. Final score: {home} - {away}",
     "noEvents": "No events found",
     "deleted": "Deleted"
+  },
+  "eligibility": {
+    "title": "Playoff Eligibility",
+    "description": "View and manage playoff eligibility for all teams",
+    "settings": "Eligibility Settings",
+    "minGamesPct": "Minimum Games Played (%)",
+    "minGamesPctHint": "Percentage of team games a player must play",
+    "minGames": "Minimum Games (Absolute)",
+    "minGamesHint": "Hard minimum regardless of percentage",
+    "saveSettings": "Save Settings",
+    "settingsSaved": "Settings saved. Reload to see updated eligibility.",
+    "noRulesTitle": "No eligibility rules configured",
+    "noRulesDescription": "Set a minimum games percentage or absolute minimum above to enable eligibility tracking.",
+    "enableToggle": "Require minimum games for playoff eligibility",
+    "enabledHint": "Players who don't meet the minimum games requirement will be flagged as ineligible for playoffs. Captains can see eligibility status on their roster.",
+    "disabledHint": "All rostered players will be eligible for playoffs regardless of games played. You can enable eligibility rules later from your season settings.",
+    "totalPlayers": "Total Players",
+    "eligible": "Eligible",
+    "ineligible": "Ineligible",
+    "filterByTeam": "Filter by team",
+    "allTeams": "All Teams",
+    "player": "Player",
+    "jerseyNumber": "#",
+    "gamesPlayed": "GP",
+    "gamesPlayedPct": "%",
+    "eligibleColumn": "Eligible",
+    "gpOverride": "GP Override",
+    "needsMore": "Needs {count} more",
+    "of": "of",
+    "playoffEligibility": "Playoff Eligibility",
+    "sectionTitle": "Playoff Eligibility",
+    "sectionDescription": "Set minimum game requirements for players to be eligible for playoffs."
+  },
+  "registrations": {
+    "admin": {
+      "title": "Registration Management",
+      "subtitle": "Review and manage player registration submissions",
+      "noResults": "No Registrations Found",
+      "noResultsDescription": "No player registrations match your current filters.",
+      "filters": {
+        "search": "Search by name or email...",
+        "status": "Status",
+        "type": "Registration Type",
+        "season": "Season",
+        "allStatuses": "All Statuses",
+        "allTypes": "All Types",
+        "allSeasons": "All Seasons",
+        "clearAll": "Clear all",
+        "activeFilters": "Active filters"
+      },
+      "table": {
+        "player": "Player",
+        "email": "Email",
+        "position": "Position",
+        "skill": "Skill Level",
+        "team": "Team",
+        "waiver": "Waiver",
+        "payment": "Payment",
+        "status": "Status",
+        "submitted": "Submitted",
+        "actions": "Actions",
+        "showing": "Showing {from}-{to} of {total}"
+      },
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "waitlist": "Waitlist",
+        "viewDetails": "View Details",
+        "expand": "Expand",
+        "collapse": "Collapse"
+      },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "waitlisted": "Waitlisted",
+        "cancelled": "Cancelled"
+      },
+      "bulk": {
+        "selected": "{count} selected",
+        "approveAll": "Approve All",
+        "rejectAll": "Reject All",
+        "waitlistAll": "Waitlist All"
+      },
+      "stats": {
+        "total": "Total",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "waitlisted": "Waitlisted"
+      },
+      "detail": {
+        "personalInfo": "Personal Information",
+        "emergencyContact": "Emergency Contact",
+        "skillAssessment": "Skill Assessment",
+        "preferences": "Preferences",
+        "waiverStatus": "Waiver",
+        "paymentStatus": "Payment",
+        "reviewHistory": "Review History",
+        "contact": "Contact",
+        "playingDetails": "Playing Details",
+        "additional": "Additional"
+      },
+      "toast": {
+        "approved": "Registration approved",
+        "rejected": "Registration rejected",
+        "waitlisted": "Registration moved to waitlist",
+        "bulkUpdated": "{count} registrations updated",
+        "noneSelected": "No registrations selected"
+      },
+      "payment": {
+        "notRequired": "N/A",
+        "pending": "Pending",
+        "paid": "Paid",
+        "failed": "Failed",
+        "refunded": "Refunded"
+      },
+      "waiver": {
+        "signed": "Signed",
+        "missing": "Missing"
+      }
+    }
+  },
+  "scorekeeper": {
+    "title": "Scorekeeper",
+    "tokenEntry": {
+      "heading": "Scorekeeper Access",
+      "description": "Enter your scorekeeper token to begin",
+      "placeholder": "Enter token (e.g. ABC123XYZ)",
+      "submit": "Start Scoring",
+      "validating": "Validating...",
+      "invalidToken": "Token expired or invalid",
+      "enterToken": "Please enter a token",
+      "helpText": "Your token was provided by the league admin. Contact them if you need a new one."
+    },
+    "gameSelector": {
+      "heading": "Your Games",
+      "description": "Select a game to score",
+      "live": "Live",
+      "done": "Done"
+    },
+    "timer": {
+      "startGame": "Start Game",
+      "start": "Start timer",
+      "stop": "Stop timer",
+      "endPeriod": "End period",
+      "startOT": "Start OT",
+      "startPeriod": "Start P{period}"
+    },
+    "scoring": {
+      "selectTeam": "Select a team and tap an action below",
+      "noEvents": "No events recorded yet. Select a team and tap an action below.",
+      "home": "Home",
+      "away": "Away",
+      "vs": "vs",
+      "all": "All"
+    },
+    "actions": {
+      "goal": "Goal",
+      "penalty": "Penalty",
+      "save": "Save",
+      "undo": "Undo"
+    },
+    "goal": {
+      "confirmTitle": "Confirm Goal",
+      "scorer": "GOAL",
+      "assist1": "AST 1",
+      "assist2": "AST 2",
+      "selectScorer": "Goal Scorer",
+      "selectAssist1": "Primary Assist (optional)",
+      "selectAssist2": "Secondary Assist (optional)",
+      "unassisted": "Unassisted Goal",
+      "noSecondAssist": "No Second Assist",
+      "confirm": "Confirm Goal",
+      "saving": "Saving..."
+    },
+    "penalty": {
+      "confirmTitle": "Confirm Penalty",
+      "selectPlayer": "Penalty - Select Player",
+      "selectType": "Select penalty type",
+      "player": "PLAYER",
+      "type": "TYPE",
+      "time": "TIME",
+      "minutes": "{minutes} minutes",
+      "showAll": "Show all penalties",
+      "confirm": "Confirm Penalty",
+      "saving": "Saving..."
+    },
+    "shot": {
+      "selectGoalie": "Which goalie made the save?",
+      "selectShooter": "Shot by (optional)",
+      "saveWithoutShooter": "Save without shooter",
+      "saving": "Saving..."
+    },
+    "goalie": {
+      "pullGoalie": "Pull Goalie",
+      "returnGoalie": "Return Goalie"
+    },
+    "flags": {
+      "pp": "PP",
+      "sh": "SH",
+      "en": "EN",
+      "gwg": "GWG"
+    },
+    "status": {
+      "live": "LIVE",
+      "scheduled": "SCHEDULED",
+      "completed": "COMPLETED"
+    }
   }
 }

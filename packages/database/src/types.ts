@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       account_deletion_log: {
@@ -179,11 +204,162 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_generation_log: {
+        Row: {
+          article_id: string | null
+          article_type: string
+          completed_at: string | null
+          created_at: string
+          division_id: string | null
+          error_message: string | null
+          game_id: string | null
+          generation_time_ms: number | null
+          id: string
+          league_id: string
+          model_used: string | null
+          season_id: string | null
+          status: string
+          tokens_used: number | null
+          week_start_date: string | null
+        }
+        Insert: {
+          article_id?: string | null
+          article_type: string
+          completed_at?: string | null
+          created_at?: string
+          division_id?: string | null
+          error_message?: string | null
+          game_id?: string | null
+          generation_time_ms?: number | null
+          id?: string
+          league_id: string
+          model_used?: string | null
+          season_id?: string | null
+          status?: string
+          tokens_used?: number | null
+          week_start_date?: string | null
+        }
+        Update: {
+          article_id?: string | null
+          article_type?: string
+          completed_at?: string | null
+          created_at?: string
+          division_id?: string | null
+          error_message?: string | null
+          game_id?: string | null
+          generation_time_ms?: number | null
+          id?: string
+          league_id?: string
+          model_used?: string | null
+          season_id?: string | null
+          status?: string
+          tokens_used?: number | null
+          week_start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_generation_log_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generation_log_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generation_log_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generation_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generation_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generation_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generation_log_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      article_player_tags: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          mention_type: string
+          player_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          mention_type?: string
+          player_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          mention_type?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_player_tags_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_player_tags_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_player_tags_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles: {
         Row: {
           author_id: string | null
           content: string
           created_at: string | null
+          division_id: string | null
           excerpt: string | null
           game_id: string | null
           id: string
@@ -201,6 +377,7 @@ export type Database = {
           author_id?: string | null
           content: string
           created_at?: string | null
+          division_id?: string | null
           excerpt?: string | null
           game_id?: string | null
           id?: string
@@ -218,6 +395,7 @@ export type Database = {
           author_id?: string | null
           content?: string
           created_at?: string | null
+          division_id?: string | null
           excerpt?: string | null
           game_id?: string | null
           id?: string
@@ -244,6 +422,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
             referencedColumns: ["id"]
           },
           {
@@ -1962,6 +2147,7 @@ export type Database = {
           goalie_in_net_id: string | null
           id: string
           is_empty_net: boolean | null
+          is_gwg: boolean | null
           is_power_play: boolean | null
           is_short_handed: boolean | null
           league_id: string
@@ -1996,6 +2182,7 @@ export type Database = {
           goalie_in_net_id?: string | null
           id?: string
           is_empty_net?: boolean | null
+          is_gwg?: boolean | null
           is_power_play?: boolean | null
           is_short_handed?: boolean | null
           league_id: string
@@ -2030,6 +2217,7 @@ export type Database = {
           goalie_in_net_id?: string | null
           id?: string
           is_empty_net?: boolean | null
+          is_gwg?: boolean | null
           is_power_play?: boolean | null
           is_short_handed?: boolean | null
           league_id?: string
@@ -2796,6 +2984,7 @@ export type Database = {
           away_contested_at: string | null
           away_contested_reason: string | null
           away_contested_stats: Json | null
+          away_goalie_pulled: boolean | null
           away_score: number | null
           away_subs_requested: boolean | null
           away_subs_requested_at: string | null
@@ -2818,6 +3007,7 @@ export type Database = {
           home_contested_at: string | null
           home_contested_reason: string | null
           home_contested_stats: Json | null
+          home_goalie_pulled: boolean | null
           home_score: number | null
           home_subs_requested: boolean | null
           home_subs_requested_at: string | null
@@ -2847,6 +3037,9 @@ export type Database = {
           stats_submitted_by: string | null
           stats_unlocked_at: string | null
           status: Database["public"]["Enums"]["game_status"] | null
+          timer_elapsed_seconds: number | null
+          timer_running: boolean | null
+          timer_started_at: string | null
           unlock_reason: string | null
           unlocked_by: string | null
           updated_at: string | null
@@ -2856,6 +3049,7 @@ export type Database = {
           away_contested_at?: string | null
           away_contested_reason?: string | null
           away_contested_stats?: Json | null
+          away_goalie_pulled?: boolean | null
           away_score?: number | null
           away_subs_requested?: boolean | null
           away_subs_requested_at?: string | null
@@ -2878,6 +3072,7 @@ export type Database = {
           home_contested_at?: string | null
           home_contested_reason?: string | null
           home_contested_stats?: Json | null
+          home_goalie_pulled?: boolean | null
           home_score?: number | null
           home_subs_requested?: boolean | null
           home_subs_requested_at?: string | null
@@ -2907,6 +3102,9 @@ export type Database = {
           stats_submitted_by?: string | null
           stats_unlocked_at?: string | null
           status?: Database["public"]["Enums"]["game_status"] | null
+          timer_elapsed_seconds?: number | null
+          timer_running?: boolean | null
+          timer_started_at?: string | null
           unlock_reason?: string | null
           unlocked_by?: string | null
           updated_at?: string | null
@@ -2916,6 +3114,7 @@ export type Database = {
           away_contested_at?: string | null
           away_contested_reason?: string | null
           away_contested_stats?: Json | null
+          away_goalie_pulled?: boolean | null
           away_score?: number | null
           away_subs_requested?: boolean | null
           away_subs_requested_at?: string | null
@@ -2938,6 +3137,7 @@ export type Database = {
           home_contested_at?: string | null
           home_contested_reason?: string | null
           home_contested_stats?: Json | null
+          home_goalie_pulled?: boolean | null
           home_score?: number | null
           home_subs_requested?: boolean | null
           home_subs_requested_at?: string | null
@@ -2967,6 +3167,9 @@ export type Database = {
           stats_submitted_by?: string | null
           stats_unlocked_at?: string | null
           status?: Database["public"]["Enums"]["game_status"] | null
+          timer_elapsed_seconds?: number | null
+          timer_running?: boolean | null
+          timer_started_at?: string | null
           unlock_reason?: string | null
           unlocked_by?: string | null
           updated_at?: string | null
@@ -5649,6 +5852,110 @@ export type Database = {
           },
         ]
       }
+      player_badges: {
+        Row: {
+          badge_type: Database["public"]["Enums"]["badge_type"]
+          created_at: string | null
+          id: string
+          league_id: string
+          metadata: Json | null
+          player_id: string
+          season_id: string
+          team_id: string
+        }
+        Insert: {
+          badge_type: Database["public"]["Enums"]["badge_type"]
+          created_at?: string | null
+          id?: string
+          league_id: string
+          metadata?: Json | null
+          player_id: string
+          season_id: string
+          team_id: string
+        }
+        Update: {
+          badge_type?: Database["public"]["Enums"]["badge_type"]
+          created_at?: string | null
+          id?: string
+          league_id?: string
+          metadata?: Json | null
+          player_id?: string
+          season_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_badges_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_badges_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_badges_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_badges_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_badges_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_badges_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_badges_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "player_season_stats"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "player_badges_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "standings_calculated"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "player_badges_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team_standings"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "player_badges_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_goalie_matchups: {
         Row: {
           assists: number
@@ -7143,6 +7450,51 @@ export type Database = {
           },
         ]
       }
+      scorekeeper_session_games: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          game_id: string
+          game_order: number
+          id: string
+          session_id: string
+          started_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          game_id: string
+          game_order?: number
+          id?: string
+          session_id: string
+          started_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          game_id?: string
+          game_order?: number
+          id?: string
+          session_id?: string
+          started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorekeeper_session_games_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_session_games_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "scorekeeper_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scorekeeper_sessions: {
         Row: {
           access_count: number | null
@@ -7159,6 +7511,7 @@ export type Database = {
           last_accessed_at: string | null
           league_id: string
           scorekeeper_id: string | null
+          session_type: string
           token: string
         }
         Insert: {
@@ -7176,6 +7529,7 @@ export type Database = {
           last_accessed_at?: string | null
           league_id: string
           scorekeeper_id?: string | null
+          session_type?: string
           token: string
         }
         Update: {
@@ -7193,6 +7547,7 @@ export type Database = {
           last_accessed_at?: string | null
           league_id?: string
           scorekeeper_id?: string | null
+          session_type?: string
           token?: string
         }
         Relationships: [
@@ -7459,6 +7814,8 @@ export type Database = {
           period_count: number | null
           period_length_minutes: number | null
           photo_gallery_url: string[] | null
+          playoff_eligibility_min_games: number | null
+          playoff_eligibility_min_games_pct: number | null
           playoff_format: string | null
           registration_closes_at: string | null
           registration_opens_at: string | null
@@ -7493,6 +7850,8 @@ export type Database = {
           period_count?: number | null
           period_length_minutes?: number | null
           photo_gallery_url?: string[] | null
+          playoff_eligibility_min_games?: number | null
+          playoff_eligibility_min_games_pct?: number | null
           playoff_format?: string | null
           registration_closes_at?: string | null
           registration_opens_at?: string | null
@@ -7527,6 +7886,8 @@ export type Database = {
           period_count?: number | null
           period_length_minutes?: number | null
           photo_gallery_url?: string[] | null
+          playoff_eligibility_min_games?: number | null
+          playoff_eligibility_min_games_pct?: number | null
           playoff_format?: string | null
           registration_closes_at?: string | null
           registration_opens_at?: string | null
@@ -7988,6 +8349,109 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      sub_invitations: {
+        Row: {
+          created_at: string | null
+          game_id: string
+          id: string
+          invited_by: string
+          invited_player_id: string
+          message: string | null
+          responded_at: string | null
+          status: string
+          team_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_id: string
+          id?: string
+          invited_by: string
+          invited_player_id: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          team_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_id?: string
+          id?: string
+          invited_by?: string
+          invited_player_id?: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          team_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_invitations_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_invitations_invited_player_id_fkey"
+            columns: ["invited_player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_invitations_invited_player_id_fkey"
+            columns: ["invited_player_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "player_season_stats"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "sub_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "standings_calculated"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "sub_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team_standings"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "sub_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suspensions: {
         Row: {
@@ -8619,6 +9083,7 @@ export type Database = {
         Row: {
           division_id: string | null
           end_date: string | null
+          games_played_override: number | null
           id: string
           is_goalie: boolean | null
           jersey_number: number | null
@@ -8627,6 +9092,7 @@ export type Database = {
           league_id: string
           notes: string | null
           player_id: string
+          player_type: string
           position: Database["public"]["Enums"]["player_position"] | null
           season_id: string
           start_date: string
@@ -8637,6 +9103,7 @@ export type Database = {
         Insert: {
           division_id?: string | null
           end_date?: string | null
+          games_played_override?: number | null
           id?: string
           is_goalie?: boolean | null
           jersey_number?: number | null
@@ -8647,6 +9114,7 @@ export type Database = {
           league_id: string
           notes?: string | null
           player_id: string
+          player_type?: string
           position?: Database["public"]["Enums"]["player_position"] | null
           season_id: string
           start_date?: string
@@ -8657,6 +9125,7 @@ export type Database = {
         Update: {
           division_id?: string | null
           end_date?: string | null
+          games_played_override?: number | null
           id?: string
           is_goalie?: boolean | null
           jersey_number?: number | null
@@ -8667,6 +9136,7 @@ export type Database = {
           league_id?: string
           notes?: string | null
           player_id?: string
+          player_type?: string
           position?: Database["public"]["Enums"]["player_position"] | null
           season_id?: string
           start_date?: string
@@ -10533,6 +11003,10 @@ export type Database = {
         Returns: number
       }
       auto_pick_player: { Args: { p_draft_id: string }; Returns: Json }
+      award_season_badges: {
+        Args: { p_league_id: string; p_season_id: string }
+        Returns: Json
+      }
       calculate_goalie_game_stats: {
         Args: { p_game_id: string; p_goalie_id: string }
         Returns: {
@@ -11086,6 +11560,21 @@ export type Database = {
           total_assists: number
           total_goals: number
           total_points: number
+        }[]
+      }
+      get_playoff_eligibility: {
+        Args: { p_season_id: string; p_team_id?: string }
+        Returns: {
+          full_name: string
+          games_played: number
+          games_played_pct: number
+          is_eligible: boolean
+          jersey_number: number
+          min_games: number
+          min_games_pct: number
+          player_id: string
+          team_id: string
+          total_team_games: number
         }[]
       }
       get_public_leagues_for_join: {
@@ -11700,6 +12189,22 @@ export type Database = {
         | "draft_grades"
         | "announcement"
         | "news"
+      badge_type:
+        | "championship"
+        | "top_scorer"
+        | "points_leader"
+        | "top_goalie"
+        | "iron_man"
+        | "most_assists"
+        | "best_plus_minus"
+        | "penalty_free"
+        | "division_top_scorer"
+        | "division_points_leader"
+        | "division_top_goalie"
+        | "team_mvp"
+        | "rookie_of_the_year"
+        | "hall_of_fame"
+        | "shutout_king"
       draft_status:
         | "pending"
         | "in_progress"
@@ -11901,6 +12406,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       article_type: [
@@ -11909,6 +12417,23 @@ export const Constants = {
         "draft_grades",
         "announcement",
         "news",
+      ],
+      badge_type: [
+        "championship",
+        "top_scorer",
+        "points_leader",
+        "top_goalie",
+        "iron_man",
+        "most_assists",
+        "best_plus_minus",
+        "penalty_free",
+        "division_top_scorer",
+        "division_points_leader",
+        "division_top_goalie",
+        "team_mvp",
+        "rookie_of_the_year",
+        "hall_of_fame",
+        "shutout_king",
       ],
       draft_status: ["pending", "in_progress", "completed", "active", "paused"],
       emergency_contact_relationship_enum: [

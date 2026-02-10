@@ -8,6 +8,7 @@ export interface RosterPlayer {
   jersey_number: number | null;
   position: string | null;
   leadership_role: 'captain' | 'alternate_captain' | null;
+  player_type: 'regular' | 'sub' | 'part_time';
   profile: {
     id: string;
     full_name: string | null;
@@ -79,6 +80,7 @@ export async function getTeamRoster(
       jersey_number,
       position,
       leadership_role,
+      player_type,
       profile:profiles(id, full_name, email, avatar_url)
     `
     )

@@ -27,6 +27,33 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Bash(git commit *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c \"if git diff --cached --diff-filter=d -U0 | grep -qEi 'eyJ[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{20,}|sk_test_[A-Za-z0-9]{20,}|whsec_[A-Za-z0-9]{20,}|sbp_[A-Za-z0-9]{20,}|service_role_key.*=.*eyJ|SUPABASE_SERVICE_ROLE_KEY=eyJ'; then echo 'BLOCKED: Secret/credential detected in staged changes. Unstage the file and remove the secret before committing.' && exit 1; fi && if git diff --cached --name-only | grep -qE '^\\.env$|^\\.env\\.local$|^\\.env\\.production$|^\\.env\\.development$'; then echo 'BLOCKED: .env file detected in staged changes. Never commit .env files.' && exit 1; fi && echo 'Secrets scan passed.'\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git add . *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'BLOCKED: Never use git add . or git add -A. Stage specific files by name to avoid accidentally committing secrets.' && exit 1"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git add -A*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'BLOCKED: Never use git add -A. Stage specific files by name to avoid accidentally committing secrets.' && exit 1"
+          }
+        ]
+      },
+      {
         "matcher": "Bash(git push origin production:*)",
         "hooks": [
           {

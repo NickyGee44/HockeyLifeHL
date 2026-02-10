@@ -1,26 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  MoreHorizontal,
   Check,
   X,
   Clock,
   Eye,
   User,
-  Mail,
   CreditCard,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpDown,
+  Trophy,
+  Target,
+  FileCheck,
+  AlertTriangle,
+  Mail,
+  Phone,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
 import {
   approveRegistration,
   rejectRegistration,
+  waitlistRegistration,
   bulkUpdateRegistrations,
 } from '@/lib/actions/player-registration';
-import { formatRegistrationType, formatSkillLevel } from '@/lib/schemas/player-registration';
+import { formatRegistrationType, formatSkillLevel, formatPosition } from '@/lib/schemas/player-registration';
 import { cn } from '@hockey-life/ui/lib/utils';
 
 interface Registration {
@@ -29,24 +38,57 @@ interface Registration {
   registration_type: string;
   status: string;
   preferred_position: string | null;
+  secondary_position: string | null;
+  preferred_jersey_number: number | null;
   self_assessed_skill: string | null;
+  years_experience: number | null;
+  previous_leagues: string | null;
+  photo_url: string | null;
   payment_status: string;
+  amount_paid_cents: number;
   created_at: string;
   submitted_at: string | null;
   player: {
     id: string;
     full_name: string;
     email: string;
+    phone?: string | null;
   };
   team: {
     id: string;
     name: string;
   } | null;
+  waiver: {
+    id: string;
+    signed_name: string;
+    agreed_at: string;
+  } | null;
 }
+
+type SortField = 'name' | 'email' | 'position' | 'skill' | 'team' | 'waiver' | 'payment' | 'status' | 'submitted';
+type SortDirection = 'asc' | 'desc';
 
 interface RegistrationsTableProps {
   registrations: Registration[];
   leagueId: string;
+}
+
+function getSortValue(reg: Registration, field: SortField): string | number {
+  switch (field) {
+    case 'name': return reg.player.full_name.toLowerCase();
+    case 'email': return reg.player.email.toLowerCase();
+    case 'position': return (reg.preferred_position || '').toLowerCase();
+    case 'skill': {
+      const order = { expert: 4, advanced: 3, intermediate: 2, beginner: 1 };
+      return order[reg.self_assessed_skill as keyof typeof order] || 0;
+    }
+    case 'team': return (reg.team?.name || '').toLowerCase();
+    case 'waiver': return reg.waiver ? 1 : 0;
+    case 'payment': return reg.payment_status;
+    case 'status': return reg.status;
+    case 'submitted': return reg.submitted_at || '';
+    default: return '';
+  }
 }
 
 export function RegistrationsTable({
@@ -56,7 +98,27 @@ export function RegistrationsTable({
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>('submitted');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const sortedRegistrations = useMemo(() => {
+    return [...registrations].sort((a, b) => {
+      const aVal = getSortValue(a, sortField);
+      const bVal = getSortValue(b, sortField);
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [registrations, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -102,6 +164,19 @@ export function RegistrationsTable({
     }
   };
 
+  const handleWaitlist = async (id: string) => {
+    setProcessingId(id);
+    const result = await waitlistRegistration(id);
+    setProcessingId(null);
+
+    if (result.success) {
+      toast.success('Registration moved to waitlist');
+      router.refresh();
+    } else {
+      toast.error(result.error);
+    }
+  };
+
   const handleBulkAction = async (action: 'approve' | 'reject' | 'waitlist') => {
     if (selectedIds.length === 0) {
       toast.error('No registrations selected');
@@ -117,6 +192,10 @@ export function RegistrationsTable({
     } else {
       toast.error(result.error);
     }
+  };
+
+  const toggleExpanded = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
   };
 
   const pendingRegistrations = registrations.filter(r => r.status === 'pending');
@@ -186,133 +265,320 @@ export function RegistrationsTable({
                   className="rounded border-neutral-600 bg-neutral-700 text-rink-500 focus:ring-rink-500"
                 />
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-neutral-300">
-                Player
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-neutral-300">
-                Type
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-neutral-300">
-                Skill
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-neutral-300">
-                Position
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-neutral-300">
-                Payment
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-neutral-300">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-neutral-300">
-                Submitted
-              </th>
+              <th className="w-10 px-2 py-3" />
+              <SortableHeader field="name" label="Player" current={sortField} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader field="skill" label="Skill" current={sortField} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader field="position" label="Position" current={sortField} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader field="team" label="Team" current={sortField} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader field="waiver" label="Waiver" current={sortField} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader field="payment" label="Payment" current={sortField} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader field="status" label="Status" current={sortField} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader field="submitted" label="Submitted" current={sortField} direction={sortDirection} onSort={handleSort} />
               <th className="px-4 py-3 text-right text-sm font-medium text-neutral-300">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-700">
-            {registrations.map((reg) => (
-              <tr
+            {sortedRegistrations.map((reg) => (
+              <RegistrationRow
                 key={reg.id}
-                className="hover:bg-neutral-800/50 transition-colors"
-              >
-                <td className="px-4 py-3">
-                  {reg.status === 'pending' && (
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(reg.id)}
-                      onChange={(e) => handleSelectOne(reg.id, e.target.checked)}
-                      className="rounded border-neutral-600 bg-neutral-700 text-rink-500 focus:ring-rink-500"
-                    />
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-neutral-700 flex items-center justify-center">
-                      <User className="w-5 h-5 text-neutral-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">
-                        {reg.player.full_name}
-                      </p>
-                      <p className="text-sm text-neutral-400">
-                        {reg.player.email}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-neutral-300">
-                    {formatRegistrationType(reg.registration_type as any)}
-                  </span>
-                  {reg.team && (
-                    <p className="text-xs text-neutral-500">{reg.team.name}</p>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-neutral-300">
-                    {reg.self_assessed_skill
-                      ? formatSkillLevel(reg.self_assessed_skill as any)
-                      : '-'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-neutral-300">
-                    {reg.preferred_position || '-'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <PaymentBadge status={reg.payment_status} />
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={reg.status} />
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-neutral-400">
-                    {reg.submitted_at
-                      ? new Date(reg.submitted_at).toLocaleDateString()
-                      : '-'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-2">
-                    <Link
-                      href={`/dashboard/leagues/${leagueId}/registrations/${reg.id}`}
-                      className="p-2 rounded-lg hover:bg-neutral-700 transition-colors"
-                      title="View Details"
-                    >
-                      <Eye className="w-4 h-4 text-neutral-400" />
-                    </Link>
-
-                    {reg.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => handleApprove(reg.id)}
-                          disabled={processingId === reg.id}
-                          className="p-2 rounded-lg hover:bg-green-500/20 transition-colors text-green-400"
-                          title="Approve"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleReject(reg.id)}
-                          disabled={processingId === reg.id}
-                          className="p-2 rounded-lg hover:bg-red-500/20 transition-colors text-red-400"
-                          title="Reject"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
+                reg={reg}
+                leagueId={leagueId}
+                isSelected={selectedIds.includes(reg.id)}
+                isExpanded={expandedId === reg.id}
+                isProcessing={processingId === reg.id}
+                onSelect={handleSelectOne}
+                onToggleExpand={toggleExpanded}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onWaitlist={handleWaitlist}
+              />
             ))}
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// Sortable column header
+function SortableHeader({
+  field,
+  label,
+  current,
+  direction,
+  onSort,
+}: {
+  field: SortField;
+  label: string;
+  current: SortField;
+  direction: SortDirection;
+  onSort: (field: SortField) => void;
+}) {
+  const isActive = current === field;
+  return (
+    <th
+      className="px-4 py-3 text-left text-sm font-medium text-neutral-300 cursor-pointer select-none hover:text-white transition-colors"
+      onClick={() => onSort(field)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {isActive ? (
+          direction === 'asc' ? (
+            <ChevronUp className="w-3.5 h-3.5 text-rink-400" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 text-rink-400" />
+          )
+        ) : (
+          <ArrowUpDown className="w-3.5 h-3.5 text-neutral-600" />
+        )}
+      </span>
+    </th>
+  );
+}
+
+// Individual registration row with expandable details
+function RegistrationRow({
+  reg,
+  leagueId,
+  isSelected,
+  isExpanded,
+  isProcessing,
+  onSelect,
+  onToggleExpand,
+  onApprove,
+  onReject,
+  onWaitlist,
+}: {
+  reg: Registration;
+  leagueId: string;
+  isSelected: boolean;
+  isExpanded: boolean;
+  isProcessing: boolean;
+  onSelect: (id: string, checked: boolean) => void;
+  onToggleExpand: (id: string) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onWaitlist: (id: string) => void;
+}) {
+  return (
+    <>
+      <tr className="hover:bg-neutral-800/50 transition-colors">
+        <td className="px-4 py-3">
+          {reg.status === 'pending' && (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => onSelect(reg.id, e.target.checked)}
+              className="rounded border-neutral-600 bg-neutral-700 text-rink-500 focus:ring-rink-500"
+            />
+          )}
+        </td>
+        <td className="px-2 py-3">
+          <button
+            onClick={() => onToggleExpand(reg.id)}
+            className="p-1 rounded hover:bg-neutral-700 transition-colors text-neutral-400 hover:text-white"
+            title={isExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-neutral-700 overflow-hidden flex items-center justify-center flex-shrink-0">
+              {reg.photo_url ? (
+                <img
+                  src={reg.photo_url}
+                  alt={reg.player.full_name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-5 h-5 text-neutral-400" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-white font-medium truncate">
+                {reg.player.full_name}
+              </p>
+              <p className="text-sm text-neutral-400 truncate">
+                {reg.player.email}
+              </p>
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <span className="text-sm text-neutral-300">
+            {reg.self_assessed_skill
+              ? formatSkillLevel(reg.self_assessed_skill as any)
+              : '-'}
+          </span>
+        </td>
+        <td className="px-4 py-3">
+          <span className="text-sm text-neutral-300">
+            {reg.preferred_position
+              ? formatPosition(reg.preferred_position as any)
+              : '-'}
+          </span>
+        </td>
+        <td className="px-4 py-3">
+          <span className="text-sm text-neutral-300">
+            {reg.team?.name || '-'}
+          </span>
+          <p className="text-xs text-neutral-500">
+            {formatRegistrationType(reg.registration_type as any)}
+          </p>
+        </td>
+        <td className="px-4 py-3">
+          <WaiverBadge waiver={reg.waiver} />
+        </td>
+        <td className="px-4 py-3">
+          <PaymentBadge status={reg.payment_status} />
+        </td>
+        <td className="px-4 py-3">
+          <StatusBadge status={reg.status} />
+        </td>
+        <td className="px-4 py-3">
+          <span className="text-sm text-neutral-400">
+            {reg.submitted_at
+              ? new Date(reg.submitted_at).toLocaleDateString()
+              : '-'}
+          </span>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center justify-end gap-1">
+            <Link
+              href={`/dashboard/leagues/${leagueId}/registrations/${reg.id}`}
+              className="p-2 rounded-lg hover:bg-neutral-700 transition-colors"
+              title="View Details"
+            >
+              <Eye className="w-4 h-4 text-neutral-400" />
+            </Link>
+
+            {reg.status === 'pending' && (
+              <>
+                <button
+                  onClick={() => onApprove(reg.id)}
+                  disabled={isProcessing}
+                  className="p-2 rounded-lg hover:bg-green-500/20 transition-colors text-green-400 disabled:opacity-50"
+                  title="Approve"
+                >
+                  {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={() => onWaitlist(reg.id)}
+                  disabled={isProcessing}
+                  className="p-2 rounded-lg hover:bg-purple-500/20 transition-colors text-purple-400 disabled:opacity-50"
+                  title="Waitlist"
+                >
+                  <Clock className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onReject(reg.id)}
+                  disabled={isProcessing}
+                  className="p-2 rounded-lg hover:bg-red-500/20 transition-colors text-red-400 disabled:opacity-50"
+                  title="Reject"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+
+      {/* Expanded Detail Row */}
+      {isExpanded && (
+        <tr className="bg-neutral-800/30">
+          <td colSpan={11} className="px-4 py-4">
+            <ExpandedDetails reg={reg} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+// Expanded detail section within the table
+function ExpandedDetails({ reg }: { reg: Registration }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-12">
+      {/* Contact Info */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+          <Mail className="w-3.5 h-3.5" />
+          Contact
+        </h4>
+        <div className="text-sm space-y-1">
+          <p className="text-neutral-300">{reg.player.email}</p>
+          {reg.player.phone && (
+            <p className="text-neutral-400 flex items-center gap-1">
+              <Phone className="w-3 h-3" />
+              {reg.player.phone}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Playing Info */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+          <Trophy className="w-3.5 h-3.5" />
+          Playing Details
+        </h4>
+        <div className="text-sm space-y-1">
+          <DetailRow label="Position" value={reg.preferred_position ? formatPosition(reg.preferred_position as any) : '-'} />
+          {reg.secondary_position && (
+            <DetailRow label="Secondary" value={formatPosition(reg.secondary_position as any)} />
+          )}
+          <DetailRow label="Skill" value={reg.self_assessed_skill ? formatSkillLevel(reg.self_assessed_skill as any) : '-'} />
+          <DetailRow label="Experience" value={reg.years_experience !== null && reg.years_experience !== undefined ? `${reg.years_experience} years` : '-'} />
+          {reg.preferred_jersey_number && (
+            <DetailRow label="Jersey #" value={`#${reg.preferred_jersey_number}`} />
+          )}
+        </div>
+      </div>
+
+      {/* Additional Info */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+          <Target className="w-3.5 h-3.5" />
+          Additional
+        </h4>
+        <div className="text-sm space-y-1">
+          <DetailRow label="Type" value={formatRegistrationType(reg.registration_type as any)} />
+          <DetailRow label="Team Pref." value={reg.team?.name || 'None'} />
+          <DetailRow
+            label="Waiver"
+            value={reg.waiver ? `Signed by ${reg.waiver.signed_name}` : 'Not signed'}
+          />
+          {reg.amount_paid_cents > 0 && (
+            <DetailRow
+              label="Paid"
+              value={`$${(reg.amount_paid_cents / 100).toFixed(2)}`}
+            />
+          )}
+        </div>
+        {reg.previous_leagues && (
+          <div className="mt-2 pt-2 border-t border-neutral-700">
+            <p className="text-xs text-neutral-500">Previous Leagues</p>
+            <p className="text-sm text-neutral-300 mt-0.5">{reg.previous_leagues}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <span className="text-neutral-500">{label}</span>
+      <span className="text-neutral-300 text-right">{value}</span>
     </div>
   );
 }
@@ -348,6 +614,24 @@ function StatusBadge({ status }: { status: string }) {
       )}
     >
       {config.label}
+    </span>
+  );
+}
+
+// Waiver Badge Component
+function WaiverBadge({ waiver }: { waiver: Registration['waiver'] }) {
+  if (waiver) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-green-400">
+        <FileCheck className="w-3 h-3" />
+        Signed
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-neutral-500">
+      <AlertTriangle className="w-3 h-3" />
+      Missing
     </span>
   );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import { Trophy, Target, TrendingUp, Shield, Flame, Users, PlusCircle, HandMetal, Crosshair, Crown, ShieldCheck, Star, Sprout, Award, Lock } from 'lucide-react';
 import Image from 'next/image';
 import type { PlayerBadge, BadgeType } from '@/lib/types';

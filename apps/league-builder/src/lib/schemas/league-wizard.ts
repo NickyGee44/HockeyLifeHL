@@ -117,7 +117,7 @@ export const step3Schema = z
       .refine((date) => !isNaN(Date.parse(date)), 'Must be a valid date'),
 
     // Registration Settings
-    registration_type: z.enum(['open', 'approval_required', 'invite_only'], {
+    registration_type: z.enum(['open', 'approval_required', 'invite_only', 'draft'], {
       message: 'Please select a registration type',
     }),
     registration_opens: z
@@ -147,6 +147,20 @@ export const step3Schema = z
 
     // Scorekeeping Mode (NEW)
     scorekeeping_mode: z.enum(['standard', 'self_scorekeeping']).default('self_scorekeeping'),
+
+    // Playoff Eligibility
+    playoff_eligibility_enabled: z.boolean().default(false),
+    playoff_eligibility_min_games_pct: z
+      .number()
+      .min(0, 'Must be at least 0%')
+      .max(100, 'Must be at most 100%')
+      .default(60),
+    playoff_eligibility_min_games: z
+      .number()
+      .int('Must be a whole number')
+      .min(0, 'Must be at least 0')
+      .nullable()
+      .default(null),
   })
   .refine(
     (data) => {
@@ -220,13 +234,12 @@ export const step5Schema = z.object({
 
   // Page Visibility (NEW)
   visiblePages: z.record(z.string(), z.boolean()).default({
-    scores: true,
     schedule: true,
     standings: true,
     teams: true,
     stats: true,
     news: false,
-    events: false,
+    history: false,
     gallery: false,
     about: true,
   }),
@@ -328,7 +341,7 @@ const step3BaseSchema = z.object({
   season_end_date: z
     .string()
     .refine((date) => !isNaN(Date.parse(date)), 'Must be a valid date'),
-  registration_type: z.enum(['open', 'approval_required', 'invite_only'], {
+  registration_type: z.enum(['open', 'approval_required', 'invite_only', 'draft'], {
     message: 'Please select a registration type',
   }),
   registration_opens: z
@@ -354,6 +367,18 @@ const step3BaseSchema = z.object({
     .max(5, 'Must have at most 5 periods')
     .default(3),
   scorekeeping_mode: z.enum(['standard', 'self_scorekeeping']).default('self_scorekeeping'),
+  playoff_eligibility_enabled: z.boolean().default(false),
+  playoff_eligibility_min_games_pct: z
+    .number()
+    .min(0, 'Must be at least 0%')
+    .max(100, 'Must be at most 100%')
+    .default(60),
+  playoff_eligibility_min_games: z
+    .number()
+    .int('Must be a whole number')
+    .min(0, 'Must be at least 0')
+    .nullable()
+    .default(null),
 });
 
 export const wizardSchema = z
@@ -407,6 +432,16 @@ export const wizardSchema = z
       message: 'Team names must be unique',
       path: ['teams'],
     }
+  )
+  .refine(
+    (data) => {
+      if (data.registration_type !== 'draft') return true;
+      return data.teams && data.teams.length >= 2;
+    },
+    {
+      message: 'Draft leagues require at least 2 teams',
+      path: ['teams'],
+    }
   );
 
 export type WizardFormData = z.infer<typeof wizardSchema>;
@@ -430,6 +465,9 @@ export const defaultValues: Partial<WizardFormData> = {
   game_duration_minutes: 60,
   period_count: 3,
   scorekeeping_mode: 'self_scorekeeping',
+  playoff_eligibility_enabled: false,
+  playoff_eligibility_min_games_pct: 60,
+  playoff_eligibility_min_games: null,
 
   // Step 4: Teams
   teams: [],
@@ -438,13 +476,12 @@ export const defaultValues: Partial<WizardFormData> = {
   isPublic: true,
   themePreset: 'dark',
   visiblePages: {
-    scores: true,
     schedule: true,
     standings: true,
     teams: true,
     stats: true,
     news: false,
-    events: false,
+    history: false,
     gallery: false,
     about: true,
   },

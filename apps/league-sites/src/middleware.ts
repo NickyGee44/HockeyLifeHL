@@ -123,6 +123,6 @@ export const config = {
      * - robots.txt (robots file)
      * - sitemap.xml (sitemap file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)',
+    '/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.webp$|.*\\.ico$|.*\\.webmanifest$|badges/|sponsors/).*)',
   ],
 };

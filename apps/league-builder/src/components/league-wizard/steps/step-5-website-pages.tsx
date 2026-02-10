@@ -58,13 +58,12 @@ const THEME_PRESETS = [
 
 // Page visibility options
 const PAGE_OPTIONS = [
-  { key: 'scores', label: 'Scores', description: 'Game scores and results' },
-  { key: 'schedule', label: 'Schedule', description: 'Upcoming games and events' },
+  { key: 'schedule', label: 'Schedule', description: 'Upcoming games, scores, and events' },
   { key: 'standings', label: 'Standings', description: 'League standings table' },
   { key: 'teams', label: 'Teams', description: 'Team rosters and info' },
   { key: 'stats', label: 'Stats', description: 'Player and team statistics' },
   { key: 'news', label: 'News', description: 'League news and announcements' },
-  { key: 'events', label: 'Events', description: 'Special events calendar' },
+  { key: 'history', label: 'History', description: 'League history and hall of fame' },
   { key: 'gallery', label: 'Gallery', description: 'Photos and media' },
   { key: 'about', label: 'About', description: 'League information page' },
 ];

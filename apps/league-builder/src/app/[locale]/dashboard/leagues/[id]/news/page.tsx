@@ -2,7 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/actions/auth';
-import { getNewsArticles } from '@/lib/actions/news';
+import { getAllLeagueArticles } from '@/lib/actions/news';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import {
@@ -43,7 +43,7 @@ export default async function LeagueNewsPage({ params }: Props) {
   }
 
   // Get news articles
-  const result = await getNewsArticles(leagueId);
+  const result = await getAllLeagueArticles(leagueId);
   const articles = result.success ? result.data : [];
 
   return (
@@ -113,6 +113,18 @@ export default async function LeagueNewsPage({ params }: Props) {
                           </span>
                         )}
                       </span>
+                      {article.article_type !== 'news' && (
+                        <span
+                          className={cn(
+                            'px-2.5 py-0.5 text-xs font-semibold rounded-full border shrink-0',
+                            article.article_type === 'game_recap'
+                              ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+                              : 'bg-purple-500/10 text-purple-500 border-purple-500/30'
+                          )}
+                        >
+                          {article.article_type === 'game_recap' ? 'Game Recap' : 'Weekly Wrap'}
+                        </span>
+                      )}
                     </div>
                     {article.excerpt && (
                       <p className="text-sm text-neutral-400 truncate">{article.excerpt}</p>

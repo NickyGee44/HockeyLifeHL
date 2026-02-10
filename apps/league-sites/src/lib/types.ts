@@ -532,6 +532,9 @@ export interface NewsArticle {
   type: string;
   league_id: string;
   author?: { full_name: string; avatar_url: string | null } | null;
+  game_id?: string | null;
+  division_id?: string | null;
+  season_id?: string | null;
 }
 
 /** League event */

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2, Users, Info } from 'lucide-react';
+import { Plus, Trash2, Users, Info, AlertTriangle } from 'lucide-react';
 import { Button, Input, FormField, ColorPicker } from '@hockey-life/ui';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
@@ -15,6 +15,9 @@ export function Step4Teams() {
     setValue,
     watch,
   } = useFormContext<WizardFormData>();
+
+  const registrationType = watch('registration_type');
+  const isDraft = registrationType === 'draft';
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -32,20 +35,36 @@ export function Step4Teams() {
   return (
     <WizardStepContainer
       title="Add Teams"
-      description="Optionally add teams to your league now. You can also add teams later from the league dashboard."
+      description={isDraft
+        ? "Draft leagues require at least 2 teams. Add the teams that will participate in the draft."
+        : "Optionally add teams to your league now. You can also add teams later from the league dashboard."
+      }
     >
       <div className="space-y-4">
-        <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-2">
-          <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-1">Teams are optional at this stage</p>
-            <p>
-              You can add up to 20 teams now, or skip this step and add teams
-              later. Teams can be edited, added, or removed at any time from
-              your league dashboard.
-            </p>
+        {isDraft ? (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 rounded-lg flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800 dark:text-amber-200">
+              <p className="font-medium mb-1">Teams are required for draft leagues</p>
+              <p>
+                You need at least 2 teams to run a draft. Team captains will pick
+                players from the player pool during the live draft event.
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-2">
+            <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium mb-1">Teams are optional at this stage</p>
+              <p>
+                You can add up to 20 teams now, or skip this step and add teams
+                later. Teams can be edited, added, or removed at any time from
+                your league dashboard.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Teams List */}
         {fields.length === 0 ? (

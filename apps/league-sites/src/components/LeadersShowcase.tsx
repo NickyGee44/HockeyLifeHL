@@ -24,15 +24,15 @@ function PlayerAvatar({ name, avatarUrl, rank }: { name: string; avatarUrl: stri
         <img
           src={avatarUrl}
           alt={name}
-          className="h-10 w-10 rounded-full object-cover border-2 border-[var(--color-border)]"
+          className="h-20 w-20 md:h-24 md:w-24 rounded-full object-cover border-[3px] border-[var(--color-border)]"
         />
       ) : (
-        <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--color-border)] bg-[var(--color-surface-hover)] text-xs font-bold text-[var(--color-text-secondary)]">
+        <div className="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full border-[3px] border-[var(--color-border)] bg-[var(--color-surface-hover)] text-lg md:text-xl font-bold text-[var(--color-text-secondary)]">
           {initials}
         </div>
       )}
       <span
-        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+        className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
         style={{
           backgroundColor: rank <= 3 ? 'var(--league-primary)' : 'var(--color-surface-hover)',
           color: rank <= 3 ? 'var(--color-accent-text)' : 'var(--color-text-secondary)',
@@ -72,7 +72,7 @@ export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug, bad
             {scoringLeaders.slice(0, 5).map((player, idx) => (
               <div
                 key={player.player_id}
-                className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
               >
                 <PlayerAvatar
                   name={player.player_name}
@@ -82,7 +82,7 @@ export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug, bad
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/${leagueSlug}/players/${player.player_id}`}
-                    className="truncate text-sm font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] transition-colors"
+                    className="truncate text-base font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] transition-colors"
                   >
                     {player.player_name}
                   </Link>
@@ -127,7 +127,7 @@ export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug, bad
             {goalieLeaders.slice(0, 3).map((goalie, idx) => (
               <div
                 key={goalie.player_id}
-                className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
               >
                 <PlayerAvatar
                   name={goalie.player_name}
@@ -137,7 +137,7 @@ export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug, bad
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/${leagueSlug}/players/${goalie.player_id}`}
-                    className="truncate text-sm font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] transition-colors"
+                    className="truncate text-base font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] transition-colors"
                   >
                     {goalie.player_name}
                   </Link>

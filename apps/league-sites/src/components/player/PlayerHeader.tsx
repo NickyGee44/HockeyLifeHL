@@ -52,13 +52,13 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
             <Image
               src={player.profile.avatar_url}
               alt={playerName}
-              width={120}
-              height={120}
-              className="rounded-2xl border-2 border-[var(--color-border)] shadow-lg object-cover"
+              width={240}
+              height={240}
+              className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl border-2 border-[var(--color-border)] shadow-lg object-cover"
             />
           ) : (
             <div
-              className="w-[120px] h-[120px] rounded-2xl flex items-center justify-center text-4xl font-black border-2 shadow-lg"
+              className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl flex items-center justify-center text-6xl md:text-7xl font-black border-2 shadow-lg"
               style={{
                 backgroundColor: `color-mix(in srgb, ${teamColor} 20%, var(--color-surface))`,
                 borderColor: `color-mix(in srgb, ${teamColor} 40%, var(--color-border))`,
@@ -72,7 +72,7 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
           {/* Jersey number badge */}
           {player.jersey_number && (
             <div
-              className="absolute -bottom-2 -right-2 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black shadow-md border-2 border-[var(--color-background-elevated)]"
+              className="absolute -bottom-2 -right-2 w-12 h-12 rounded-xl flex items-center justify-center text-base font-black shadow-md border-2 border-[var(--color-background-elevated)]"
               style={{
                 backgroundColor: teamColor,
                 color: 'var(--color-accent-text, #000)',
@@ -155,8 +155,8 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
             <Image
               src={team.logo_url}
               alt={team.name}
-              width={100}
-              height={100}
+              width={120}
+              height={120}
               className="rounded-xl opacity-60 hover:opacity-90 transition-opacity object-contain"
             />
           </Link>

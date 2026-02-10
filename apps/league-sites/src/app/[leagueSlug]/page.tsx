@@ -22,7 +22,7 @@ import {
   getRecentGames,
   getStandings,
   getDivisions,
-  getNewsArticles,
+  getAllArticles,
   getLeagueSponsors,
   getLeagueEvents,
   getLeagueAwards,
@@ -42,6 +42,7 @@ import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import { EventCard } from '@/components/events/EventCard';
 import { AwardsShowcase } from '@/components/awards/AwardsShowcase';
 import { FeaturedNewsBanner } from '@/components/news/FeaturedNewsBanner';
+import { NewsHeadlines } from '@/components/news/NewsHeadlines';
 import { LeadersShowcase } from '@/components/LeadersShowcase';
 import { SocialLinks } from '@/components/SocialLinks';
 import { Card } from '@/components/ui';
@@ -81,7 +82,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getRecentGames(league.id, 5, divisionFilter),
     getStandings(league.id),
     getDivisions(league.id),
-    getNewsArticles(league.id, 3),
+    getAllArticles(league.id, 3),
     getLeagueSponsors(league.id),
     getLeagueEvents(league.id),
     getLeagueAwards(league.id),
@@ -182,24 +183,16 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       {/* Division filter URL sync */}
       <DivisionUrlSync pagePath={`/${leagueSlug}`} />
 
-      {/* 1. Hero */}
-      <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
-
-      {/* 2. Featured News Strip */}
-      {hasNews && (
-        <section className="container mx-auto px-4 pt-8">
-          <div className={panelClass}>
-            <SectionHeading
-              title="Latest News"
-              icon={<Newspaper className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/news`}
-              cta="All News"
-            />
-            <div className="mt-6">
-              <FeaturedNewsBanner articles={newsArticles} leagueSlug={leagueSlug} />
-            </div>
+      {/* 1. Hero + News Side-by-Side (news on right when articles exist) */}
+      {hasNews ? (
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]">
+          <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
+          <div className="relative flex items-stretch border-b border-l-0 lg:border-l border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_60%,transparent)] backdrop-blur-md p-4 lg:p-6">
+            <NewsHeadlines articles={newsArticles} leagueSlug={leagueSlug} />
           </div>
-        </section>
+        </div>
+      ) : (
+        <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
       )}
 
       {/* 3. Sponsor Banner */}

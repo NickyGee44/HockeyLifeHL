@@ -123,6 +123,35 @@ export async function getNewsArticle(articleId: string): Promise<ActionResult<Ne
   }
 }
 
+/**
+ * Get all articles for a league (all types, for admin dashboard)
+ */
+export async function getAllLeagueArticles(leagueId: string): Promise<ActionResult<NewsArticle[]>> {
+  const supabase = await createClient();
+
+  try {
+    const { data: articles, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('league_id', leagueId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (isDevelopment) {
+        console.error('Error fetching all articles:', error);
+      }
+      return { success: false, error: 'Failed to fetch articles' };
+    }
+
+    return { success: true, data: (articles || []) as unknown as NewsArticle[] };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Unexpected error in getAllLeagueArticles:', error);
+    }
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
 // ==============================================================================
 // CREATE OPERATIONS
 // ==============================================================================
