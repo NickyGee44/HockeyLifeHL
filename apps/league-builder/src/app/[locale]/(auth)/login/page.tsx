@@ -3,13 +3,31 @@
 import { signIn } from '@/lib/actions/auth';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 animate-pulse">
+        <div className="h-8 bg-neutral-800 rounded w-48 mb-2" />
+        <div className="h-4 bg-neutral-800 rounded w-64 mb-6" />
+        <div className="space-y-4">
+          <div className="h-12 bg-neutral-800 rounded-xl" />
+          <div className="h-12 bg-neutral-800 rounded-xl" />
+          <div className="h-12 bg-neutral-800 rounded-xl" />
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const t = useTranslations();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);

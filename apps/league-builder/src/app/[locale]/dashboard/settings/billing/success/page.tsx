@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,18 @@ import { SUBSCRIPTION_TIERS } from '@/lib/types/subscription';
 import type { SubscriptionTier } from '@/lib/types/subscription';
 
 export default function SubscriptionSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[400px] flex items-center justify-center p-6">
+        <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+      </div>
+    }>
+      <SubscriptionSuccessContent />
+    </Suspense>
+  );
+}
+
+function SubscriptionSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(5);
