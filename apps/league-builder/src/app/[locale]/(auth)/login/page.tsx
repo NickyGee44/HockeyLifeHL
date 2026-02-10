@@ -13,17 +13,24 @@ export default function LoginPage() {
   const t = useTranslations();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const redirectTo = searchParams.get('redirect');
 
   async function handleSubmit(formData: FormData) {
     setError(null);
+    setWarning(null);
     setLoading(true);
 
     try {
       const result = await signIn(formData);
       if (result?.error) {
         setError(result.error);
+
+        // Show remaining attempts warning if close to lockout
+        if (result.remainingAttempts !== undefined && result.remainingAttempts <= 2 && result.remainingAttempts > 0) {
+          setWarning(`${result.remainingAttempts} attempt${result.remainingAttempts === 1 ? '' : 's'} remaining before your account is locked.`);
+        }
       }
     } catch (error) {
       if (isRedirectError(error)) {
@@ -103,6 +110,12 @@ export default function LoginPage() {
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
             <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        {warning && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+            <p className="text-sm text-amber-400">{warning}</p>
           </div>
         )}
 

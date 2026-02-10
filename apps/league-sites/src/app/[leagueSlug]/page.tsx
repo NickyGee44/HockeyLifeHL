@@ -12,6 +12,8 @@ import {
   Camera,
   Award,
   Sparkles,
+  UserPlus,
+  Share2,
 } from 'lucide-react';
 import {
   getLeagueBySlug,
@@ -25,16 +27,21 @@ import {
   getLeagueEvents,
   getLeagueAwards,
   getGalleryAlbums,
-  getStatsLeaders,
+  getStatsLeadersWithAvatars,
+  getGoalieLeaders,
+  getCurrentSeason,
+  getSeasons,
 } from '@/lib/data';
 import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
 import { DivisionStandingsWidget } from '@/components/DivisionStandingsWidget';
 import { HeroSection } from '@/components/HeroSection';
-import { NewsCard } from '@/components/news/NewsCard';
 import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import { EventCard } from '@/components/events/EventCard';
 import { AwardsShowcase } from '@/components/awards/AwardsShowcase';
+import { FeaturedNewsBanner } from '@/components/news/FeaturedNewsBanner';
+import { LeadersShowcase } from '@/components/LeadersShowcase';
+import { SocialLinks } from '@/components/SocialLinks';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
 
@@ -62,6 +69,8 @@ export default async function HomePage({ params }: HomePageProps) {
     awards,
     albums,
     scoringLeaders,
+    currentSeason,
+    seasons,
   ] = await Promise.all([
     getLeagueStats(league.id),
     getUpcomingGames(league.id, 5),
@@ -73,8 +82,13 @@ export default async function HomePage({ params }: HomePageProps) {
     getLeagueEvents(league.id),
     getLeagueAwards(league.id),
     getGalleryAlbums(league.id),
-    getStatsLeaders(league.id, 'points', 5),
+    getStatsLeadersWithAvatars(league.id, 'points', 5),
+    getCurrentSeason(league.id),
+    getSeasons(league.id),
   ]);
+
+  // Fetch goalie leaders (depends on currentSeason)
+  const goalieLeaders = await getGoalieLeaders(league.id, currentSeason?.id, 'wins', 3);
 
   const upcomingEvents = events
     .filter((e) => new Date(e.start_time) > new Date())
@@ -86,7 +100,26 @@ export default async function HomePage({ params }: HomePageProps) {
   const hasEvents = upcomingEvents.length > 0;
   const hasAwards = awards.length > 0;
   const hasAlbums = albums.length > 0;
-  const hasLeaders = scoringLeaders.length > 0;
+  const hasLeaders = scoringLeaders.length > 0 || goalieLeaders.length > 0;
+  const websiteSettings = league.settings?.website;
+  const hasSocialLinks = !!(
+    websiteSettings?.socialFacebook ||
+    websiteSettings?.socialTwitter ||
+    websiteSettings?.socialInstagram ||
+    websiteSettings?.socialYoutube ||
+    websiteSettings?.socialTiktok
+  );
+  const socialSettings = hasSocialLinks ? websiteSettings : null;
+
+  // Check if registration is open for any season
+  const now = new Date();
+  const registrationSeason = seasons.find((season: any) => {
+    if (season.registration_opens_at && season.registration_closes_at) {
+      return now >= new Date(season.registration_opens_at) && now <= new Date(season.registration_closes_at);
+    }
+    return false;
+  });
+  const hasOpenRegistration = !!registrationSeason;
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
@@ -135,14 +168,34 @@ export default async function HomePage({ params }: HomePageProps) {
 
   return (
     <div className={`animate-fade-in league-home league-home-${templateVariant} league-home-shell`}>
+      {/* 1. Hero */}
       <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
 
+      {/* 2. Featured News Strip */}
+      {hasNews && (
+        <section className="container mx-auto px-4 pt-8">
+          <div className={panelClass}>
+            <SectionHeading
+              title="Latest News"
+              icon={<Newspaper className="w-5 h-5 text-[var(--league-primary)]" />}
+              href={`/${leagueSlug}/news`}
+              cta="All News"
+            />
+            <div className="mt-6">
+              <FeaturedNewsBanner articles={newsArticles} leagueSlug={leagueSlug} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3. Sponsor Banner */}
       {hasSponsors && (
-        <div className="border-y border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="mt-8 border-y border-[var(--color-border)] bg-[var(--color-surface)]">
           <SponsorBanner sponsors={sponsors} />
         </div>
       )}
 
+      {/* 4. Pulse Items */}
       <section className="container mx-auto px-4 pt-8">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           {pulseItems.map((item) => (
@@ -163,26 +216,21 @@ export default async function HomePage({ params }: HomePageProps) {
         </div>
       </section>
 
-      {hasNews && (
+      {/* 5. Leaders Showcase (full-width) */}
+      {hasLeaders && (
         <section className="container mx-auto px-4 pt-8">
-          <div className={panelClass}>
-            <SectionHeading
-              title="Latest News"
-              icon={<Newspaper className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/news`}
-              cta="All News"
-            />
-            <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-              {newsArticles.map((article) => (
-                <NewsCard key={article.id} article={article} leagueSlug={leagueSlug} />
-              ))}
-            </div>
-          </div>
+          <LeadersShowcase
+            scoringLeaders={scoringLeaders}
+            goalieLeaders={goalieLeaders}
+            leagueSlug={leagueSlug}
+          />
         </section>
       )}
 
+      {/* 6. Two-column layout */}
       <div className="container mx-auto px-4 py-12">
         <div className={contentGridClass}>
+          {/* Left column: Games */}
           <div className="space-y-8">
             <section className={panelClass}>
               <SectionHeading
@@ -238,6 +286,7 @@ export default async function HomePage({ params }: HomePageProps) {
             </section>
           </div>
 
+          {/* Right column: Standings, Events, Social, Registration, Quick Links */}
           <div className="space-y-8">
             <section className={`${panelClass} p-6 md:p-7`}>
               <SectionHeading
@@ -255,49 +304,6 @@ export default async function HomePage({ params }: HomePageProps) {
               </div>
             </section>
 
-            {hasLeaders && (
-              <section className={`${panelClass} p-6 md:p-7`}>
-                <SectionHeading
-                  title="Scoring Leaders"
-                  icon={<TrendingUp className="w-5 h-5 text-[var(--league-primary)]" />}
-                  href={`/${leagueSlug}/stats`}
-                  cta="Full Stats"
-                />
-                <div className="mt-5 divide-y divide-[var(--color-border)] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_72%,transparent)]">
-                  {scoringLeaders.slice(0, 5).map((player, idx) => (
-                    <div
-                      key={player.player_id || idx}
-                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-surface-hover)]"
-                    >
-                      <span
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
-                        style={{
-                          backgroundColor: idx < 3 ? 'var(--league-primary)' : 'var(--color-surface-hover)',
-                          color: idx < 3 ? 'var(--color-accent-text)' : 'var(--color-text-secondary)',
-                        }}
-                      >
-                        {idx + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
-                          {player.player_name}
-                        </p>
-                        <p className="text-xs text-[var(--color-text-muted)]">
-                          {player.team_name || 'Free Agent'}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <span className="text-sm font-bold text-[var(--league-primary)]">{player.points} pts</span>
-                        <p className="text-xs text-[var(--color-text-muted)]">
-                          {player.goals}G {player.assists}A
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
             {hasEvents && (
               <section className={`${panelClass} p-6 md:p-7`}>
                 <SectionHeading
@@ -310,6 +316,44 @@ export default async function HomePage({ params }: HomePageProps) {
                   {upcomingEvents.map((event) => (
                     <EventCard key={event.id} event={event} />
                   ))}
+                </div>
+              </section>
+            )}
+
+            {hasOpenRegistration && (
+              <section className={`${panelClass} p-6 md:p-7`}>
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[var(--league-primary)]/15 mb-3">
+                    <UserPlus className="w-6 h-6 text-[var(--league-primary)]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
+                    Registration Open
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] mt-1 mb-4">
+                    Sign up for {(registrationSeason as any)?.name || 'the upcoming season'} today!
+                  </p>
+                  <Button
+                    href={`/${leagueSlug}/register`}
+                    variant="primary"
+                    glow
+                    fullWidth
+                    icon={<UserPlus className="w-4 h-4" />}
+                  >
+                    Register Now
+                  </Button>
+                </div>
+              </section>
+            )}
+
+            {/* Social Links */}
+            {socialSettings && (
+              <section className={`${panelClass} p-6 md:p-7`}>
+                <SectionHeading
+                  title="Follow Us"
+                  icon={<Share2 className="w-5 h-5 text-[var(--league-primary)]" />}
+                />
+                <div className="mt-4 flex justify-center">
+                  <SocialLinks settings={socialSettings} size="lg" />
                 </div>
               </section>
             )}
@@ -344,6 +388,7 @@ export default async function HomePage({ params }: HomePageProps) {
         </div>
       </div>
 
+      {/* 7. Awards Showcase */}
       {hasAwards && (
         <section className="league-feature-band border-y border-[var(--color-border)]">
           <div className="container mx-auto px-4 py-12">
@@ -358,6 +403,7 @@ export default async function HomePage({ params }: HomePageProps) {
         </section>
       )}
 
+      {/* 8. Photo Gallery */}
       {hasAlbums && (
         <section className="border-t border-[var(--color-border)]">
           <div className="container mx-auto px-4 py-12">
@@ -402,6 +448,7 @@ export default async function HomePage({ params }: HomePageProps) {
         </section>
       )}
 
+      {/* 9. Partners/Sponsors footer */}
       {hasSponsors && sponsors.some((s) => s.tier === 'premier' || s.tier === 'gold') && (
         <section className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
           <div className="container mx-auto px-4 py-10">

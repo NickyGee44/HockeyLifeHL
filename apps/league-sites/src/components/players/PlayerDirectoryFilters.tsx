@@ -2,7 +2,8 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Search, Filter, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useDivisionFilter } from '@/components/DivisionFilterProvider';
 
 interface Team {
   id: string;
@@ -10,30 +11,59 @@ interface Team {
   slug: string;
 }
 
+interface Division {
+  id: string;
+  name: string;
+}
+
 interface PlayerDirectoryFiltersProps {
   teams: Team[];
+  divisions: Division[];
   positions: string[];
   selectedTeam?: string;
   selectedPosition?: string;
+  selectedDivision?: string;
   searchQuery?: string;
   leagueSlug: string;
 }
 
 export function PlayerDirectoryFilters({
   teams,
+  divisions,
   positions,
   selectedTeam,
   selectedPosition,
+  selectedDivision,
   searchQuery,
+  leagueSlug,
 }: PlayerDirectoryFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchQuery || '');
+  const { selectedDivisionId } = useDivisionFilter();
+  const prevDivisionRef = useRef(selectedDivision || null);
 
   useEffect(() => {
     setSearch(searchQuery || '');
   }, [searchQuery]);
+
+  // Sync global division filter → URL param so server-side query picks it up
+  useEffect(() => {
+    if (prevDivisionRef.current === selectedDivisionId) return;
+    prevDivisionRef.current = selectedDivisionId;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedDivisionId) {
+      params.set('division', selectedDivisionId);
+      // Clear team filter if switching divisions (team may not be in new division)
+      params.delete('team');
+    } else {
+      params.delete('division');
+    }
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+  }, [selectedDivisionId, searchParams, router, pathname]);
 
   const updateFilters = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -57,7 +87,7 @@ export function PlayerDirectoryFilters({
     setSearch('');
   };
 
-  const hasFilters = selectedTeam || selectedPosition || searchQuery;
+  const hasFilters = selectedTeam || selectedPosition || searchQuery || selectedDivision;
 
   return (
     <div className="mb-8 space-y-4">
@@ -79,6 +109,32 @@ export function PlayerDirectoryFilters({
           <Filter className="w-4 h-4" />
           <span className="text-sm font-medium">Filter by:</span>
         </div>
+
+        {/* Division Filter (shown inline for pages that don't use global header) */}
+        {divisions.length > 1 && (
+          <select
+            value={selectedDivision || ''}
+            onChange={(e) => {
+              const params = new URLSearchParams(searchParams.toString());
+              if (e.target.value) {
+                params.set('division', e.target.value);
+                // Clear team filter when division changes
+                params.delete('team');
+              } else {
+                params.delete('division');
+              }
+              router.push(`${pathname}?${params.toString()}`);
+            }}
+            className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
+          >
+            <option value="">All Divisions</option>
+            {divisions.map((div) => (
+              <option key={div.id} value={div.id}>
+                {div.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Team Filter */}
         <select

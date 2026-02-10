@@ -2,6 +2,7 @@
 
 import { cn } from '@hockey-life/ui';
 import { UserCheck, Clock } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 interface ScorekeeperBadgeProps {
   assigned: boolean;
@@ -71,8 +72,11 @@ export function ScorekeeperAssignmentInfo({
   className?: string;
 }) {
   const isExpired = new Date(expiresAt) < new Date();
+  const pathname = usePathname();
+  const firstSegment = pathname.split('/').filter(Boolean)[0];
+  const locale = firstSegment === 'fr' ? 'fr' : 'en';
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  const accessLink = `${siteUrl}/scorekeeper?token=${token}`;
+  const accessLink = `${siteUrl}/${locale}/scorekeeper?token=${token}`;
 
   return (
     <div className={cn('space-y-3', className)}>

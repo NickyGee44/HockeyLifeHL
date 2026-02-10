@@ -1,17 +1,104 @@
 'use server';
 
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { cookies, headers } from 'next/headers';
 import { randomBytes } from 'crypto';
 import {
   checkScorekeeperRateLimit,
   recordTokenFailure,
   clearTokenFailures,
-  getClientIp,
 } from '@/lib/middleware/scorekeeper-rate-limit';
 
 // Session cookie name for scorekeeper tokens
 const SCOREKEEPER_SESSION_COOKIE = 'sk_session';
+
+type ScorekeeperSessionLookup = {
+  sessionId: string;
+  gameId: string;
+  leagueId: string;
+  expiresAt: string;
+  isValid: boolean;
+  gameStatus: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  scheduledAt: string;
+  accessCount: number;
+};
+
+async function lookupScorekeeperSessionByToken(
+  rawToken: string,
+  options?: { touchAccess?: boolean }
+): Promise<ScorekeeperSessionLookup | null> {
+  const token = rawToken.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+  if (!token) {
+    return null;
+  }
+
+  const supabase = await createServiceRoleClient();
+  const { data, error } = await (supabase as any)
+    .from('scorekeeper_sessions')
+    .select(`
+      id,
+      game_id,
+      league_id,
+      expires_at,
+      is_active,
+      access_count,
+      games!inner(
+        status,
+        scheduled_at,
+        home_team:teams!games_home_team_id_fkey(name),
+        away_team:teams!games_away_team_id_fkey(name)
+      )
+    `)
+    .eq('token', token)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Scorekeeper session lookup error:', error);
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const nowMs = Date.now();
+  const expiresAtMs = new Date(data.expires_at as string).getTime();
+  const isValid = Number.isFinite(expiresAtMs) && expiresAtMs > nowMs;
+  const accessCount = Number((data.access_count as number | null) ?? 0);
+
+  if (options?.touchAccess && isValid) {
+    await (supabase as any)
+      .from('scorekeeper_sessions')
+      .update({
+        last_accessed_at: new Date().toISOString(),
+        access_count: accessCount + 1,
+      })
+      .eq('id', data.id);
+  }
+
+  const game = data.games as {
+    status: string | null;
+    scheduled_at: string;
+    home_team: { name: string } | null;
+    away_team: { name: string } | null;
+  };
+
+  return {
+    sessionId: data.id,
+    gameId: data.game_id,
+    leagueId: data.league_id,
+    expiresAt: data.expires_at,
+    isValid,
+    gameStatus: game?.status || 'scheduled',
+    homeTeamName: game?.home_team?.name || 'Home',
+    awayTeamName: game?.away_team?.name || 'Away',
+    scheduledAt: game?.scheduled_at || new Date().toISOString(),
+    accessCount,
+  };
+}
 
 /**
  * Verify that there is an active, valid scorekeeper session for the given game.
@@ -34,32 +121,26 @@ async function verifyActiveScorekeeperSession(gameId: string): Promise<string> {
     throw new Error('No scorekeeper session found. Please log in with a valid token.');
   }
 
-  // Validate token and get session
-  const supabase = await createServiceRoleClient();
-  const { data, error } = await supabase.rpc('validate_scorekeeper_token', {
-    p_token: token.toUpperCase().trim(),
-  });
+  const session = await lookupScorekeeperSessionByToken(token, { touchAccess: false });
 
-  if (error || !data || data.length === 0) {
+  if (!session) {
     throw new Error('Invalid scorekeeper session. Token may be expired or revoked.');
   }
 
-  const session = data[0];
-
   // Verify session is for this game
-  if (session.game_id !== gameId) {
+  if (session.gameId !== gameId) {
     throw new Error(
-      `Session mismatch: This scorekeeper session is for game ${session.game_id}, not ${gameId}.`
+      `Session mismatch: This scorekeeper session is for game ${session.gameId}, not ${gameId}.`
     );
   }
 
   // Verify session is active and not expired
-  if (!session.is_valid) {
+  if (!session.isValid) {
     throw new Error('Scorekeeper session is expired or inactive.');
   }
 
   // Return session ID for audit logging
-  return session.session_id;
+  return session.sessionId;
 }
 
 export interface ScorekeeperSession {
@@ -94,6 +175,7 @@ export interface TeamData {
   id: string;
   name: string;
   shortName: string | null;
+  logoUrl: string | null;
   primaryColor: string | null;
   secondaryColor: string | null;
   roster: PlayerData[];
@@ -104,6 +186,7 @@ export interface TeamData {
 export interface PlayerData {
   id: string;
   fullName: string;
+  avatarUrl: string | null;
   jerseyNumber: number;
   position: 'Forward' | 'Defense' | 'Goalie';
   isCaptain: boolean;
@@ -127,6 +210,9 @@ export interface GameEventData {
   assist2PlayerId: string | null;
   assist2Name: string | null;
   assist2Number: number | null;
+  shotByPlayerId: string | null;
+  shotByName: string | null;
+  shotByNumber: number | null;
   penaltyType: string | null;
   penaltyMinutes: number | null;
   isPowerPlay: boolean;
@@ -170,19 +256,10 @@ export async function validateScorekeeperToken(token: string): Promise<{
       };
     }
 
-    const supabase = await createServiceRoleClient();
+    const normalizedToken = token.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+    const session = await lookupScorekeeperSessionByToken(normalizedToken, { touchAccess: true });
 
-    const { data, error } = await supabase.rpc('validate_scorekeeper_token', {
-      p_token: token.toUpperCase().trim(),
-    });
-
-    if (error) {
-      console.error('Token validation error:', error);
-      recordTokenFailure(token); // Track failure for rate limiting
-      return { success: false, error: 'Invalid token' };
-    }
-
-    if (!data || data.length === 0 || !data[0].is_valid) {
+    if (!session || !session.isValid) {
       recordTokenFailure(token); // Track failure for rate limiting
       return {
         success: false,
@@ -191,14 +268,12 @@ export async function validateScorekeeperToken(token: string): Promise<{
       };
     }
 
-    const session = data[0];
-
     // SUCCESS: Clear any failure tracking for this token
     clearTokenFailures(token);
 
     // Store token in httpOnly cookie
     const cookieStore = await cookies();
-    cookieStore.set(SCOREKEEPER_SESSION_COOKIE, token.toUpperCase().trim(), {
+    cookieStore.set(SCOREKEEPER_SESSION_COOKIE, normalizedToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -209,15 +284,15 @@ export async function validateScorekeeperToken(token: string): Promise<{
     return {
       success: true,
       session: {
-        sessionId: session.session_id,
-        gameId: session.game_id,
-        leagueId: session.league_id,
-        isValid: session.is_valid,
-        expiresAt: session.expires_at,
-        gameStatus: session.game_status,
-        homeTeamName: session.home_team_name,
-        awayTeamName: session.away_team_name,
-        scheduledAt: session.scheduled_at,
+        sessionId: session.sessionId,
+        gameId: session.gameId,
+        leagueId: session.leagueId,
+        isValid: session.isValid,
+        expiresAt: session.expiresAt,
+        gameStatus: session.gameStatus,
+        homeTeamName: session.homeTeamName,
+        awayTeamName: session.awayTeamName,
+        scheduledAt: session.scheduledAt,
       },
     };
   } catch (error) {
@@ -292,6 +367,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           id,
           name,
           short_name,
+          logo_url,
           primary_color,
           secondary_color,
           captain_id
@@ -300,6 +376,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           id,
           name,
           short_name,
+          logo_url,
           primary_color,
           secondary_color,
           captain_id
@@ -325,7 +402,8 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           is_assistant_captain,
           profiles!team_rosters_player_id_fkey(
             id,
-            full_name
+            full_name,
+            avatar_url
           )
         `)
         .eq('team_id', (game.home_team as { id: string }).id)
@@ -340,7 +418,8 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           is_assistant_captain,
           profiles!team_rosters_player_id_fkey(
             id,
-            full_name
+            full_name,
+            avatar_url
           )
         `)
         .eq('team_id', (game.away_team as { id: string }).id)
@@ -351,6 +430,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
       id: string;
       name: string;
       short_name: string | null;
+      logo_url: string | null;
       primary_color: string | null;
       secondary_color: string | null;
       captain_id: string | null;
@@ -360,6 +440,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
       id: string;
       name: string;
       short_name: string | null;
+      logo_url: string | null;
       primary_color: string | null;
       secondary_color: string | null;
       captain_id: string | null;
@@ -371,7 +452,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
       position: string;
       is_captain: boolean;
       is_assistant_captain: boolean;
-      profiles: { id: string; full_name: string } | null;
+      profiles: { id: string; full_name: string; avatar_url: string | null } | null;
     }> | null): PlayerData[] => {
       if (!roster) return [];
       return roster
@@ -379,6 +460,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
         .map(r => ({
           id: r.player_id,
           fullName: r.profiles!.full_name,
+          avatarUrl: r.profiles!.avatar_url || null,
           jerseyNumber: r.jersey_number,
           position: r.position as 'Forward' | 'Defense' | 'Goalie',
           isCaptain: r.is_captain,
@@ -401,6 +483,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           id: homeTeam.id,
           name: homeTeam.name,
           shortName: homeTeam.short_name,
+          logoUrl: homeTeam.logo_url,
           primaryColor: homeTeam.primary_color,
           secondaryColor: homeTeam.secondary_color,
           roster: homeRoster,
@@ -411,6 +494,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           id: awayTeam.id,
           name: awayTeam.name,
           shortName: awayTeam.short_name,
+          logoUrl: awayTeam.logo_url,
           primaryColor: awayTeam.primary_color,
           secondaryColor: awayTeam.secondary_color,
           roster: awayRoster,
@@ -517,6 +601,9 @@ export async function getGameEvents(gameId: string): Promise<{
       assist2PlayerId: e.assist2_player_id,
       assist2Name: (e.assist2 as { full_name: string } | null)?.full_name || null,
       assist2Number: e.assist2_player_id ? jerseyMap.get(e.assist2_player_id) || null : null,
+      shotByPlayerId: e.event_type === 'save' ? e.assist1_player_id : null,
+      shotByName: e.event_type === 'save' ? ((e.assist1 as { full_name: string } | null)?.full_name || null) : null,
+      shotByNumber: e.event_type === 'save' && e.assist1_player_id ? (jerseyMap.get(e.assist1_player_id) || null) : null,
       penaltyType: e.penalty_type,
       penaltyMinutes: e.penalty_minutes,
       isPowerPlay: e.is_power_play || false,
@@ -602,7 +689,6 @@ export async function addGoalEvent(data: {
     }
 
     // Update game score
-    const scoreField = data.teamType === 'home' ? 'home_score' : 'away_score';
     await supabase.rpc('increment_game_score', {
       p_game_id: data.gameId,
       p_team_type: data.teamType,
@@ -625,7 +711,7 @@ export async function addPenaltyEvent(data: {
   playerId: string;
   period: number;
   gameTimeSeconds?: number;
-  penaltyType: 'minor' | 'major' | 'misconduct' | 'game_misconduct' | 'match';
+  penaltyType: string;
   penaltyMinutes: number;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
@@ -690,6 +776,7 @@ export async function addSaveEvent(data: {
   teamId: string;
   teamType: 'home' | 'away';
   goalieId: string;
+  shotByPlayerId?: string;
   period: number;
   gameTimeSeconds?: number;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
@@ -724,6 +811,7 @@ export async function addSaveEvent(data: {
         team_id: data.teamId,
         team_type: data.teamType,
         player_id: data.goalieId,
+        assist1_player_id: data.shotByPlayerId || null,
         event_type: 'save',
         period: data.period,
         game_time_seconds: data.gameTimeSeconds || null,
@@ -878,10 +966,7 @@ export async function lookupCaptainVerificationToken(token: string): Promise<{
 /**
  * Verify game stats as captain
  */
-export async function verifyCaptainStats(
-  token: string,
-  signature?: string
-): Promise<{
+export async function verifyCaptainStats(token: string): Promise<{
   success: boolean;
   gameId?: string;
   teamType?: 'home' | 'away';
@@ -1177,8 +1262,9 @@ export async function getGameSummary(gameId: string): Promise<{
       awayPenaltyMinutes: penalties.filter(p => p.team_type === 'away').reduce((sum, p) => sum + (p.penalty_minutes || 0), 0),
       homeSaves: saves.filter(s => s.team_type === 'home').length,
       awaySaves: saves.filter(s => s.team_type === 'away').length,
-      homeShots: goals.filter(g => g.team_type === 'away').length + saves.filter(s => s.team_type === 'home').length,
-      awayShots: goals.filter(g => g.team_type === 'home').length + saves.filter(s => s.team_type === 'away').length,
+      // Team shots on goal = own goals + opponent saves
+      homeShots: goals.filter(g => g.team_type === 'home').length + saves.filter(s => s.team_type === 'away').length,
+      awayShots: goals.filter(g => g.team_type === 'away').length + saves.filter(s => s.team_type === 'home').length,
       // PP/SH/EN breakdown
       homePPGoals: goals.filter(g => g.team_type === 'home' && g.is_power_play).length,
       awayPPGoals: goals.filter(g => g.team_type === 'away' && g.is_power_play).length,

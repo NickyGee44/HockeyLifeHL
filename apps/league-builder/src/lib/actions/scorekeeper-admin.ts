@@ -3,6 +3,7 @@
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendScorekeeperAssignmentEmail } from '@/lib/email/scorekeeper-emails';
 import { randomBytes } from 'crypto';
+import { headers } from 'next/headers';
 
 /**
  * Check if the current user is a platform admin.
@@ -18,29 +19,40 @@ async function checkPlatformAdmin(userId: string): Promise<boolean> {
   return (profile as any)?.is_platform_admin === true;
 }
 
+const SUPPORTED_LOCALES = new Set(['en', 'fr']);
+
+function getLocaleFromReferer(referer: string | null): string {
+  if (!referer) return 'en';
+
+  try {
+    const pathname = new URL(referer).pathname;
+    const firstSegment = pathname.split('/').filter(Boolean)[0];
+    return SUPPORTED_LOCALES.has(firstSegment) ? firstSegment : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 /**
- * Generate a cryptographically secure 6-character alphanumeric token
+ * Generate a cryptographically secure 16-character alphanumeric token
  *
  * Security: Uses crypto.randomBytes() instead of Math.random() to prevent
  * token prediction attacks. Math.random() only has 2^32 possible seeds,
  * making it vulnerable to brute force. crypto.randomBytes() provides
  * cryptographically secure randomness.
  *
- * Format: 6 uppercase alphanumeric characters (A-Z, 0-9)
- * Entropy: ~31 bits (36^6 ≈ 2.2 billion combinations)
+ * Format: 16 uppercase alphanumeric characters (A-Z, 0-9)
+ * Entropy: ~83 bits (36^16 ≈ 7.9e24 combinations)
  */
 function generateToken(): string {
-  // Generate 12 random bytes (96 bits of entropy)
-  // Base36 encode and take first 6 characters for token
-  const bytes = randomBytes(12);
+  const bytes = randomBytes(24);
   const token = bytes
     .toString('base64')
-    .replace(/[^A-Z0-9]/gi, '') // Remove non-alphanumeric
+    .replace(/[^A-Z0-9]/gi, '')
     .toUpperCase()
-    .substring(0, 6);
+    .substring(0, 16);
 
-  // If somehow we don't have 6 chars, regenerate (extremely unlikely)
-  if (token.length < 6) {
+  if (token.length < 16) {
     return generateToken();
   }
 
@@ -167,9 +179,11 @@ export async function assignScorekeeperToGame(params: {
       return { success: false, error: 'Failed to create scorekeeper session' };
     }
 
-    // Generate access link
+    // Generate locale-aware access link
+    const requestHeaders = await headers();
+    const locale = getLocaleFromReferer(requestHeaders.get('referer'));
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const accessLink = `${siteUrl}/scorekeeper?token=${token}`;
+    const accessLink = `${siteUrl}/${locale}/scorekeeper?token=${token}`;
 
     // Send email if requested
     if (params.sendEmail && params.scorekeeperEmail) {

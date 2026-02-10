@@ -393,7 +393,20 @@
     "twoFactorAuth": "Authentification a deux facteurs",
     "dangerZone": "Zone de danger",
     "deleteLeague": "Supprimer la ligue",
-    "saved": "Parametres enregistres"
+    "saved": "Parametres enregistres",
+    "description": "Description",
+    "city": "Ville",
+    "stateProvince": "Province / Etat",
+    "country": "Pays",
+    "contactEmail": "Courriel de contact",
+    "contactPhone": "Telephone de contact",
+    "basicInfo": "Informations de base",
+    "location": "Emplacement",
+    "contactInfo": "Coordonnees",
+    "saveChanges": "Enregistrer",
+    "saving": "Enregistrement...",
+    "generalSettings": "Parametres generaux",
+    "updateInfo": "Modifier les informations de base pour {name}"
   },
   "company": {
     "profile": "Profil de l'entreprise",
@@ -948,6 +961,61 @@
       "paymentsSetUpHint": "Connectez Stripe depuis votre tableau de bord pour commencer a collecter les frais en ligne."
     }
   },
+  "seasons": {
+    "title": "Saisons",
+    "noSeasons": "Aucune saison trouvee",
+    "noSeasonsDescription": "Aucune saison ne correspond au filtre selectionne. Creez une nouvelle saison pour commencer.",
+    "ongoing": "En cours",
+    "statusUpdated": "Statut de la saison mis a jour",
+    "seasonDeleted": "Saison supprimee avec succes",
+    "seasonCloned": "Saison clonee avec succes",
+    "filter": {
+      "all": "Toutes",
+      "draft": "Brouillon",
+      "active": "Active",
+      "playoffs": "Eliminatoires",
+      "completed": "Terminee",
+      "archived": "Archivee"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "active": "Active",
+      "playoffs": "Eliminatoires",
+      "completed": "Terminee",
+      "archived": "Archivee"
+    },
+    "table": {
+      "name": "Saison",
+      "status": "Statut",
+      "dates": "Dates",
+      "teams": "Equipes",
+      "games": "Matchs",
+      "registrations": "Inscriptions"
+    },
+    "actions": {
+      "title": "Actions",
+      "view": "Voir la saison",
+      "edit": "Modifier la saison",
+      "changeStatus": "Changer le statut",
+      "clone": "Cloner la saison",
+      "archive": "Archiver",
+      "delete": "Supprimer"
+    },
+    "deleteDialog": {
+      "title": "Supprimer la saison",
+      "description": "Etes-vous sur de vouloir supprimer \"{name}\" ? Cette action est irreversible. Les saisons avec des matchs existants ne peuvent pas etre supprimees.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer la saison"
+    },
+    "cloneDialog": {
+      "title": "Cloner la saison",
+      "description": "Creer une copie de cette saison avec ses parametres. Les matchs, statistiques et inscriptions ne seront pas copies.",
+      "nameLabel": "Nom de la nouvelle saison",
+      "namePlaceholder": "Entrez le nom de la saison",
+      "cancel": "Annuler",
+      "confirm": "Cloner la saison"
+    }
+  },
   "dashboardCta": {
     "createLeague": "Creer une nouvelle ligue",
     "createLeagueDescription": "Configurez une nouvelle ligue avec equipes, calendrier et inscription",
@@ -959,5 +1027,47 @@
     "accountSettingsDescription": "Mettez a jour votre profil et vos preferences",
     "websiteEditor": "Editeur de site web",
     "websiteEditorDescription": "Personnalisez le site de votre ligue, mettez a jour l'image de marque et gerez votre presence en ligne"
+  },
+  "statCorrection": {
+    "title": "Correction des statistiques",
+    "description": "Modifier les evenements du match, ajouter des statistiques manquantes ou supprimer des entrees incorrectes. Recalculez a la fin pour mettre a jour les scores et classements.",
+    "editStats": "Modifier les stats",
+    "filterAll": "Tous les evenements",
+    "filterGoals": "Buts",
+    "filterPenalties": "Penalites",
+    "filterSaves": "Arrets",
+    "showDeleted": "Afficher les supprimes",
+    "addEvent": "Ajouter un evenement",
+    "addNewEvent": "Ajouter un nouvel evenement",
+    "eventType": "Type d'evenement",
+    "team": "Equipe",
+    "player": "Joueur",
+    "selectPlayer": "Selectionner un joueur",
+    "period": "Periode",
+    "assist1": "Premiere passe",
+    "assist2": "Deuxieme passe",
+    "none": "Aucun",
+    "powerPlay": "Avantage numerique",
+    "shortHanded": "Desavantage numerique",
+    "emptyNet": "Filet deserte",
+    "penaltyType": "Type de penalite",
+    "minutes": "Minutes",
+    "minor": "Mineure (2 min)",
+    "major": "Majeure (5 min)",
+    "misconduct": "Inconduite (10 min)",
+    "gameMisconduct": "Inconduite de match",
+    "match": "Penalite de match",
+    "goal": "But",
+    "penalty": "Penalite",
+    "save": "Arret",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "recalculate": "Recalculer les stats",
+    "recalcWarning": "Vous avez des modifications non enregistrees. Cliquez sur \"Recalculer les stats\" pour mettre a jour le score, les classements et les statistiques de la saison.",
+    "eventDeleted": "Evenement supprime",
+    "eventAdded": "Evenement ajoute",
+    "recalculated": "Statistiques recalculees. Score final : {home} - {away}",
+    "noEvents": "Aucun evenement trouve",
+    "deleted": "Supprime"
   }
 }

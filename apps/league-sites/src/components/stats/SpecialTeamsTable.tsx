@@ -139,7 +139,7 @@ export function SpecialTeamsTable({ leaders, leagueSlug }: SpecialTeamsTableProp
         <tbody>
           {sorted.map((player, index) => (
             <tr
-              key={player.player_id}
+              key={`${player.player_id}-${player.team_id}`}
               className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)] transition-colors"
             >
               <td className="py-3 px-2 text-center">

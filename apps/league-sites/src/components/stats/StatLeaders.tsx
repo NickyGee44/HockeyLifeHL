@@ -28,7 +28,7 @@ function LeaderCard({ title, icon, players, leagueSlug, suffix }: LeaderCardProp
       <div className="space-y-2">
         {players.map((player, index) => (
           <div
-            key={player.playerId}
+            key={`${player.playerId}-${index}`}
             className="flex items-center justify-between gap-2"
           >
             <div className="flex items-center gap-2 min-w-0">

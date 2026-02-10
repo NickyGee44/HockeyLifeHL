@@ -9,6 +9,7 @@ import { StatEntryPad } from "@/components/scorekeeper/StatEntryPad";
 import { GameRoster } from "@/components/scorekeeper/GameRoster";
 import { StatSummary } from "@/components/scorekeeper/StatSummary";
 import { SyncStatusIndicator } from "@/components/scorekeeper/SyncStatusIndicator";
+import { CommissionerNotes } from "@/components/scorekeeper/CommissionerNotes";
 import { ArrowLeft } from "lucide-react";
 
 interface PageProps {
@@ -174,6 +175,19 @@ export default async function LiveStatEntryPage({ params }: PageProps) {
           </CardContent>
         </Card>
 
+        {/* First-time guidance */}
+        <Card className="mb-4 border-primary/30 bg-primary/5">
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold mb-1">First time scorekeeping this game?</p>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Confirm the teams and rosters, then tap <strong>Check In &amp; Start</strong>.</li>
+              <li>Use jersey number + stat buttons to log events during play.</li>
+              <li>Use <strong>Commissioner Notes</strong> for incidents requiring owner/admin review.</li>
+              <li>Tap <strong>Complete Game</strong> only after final horn and stat review.</li>
+            </ol>
+          </CardContent>
+        </Card>
+
         {/* Main Stat Entry Interface - iPad Landscape Optimized */}
         <div className="grid lg:grid-cols-[1fr_400px] gap-4">
           {/* Left Column: Stat Entry */}
@@ -211,6 +225,12 @@ export default async function LiveStatEntryPage({ params }: PageProps) {
               awayTeam={game.away_team?.name || ''}
               homeRoster={homeRoster}
               awayRoster={awayRoster}
+            />
+
+            {/* Commissioner Notes */}
+            <CommissionerNotes
+              assignmentId={assignment.id}
+              initialNotes={game.scorekeeper_notes || ""}
             />
           </div>
         </div>

@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
 import { Calendar, Loader2, Save, Trash2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
+import { updateSeason, deleteSeason } from '@/lib/actions/seasons';
+import type { SeasonStatus } from '@/lib/actions/seasons';
 
 interface Season {
   id: string;
@@ -36,33 +38,27 @@ export function EditSeasonForm({ leagueId, season }: EditSeasonFormProps) {
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-    const supabase = createClient();
 
     try {
-      const registrationType = formData.get('registration_type') as string;
-      const status = formData.get('status') as string;
-      const seasonData = {
+      const result = await updateSeason(season.id, {
         name: formData.get('name') as string,
-        status: status as 'draft' | 'active' | 'playoffs' | 'completed',
+        status: formData.get('status') as SeasonStatus,
         start_date: formData.get('start_date') as string,
         end_date: formData.get('end_date') as string,
-        registration_type: registrationType as 'draft' | 'open_registration' | 'captain_invite_only',
+        registration_type: formData.get('registration_type') as string,
         games_per_cycle: parseInt(formData.get('games_per_cycle') as string) || 13,
         max_players_per_team:
           parseInt(formData.get('max_players_per_team') as string) || 18,
         allow_team_selection: formData.get('allow_team_selection') === 'true',
-        updated_at: new Date().toISOString(),
-      };
+      });
 
-      const { error: updateError } = await supabase
-        .from('seasons')
-        .update(seasonData)
-        .eq('id', season.id);
-
-      if (updateError) {
-        throw updateError;
+      if (result.error) {
+        setError(result.error);
+        setIsSubmitting(false);
+        return;
       }
 
+      toast.success('Season updated successfully');
       router.push(`/dashboard/leagues/${leagueId}/seasons/${season.id}`);
       router.refresh();
     } catch (err: any) {
@@ -75,18 +71,17 @@ export function EditSeasonForm({ leagueId, season }: EditSeasonFormProps) {
     setIsDeleting(true);
     setError(null);
 
-    const supabase = createClient();
-
     try {
-      const { error: deleteError } = await supabase
-        .from('seasons')
-        .delete()
-        .eq('id', season.id);
+      const result = await deleteSeason(season.id);
 
-      if (deleteError) {
-        throw deleteError;
+      if (result.error) {
+        setError(result.error);
+        setIsDeleting(false);
+        setShowDeleteConfirm(false);
+        return;
       }
 
+      toast.success('Season deleted successfully');
       router.push(`/dashboard/leagues/${leagueId}`);
     } catch (err: any) {
       setError(err.message || 'Failed to delete season');

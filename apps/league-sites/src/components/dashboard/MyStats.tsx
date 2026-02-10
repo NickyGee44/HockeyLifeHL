@@ -3,28 +3,38 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { BarChart3, ChevronRight } from 'lucide-react';
+import { BarChart3, ChevronRight, Shield } from 'lucide-react';
 
-interface PlayerStats {
+interface SkaterStats {
   games_played: number;
   goals: number;
   assists: number;
   points: number;
-  penalty_minutes: number;
-  plus_minus: number;
+  points_per_game: number;
+}
+
+interface GoalieStats {
+  games_played: number;
+  goals_against: number;
+  saves: number;
+  shutouts: number;
+  goals_against_average: number;
+  save_percentage: number;
 }
 
 interface MyStatsProps {
   playerId?: string;
+  seasonId?: string | null;
   leagueSlug: string;
 }
 
-export function MyStats({ playerId, leagueSlug }: MyStatsProps) {
-  const [stats, setStats] = useState<PlayerStats | null>(null);
+export function MyStats({ playerId, seasonId, leagueSlug }: MyStatsProps) {
+  const [skaterStats, setSkaterStats] = useState<SkaterStats | null>(null);
+  const [goalieStats, setGoalieStats] = useState<GoalieStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!playerId) {
+    if (!playerId || !seasonId) {
       setIsLoading(false);
       return;
     }
@@ -32,20 +42,48 @@ export function MyStats({ playerId, leagueSlug }: MyStatsProps) {
     const fetchStats = async () => {
       const supabase = createClient();
 
-      // Try to get player stats from RPC
-      const { data, error } = await supabase.rpc('get_player_career_stats', {
-        p_player_id: playerId,
-        p_season_id: null,
-      });
+      // Fetch skater and goalie stats in parallel
+      const [skaterResult, goalieResult] = await Promise.all([
+        supabase
+          .from('player_season_stats')
+          .select('games_played, goals, assists, points, points_per_game')
+          .eq('player_id', playerId)
+          .eq('season_id', seasonId)
+          .maybeSingle(),
+        supabase
+          .from('goalie_season_stats')
+          .select('games_played, goals_against, saves, shutouts, goals_against_average, save_percentage')
+          .eq('player_id', playerId)
+          .eq('season_id', seasonId)
+          .maybeSingle(),
+      ]);
 
-      if (!error && data) {
-        setStats(data);
+      if (!skaterResult.error && skaterResult.data) {
+        setSkaterStats({
+          games_played: Number(skaterResult.data.games_played) || 0,
+          goals: Number(skaterResult.data.goals) || 0,
+          assists: Number(skaterResult.data.assists) || 0,
+          points: Number(skaterResult.data.points) || 0,
+          points_per_game: Number(skaterResult.data.points_per_game) || 0,
+        });
       }
+
+      if (!goalieResult.error && goalieResult.data) {
+        setGoalieStats({
+          games_played: Number(goalieResult.data.games_played) || 0,
+          goals_against: Number(goalieResult.data.goals_against) || 0,
+          saves: Number(goalieResult.data.saves) || 0,
+          shutouts: Number(goalieResult.data.shutouts) || 0,
+          goals_against_average: Number(goalieResult.data.goals_against_average) || 0,
+          save_percentage: Number(goalieResult.data.save_percentage) || 0,
+        });
+      }
+
       setIsLoading(false);
     };
 
     fetchStats();
-  }, [playerId]);
+  }, [playerId, seasonId]);
 
   if (!playerId) {
     return (
@@ -60,6 +98,8 @@ export function MyStats({ playerId, leagueSlug }: MyStatsProps) {
       </div>
     );
   }
+
+  const hasAnyStats = skaterStats || goalieStats;
 
   return (
     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl">
@@ -80,19 +120,45 @@ export function MyStats({ playerId, leagueSlug }: MyStatsProps) {
       {isLoading ? (
         <div className="p-4">
           <div className="animate-pulse grid grid-cols-3 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-16 bg-[var(--color-surface-hover)] rounded-lg" />
             ))}
           </div>
         </div>
-      ) : stats ? (
-        <div className="p-4 grid grid-cols-3 gap-3">
-          <StatBox label="GP" value={stats.games_played} />
-          <StatBox label="G" value={stats.goals} highlight />
-          <StatBox label="A" value={stats.assists} highlight />
-          <StatBox label="PTS" value={stats.points} highlight primary />
-          <StatBox label="PIM" value={stats.penalty_minutes} />
-          <StatBox label="+/-" value={stats.plus_minus} showSign />
+      ) : hasAnyStats ? (
+        <div className="p-4 space-y-4">
+          {/* Skater Stats */}
+          {skaterStats && (
+            <div className="grid grid-cols-3 gap-3">
+              <StatBox label="GP" value={skaterStats.games_played} />
+              <StatBox label="G" value={skaterStats.goals} highlight />
+              <StatBox label="A" value={skaterStats.assists} highlight />
+              <StatBox label="PTS" value={skaterStats.points} highlight primary />
+              <StatBox label="PPG" value={skaterStats.points_per_game} decimal />
+            </div>
+          )}
+
+          {/* Goalie Stats */}
+          {goalieStats && goalieStats.games_played > 0 && (
+            <>
+              {skaterStats && (
+                <div className="border-t border-[var(--color-border)] pt-3">
+                  <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    Goaltending
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-3">
+                <StatBox label="GP" value={goalieStats.games_played} />
+                <StatBox label="GAA" value={goalieStats.goals_against_average} decimal highlight />
+                <StatBox label="SV%" value={goalieStats.save_percentage} percentage primary />
+                <StatBox label="SV" value={goalieStats.saves} />
+                <StatBox label="SO" value={goalieStats.shutouts} highlight />
+                <StatBox label="GA" value={goalieStats.goals_against} />
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="p-6 text-center">
@@ -111,10 +177,22 @@ interface StatBoxProps {
   highlight?: boolean;
   primary?: boolean;
   showSign?: boolean;
+  decimal?: boolean;
+  percentage?: boolean;
 }
 
-function StatBox({ label, value, highlight, primary, showSign }: StatBoxProps) {
-  const displayValue = showSign && value > 0 ? `+${value}` : value;
+function StatBox({ label, value, highlight, primary, showSign, decimal, percentage }: StatBoxProps) {
+  let displayValue: string;
+  if (percentage) {
+    displayValue = value >= 1 ? '1.000' : `.${String(Math.round(value * 1000)).padStart(3, '0')}`;
+  } else if (decimal) {
+    displayValue = value.toFixed(2);
+  } else if (showSign && value > 0) {
+    displayValue = `+${value}`;
+  } else {
+    displayValue = String(value);
+  }
+
   const valueColor = showSign
     ? value > 0
       ? 'text-green-400'

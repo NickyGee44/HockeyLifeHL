@@ -61,7 +61,7 @@ async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
           away_team:teams!games_away_team_id_fkey(name, slug)
         `)
         .eq('league_id', leagueId)
-        .eq('venue', venue)
+        .eq('location', venue)
         .gte('scheduled_at', now.toISOString())
         .lte('scheduled_at', twoWeeksLater.toISOString())
         .order('scheduled_at', { ascending: true })
@@ -72,7 +72,7 @@ async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
         .from('games')
         .select('*', { count: 'exact', head: true })
         .eq('league_id', leagueId)
-        .eq('venue', venue);
+        .eq('location', venue);
 
       // Transform nested arrays
       const games = (upcomingGames || []).map((g: any) => ({

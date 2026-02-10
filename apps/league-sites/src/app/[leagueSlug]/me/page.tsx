@@ -22,6 +22,7 @@ import {
   AlertCircle,
   UserPlus,
   X,
+  CreditCard,
 } from 'lucide-react';
 import {
   getMyJoinRequests,
@@ -31,6 +32,7 @@ import {
   type TeamJoinRequest,
   type TeamForJoin,
 } from '@/lib/actions/team-join';
+import { getOutstandingBalance } from '@/lib/actions/registration-payments';
 
 /**
  * Player Dashboard - personalized landing page for authenticated players
@@ -40,12 +42,24 @@ export default function PlayerDashboard() {
   const params = useParams();
   const leagueSlug = params.leagueSlug as string;
   const [isRetrying, setIsRetrying] = useState(false);
+  const [outstandingBalance, setOutstandingBalance] = useState<{
+    hasBalance: boolean;
+    amountCents: number;
+    registrationId: string | null;
+  } | null>(null);
 
   // First get the league to know which league we're in
   const { league, isLoading: leagueLoading } = useLeague();
 
   // Then get player profile filtered by this league
   const { profile, currentTeam, isLoading, error, refetch } = usePlayerProfile(league?.id);
+
+  // Fetch outstanding balance
+  useEffect(() => {
+    if (leagueSlug) {
+      getOutstandingBalance(leagueSlug).then(setOutstandingBalance);
+    }
+  }, [leagueSlug]);
 
   const handleRetry = async () => {
     setIsRetrying(true);
@@ -125,12 +139,33 @@ export default function PlayerDashboard() {
         </div>
       </div>
 
+      {/* Payment Due Banner */}
+      {outstandingBalance?.hasBalance && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <CreditCard className="w-5 h-5 text-amber-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-400">Registration Fee Due</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                {new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(outstandingBalance.amountCents / 100)}
+              </p>
+            </div>
+          </div>
+          <a
+            href={`/${leagueSlug}/me/payments`}
+            className="px-4 py-2 rounded-lg bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 transition-colors flex-shrink-0"
+          >
+            Pay Now
+          </a>
+        </div>
+      )}
+
       {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Team Card + Quick Actions */}
         <div className="space-y-6">
           <MyTeamCard team={currentTeam} leagueSlug={leagueSlug} />
-          <QuickActions leagueSlug={leagueSlug} />
+          <QuickActions leagueSlug={leagueSlug} hasOutstandingPayment={outstandingBalance?.hasBalance} />
         </div>
 
         {/* Middle Column - Upcoming Games */}
@@ -148,7 +183,8 @@ export default function PlayerDashboard() {
             leagueSlug={leagueSlug}
           />
           <MyStats
-            playerId={currentTeam?.id}
+            playerId={profile?.id}
+            seasonId={league?.current_season_id}
             leagueSlug={leagueSlug}
           />
         </div>

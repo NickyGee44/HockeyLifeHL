@@ -5,9 +5,11 @@ import { getLeagueBySlug, getStatsLeaders, getCurrentSeason, getSpecialTeamsLead
 import { StatsLeadersTabs } from '@/components/StatsLeadersTabs';
 import { SpecialTeamsTable } from '@/components/stats/SpecialTeamsTable';
 import { StatLeaders } from '@/components/stats/StatLeaders';
+import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 
 interface StatsPageProps {
   params: Promise<{ leagueSlug: string }>;
+  searchParams: Promise<{ division?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -15,20 +17,21 @@ export const metadata: Metadata = {
   description: 'League scoring leaders and statistics',
 };
 
-export default async function StatsPage({ params }: StatsPageProps) {
+export default async function StatsPage({ params, searchParams }: StatsPageProps) {
   const { leagueSlug } = await params;
+  const { division: divisionFilter } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) return null;
 
   const season = await getCurrentSeason(league.id);
 
-  // Fetch different stat categories in parallel
+  // Fetch different stat categories in parallel, with division filter
   const [pointsLeaders, goalsLeaders, assistsLeaders, specialTeamsLeaders] = await Promise.all([
-    getStatsLeaders(league.id, 'points', 10),
-    getStatsLeaders(league.id, 'goals', 10),
-    getStatsLeaders(league.id, 'assists', 10),
-    getSpecialTeamsLeaders(league.id, season?.id),
+    getStatsLeaders(league.id, 'points', 10, divisionFilter),
+    getStatsLeaders(league.id, 'goals', 10, divisionFilter),
+    getStatsLeaders(league.id, 'assists', 10, divisionFilter),
+    getSpecialTeamsLeaders(league.id, season?.id, divisionFilter),
   ]);
 
   const hasStats =
@@ -38,6 +41,9 @@ export default async function StatsPage({ params }: StatsPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-12 animate-fade-in">
+      {/* Sync global division filter to URL */}
+      <DivisionUrlSync pagePath={`/${leagueSlug}/stats`} />
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-4">

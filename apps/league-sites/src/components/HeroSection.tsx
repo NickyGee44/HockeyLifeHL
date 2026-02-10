@@ -13,35 +13,12 @@ interface HeroSectionProps {
   leagueSlug: string;
 }
 
-interface StatCardProps {
-  value: number;
-  label: string;
-  icon: React.ReactNode;
-}
-
 function getTemplateVariant(league: League): ThemePreset {
   const preset = league.settings?.website?.themePreset;
   if (preset === 'light' || preset === 'custom') {
     return preset;
   }
   return 'dark';
-}
-
-function StatCard({ value, label, icon }: StatCardProps) {
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_var(--glass-opacity),transparent)] p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-border-emphasis)] hover:shadow-[0_0_20px_var(--league-glow-color)]">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--league-primary)] to-transparent opacity-70" />
-      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--league-primary)_16%,transparent)] text-[var(--league-primary)]">
-          {icon}
-        </span>
-        {label}
-      </div>
-      <div className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
-        {value.toLocaleString()}
-      </div>
-    </div>
-  );
 }
 
 export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
@@ -108,8 +85,8 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
       <div className="pointer-events-none absolute -left-20 top-16 h-56 w-56 rounded-full bg-[var(--league-primary)]/20 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-[var(--league-accent)]/20 blur-3xl" />
 
-      <div className="relative container mx-auto px-4 py-16 md:py-20 lg:py-28">
-        <div className="grid items-end gap-10 lg:grid-cols-[1.22fr_0.78fr]">
+      <div className="relative container mx-auto px-4 py-10 md:py-14 lg:py-16">
+        <div className="mx-auto max-w-6xl">
           <div
             className={`rounded-3xl border p-6 backdrop-blur-xl transition-all duration-700 md:p-8 ${panelClass} ${
               isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
@@ -197,18 +174,6 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
                 Latest Scores
               </Link>
             </div>
-          </div>
-
-          <div
-            className={`grid grid-cols-2 gap-3 transition-all duration-700 md:gap-4 ${
-              isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-            }`}
-            style={{ transitionDelay: '120ms' }}
-          >
-            <StatCard value={stats.totalTeams} label="Teams" icon={<Users className="h-4 w-4" />} />
-            <StatCard value={stats.totalPlayers} label="Players" icon={<Users className="h-4 w-4" />} />
-            <StatCard value={stats.gamesPlayed} label="Games Played" icon={<Calendar className="h-4 w-4" />} />
-            <StatCard value={stats.upcomingGames} label="Upcoming" icon={<TrendingUp className="h-4 w-4" />} />
           </div>
         </div>
       </div>

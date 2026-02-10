@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getTeams } from '@/lib/data';
+import { getLeagueBySlug, getTeams, getDivisions } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { User, Users } from 'lucide-react';
 import { PlayerDirectoryFilters } from '@/components/players/PlayerDirectoryFilters';
@@ -8,7 +8,7 @@ import type { Metadata } from 'next';
 
 interface PlayersPageProps {
   params: Promise<{ leagueSlug: string }>;
-  searchParams: Promise<{ team?: string; position?: string; search?: string }>;
+  searchParams: Promise<{ team?: string; position?: string; search?: string; division?: string }>;
 }
 
 export async function generateMetadata({
@@ -44,20 +44,27 @@ interface PlayerWithTeam {
     name: string;
     slug: string;
     logo: string | null;
+    division_id: string | null;
   } | null;
 }
 
 async function getPlayers(
   leagueId: string,
-  filters?: { teamId?: string; position?: string; search?: string }
+  filters?: { teamId?: string; position?: string; search?: string; divisionId?: string }
 ): Promise<PlayerWithTeam[]> {
   const supabase = await createClient();
 
-  // Get all teams in this league
-  const { data: teams } = await supabase
+  // Get teams in this league, optionally filtered by division
+  let teamsQuery = supabase
     .from('teams')
     .select('id')
     .eq('league_id', leagueId);
+
+  if (filters?.divisionId) {
+    teamsQuery = teamsQuery.eq('division_id', filters.divisionId);
+  }
+
+  const { data: teams } = await teamsQuery;
 
   if (!teams || teams.length === 0) {
     return [];
@@ -73,7 +80,7 @@ async function getPlayers(
       position,
       leadership_role,
       profile:profiles(id, full_name, avatar_url),
-      team:teams(id, name, slug, logo_url)
+      team:teams(id, name, slug, logo_url, division_id)
     `)
     .in('team_id', teamIds);
 
@@ -116,15 +123,21 @@ async function getPlayers(
 
 export default async function PlayersPage({ params, searchParams }: PlayersPageProps) {
   const { leagueSlug } = await params;
-  const { team, position, search } = await searchParams;
+  const { team, position, search, division: divisionFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) notFound();
 
-  const [teams, players] = await Promise.all([
+  const [allTeams, divisions, players] = await Promise.all([
     getTeams(league.id),
-    getPlayers(league.id, { teamId: team, position, search }),
+    getDivisions(league.id),
+    getPlayers(league.id, { teamId: team, position, search, divisionId: divisionFilter }),
   ]);
+
+  // Filter the teams dropdown to match the selected division
+  const filteredTeams = divisionFilter
+    ? allTeams.filter((t: any) => t.division_id === divisionFilter)
+    : allTeams;
 
   // Get unique positions
   const positions = [...new Set(players.map((p) => p.position).filter(Boolean))] as string[];
@@ -143,7 +156,7 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
             </h1>
           </div>
           <p className="text-[var(--color-text-secondary)]">
-            {players.length} players across {teams.length} teams
+            {players.length} players across {filteredTeams.length} teams
           </p>
         </div>
       </div>
@@ -151,10 +164,12 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
       <div className="container mx-auto px-4 py-8">
         {/* Filters */}
         <PlayerDirectoryFilters
-          teams={teams}
+          teams={filteredTeams}
+          divisions={divisions}
           positions={positions}
           selectedTeam={team}
           selectedPosition={position}
+          selectedDivision={divisionFilter}
           searchQuery={search}
           leagueSlug={leagueSlug}
         />

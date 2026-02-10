@@ -105,7 +105,7 @@ export function StatsLeadersTabs({
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((player) => {
+              {filteredData.map((player, index) => {
                 // Find original rank
                 const originalRank = activeData.findIndex((p) => p.player_id === player.player_id);
                 const isHighlighted = normalizedSearch && (
@@ -115,7 +115,7 @@ export function StatsLeadersTabs({
 
                 return (
                   <tr
-                    key={player.player_id}
+                    key={`${player.player_id}-${index}`}
                     className={`
                       ${originalRank < 3 ? 'highlight' : ''}
                       ${isHighlighted ? 'bg-[var(--league-primary)]/10 border-l-2 border-l-[var(--league-primary)]' : ''}

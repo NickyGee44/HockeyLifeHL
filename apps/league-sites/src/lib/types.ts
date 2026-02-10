@@ -200,6 +200,10 @@ export interface PlayerStats {
   goals_against_average?: number;
 }
 
+export interface PlayerStatsWithAvatar extends PlayerStats {
+  avatar_url: string | null;
+}
+
 export interface LeagueStats {
   totalTeams: number;
   totalPlayers: number;
@@ -593,6 +597,54 @@ export interface LeagueSponsor {
   description: string | null;
   display_order: number;
   is_active: boolean;
+}
+
+// =============================================================================
+// Game Sheet Types
+// =============================================================================
+
+export interface GameSheetGoal {
+  period: number;
+  time: string | null;
+  scorer: { id: string; name: string };
+  assist1: { id: string; name: string } | null;
+  assist2: { id: string; name: string } | null;
+  team_id: string;
+  team_name: string;
+  is_power_play: boolean;
+  is_short_handed: boolean;
+  is_empty_net: boolean;
+}
+
+export interface GameSheetPenalty {
+  period: number;
+  time: string | null;
+  player: { id: string; name: string };
+  team_id: string;
+  team_name: string;
+  infraction: string;
+  minutes: number;
+}
+
+export interface GameSheetGoalie {
+  player_id: string;
+  player_name: string;
+  team_id: string;
+  team_name: string;
+  saves: number;
+  goals_against: number;
+  shots_against: number;
+  save_percentage: number;
+}
+
+export interface GameSheetData {
+  game: GamePreview & {
+    scorekeeper_notes: string | null;
+    period_count: number | null;
+  };
+  goals: GameSheetGoal[];
+  penalties: GameSheetPenalty[];
+  goalies: GameSheetGoalie[];
 }
 
 /** Award */

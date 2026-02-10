@@ -36,6 +36,7 @@ export interface DashboardData {
     total_teams: number;
     total_players: number;
     active_seasons: number;
+    total_games_played: number;
   };
 }
 
@@ -88,6 +89,7 @@ async function getDashboardData(userId: string): Promise<DashboardData | null> {
     }
 
     // Type assertion - the RPC function returns properly structured JSON
+    // total_games_played is now computed directly inside the RPC function
     return data as unknown as DashboardData;
   } catch (error) {
     if (isDevelopment) {

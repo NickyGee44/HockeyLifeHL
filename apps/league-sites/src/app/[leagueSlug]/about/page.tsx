@@ -11,10 +11,17 @@ interface AboutPageProps {
   params: Promise<{ leagueSlug: string }>;
 }
 
-export const metadata: Metadata = {
-  title: 'About',
-  description: 'League information, staff directory, and contact details',
-};
+export async function generateMetadata({ params }: AboutPageProps): Promise<Metadata> {
+  const { leagueSlug } = await params;
+  const league = await getLeagueBySlug(leagueSlug);
+
+  return {
+    title: league ? `About | ${league.name}` : 'About',
+    description: league
+      ? `League information, staff directory, and contact details for ${league.name}`
+      : 'League information, staff directory, and contact details',
+  };
+}
 
 export default async function AboutPage({ params }: AboutPageProps) {
   const { leagueSlug } = await params;

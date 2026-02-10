@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import Image from 'next/image';
+import { useMemo, useState } from 'react';
 import type { TeamData, PlayerData } from '@/lib/actions/scorekeeper';
 
 interface PenaltyEntryModalProps {
@@ -9,7 +10,7 @@ interface PenaltyEntryModalProps {
   period: number;
   onSubmit: (data: {
     playerId: string;
-    penaltyType: 'minor' | 'major' | 'misconduct' | 'game_misconduct' | 'match';
+    penaltyType: string;
     penaltyMinutes: number;
     gameTimeSeconds?: number;
   }) => Promise<void>;
@@ -17,83 +18,99 @@ interface PenaltyEntryModalProps {
   isSubmitting: boolean;
 }
 
-type PenaltyType = 'minor' | 'major' | 'misconduct' | 'game_misconduct' | 'match';
+type PenaltyPreset = {
+  key: string;
+  label: string;
+  minutes: number;
+  family: 'minor' | 'major' | 'misconduct' | 'game_misconduct' | 'match';
+};
 
-const PENALTY_TYPES: { type: PenaltyType; label: string; minutes: number; description: string }[] = [
-  { type: 'minor', label: 'Minor', minutes: 2, description: '2 minutes' },
-  { type: 'major', label: 'Major', minutes: 5, description: '5 minutes' },
-  { type: 'misconduct', label: 'Misconduct', minutes: 10, description: '10 minutes' },
-  { type: 'game_misconduct', label: 'Game Misconduct', minutes: 10, description: 'Ejection' },
-  { type: 'match', label: 'Match', minutes: 5, description: 'Ejection + review' },
+const PENALTY_PRESETS: PenaltyPreset[] = [
+  { key: 'minor_tripping', label: 'Tripping', minutes: 2, family: 'minor' },
+  { key: 'minor_hooking', label: 'Hooking', minutes: 2, family: 'minor' },
+  { key: 'minor_slashing', label: 'Slashing', minutes: 2, family: 'minor' },
+  { key: 'minor_interference', label: 'Interference', minutes: 2, family: 'minor' },
+  { key: 'minor_holding', label: 'Holding', minutes: 2, family: 'minor' },
+  { key: 'minor_cross_checking', label: 'Cross-Checking', minutes: 2, family: 'minor' },
+  { key: 'minor_high_sticking', label: 'High-Sticking', minutes: 2, family: 'minor' },
+  { key: 'minor_roughing', label: 'Roughing', minutes: 2, family: 'minor' },
+  { key: 'minor_unsportsmanlike', label: 'Unsportsmanlike Conduct', minutes: 2, family: 'minor' },
+  { key: 'major_fighting', label: 'Fighting', minutes: 5, family: 'major' },
+  { key: 'major_boarding', label: 'Boarding', minutes: 5, family: 'major' },
+  { key: 'major_charging', label: 'Charging', minutes: 5, family: 'major' },
+  { key: 'major_elbowing', label: 'Elbowing', minutes: 5, family: 'major' },
+  { key: 'misconduct_ten', label: 'Misconduct', minutes: 10, family: 'misconduct' },
+  { key: 'game_misconduct', label: 'Game Misconduct', minutes: 10, family: 'game_misconduct' },
+  { key: 'match_penalty', label: 'Match Penalty', minutes: 5, family: 'match' },
 ];
 
-/**
- * Penalty Entry Modal
- * Form for entering penalty details with player and penalty type selection
- */
 export function PenaltyEntryModal({
   team,
-  teamType,
   period,
   onSubmit,
   onCancel,
   isSubmitting,
 }: PenaltyEntryModalProps) {
-  const [playerId, setPlayerId] = useState<string | null>(null);
-  const [penaltyType, setPenaltyType] = useState<PenaltyType>('minor');
   const [searchTerm, setSearchTerm] = useState('');
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [presetKey, setPresetKey] = useState<string>('minor_tripping');
+  const [customMinutes, setCustomMinutes] = useState('');
   const [timeMinutes, setTimeMinutes] = useState('');
   const [timeSeconds, setTimeSeconds] = useState('');
 
-  const selectedPlayer = team.roster.find(p => p.id === playerId);
-  const selectedPenalty = PENALTY_TYPES.find(p => p.type === penaltyType)!;
+  const roster = useMemo(
+    () => [...team.roster].sort((a, b) => a.jerseyNumber - b.jerseyNumber),
+    [team.roster]
+  );
 
-  // Filter players based on search
-  const filteredPlayers = team.roster.filter(player => {
-    if (!searchTerm) return true;
+  const filteredRoster = useMemo(() => {
+    if (!searchTerm.trim()) return roster;
     const term = searchTerm.toLowerCase();
-    return (
+    return roster.filter((player) =>
       player.jerseyNumber.toString().includes(term) ||
-      player.fullName.toLowerCase().includes(term)
+      player.fullName.toLowerCase().includes(term) ||
+      player.position.toLowerCase().includes(term)
     );
-  }).sort((a, b) => {
-    if (!searchTerm) return a.jerseyNumber - b.jerseyNumber;
-    const aJerseyMatch = a.jerseyNumber.toString().startsWith(searchTerm);
-    const bJerseyMatch = b.jerseyNumber.toString().startsWith(searchTerm);
-    if (aJerseyMatch && !bJerseyMatch) return -1;
-    if (!aJerseyMatch && bJerseyMatch) return 1;
-    return a.jerseyNumber - b.jerseyNumber;
-  });
+  }, [roster, searchTerm]);
+
+  const selectedPlayer = roster.find((p) => p.id === playerId) || null;
+  const selectedPreset = PENALTY_PRESETS.find((p) => p.key === presetKey) || PENALTY_PRESETS[0];
 
   const handleSubmit = async () => {
     if (!playerId) return;
 
-    const gameTimeSeconds = timeMinutes || timeSeconds
-      ? (parseInt(timeMinutes || '0') * 60) + parseInt(timeSeconds || '0')
-      : undefined;
+    const mm = Number.parseInt(timeMinutes || '0', 10);
+    const ss = Number.parseInt(timeSeconds || '0', 10);
+    const gameTimeSeconds =
+      timeMinutes.trim() || timeSeconds.trim()
+        ? Math.max(0, mm * 60 + Math.min(59, Math.max(0, ss)))
+        : undefined;
+
+    const minutes = customMinutes.trim() ? Number.parseInt(customMinutes, 10) : selectedPreset.minutes;
+    const safeMinutes = Number.isFinite(minutes) && minutes > 0 ? minutes : selectedPreset.minutes;
 
     await onSubmit({
       playerId,
-      penaltyType,
-      penaltyMinutes: selectedPenalty.minutes,
+      penaltyType: `${selectedPreset.family}:${selectedPreset.label}`,
+      penaltyMinutes: safeMinutes,
       gameTimeSeconds,
     });
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center">
-      <div className="bg-neutral-900 w-full md:max-w-lg md:rounded-2xl border-t md:border border-red-500/20 max-h-[90vh] flex flex-col">
-        {/* Header */}
+      <div className="bg-neutral-900 w-full md:max-w-3xl md:rounded-2xl border-t md:border border-red-500/20 max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
           <div>
-            <h2 className="text-lg font-bold text-white">Add Penalty</h2>
+            <h2 className="text-lg font-bold text-white">Record Penalty</h2>
             <p className="text-sm text-neutral-400">
-              {team.name} • Period {period}
+              {team.name} - Period {period}
             </p>
           </div>
           <button
             onClick={onCancel}
-            className="p-2 text-neutral-400 hover:text-white transition-colors touch-manipulation"
+            className="p-2 text-neutral-400 hover:text-white transition-colors"
+            aria-label="Close penalty modal"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -101,136 +118,112 @@ export function PenaltyEntryModal({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-4 space-y-6">
-          {/* Player Selection */}
+        <div className="flex-1 overflow-auto p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
-              Player
-            </label>
+            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Select Player</p>
             <input
               type="text"
-              inputMode="numeric"
-              placeholder="Search by jersey # or name"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-950 border border-red-500/30 rounded-xl
-                text-white placeholder-neutral-500
-                focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none
-                transition-all duration-200 mb-3"
-              autoFocus
+              placeholder="Search by jersey, name, position"
+              className="w-full px-4 py-3 bg-neutral-950 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
             />
-
-            {selectedPlayer && (
-              <div className="mb-3 bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-red-400 font-bold text-lg">
-                    #{selectedPlayer.jerseyNumber}
-                  </span>
-                  <span className="text-white font-medium">{selectedPlayer.fullName}</span>
-                </div>
-                <button
-                  onClick={() => setPlayerId(null)}
-                  className="text-red-400 hover:text-white"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )}
-
-            <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-auto">
-              {filteredPlayers.map((player) => (
-                <PlayerButton
+            <div className="mt-3 space-y-2 max-h-64 overflow-auto">
+              {filteredRoster.map((player) => (
+                <PlayerRow
                   key={player.id}
                   player={player}
-                  isSelected={playerId === player.id}
+                  selected={player.id === playerId}
                   onClick={() => setPlayerId(player.id)}
-                  color={team.primaryColor}
+                  accentColor={team.primaryColor}
                 />
               ))}
             </div>
           </div>
 
-          {/* Penalty Type */}
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-3">
-              Penalty Type
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {PENALTY_TYPES.map((penalty) => (
+            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Penalty Type</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {PENALTY_PRESETS.map((preset) => (
                 <button
-                  key={penalty.type}
-                  onClick={() => setPenaltyType(penalty.type)}
-                  className={`p-4 rounded-xl text-left transition-all duration-200 touch-manipulation
-                    ${penaltyType === penalty.type
-                      ? 'bg-red-500/20 border-2 border-red-500'
-                      : 'bg-neutral-800 border border-neutral-700 hover:border-neutral-600'
-                    }
-                  `}
+                  key={preset.key}
+                  type="button"
+                  onClick={() => setPresetKey(preset.key)}
+                  className={`text-left px-3 py-2 rounded-lg border ${
+                    preset.key === presetKey
+                      ? 'bg-red-500/20 border-red-500/40 text-red-200'
+                      : 'bg-neutral-800 border-neutral-700 text-neutral-300'
+                  }`}
                 >
-                  <span className={`block font-semibold ${penaltyType === penalty.type ? 'text-red-400' : 'text-white'}`}>
-                    {penalty.label}
-                  </span>
-                  <span className="block text-sm text-neutral-400 mt-0.5">
-                    {penalty.description}
-                  </span>
+                  <p className="text-sm font-semibold">{preset.label}</p>
+                  <p className="text-xs opacity-80">{preset.minutes} min</p>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Time Input */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
-              Time (optional)
-            </label>
-            <div className="flex items-center gap-2">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Minutes</p>
               <input
                 type="number"
-                inputMode="numeric"
-                placeholder="MM"
+                min={1}
+                max={25}
+                value={customMinutes}
+                onChange={(e) => setCustomMinutes(e.target.value)}
+                placeholder={`${selectedPreset.minutes}`}
+                className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-700 text-white"
+              />
+            </div>
+            <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Minute</p>
+              <input
+                type="number"
+                min={0}
+                max={99}
                 value={timeMinutes}
                 onChange={(e) => setTimeMinutes(e.target.value)}
-                min="0"
-                max="20"
-                className="w-20 px-3 py-2 bg-neutral-950 border border-red-500/30 rounded-lg
-                  text-white text-center
-                  focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none"
+                placeholder="MM"
+                className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-700 text-white"
               />
-              <span className="text-neutral-400">:</span>
+            </div>
+            <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Second</p>
               <input
                 type="number"
-                inputMode="numeric"
-                placeholder="SS"
+                min={0}
+                max={59}
                 value={timeSeconds}
                 onChange={(e) => setTimeSeconds(e.target.value)}
-                min="0"
-                max="59"
-                className="w-20 px-3 py-2 bg-neutral-950 border border-red-500/30 rounded-lg
-                  text-white text-center
-                  focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none"
+                placeholder="SS"
+                className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-700 text-white"
               />
             </div>
           </div>
+
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+            <p className="text-sm text-red-100 font-semibold">Penalty Summary</p>
+            <p className="text-sm text-neutral-300 mt-1">
+              Player: {selectedPlayer ? `#${selectedPlayer.jerseyNumber} ${selectedPlayer.fullName}` : 'Not selected'}
+            </p>
+            <p className="text-sm text-neutral-300">
+              Type: {selectedPreset.label}
+              {customMinutes.trim() ? ` (${customMinutes} min)` : ` (${selectedPreset.minutes} min)`}
+            </p>
+          </div>
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-neutral-800 flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-4 px-6 bg-neutral-800 text-white font-semibold rounded-xl
-              hover:bg-neutral-700 transition-colors touch-manipulation min-h-[56px]"
+            className="flex-1 py-3 px-5 rounded-xl bg-neutral-800 text-white font-semibold"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!playerId || isSubmitting}
-            className="flex-1 py-4 px-6 bg-red-600 text-white font-semibold rounded-xl
-              hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed
-              transition-colors touch-manipulation min-h-[56px]"
+            className="flex-1 py-3 px-5 rounded-xl bg-red-600 text-white font-semibold disabled:opacity-50"
           >
             {isSubmitting ? 'Saving...' : 'Add Penalty'}
           </button>
@@ -240,43 +233,47 @@ export function PenaltyEntryModal({
   );
 }
 
-// Player Button Component
-function PlayerButton({
+function PlayerRow({
   player,
-  isSelected,
+  selected,
   onClick,
-  color,
+  accentColor,
 }: {
   player: PlayerData;
-  isSelected: boolean;
+  selected: boolean;
   onClick: () => void;
-  color: string | null;
+  accentColor: string | null;
 }) {
-  const teamColor = color || '#22D3EE';
-
+  const color = accentColor || '#22D3EE';
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`p-3 rounded-xl text-center transition-all duration-200 touch-manipulation min-h-[72px]
-        ${isSelected
-          ? 'border-2'
-          : 'border border-neutral-700 hover:border-neutral-600'
-        }
-      `}
-      style={{
-        backgroundColor: isSelected ? `${teamColor}20` : 'transparent',
-        borderColor: isSelected ? teamColor : undefined,
-      }}
+      className={`w-full rounded-xl border px-3 py-2 flex items-center gap-3 text-left transition-colors ${
+        selected
+          ? 'bg-red-500/10 border-red-500/40'
+          : 'bg-neutral-800 border-neutral-700 hover:border-neutral-600'
+      }`}
     >
-      <span
-        className="block text-xl font-bold"
-        style={{ color: isSelected ? teamColor : '#fafafa' }}
+      <div className="relative w-10 h-10 rounded-full overflow-hidden bg-neutral-700 flex-shrink-0">
+        {player.avatarUrl ? (
+          <Image src={player.avatarUrl} alt={player.fullName} fill sizes="40px" className="object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-xs font-bold text-neutral-200">
+            {player.fullName.split(' ').map((x) => x[0]).join('').slice(0, 2)}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white truncate">{player.fullName}</p>
+        <p className="text-xs text-neutral-400">#{player.jerseyNumber} - {player.position}</p>
+      </div>
+      <div
+        className="text-xs font-bold px-2 py-1 rounded-md border"
+        style={{ color, borderColor: `${color}66`, backgroundColor: `${color}14` }}
       >
-        {player.jerseyNumber}
-      </span>
-      <span className="block text-xs text-neutral-400 truncate mt-1">
-        {player.fullName.split(' ').pop()}
-      </span>
+        #{player.jerseyNumber}
+      </div>
     </button>
   );
 }

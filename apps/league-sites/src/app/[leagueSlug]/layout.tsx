@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions } from '@/lib/data';
+import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions, getSeasons } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
 import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
@@ -71,12 +71,23 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     notFound();
   }
 
-  const [theme, tickerGames, divisions] = await Promise.all([
+  const [theme, tickerGames, divisions, seasons] = await Promise.all([
     Promise.resolve(getLeagueTheme(league)),
     getTickerGames(league.id),
     getDivisions(league.id),
+    getSeasons(league.id),
   ]);
   const templateClass = `league-template-${theme.templateVariant}`;
+
+  // Check if any season has open registration
+  const now = new Date();
+  const registrationOpen = seasons.some((season) => {
+    const s = season as any;
+    if (s.registration_opens_at && s.registration_closes_at) {
+      return now >= new Date(s.registration_opens_at) && now <= new Date(s.registration_closes_at);
+    }
+    return false;
+  });
 
   return (
     <LeagueThemeProvider theme={theme}>
@@ -85,7 +96,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
           <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
             <div className={`min-h-screen flex flex-col ${templateClass}`}>
               <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
-              <LeagueHeader league={league} leagueSlug={leagueSlug} />
+              <LeagueHeader league={league} leagueSlug={leagueSlug} registrationOpen={registrationOpen} />
               <main className="flex-1">{children}</main>
               <LeagueFooter league={league} leagueSlug={leagueSlug} />
             </div>

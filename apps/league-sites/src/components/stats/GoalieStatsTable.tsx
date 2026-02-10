@@ -74,7 +74,7 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieSta
         <tbody>
           {goalies.map((goalie, index) => (
             <tr
-              key={goalie.player_id}
+              key={`${goalie.player_id}-${index}`}
               className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)] transition-colors"
             >
               <td className="py-3 px-2 text-center">

@@ -46,21 +46,18 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <head />
-      <body className="min-h-screen bg-neutral-950 text-white antialiased">
-        <Script
-          id="theme-script"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: themeScript }}
-        />
-        <NextIntlClientProvider messages={messages}>
-          <ThemeProvider defaultTheme="dark" enableSystem enableTransition>
-            {children}
-            <Toaster theme="dark" position="bottom-right" richColors />
-          </ThemeProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <>
+      <Script
+        id="theme-script"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{ __html: themeScript }}
+      />
+      <NextIntlClientProvider messages={messages}>
+        <ThemeProvider defaultTheme="dark" enableSystem enableTransition>
+          {children}
+          <Toaster theme="dark" position="bottom-right" richColors />
+        </ThemeProvider>
+      </NextIntlClientProvider>
+    </>
   );
 }

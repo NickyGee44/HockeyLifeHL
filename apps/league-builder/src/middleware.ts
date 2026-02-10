@@ -11,7 +11,7 @@ const intlMiddleware = createMiddleware({
 });
 
 // Public routes that don't require authentication (without locale prefix)
-const PUBLIC_ROUTES = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy'];
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy', '/scorekeeper'];
 
 // Auth routes that authenticated users should be redirected away from
 const AUTH_ROUTES = ['/login', '/signup', '/forgot-password'];
@@ -34,7 +34,7 @@ const FR_ROUTES: Record<string, string> = {
   '/notifications': '/notifications',
 };
 
-// API routes that should skip middleware entirely (webhooks, etc.)
+// API routes that should skip middleware entirely (webhooks, auth callbacks, etc.)
 const SKIP_MIDDLEWARE_ROUTES = ['/api/stripe/webhooks', '/api/'];
 
 function removeLocalePrefix(pathname: string): string {

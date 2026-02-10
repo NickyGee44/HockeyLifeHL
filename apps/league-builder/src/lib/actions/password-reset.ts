@@ -250,8 +250,9 @@ export async function requestPasswordReset(email: string): Promise<ActionResult>
 
     // Use Supabase Auth's built-in password reset
     // This generates a secure token and sends email via Supabase
+    // The redirect goes through the auth callback to exchange the PKCE code for a session
     const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${SITE_URL}/reset-password`,
+      redirectTo: `${SITE_URL}/api/auth/callback?type=recovery`,
     });
 
     if (error) {
@@ -581,7 +582,7 @@ export async function adminInitiatePasswordReset(userId: string): Promise<Action
     type: 'recovery',
     email: targetProfile.email,
     options: {
-      redirectTo: `${SITE_URL}/reset-password`,
+      redirectTo: `${SITE_URL}/api/auth/callback?type=recovery`,
     },
   });
 

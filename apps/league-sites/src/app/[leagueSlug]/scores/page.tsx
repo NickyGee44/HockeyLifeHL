@@ -16,10 +16,17 @@ interface ScoresPageProps {
   }>;
 }
 
-export const metadata: Metadata = {
-  title: 'Scores',
-  description: 'View recent game scores and results',
-};
+export async function generateMetadata({ params }: ScoresPageProps): Promise<Metadata> {
+  const { leagueSlug } = await params;
+  const league = await getLeagueBySlug(leagueSlug);
+
+  return {
+    title: league ? `Scores | ${league.name}` : 'Scores',
+    description: league
+      ? `View recent game scores and results for ${league.name}`
+      : 'View recent game scores and results',
+  };
+}
 
 /**
  * Group games by their scheduled date (YYYY-MM-DD key).

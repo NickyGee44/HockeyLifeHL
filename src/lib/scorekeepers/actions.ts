@@ -330,16 +330,20 @@ export async function getScorekeeperAssignments(dateRange?: { start: Date; end: 
       .from('game_scorekeeper_assignments')
       .select(`
         id,
-        status,
+        game_id,
         checked_in_at,
+        started_at,
         completed_at,
+        duration_minutes,
+        payment_amount,
+        payment_status,
         created_at,
         game:games (
           id,
           scheduled_at,
+          location,
           home_team:teams!games_home_team_id_fkey (id, name),
-          away_team:teams!games_away_team_id_fkey (id, name),
-          venue:venues (id, name, address)
+          away_team:teams!games_away_team_id_fkey (id, name)
         )
       `)
       .eq('scorekeeper_id', user.id)
@@ -360,8 +364,23 @@ export async function getScorekeeperAssignments(dateRange?: { start: Date; end: 
       return { error: 'Failed to fetch assignments', assignments: [] };
     }
 
-    console.log(`[Scorekeeper] Retrieved ${assignments?.length || 0} assignments for league ${leagueId}`);
-    return { assignments: assignments || [] };
+    const normalizedAssignments = (assignments || []).map((assignment: any) => {
+      const game = Array.isArray(assignment.game) ? assignment.game[0] : assignment.game;
+
+      return {
+        ...assignment,
+        game: game
+          ? {
+              ...game,
+              date_time: game.scheduled_at,
+              venue: game.location ? { name: game.location } : null,
+            }
+          : null,
+      };
+    });
+
+    console.log(`[Scorekeeper] Retrieved ${normalizedAssignments.length} assignments for league ${leagueId}`);
+    return { assignments: normalizedAssignments };
   } catch (error: any) {
     console.error('[Scorekeeper] Error in getScorekeeperAssignments:', error);
     return { error: error.message, assignments: [] };
@@ -394,7 +413,7 @@ export async function checkInToGame(assignmentId: string): Promise<ScorekeeperAc
     // Verify this is the assigned scorekeeper AND in the current league
     const { data: assignment, error: fetchError } = await supabase
       .from('game_scorekeeper_assignments')
-      .select('scorekeeper_id, league_id')
+      .select('scorekeeper_id, league_id, game_id')
       .eq('id', assignmentId)
       .single();
 
@@ -413,10 +432,12 @@ export async function checkInToGame(assignmentId: string): Promise<ScorekeeperAc
     }
 
     // Update check-in time
+    const nowIso = new Date().toISOString();
     const { error } = await supabase
       .from('game_scorekeeper_assignments')
       .update({
-        checked_in_at: new Date().toISOString(),
+        checked_in_at: nowIso,
+        started_at: nowIso,
       })
       .eq('id', assignmentId)
       .eq('league_id', leagueId); // Extra safety: ensure league context in update
@@ -425,6 +446,13 @@ export async function checkInToGame(assignmentId: string): Promise<ScorekeeperAc
       console.error('[Scorekeeper] Error checking in:', error);
       return { error: 'Failed to check in' };
     }
+
+    // Mark game in progress once scorekeeper checks in.
+    await supabase
+      .from('games')
+      .update({ status: 'in_progress' })
+      .eq('id', assignment.game_id)
+      .eq('league_id', leagueId);
 
     console.log(`[Scorekeeper] User ${user.id} checked in to assignment ${assignmentId} in league ${leagueId}`);
     revalidatePath('/');
@@ -461,7 +489,7 @@ export async function completeGameStatEntry(assignmentId: string): Promise<Score
     // Verify this is the assigned scorekeeper AND in the current league
     const { data: assignment, error: fetchError } = await supabase
       .from('game_scorekeeper_assignments')
-      .select('scorekeeper_id, league_id, checked_in_at, started_at')
+      .select('scorekeeper_id, league_id, game_id, checked_in_at, started_at')
       .eq('id', assignmentId)
       .single();
 
@@ -484,10 +512,15 @@ export async function completeGameStatEntry(assignmentId: string): Promise<Score
     }
 
     // Update completion time
+    const completedAt = new Date();
+    const startedAt = assignment.started_at ? new Date(assignment.started_at) : new Date(assignment.checked_in_at);
+    const durationMinutes = Math.max(1, Math.round((completedAt.getTime() - startedAt.getTime()) / (1000 * 60)));
+
     const { error } = await supabase
       .from('game_scorekeeper_assignments')
       .update({
-        completed_at: new Date().toISOString(),
+        completed_at: completedAt.toISOString(),
+        duration_minutes: durationMinutes,
       })
       .eq('id', assignmentId)
       .eq('league_id', leagueId); // Extra safety: ensure league context in update
@@ -497,12 +530,120 @@ export async function completeGameStatEntry(assignmentId: string): Promise<Score
       return { error: 'Failed to complete game' };
     }
 
+    if (assignment.game_id) {
+      await supabase
+        .from('games')
+        .update({
+          status: 'completed',
+          scorekeeper_verified: true,
+          scorekeeper_verified_at: completedAt.toISOString(),
+          scorekeeper_verified_by: user.id,
+          stats_submitted_at: completedAt.toISOString(),
+          stats_submitted_by: user.id,
+        })
+        .eq('id', assignment.game_id)
+        .eq('league_id', leagueId);
+    }
+
     console.log(`[Scorekeeper] User ${user.id} completed assignment ${assignmentId} in league ${leagueId}`);
     revalidatePath('/');
     return { success: true };
   } catch (error: any) {
     console.error('[Scorekeeper] Error in completeGameStatEntry:', error);
     return { error: error.message || 'Failed to complete game' };
+  }
+}
+
+/**
+ * Save scorekeeper notes for a game and notify league owners/admins.
+ * Intended for commissioner follow-up after incidents or noteworthy events.
+ */
+export async function saveScorekeeperNotes(
+  assignmentId: string,
+  notes: string
+): Promise<ScorekeeperActionResult> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { getActiveLeagueId } = await import('@/lib/auth/league-context');
+    const leagueId = await getActiveLeagueId();
+
+    if (!leagueId) {
+      return { error: 'League context required' };
+    }
+
+    const { data: assignment, error: assignmentError } = await supabase
+      .from('game_scorekeeper_assignments')
+      .select('id, game_id, scorekeeper_id, league_id')
+      .eq('id', assignmentId)
+      .single();
+
+    if (assignmentError || !assignment) {
+      return { error: 'Assignment not found' };
+    }
+
+    if (assignment.scorekeeper_id !== user.id) {
+      return { error: 'You are not assigned to this game' };
+    }
+
+    if (assignment.league_id !== leagueId) {
+      return { error: 'This game is not in the current league' };
+    }
+
+    const cleanNotes = sanitizeText(stripHtml(notes || ''), 3000).trim();
+
+    const { error: updateError } = await supabase
+      .from('games')
+      .update({
+        scorekeeper_notes: cleanNotes || null,
+      })
+      .eq('id', assignment.game_id)
+      .eq('league_id', leagueId);
+
+    if (updateError) {
+      console.error('[Scorekeeper] Error saving notes:', updateError);
+      return { error: 'Failed to save notes' };
+    }
+
+    if (cleanNotes) {
+      const { data: recipients } = await supabase
+        .from('league_memberships')
+        .select('user_id, role')
+        .eq('league_id', leagueId)
+        .eq('status', 'active')
+        .in('role', ['owner', 'admin']);
+
+      const notificationRows = (recipients || [])
+        .filter((recipient) => recipient.user_id !== user.id)
+        .map((recipient) => ({
+          league_id: leagueId,
+          user_id: recipient.user_id,
+          type: 'scorekeeper_note',
+          channel: 'in_app',
+          subject: 'Scorekeeper note submitted',
+          body: cleanNotes,
+          related_entity_type: 'game',
+          related_entity_id: assignment.game_id,
+          created_by: user.id,
+        }));
+
+      if (notificationRows.length > 0) {
+        await supabase
+          .from('notifications')
+          .insert(notificationRows);
+      }
+    }
+
+    revalidatePath(`/scorekeeper/live-entry/${assignment.game_id}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Scorekeeper] Error in saveScorekeeperNotes:', error);
+    return { error: error.message || 'Failed to save scorekeeper notes' };
   }
 }
 

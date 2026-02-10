@@ -10,10 +10,17 @@ interface ContactPageProps {
   params: Promise<{ leagueSlug: string }>;
 }
 
-export const metadata: Metadata = {
-  title: 'Contact Us',
-  description: 'Get in touch with the league',
-};
+export async function generateMetadata({ params }: ContactPageProps): Promise<Metadata> {
+  const { leagueSlug } = await params;
+  const league = await getLeagueBySlug(leagueSlug);
+
+  return {
+    title: league ? `Contact Us | ${league.name}` : 'Contact Us',
+    description: league
+      ? `Get in touch with ${league.name}`
+      : 'Get in touch with the league',
+  };
+}
 
 export default async function ContactPage({ params }: ContactPageProps) {
   const { leagueSlug } = await params;

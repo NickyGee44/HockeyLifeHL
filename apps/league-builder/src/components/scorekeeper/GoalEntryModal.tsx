@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import Image from 'next/image';
+import { useMemo, useState } from 'react';
 import type { TeamData, PlayerData } from '@/lib/actions/scorekeeper';
 
 interface GoalEntryModalProps {
   team: TeamData;
-  opposingTeam: TeamData; // Need opposing team to select their goalie
+  opposingTeam: TeamData;
   teamType: 'home' | 'away';
   period: number;
   onSubmit: (data: {
@@ -16,97 +17,88 @@ interface GoalEntryModalProps {
     isShortHanded?: boolean;
     isEmptyNet?: boolean;
     gameTimeSeconds?: number;
-    goalieInNetId?: string; // The opposing goalie who allowed the goal
+    goalieInNetId?: string;
   }) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
 }
 
-type Step = 'scorer' | 'assists' | 'modifiers';
+type Step = 'scorer' | 'assists' | 'details';
 
-/**
- * Goal Entry Modal
- * Multi-step form for entering goal details with player selection
- */
 export function GoalEntryModal({
   team,
   opposingTeam,
-  teamType,
   period,
   onSubmit,
   onCancel,
   isSubmitting,
 }: GoalEntryModalProps) {
   const [step, setStep] = useState<Step>('scorer');
+  const [searchTerm, setSearchTerm] = useState('');
   const [scorerId, setScorerId] = useState<string | null>(null);
   const [assist1Id, setAssist1Id] = useState<string | null>(null);
   const [assist2Id, setAssist2Id] = useState<string | null>(null);
   const [isPowerPlay, setIsPowerPlay] = useState(false);
   const [isShortHanded, setIsShortHanded] = useState(false);
   const [isEmptyNet, setIsEmptyNet] = useState(false);
-  const [goalieInNetId, setGoalieInNetId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [timeMinutes, setTimeMinutes] = useState('');
   const [timeSeconds, setTimeSeconds] = useState('');
 
-  // Get opposing team's goalies
-  const opposingGoalies = useMemo(() => {
-    return opposingTeam.roster.filter(p =>
-      p.position === 'Goalie' ||
-      p.position?.toLowerCase() === 'goalie' ||
-      p.position?.toLowerCase() === 'g'
-    );
-  }, [opposingTeam.roster]);
+  const roster = useMemo(
+    () => [...team.roster].sort((a, b) => a.jerseyNumber - b.jerseyNumber),
+    [team.roster]
+  );
 
-  // Auto-select goalie if there's only one
-  useMemo(() => {
-    if (opposingGoalies.length === 1 && !goalieInNetId) {
-      setGoalieInNetId(opposingGoalies[0].id);
-    }
-  }, [opposingGoalies, goalieInNetId]);
+  const opposingGoalies = useMemo(
+    () => opposingTeam.roster.filter((p) => p.position === 'Goalie'),
+    [opposingTeam.roster]
+  );
+  const [goalieInNetId, setGoalieInNetId] = useState<string | null>(
+    opposingGoalies.length === 1 ? opposingGoalies[0].id : null
+  );
 
-  // Filter players based on search (jersey number prioritized)
-  const filteredPlayers = team.roster.filter(player => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
+  const filteredRoster = useMemo(() => {
+    if (!searchTerm.trim()) return roster;
+    const term = searchTerm.toLowerCase().trim();
+    return roster.filter((player) =>
       player.jerseyNumber.toString().includes(term) ||
-      player.fullName.toLowerCase().includes(term)
+      player.fullName.toLowerCase().includes(term) ||
+      player.position.toLowerCase().includes(term)
     );
-  }).sort((a, b) => {
-    if (!searchTerm) return a.jerseyNumber - b.jerseyNumber;
-    const aJerseyMatch = a.jerseyNumber.toString().startsWith(searchTerm);
-    const bJerseyMatch = b.jerseyNumber.toString().startsWith(searchTerm);
-    if (aJerseyMatch && !bJerseyMatch) return -1;
-    if (!aJerseyMatch && bJerseyMatch) return 1;
-    return a.jerseyNumber - b.jerseyNumber;
-  });
+  }, [roster, searchTerm]);
 
-  const scorer = team.roster.find(p => p.id === scorerId);
-  const assist1 = team.roster.find(p => p.id === assist1Id);
-  const assist2 = team.roster.find(p => p.id === assist2Id);
+  const scorer = roster.find((p) => p.id === scorerId) || null;
+  const assist1 = roster.find((p) => p.id === assist1Id) || null;
+  const assist2 = roster.find((p) => p.id === assist2Id) || null;
 
-  const handlePlayerSelect = (player: PlayerData) => {
-    if (step === 'scorer') {
-      setScorerId(player.id);
-      setSearchTerm('');
-      setStep('assists');
-    } else if (step === 'assists') {
-      if (!assist1Id) {
-        setAssist1Id(player.id);
-      } else if (!assist2Id && player.id !== assist1Id) {
-        setAssist2Id(player.id);
-      }
-      setSearchTerm('');
+  const handleScorerSelect = (playerId: string) => {
+    setScorerId(playerId);
+    if (assist1Id === playerId) setAssist1Id(null);
+    if (assist2Id === playerId) setAssist2Id(null);
+    setSearchTerm('');
+    setStep('assists');
+  };
+
+  const handleAssistSelect = (slot: 1 | 2, playerId: string | null) => {
+    if (slot === 1) {
+      if (playerId && playerId === assist2Id) setAssist2Id(null);
+      setAssist1Id(playerId);
+      return;
     }
+
+    if (playerId && playerId === assist1Id) setAssist1Id(null);
+    setAssist2Id(playerId);
   };
 
   const handleSubmit = async () => {
     if (!scorerId) return;
 
-    const gameTimeSeconds = timeMinutes || timeSeconds
-      ? (parseInt(timeMinutes || '0') * 60) + parseInt(timeSeconds || '0')
-      : undefined;
+    const mm = Number.parseInt(timeMinutes || '0', 10);
+    const ss = Number.parseInt(timeSeconds || '0', 10);
+    const gameTimeSeconds =
+      timeMinutes.trim() || timeSeconds.trim()
+        ? Math.max(0, mm * 60 + Math.min(59, Math.max(0, ss)))
+        : undefined;
 
     await onSubmit({
       scorerId,
@@ -116,26 +108,26 @@ export function GoalEntryModal({
       isShortHanded,
       isEmptyNet,
       gameTimeSeconds,
-      goalieInNetId: isEmptyNet ? undefined : (goalieInNetId || undefined), // No goalie if empty net
+      goalieInNetId: isEmptyNet ? undefined : goalieInNetId || undefined,
     });
   };
 
-  const selectedGoalie = opposingGoalies.find(g => g.id === goalieInNetId);
+  const canContinueToDetails = !!scorerId;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center">
-      <div className="bg-neutral-900 w-full md:max-w-lg md:rounded-2xl border-t md:border border-white/10 max-h-[90vh] flex flex-col">
-        {/* Header */}
+      <div className="bg-neutral-900 w-full md:max-w-3xl md:rounded-2xl border-t md:border border-white/10 max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
           <div>
-            <h2 className="text-lg font-bold text-white">Add Goal</h2>
+            <h2 className="text-lg font-bold text-white">Record Goal</h2>
             <p className="text-sm text-neutral-400">
-              {team.name} • Period {period}
+              {team.name} - Period {period}
             </p>
           </div>
           <button
             onClick={onCancel}
-            className="p-2 text-neutral-400 hover:text-white transition-colors touch-manipulation"
+            className="p-2 text-neutral-400 hover:text-white transition-colors"
+            aria-label="Close goal modal"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -143,305 +135,275 @@ export function GoalEntryModal({
           </button>
         </div>
 
-        {/* Progress */}
-        <div className="flex gap-1 p-4 pb-0">
-          {['scorer', 'assists', 'modifiers'].map((s, i) => (
-            <div
-              key={s}
-              className={`flex-1 h-1 rounded-full transition-colors ${
-                step === s ? 'bg-emerald-500' : i < ['scorer', 'assists', 'modifiers'].indexOf(step) ? 'bg-emerald-500/50' : 'bg-neutral-700'
-              }`}
-            />
-          ))}
+        <div className="px-4 pt-3">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              ['scorer', 'Scorer'],
+              ['assists', 'Assists'],
+              ['details', 'Details'],
+            ].map(([id, label]) => (
+              <div
+                key={id}
+                className={`h-9 rounded-lg text-xs font-semibold flex items-center justify-center ${
+                  step === id
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+                }`}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-4">
-          {/* Step 1: Select Scorer */}
-          {step === 'scorer' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Who Scored?
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Search by jersey # or name"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-950 border border-rink-500/30 rounded-xl
-                    text-white placeholder-neutral-500
-                    focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none
-                    transition-all duration-200"
-                  autoFocus
-                />
-              </div>
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          {step !== 'details' && (
+            <div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by jersey, name, position"
+                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/30"
+              />
+            </div>
+          )}
 
-              <div className="grid grid-cols-4 gap-2 max-h-[300px] overflow-auto">
-                {filteredPlayers.map((player) => (
-                  <PlayerButton
+          {step === 'scorer' && (
+            <div className="space-y-2">
+              <p className="text-xs text-neutral-400 uppercase tracking-wider">Select Goal Scorer</p>
+              <div className="space-y-2">
+                {filteredRoster.map((player) => (
+                  <PlayerRow
                     key={player.id}
                     player={player}
-                    isSelected={scorerId === player.id}
-                    onClick={() => handlePlayerSelect(player)}
-                    color={team.primaryColor}
+                    selected={player.id === scorerId}
+                    onClick={() => handleScorerSelect(player.id)}
+                    accentColor={team.primaryColor}
                   />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Step 2: Select Assists */}
           {step === 'assists' && (
             <div className="space-y-4">
-              {/* Scorer Display */}
-              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
-                <p className="text-xs text-emerald-400 uppercase tracking-wider mb-1">Goal Scored By</p>
-                <p className="text-white font-semibold">
-                  #{scorer?.jerseyNumber} {scorer?.fullName}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Assists (optional, select up to 2)
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Search by jersey # or name"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-950 border border-rink-500/30 rounded-xl
-                    text-white placeholder-neutral-500
-                    focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none
-                    transition-all duration-200"
-                  autoFocus
-                />
-              </div>
-
-              {/* Selected Assists */}
-              {(assist1 || assist2) && (
-                <div className="flex gap-2">
-                  {assist1 && (
-                    <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-2">
-                      <span className="text-blue-400 text-sm font-medium">
-                        #{assist1.jerseyNumber} {assist1.fullName}
-                      </span>
-                      <button
-                        onClick={() => setAssist1Id(null)}
-                        className="text-blue-400 hover:text-white"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                  {assist2 && (
-                    <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-2">
-                      <span className="text-blue-400 text-sm font-medium">
-                        #{assist2.jerseyNumber} {assist2.fullName}
-                      </span>
-                      <button
-                        onClick={() => setAssist2Id(null)}
-                        className="text-blue-400 hover:text-white"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
+              {scorer && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
+                  <p className="text-xs text-emerald-300 uppercase tracking-wider mb-1">Scorer</p>
+                  <p className="text-white font-medium">#{scorer.jerseyNumber} {scorer.fullName}</p>
                 </div>
               )}
 
-              <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-auto">
-                {filteredPlayers
-                  .filter(p => p.id !== scorerId)
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Assist 1</p>
+                  <button
+                    type="button"
+                    onClick={() => handleAssistSelect(1, null)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm border ${
+                      assist1Id === null
+                        ? 'bg-rink-500/15 border-rink-500/40 text-rink-200'
+                        : 'bg-neutral-900 border-neutral-700 text-neutral-300'
+                    }`}
+                  >
+                    No Assist
+                  </button>
+                  {assist1 && (
+                    <p className="mt-2 text-sm text-white">#{assist1.jerseyNumber} {assist1.fullName}</p>
+                  )}
+                </div>
+
+                <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Assist 2</p>
+                  <button
+                    type="button"
+                    onClick={() => handleAssistSelect(2, null)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm border ${
+                      assist2Id === null
+                        ? 'bg-rink-500/15 border-rink-500/40 text-rink-200'
+                        : 'bg-neutral-900 border-neutral-700 text-neutral-300'
+                    }`}
+                  >
+                    No Assist
+                  </button>
+                  {assist2 && (
+                    <p className="mt-2 text-sm text-white">#{assist2.jerseyNumber} {assist2.fullName}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-neutral-400 uppercase tracking-wider">Select Assists</p>
+                {filteredRoster
+                  .filter((player) => player.id !== scorerId)
                   .map((player) => (
-                    <PlayerButton
-                      key={player.id}
-                      player={player}
-                      isSelected={assist1Id === player.id || assist2Id === player.id}
-                      onClick={() => handlePlayerSelect(player)}
-                      color={team.primaryColor}
-                      disabled={!!(assist1Id && assist2Id && assist1Id !== player.id && assist2Id !== player.id)}
-                    />
+                    <div key={player.id} className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAssistSelect(1, player.id)}
+                        className={`px-3 rounded-lg text-xs font-semibold border ${
+                          assist1Id === player.id
+                            ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                            : 'bg-neutral-800 border-neutral-700 text-neutral-400'
+                        }`}
+                      >
+                        A1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAssistSelect(2, player.id)}
+                        className={`px-3 rounded-lg text-xs font-semibold border ${
+                          assist2Id === player.id
+                            ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                            : 'bg-neutral-800 border-neutral-700 text-neutral-400'
+                        }`}
+                      >
+                        A2
+                      </button>
+                      <div className="flex-1">
+                        <PlayerRow
+                          player={player}
+                          selected={assist1Id === player.id || assist2Id === player.id}
+                          onClick={() => {
+                            if (!assist1Id) handleAssistSelect(1, player.id);
+                            else handleAssistSelect(2, player.id);
+                          }}
+                          accentColor={team.primaryColor}
+                        />
+                      </div>
+                    </div>
                   ))}
               </div>
             </div>
           )}
 
-          {/* Step 3: Modifiers */}
-          {step === 'modifiers' && (
-            <div className="space-y-6">
-              {/* Summary */}
-              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 space-y-2">
-                <div>
-                  <p className="text-xs text-emerald-400 uppercase tracking-wider">Goal</p>
-                  <p className="text-white font-semibold">
-                    #{scorer?.jerseyNumber} {scorer?.fullName}
-                  </p>
-                </div>
-                {(assist1 || assist2) && (
-                  <div>
-                    <p className="text-xs text-blue-400 uppercase tracking-wider">Assists</p>
-                    <p className="text-neutral-300 text-sm">
-                      {[
-                        assist1 && `#${assist1.jerseyNumber} ${assist1.fullName}`,
-                        assist2 && `#${assist2.jerseyNumber} ${assist2.fullName}`,
-                      ].filter(Boolean).join(', ')}
-                    </p>
-                  </div>
-                )}
+          {step === 'details' && (
+            <div className="space-y-4">
+              <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3 space-y-2">
+                <p className="text-xs text-neutral-400 uppercase tracking-wider">Goal Summary</p>
+                <p className="text-white text-sm">{scorer ? `#${scorer.jerseyNumber} ${scorer.fullName}` : 'No scorer selected'}</p>
+                <p className="text-neutral-300 text-sm">
+                  Assists:{' '}
+                  {[
+                    assist1 ? `#${assist1.jerseyNumber} ${assist1.fullName}` : 'None',
+                    assist2 ? `#${assist2.jerseyNumber} ${assist2.fullName}` : 'None',
+                  ].join(', ')}
+                </p>
               </div>
 
-              {/* Goalie in Net Selection */}
-              {!isEmptyNet && opposingGoalies.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">
-                    {opposingTeam.name} Goalie in Net
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {opposingGoalies.map((goalie) => (
-                      <button
-                        key={goalie.id}
-                        onClick={() => setGoalieInNetId(goalie.id)}
-                        className={`px-4 py-3 rounded-xl border font-medium text-sm transition-all duration-200 touch-manipulation
-                          ${goalieInNetId === goalie.id
-                            ? 'bg-red-500/20 border-red-500 text-red-400'
-                            : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-600'
-                          }`}
-                      >
-                        #{goalie.jerseyNumber} {goalie.fullName}
-                      </button>
-                    ))}
-                  </div>
-                  {opposingGoalies.length === 1 && (
-                    <p className="text-xs text-neutral-500 mt-1">Auto-selected (only goalie on roster)</p>
-                  )}
+              <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+                <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Goalie In Net ({opposingTeam.name})</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEmptyNet(true);
+                    setGoalieInNetId(null);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm border mb-2 ${
+                    isEmptyNet
+                      ? 'bg-orange-500/20 border-orange-500/40 text-orange-200'
+                      : 'bg-neutral-900 border-neutral-700 text-neutral-300'
+                  }`}
+                >
+                  Empty Net
+                </button>
+                <div className="space-y-2">
+                  {opposingGoalies.map((goalie) => (
+                    <PlayerRow
+                      key={goalie.id}
+                      player={goalie}
+                      selected={!isEmptyNet && goalie.id === goalieInNetId}
+                      onClick={() => {
+                        setIsEmptyNet(false);
+                        setGoalieInNetId(goalie.id);
+                      }}
+                      accentColor={opposingTeam.primaryColor}
+                    />
+                  ))}
                 </div>
-              )}
+              </div>
 
-              {/* Time Input */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Time (optional)
-                </label>
-                <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Minute</p>
                   <input
                     type="number"
-                    inputMode="numeric"
-                    placeholder="MM"
+                    min={0}
+                    max={99}
                     value={timeMinutes}
                     onChange={(e) => setTimeMinutes(e.target.value)}
-                    min="0"
-                    max="20"
-                    className="w-20 px-3 py-2 bg-neutral-950 border border-rink-500/30 rounded-lg
-                      text-white text-center
-                      focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none"
+                    placeholder="MM"
+                    className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-700 text-white"
                   />
-                  <span className="text-neutral-400">:</span>
+                </div>
+                <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Second</p>
                   <input
                     type="number"
-                    inputMode="numeric"
-                    placeholder="SS"
+                    min={0}
+                    max={59}
                     value={timeSeconds}
                     onChange={(e) => setTimeSeconds(e.target.value)}
-                    min="0"
-                    max="59"
-                    className="w-20 px-3 py-2 bg-neutral-950 border border-rink-500/30 rounded-lg
-                      text-white text-center
-                      focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20 focus:outline-none"
+                    placeholder="SS"
+                    className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-700 text-white"
                   />
                 </div>
               </div>
 
-              {/* Modifiers */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-3">
-                  Goal Type
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <ModifierButton
-                    label="Power Play"
-                    isActive={isPowerPlay}
-                    onClick={() => { setIsPowerPlay(!isPowerPlay); setIsShortHanded(false); }}
-                    color="amber"
-                  />
-                  <ModifierButton
-                    label="Short Handed"
-                    isActive={isShortHanded}
-                    onClick={() => { setIsShortHanded(!isShortHanded); setIsPowerPlay(false); }}
-                    color="purple"
-                  />
-                  <ModifierButton
-                    label="Empty Net"
-                    isActive={isEmptyNet}
-                    onClick={() => {
-                      setIsEmptyNet(!isEmptyNet);
-                      if (!isEmptyNet) setGoalieInNetId(null); // Clear goalie if empty net
-                    }}
-                    color="orange"
-                  />
-                </div>
+              <div className="grid grid-cols-3 gap-2">
+                <ToggleBadge label="Power Play" active={isPowerPlay} onClick={() => {
+                  setIsPowerPlay((v) => !v);
+                  setIsShortHanded(false);
+                }} />
+                <ToggleBadge label="Short-Handed" active={isShortHanded} onClick={() => {
+                  setIsShortHanded((v) => !v);
+                  setIsPowerPlay(false);
+                }} />
+                <ToggleBadge label="Empty Net" active={isEmptyNet} onClick={() => {
+                  const next = !isEmptyNet;
+                  setIsEmptyNet(next);
+                  if (next) setGoalieInNetId(null);
+                }} />
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-neutral-800 flex gap-3">
+          {step !== 'scorer' && (
+            <button
+              onClick={() => setStep(step === 'details' ? 'assists' : 'scorer')}
+              className="px-5 py-3 rounded-xl bg-neutral-800 text-white font-semibold"
+            >
+              Back
+            </button>
+          )}
           {step === 'scorer' && (
             <button
               onClick={onCancel}
-              className="flex-1 py-4 px-6 bg-neutral-800 text-white font-semibold rounded-xl
-                hover:bg-neutral-700 transition-colors touch-manipulation min-h-[56px]"
+              className="px-5 py-3 rounded-xl bg-neutral-800 text-white font-semibold"
             >
               Cancel
             </button>
           )}
-
           {step === 'assists' && (
-            <>
-              <button
-                onClick={() => setStep('scorer')}
-                className="py-4 px-6 bg-neutral-800 text-white font-semibold rounded-xl
-                  hover:bg-neutral-700 transition-colors touch-manipulation min-h-[56px]"
-              >
-                Back
-              </button>
-              <button
-                onClick={() => setStep('modifiers')}
-                className="flex-1 py-4 px-6 bg-emerald-600 text-white font-semibold rounded-xl
-                  hover:bg-emerald-500 transition-colors touch-manipulation min-h-[56px]"
-              >
-                {assist1Id || assist2Id ? 'Continue' : 'No Assists'}
-              </button>
-            </>
+            <button
+              onClick={() => setStep('details')}
+              disabled={!canContinueToDetails}
+              className="flex-1 px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold disabled:opacity-50"
+            >
+              Continue
+            </button>
           )}
-
-          {step === 'modifiers' && (
-            <>
-              <button
-                onClick={() => setStep('assists')}
-                className="py-4 px-6 bg-neutral-800 text-white font-semibold rounded-xl
-                  hover:bg-neutral-700 transition-colors touch-manipulation min-h-[56px]"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="flex-1 py-4 px-6 bg-emerald-600 text-white font-semibold rounded-xl
-                  hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed
-                  transition-colors touch-manipulation min-h-[56px]"
-              >
-                {isSubmitting ? 'Saving...' : 'Add Goal'}
-              </button>
-            </>
+          {step === 'details' && (
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !scorerId}
+              className="flex-1 px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold disabled:opacity-50"
+            >
+              {isSubmitting ? 'Saving...' : 'Add Goal'}
+            </button>
           )}
         </div>
       </div>
@@ -449,83 +411,71 @@ export function GoalEntryModal({
   );
 }
 
-// Player Button Component
-function PlayerButton({
-  player,
-  isSelected,
+function ToggleBadge({
+  label,
+  active,
   onClick,
-  color,
-  disabled,
 }: {
-  player: PlayerData;
-  isSelected: boolean;
+  label: string;
+  active: boolean;
   onClick: () => void;
-  color: string | null;
-  disabled?: boolean;
 }) {
-  const teamColor = color || '#22D3EE';
-
   return (
     <button
+      type="button"
       onClick={onClick}
-      disabled={disabled}
-      className={`p-3 rounded-xl text-center transition-all duration-200 touch-manipulation min-h-[72px]
-        ${isSelected
-          ? 'border-2'
-          : 'border border-neutral-700 hover:border-neutral-600'
-        }
-        ${disabled ? 'opacity-30 cursor-not-allowed' : ''}
-      `}
-      style={{
-        backgroundColor: isSelected ? `${teamColor}20` : 'transparent',
-        borderColor: isSelected ? teamColor : undefined,
-      }}
+      className={`px-3 py-2 rounded-lg text-sm font-semibold border ${
+        active
+          ? 'bg-rink-500/20 border-rink-500/40 text-rink-200'
+          : 'bg-neutral-800 border-neutral-700 text-neutral-300'
+      }`}
     >
-      <span
-        className="block text-xl font-bold"
-        style={{ color: isSelected ? teamColor : '#fafafa' }}
-      >
-        {player.jerseyNumber}
-      </span>
-      <span className="block text-xs text-neutral-400 truncate mt-1">
-        {player.fullName.split(' ').pop()}
-      </span>
+      {label}
     </button>
   );
 }
 
-// Modifier Button Component
-function ModifierButton({
-  label,
-  isActive,
+function PlayerRow({
+  player,
+  selected,
   onClick,
-  color,
+  accentColor,
 }: {
-  label: string;
-  isActive: boolean;
+  player: PlayerData;
+  selected: boolean;
   onClick: () => void;
-  color: 'amber' | 'purple' | 'orange';
+  accentColor: string | null;
 }) {
-  const colorClasses = {
-    amber: isActive
-      ? 'bg-amber-500/20 border-amber-500 text-amber-400'
-      : 'bg-neutral-800 border-neutral-700 text-neutral-400',
-    purple: isActive
-      ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-      : 'bg-neutral-800 border-neutral-700 text-neutral-400',
-    orange: isActive
-      ? 'bg-orange-500/20 border-orange-500 text-orange-400'
-      : 'bg-neutral-800 border-neutral-700 text-neutral-400',
-  };
-
+  const color = accentColor || '#22D3EE';
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`px-4 py-2 rounded-lg border font-medium text-sm transition-all duration-200 touch-manipulation
-        ${colorClasses[color]}
-      `}
+      className={`w-full rounded-xl border px-3 py-2 flex items-center gap-3 text-left transition-colors ${
+        selected
+          ? 'bg-rink-500/10 border-rink-500/40'
+          : 'bg-neutral-800 border-neutral-700 hover:border-neutral-600'
+      }`}
     >
-      {label}
+      <div className="relative w-10 h-10 rounded-full overflow-hidden bg-neutral-700 flex-shrink-0">
+        {player.avatarUrl ? (
+          <Image src={player.avatarUrl} alt={player.fullName} fill sizes="40px" className="object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-xs font-bold text-neutral-200">
+            {player.fullName.split(' ').map((x) => x[0]).join('').slice(0, 2)}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white truncate">{player.fullName}</p>
+        <p className="text-xs text-neutral-400">#{player.jerseyNumber} - {player.position}</p>
+      </div>
+      <div
+        className="text-xs font-bold px-2 py-1 rounded-md border"
+        style={{ color, borderColor: `${color}66`, backgroundColor: `${color}14` }}
+      >
+        #{player.jerseyNumber}
+      </div>
     </button>
   );
 }

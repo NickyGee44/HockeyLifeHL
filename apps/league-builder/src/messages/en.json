@@ -393,7 +393,20 @@
     "twoFactorAuth": "Two-Factor Authentication",
     "dangerZone": "Danger Zone",
     "deleteLeague": "Delete League",
-    "saved": "Settings saved"
+    "saved": "Settings saved",
+    "description": "Description",
+    "city": "City",
+    "stateProvince": "Province / State",
+    "country": "Country",
+    "contactEmail": "Contact Email",
+    "contactPhone": "Contact Phone",
+    "basicInfo": "Basic Information",
+    "location": "Location",
+    "contactInfo": "Contact Information",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "generalSettings": "General Settings",
+    "updateInfo": "Update basic information for {name}"
   },
   "company": {
     "profile": "Company Profile",
@@ -948,6 +961,61 @@
       "paymentsSetUpHint": "Connect Stripe from your dashboard to start collecting fees online."
     }
   },
+  "seasons": {
+    "title": "Seasons",
+    "noSeasons": "No Seasons Found",
+    "noSeasonsDescription": "No seasons match the selected filter. Create a new season to get started.",
+    "ongoing": "Ongoing",
+    "statusUpdated": "Season status updated successfully",
+    "seasonDeleted": "Season deleted successfully",
+    "seasonCloned": "Season cloned successfully",
+    "filter": {
+      "all": "All",
+      "draft": "Draft",
+      "active": "Active",
+      "playoffs": "Playoffs",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "playoffs": "Playoffs",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "table": {
+      "name": "Season",
+      "status": "Status",
+      "dates": "Dates",
+      "teams": "Teams",
+      "games": "Games",
+      "registrations": "Registrations"
+    },
+    "actions": {
+      "title": "Actions",
+      "view": "View Season",
+      "edit": "Edit Season",
+      "changeStatus": "Change Status",
+      "clone": "Clone Season",
+      "archive": "Archive",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete Season",
+      "description": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Seasons with existing games cannot be deleted.",
+      "cancel": "Cancel",
+      "confirm": "Delete Season"
+    },
+    "cloneDialog": {
+      "title": "Clone Season",
+      "description": "Create a copy of this season with its settings. Games, stats, and registrations will not be copied.",
+      "nameLabel": "New Season Name",
+      "namePlaceholder": "Enter season name",
+      "cancel": "Cancel",
+      "confirm": "Clone Season"
+    }
+  },
   "dashboardCta": {
     "createLeague": "Create a New League",
     "createLeagueDescription": "Set up a new league with teams, schedules, and registration",
@@ -959,5 +1027,47 @@
     "accountSettingsDescription": "Update your profile and preferences",
     "websiteEditor": "Website Editor",
     "websiteEditorDescription": "Customize your league website, update branding, and manage your public presence"
+  },
+  "statCorrection": {
+    "title": "Stat Correction",
+    "description": "Edit game events, add missing stats, or remove incorrect entries. Recalculate when done to update scores and standings.",
+    "editStats": "Edit Stats",
+    "filterAll": "All Events",
+    "filterGoals": "Goals",
+    "filterPenalties": "Penalties",
+    "filterSaves": "Saves",
+    "showDeleted": "Show deleted",
+    "addEvent": "Add Event",
+    "addNewEvent": "Add New Event",
+    "eventType": "Event Type",
+    "team": "Team",
+    "player": "Player",
+    "selectPlayer": "Select a player",
+    "period": "Period",
+    "assist1": "First Assist",
+    "assist2": "Second Assist",
+    "none": "None",
+    "powerPlay": "Power Play",
+    "shortHanded": "Short Handed",
+    "emptyNet": "Empty Net",
+    "penaltyType": "Penalty Type",
+    "minutes": "Minutes",
+    "minor": "Minor (2 min)",
+    "major": "Major (5 min)",
+    "misconduct": "Misconduct (10 min)",
+    "gameMisconduct": "Game Misconduct",
+    "match": "Match Penalty",
+    "goal": "Goal",
+    "penalty": "Penalty",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "recalculate": "Recalculate Stats",
+    "recalcWarning": "You have unsaved changes. Click \"Recalculate Stats\" to update the score, standings, and season stats.",
+    "eventDeleted": "Event deleted",
+    "eventAdded": "Event added",
+    "recalculated": "Stats recalculated. Final score: {home} - {away}",
+    "noEvents": "No events found",
+    "deleted": "Deleted"
   }
 }

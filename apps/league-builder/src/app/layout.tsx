@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -21,6 +22,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Don't wrap in html/body here - the [locale]/layout.tsx handles that
-  return children;
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-neutral-950 text-white antialiased">
+        {children}
+        <Analytics />
+      </body>
+    </html>
+  );
 }

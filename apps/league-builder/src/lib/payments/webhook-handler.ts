@@ -18,7 +18,12 @@ import { stripe } from '@/lib/stripe/client';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
-import { sendChargebackAlertEmail, sendChargebackResolutionEmail } from '@/lib/email/payment-emails';
+import {
+  sendChargebackAlertEmail,
+  sendChargebackResolutionEmail,
+  sendPaymentConfirmationEmail,
+  sendRefundProcessedEmail,
+} from '@/lib/email/payment-emails';
 import type { Json } from '@hockey-life/database';
 
 // ============================================================================
@@ -312,6 +317,36 @@ async function handleCheckoutCompleted(
     eventId
   );
 
+  // Send payment confirmation email (fire-and-forget)
+  try {
+    const [{ data: playerProfile }, { data: leagueInfo }, { data: feeInfo }] = await Promise.all([
+      supabase.from('profiles').select('email, full_name').eq('id', payment.player_id).single(),
+      supabase.from('leagues').select('name').eq('id', payment.league_id).single(),
+      supabase.from('season_fees').select('name').eq('id', payment.season_fee_id).single(),
+    ]);
+
+    if (playerProfile?.email && leagueInfo) {
+      const totalInstallments = payment.total_installments || 1;
+      const currentInstallment = processedPayment.current_installment || 1;
+      const remainingBalance = Math.max(0, (payment.total_amount_cents || 0) - (processedPayment.amount_paid_cents || amountPaid));
+
+      sendPaymentConfirmationEmail({
+        to: playerProfile.email,
+        playerName: playerProfile.full_name || 'Player',
+        leagueName: leagueInfo.name,
+        feeName: feeInfo?.name || 'Season Fee',
+        amountPaid,
+        remainingBalance,
+        installmentNumber: currentInstallment,
+        totalInstallments,
+      }).catch((err) => {
+        console.error('[Payments Webhook] Failed to send confirmation email:', err);
+      });
+    }
+  } catch (emailErr) {
+    console.error('[Payments Webhook] Error preparing confirmation email:', emailErr);
+  }
+
   return { success: true, message: `Payment processed atomically: $${(amountPaid / 100).toFixed(2)}` };
 }
 
@@ -477,6 +512,30 @@ async function handleChargeRefunded(
     payment.id,
     eventId
   );
+
+  // Send refund confirmation email to player (fire-and-forget)
+  try {
+    const [{ data: playerProfile }, { data: leagueInfo }, { data: feeInfo }] = await Promise.all([
+      supabase.from('profiles').select('email, full_name').eq('id', payment.player_id).single(),
+      supabase.from('leagues').select('name').eq('id', payment.league_id).single(),
+      supabase.from('season_fees').select('name').eq('id', payment.season_fee_id).single(),
+    ]);
+
+    if (playerProfile?.email && leagueInfo) {
+      sendRefundProcessedEmail({
+        to: playerProfile.email,
+        playerName: playerProfile.full_name || 'Player',
+        leagueName: leagueInfo.name,
+        feeName: feeInfo?.name || 'Season Fee',
+        refundAmount: latestRefund.amount,
+        reason: latestRefund.reason || 'Refund issued by league administrator',
+      }).catch((err) => {
+        console.error('[Payments Webhook] Failed to send refund email:', err);
+      });
+    }
+  } catch (emailErr) {
+    console.error('[Payments Webhook] Error preparing refund email:', emailErr);
+  }
 
   return {
     success: true,

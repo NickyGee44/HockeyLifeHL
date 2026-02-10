@@ -37,7 +37,13 @@ export default function RootPage() {
           </ul>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 space-y-3">
+          <Link
+            href="/discover"
+            className="inline-block px-6 py-3 bg-gold-500 text-black font-semibold rounded-lg hover:bg-gold-400 transition-colors"
+          >
+            Discover Leagues
+          </Link>
           <p className="text-sm text-[var(--color-text-muted)]">
             Looking to manage your league?{' '}
             <Link

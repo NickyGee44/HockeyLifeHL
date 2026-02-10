@@ -4,6 +4,12 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { verifyLeagueOwnerAccess } from './permissions';
+import {
+  sendTeamRequestSubmittedEmail,
+  sendTeamRequestApprovedEmail,
+  sendTeamRequestDeniedEmail,
+  notifyLeagueAdminsOfNewTeamRequest,
+} from '@/lib/email/team-request-emails';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -172,6 +178,68 @@ export async function submitTeamRegistrationRequest(params: SubmitTeamRequestPar
         console.error('Error creating team registration request:', sanitizeErrorForLogging(insertError));
       }
       return { error: 'Failed to submit team registration request' };
+    }
+
+    // Fetch league name and requester profile for emails
+    const [{ data: league }, { data: requesterProfile }, { data: adminMembers }] = await Promise.all([
+      supabase.from('leagues').select('name').eq('id', leagueId).single(),
+      supabase.from('profiles').select('email, full_name').eq('id', user.id).single(),
+      supabase
+        .from('league_memberships')
+        .select('user_id, profiles!inner(email, full_name)')
+        .eq('league_id', leagueId)
+        .eq('status', 'active')
+        .in('role', ['owner', 'admin']),
+    ]);
+
+    // Send confirmation email to requester (fire-and-forget)
+    if (requesterProfile?.email && league) {
+      sendTeamRequestSubmittedEmail({
+        to: requesterProfile.email,
+        requesterName: requesterProfile.full_name || 'Team Manager',
+        leagueName: league.name,
+        teamName,
+        teamShortName,
+        requestedDivision: undefined,
+        submittedAt: new Date(),
+        requestId: request.id,
+      }).catch((err) => {
+        console.error('[TeamRegistration] Failed to send submitted email:', err);
+      });
+    }
+
+    // Notify league admins (fire-and-forget)
+    if (adminMembers && adminMembers.length > 0 && league) {
+      const { count: pendingCount } = await supabase
+        .from('team_registration_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('league_id', leagueId)
+        .eq('status', 'pending');
+
+      const adminEmails = adminMembers
+        .map((m: any) => ({
+          email: m.profiles?.email as string,
+          name: (m.profiles?.full_name as string) || 'Admin',
+        }))
+        .filter((a) => a.email);
+
+      notifyLeagueAdminsOfNewTeamRequest({
+        adminEmails,
+        leagueName: league.name,
+        requesterName: requesterProfile?.full_name || 'Unknown',
+        requesterEmail: requesterProfile?.email || '',
+        teamName,
+        teamShortName,
+        teamContactEmail,
+        requestedDivision: undefined,
+        message,
+        submittedAt: new Date(),
+        pendingCount: pendingCount || 1,
+        requestId: request.id,
+        leagueId,
+      }).catch((err) => {
+        console.error('[TeamRegistration] Failed to notify admins:', err);
+      });
     }
 
     revalidatePath(`/dashboard/leagues/${leagueId}/teams`);
@@ -463,6 +531,43 @@ export async function approveTeamRegistrationRequest(params: ApproveTeamRequestP
       return { error: 'Request was already reviewed by someone else' };
     }
 
+    // Send approval email to requester (fire-and-forget)
+    const { data: requester } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', request.requester_id)
+      .single();
+
+    const { data: leagueInfo } = await supabase
+      .from('leagues')
+      .select('name')
+      .eq('id', request.league_id)
+      .single();
+
+    if (requester?.email && leagueInfo) {
+      const division = divisionId
+        ? await supabase
+            .from('divisions')
+            .select('name')
+            .eq('id', divisionId)
+            .single()
+            .then((r) => r.data?.name)
+        : undefined;
+
+      sendTeamRequestApprovedEmail({
+        to: requester.email,
+        requesterName: requester.full_name || 'Team Manager',
+        leagueName: leagueInfo.name,
+        teamName: request.team_name,
+        teamShortName: request.team_short_name,
+        assignedDivision: division || undefined,
+        approvedAt: new Date(),
+        teamId: team.id,
+      }).catch((err) => {
+        console.error('[TeamRegistration] Failed to send approval email:', err);
+      });
+    }
+
     revalidatePath(`/dashboard/leagues/${request.league_id}/teams`);
 
     return {
@@ -553,6 +658,35 @@ export async function denyTeamRegistrationRequest(params: DenyTeamRequestParams)
         console.error('Error updating request:', sanitizeErrorForLogging(updateError));
       }
       return { error: 'Request was already reviewed by someone else' };
+    }
+
+    // Send denial email to requester (fire-and-forget)
+    const { data: requester } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', request.requester_id)
+      .single();
+
+    const { data: leagueInfo } = await supabase
+      .from('leagues')
+      .select('name, contact_email')
+      .eq('id', request.league_id)
+      .single();
+
+    if (requester?.email && leagueInfo) {
+      sendTeamRequestDeniedEmail({
+        to: requester.email,
+        requesterName: requester.full_name || 'Team Manager',
+        leagueName: leagueInfo.name,
+        teamName: request.team_name,
+        denialReason: denialReason,
+        deniedAt: new Date(),
+        canReapply: true,
+        contactEmail: (leagueInfo as any).contact_email || undefined,
+        leagueId: request.league_id,
+      }).catch((err) => {
+        console.error('[TeamRegistration] Failed to send denial email:', err);
+      });
     }
 
     revalidatePath(`/dashboard/leagues/${request.league_id}/teams`);

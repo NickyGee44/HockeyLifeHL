@@ -1,14 +1,12 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { createClient } from '@/lib/supabase/client';
 import {
   Shield,
   Users,
-  Mail,
   ArrowLeft,
   Loader2,
   AlertCircle,
@@ -16,25 +14,17 @@ import {
   Trophy,
   DollarSign,
   CheckCircle2,
-  User,
 } from 'lucide-react';
+import { RosterManager } from '@/components/captain/RosterManager';
+import {
+  getTeamRoster,
+  getJoinRequests,
+  type RosterPlayer,
+  type JoinRequest,
+} from '@/lib/actions/captain-roster';
 
 interface CaptainPageProps {
   params: Promise<{ leagueSlug: string }>;
-}
-
-interface RosterPlayer {
-  id: string;
-  player_id: string;
-  jersey_number: number | null;
-  position: string | null;
-  leadership_role: 'captain' | 'alternate_captain' | null;
-  profile: {
-    id: string;
-    full_name: string | null;
-    email: string | null;
-    avatar_url: string | null;
-  } | null;
 }
 
 interface TeamStats {
@@ -49,10 +39,27 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   const { leagueSlug } = use(params);
   const { currentTeam, isLoading: profileLoading } = usePlayerProfile();
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
+
+  const fetchRosterData = useCallback(async () => {
+    if (!currentTeam?.team_id) return;
+
+    const [rosterResult, requestsResult] = await Promise.all([
+      getTeamRoster(currentTeam.team_id),
+      getJoinRequests(currentTeam.team_id),
+    ]);
+
+    if (rosterResult.success && rosterResult.data) {
+      setRoster(rosterResult.data);
+    }
+    if (requestsResult.success && requestsResult.data) {
+      setJoinRequests(requestsResult.data);
+    }
+  }, [currentTeam?.team_id]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,27 +70,8 @@ export default function CaptainPage({ params }: CaptainPageProps) {
 
       const supabase = createClient();
 
-      // Fetch team roster with contact info (captain-only view)
-      const { data: rosterData } = await supabase
-        .from('team_rosters')
-        .select(`
-          id,
-          player_id,
-          jersey_number,
-          position,
-          leadership_role,
-          profile:profiles(id, full_name, email, avatar_url)
-        `)
-        .eq('team_id', currentTeam.team_id)
-        .order('jersey_number', { ascending: true });
-
-      if (rosterData) {
-        const transformedRoster = rosterData.map((p: any) => ({
-          ...p,
-          profile: Array.isArray(p.profile) ? p.profile[0] : p.profile,
-        }));
-        setRoster(transformedRoster);
-      }
+      // Fetch roster + join requests via server actions
+      await fetchRosterData();
 
       // Fetch team stats (actual RPC: get_team_standings)
       const { data: standings } = await supabase.rpc('get_team_standings', {
@@ -118,7 +106,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     if (!profileLoading) {
       fetchData();
     }
-  }, [currentTeam, isCaptain, profileLoading]);
+  }, [currentTeam, isCaptain, profileLoading, fetchRosterData]);
 
   if (profileLoading || isLoading) {
     return (
@@ -225,111 +213,13 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         />
       </div>
 
-      {/* Roster */}
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-            <Users className="w-5 h-5 text-[var(--league-primary)]" />
-            Team Roster
-          </h2>
-          <span className="text-sm text-[var(--color-text-secondary)]">
-            {roster.length} players
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-[var(--color-surface-hover)]">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                  Player
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                  #
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                  Position
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                  Role
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {roster.map((player) => {
-                const name = player.profile?.full_name || 'Unknown Player';
-
-                return (
-                  <tr
-                    key={player.id}
-                    className="hover:bg-[var(--color-surface-hover)] transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        {player.profile?.avatar_url ? (
-                          <Image
-                            src={player.profile.avatar_url}
-                            alt={name}
-                            width={36}
-                            height={36}
-                            className="rounded-full"
-                          />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center">
-                            <User className="w-4 h-4 text-[var(--color-text-muted)]" />
-                          </div>
-                        )}
-                        <span className="font-medium text-[var(--color-text-primary)]">
-                          {name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="font-mono font-bold text-[var(--color-text-primary)]">
-                        {player.jersey_number ?? '-'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-text-secondary)]">
-                      {player.position || '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {player.profile?.email ? (
-                        <a
-                          href={`mailto:${player.profile.email}`}
-                          className="text-[var(--league-primary)] hover:underline flex items-center gap-1"
-                        >
-                          <Mail className="w-3.5 h-3.5" />
-                          {player.profile.email}
-                        </a>
-                      ) : (
-                        <span className="text-[var(--color-text-muted)]">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {player.leadership_role === 'captain' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-medium">
-                          <Shield className="w-3 h-3" />
-                          Captain
-                        </span>
-                      ) : player.leadership_role === 'alternate_captain' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400/80 rounded text-xs font-medium">
-                          <Shield className="w-3 h-3" />
-                          Alternate
-                        </span>
-                      ) : (
-                        <span className="text-[var(--color-text-muted)]">Player</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Roster Manager (editable roster + join requests) */}
+      <RosterManager
+        teamId={currentTeam.team_id}
+        roster={roster}
+        joinRequests={joinRequests}
+        onRosterUpdate={fetchRosterData}
+      />
 
       {/* Quick Actions */}
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

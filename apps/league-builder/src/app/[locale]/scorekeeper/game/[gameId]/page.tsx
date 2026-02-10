@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -16,9 +17,10 @@ import {
 import { GoalEntryModal } from '@/components/scorekeeper/GoalEntryModal';
 import { PenaltyEntryModal } from '@/components/scorekeeper/PenaltyEntryModal';
 import { SaveEntryModal } from '@/components/scorekeeper/SaveEntryModal';
+import { ShotEntryModal } from '@/components/scorekeeper/ShotEntryModal';
 import { GameSummaryModal } from '@/components/scorekeeper/GameSummaryModal';
 
-type EntryMode = 'idle' | 'goal' | 'penalty' | 'save' | 'summary';
+type EntryMode = 'idle' | 'goal' | 'penalty' | 'save' | 'shot' | 'summary';
 type TeamSelection = 'home' | 'away' | null;
 
 /**
@@ -29,6 +31,7 @@ export default function ScorekeeperGamePage() {
   const params = useParams();
   const router = useRouter();
   const gameId = params.gameId as string;
+  const locale = (params.locale as string) || 'en';
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +59,7 @@ export default function ScorekeeperGamePage() {
       if (eventsResult.success && eventsResult.events) {
         setEvents(eventsResult.events.filter(e => !e.deletedAt));
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load game data');
     } finally {
       setIsLoading(false);
@@ -68,13 +71,13 @@ export default function ScorekeeperGamePage() {
     async function checkSession() {
       const session = await getScorekeeperSession();
       if (!session.success || session.session?.gameId !== gameId) {
-        router.push('/scorekeeper');
+        router.push(`/${locale}/scorekeeper`);
         return;
       }
       loadGameData();
     }
     checkSession();
-  }, [gameId, router, loadGameData]);
+  }, [gameId, locale, router, loadGameData]);
 
   // Refresh events periodically
   useEffect(() => {
@@ -135,7 +138,7 @@ export default function ScorekeeperGamePage() {
   // Handle adding a penalty
   const handleAddPenalty = async (data: {
     playerId: string;
-    penaltyType: 'minor' | 'major' | 'misconduct' | 'game_misconduct' | 'match';
+    penaltyType: string;
     penaltyMinutes: number;
     gameTimeSeconds?: number;
   }) => {
@@ -167,6 +170,7 @@ export default function ScorekeeperGamePage() {
   // Handle adding a save
   const handleAddSave = async (data: {
     goalieId: string;
+    shotByPlayerId?: string;
     gameTimeSeconds?: number;
   }) => {
     if (!game || !selectedTeam) return;
@@ -179,6 +183,39 @@ export default function ScorekeeperGamePage() {
       teamId,
       teamType: selectedTeam,
       goalieId: data.goalieId,
+      shotByPlayerId: data.shotByPlayerId,
+      period: currentPeriod,
+      gameTimeSeconds: data.gameTimeSeconds,
+    });
+
+    if (result.success) {
+      await loadGameData();
+    }
+
+    setIsSubmitting(false);
+    setEntryMode('idle');
+    setSelectedTeam(null);
+  };
+
+  const handleAddShot = async (data: {
+    goalieId: string;
+    shotByPlayerId?: string;
+    gameTimeSeconds?: number;
+  }) => {
+    if (!game || !selectedTeam) return;
+
+    setIsSubmitting(true);
+
+    // selectedTeam = team taking the shot, save is recorded against defending goalie/team
+    const defendingTeamType: 'home' | 'away' = selectedTeam === 'home' ? 'away' : 'home';
+    const defendingTeamId = defendingTeamType === 'home' ? game.homeTeam.id : game.awayTeam.id;
+
+    const result = await addSaveEvent({
+      gameId,
+      teamId: defendingTeamId,
+      teamType: defendingTeamType,
+      goalieId: data.goalieId,
+      shotByPlayerId: data.shotByPlayerId,
       period: currentPeriod,
       gameTimeSeconds: data.gameTimeSeconds,
     });
@@ -222,7 +259,7 @@ export default function ScorekeeperGamePage() {
       <header className="bg-neutral-900 border-b border-white/10 px-4 py-3 sticky top-0 z-40">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => router.push('/scorekeeper')}
+            onClick={() => router.push(`/${locale}/scorekeeper`)}
             className="p-2 -ml-2 text-neutral-400 hover:text-white transition-colors touch-manipulation"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -254,12 +291,22 @@ export default function ScorekeeperGamePage() {
               className="w-16 h-16 mx-auto rounded-xl flex items-center justify-center mb-2"
               style={{ backgroundColor: `${game.homeTeam.primaryColor || '#22D3EE'}20` }}
             >
-              <span
-                className="text-2xl font-black"
-                style={{ color: game.homeTeam.primaryColor || '#22D3EE' }}
-              >
-                {game.homeTeam.shortName?.[0] || game.homeTeam.name[0]}
-              </span>
+              {game.homeTeam.logoUrl ? (
+                <Image
+                  src={game.homeTeam.logoUrl}
+                  alt={`${game.homeTeam.name} logo`}
+                  width={56}
+                  height={56}
+                  className="rounded-lg object-cover"
+                />
+              ) : (
+                <span
+                  className="text-2xl font-black"
+                  style={{ color: game.homeTeam.primaryColor || '#22D3EE' }}
+                >
+                  {game.homeTeam.shortName?.[0] || game.homeTeam.name[0]}
+                </span>
+              )}
             </div>
             <p className="text-sm text-neutral-400 truncate">{game.homeTeam.name}</p>
             <p
@@ -281,12 +328,22 @@ export default function ScorekeeperGamePage() {
               className="w-16 h-16 mx-auto rounded-xl flex items-center justify-center mb-2"
               style={{ backgroundColor: `${game.awayTeam.primaryColor || '#A3A3A3'}20` }}
             >
-              <span
-                className="text-2xl font-black"
-                style={{ color: game.awayTeam.primaryColor || '#A3A3A3' }}
-              >
-                {game.awayTeam.shortName?.[0] || game.awayTeam.name[0]}
-              </span>
+              {game.awayTeam.logoUrl ? (
+                <Image
+                  src={game.awayTeam.logoUrl}
+                  alt={`${game.awayTeam.name} logo`}
+                  width={56}
+                  height={56}
+                  className="rounded-lg object-cover"
+                />
+              ) : (
+                <span
+                  className="text-2xl font-black"
+                  style={{ color: game.awayTeam.primaryColor || '#A3A3A3' }}
+                >
+                  {game.awayTeam.shortName?.[0] || game.awayTeam.name[0]}
+                </span>
+              )}
             </div>
             <p className="text-sm text-neutral-400 truncate">{game.awayTeam.name}</p>
             <p
@@ -346,7 +403,7 @@ export default function ScorekeeperGamePage() {
 
       {/* Action Buttons */}
       <div className="bg-neutral-900 border-t border-neutral-800 p-4 sticky bottom-0 z-40">
-        <div className="max-w-lg mx-auto grid grid-cols-3 gap-3">
+        <div className="max-w-lg mx-auto grid grid-cols-2 gap-2">
           {/* Goal Buttons */}
           <div className="space-y-2">
             <button
@@ -368,6 +425,30 @@ export default function ScorekeeperGamePage() {
             >
               <span className="block">Goal</span>
               <span className="text-xs text-emerald-400/70">{game.awayTeam.shortName || 'Away'}</span>
+            </button>
+          </div>
+
+          {/* Shot Buttons */}
+          <div className="space-y-2">
+            <button
+              onClick={() => startEntry('shot', 'home')}
+              className="w-full py-4 px-3 rounded-xl font-semibold text-sm
+                bg-cyan-500/10 text-cyan-300 border border-cyan-500/30
+                hover:bg-cyan-500/20 active:scale-95
+                transition-all duration-200 touch-manipulation min-h-[56px]"
+            >
+              <span className="block">Shot</span>
+              <span className="text-xs text-cyan-300/70">{game.homeTeam.shortName || 'Home'}</span>
+            </button>
+            <button
+              onClick={() => startEntry('shot', 'away')}
+              className="w-full py-4 px-3 rounded-xl font-semibold text-sm
+                bg-cyan-500/10 text-cyan-300 border border-cyan-500/30
+                hover:bg-cyan-500/20 active:scale-95
+                transition-all duration-200 touch-manipulation min-h-[56px]"
+            >
+              <span className="block">Shot</span>
+              <span className="text-xs text-cyan-300/70">{game.awayTeam.shortName || 'Away'}</span>
             </button>
           </div>
 
@@ -394,8 +475,6 @@ export default function ScorekeeperGamePage() {
               <span className="text-xs text-red-400/70">{game.awayTeam.shortName || 'Away'}</span>
             </button>
           </div>
-
-          {/* Save Buttons */}
           <div className="space-y-2">
             <button
               onClick={() => startEntry('save', 'home')}
@@ -448,9 +527,21 @@ export default function ScorekeeperGamePage() {
       {entryMode === 'save' && selectedTeam && (
         <SaveEntryModal
           team={selectedTeam === 'home' ? game.homeTeam : game.awayTeam}
+          opposingTeam={selectedTeam === 'home' ? game.awayTeam : game.homeTeam}
           teamType={selectedTeam}
           period={currentPeriod}
           onSubmit={handleAddSave}
+          onCancel={() => { setEntryMode('idle'); setSelectedTeam(null); }}
+          isSubmitting={isSubmitting}
+        />
+      )}
+
+      {entryMode === 'shot' && selectedTeam && (
+        <ShotEntryModal
+          shootingTeam={selectedTeam === 'home' ? game.homeTeam : game.awayTeam}
+          defendingTeam={selectedTeam === 'home' ? game.awayTeam : game.homeTeam}
+          period={currentPeriod}
+          onSubmit={handleAddShot}
           onCancel={() => { setEntryMode('idle'); setSelectedTeam(null); }}
           isSubmitting={isSubmitting}
         />
@@ -560,7 +651,16 @@ function EventCard({
         {/* Penalty info */}
         {event.eventType === 'penalty' && (
           <p className="text-sm text-neutral-400 mt-1">
-            {event.penaltyMinutes} min {event.penaltyType?.replace('_', ' ')}
+            {event.penaltyMinutes} min {event.penaltyType?.split(':').pop()?.replace(/_/g, ' ') || 'penalty'}
+          </p>
+        )}
+
+        {event.eventType === 'save' && (
+          <p className="text-sm text-neutral-400 mt-1">
+            Shot by{' '}
+            {event.shotByName
+              ? `#${event.shotByNumber ?? '-'} ${event.shotByName}`
+              : 'team'}
           </p>
         )}
 

@@ -16,6 +16,7 @@ import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 
 interface QuickActionsProps {
   leagueSlug: string;
+  hasOutstandingPayment?: boolean;
 }
 
 interface QuickAction {
@@ -24,9 +25,10 @@ interface QuickAction {
   icon: React.ComponentType<{ className?: string }>;
   description: string;
   variant?: 'primary' | 'default';
+  badge?: boolean;
 }
 
-export function QuickActions({ leagueSlug }: QuickActionsProps) {
+export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActionsProps) {
   const { currentTeam, isLoading: profileLoading } = usePlayerProfile();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
@@ -44,6 +46,7 @@ export function QuickActions({ leagueSlug }: QuickActionsProps) {
       icon: CreditCard,
       description: 'View and pay registration',
       variant: 'primary',
+      badge: hasOutstandingPayment,
     },
     {
       label: 'Sign Waivers',
@@ -131,6 +134,9 @@ export function QuickActions({ leagueSlug }: QuickActionsProps) {
                   : 'hover:bg-[var(--color-surface-hover)]'
               } ${isLoading ? 'opacity-70 pointer-events-none' : ''}`}
             >
+              {action.badge && (
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-[var(--color-surface)]" />
+              )}
               {isLoading ? (
                 <Loader2
                   className={`w-5 h-5 animate-spin ${

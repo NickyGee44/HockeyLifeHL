@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useDivisionFilter } from '@/components/DivisionFilterProvider';
 import type { Season } from '@/lib/types';
 
 interface GoalieStatsFiltersProps {
@@ -8,6 +10,7 @@ interface GoalieStatsFiltersProps {
   currentFilters: {
     season?: string;
     sort?: string;
+    division?: string;
   };
   leagueSlug: string;
 }
@@ -19,6 +22,22 @@ export function GoalieStatsFilters({
 }: GoalieStatsFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { selectedDivisionId } = useDivisionFilter();
+  const prevDivisionRef = useRef(currentFilters.division || null);
+
+  // Sync global division filter → URL param so server-side query picks it up
+  useEffect(() => {
+    if (prevDivisionRef.current === selectedDivisionId) return;
+    prevDivisionRef.current = selectedDivisionId;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedDivisionId) {
+      params.set('division', selectedDivisionId);
+    } else {
+      params.delete('division');
+    }
+    router.push(`/${leagueSlug}/stats/goalies?${params.toString()}`);
+  }, [selectedDivisionId, searchParams, router, leagueSlug]);
 
   const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());

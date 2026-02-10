@@ -60,10 +60,11 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
     notFound();
   }
 
+  const currentSeason = await getCurrentSeason(league.id);
+
   // Fetch all data in parallel
-  const [currentSeason, roster, teamStats, schedule, rivals] = await Promise.all([
-    getCurrentSeason(league.id),
-    getTeamRoster(team.id),
+  const [roster, teamStats, schedule, rivals] = await Promise.all([
+    getTeamRoster(team.id, currentSeason?.id),
     getTeamStats(team.id, league.id),
     getTeamSchedule(team.id, 20),
     getTeamRivals(team.id, 3),
@@ -252,7 +253,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
         <RosterTab roster={roster} leagueSlug={leagueSlug} rosterStatsByPlayer={rosterStatsByPlayer} />
       )}
       {tab === 'stats' && (
-        <PlayerStatsTab roster={roster} leagueSlug={leagueSlug} />
+        <PlayerStatsTab roster={roster} leagueSlug={leagueSlug} rosterStatsByPlayer={rosterStatsByPlayer} />
       )}
       {tab === 'schedule' && (
         <ScheduleTab upcomingGames={upcomingGames} recentGames={recentGames} teamId={team.id} leagueSlug={leagueSlug} />
@@ -439,10 +440,32 @@ function formatSavePercentage(value: number | null): string {
 // Player Stats Tab
 // =============================================================================
 
-function PlayerStatsTab({ roster, leagueSlug }: { roster: Player[]; leagueSlug: string }) {
+function PlayerStatsTab({
+  roster,
+  leagueSlug,
+  rosterStatsByPlayer,
+}: {
+  roster: Player[];
+  leagueSlug: string;
+  rosterStatsByPlayer: RosterStatsByPlayer;
+}) {
   // Filter out goalies for skater stats
   const skaters = roster.filter((p) => p.position !== 'G' && p.position !== 'Goalie' && !p.is_goalie);
   const goalies = roster.filter((p) => p.position === 'G' || p.position === 'Goalie' || p.is_goalie);
+
+  // Sort skaters by points descending
+  const sortedSkaters = [...skaters].sort((a, b) => {
+    const aStats = rosterStatsByPlayer[a.player_id];
+    const bStats = rosterStatsByPlayer[b.player_id];
+    return (bStats?.points ?? 0) - (aStats?.points ?? 0);
+  });
+
+  // Sort goalies by wins descending
+  const sortedGoalies = [...goalies].sort((a, b) => {
+    const aStats = rosterStatsByPlayer[a.player_id];
+    const bStats = rosterStatsByPlayer[b.player_id];
+    return (bStats?.wins ?? 0) - (aStats?.wins ?? 0);
+  });
 
   return (
     <div className="space-y-8">
@@ -466,28 +489,32 @@ function PlayerStatsTab({ roster, leagueSlug }: { roster: Player[]; leagueSlug: 
               </tr>
             </thead>
             <tbody>
-              {skaters.length > 0 ? (
-                skaters.map((player) => (
-                  <tr key={player.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]">
-                    <td className="py-3 px-4">{player.jersey_number || '-'}</td>
-                    <td className="py-3 px-4">
-                      <Link
-                        href={`/${leagueSlug}/players/${player.player_id}`}
-                        className="font-medium hover:text-[var(--league-primary)] transition-colors"
-                      >
-                        {player.profile?.full_name || 'Unknown'}
-                      </Link>
-                    </td>
-                    <td className="py-3 px-4 text-center text-[var(--color-text-secondary)]">
-                      {player.position || '-'}
-                    </td>
-                    <td className="py-3 px-4 text-center">-</td>
-                    <td className="py-3 px-4 text-center">-</td>
-                    <td className="py-3 px-4 text-center">-</td>
-                    <td className="py-3 px-4 text-center font-semibold">-</td>
-                    <td className="py-3 px-4 text-center">-</td>
-                  </tr>
-                ))
+              {sortedSkaters.length > 0 ? (
+                sortedSkaters.map((player) => {
+                  const stats = rosterStatsByPlayer[player.player_id];
+                  const gp = stats?.games_played ?? 0;
+                  return (
+                    <tr key={player.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]">
+                      <td className="py-3 px-4">{player.jersey_number || '-'}</td>
+                      <td className="py-3 px-4">
+                        <Link
+                          href={`/${leagueSlug}/players/${player.player_id}`}
+                          className="font-medium hover:text-[var(--league-primary)] transition-colors"
+                        >
+                          {player.profile?.full_name || 'Unknown'}
+                        </Link>
+                      </td>
+                      <td className="py-3 px-4 text-center text-[var(--color-text-secondary)]">
+                        {player.position || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? gp : '-'}</td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? (stats?.goals ?? 0) : '-'}</td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? (stats?.assists ?? 0) : '-'}</td>
+                      <td className="py-3 px-4 text-center font-semibold">{gp > 0 ? (stats?.points ?? 0) : '-'}</td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? (stats?.penalty_minutes ?? 0) : '-'}</td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-[var(--color-text-secondary)]">
@@ -501,7 +528,7 @@ function PlayerStatsTab({ roster, leagueSlug }: { roster: Player[]; leagueSlug: 
       </div>
 
       {/* Goalie Stats */}
-      {goalies.length > 0 && (
+      {sortedGoalies.length > 0 && (
         <div className="card overflow-hidden">
           <div className="card-header">
             <h3 className="font-semibold">Goaltender Statistics</h3>
@@ -521,25 +548,29 @@ function PlayerStatsTab({ roster, leagueSlug }: { roster: Player[]; leagueSlug: 
                 </tr>
               </thead>
               <tbody>
-                {goalies.map((goalie) => (
-                  <tr key={goalie.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]">
-                    <td className="py-3 px-4">{goalie.jersey_number || '-'}</td>
-                    <td className="py-3 px-4">
-                      <Link
-                        href={`/${leagueSlug}/players/${goalie.player_id}`}
-                        className="font-medium hover:text-[var(--league-primary)] transition-colors"
-                      >
-                        {goalie.profile?.full_name || 'Unknown'}
-                      </Link>
-                    </td>
-                    <td className="py-3 px-4 text-center">-</td>
-                    <td className="py-3 px-4 text-center">-</td>
-                    <td className="py-3 px-4 text-center">-</td>
-                    <td className="py-3 px-4 text-center">-</td>
-                    <td className="py-3 px-4 text-center">-</td>
-                    <td className="py-3 px-4 text-center">-</td>
-                  </tr>
-                ))}
+                {sortedGoalies.map((goalie) => {
+                  const stats = rosterStatsByPlayer[goalie.player_id];
+                  const gp = stats?.games_played ?? 0;
+                  return (
+                    <tr key={goalie.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]">
+                      <td className="py-3 px-4">{goalie.jersey_number || '-'}</td>
+                      <td className="py-3 px-4">
+                        <Link
+                          href={`/${leagueSlug}/players/${goalie.player_id}`}
+                          className="font-medium hover:text-[var(--league-primary)] transition-colors"
+                        >
+                          {goalie.profile?.full_name || 'Unknown'}
+                        </Link>
+                      </td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? gp : '-'}</td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? (stats?.wins ?? 0) : '-'}</td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? (stats?.losses ?? 0) : '-'}</td>
+                      <td className="py-3 px-4 text-center">{gp > 0 && stats?.goals_against_average != null ? stats.goals_against_average.toFixed(2) : '-'}</td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? formatSavePercentage(stats?.save_percentage ?? null) : '-'}</td>
+                      <td className="py-3 px-4 text-center">{gp > 0 ? (stats?.shutouts ?? 0) : '-'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

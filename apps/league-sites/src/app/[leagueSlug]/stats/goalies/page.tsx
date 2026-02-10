@@ -10,6 +10,7 @@ interface GoalieStatsPageProps {
   searchParams: Promise<{
     season?: string;
     sort?: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts';
+    division?: string;
   }>;
 }
 
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 
 export default async function GoalieStatsPage({ params, searchParams }: GoalieStatsPageProps) {
   const { leagueSlug } = await params;
-  const { season: seasonFilter, sort = 'wins' } = await searchParams;
+  const { season: seasonFilter, sort = 'wins', division: divisionFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) return null;
@@ -28,10 +29,10 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
   const currentSeason = await getCurrentSeason(league.id);
   const seasonId = seasonFilter || currentSeason?.id;
 
-  // Fetch data in parallel
+  // Fetch data in parallel, with division filter
   const [seasons, goalieLeaders] = await Promise.all([
     getSeasons(league.id),
-    getGoalieLeaders(league.id, seasonId, sort, 50),
+    getGoalieLeaders(league.id, seasonId, sort, 50, divisionFilter),
   ]);
 
   return (
@@ -61,10 +62,10 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
           </p>
         )}
 
-        {/* Filters */}
+        {/* Filters (includes division sync) */}
         <GoalieStatsFilters
           seasons={seasons}
-          currentFilters={{ season: seasonFilter, sort }}
+          currentFilters={{ season: seasonFilter, sort, division: divisionFilter }}
           leagueSlug={leagueSlug}
         />
 

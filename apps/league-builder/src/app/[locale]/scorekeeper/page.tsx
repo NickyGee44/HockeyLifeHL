@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { validateScorekeeperToken } from '@/lib/actions/scorekeeper';
 
 /**
@@ -10,7 +10,9 @@ import { validateScorekeeperToken } from '@/lib/actions/scorekeeper';
  * Mobile-optimized with large touch targets and gold accent theme
  */
 export default function ScorekeeperLoginPage() {
+  const params = useParams();
   const router = useRouter();
+  const locale = (params.locale as string) || 'en';
   const [token, setToken] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export default function ScorekeeperLoginPage() {
 
         // Navigate to game entry page
         setTimeout(() => {
-          router.push(`/scorekeeper/game/${result.session!.gameId}`);
+          router.push(`/${locale}/scorekeeper/game/${result.session!.gameId}`);
         }, 1000);
       } else {
         setError(result.error || 'Invalid or expired token');
@@ -214,7 +216,7 @@ export default function ScorekeeperLoginPage() {
         <div className="mt-6 text-center">
           <p className="text-neutral-500 text-sm">
             Don&apos;t have a token?{' '}
-            <a href="/contact" className="text-rink-400 hover:text-rink-300 transition-colors">
+            <a href={`/${locale}/contact`} className="text-rink-400 hover:text-rink-300 transition-colors">
               Contact your league administrator
             </a>
           </p>

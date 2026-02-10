@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   MapPin,
+  UserPlus,
 } from 'lucide-react';
 import type { League } from '@/lib/types';
 import { AuthButton } from './auth/AuthButton';
@@ -27,6 +28,7 @@ import { useDivisionFilter } from './DivisionFilterProvider';
 interface LeagueHeaderProps {
   league: League;
   leagueSlug: string;
+  registrationOpen?: boolean;
 }
 
 const navItems = [
@@ -41,7 +43,7 @@ const navItems = [
   { href: '/about', label: 'About', icon: Info },
 ];
 
-export function LeagueHeader({ league, leagueSlug }: LeagueHeaderProps) {
+export function LeagueHeader({ league, leagueSlug, registrationOpen }: LeagueHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { isPreviewMode, theme } = usePreviewMode();
@@ -91,9 +93,6 @@ export function LeagueHeader({ league, leagueSlug }: LeagueHeaderProps) {
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--header-text-muted)]">
-                Official League Site
-              </p>
               <p className="truncate text-lg font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)]">
                 {displayName}
               </p>
@@ -107,6 +106,15 @@ export function LeagueHeader({ league, leagueSlug }: LeagueHeaderProps) {
           </Link>
 
           <div className="hidden items-center gap-2 lg:flex">
+            {registrationOpen && (
+              <Link
+                href={`/${leagueSlug}/register`}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-[var(--league-primary)] text-[var(--color-accent-text)] hover:opacity-90 transition-opacity"
+              >
+                <UserPlus className="w-4 h-4" />
+                Register
+              </Link>
+            )}
             <ThemeToggle />
             <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
           </div>
@@ -210,6 +218,16 @@ export function LeagueHeader({ league, leagueSlug }: LeagueHeaderProps) {
                 );
               })}
             </div>
+            {registrationOpen && (
+              <Link
+                href={`/${leagueSlug}/register`}
+                className="mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-[var(--league-primary)] text-[var(--color-accent-text)] hover:opacity-90 transition-opacity"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <UserPlus className="w-4 h-4" />
+                Register Now
+              </Link>
+            )}
             <div className="mt-3 flex items-center justify-between border-t border-[var(--header-border)] pt-3">
               <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
               <ThemeToggle />

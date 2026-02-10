@@ -1,64 +1,89 @@
 'use client';
 
-import { useState } from 'react';
+import Image from 'next/image';
+import { useMemo, useState } from 'react';
 import type { TeamData, PlayerData } from '@/lib/actions/scorekeeper';
 
 interface SaveEntryModalProps {
   team: TeamData;
+  opposingTeam?: TeamData;
   teamType: 'home' | 'away';
   period: number;
   onSubmit: (data: {
     goalieId: string;
     gameTimeSeconds?: number;
+    shotByPlayerId?: string;
   }) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
 }
 
-/**
- * Save Entry Modal
- * Quick entry form for goalie saves
- */
 export function SaveEntryModal({
   team,
-  teamType,
+  opposingTeam,
   period,
   onSubmit,
   onCancel,
   isSubmitting,
 }: SaveEntryModalProps) {
-  // Filter to only show goalies
-  const goalies = team.roster.filter(p => p.position === 'Goalie');
-  const [goalieId, setGoalieId] = useState<string | null>(
-    goalies.length === 1 ? goalies[0].id : null
+  const goalies = useMemo(
+    () => team.roster.filter((p) => p.position === 'Goalie').sort((a, b) => a.jerseyNumber - b.jerseyNumber),
+    [team.roster]
   );
-  const [saveCount, setSaveCount] = useState(1);
+  const shooters = useMemo(
+    () => (opposingTeam?.roster || []).filter((p) => p.position !== 'Goalie').sort((a, b) => a.jerseyNumber - b.jerseyNumber),
+    [opposingTeam?.roster]
+  );
 
-  const selectedGoalie = team.roster.find(p => p.id === goalieId);
+  const [goalieId, setGoalieId] = useState<string | null>(goalies.length === 1 ? goalies[0].id : null);
+  const [shotByPlayerId, setShotByPlayerId] = useState<string | null>(null);
+  const [timeMinutes, setTimeMinutes] = useState('');
+  const [timeSeconds, setTimeSeconds] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredShooters = useMemo(() => {
+    if (!searchTerm.trim()) return shooters;
+    const term = searchTerm.toLowerCase();
+    return shooters.filter((player) =>
+      player.jerseyNumber.toString().includes(term) ||
+      player.fullName.toLowerCase().includes(term)
+    );
+  }, [shooters, searchTerm]);
+
+  const selectedGoalie = goalies.find((g) => g.id === goalieId) || null;
+  const selectedShooter = shooters.find((p) => p.id === shotByPlayerId) || null;
 
   const handleSubmit = async () => {
     if (!goalieId) return;
 
-    // Add multiple saves if count > 1
-    for (let i = 0; i < saveCount; i++) {
-      await onSubmit({ goalieId });
-    }
+    const mm = Number.parseInt(timeMinutes || '0', 10);
+    const ss = Number.parseInt(timeSeconds || '0', 10);
+    const gameTimeSeconds =
+      timeMinutes.trim() || timeSeconds.trim()
+        ? Math.max(0, mm * 60 + Math.min(59, Math.max(0, ss)))
+        : undefined;
+
+    await onSubmit({
+      goalieId,
+      shotByPlayerId: shotByPlayerId || undefined,
+      gameTimeSeconds,
+    });
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center">
-      <div className="bg-neutral-900 w-full md:max-w-md md:rounded-2xl border-t md:border border-blue-500/20 max-h-[90vh] flex flex-col">
-        {/* Header */}
+      <div className="bg-neutral-900 w-full md:max-w-3xl md:rounded-2xl border-t md:border border-blue-500/20 max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
           <div>
-            <h2 className="text-lg font-bold text-white">Add Save</h2>
+            <h2 className="text-lg font-bold text-white">Record Save</h2>
             <p className="text-sm text-neutral-400">
-              {team.name} • Period {period}
+              {team.name} - Period {period}
             </p>
           </div>
           <button
             onClick={onCancel}
-            className="p-2 text-neutral-400 hover:text-white transition-colors touch-manipulation"
+            className="p-2 text-neutral-400 hover:text-white transition-colors"
+            aria-label="Close save modal"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -66,133 +91,162 @@ export function SaveEntryModal({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-4 space-y-6">
-          {/* Goalie Selection */}
+        <div className="flex-1 overflow-auto p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-3">
-              Select Goalie
-            </label>
-
+            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Goalie</p>
             {goalies.length === 0 ? (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-center">
-                <p className="text-amber-400">No goalies on roster</p>
-                <p className="text-sm text-neutral-400 mt-1">
-                  Add goalies to the team roster to track saves
-                </p>
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-100 text-sm">
+                No goalies found on roster for this team.
               </div>
             ) : (
               <div className="space-y-2">
                 {goalies.map((goalie) => (
-                  <button
+                  <PlayerRow
                     key={goalie.id}
+                    player={goalie}
+                    selected={goalie.id === goalieId}
                     onClick={() => setGoalieId(goalie.id)}
-                    className={`w-full p-4 rounded-xl flex items-center gap-4 transition-all duration-200 touch-manipulation
-                      ${goalieId === goalie.id
-                        ? 'bg-blue-500/20 border-2 border-blue-500'
-                        : 'bg-neutral-800 border border-neutral-700 hover:border-neutral-600'
-                      }
-                    `}
-                  >
-                    <div
-                      className="w-14 h-14 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${team.primaryColor || '#22D3EE'}20` }}
-                    >
-                      <span
-                        className="text-2xl font-bold"
-                        style={{ color: team.primaryColor || '#22D3EE' }}
-                      >
-                        {goalie.jerseyNumber}
-                      </span>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className={`font-semibold ${goalieId === goalie.id ? 'text-blue-400' : 'text-white'}`}>
-                        {goalie.fullName}
-                      </p>
-                      <p className="text-sm text-neutral-400">Goalie</p>
-                    </div>
-                    {goalieId === goalie.id && (
-                      <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </button>
+                    accentColor={team.primaryColor}
+                  />
                 ))}
               </div>
             )}
           </div>
 
-          {/* Save Count - Quick multi-save entry */}
-          {goalieId && (
+          {shooters.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-3">
-                Number of Saves
-              </label>
-              <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={() => setSaveCount(Math.max(1, saveCount - 1))}
-                  className="w-14 h-14 rounded-xl bg-neutral-800 text-white font-bold text-2xl
-                    hover:bg-neutral-700 active:scale-95 transition-all touch-manipulation"
-                >
-                  -
-                </button>
-                <div className="w-20 text-center">
-                  <span className="text-4xl font-bold text-blue-400">{saveCount}</span>
-                </div>
-                <button
-                  onClick={() => setSaveCount(saveCount + 1)}
-                  className="w-14 h-14 rounded-xl bg-neutral-800 text-white font-bold text-2xl
-                    hover:bg-neutral-700 active:scale-95 transition-all touch-manipulation"
-                >
-                  +
-                </button>
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Shooter (Optional)</p>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={`Search ${opposingTeam?.name} shooter`}
+                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+              <button
+                type="button"
+                onClick={() => setShotByPlayerId(null)}
+                className={`mt-2 w-full text-left px-3 py-2 rounded-lg text-sm border ${
+                  shotByPlayerId === null
+                    ? 'bg-blue-500/20 border-blue-500/40 text-blue-200'
+                    : 'bg-neutral-800 border-neutral-700 text-neutral-300'
+                }`}
+              >
+                Team Shot (no specific shooter)
+              </button>
+              <div className="mt-2 space-y-2 max-h-56 overflow-auto">
+                {filteredShooters.map((player) => (
+                  <PlayerRow
+                    key={player.id}
+                    player={player}
+                    selected={player.id === shotByPlayerId}
+                    onClick={() => setShotByPlayerId(player.id)}
+                    accentColor={opposingTeam?.primaryColor || '#A3A3A3'}
+                  />
+                ))}
               </div>
-              <p className="text-center text-neutral-500 text-sm mt-2">
-                Tap to add multiple saves at once
-              </p>
             </div>
           )}
 
-          {/* Quick Stats */}
-          {selectedGoalie && (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-blue-400 uppercase tracking-wider">Adding</p>
-                  <p className="text-white font-semibold mt-1">
-                    {saveCount} save{saveCount > 1 ? 's' : ''} for #{selectedGoalie.jerseyNumber} {selectedGoalie.fullName}
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Minute</p>
+              <input
+                type="number"
+                min={0}
+                max={99}
+                value={timeMinutes}
+                onChange={(e) => setTimeMinutes(e.target.value)}
+                placeholder="MM"
+                className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-700 text-white"
+              />
             </div>
-          )}
+            <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Second</p>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={timeSeconds}
+                onChange={(e) => setTimeSeconds(e.target.value)}
+                placeholder="SS"
+                className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-700 text-white"
+              />
+            </div>
+          </div>
+
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
+            <p className="text-sm text-blue-100 font-semibold">Save Summary</p>
+            <p className="text-sm text-neutral-300 mt-1">
+              Goalie: {selectedGoalie ? `#${selectedGoalie.jerseyNumber} ${selectedGoalie.fullName}` : 'Not selected'}
+            </p>
+            <p className="text-sm text-neutral-300">
+              Shooter: {selectedShooter ? `#${selectedShooter.jerseyNumber} ${selectedShooter.fullName}` : 'Team shot'}
+            </p>
+          </div>
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-neutral-800 flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-4 px-6 bg-neutral-800 text-white font-semibold rounded-xl
-              hover:bg-neutral-700 transition-colors touch-manipulation min-h-[56px]"
+            className="flex-1 py-3 px-5 rounded-xl bg-neutral-800 text-white font-semibold"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!goalieId || isSubmitting}
-            className="flex-1 py-4 px-6 bg-blue-600 text-white font-semibold rounded-xl
-              hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed
-              transition-colors touch-manipulation min-h-[56px]"
+            className="flex-1 py-3 px-5 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-50"
           >
-            {isSubmitting ? 'Saving...' : `Add ${saveCount} Save${saveCount > 1 ? 's' : ''}`}
+            {isSubmitting ? 'Saving...' : 'Add Save'}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function PlayerRow({
+  player,
+  selected,
+  onClick,
+  accentColor,
+}: {
+  player: PlayerData;
+  selected: boolean;
+  onClick: () => void;
+  accentColor: string | null;
+}) {
+  const color = accentColor || '#22D3EE';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-xl border px-3 py-2 flex items-center gap-3 text-left transition-colors ${
+        selected
+          ? 'bg-blue-500/10 border-blue-500/40'
+          : 'bg-neutral-800 border-neutral-700 hover:border-neutral-600'
+      }`}
+    >
+      <div className="relative w-10 h-10 rounded-full overflow-hidden bg-neutral-700 flex-shrink-0">
+        {player.avatarUrl ? (
+          <Image src={player.avatarUrl} alt={player.fullName} fill sizes="40px" className="object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-xs font-bold text-neutral-200">
+            {player.fullName.split(' ').map((x) => x[0]).join('').slice(0, 2)}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white truncate">{player.fullName}</p>
+        <p className="text-xs text-neutral-400">#{player.jerseyNumber} - {player.position}</p>
+      </div>
+      <div
+        className="text-xs font-bold px-2 py-1 rounded-md border"
+        style={{ color, borderColor: `${color}66`, backgroundColor: `${color}14` }}
+      >
+        #{player.jerseyNumber}
+      </div>
+    </button>
   );
 }

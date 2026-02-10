@@ -89,7 +89,7 @@ export default async function DashboardPage({ params }: Props) {
           />
           <StatsCard
             title={t('dashboard.gamesPlayed')}
-            value={0}
+            value={totals.total_games_played ?? 0}
             icon={<TrendingUp className="w-5 h-5" />}
             trend={null}
           />

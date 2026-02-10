@@ -10,6 +10,7 @@ import type {
   Game,
   Player,
   PlayerStats,
+  PlayerStatsWithAvatar,
   LeagueStats,
   UpcomingGame,
   RecentGame,
@@ -31,6 +32,10 @@ import type {
   LeagueSponsor,
   LeagueAward,
   ThemePreset,
+  GameSheetData,
+  GameSheetGoal,
+  GameSheetPenalty,
+  GameSheetGoalie,
 } from './types';
 
 // Default brand colors from BRAND-KIT.md
@@ -243,23 +248,136 @@ export async function getTeamBySlug(
 /**
  * Fetch team roster
  */
-export async function getTeamRoster(teamId: string): Promise<Player[]> {
+type TeamRosterProfileRow = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  position?: string | null;
+};
+
+function normalizeRosterPosition(
+  position: string | null | undefined,
+  isGoalieHint: boolean,
+): Player['position'] {
+  if (isGoalieHint) return 'Goalie';
+  const value = (position || '').trim().toUpperCase();
+
+  if (value === 'C' || value === 'LW' || value === 'RW' || value === 'D' || value === 'G') {
+    return value as Player['position'];
+  }
+  if (value === 'FORWARD' || value === 'DEFENSE' || value === 'GOALIE') {
+    return value.charAt(0) + value.slice(1).toLowerCase() as Player['position'];
+  }
+
+  return null;
+}
+
+export async function getTeamRoster(teamId: string, seasonId?: string): Promise<Player[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let rosterQuery = supabase
     .from('team_rosters')
     .select(`
       *,
-      profile:profiles(full_name, avatar_url)
+      profile:profiles(id, full_name, avatar_url, position)
     `)
-    .eq('team_id', teamId)
-    .order('jersey_number', { ascending: true });
+    .eq('team_id', teamId);
 
-  if (error || !data) {
+  let skaterStatsQuery = supabase
+    .from('player_stats')
+    .select('player_id')
+    .eq('team_id', teamId);
+
+  let goalieStatsQuery = supabase
+    .from('goalie_stats')
+    .select('player_id')
+    .eq('team_id', teamId);
+
+  if (seasonId) {
+    rosterQuery = rosterQuery.eq('season_id', seasonId);
+    skaterStatsQuery = skaterStatsQuery.eq('season_id', seasonId);
+    goalieStatsQuery = goalieStatsQuery.eq('season_id', seasonId);
+  }
+
+  const [{ data: rosterRows, error: rosterError }, { data: skaterRows }, { data: goalieRows }] = await Promise.all([
+    rosterQuery,
+    skaterStatsQuery,
+    goalieStatsQuery,
+  ]);
+
+  if (rosterError) {
     return [];
   }
 
-  return data as Player[];
+  const playersById = new Map<string, Player>();
+  const goalieIds = new Set((goalieRows || []).map((row) => row.player_id));
+
+  for (const row of rosterRows || []) {
+    const profileRow = (Array.isArray(row.profile) ? row.profile[0] : row.profile) as TeamRosterProfileRow | null;
+    const isGoalie = Boolean(row.is_goalie || goalieIds.has(row.player_id));
+    const position = normalizeRosterPosition(row.position ?? profileRow?.position, isGoalie);
+
+    playersById.set(row.player_id, {
+      ...(row as Player),
+      position,
+      is_goalie: isGoalie,
+      profile: profileRow
+        ? {
+            id: profileRow.id,
+            full_name: profileRow.full_name,
+            avatar_url: profileRow.avatar_url,
+          }
+        : undefined,
+    });
+  }
+
+  const statsPlayerIds = new Set<string>([
+    ...(skaterRows || []).map((row) => row.player_id),
+    ...(goalieRows || []).map((row) => row.player_id),
+  ]);
+  const missingPlayerIds = Array.from(statsPlayerIds).filter((playerId) => !playersById.has(playerId));
+
+  if (missingPlayerIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url, position')
+      .in('id', missingPlayerIds);
+
+    const profileById = new Map((profiles || []).map((profile) => [profile.id, profile]));
+
+    for (const playerId of missingPlayerIds) {
+      const profile = profileById.get(playerId);
+      const isGoalie = goalieIds.has(playerId);
+      const position = normalizeRosterPosition(profile?.position, isGoalie);
+
+      playersById.set(playerId, {
+        id: `synthetic-${teamId}-${playerId}`,
+        player_id: playerId,
+        team_id: teamId,
+        jersey_number: null,
+        position,
+        leadership_role: null,
+        is_goalie: isGoalie,
+        profile: profile
+          ? {
+              id: profile.id,
+              full_name: profile.full_name,
+              avatar_url: profile.avatar_url,
+            }
+          : undefined,
+      });
+    }
+  }
+
+  return Array.from(playersById.values()).sort((a, b) => {
+    const aNumber = a.jersey_number ?? Number.MAX_SAFE_INTEGER;
+    const bNumber = b.jersey_number ?? Number.MAX_SAFE_INTEGER;
+    if (aNumber !== bNumber) return aNumber - bNumber;
+
+    const aName = a.profile?.full_name || '';
+    const bName = b.profile?.full_name || '';
+    return aName.localeCompare(bName);
+  });
 }
 
 type RosterStatsAccumulator = {
@@ -951,12 +1069,103 @@ export async function getSchedule(
 }
 
 /**
+ * Dedup player stats for players on multiple teams (combine stats, keep team with most GP)
+ */
+function deduplicatePlayerStats(stats: PlayerStats[]): PlayerStats[] {
+  const map = new Map<string, PlayerStats>();
+  const maxGp = new Map<string, number>(); // track best team's GP for team_name selection
+  for (const s of stats) {
+    const existing = map.get(s.player_id);
+    if (!existing) {
+      map.set(s.player_id, { ...s });
+      maxGp.set(s.player_id, s.games_played);
+    } else {
+      existing.goals += s.goals;
+      existing.assists += s.assists;
+      existing.points += s.points;
+      existing.games_played += s.games_played;
+      existing.penalty_minutes += s.penalty_minutes;
+      existing.plus_minus += s.plus_minus;
+      // Keep team_name from entry with more games played
+      if (s.games_played > (maxGp.get(s.player_id) || 0)) {
+        existing.team_name = s.team_name;
+        existing.team_id = s.team_id;
+        maxGp.set(s.player_id, s.games_played);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+/**
+ * Dedup goalie stats for goalies on multiple teams (combine stats, recompute averages)
+ */
+function deduplicateGoalieStats(stats: GoalieStats[]): GoalieStats[] {
+  const map = new Map<string, GoalieStats>();
+  const maxGp = new Map<string, number>();
+  for (const s of stats) {
+    const existing = map.get(s.player_id);
+    if (!existing) {
+      map.set(s.player_id, { ...s });
+      maxGp.set(s.player_id, s.games_played);
+    } else {
+      const totalSaves = (existing.saves || 0) + (s.saves || 0);
+      const totalGA = (existing.goals_against || 0) + (s.goals_against || 0);
+      existing.games_played += s.games_played;
+      existing.wins += s.wins;
+      existing.losses += s.losses;
+      existing.shutouts += s.shutouts;
+      existing.saves = totalSaves;
+      existing.goals_against = totalGA;
+      // Recompute save percentage and GAA from combined totals
+      const totalShots = totalSaves + totalGA;
+      existing.save_percentage = totalShots > 0 ? totalSaves / totalShots : 0;
+      existing.goals_against_average = existing.games_played > 0
+        ? totalGA / existing.games_played
+        : 0;
+      // Keep team_name from entry with more games played
+      if (s.games_played > (maxGp.get(s.player_id) || 0)) {
+        existing.team_name = s.team_name;
+        existing.team_id = s.team_id;
+        maxGp.set(s.player_id, s.games_played);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+/**
+ * Dedup special teams leaders for players on multiple teams
+ */
+function deduplicateSpecialTeamsLeaders(stats: SpecialTeamsLeader[]): SpecialTeamsLeader[] {
+  const map = new Map<string, SpecialTeamsLeader>();
+  const maxGp = new Map<string, number>();
+  for (const s of stats) {
+    const existing = map.get(s.player_id);
+    if (!existing) {
+      map.set(s.player_id, { ...s });
+      maxGp.set(s.player_id, 1); // no GP field, use first-seen priority
+    } else {
+      existing.pp_goals += s.pp_goals;
+      existing.pp_assists += s.pp_assists;
+      existing.pp_points += s.pp_points;
+      existing.sh_goals += s.sh_goals;
+      existing.sh_assists += s.sh_assists;
+      existing.gwg += s.gwg;
+      existing.eng += s.eng;
+    }
+  }
+  return Array.from(map.values());
+}
+
+/**
  * Fetch stats leaders
  */
 export async function getStatsLeaders(
   leagueId: string,
   statType: 'points' | 'goals' | 'assists' | 'saves' = 'points',
-  limit = 10
+  limit = 10,
+  divisionId?: string
 ): Promise<PlayerStats[]> {
   const supabase = await createClient();
 
@@ -967,23 +1176,30 @@ export async function getStatsLeaders(
       p_league_id: leagueId,
       p_stat_type: statType,
       p_limit: limit,
+      p_division_id: divisionId || null,
     }
   );
 
   if (!rpcError && rpcData) {
-    return rpcData as PlayerStats[];
+    return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
   }
 
-  // Fallback: Query player_season_stats view
+  // Fallback: Query player_season_stats view (now includes division_id)
   const season = await getCurrentSeason(leagueId);
   if (!season) return [];
 
   const orderColumn = statType === 'saves' ? 'games_played' : statType;
 
-  const { data: stats, error } = await supabase
+  let query = supabase
     .from('player_season_stats')
     .select('*')
-    .eq('season_id', season.id)
+    .eq('season_id', season.id);
+
+  if (divisionId) {
+    query = query.eq('division_id', divisionId);
+  }
+
+  const { data: stats, error } = await query
     .order(orderColumn, { ascending: false })
     .limit(limit);
 
@@ -991,7 +1207,7 @@ export async function getStatsLeaders(
     return [];
   }
 
-  return stats.map((s) => ({
+  const mapped = stats.map((s) => ({
     player_id: s.player_id,
     player_name: s.full_name || 'Unknown',
     team_name: s.team_name || 'Unknown',
@@ -1004,6 +1220,38 @@ export async function getStatsLeaders(
     penalty_minutes: 0,
     plus_minus: 0,
   })) as PlayerStats[];
+
+  return deduplicatePlayerStats(mapped).slice(0, limit);
+}
+
+/**
+ * Fetch stats leaders enriched with avatar URLs from profiles
+ */
+export async function getStatsLeadersWithAvatars(
+  leagueId: string,
+  statType: 'points' | 'goals' | 'assists' = 'points',
+  limit = 5,
+  divisionId?: string
+): Promise<PlayerStatsWithAvatar[]> {
+  const leaders = await getStatsLeaders(leagueId, statType, limit, divisionId);
+  if (leaders.length === 0) return [];
+
+  const supabase = await createClient();
+  const playerIds = leaders.map((l) => l.player_id);
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, avatar_url')
+    .in('id', playerIds);
+
+  const avatarMap = new Map(
+    (profiles || []).map((p) => [p.id, p.avatar_url])
+  );
+
+  return leaders.map((leader) => ({
+    ...leader,
+    avatar_url: avatarMap.get(leader.player_id) || null,
+  }));
 }
 
 /**
@@ -1590,7 +1838,8 @@ export async function getGoalieLeaders(
   leagueId: string,
   seasonId?: string,
   sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts' = 'wins',
-  limit = 20
+  limit = 20,
+  divisionId?: string
 ): Promise<GoalieStats[]> {
   const supabase = await createClient();
 
@@ -1598,6 +1847,7 @@ export async function getGoalieLeaders(
   const { data, error } = await supabase.rpc('get_goalie_season_stats', {
     check_league_id: leagueId,
     check_season_id: seasonId || null,
+    check_division_id: divisionId || null,
   });
 
   if (error || !data) return [];
@@ -1616,10 +1866,36 @@ export async function getGoalieLeaders(
     shutouts: row.shutouts || 0,
     saves: row.total_saves || 0,
     goals_against: row.total_goals_against || 0,
+    avatar_url: row.avatar_url || null,
   }));
 
+  // Enrich with avatar URLs from profiles if not already present
+  const missingAvatarIds = results
+    .filter((r) => !r.avatar_url)
+    .map((r) => r.player_id);
+
+  if (missingAvatarIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, avatar_url')
+      .in('id', missingAvatarIds);
+
+    const avatarMap = new Map(
+      (profiles || []).map((p) => [p.id, p.avatar_url])
+    );
+
+    for (const result of results) {
+      if (!result.avatar_url) {
+        result.avatar_url = avatarMap.get(result.player_id) || null;
+      }
+    }
+  }
+
+  // Deduplicate goalies on multiple teams
+  const dedupedResults = deduplicateGoalieStats(results as GoalieStats[]);
+
   // Sort by requested stat
-  results.sort((a, b) => {
+  dedupedResults.sort((a, b) => {
     switch (sortBy) {
       case 'save_percentage':
         return b.save_percentage - a.save_percentage;
@@ -1633,7 +1909,7 @@ export async function getGoalieLeaders(
     }
   });
 
-  return results.slice(0, limit) as GoalieStats[];
+  return dedupedResults.slice(0, limit);
 }
 
 // ========== NEWS ==========
@@ -1753,16 +2029,30 @@ export async function getLeagueAwards(leagueId: string, seasonId?: string): Prom
 }
 
 // ========== SPECIAL TEAMS STATS ==========
-export async function getSpecialTeamsLeaders(leagueId: string, seasonId?: string): Promise<SpecialTeamsLeader[]> {
+export async function getSpecialTeamsLeaders(leagueId: string, seasonId?: string, divisionId?: string): Promise<SpecialTeamsLeader[]> {
   const supabase = await createClient();
   let query = supabase
     .from('special_teams_leaders')
     .select('*')
     .eq('league_id', leagueId);
   if (seasonId) query = query.eq('season_id', seasonId);
+
+  // Filter by division via team_id
+  if (divisionId) {
+    const { data: divTeams } = await supabase
+      .from('teams')
+      .select('id')
+      .eq('division_id', divisionId);
+    if (divTeams && divTeams.length > 0) {
+      query = query.in('team_id', divTeams.map((t) => t.id));
+    } else {
+      return [];
+    }
+  }
+
   const { data, error } = await query;
   if (error || !data) return [];
-  return data as SpecialTeamsLeader[];
+  return deduplicateSpecialTeamsLeaders(data as SpecialTeamsLeader[]);
 }
 
 // ========== SUSPENSIONS ==========
@@ -1777,4 +2067,194 @@ export async function getSuspensions(leagueId: string, seasonId?: string): Promi
   const { data, error } = await query;
   if (error || !data) return [];
   return data as unknown as Suspension[];
+}
+
+// ========== GAME SHEET ==========
+
+/**
+ * Format seconds into MM:SS display string
+ */
+function formatGameTime(seconds: number | null): string | null {
+  if (seconds == null) return null;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Fetch full game sheet data for a completed game.
+ * Includes game details, scoring summary, penalties, and goalie stats.
+ */
+export async function getGameSheet(gameId: string): Promise<GameSheetData | null> {
+  const supabase = await createClient();
+
+  // Fetch game with teams
+  const { data: gameData, error: gameError } = await supabase
+    .from('games')
+    .select(`
+      *,
+      home_team:teams!games_home_team_id_fkey(
+        id, name, slug, logo_url, primary_color, secondary_color,
+        division:divisions(id, name)
+      ),
+      away_team:teams!games_away_team_id_fkey(
+        id, name, slug, logo_url, primary_color, secondary_color,
+        division:divisions(id, name)
+      )
+    `)
+    .eq('id', gameId)
+    .single();
+
+  if (gameError || !gameData) return null;
+
+  // Transform team data
+  const transformTeam = (team: any) => {
+    if (!team) return null;
+    const rawTeam = Array.isArray(team) ? team[0] : team;
+    if (!rawTeam) return null;
+    const colors = [rawTeam.primary_color, rawTeam.secondary_color].filter(Boolean).join(',') || null;
+    return {
+      id: rawTeam.id,
+      name: rawTeam.name,
+      slug: rawTeam.slug,
+      logo: rawTeam.logo_url || null,
+      colors,
+      division: Array.isArray(rawTeam.division) ? rawTeam.division[0] : rawTeam.division,
+    };
+  };
+
+  const homeTeam = transformTeam(gameData.home_team);
+  const awayTeam = transformTeam(gameData.away_team);
+
+  if (!homeTeam || !awayTeam) return null;
+
+  const game = {
+    ...gameData,
+    venue: (gameData as any).location || null,
+    home_team: homeTeam,
+    away_team: awayTeam,
+    scorekeeper_notes: gameData.scorekeeper_notes || null,
+    period_count: gameData.period_count || null,
+  } as GameSheetData['game'];
+
+  // Build team name lookup
+  const teamNameMap: Record<string, string> = {
+    [homeTeam.id]: homeTeam.name,
+    [awayTeam.id]: awayTeam.name,
+  };
+
+  // Fetch game events (goals and penalties) with player names
+  const { data: events } = await supabase
+    .from('game_events')
+    .select(`
+      id,
+      event_type,
+      period,
+      game_time_seconds,
+      team_id,
+      player_id,
+      penalty_minutes,
+      penalty_type,
+      assist1_player_id,
+      assist2_player_id,
+      is_power_play,
+      is_short_handed,
+      is_empty_net
+    `)
+    .eq('game_id', gameId)
+    .is('deleted_at', null)
+    .in('event_type', ['goal', 'penalty'])
+    .order('period', { ascending: true })
+    .order('game_time_seconds', { ascending: true });
+
+  // Collect all player IDs for name lookup
+  const playerIds = new Set<string>();
+  for (const event of events || []) {
+    playerIds.add(event.player_id);
+    if (event.assist1_player_id) playerIds.add(event.assist1_player_id);
+    if (event.assist2_player_id) playerIds.add(event.assist2_player_id);
+  }
+
+  // Fetch player names
+  const playerNameMap: Record<string, string> = {};
+  if (playerIds.size > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', Array.from(playerIds));
+
+    for (const p of profiles || []) {
+      playerNameMap[p.id] = p.full_name || 'Unknown';
+    }
+  }
+
+  const getPlayer = (id: string) => ({
+    id,
+    name: playerNameMap[id] || 'Unknown',
+  });
+
+  // Build goals and penalties arrays
+  const goals: GameSheetGoal[] = [];
+  const penalties: GameSheetPenalty[] = [];
+
+  for (const event of events || []) {
+    if (event.event_type === 'goal') {
+      goals.push({
+        period: event.period,
+        time: formatGameTime(event.game_time_seconds),
+        scorer: getPlayer(event.player_id),
+        assist1: event.assist1_player_id ? getPlayer(event.assist1_player_id) : null,
+        assist2: event.assist2_player_id ? getPlayer(event.assist2_player_id) : null,
+        team_id: event.team_id,
+        team_name: teamNameMap[event.team_id] || 'Unknown',
+        is_power_play: event.is_power_play || false,
+        is_short_handed: event.is_short_handed || false,
+        is_empty_net: event.is_empty_net || false,
+      });
+    } else if (event.event_type === 'penalty') {
+      penalties.push({
+        period: event.period,
+        time: formatGameTime(event.game_time_seconds),
+        player: getPlayer(event.player_id),
+        team_id: event.team_id,
+        team_name: teamNameMap[event.team_id] || 'Unknown',
+        infraction: event.penalty_type || 'Minor',
+        minutes: event.penalty_minutes || 2,
+      });
+    }
+  }
+
+  // Fetch goalie stats for this game
+  const { data: goalieRows } = await supabase
+    .from('goalie_stats')
+    .select(`
+      player_id,
+      team_id,
+      saves,
+      goals_against,
+      shots_against,
+      player:profiles!goalie_stats_player_id_fkey(full_name)
+    `)
+    .eq('game_id', gameId);
+
+  const goalies: GameSheetGoalie[] = (goalieRows || []).map((row: any) => {
+    const playerData = Array.isArray(row.player) ? row.player[0] : row.player;
+    const saves = row.saves || 0;
+    const goalsAgainst = row.goals_against || 0;
+    const shotsAgainst = row.shots_against || saves + goalsAgainst;
+    return {
+      player_id: row.player_id,
+      player_name: playerData?.full_name || 'Unknown',
+      team_id: row.team_id,
+      team_name: teamNameMap[row.team_id] || 'Unknown',
+      saves,
+      goals_against: goalsAgainst,
+      shots_against: shotsAgainst,
+      save_percentage: shotsAgainst > 0
+        ? Math.round((saves / shotsAgainst) * 1000) / 10
+        : 0,
+    };
+  });
+
+  return { game, goals, penalties, goalies };
 }

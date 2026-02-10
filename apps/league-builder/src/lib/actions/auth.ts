@@ -284,10 +284,28 @@ export async function signIn(formData: FormData) {
   });
 
   const locale = await getLocale();
+
+  // Determine redirect based on user role
+  let defaultRedirect = '/dashboard';
+
+  // Check if user is scorekeeper-only (no owner/admin role)
+  const { data: memberships } = await serviceSupabase
+    .from('league_memberships')
+    .select('role')
+    .eq('user_id', (await supabase.auth.getUser()).data.user!.id);
+
+  const roles = memberships?.map((m: { role: string }) => m.role) ?? [];
+  const hasAdminAccess = roles.includes('owner') || roles.includes('admin');
+  const isScorekeeper = roles.includes('scorekeeper');
+
+  if (!hasAdminAccess && isScorekeeper) {
+    defaultRedirect = '/scorekeeper';
+  }
+
   const safeRedirect =
     redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
       ? redirectTo
-      : '/dashboard';
+      : defaultRedirect;
   const normalizedRedirect = safeRedirect.replace(/^\/(en|fr)(?=\/|$)/, '') || '/';
 
   // Player registration route is not locale-prefixed in this app.

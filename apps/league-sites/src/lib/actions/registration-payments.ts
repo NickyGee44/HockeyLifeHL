@@ -534,6 +534,70 @@ export async function createEmbeddedCheckout(
 }
 
 // ============================================================================
+// Action: Get Outstanding Balance for League
+// ============================================================================
+
+interface OutstandingBalance {
+  hasBalance: boolean;
+  amountCents: number;
+  registrationId: string | null;
+}
+
+export async function getOutstandingBalance(
+  leagueSlug: string
+): Promise<OutstandingBalance> {
+  try {
+    const playerId = await getCurrentPlayerId();
+    if (!playerId) {
+      return { hasBalance: false, amountCents: 0, registrationId: null };
+    }
+
+    const supabase = await createClient();
+
+    // Get league ID from slug
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('id')
+      .eq('slug', leagueSlug)
+      .single();
+
+    if (!league) {
+      return { hasBalance: false, amountCents: 0, registrationId: null };
+    }
+
+    // Find registrations with pending payment
+    const { data: registrations } = await supabase
+      .from('registration_submissions')
+      .select('id, fee_amount_cents, amount_paid_cents, payment_status')
+      .eq('player_id', playerId)
+      .eq('league_id', league.id)
+      .in('payment_status', ['pending', 'draft'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!registrations || registrations.length === 0) {
+      return { hasBalance: false, amountCents: 0, registrationId: null };
+    }
+
+    const reg = registrations[0];
+    const amountOwed = (reg.fee_amount_cents || 0) - (reg.amount_paid_cents || 0);
+
+    if (amountOwed <= 0) {
+      return { hasBalance: false, amountCents: 0, registrationId: null };
+    }
+
+    return {
+      hasBalance: true,
+      amountCents: amountOwed,
+      registrationId: reg.id,
+    };
+  } catch (error) {
+    console.error('[Registration Payments] Get outstanding balance error:', error);
+    return { hasBalance: false, amountCents: 0, registrationId: null };
+  }
+}
+
+// ============================================================================
 // Action: Get Payment History for League
 // ============================================================================
 

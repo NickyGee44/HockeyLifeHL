@@ -8,11 +8,13 @@ export const metadata = {
 
 type Props = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ error?: string }>;
 };
 
-export default async function ResetPasswordPage({ params }: Props) {
+export default async function ResetPasswordPage({ params, searchParams }: Props) {
   const { locale } = await params;
+  const { error } = await searchParams;
   setRequestLocale(locale);
 
-  return <ResetPasswordForm />;
+  return <ResetPasswordForm error={error} />;
 }
