@@ -4,12 +4,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronUp, ChevronDown, Medal } from 'lucide-react';
-import type { GoalieStats } from '@/lib/types';
+import type { GoalieStats, PlayerBadge } from '@/lib/types';
+import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
 
 interface GoalieStatsTableProps {
   goalies: GoalieStats[];
   leagueSlug: string;
   currentSort: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts';
+  badges?: Record<string, PlayerBadge[]>;
 }
 
 type SortKey = 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts';
@@ -45,7 +47,7 @@ function SortHeader({
   );
 }
 
-export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieStatsTableProps) {
+export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: GoalieStatsTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -81,15 +83,20 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieSta
                 <RankBadge rank={index + 1} />
               </td>
               <td className="py-3 px-2">
-                <Link
-                  href={`/${leagueSlug}/players/${goalie.player_id}`}
-                  className="flex items-center gap-2 hover:text-[var(--league-primary)] transition-colors"
-                >
-                  {goalie.jersey_number && (
-                    <span className="text-xs text-[var(--color-text-muted)]">#{goalie.jersey_number}</span>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/${leagueSlug}/players/${goalie.player_id}`}
+                    className="flex items-center gap-2 hover:text-[var(--league-primary)] transition-colors"
+                  >
+                    {goalie.jersey_number && (
+                      <span className="text-xs text-[var(--color-text-muted)]">#{goalie.jersey_number}</span>
+                    )}
+                    <span className="font-medium">{goalie.player_name}</span>
+                  </Link>
+                  {badges?.[goalie.player_id] && badges[goalie.player_id].length > 0 && (
+                    <PlayerBadgeGroup badges={badges[goalie.player_id]} maxVisible={3} size="sm" />
                   )}
-                  <span className="font-medium">{goalie.player_name}</span>
-                </Link>
+                </div>
               </td>
               <td className="py-3 px-2">
                 <div className="flex items-center gap-2">

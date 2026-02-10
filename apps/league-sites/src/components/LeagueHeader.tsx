@@ -29,6 +29,7 @@ interface LeagueHeaderProps {
   league: League;
   leagueSlug: string;
   registrationOpen?: boolean;
+  visiblePages?: Record<string, boolean>;
 }
 
 const navItems = [
@@ -43,11 +44,19 @@ const navItems = [
   { href: '/about', label: 'About', icon: Info },
 ];
 
-export function LeagueHeader({ league, leagueSlug, registrationOpen }: LeagueHeaderProps) {
+export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePages }: LeagueHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { isPreviewMode, theme } = usePreviewMode();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
+
+  // Filter nav items based on visiblePages setting
+  const filteredNavItems = visiblePages
+    ? navItems.filter((item) => {
+        const pageKey = item.href.replace('/', '');
+        return visiblePages[pageKey] !== false;
+      })
+    : navItems;
 
   const logoUrl = isPreviewMode && theme?.logoUrl !== undefined ? theme.logoUrl : league.logo_url;
   const displayName = league.short_name || league.name;
@@ -77,39 +86,74 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen }: LeagueHea
       />
 
       <div className="mx-auto max-w-[1400px] px-6">
-        <div className="flex h-[72px] items-center justify-between">
-          <Link href={`/${leagueSlug}`} className="group flex min-w-0 items-center gap-3">
+        <div className="flex h-[64px] items-center gap-4">
+          <Link href={`/${leagueSlug}`} className="group flex shrink-0 items-center gap-2.5">
             {logoUrl ? (
               <Image
                 src={logoUrl}
                 alt={`${league.name} logo`}
-                width={64}
-                height={64}
-                className="h-16 w-16 rounded-xl object-contain"
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-lg object-contain"
               />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--league-primary)] text-xl font-black text-[var(--color-accent-text)]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--league-primary)] text-sm font-black text-[var(--color-accent-text)]">
                 {initials.slice(0, 3)}
               </div>
             )}
-            <div className="min-w-0">
-              <p className="truncate text-lg font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)]">
-                {displayName}
-              </p>
-              {location && (
-                <p className="hidden items-center gap-1 text-xs text-[var(--header-text-secondary)] sm:inline-flex">
-                  <MapPin className="h-3 w-3 text-[var(--league-primary)]" />
-                  {location}
-                </p>
-              )}
-            </div>
+            <span className="hidden truncate text-base font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)] sm:block">
+              {displayName}
+            </span>
           </Link>
 
-          <div className="hidden items-center gap-2 lg:flex">
+          <nav className="hidden flex-1 items-center justify-center gap-0.5 lg:flex" data-testid="desktop-nav">
+            {filteredNavItems.map((item) => {
+              const active = isItemActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={`/${leagueSlug}${item.href}`}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors ${
+                    active
+                      ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                      : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
+                  }`}
+                >
+                  <item.icon className={`h-3.5 w-3.5 ${active ? 'text-[var(--league-primary)]' : 'text-[var(--league-primary)]/80'}`} />
+                  {item.label}
+                </Link>
+              );
+            })}
+
+            {/* Division Filter */}
+            {divisions.length > 1 && (
+              <div className="ml-1 pl-1 border-l border-[var(--header-border)]">
+                <select
+                  value={selectedDivisionId || ''}
+                  onChange={(e) => setDivision(e.target.value || null)}
+                  className="appearance-none rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                  style={{
+                    background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
+                    color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
+                    border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
+                  }}
+                  aria-label="Filter by division"
+                  data-testid="division-filter"
+                >
+                  <option value="">All Divisions</option>
+                  {divisions.map((div) => (
+                    <option key={div.id} value={div.id}>{div.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </nav>
+
+          <div className="hidden shrink-0 items-center gap-2 lg:flex">
             {registrationOpen && (
               <Link
                 href={`/${leagueSlug}/register`}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-[var(--league-primary)] text-[var(--color-accent-text)] hover:opacity-90 transition-opacity"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-[var(--league-primary)] text-[var(--color-accent-text)] hover:opacity-90 transition-opacity"
               >
                 <UserPlus className="w-4 h-4" />
                 Register
@@ -129,49 +173,6 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen }: LeagueHea
             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
-
-        <nav className="hidden items-center justify-end gap-1 pb-3 lg:flex" data-testid="desktop-nav">
-          {navItems.map((item) => {
-            const active = isItemActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={`/${leagueSlug}${item.href}`}
-                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
-                  active
-                    ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
-                    : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
-                }`}
-              >
-                <item.icon className={`h-4 w-4 ${active ? 'text-[var(--league-primary)]' : 'text-[var(--league-primary)]/80'}`} />
-                {item.label}
-              </Link>
-            );
-          })}
-
-          {/* Division Filter - right side of nav */}
-          {divisions.length > 1 && (
-            <div className="ml-2 pl-2 border-l border-[var(--header-border)]">
-              <select
-                value={selectedDivisionId || ''}
-                onChange={(e) => setDivision(e.target.value || null)}
-                className="appearance-none rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
-                style={{
-                  background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
-                  color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
-                  border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
-                }}
-                aria-label="Filter by division"
-                data-testid="division-filter"
-              >
-                <option value="">All Divisions</option>
-                {divisions.map((div) => (
-                  <option key={div.id} value={div.id}>{div.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </nav>
 
         {isMobileMenuOpen && (
           <nav className="border-t border-[var(--header-border)] pb-4 pt-3 lg:hidden" data-testid="mobile-nav">
@@ -199,7 +200,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen }: LeagueHea
             )}
 
             <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-              {navItems.map((item) => {
+              {filteredNavItems.map((item) => {
                 const active = isItemActive(item.href);
                 return (
                   <Link

@@ -22,7 +22,7 @@ export function GoalieStatsFilters({
 }: GoalieStatsFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { selectedDivisionId } = useDivisionFilter();
+  const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
   const prevDivisionRef = useRef(currentFilters.division || null);
 
   // Sync global division filter → URL param so server-side query picks it up
@@ -51,21 +51,41 @@ export function GoalieStatsFilters({
     router.push(`/${leagueSlug}/stats/goalies?${params.toString()}`);
   };
 
+  const selectClass = `
+    px-4 py-2 rounded-lg
+    bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+    text-[var(--color-text-primary)] text-sm
+    focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50
+    cursor-pointer transition-all duration-200
+    hover:border-[var(--league-primary)]/50
+  `;
+
   return (
     <div className="flex flex-wrap gap-3 mb-6">
+      {/* Division Filter */}
+      {divisions.length > 1 && (
+        <select
+          value={selectedDivisionId || ''}
+          onChange={(e) => setDivision(e.target.value || null)}
+          className={selectClass}
+          style={selectedDivisionId ? {
+            borderColor: 'var(--league-primary)',
+            backgroundColor: 'color-mix(in srgb, var(--league-primary) 8%, var(--color-surface-hover))',
+          } : undefined}
+        >
+          <option value="">All Divisions</option>
+          {divisions.map((div) => (
+            <option key={div.id} value={div.id}>{div.name}</option>
+          ))}
+        </select>
+      )}
+
       {/* Season Filter */}
       {seasons.length > 0 && (
         <select
           value={currentFilters.season || 'all'}
           onChange={(e) => handleFilterChange('season', e.target.value)}
-          className="
-            px-4 py-2 rounded-lg
-            bg-[var(--color-surface-hover)] border border-[var(--color-border)]
-            text-[var(--color-text-primary)] text-sm
-            focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50
-            cursor-pointer transition-all duration-200
-            hover:border-[var(--league-primary)]/50
-          "
+          className={selectClass}
         >
           <option value="all">Current Season</option>
           {seasons.map((season) => (

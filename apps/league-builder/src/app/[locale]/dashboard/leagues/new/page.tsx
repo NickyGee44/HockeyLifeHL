@@ -5,13 +5,14 @@ import { getDraft } from '@/lib/actions/league-wizard';
 import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 import { WizardContainer } from '@/components/league-wizard/wizard-container';
 import { WizardStep } from '@/components/ui/wizard/wizard-steps';
-import { Step1LeagueInfo } from '@/components/league-wizard/steps/step-1-league-info';
-import { Step2SeasonSettings } from '@/components/league-wizard/steps/step-2-season-settings';
-import { Step3Teams } from '@/components/league-wizard/steps/step-3-teams';
-import { Step4RegistrationFees } from '@/components/league-wizard/steps/step-4-registration-fees';
-import { Step5PaymentSetup } from '@/components/league-wizard/steps/step-5-payment-setup';
-import { Step6WebsiteBranding } from '@/components/league-wizard/steps/step-6-website-branding';
-import { Step7Review } from '@/components/league-wizard/steps/step-7-review';
+import { Step1OrgInfo } from '@/components/league-wizard/steps/step-1-org-info';
+import { Step2LeagueInfo } from '@/components/league-wizard/steps/step-2-league-info';
+import { Step3SeasonScorekeeping } from '@/components/league-wizard/steps/step-3-season-scorekeeping';
+import { Step4Teams } from '@/components/league-wizard/steps/step-4-teams';
+import { Step5WebsitePages } from '@/components/league-wizard/steps/step-5-website-pages';
+import { Step6Addons } from '@/components/league-wizard/steps/step-6-addons';
+import { Step7RegistrationPayments } from '@/components/league-wizard/steps/step-7-registration-payments';
+import { Step8Review } from '@/components/league-wizard/steps/step-8-review';
 
 export const metadata = {
   title: 'Create New League | Beer League Hockey',
@@ -68,31 +69,35 @@ export default async function NewLeaguePage({ params, searchParams }: PageProps)
     <div className="min-h-screen bg-background">
       <WizardContainer initialData={draftData}>
         <WizardStep step={1} isActive={currentStep === 1}>
-          <Step1LeagueInfo />
+          <Step1OrgInfo />
         </WizardStep>
 
         <WizardStep step={2} isActive={currentStep === 2}>
-          <Step2SeasonSettings />
+          <Step2LeagueInfo />
         </WizardStep>
 
         <WizardStep step={3} isActive={currentStep === 3}>
-          <Step3Teams />
+          <Step3SeasonScorekeeping />
         </WizardStep>
 
         <WizardStep step={4} isActive={currentStep === 4}>
-          <Step4RegistrationFees />
+          <Step4Teams />
         </WizardStep>
 
         <WizardStep step={5} isActive={currentStep === 5}>
-          <Step5PaymentSetup platformFeePercent={feeConfig.processingFeePercent} />
+          <Step5WebsitePages />
         </WizardStep>
 
         <WizardStep step={6} isActive={currentStep === 6}>
-          <Step6WebsiteBranding />
+          <Step6Addons />
         </WizardStep>
 
         <WizardStep step={7} isActive={currentStep === 7}>
-          <Step7Review />
+          <Step7RegistrationPayments platformFeePercent={feeConfig.processingFeePercent} />
+        </WizardStep>
+
+        <WizardStep step={8} isActive={currentStep === 8}>
+          <Step8Review />
         </WizardStep>
       </WizardContainer>
     </div>

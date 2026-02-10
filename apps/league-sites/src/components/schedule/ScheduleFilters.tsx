@@ -5,14 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addDays, subDays } from 'date-fns';
 import { useDivisionFilter } from '@/components/DivisionFilterProvider';
-import type { Season } from '@/lib/types';
+import type { Season, Team } from '@/lib/types';
 
 interface ScheduleFiltersProps {
   seasons: Season[];
   venues?: string[];
+  teams?: Team[];
   currentFilters: {
     season?: string;
     division?: string;
+    team?: string;
     type?: string;
     venue?: string;
     status?: string;
@@ -39,14 +41,20 @@ const SEASON_TYPES = [
 export function ScheduleFilters({
   seasons,
   venues = [],
+  teams = [],
   currentFilters,
   leagueSlug,
   weekStart,
 }: ScheduleFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { selectedDivisionId } = useDivisionFilter();
+  const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
   const prevDivisionRef = useRef(currentFilters.division || null);
+
+  // Cascade team list by selected division
+  const filteredTeams = selectedDivisionId
+    ? teams.filter((t) => t.division_id === selectedDivisionId || (t.division as any)?.id === selectedDivisionId)
+    : teams;
 
   // Sync global division filter → URL param so server-side query picks it up
   useEffect(() => {
@@ -126,8 +134,52 @@ export function ScheduleFilters({
         </button>
       </div>
 
-      {/* Row 2: Dropdown Filters (division is handled globally in nav bar) */}
+      {/* Row 2: Dropdown Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
+        {/* Division Filter */}
+        {divisions.length > 1 && (
+          <div className="flex-1">
+            <label htmlFor="division-filter" className="sr-only">Division</label>
+            <select
+              id="division-filter"
+              value={selectedDivisionId || ''}
+              onChange={(e) => setDivision(e.target.value || null)}
+              className={selectClass}
+              style={selectedDivisionId ? {
+                borderColor: 'var(--league-primary)',
+                backgroundColor: 'color-mix(in srgb, var(--league-primary) 8%, var(--color-surface))',
+              } : undefined}
+            >
+              <option value="">All Divisions</option>
+              {divisions.map((div) => (
+                <option key={div.id} value={div.id}>{div.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Team Filter */}
+        {teams.length > 0 && (
+          <div className="flex-1">
+            <label htmlFor="team-filter" className="sr-only">Team</label>
+            <select
+              id="team-filter"
+              value={currentFilters.team || ''}
+              onChange={(e) => handleFilterChange('team', e.target.value)}
+              className={selectClass}
+              style={currentFilters.team ? {
+                borderColor: 'var(--league-primary)',
+                backgroundColor: 'color-mix(in srgb, var(--league-primary) 8%, var(--color-surface))',
+              } : undefined}
+            >
+              <option value="">All Teams</option>
+              {filteredTeams.map((team) => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Season Filter */}
         <div className="flex-1">
           <label htmlFor="season-filter" className="sr-only">Season</label>

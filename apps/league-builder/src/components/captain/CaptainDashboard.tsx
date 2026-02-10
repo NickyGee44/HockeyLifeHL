@@ -12,9 +12,11 @@ import {
   MapPin,
   Clock,
   Trophy,
+  DollarSign,
 } from 'lucide-react';
 import JoinRequestsManager from './JoinRequestsManager';
 import CaptainRosterManager from './CaptainRosterManager';
+import CaptainPayments from './CaptainPayments';
 
 interface Team {
   id: string;
@@ -66,6 +68,7 @@ const TABS = [
   { id: 'overview', label: 'Overview', icon: Home },
   { id: 'roster', label: 'Roster', icon: Users },
   { id: 'requests', label: 'Join Requests', icon: UserPlus },
+  { id: 'payments', label: 'Payments', icon: DollarSign },
   { id: 'schedule', label: 'Schedule', icon: Calendar },
   { id: 'stats', label: 'Statistics', icon: BarChart3 },
 ];
@@ -243,6 +246,9 @@ export default function CaptainDashboard({
 
       case 'requests':
         return <JoinRequestsManager teamId={teamId} />;
+
+      case 'payments':
+        return <CaptainPayments teamId={teamId} />;
 
       case 'schedule':
         return (

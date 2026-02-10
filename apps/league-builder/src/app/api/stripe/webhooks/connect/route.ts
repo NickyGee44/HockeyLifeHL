@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { stripe } from '@/lib/stripe/client';
 import Stripe from 'stripe';
+import { sendPayoutFailureAlertEmail } from '@/lib/email/payment-emails';
 
 // ============================================================================
 // Webhook Configuration
@@ -365,11 +366,51 @@ async function handlePayoutFailed(
     return; // Duplicate event
   }
 
-  // TODO: Send alert notification to league admin
   console.error(
     `[Connect Webhook] Payout FAILED for league ${league.id}: ` +
     `$${payout.amount / 100} - ${payout.failure_message}`
   );
+
+  // Send alert notification to league admin
+  try {
+    // Look up league owner: leagues → organization_id → organizations → owner_id → profiles
+    const { data: leagueOrg } = await supabase
+      .from('leagues')
+      .select('organization_id')
+      .eq('id', league.id)
+      .single();
+
+    if (leagueOrg?.organization_id) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('owner_id')
+        .eq('id', leagueOrg.organization_id)
+        .single();
+
+      if (org?.owner_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', org.owner_id)
+          .single();
+
+        if (profile?.email) {
+          await sendPayoutFailureAlertEmail({
+            to: profile.email,
+            adminName: profile.full_name || 'League Admin',
+            leagueName: league.name,
+            payoutAmount: payout.amount,
+            currency: payout.currency,
+            failureCode: payout.failure_code,
+            failureMessage: payout.failure_message,
+            payoutId: payout.id,
+          });
+        }
+      }
+    }
+  } catch (emailError) {
+    console.error('[Connect Webhook] Failed to send payout failure alert email:', emailError);
+  }
 }
 
 // ============================================================================

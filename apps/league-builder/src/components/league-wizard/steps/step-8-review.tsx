@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
+  Building2,
   MapPin,
   Calendar,
   Users,
@@ -17,6 +18,10 @@ import {
   Info,
   Check,
   ArrowRight,
+  ClipboardList,
+  LayoutGrid,
+  BarChart3,
+  Newspaper,
 } from 'lucide-react';
 import { Card, CardContent, cn } from '@hockey-life/ui';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
@@ -28,7 +33,12 @@ function centsToDollars(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-export function Step7Review() {
+// Pricing constants
+const PLATFORM_BASE_PRICE = 299.99;
+const ADDON_INDIVIDUAL_PRICE = 14.99;
+const ADDON_BUNDLE_PRICE = 29.99;
+
+export function Step8Review() {
   const { watch } = useFormContext<WizardFormData>();
   const t = useTranslations('wizard.reviewStep');
 
@@ -49,6 +59,14 @@ export function Step7Review() {
     formData.enablePaidRegistration &&
     formData.registrationFee &&
     formData.stripeAccountStatus !== 'active';
+
+  // Calculate monthly total
+  const bothAddons = formData.enableAdvancedStats && formData.enableAiNews;
+  const addonsTotal = bothAddons
+    ? ADDON_BUNDLE_PRICE
+    : (formData.enableAdvancedStats ? ADDON_INDIVIDUAL_PRICE : 0) +
+      (formData.enableAiNews ? ADDON_INDIVIDUAL_PRICE : 0);
+  const monthlyTotal = PLATFORM_BASE_PRICE + addonsTotal;
 
   return (
     <WizardStepContainer
@@ -116,22 +134,11 @@ export function Step7Review() {
                   />
                 ))}
               </div>
-
-              {needsPaymentSetup && (
-                <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      {t('paymentSetupReminder')}
-                    </p>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Warnings for incomplete optional items */}
+        {/* Warnings */}
         {hasWarnings && (
           <Card className="border-yellow-500/30 bg-yellow-500/5">
             <CardContent className="pt-6">
@@ -141,7 +148,6 @@ export function Step7Review() {
                   {t('warningsTitle')}
                 </h3>
               </div>
-
               <div className="space-y-2">
                 {warnings.map((warning, index) => (
                   <div key={index} className="flex items-start gap-2 text-sm">
@@ -150,10 +156,36 @@ export function Step7Review() {
                   </div>
                 ))}
               </div>
-
               <p className="mt-4 text-xs text-yellow-700 dark:text-yellow-300">
                 {t('warningsDescription')}
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Organization Info */}
+        {formData.orgBusinessName && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Building2 className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-lg">Organization</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ReviewItem label="Business Name" value={formData.orgBusinessName} />
+                {formData.orgBusinessEmail && (
+                  <ReviewItem label="Email" value={formData.orgBusinessEmail} />
+                )}
+                {formData.orgBusinessPhone && (
+                  <ReviewItem label="Phone" value={formData.orgBusinessPhone} />
+                )}
+                {formData.orgBusinessCity && (
+                  <ReviewItem
+                    label="Location"
+                    value={`${formData.orgBusinessCity}${formData.orgBusinessState ? `, ${formData.orgBusinessState}` : ''}`}
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -189,22 +221,6 @@ export function Step7Review() {
                 value={formData.timezone || 'Not set'}
               />
             </div>
-
-            {(formData.contact_email ||
-              formData.contact_phone ||
-              formData.website_url) && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">
-                {formData.contact_email && (
-                  <ReviewItem label="Email" value={formData.contact_email} />
-                )}
-                {formData.contact_phone && (
-                  <ReviewItem label="Phone" value={formData.contact_phone} />
-                )}
-                {formData.website_url && (
-                  <ReviewItem label="Website" value={formData.website_url} />
-                )}
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -229,15 +245,14 @@ export function Step7Review() {
                 label="Registration Type"
                 value={formatRegistrationType(formData.registration_type)}
               />
-              {formData.registration_opens && formData.registration_closes && (
-                <ReviewItem
-                  label="Registration Period"
-                  value={`${formatDate(formData.registration_opens)} - ${formatDate(formData.registration_closes)}`}
-                />
-              )}
               <ReviewItem
                 label="Game Settings"
                 value={`${formData.game_duration_minutes || 60} minutes, ${formData.period_count || 3} periods`}
+              />
+              <ReviewItem
+                icon={<ClipboardList className="h-4 w-4" />}
+                label="Scorekeeping Mode"
+                value={formData.scorekeeping_mode === 'standard' ? 'Standard (assigned scorekeepers)' : 'Self Scorekeeping (team captains)'}
               />
             </div>
           </CardContent>
@@ -252,7 +267,6 @@ export function Step7Review() {
             </div>
 
             <div className="flex items-start gap-6">
-              {/* Logo Preview */}
               {formData.logo_url ? (
                 <div className="shrink-0">
                   <p className="text-xs text-muted-foreground mb-2">Logo</p>
@@ -278,7 +292,6 @@ export function Step7Review() {
                 </div>
               )}
 
-              {/* Colors */}
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                   <div
@@ -287,9 +300,7 @@ export function Step7Review() {
                   />
                   <div>
                     <p className="text-sm font-medium">Primary Color</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formData.primary_color}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{formData.primary_color}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -299,9 +310,7 @@ export function Step7Review() {
                   />
                   <div>
                     <p className="text-sm font-medium">Secondary Color</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formData.secondary_color}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{formData.secondary_color}</p>
                   </div>
                 </div>
               </div>
@@ -322,10 +331,7 @@ export function Step7Review() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {formData.teams.map((team, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 border rounded-lg"
-                  >
+                  <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
                     <div
                       className="w-8 h-8 rounded-full border-2"
                       style={{ backgroundColor: team.color || '#1E40AF' }}
@@ -333,9 +339,7 @@ export function Step7Review() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{team.name}</p>
                       {team.short_name && (
-                        <p className="text-xs text-muted-foreground">
-                          {team.short_name}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{team.short_name}</p>
                       )}
                     </div>
                   </div>
@@ -345,101 +349,7 @@ export function Step7Review() {
           </Card>
         )}
 
-        {/* Registration & Fees */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">{t('registrationFees')}</h3>
-            </div>
-
-            {formData.enablePaidRegistration ? (
-              <div className="space-y-3">
-                <ReviewItem
-                  label="Registration Fee"
-                  value={`$${centsToDollars(formData.registrationFee || 0)}`}
-                />
-
-                {formData.earlyBirdDiscount?.enabled && (
-                  <ReviewItem
-                    label="Early Bird Discount"
-                    value={
-                      formData.earlyBirdDiscount.isPercentage
-                        ? `${formData.earlyBirdDiscount.amount}% off`
-                        : `$${centsToDollars(formData.earlyBirdDiscount.amount)} off`
-                    }
-                  />
-                )}
-
-                {formData.earlyBirdDiscount?.enabled &&
-                  formData.earlyBirdDiscount.deadline && (
-                    <ReviewItem
-                      label="Early Bird Deadline"
-                      value={formatDate(formData.earlyBirdDiscount.deadline)}
-                    />
-                  )}
-
-                {formData.lateRegistrationFee?.enabled && (
-                  <ReviewItem
-                    label="Late Registration Fee"
-                    value={`+$${centsToDollars(formData.lateRegistrationFee.amount)}`}
-                  />
-                )}
-
-                {formData.lateRegistrationFee?.enabled &&
-                  formData.lateRegistrationFee.startsAt && (
-                    <ReviewItem
-                      label="Late Fees Start"
-                      value={formatDate(formData.lateRegistrationFee.startsAt)}
-                    />
-                  )}
-
-                {formData.paymentInstructions && (
-                  <div className="pt-2 border-t mt-2">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Payment Instructions
-                    </p>
-                    <p className="text-sm">{formData.paymentInstructions}</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span>{t('freeRegistration')}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Payment Setup Status */}
-        {formData.enablePaidRegistration && (
-          <Card className={needsPaymentSetup ? 'border-blue-500/30' : ''}>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 mb-4">
-                <CreditCard className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-lg">{t('paymentProcessing')}</h3>
-              </div>
-
-              <div className="space-y-3">
-                <ReviewItem
-                  label={t('stripeStatus')}
-                  value={formatStripeStatus(formData.stripeAccountStatus)}
-                />
-                {(formData.skipPaymentSetup || formData.stripeAccountStatus !== 'active') && (
-                  <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-800">
-                    <div className="flex items-start gap-2">
-                      <Clock className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                      <span>{t('stripeSkippedBanner')}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Website Settings */}
+        {/* Website & Pages */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4">
@@ -456,32 +366,121 @@ export function Step7Review() {
                 label="Theme"
                 value={formatTheme(formData.themePreset)}
               />
-              {formData.bannerUrl && (
-                <ReviewItem label="Banner URL" value={formData.bannerUrl} />
-              )}
-              {(formData.socialFacebook ||
-                formData.socialInstagram ||
-                formData.socialTwitter) && (
-                <div className="pt-2 border-t mt-2">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Social Links
-                  </p>
-                  {formData.socialFacebook && (
-                    <ReviewItem label="Facebook" value={formData.socialFacebook} />
-                  )}
-                  {formData.socialInstagram && (
-                    <ReviewItem label="Instagram" value={formData.socialInstagram} />
-                  )}
-                  {formData.socialTwitter && (
-                    <ReviewItem label="Twitter" value={formData.socialTwitter} />
-                  )}
+              {formData.visiblePages && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Visible Pages</p>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(formData.visiblePages)
+                      .filter(([, enabled]) => enabled)
+                      .map(([page]) => (
+                        <span key={page} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full capitalize">
+                          {page}
+                        </span>
+                      ))}
+                  </div>
                 </div>
+              )}
+              {formData.wantCustomDomain && formData.customDomainName && (
+                <ReviewItem label="Custom Domain" value={formData.customDomainName} />
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Final confirmation message with Launch button callout */}
+        {/* Add-ons & Pricing */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-lg">Features & Pricing</h3>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b">
+                <span className="text-muted-foreground">Platform Base (Hosting & Maintenance)</span>
+                <span className="font-semibold">${PLATFORM_BASE_PRICE.toFixed(2)}/mo</span>
+              </div>
+
+              {formData.enableAdvancedStats && (
+                <div className="flex items-center justify-between py-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">Advanced Stats Tracking</span>
+                  </div>
+                  <span className="font-semibold">
+                    {bothAddons ? 'Bundled' : `$${ADDON_INDIVIDUAL_PRICE.toFixed(2)}/mo`}
+                  </span>
+                </div>
+              )}
+
+              {formData.enableAiNews && (
+                <div className="flex items-center justify-between py-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <Newspaper className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">AI News & Summaries</span>
+                  </div>
+                  <span className="font-semibold">
+                    {bothAddons ? 'Bundled' : `$${ADDON_INDIVIDUAL_PRICE.toFixed(2)}/mo`}
+                  </span>
+                </div>
+              )}
+
+              {bothAddons && (
+                <div className="flex items-center justify-between py-2 border-b">
+                  <span className="text-green-500 text-sm">Add-ons Bundle</span>
+                  <span className="font-semibold text-green-500">${ADDON_BUNDLE_PRICE.toFixed(2)}/mo</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between py-2 pt-3">
+                <span className="font-semibold text-lg">Total Monthly</span>
+                <span className="font-bold text-xl text-primary">${monthlyTotal.toFixed(2)}/mo</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Registration & Fees */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-lg">{t('registrationFees')}</h3>
+            </div>
+
+            {formData.enablePaidRegistration ? (
+              <div className="space-y-3">
+                <ReviewItem
+                  label="Registration Fee"
+                  value={`$${centsToDollars(formData.registrationFee || 0)}`}
+                />
+                {formData.earlyBirdDiscount?.enabled && (
+                  <ReviewItem
+                    label="Early Bird Discount"
+                    value={
+                      formData.earlyBirdDiscount.isPercentage
+                        ? `${formData.earlyBirdDiscount.amount}% off`
+                        : `$${centsToDollars(formData.earlyBirdDiscount.amount)} off`
+                    }
+                  />
+                )}
+                {formData.lateRegistrationFee?.enabled && (
+                  <ReviewItem
+                    label="Late Registration Fee"
+                    value={`+$${centsToDollars(formData.lateRegistrationFee.amount)}`}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span>{t('freeRegistration')}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Final confirmation */}
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-lg p-6">
           <div className="flex gap-4">
             <div className="bg-primary rounded-full p-3 h-fit">
@@ -597,51 +596,35 @@ function formatDate(dateString: string | undefined): string {
 function formatRegistrationType(type: string | undefined): string {
   if (!type) return 'Not set';
   switch (type) {
-    case 'open':
-      return 'Open Registration';
-    case 'approval_required':
-      return 'Approval Required';
-    case 'invite_only':
-      return 'Invite Only';
-    default:
-      return type;
-  }
-}
-
-function formatStripeStatus(status: string | undefined): string {
-  if (!status) return 'Not connected';
-  switch (status) {
-    case 'not_connected':
-      return 'Not connected -- set up after launch';
-    case 'pending':
-      return 'Will be configured after league creation';
-    case 'active':
-      return 'Connected and active';
-    default:
-      return status;
+    case 'open': return 'Open Registration';
+    case 'approval_required': return 'Approval Required';
+    case 'invite_only': return 'Invite Only';
+    default: return type;
   }
 }
 
 function formatTheme(theme: string | undefined): string {
   if (!theme) return 'Dark (default)';
   switch (theme) {
-    case 'dark':
-      return 'Dark';
-    case 'light':
-      return 'Light';
-    case 'custom':
-      return 'Custom';
-    default:
-      return theme;
+    case 'dark': return 'Dark';
+    case 'light': return 'Light';
+    case 'custom': return 'Custom';
+    default: return theme;
   }
 }
 
-// Use the translation function for checklist labels and details
 function getChecklistItems(
   formData: WizardFormData,
   t: (key: string, values?: Record<string, string | number>) => string
 ): { label: string; status: 'complete' | 'incomplete' | 'optional'; detail?: string }[] {
   const items: { label: string; status: 'complete' | 'incomplete' | 'optional'; detail?: string }[] = [];
+
+  // Organization
+  items.push({
+    label: 'Organization',
+    status: formData.orgBusinessName ? 'complete' : 'optional',
+    detail: formData.orgBusinessName || 'Optional',
+  });
 
   // League Info
   items.push({
@@ -666,6 +649,13 @@ function getChecklistItems(
       : t('canBeAddedLater'),
   });
 
+  // Website
+  items.push({
+    label: t('websiteSettings'),
+    status: formData.isPublic !== undefined ? 'complete' : 'optional',
+    detail: formData.isPublic ? t('publicEnabled') : t('privateWebsite'),
+  });
+
   // Registration Fees
   items.push({
     label: t('registrationFees'),
@@ -675,7 +665,7 @@ function getChecklistItems(
       : t('freeRegistration'),
   });
 
-  // Payment Settings - now uses "incomplete" (blue) instead of "red" to indicate deferred setup
+  // Payment Processing
   const needsPayment = formData.enablePaidRegistration && formData.registrationFee;
   items.push({
     label: t('paymentProcessing'),
@@ -693,13 +683,6 @@ function getChecklistItems(
         : t('notNeeded'),
   });
 
-  // Website Settings
-  items.push({
-    label: t('websiteSettings'),
-    status: formData.isPublic !== undefined ? 'complete' : 'optional',
-    detail: formData.isPublic ? t('publicEnabled') : t('privateWebsite'),
-  });
-
   return items;
 }
 
@@ -709,7 +692,6 @@ function getWarnings(
 ): string[] {
   const warnings: string[] = [];
 
-  // Check for incomplete optional items that might be important
   if (!formData.teams || formData.teams.length === 0) {
     warnings.push(t('warningNoTeams'));
   }

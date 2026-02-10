@@ -96,7 +96,12 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
           <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
             <div className={`min-h-screen flex flex-col ${templateClass}`}>
               <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
-              <LeagueHeader league={league} leagueSlug={leagueSlug} registrationOpen={registrationOpen} />
+              <LeagueHeader
+                league={league}
+                leagueSlug={leagueSlug}
+                registrationOpen={registrationOpen}
+                visiblePages={(league as any).settings?.website?.visiblePages}
+              />
               <main className="flex-1">{children}</main>
               <LeagueFooter league={league} leagueSlug={leagueSlug} />
             </div>

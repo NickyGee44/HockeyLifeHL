@@ -17,27 +17,6 @@ export interface UseWizardFormReturn extends UseFormReturn<WizardFormData> {
 
 /**
  * Custom hook for managing the league creation wizard form
- *
- * Features:
- * - Type-safe form with Zod validation
- * - Default values pre-populated
- * - Integration with React Hook Form
- * - Uncontrolled mode for performance
- *
- * @param options - Configuration options for the form
- * @returns React Hook Form instance with wizard-specific configuration
- *
- * @example
- * ```tsx
- * const form = useWizardForm({
- *   defaultValues: draftData, // Load draft data if resuming
- * });
- *
- * // Use in component
- * <form onSubmit={form.handleSubmit(onSubmit)}>
- *   <input {...form.register('name')} />
- * </form>
- * ```
  */
 export function useWizardForm(
   options?: UseWizardFormOptions
@@ -48,8 +27,8 @@ export function useWizardForm(
       ...defaultValues,
       ...options?.defaultValues,
     },
-    mode: options?.mode || 'onBlur', // Validate on blur for better UX
-    reValidateMode: 'onChange', // Re-validate on change after first validation
+    mode: options?.mode || 'onBlur',
+    reValidateMode: 'onChange',
   });
 
   return form;
@@ -57,35 +36,18 @@ export function useWizardForm(
 
 /**
  * Hook for managing individual wizard steps
- * Provides step-specific validation without validating the entire form
- *
- * @param form - React Hook Form instance from useWizardForm
- * @param step - Current step number (1-4)
- * @returns Step-specific form methods
- *
- * @example
- * ```tsx
- * const form = useWizardForm();
- * const stepMethods = useWizardStep(form, 1);
- *
- * // Validate only the current step
- * const isValid = await stepMethods.validateStep();
- * ```
  */
 export function useWizardStep(
   form: UseFormReturn<WizardFormData>,
   step: number
 ) {
   const validateStep = async (): Promise<boolean> => {
-    // Get step-specific field names
     const stepFields = getStepFields(step);
 
-    // Trigger validation only for fields in this step
     const results = await Promise.all(
       stepFields.map((field) => form.trigger(field as any))
     );
 
-    // Return true if all fields are valid
     return results.every((result) => result);
   };
 
@@ -97,9 +59,20 @@ export function useWizardStep(
 /**
  * Returns the field names for a given step
  */
-function getStepFields(step: number): string[] {
+export function getStepFields(step: number): string[] {
   switch (step) {
     case 1:
+      return [
+        'orgBusinessName',
+        'orgBusinessEmail',
+        'orgBusinessPhone',
+        'orgBusinessAddress',
+        'orgBusinessCity',
+        'orgBusinessState',
+        'orgBusinessZip',
+        'orgBusinessCountry',
+      ];
+    case 2:
       return [
         'name',
         'description',
@@ -114,7 +87,7 @@ function getStepFields(step: number): string[] {
         'contact_phone',
         'website_url',
       ];
-    case 2:
+    case 3:
       return [
         'season_name',
         'season_start_date',
@@ -124,11 +97,41 @@ function getStepFields(step: number): string[] {
         'registration_closes',
         'game_duration_minutes',
         'period_count',
+        'scorekeeping_mode',
       ];
-    case 3:
-      return ['teams'];
     case 4:
-      return []; // Review step has no fields, just displays data
+      return ['teams'];
+    case 5:
+      return [
+        'isPublic',
+        'themePreset',
+        'bannerUrl',
+        'socialFacebook',
+        'socialInstagram',
+        'socialTwitter',
+        'visiblePages',
+        'wantCustomDomain',
+        'ownsDomain',
+        'customDomainName',
+      ];
+    case 6:
+      return [
+        'enableAdvancedStats',
+        'enableAiNews',
+      ];
+    case 7:
+      return [
+        'enablePaidRegistration',
+        'registrationFee',
+        'earlyBirdDiscount',
+        'lateRegistrationFee',
+        'paymentInstructions',
+        'stripeAccountId',
+        'stripeAccountStatus',
+        'skipPaymentSetup',
+      ];
+    case 8:
+      return []; // Review step has no fields
     default:
       return [];
   }

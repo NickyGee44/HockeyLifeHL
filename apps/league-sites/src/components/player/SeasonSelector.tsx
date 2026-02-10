@@ -31,7 +31,7 @@ export function SeasonSelector({
   }
 
   return (
-    <div className="mb-6">
+    <div>
       <select
         value={currentSeasonId || 'all'}
         onChange={(e) => handleSeasonChange(e.target.value)}

@@ -14,26 +14,36 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Verify user has access to this league (member of the league's organization)
-  const { data: league } = await supabase
-    .from('leagues')
-    .select('organization_id')
-    .eq('id', leagueId)
-    .single();
-
-  if (!league || !league.organization_id) {
-    return NextResponse.json({ error: 'League not found' }, { status: 404 });
-  }
-
+  // Verify user has access to this league via league_memberships or org ownership
   const { data: membership } = await supabase
-    .from('organization_members')
-    .select('id')
-    .eq('organization_id', league.organization_id)
+    .from('league_memberships')
+    .select('role')
+    .eq('league_id', leagueId)
     .eq('user_id', user.id)
+    .eq('status', 'active')
     .single();
 
   if (!membership) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Fallback: check org ownership
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('organization_id, organizations(owner_user_id)')
+      .eq('id', leagueId)
+      .single();
+
+    const org = league?.organizations as any;
+    if (!org || org.owner_user_id !== user.id) {
+      // Fallback: check platform admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_platform_admin')
+        .eq('id', user.id)
+        .single();
+
+      if (!(profile as any)?.is_platform_admin) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
   }
 
   // Fetch divisions for the league with team count

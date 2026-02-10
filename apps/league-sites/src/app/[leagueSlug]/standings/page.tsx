@@ -2,10 +2,12 @@ import { Metadata } from 'next';
 import { Trophy } from 'lucide-react';
 import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason } from '@/lib/data';
 import { StandingsWithSearch } from '@/components/StandingsWithSearch';
+import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 import type { TeamStanding, Division } from '@/lib/types';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
+  searchParams: Promise<{ division?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -13,8 +15,9 @@ export const metadata: Metadata = {
   description: 'League standings and team rankings',
 };
 
-export default async function StandingsPage({ params }: StandingsPageProps) {
+export default async function StandingsPage({ params, searchParams }: StandingsPageProps) {
   const { leagueSlug } = await params;
+  await searchParams; // Accept division param for URL sharing
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) return null;
@@ -42,6 +45,9 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
           </p>
         )}
       </div>
+
+      {/* Division filter URL sync */}
+      <DivisionUrlSync pagePath={`/${leagueSlug}/standings`} />
 
       {/* Standings */}
       {standings.length > 0 ? (

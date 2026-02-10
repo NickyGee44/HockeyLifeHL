@@ -762,3 +762,107 @@ export async function sendChargebackResolutionEmail(params: {
     html: getEmailLayout(content),
   });
 }
+
+// ============================================================================
+// 8. Payout Failure Alert Email (Admin Notification)
+// ============================================================================
+
+export async function sendPayoutFailureAlertEmail(params: {
+  to: string;
+  adminName: string;
+  leagueName: string;
+  payoutAmount: number;
+  currency: string;
+  failureCode: string | null;
+  failureMessage: string | null;
+  payoutId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const {
+    to,
+    adminName,
+    leagueName,
+    payoutAmount,
+    currency,
+    failureCode,
+    failureMessage,
+    payoutId,
+  } = params;
+
+  const formatFailureCode = (code: string | null): string => {
+    if (!code) return 'Unknown';
+    const codeMap: Record<string, string> = {
+      account_closed: 'Bank account closed',
+      account_frozen: 'Bank account frozen',
+      bank_account_restricted: 'Bank account restricted',
+      bank_ownership_changed: 'Bank ownership changed',
+      could_not_process: 'Could not process',
+      debit_not_authorized: 'Debit not authorized',
+      declined: 'Declined by bank',
+      insufficient_funds: 'Insufficient funds',
+      invalid_account_number: 'Invalid account number',
+      incorrect_account_holder_name: 'Incorrect account holder name',
+      invalid_currency: 'Invalid currency',
+      no_account: 'No account found',
+      unsupported_card: 'Unsupported card',
+    };
+    return codeMap[code] || code;
+  };
+
+  const currencySymbol = currency.toUpperCase() === 'CAD' ? 'CA$' : '$';
+
+  const content = `
+    <h1 style="color: #FB7185;">Payout Failed</h1>
+    <p>Hi ${adminName},</p>
+    <p>A payout to your bank account for <strong>${leagueName}</strong> has failed. Please review the details below and take action.</p>
+
+    <div class="warning">
+      <p><strong>Important:</strong> Your funds are safe and still in your Stripe account. However, you may need to update your bank information to receive future payouts.</p>
+    </div>
+
+    <div class="payment-details">
+      <table>
+        <tr>
+          <td class="label">Payout Amount</td>
+          <td class="value" style="color: #FB7185; font-size: 20px;">${currencySymbol}${(payoutAmount / 100).toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td class="label">Failure Reason</td>
+          <td class="value">${formatFailureCode(failureCode)}</td>
+        </tr>
+        ${failureMessage ? `
+        <tr>
+          <td class="label">Details</td>
+          <td class="value">${failureMessage}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td class="label">Payout ID</td>
+          <td class="value" style="font-family: monospace; font-size: 12px;">${payoutId}</td>
+        </tr>
+      </table>
+    </div>
+
+    <h2>Recommended Actions</h2>
+    <ol style="color: #a3a3a3;">
+      <li><strong>Check your bank details</strong> in the Stripe dashboard — ensure account number and routing number are correct</li>
+      <li><strong>Contact your bank</strong> to ensure the account can receive deposits</li>
+      <li><strong>Update bank information</strong> if needed via your Stripe Express dashboard</li>
+      <li><strong>Contact support</strong> if the issue persists</li>
+    </ol>
+
+    <a href="https://dashboard.stripe.com/payouts/${payoutId}" class="button">View in Stripe</a>
+
+    <div class="highlight" style="margin-top: 30px;">
+      <p><strong>What happens next?</strong></p>
+      <p>Stripe will automatically retry the payout. If it continues to fail, you will need to update your bank account information in your Stripe Express dashboard.</p>
+    </div>
+
+    <p>Best regards,<br>The HockeyLife Team</p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `[ACTION REQUIRED] Payout Failed - ${leagueName} (${currencySymbol}${(payoutAmount / 100).toFixed(2)})`,
+    html: getEmailLayout(content),
+  });
+}

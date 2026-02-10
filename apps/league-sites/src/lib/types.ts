@@ -647,6 +647,40 @@ export interface GameSheetData {
   goalies: GameSheetGoalie[];
 }
 
+// =============================================================================
+// Player Badge Types
+// =============================================================================
+
+export type BadgeType =
+  | 'championship'
+  | 'top_scorer'
+  | 'points_leader'
+  | 'top_goalie'
+  | 'iron_man'
+  | 'most_assists'
+  | 'best_plus_minus'
+  | 'penalty_free'
+  | 'division_top_scorer'
+  | 'division_points_leader'
+  | 'division_top_goalie'
+  | 'team_mvp'
+  | 'rookie_of_the_year'
+  | 'hall_of_fame'
+  | 'shutout_king';
+
+export interface PlayerBadge {
+  id: string;
+  player_id: string;
+  league_id: string;
+  season_id: string;
+  team_id: string;
+  badge_type: BadgeType;
+  metadata: Record<string, any>;
+  created_at: string;
+  season?: { name: string } | null;
+  team?: { name: string; logo_url: string | null; slug: string } | null;
+}
+
 /** Award */
 export interface LeagueAward {
   id: string;

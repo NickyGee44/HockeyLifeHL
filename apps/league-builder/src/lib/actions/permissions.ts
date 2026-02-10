@@ -328,9 +328,10 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
   }
 
   try {
+    // Fetch league (without !inner so it doesn't fail if no org)
     const { data: league, error } = await supabase
       .from('leagues')
-      .select('id, organization_id, organizations!inner(owner_user_id)')
+      .select('id, organization_id, organizations(owner_user_id)')
       .eq('id', leagueId)
       .single();
 
@@ -341,15 +342,33 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
       return { authorized: false, error: 'League not found' };
     }
 
-    const orgOwnerId = (league.organizations as any).owner_user_id;
-    if (orgOwnerId === user.id) {
+    // Check 1: Organization owner
+    const org = league.organizations as any;
+    if (org?.owner_user_id === user.id) {
       return {
         authorized: true,
         organizationId: league.organization_id ?? undefined
       };
     }
 
-    // Fallback: platform admins can manage any league
+    // Check 2: League membership (owner or admin role)
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('league_id', leagueId)
+      .eq('status', 'active')
+      .in('role', ['owner', 'admin'])
+      .single();
+
+    if (membership) {
+      return {
+        authorized: true,
+        organizationId: league.organization_id ?? undefined
+      };
+    }
+
+    // Check 3: Platform admin fallback
     const { data: adminProfile } = await supabase
       .from('profiles')
       .select('is_platform_admin')

@@ -2,10 +2,12 @@
 
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { Calendar, Clock, Info } from 'lucide-react';
+import { Calendar, Clock, Info, ClipboardList, Users2 } from 'lucide-react';
 import {
   Input,
   FormField,
+  Card,
+  CardContent,
   Select,
   SelectContent,
   SelectItem,
@@ -33,7 +35,22 @@ const REGISTRATION_TYPES = [
   },
 ];
 
-export function Step2SeasonSettings() {
+const SCOREKEEPING_MODES = [
+  {
+    value: 'standard' as const,
+    label: 'Standard Scorekeeping',
+    description: 'Assigned scorekeepers enter stats during or after each game. Stats are submitted immediately.',
+    icon: ClipboardList,
+  },
+  {
+    value: 'self_scorekeeping' as const,
+    label: 'Self Scorekeeping',
+    description: 'Team captains enter their own game stats after each game. Great for beer leagues without dedicated scorekeepers.',
+    icon: Users2,
+  },
+];
+
+export function Step3SeasonScorekeeping() {
   const {
     register,
     formState: { errors },
@@ -42,11 +59,12 @@ export function Step2SeasonSettings() {
   } = useFormContext<WizardFormData>();
 
   const registrationType = watch('registration_type');
+  const scorekeepingMode = watch('scorekeeping_mode') || 'self_scorekeeping';
 
   return (
     <WizardStepContainer
-      title="Season Settings"
-      description="Configure your league's season details, registration settings, and game parameters."
+      title="Season & Scorekeeping"
+      description="Configure your league's season details, registration settings, game parameters, and how stats are tracked."
     >
       {/* Season Information */}
       <div className="space-y-4">
@@ -244,6 +262,84 @@ export function Step2SeasonSettings() {
             each). You can adjust these settings to match your league's format.
           </p>
         </div>
+      </div>
+
+      {/* Scorekeeping Mode */}
+      <div className="space-y-4 pt-6">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <ClipboardList className="h-5 w-5" />
+          Scorekeeping Mode
+        </h3>
+
+        <p className="text-sm text-muted-foreground">
+          Choose how game stats are recorded in your league.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {SCOREKEEPING_MODES.map((mode) => {
+            const Icon = mode.icon;
+            const isSelected = scorekeepingMode === mode.value;
+
+            return (
+              <button
+                key={mode.value}
+                type="button"
+                onClick={() => setValue('scorekeeping_mode', mode.value)}
+                className={`relative p-5 rounded-xl border-2 transition-all text-left ${
+                  isSelected
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`p-2 rounded-lg ${
+                      isSelected ? 'bg-primary/10' : 'bg-muted/50'
+                    }`}
+                  >
+                    <Icon
+                      className={`h-5 w-5 ${
+                        isSelected ? 'text-primary' : 'text-muted-foreground'
+                      }`}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1">{mode.label}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {mode.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Selection indicator */}
+                {isSelected && (
+                  <div className="absolute top-3 right-3 bg-primary text-primary-foreground rounded-full p-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <Card className="bg-muted/30">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">
+                {scorekeepingMode === 'standard'
+                  ? 'Standard mode requires assigning scorekeepers to each game. They can enter stats in real-time using the scorekeeper app.'
+                  : 'Self scorekeeping is the most popular choice for beer leagues. Team captains submit their game stats after each game, keeping things simple and flexible.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </WizardStepContainer>
   );

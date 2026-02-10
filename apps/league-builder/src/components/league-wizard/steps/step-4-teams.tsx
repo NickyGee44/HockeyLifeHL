@@ -7,7 +7,7 @@ import { Button, Input, FormField, ColorPicker } from '@hockey-life/ui';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
 
-export function Step3Teams() {
+export function Step4Teams() {
   const {
     control,
     register,

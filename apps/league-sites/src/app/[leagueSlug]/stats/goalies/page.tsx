@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
-import { getLeagueBySlug, getGoalieLeaders, getCurrentSeason, getSeasons } from '@/lib/data';
+import { getLeagueBySlug, getGoalieLeaders, getCurrentSeason, getSeasons, getPlayerBadgesByIds } from '@/lib/data';
 import { GoalieStatsTable } from '@/components/stats/GoalieStatsTable';
 import { GoalieStatsFilters } from '@/components/stats/GoalieStatsFilters';
 
@@ -34,6 +34,10 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
     getSeasons(league.id),
     getGoalieLeaders(league.id, seasonId, sort, 50, divisionFilter),
   ]);
+
+  // Fetch badges for goalies
+  const goaliePlayerIds = goalieLeaders.map(g => g.player_id);
+  const badges = await getPlayerBadgesByIds(goaliePlayerIds);
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
@@ -75,6 +79,7 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
             goalies={goalieLeaders}
             leagueSlug={leagueSlug}
             currentSort={sort}
+            badges={badges}
           />
         ) : (
           <div className="text-center py-12">

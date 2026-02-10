@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BarChart3, Trophy, Target, Shield, ChevronRight, Zap } from 'lucide-react';
-import { getLeagueBySlug, getStatsLeaders, getCurrentSeason, getSpecialTeamsLeaders } from '@/lib/data';
+import { getLeagueBySlug, getStatsLeaders, getCurrentSeason, getSpecialTeamsLeaders, getPlayerBadgesByIds } from '@/lib/data';
 import { StatsLeadersTabs } from '@/components/StatsLeadersTabs';
 import { SpecialTeamsTable } from '@/components/stats/SpecialTeamsTable';
 import { StatLeaders } from '@/components/stats/StatLeaders';
-import { DivisionUrlSync } from '@/components/DivisionUrlSync';
+import { StatsFilters } from '@/components/stats/StatsFilters';
 
 interface StatsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -34,6 +34,14 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
     getSpecialTeamsLeaders(league.id, season?.id, divisionFilter),
   ]);
 
+  // Collect all player IDs for badge lookup
+  const allPlayerIds = [...new Set([
+    ...pointsLeaders.map(p => p.player_id),
+    ...goalsLeaders.map(p => p.player_id),
+    ...assistsLeaders.map(p => p.player_id),
+  ])];
+  const badges = await getPlayerBadgesByIds(allPlayerIds);
+
   const hasStats =
     pointsLeaders.length > 0 ||
     goalsLeaders.length > 0 ||
@@ -41,8 +49,8 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
 
   return (
     <div className="container mx-auto px-4 py-12 animate-fade-in">
-      {/* Sync global division filter to URL */}
-      <DivisionUrlSync pagePath={`/${leagueSlug}/stats`} />
+      {/* Division Filter */}
+      <StatsFilters leagueSlug={leagueSlug} />
 
       {/* Header */}
       <div className="mb-8">
@@ -63,6 +71,8 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
           pointsLeaders={pointsLeaders}
           goalsLeaders={goalsLeaders}
           assistsLeaders={assistsLeaders}
+          leagueSlug={leagueSlug}
+          badges={badges}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

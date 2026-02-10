@@ -90,7 +90,16 @@ export async function saveDraft(
       // Store wizard-specific data in settings JSONB
       settings: {
         wizard_data: {
-          // Step 2 - Season Settings
+          // Step 1 - Organization Info
+          orgBusinessName: data.orgBusinessName,
+          orgBusinessEmail: data.orgBusinessEmail,
+          orgBusinessPhone: data.orgBusinessPhone,
+          orgBusinessAddress: data.orgBusinessAddress,
+          orgBusinessCity: data.orgBusinessCity,
+          orgBusinessState: data.orgBusinessState,
+          orgBusinessZip: data.orgBusinessZip,
+          orgBusinessCountry: data.orgBusinessCountry ?? 'CA',
+          // Step 3 - Season & Scorekeeping
           season_name: data.season_name,
           season_start_date: data.season_start_date,
           season_end_date: data.season_end_date,
@@ -99,8 +108,24 @@ export async function saveDraft(
           registration_closes: data.registration_closes,
           game_duration_minutes: data.game_duration_minutes,
           period_count: data.period_count,
+          scorekeeping_mode: data.scorekeeping_mode ?? 'self_scorekeeping',
+          // Step 4 - Teams
           teams: data.teams || [],
-          // Step 4 - Registration Fees (nested objects)
+          // Step 5 - Website & Pages
+          isPublic: data.isPublic ?? true,
+          themePreset: data.themePreset ?? 'dark',
+          bannerUrl: data.bannerUrl,
+          socialFacebook: data.socialFacebook,
+          socialInstagram: data.socialInstagram,
+          socialTwitter: data.socialTwitter,
+          visiblePages: data.visiblePages,
+          wantCustomDomain: data.wantCustomDomain ?? false,
+          ownsDomain: data.ownsDomain,
+          customDomainName: data.customDomainName,
+          // Step 6 - Add-ons
+          enableAdvancedStats: data.enableAdvancedStats ?? false,
+          enableAiNews: data.enableAiNews ?? false,
+          // Step 7 - Registration & Payments
           enablePaidRegistration: data.enablePaidRegistration ?? false,
           registrationFee: data.registrationFee ?? 0,
           earlyBirdDiscount: data.earlyBirdDiscount ?? {
@@ -115,17 +140,9 @@ export async function saveDraft(
             startsAt: '',
           },
           paymentInstructions: data.paymentInstructions,
-          // Step 5 - Payment Setup
           stripeAccountId: data.stripeAccountId ?? null,
           stripeAccountStatus: data.stripeAccountStatus ?? 'not_connected',
           skipPaymentSetup: data.skipPaymentSetup ?? false,
-          // Step 6 - Website & Branding
-          isPublic: data.isPublic ?? true,
-          themePreset: data.themePreset ?? 'dark',
-          bannerUrl: data.bannerUrl,
-          socialFacebook: data.socialFacebook,
-          socialInstagram: data.socialInstagram,
-          socialTwitter: data.socialTwitter,
         },
       },
     };
@@ -442,12 +459,24 @@ export async function createLeague(
         created_by: user.id,
         is_public: data.isPublic ?? true,
         settings: {
-          statEntryMode: 'captain',
+          statEntryMode: data.scorekeeping_mode === 'standard' ? 'scorekeeper' : 'captain',
+          scorekeepingMode: data.scorekeeping_mode ?? 'self_scorekeeping',
           allowPlayerRegistration: true,
           requireApproval: data.registration_type !== 'open',
           emailNotifications: true,
           allowTrades: false,
-          // Fee configuration (Step 4) - uses nested objects
+          // Organization business info
+          organization: {
+            businessName: data.orgBusinessName || null,
+            businessEmail: data.orgBusinessEmail || null,
+            businessPhone: data.orgBusinessPhone || null,
+            businessAddress: data.orgBusinessAddress || null,
+            businessCity: data.orgBusinessCity || null,
+            businessState: data.orgBusinessState || null,
+            businessZip: data.orgBusinessZip || null,
+            businessCountry: data.orgBusinessCountry || 'CA',
+          },
+          // Fee configuration
           fees: {
             enablePaidRegistration: data.enablePaidRegistration ?? false,
             registrationFee: data.registrationFee ?? 0,
@@ -464,19 +493,41 @@ export async function createLeague(
             },
             paymentInstructions: data.paymentInstructions || null,
           },
-          // Payment setup (Step 5)
+          // Payment setup
           payment: {
             stripeAccountId: data.stripeAccountId ?? null,
             stripeAccountStatus: data.stripeAccountStatus ?? 'not_connected',
             skipPaymentSetup: data.skipPaymentSetup ?? false,
           },
-          // Website & Branding (Step 6)
+          // Website & Pages
           website: {
             themePreset: data.themePreset ?? 'dark',
             bannerUrl: data.bannerUrl || null,
             socialFacebook: data.socialFacebook || null,
             socialInstagram: data.socialInstagram || null,
             socialTwitter: data.socialTwitter || null,
+            visiblePages: data.visiblePages ?? {
+              scores: true,
+              schedule: true,
+              standings: true,
+              teams: true,
+              stats: true,
+              news: false,
+              events: false,
+              gallery: false,
+              about: true,
+            },
+          },
+          // Custom domain
+          domain: {
+            wantCustomDomain: data.wantCustomDomain ?? false,
+            ownsDomain: data.ownsDomain ?? false,
+            customDomainName: data.customDomainName || null,
+          },
+          // Add-ons
+          addons: {
+            enableAdvancedStats: data.enableAdvancedStats ?? false,
+            enableAiNews: data.enableAiNews ?? false,
           },
         },
       })
@@ -619,7 +670,51 @@ export async function createLeague(
         }
       }
 
-      // Step 5: Delete the specific draft if draftId was provided
+      // Step 5: Create organization_addons records for selected add-ons
+      const addonsToCreate: { addon_type: string; amount_cents: number }[] = [];
+
+      // Platform subscription is always created
+      addonsToCreate.push({
+        addon_type: 'platform_subscription',
+        amount_cents: 29999, // $299.99
+      });
+
+      if (data.enableAdvancedStats) {
+        addonsToCreate.push({
+          addon_type: 'advanced_stats',
+          amount_cents: 1499, // $14.99
+        });
+      }
+
+      if (data.enableAiNews) {
+        addonsToCreate.push({
+          addon_type: 'ai_news',
+          amount_cents: 1499, // $14.99
+        });
+      }
+
+      for (const addon of addonsToCreate) {
+        const { error: addonError } = await (serviceSupabase as any)
+          .from('organization_addons')
+          .upsert(
+            {
+              organization_id: org.id,
+              addon_type: addon.addon_type,
+              status: 'inactive', // Will be activated when billing is set up
+              amount_cents: addon.amount_cents,
+            },
+            { onConflict: 'organization_id,addon_type' }
+          );
+
+        if (addonError) {
+          console.error(`Failed to create addon ${addon.addon_type}:`, addonError);
+          // Continue anyway - addons can be set up later
+        } else {
+          console.log(`✅ Add-on record created: ${addon.addon_type}`);
+        }
+      }
+
+      // Step 6: Delete the specific draft if draftId was provided
       if (draftId) {
         await serviceSupabase
           .from('leagues')

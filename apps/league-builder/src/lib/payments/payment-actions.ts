@@ -1068,3 +1068,159 @@ export async function updatePaymentStatus(
     return { success: false, error: 'An unexpected error occurred.' };
   }
 }
+
+// ============================================================================
+// 10. Get Team Payments (Captain)
+// ============================================================================
+
+async function verifyCaptainAccess(
+  teamId: string
+): Promise<{ userId: string; team: { id: string; league_id: string } } | { error: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: 'Authentication required.' };
+  }
+
+  const supabase = await createClient();
+  const { data: team, error: teamError } = await supabase
+    .from('teams')
+    .select('id, league_id, captain_id')
+    .eq('id', teamId)
+    .single();
+
+  if (teamError || !team) {
+    return { error: 'Team not found.' };
+  }
+
+  if (team.captain_id !== user.id) {
+    return { error: 'Only the team captain can view team payments.' };
+  }
+
+  return { userId: user.id, team: { id: team.id, league_id: team.league_id } };
+}
+
+export async function getTeamPayments(
+  teamId: string,
+  options?: { seasonId?: string; status?: string }
+): Promise<ActionResult<{ payments: PlayerPaymentWithDetails[]; total: number }>> {
+  try {
+    const access = await verifyCaptainAccess(teamId);
+    if ('error' in access) {
+      return { success: false, error: access.error };
+    }
+
+    const supabase = await createClient();
+
+    let query = supabase
+      .from('player_payments')
+      .select(
+        `
+        *,
+        player:player_id (id, full_name, email, avatar_url),
+        season_fee:season_fee_id (id, name, amount_cents),
+        team:team_id (id, name, short_name)
+      `,
+        { count: 'exact' }
+      )
+      .eq('team_id', teamId)
+      .order('created_at', { ascending: false });
+
+    if (options?.seasonId) {
+      query = query.eq('season_id', options.seasonId);
+    }
+
+    if (options?.status) {
+      query = query.eq('status', options.status as PlayerPaymentStatus);
+    }
+
+    const { data: payments, error, count } = await query;
+
+    if (error) {
+      console.error('[Payments] Get team payments error:', sanitizeErrorForLogging(error));
+      return { success: false, error: 'Failed to fetch team payments.' };
+    }
+
+    return {
+      success: true,
+      data: {
+        payments: (payments || []) as PlayerPaymentWithDetails[],
+        total: count || 0,
+      },
+    };
+  } catch (error) {
+    console.error('[Payments] Unexpected error in getTeamPayments:', sanitizeErrorForLogging(error));
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+// ============================================================================
+// 11. Get Team Payment Summary (Captain)
+// ============================================================================
+
+export async function getTeamPaymentSummary(
+  teamId: string,
+  seasonId?: string
+): Promise<ActionResult<PaymentSummary>> {
+  try {
+    const access = await verifyCaptainAccess(teamId);
+    if ('error' in access) {
+      return { success: false, error: access.error };
+    }
+
+    const supabase = await createClient();
+
+    let query = supabase
+      .from('player_payments')
+      .select('status, total_amount_cents, amount_paid_cents')
+      .eq('team_id', teamId);
+
+    if (seasonId) {
+      query = query.eq('season_id', seasonId);
+    }
+
+    const { data: payments, error } = await query;
+
+    if (error) {
+      console.error('[Payments] Get team payment summary error:', sanitizeErrorForLogging(error));
+      return { success: false, error: 'Failed to get payment summary.' };
+    }
+
+    const summary: PaymentSummary = {
+      totalExpectedCents: 0,
+      totalCollectedCents: 0,
+      totalOutstandingCents: 0,
+      playersPaidFull: 0,
+      playersPartial: 0,
+      playersPending: 0,
+      playersOverdue: 0,
+    };
+
+    for (const p of payments || []) {
+      summary.totalExpectedCents += p.total_amount_cents ?? 0;
+      summary.totalCollectedCents += p.amount_paid_cents ?? 0;
+
+      switch (p.status) {
+        case 'paid':
+          summary.playersPaidFull++;
+          break;
+        case 'partially_paid':
+          summary.playersPartial++;
+          break;
+        case 'pending':
+        case 'processing':
+          summary.playersPending++;
+          break;
+        case 'overdue':
+          summary.playersOverdue++;
+          break;
+      }
+    }
+
+    summary.totalOutstandingCents = summary.totalExpectedCents - summary.totalCollectedCents;
+
+    return { success: true, data: summary };
+  } catch (error) {
+    console.error('[Payments] Unexpected error in getTeamPaymentSummary:', sanitizeErrorForLogging(error));
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}

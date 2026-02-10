@@ -1,10 +1,54 @@
 import { z } from 'zod';
 
 // ==============================================================================
-// STEP 1: League Information
+// STEP 1: Organization Info (NEW)
 // ==============================================================================
 
 export const step1Schema = z.object({
+  orgBusinessName: z
+    .string()
+    .min(2, 'Business name must be at least 2 characters')
+    .max(200, 'Business name must be less than 200 characters'),
+  orgBusinessEmail: z
+    .string()
+    .email('Must be a valid email address')
+    .optional()
+    .or(z.literal('')),
+  orgBusinessPhone: z
+    .string()
+    .max(20, 'Phone number must be less than 20 characters')
+    .optional()
+    .or(z.literal('')),
+  orgBusinessAddress: z
+    .string()
+    .max(200)
+    .optional()
+    .or(z.literal('')),
+  orgBusinessCity: z
+    .string()
+    .max(100)
+    .optional()
+    .or(z.literal('')),
+  orgBusinessState: z
+    .string()
+    .max(100)
+    .optional()
+    .or(z.literal('')),
+  orgBusinessZip: z
+    .string()
+    .max(20)
+    .optional()
+    .or(z.literal('')),
+  orgBusinessCountry: z.string().default('CA'),
+});
+
+export type Step1FormData = z.infer<typeof step1Schema>;
+
+// ==============================================================================
+// STEP 2: League Information (was Step 1)
+// ==============================================================================
+
+export const step2Schema = z.object({
   // Basic Information
   name: z
     .string()
@@ -52,13 +96,13 @@ export const step1Schema = z.object({
   website_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
 
-export type Step1FormData = z.infer<typeof step1Schema>;
+export type Step2FormData = z.infer<typeof step2Schema>;
 
 // ==============================================================================
-// STEP 2: Season Settings
+// STEP 3: Season & Scorekeeping (was Step 2, now includes scorekeeping mode)
 // ==============================================================================
 
-export const step2Schema = z
+export const step3Schema = z
   .object({
     // Season Information
     season_name: z
@@ -100,6 +144,9 @@ export const step2Schema = z
       .min(1, 'Must have at least 1 period')
       .max(5, 'Must have at most 5 periods')
       .default(3),
+
+    // Scorekeeping Mode (NEW)
+    scorekeeping_mode: z.enum(['standard', 'self_scorekeeping']).default('self_scorekeeping'),
   })
   .refine(
     (data) => {
@@ -125,10 +172,10 @@ export const step2Schema = z
     }
   );
 
-export type Step2FormData = z.infer<typeof step2Schema>;
+export type Step3FormData = z.infer<typeof step3Schema>;
 
 // ==============================================================================
-// STEP 3: Teams (Optional)
+// STEP 4: Teams (Optional) - was Step 3
 // ==============================================================================
 
 export const teamSchema = z.object({
@@ -148,7 +195,7 @@ export const teamSchema = z.object({
     .or(z.literal('')),
 });
 
-export const step3Schema = z.object({
+export const step4Schema = z.object({
   teams: z
     .array(teamSchema)
     .max(20, 'Cannot have more than 20 teams')
@@ -156,17 +203,65 @@ export const step3Schema = z.object({
     .default([]),
 });
 
-export type Step3FormData = z.infer<typeof step3Schema>;
+export type Step4FormData = z.infer<typeof step4Schema>;
 export type TeamFormData = z.infer<typeof teamSchema>;
 
 // ==============================================================================
-// STEP 4: Registration Fees
+// STEP 5: Website & Pages (was Step 6, now includes page toggles + domain)
+// ==============================================================================
+
+export const step5Schema = z.object({
+  isPublic: z.boolean().default(true),
+  themePreset: z.enum(['dark', 'light', 'custom']).default('dark'),
+  bannerUrl: z.string().url().optional().or(z.literal('')),
+  socialFacebook: z.string().url().optional().or(z.literal('')),
+  socialInstagram: z.string().url().optional().or(z.literal('')),
+  socialTwitter: z.string().url().optional().or(z.literal('')),
+
+  // Page Visibility (NEW)
+  visiblePages: z.record(z.string(), z.boolean()).default({
+    scores: true,
+    schedule: true,
+    standings: true,
+    teams: true,
+    stats: true,
+    news: false,
+    events: false,
+    gallery: false,
+    about: true,
+  }),
+
+  // Custom Domain (NEW)
+  wantCustomDomain: z.boolean().default(false),
+  ownsDomain: z.boolean().optional(),
+  customDomainName: z
+    .string()
+    .max(253)
+    .optional()
+    .or(z.literal('')),
+});
+
+export type Step5FormData = z.infer<typeof step5Schema>;
+
+// ==============================================================================
+// STEP 6: Features & Add-ons (NEW)
+// ==============================================================================
+
+export const step6Schema = z.object({
+  enableAdvancedStats: z.boolean().default(false),
+  enableAiNews: z.boolean().default(false),
+});
+
+export type Step6FormData = z.infer<typeof step6Schema>;
+
+// ==============================================================================
+// STEP 7: Registration & Payments (merged old Steps 4+5)
 // ==============================================================================
 
 export const earlyBirdDiscountSchema = z.object({
   enabled: z.boolean().default(false),
-  amount: z.number().int().min(0).default(0), // Amount in cents (or percentage if isPercentage is true)
-  isPercentage: z.boolean().default(false), // If true, amount is a percentage (0-100)
+  amount: z.number().int().min(0).default(0),
+  isPercentage: z.boolean().default(false),
   deadline: z
     .string()
     .optional()
@@ -175,85 +270,54 @@ export const earlyBirdDiscountSchema = z.object({
 
 export const lateRegistrationFeeSchema = z.object({
   enabled: z.boolean().default(false),
-  amount: z.number().int().min(0).default(0), // Amount in cents
+  amount: z.number().int().min(0).default(0),
   startsAt: z
     .string()
     .optional()
     .or(z.literal('')),
 });
 
-export const step4Schema = z.object({
-  // Main toggle for paid registration
+export const step7Schema = z.object({
+  // Registration Fees
   enablePaidRegistration: z.boolean().default(false),
-
-  // Base registration fee (in cents)
   registrationFee: z
     .number()
     .int('Must be a whole number')
     .min(0, 'Fee cannot be negative')
     .default(0),
-
-  // Early bird discount (nested object)
   earlyBirdDiscount: earlyBirdDiscountSchema.default({
     enabled: false,
     amount: 0,
     isPercentage: false,
     deadline: '',
   }),
-
-  // Late registration fee (nested object)
   lateRegistrationFee: lateRegistrationFeeSchema.default({
     enabled: false,
     amount: 0,
     startsAt: '',
   }),
-
-  // Optional payment instructions
   paymentInstructions: z
     .string()
     .max(1000, 'Payment instructions must be less than 1000 characters')
     .optional()
     .or(z.literal('')),
-});
 
-export type Step4FormData = z.infer<typeof step4Schema>;
-export type EarlyBirdDiscount = z.infer<typeof earlyBirdDiscountSchema>;
-export type LateRegistrationFee = z.infer<typeof lateRegistrationFeeSchema>;
-
-// ==============================================================================
-// STEP 5: Payment Setup
-// ==============================================================================
-
-export const step5Schema = z.object({
+  // Payment Setup (Stripe Connect)
   stripeAccountId: z.string().nullable().default(null),
   stripeAccountStatus: z.enum(['not_connected', 'pending', 'active']).default('not_connected'),
   skipPaymentSetup: z.boolean().default(false),
 });
 
-export type Step5FormData = z.infer<typeof step5Schema>;
-
-// ==============================================================================
-// STEP 6: Website & Branding
-// ==============================================================================
-
-export const step6Schema = z.object({
-  isPublic: z.boolean().default(true),
-  themePreset: z.enum(['dark', 'light', 'custom']).default('dark'),
-  bannerUrl: z.string().url().optional().or(z.literal('')),
-  socialFacebook: z.string().url().optional().or(z.literal('')),
-  socialInstagram: z.string().url().optional().or(z.literal('')),
-  socialTwitter: z.string().url().optional().or(z.literal('')),
-});
-
-export type Step6FormData = z.infer<typeof step6Schema>;
+export type Step7FormData = z.infer<typeof step7Schema>;
+export type EarlyBirdDiscount = z.infer<typeof earlyBirdDiscountSchema>;
+export type LateRegistrationFee = z.infer<typeof lateRegistrationFeeSchema>;
 
 // ==============================================================================
 // COMBINED WIZARD SCHEMA
 // ==============================================================================
 
-// Base step2 schema without refinements (for spreading)
-const step2BaseSchema = z.object({
-  // Season Information
+// Base step3 schema without refinements (for spreading)
+const step3BaseSchema = z.object({
   season_name: z
     .string()
     .min(3, 'Season name must be at least 3 characters')
@@ -264,8 +328,6 @@ const step2BaseSchema = z.object({
   season_end_date: z
     .string()
     .refine((date) => !isNaN(Date.parse(date)), 'Must be a valid date'),
-
-  // Registration Settings
   registration_type: z.enum(['open', 'approval_required', 'invite_only'], {
     message: 'Please select a registration type',
   }),
@@ -279,8 +341,6 @@ const step2BaseSchema = z.object({
     .refine((date) => !isNaN(Date.parse(date)), 'Must be a valid date')
     .optional()
     .or(z.literal('')),
-
-  // Game Settings
   game_duration_minutes: z
     .number()
     .int('Must be a whole number')
@@ -293,22 +353,25 @@ const step2BaseSchema = z.object({
     .min(1, 'Must have at least 1 period')
     .max(5, 'Must have at most 5 periods')
     .default(3),
+  scorekeeping_mode: z.enum(['standard', 'self_scorekeeping']).default('self_scorekeeping'),
 });
 
 export const wizardSchema = z
   .object({
-    // Step 1 fields
+    // Step 1: Organization Info
     ...step1Schema.shape,
-    // Step 2 fields (base schema to avoid losing refinements)
-    ...step2BaseSchema.shape,
-    // Step 3 fields
-    ...step3Schema.shape,
-    // Step 4 fields (Registration Fees)
+    // Step 2: League Info
+    ...step2Schema.shape,
+    // Step 3: Season & Scorekeeping (base schema to avoid losing refinements)
+    ...step3BaseSchema.shape,
+    // Step 4: Teams
     ...step4Schema.shape,
-    // Step 5 fields (Payment Setup)
+    // Step 5: Website & Pages
     ...step5Schema.shape,
-    // Step 6 fields (Website & Branding)
+    // Step 6: Features & Add-ons
     ...step6Schema.shape,
+    // Step 7: Registration & Payments
+    ...step7Schema.shape,
   })
   .refine(
     (data) => {
@@ -335,7 +398,6 @@ export const wizardSchema = z
   )
   .refine(
     (data) => {
-      // Validate unique team names if teams are provided
       if (!data.teams || data.teams.length === 0) return true;
       const names = data.teams.map((t) => t.name.toLowerCase());
       const uniqueNames = new Set(names);
@@ -354,21 +416,45 @@ export type WizardFormData = z.infer<typeof wizardSchema>;
 // ==============================================================================
 
 export const defaultValues: Partial<WizardFormData> = {
-  // Step 1 defaults
+  // Step 1: Organization Info
+  orgBusinessCountry: 'CA',
+
+  // Step 2: League Info
   country: 'USA',
   timezone: 'America/New_York',
   primary_color: '#1E40AF',
   secondary_color: '#3B82F6',
 
-  // Step 2 defaults
+  // Step 3: Season & Scorekeeping
   registration_type: 'approval_required',
   game_duration_minutes: 60,
   period_count: 3,
+  scorekeeping_mode: 'self_scorekeeping',
 
-  // Step 3 defaults
+  // Step 4: Teams
   teams: [],
 
-  // Step 4 defaults (Registration Fees)
+  // Step 5: Website & Pages
+  isPublic: true,
+  themePreset: 'dark',
+  visiblePages: {
+    scores: true,
+    schedule: true,
+    standings: true,
+    teams: true,
+    stats: true,
+    news: false,
+    events: false,
+    gallery: false,
+    about: true,
+  },
+  wantCustomDomain: false,
+
+  // Step 6: Features & Add-ons
+  enableAdvancedStats: false,
+  enableAiNews: false,
+
+  // Step 7: Registration & Payments
   enablePaidRegistration: false,
   registrationFee: 0,
   earlyBirdDiscount: {
@@ -383,15 +469,9 @@ export const defaultValues: Partial<WizardFormData> = {
     startsAt: '',
   },
   paymentInstructions: '',
-
-  // Step 5 defaults (Payment Setup)
   stripeAccountId: null,
   stripeAccountStatus: 'not_connected',
   skipPaymentSetup: false,
-
-  // Step 6 defaults (Website & Branding)
-  isPublic: true,
-  themePreset: 'dark',
 };
 
 // ==============================================================================
@@ -426,6 +506,9 @@ export function validateStep(
         step6Schema.parse(data);
         break;
       case 7:
+        step7Schema.parse(data);
+        break;
+      case 8:
         // Review step - validates entire form
         wizardSchema.parse(data);
         break;

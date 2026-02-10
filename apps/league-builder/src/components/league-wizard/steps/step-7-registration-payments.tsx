@@ -11,6 +11,11 @@ import {
   CreditCard,
   Gift,
   AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  Shield,
+  ArrowRight,
 } from 'lucide-react';
 import {
   Input,
@@ -18,6 +23,7 @@ import {
   FormField,
   Card,
   CardContent,
+  Button,
 } from '@hockey-life/ui';
 import { Switch } from '@/components/ui/switch';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
@@ -35,7 +41,17 @@ function dollarsToCents(dollars: string): number {
   return Math.round(parsed * 100);
 }
 
-export function Step4RegistrationFees() {
+// Check if we're in test/development mode
+const isTestMode = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test');
+
+type StripeAccountStatus = 'not_connected' | 'pending' | 'active';
+
+interface Step7RegistrationPaymentsProps {
+  platformFeePercent?: number;
+}
+
+export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7RegistrationPaymentsProps) {
+  const PLATFORM_FEE_PERCENT = platformFeePercent;
   const {
     register,
     formState: { errors },
@@ -57,6 +73,8 @@ export function Step4RegistrationFees() {
     amount: 0,
     startsAt: '',
   };
+  const stripeAccountStatus = watch('stripeAccountStatus') as StripeAccountStatus;
+  const skipPaymentSetup = watch('skipPaymentSetup');
 
   // Local state for dollar input display
   const [feeDisplay, setFeeDisplay] = React.useState(
@@ -67,9 +85,11 @@ export function Step4RegistrationFees() {
       ? earlyBirdDiscount.amount.toString()
       : centsToDollars(earlyBirdDiscount.amount)
   );
-  const [lateFeeDis, setLateFeeDisplay] = React.useState(
+  const [lateFeeDisplay, setLateFeeDisplay] = React.useState(
     centsToDollars(lateRegistrationFee.amount)
   );
+  const [isConnecting, setIsConnecting] = React.useState(false);
+  const [stripeError, setStripeError] = React.useState<string | null>(null);
 
   // Sync display values when form data changes
   React.useEffect(() => {
@@ -106,13 +126,46 @@ export function Step4RegistrationFees() {
     return registrationFee + lateRegistrationFee.amount;
   };
 
+  // Format fee for display
+  const formatFee = (cents: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(cents / 100);
+  };
+
+  // Handle Stripe Connect onboarding
+  const handleConnectStripe = async () => {
+    setIsConnecting(true);
+    setStripeError(null);
+    try {
+      setValue('skipPaymentSetup', false);
+      setStripeError('Stripe Connect will be configured after your league is created. You can proceed to the next step.');
+      setValue('stripeAccountStatus', 'pending');
+    } catch (err) {
+      console.error('Failed to start Stripe Connect:', err);
+      setStripeError('Failed to connect to Stripe. Please try again.');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleSkipSetup = () => {
+    setValue('skipPaymentSetup', true);
+    setValue('stripeAccountStatus', 'not_connected');
+  };
+
+  const handleUndoSkip = () => {
+    setValue('skipPaymentSetup', false);
+  };
+
   return (
     <WizardStepContainer
-      title="Registration & Fees"
-      description="Configure registration fees and payment options for your league. All fees are optional."
+      title="Registration & Payments"
+      description="Configure registration fees and payment processing for your league."
     >
-      {/* Enable Paid Registration Toggle */}
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Enable Paid Registration Toggle */}
         <Card className="bg-neutral-800/50 border-white/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -142,7 +195,7 @@ export function Step4RegistrationFees() {
         {enablePaidRegistration && (
           <>
             {/* Base Registration Fee */}
-            <div className="space-y-4 pt-4">
+            <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
                 Registration Fee
@@ -178,7 +231,7 @@ export function Step4RegistrationFees() {
             </div>
 
             {/* Early Bird Discount Section */}
-            <div className="space-y-4 pt-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Gift className="h-5 w-5 text-green-500" />
@@ -200,8 +253,7 @@ export function Step4RegistrationFees() {
                   <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-2">
                     <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <p className="text-sm text-muted-foreground">
-                      Offer a discount to players who register early. The discount
-                      can be a fixed dollar amount or a percentage.
+                      Offer a discount to players who register early.
                     </p>
                   </div>
 
@@ -318,7 +370,7 @@ export function Step4RegistrationFees() {
             </div>
 
             {/* Late Registration Fee Section */}
-            <div className="space-y-4 pt-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -337,14 +389,6 @@ export function Step4RegistrationFees() {
 
               {lateRegistrationFee.enabled && (
                 <div className="pl-7 space-y-4 border-l-2 border-orange-500/20">
-                  <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-2">
-                    <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                    <p className="text-sm text-muted-foreground">
-                      Add an additional fee for players who register after a
-                      certain date. This encourages early registration.
-                    </p>
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       label="Additional Late Fee"
@@ -365,7 +409,7 @@ export function Step4RegistrationFees() {
                           step="0.01"
                           min="0"
                           placeholder="0.00"
-                          value={lateFeeDis}
+                          value={lateFeeDisplay}
                           onChange={(e) => {
                             setLateFeeDisplay(e.target.value);
                             setValue('lateRegistrationFee', {
@@ -410,7 +454,7 @@ export function Step4RegistrationFees() {
             </div>
 
             {/* Payment Instructions */}
-            <div className="space-y-4 pt-6">
+            <div className="space-y-4">
               <h3 className="text-lg font-semibold">Payment Instructions (Optional)</h3>
 
               <FormField
@@ -423,110 +467,215 @@ export function Step4RegistrationFees() {
                   {...register('paymentInstructions')}
                   id="paymentInstructions"
                   placeholder="Enter any special payment instructions, policies, or information for players..."
-                  rows={4}
+                  rows={3}
                   error={!!errors.paymentInstructions}
                 />
               </FormField>
             </div>
 
             {/* Fee Structure Preview */}
-            <div className="space-y-4 pt-6">
-              <h3 className="text-lg font-semibold">Fee Structure Preview</h3>
+            <Card className="bg-neutral-800/50 border-white/10">
+              <CardContent className="pt-6">
+                <h3 className="text-lg font-semibold mb-4">Fee Structure Preview</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-700">
+                    <span className="text-muted-foreground">Base Registration Fee</span>
+                    <span className="font-semibold text-lg">
+                      ${centsToDollars(registrationFee)}
+                    </span>
+                  </div>
 
-              <Card className="bg-neutral-800/50 border-white/10">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {/* Base Fee */}
+                  {earlyBirdDiscount.enabled && earlyBirdDiscount.amount > 0 && (
                     <div className="flex items-center justify-between py-2 border-b border-neutral-700">
-                      <span className="text-muted-foreground">Base Registration Fee</span>
-                      <span className="font-semibold text-lg">
-                        ${centsToDollars(registrationFee)}
-                      </span>
+                      <div>
+                        <span className="text-green-500">Early Bird Price</span>
+                        {earlyBirdDiscount.deadline && (
+                          <p className="text-xs text-muted-foreground">
+                            Before {new Date(earlyBirdDiscount.deadline).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="font-semibold text-lg text-green-500">
+                          ${centsToDollars(calculateEarlyBirdPrice())}
+                        </span>
+                        <p className="text-xs text-green-500/70">
+                          Save{' '}
+                          {earlyBirdDiscount.isPercentage
+                            ? `${earlyBirdDiscount.amount}%`
+                            : `$${centsToDollars(earlyBirdDiscount.amount)}`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {lateRegistrationFee.enabled && lateRegistrationFee.amount > 0 && (
+                    <div className="flex items-center justify-between py-2 border-b border-neutral-700">
+                      <div>
+                        <span className="text-orange-500">Late Registration Price</span>
+                        {lateRegistrationFee.startsAt && (
+                          <p className="text-xs text-muted-foreground">
+                            After {new Date(lateRegistrationFee.startsAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="font-semibold text-lg text-orange-500">
+                          ${centsToDollars(calculateLatePrice())}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Platform fee */}
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-700 text-sm">
+                    <span className="text-muted-foreground">Platform fee ({PLATFORM_FEE_PERCENT}%)</span>
+                    <span className="text-muted-foreground">
+                      {formatFee(Math.round(registrationFee * (PLATFORM_FEE_PERCENT / 100)))}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <span className="font-medium">You receive per registration</span>
+                    <span className="font-semibold text-green-500">
+                      {formatFee(registrationFee - Math.round(registrationFee * (PLATFORM_FEE_PERCENT / 100)))}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stripe Connect Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Payment Processing
+              </h3>
+
+              {/* Test Mode Banner */}
+              {isTestMode && (
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg flex items-center gap-2">
+                  <Info className="h-5 w-5 text-yellow-600 shrink-0" />
+                  <p className="text-sm text-yellow-800">
+                    <strong>Test Mode:</strong> Using Stripe test keys. No real charges will be made.
+                  </p>
+                </div>
+              )}
+
+              {skipPaymentSetup ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-6">
+                      <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                        <Clock className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <h4 className="font-semibold mb-2">Payment Setup Deferred</h4>
+                      <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
+                        You can set up Stripe Connect after your league is created from the dashboard.
+                      </p>
+                      <Button variant="outline" size="sm" onClick={handleUndoSkip}>
+                        Connect Stripe Instead
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#635BFF] rounded-lg flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="currentColor">
+                            <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold">Stripe Connect</h4>
+                          <p className="text-sm text-muted-foreground">Secure payment processing</p>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-2 ${
+                        stripeAccountStatus === 'active' ? 'text-green-600' :
+                        stripeAccountStatus === 'pending' ? 'text-blue-600' : 'text-muted-foreground'
+                      }`}>
+                        {stripeAccountStatus === 'active' ? <CheckCircle2 className="h-5 w-5" /> :
+                         stripeAccountStatus === 'pending' ? <Clock className="h-5 w-5" /> :
+                         <ArrowRight className="h-5 w-5" />}
+                        <span className="font-medium text-sm">
+                          {stripeAccountStatus === 'active' ? 'Connected' :
+                           stripeAccountStatus === 'pending' ? 'Pending' : 'Not connected'}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Early Bird */}
-                    {earlyBirdDiscount.enabled && earlyBirdDiscount.amount > 0 && (
-                      <div className="flex items-center justify-between py-2 border-b border-neutral-700">
-                        <div>
-                          <span className="text-green-500">Early Bird Price</span>
-                          {earlyBirdDiscount.deadline && (
-                            <p className="text-xs text-muted-foreground">
-                              Before {new Date(earlyBirdDiscount.deadline).toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <span className="font-semibold text-lg text-green-500">
-                            ${centsToDollars(calculateEarlyBirdPrice())}
-                          </span>
-                          <p className="text-xs text-green-500/70">
-                            Save{' '}
-                            {earlyBirdDiscount.isPercentage
-                              ? `${earlyBirdDiscount.amount}%`
-                              : `$${centsToDollars(earlyBirdDiscount.amount)}`}
-                          </p>
+                    {stripeError && (
+                      <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                          <p className="text-sm text-blue-800">{stripeError}</p>
                         </div>
                       </div>
                     )}
 
-                    {/* Late Fee */}
-                    {lateRegistrationFee.enabled && lateRegistrationFee.amount > 0 && (
-                      <div className="flex items-center justify-between py-2 border-b border-neutral-700">
-                        <div>
-                          <span className="text-orange-500">Late Registration Price</span>
-                          {lateRegistrationFee.startsAt && (
-                            <p className="text-xs text-muted-foreground">
-                              After {new Date(lateRegistrationFee.startsAt).toLocaleDateString()}
-                            </p>
-                          )}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {stripeAccountStatus !== 'active' && (
+                        <>
+                          <Button
+                            type="button"
+                            onClick={handleConnectStripe}
+                            disabled={isConnecting}
+                            className="flex-1"
+                          >
+                            {isConnecting ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Connecting...
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard className="mr-2 h-4 w-4" />
+                                {stripeAccountStatus === 'pending' ? 'Continue Setup' : 'Connect Stripe'}
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleSkipSetup}
+                            disabled={isConnecting}
+                          >
+                            Skip for Now
+                          </Button>
+                        </>
+                      )}
+                      {stripeAccountStatus === 'active' && (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle2 className="h-5 w-5" />
+                          <span className="font-medium">Connected and ready to accept payments</span>
                         </div>
-                        <div className="text-right">
-                          <span className="font-semibold text-lg text-orange-500">
-                            ${centsToDollars(calculateLatePrice())}
-                          </span>
-                          <p className="text-xs text-orange-500/70">
-                            +${centsToDollars(lateRegistrationFee.amount)} late fee
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                    {/* Timeline */}
-                    {(earlyBirdDiscount.enabled || lateRegistrationFee.enabled) && (
-                      <div className="pt-2">
-                        <p className="text-sm text-muted-foreground mb-2">Timeline:</p>
-                        <div className="flex items-center gap-2 text-xs">
-                          {earlyBirdDiscount.enabled && earlyBirdDiscount.deadline && (
-                            <>
-                              <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded">
-                                Early Bird
-                              </span>
-                              <span className="text-muted-foreground">
-                                until {new Date(earlyBirdDiscount.deadline).toLocaleDateString()}
-                              </span>
-                              <span className="text-muted-foreground">|</span>
-                            </>
-                          )}
-                          <span className="px-2 py-1 bg-neutral-600 rounded">
-                            Standard
-                          </span>
-                          {lateRegistrationFee.enabled && lateRegistrationFee.startsAt && (
-                            <>
-                              <span className="text-muted-foreground">|</span>
-                              <span className="px-2 py-1 bg-orange-500/10 text-orange-500 rounded">
-                                Late
-                              </span>
-                              <span className="text-muted-foreground">
-                                from {new Date(lateRegistrationFee.startsAt).toLocaleDateString()}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
+              {/* Security badges */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'PCI Compliant', desc: 'Level 1 certified' },
+                  { label: 'Encrypted', desc: '256-bit SSL' },
+                  { label: 'Direct Deposits', desc: 'To your bank' },
+                  { label: 'Fraud Protection', desc: 'AI-powered' },
+                ].map((badge) => (
+                  <div key={badge.label} className="flex items-start gap-2 p-2">
+                    <Shield className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium">{badge.label}</p>
+                      <p className="text-xs text-muted-foreground">{badge.desc}</p>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
             </div>
           </>
         )}

@@ -31,10 +31,12 @@ import {
   getGoalieLeaders,
   getCurrentSeason,
   getSeasons,
+  getPlayerBadgesByIds,
 } from '@/lib/data';
 import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
 import { DivisionStandingsWidget } from '@/components/DivisionStandingsWidget';
+import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 import { HeroSection } from '@/components/HeroSection';
 import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import { EventCard } from '@/components/events/EventCard';
@@ -47,10 +49,12 @@ import { Button } from '@/components/ui';
 
 interface HomePageProps {
   params: Promise<{ leagueSlug: string }>;
+  searchParams: Promise<{ division?: string }>;
 }
 
-export default async function HomePage({ params }: HomePageProps) {
+export default async function HomePage({ params, searchParams }: HomePageProps) {
   const { leagueSlug } = await params;
+  const { division: divisionFilter } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) {
@@ -73,8 +77,8 @@ export default async function HomePage({ params }: HomePageProps) {
     seasons,
   ] = await Promise.all([
     getLeagueStats(league.id),
-    getUpcomingGames(league.id, 5),
-    getRecentGames(league.id, 5),
+    getUpcomingGames(league.id, 5, divisionFilter),
+    getRecentGames(league.id, 5, divisionFilter),
     getStandings(league.id),
     getDivisions(league.id),
     getNewsArticles(league.id, 3),
@@ -82,13 +86,20 @@ export default async function HomePage({ params }: HomePageProps) {
     getLeagueEvents(league.id),
     getLeagueAwards(league.id),
     getGalleryAlbums(league.id),
-    getStatsLeadersWithAvatars(league.id, 'points', 5),
+    getStatsLeadersWithAvatars(league.id, 'points', 5, divisionFilter),
     getCurrentSeason(league.id),
     getSeasons(league.id),
   ]);
 
   // Fetch goalie leaders (depends on currentSeason)
-  const goalieLeaders = await getGoalieLeaders(league.id, currentSeason?.id, 'wins', 3);
+  const goalieLeaders = await getGoalieLeaders(league.id, currentSeason?.id, 'wins', 3, divisionFilter);
+
+  // Fetch badges for leaders
+  const leaderPlayerIds = [...new Set([
+    ...scoringLeaders.map(p => p.player_id),
+    ...goalieLeaders.map(p => p.player_id),
+  ])];
+  const leaderBadges = await getPlayerBadgesByIds(leaderPlayerIds);
 
   const upcomingEvents = events
     .filter((e) => new Date(e.start_time) > new Date())
@@ -168,6 +179,9 @@ export default async function HomePage({ params }: HomePageProps) {
 
   return (
     <div className={`animate-fade-in league-home league-home-${templateVariant} league-home-shell`}>
+      {/* Division filter URL sync */}
+      <DivisionUrlSync pagePath={`/${leagueSlug}`} />
+
       {/* 1. Hero */}
       <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
 
@@ -223,6 +237,7 @@ export default async function HomePage({ params }: HomePageProps) {
             scoringLeaders={scoringLeaders}
             goalieLeaders={goalieLeaders}
             leagueSlug={leagueSlug}
+            badges={leaderBadges}
           />
         </section>
       )}

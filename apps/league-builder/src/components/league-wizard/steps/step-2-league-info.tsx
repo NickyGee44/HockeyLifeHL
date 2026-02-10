@@ -36,7 +36,7 @@ const COUNTRIES = [
   { value: 'Other', label: 'Other' },
 ];
 
-export function Step1LeagueInfo() {
+export function Step2LeagueInfo() {
   const {
     register,
     formState: { errors },

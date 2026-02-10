@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Zap, Target, Trophy } from 'lucide-react';
 import type { SpecialTeamsLeader } from '@/lib/types';
 
@@ -40,12 +41,12 @@ function LeaderCard({ title, icon, players, leagueSlug, suffix }: LeaderCardProp
               >
                 {index + 1}
               </span>
-              <a
+              <Link
                 href={`/${leagueSlug}/players/${player.playerId}`}
                 className="text-sm truncate hover:text-[var(--league-primary)] transition-colors"
               >
                 {player.name}
-              </a>
+              </Link>
             </div>
             <span
               className={`

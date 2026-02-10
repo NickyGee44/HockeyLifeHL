@@ -57,13 +57,13 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
 
       {bannerUrl && (
         <div className="absolute inset-0">
-          <Image
-            src={bannerUrl}
-            alt={`${league.name} banner`}
-            fill
-            priority
-            quality={85}
-            className="object-cover opacity-20"
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `url(${bannerUrl})`,
+              backgroundRepeat: 'repeat',
+              backgroundSize: '25%',
+            }}
           />
           <div
             className="absolute inset-0"

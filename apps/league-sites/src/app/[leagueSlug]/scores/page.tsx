@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Activity, ChevronRight } from 'lucide-react';
 import { format, isToday, isYesterday, subDays } from 'date-fns';
-import { getLeagueBySlug, getScores, getSeasons, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getScores, getSeasons, getCurrentSeason, getTeams } from '@/lib/data';
 import { ScoreCard } from '@/components/scores/ScoreCard';
 import { ScoresFilters } from '@/components/scores/ScoresFilters';
 import type { RecentGame } from '@/lib/types';
@@ -13,6 +13,7 @@ interface ScoresPageProps {
     period?: 'today' | 'yesterday' | '7days' | '30days';
     season?: string;
     division?: string;
+    team?: string;
   }>;
 }
 
@@ -60,7 +61,7 @@ function formatDateDivider(dateKey: string): string {
 
 export default async function ScoresPage({ params, searchParams }: ScoresPageProps) {
   const { leagueSlug } = await params;
-  const { period = 'today', season: seasonFilter, division: divisionFilter } = await searchParams;
+  const { period = 'today', season: seasonFilter, division: divisionFilter, team: teamFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) return null;
@@ -72,12 +73,14 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
   await getCurrentSeason(league.id);
 
   // Fetch data in parallel
-  const [seasons, games] = await Promise.all([
+  const [seasons, teams, games] = await Promise.all([
     getSeasons(league.id),
+    getTeams(league.id),
     getScores(league.id, {
       daysBack,
       seasonId: seasonFilter,
       divisionId: divisionFilter,
+      teamId: teamFilter,
       status: 'all', // Include in-progress games too
     }),
   ]);
@@ -98,6 +101,10 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
 
     if (divisionFilter) {
       params.set('division', divisionFilter);
+    }
+
+    if (teamFilter) {
+      params.set('team', teamFilter);
     }
 
     return `/${leagueSlug}/scores?${params.toString()}`;
@@ -125,7 +132,8 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
         {/* Filters */}
         <ScoresFilters
           seasons={seasons}
-          currentFilters={{ season: seasonFilter, division: divisionFilter, period }}
+          teams={teams}
+          currentFilters={{ season: seasonFilter, division: divisionFilter, team: teamFilter, period }}
           leagueSlug={leagueSlug}
         />
 
