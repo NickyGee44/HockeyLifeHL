@@ -510,13 +510,26 @@ async function handlePayoutFailed(
   });
 
   if (!isNew) {
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      league_id: league.id,
+    });
     return; // Duplicate event
   }
 
-  console.error(
-    `[Connect Webhook] Payout FAILED for league ${league.id}: ` +
-    `$${payout.amount / 100} - ${payout.failure_message}`
-  );
+  // Log structured event
+  logConnectAccountEvent({
+    stripe_event_id: eventId,
+    league_id: league.id,
+    action: 'account_updated',
+    decision_path: 'payout_failed',
+    metadata: {
+      payout_id: payout.id,
+      amount_cents: payout.amount,
+      failure_code: payout.failure_code,
+      failure_message: payout.failure_message,
+    },
+  });
 
   // Send alert notification to league admin
   try {
@@ -542,7 +555,7 @@ async function handlePayoutFailed(
           .single();
 
         if (profile?.email) {
-          await sendPayoutFailureAlertEmail({
+          const emailResult = await sendPayoutFailureAlertEmail({
             to: profile.email,
             adminName: profile.full_name || 'League Admin',
             leagueName: league.name,
@@ -552,11 +565,25 @@ async function handlePayoutFailed(
             failureMessage: payout.failure_message,
             payoutId: payout.id,
           });
+
+          logNotificationSent({
+            stripe_event_id: eventId,
+            league_id: league.id,
+            notification_type: 'payout_failed',
+            recipient_email: profile.email,
+            success: emailResult.success,
+          });
         }
       }
     }
   } catch (emailError) {
-    console.error('[Connect Webhook] Failed to send payout failure alert email:', emailError);
+    logWebhookError(emailError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'payout.failed',
+      league_id: league.id,
+      action: 'send_payout_failure_email',
+      error_type: 'notification_error',
+    });
   }
 }
 
