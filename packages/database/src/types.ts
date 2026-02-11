@@ -7536,6 +7536,204 @@ export type Database = {
           },
         ]
       }
+      scorekeeper_auto_assign_log: {
+        Row: {
+          assignment_strategy: string
+          assignments: Json | null
+          completed_at: string | null
+          conflicts_detected: number | null
+          created_at: string | null
+          error_message: string | null
+          games_assigned: number
+          games_processed: number
+          games_skipped: number
+          id: string
+          league_id: string
+          season_id: string | null
+          skipped_games: Json | null
+          started_at: string | null
+          status: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          assignment_strategy?: string
+          assignments?: Json | null
+          completed_at?: string | null
+          conflicts_detected?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          games_assigned?: number
+          games_processed?: number
+          games_skipped?: number
+          id?: string
+          league_id: string
+          season_id?: string | null
+          skipped_games?: Json | null
+          started_at?: string | null
+          status?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          assignment_strategy?: string
+          assignments?: Json | null
+          completed_at?: string | null
+          conflicts_detected?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          games_assigned?: number
+          games_processed?: number
+          games_skipped?: number
+          id?: string
+          league_id?: string
+          season_id?: string | null
+          skipped_games?: Json | null
+          started_at?: string | null
+          status?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scorekeeper_availability: {
+        Row: {
+          availability_type: string
+          created_at: string | null
+          created_by: string | null
+          day_of_week: number | null
+          end_time: string
+          id: string
+          is_recurring: boolean | null
+          league_id: string
+          notes: string | null
+          recurrence_pattern: string | null
+          scorekeeper_id: string
+          start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          availability_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          day_of_week?: number | null
+          end_time: string
+          id?: string
+          is_recurring?: boolean | null
+          league_id: string
+          notes?: string | null
+          recurrence_pattern?: string | null
+          scorekeeper_id: string
+          start_time: string
+          updated_at?: string | null
+        }
+        Update: {
+          availability_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          day_of_week?: number | null
+          end_time?: string
+          id?: string
+          is_recurring?: boolean | null
+          league_id?: string
+          notes?: string | null
+          recurrence_pattern?: string | null
+          scorekeeper_id?: string
+          start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorekeeper_availability_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_availability_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_availability_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_availability_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_availability_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_availability_scorekeeper_id_fkey"
+            columns: ["scorekeeper_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_availability_scorekeeper_id_fkey"
+            columns: ["scorekeeper_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scorekeeper_session_games: {
         Row: {
           completed_at: string | null
@@ -11794,6 +11992,15 @@ export type Database = {
           total_payment: number
         }[]
       }
+      get_scorekeeper_workload: {
+        Args: {
+          p_end_date: string
+          p_league_id: string
+          p_scorekeeper_id: string
+          p_start_date: string
+        }
+        Returns: number
+      }
       get_stats_leaders: {
         Args: {
           p_division_id?: string
@@ -11982,6 +12189,14 @@ export type Database = {
           check_league_id: string
           check_player_id: string
           check_season_id: string
+        }
+        Returns: boolean
+      }
+      is_scorekeeper_available: {
+        Args: {
+          p_game_time: string
+          p_league_id: string
+          p_scorekeeper_id: string
         }
         Returns: boolean
       }
