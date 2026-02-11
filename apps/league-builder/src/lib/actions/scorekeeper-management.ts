@@ -701,9 +701,9 @@ export async function autoAssignScorekepers(params: {
 
     const supabase = await createServiceRoleClient();
 
-    // Create auto-assign log entry
-    const { data: logEntry, error: logError } = await supabase
-      .from('scorekeeper_auto_assign_log')
+    // Create auto-assign log entry (table may not exist yet if migration pending)
+    const { data: logEntry, error: logError } = await (supabase
+      .from as any)('scorekeeper_auto_assign_log')
       .insert({
         league_id: leagueId,
         season_id: options.seasonId || null,
@@ -935,10 +935,10 @@ export async function autoAssignScorekepers(params: {
       }
     }
 
-    // Update auto-assign log entry
+    // Update auto-assign log entry (table may not exist yet if migration pending)
     if (logEntry) {
-      await supabase
-        .from('scorekeeper_auto_assign_log')
+      await (supabase
+        .from as any)('scorekeeper_auto_assign_log')
         .update({
           games_processed: result.gamesProcessed,
           games_assigned: result.gamesAssigned,

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       account_deletion_log: {
@@ -7606,99 +7581,6 @@ export type Database = {
           },
         ]
       }
-      scorekeeper_auto_assign_log: {
-        Row: {
-          id: string
-          league_id: string
-          season_id: string | null
-          games_processed: number
-          games_assigned: number
-          games_skipped: number
-          assignment_strategy: string
-          assignments: Json | null
-          skipped_games: Json | null
-          conflicts_detected: number | null
-          started_at: string | null
-          completed_at: string | null
-          status: string | null
-          error_message: string | null
-          triggered_by: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          league_id: string
-          season_id?: string | null
-          games_processed?: number
-          games_assigned?: number
-          games_skipped?: number
-          assignment_strategy?: string
-          assignments?: Json | null
-          skipped_games?: Json | null
-          conflicts_detected?: number | null
-          started_at?: string | null
-          completed_at?: string | null
-          status?: string | null
-          error_message?: string | null
-          triggered_by?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          league_id?: string
-          season_id?: string | null
-          games_processed?: number
-          games_assigned?: number
-          games_skipped?: number
-          assignment_strategy?: string
-          assignments?: Json | null
-          skipped_games?: Json | null
-          conflicts_detected?: number | null
-          started_at?: string | null
-          completed_at?: string | null
-          status?: string | null
-          error_message?: string | null
-          triggered_by?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "league_branding"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "public_leagues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scorekeeper_auto_assign_log_season_id_fkey"
-            columns: ["season_id"]
-            isOneToOne: false
-            referencedRelation: "seasons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scorekeeper_auto_assign_log_triggered_by_fkey"
-            columns: ["triggered_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       scorekeeper_sessions: {
         Row: {
           access_count: number | null
@@ -12683,9 +12565,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       article_type: [
