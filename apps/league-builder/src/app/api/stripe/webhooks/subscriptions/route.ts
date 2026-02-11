@@ -1121,7 +1121,7 @@ async function handlePaymentMethodAttached(
   if (!valid) {
     logEventOrderingRejection({
       stripe_event_id: eventId,
-      organization_id: organizationId,
+      organization_id: org.id,
       event_timestamp: eventTimestamp,
       last_timestamp: lastTimestamp,
     });
@@ -1132,7 +1132,10 @@ async function handlePaymentMethodAttached(
   const isDuplicate = await checkEventDuplicate(supabase, eventId);
 
   if (isDuplicate) {
-    console.log(`[Webhook] Duplicate event ${eventId}, skipping`);
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      organization_id: org.id,
+    });
     return;
   }
 

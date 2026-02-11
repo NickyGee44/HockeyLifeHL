@@ -21,7 +21,7 @@ export interface WebhookLogContext {
 
 export interface ErrorContext extends WebhookLogContext {
   error_type: string;
-  error_message: string;
+  error_message?: string;
   stack_trace?: string;
 }
 
