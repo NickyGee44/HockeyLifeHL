@@ -64,10 +64,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Construct return and refresh URLs
+    // Construct return and refresh URLs (match dashboard route structure)
+    // Redirect to general settings after Stripe Connect onboarding
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const returnUrl = `${baseUrl}/dashboard/leagues/${league.slug}/settings/payments?onboarding=complete`;
-    const refreshUrl = `${baseUrl}/dashboard/leagues/${league.slug}/settings/payments?onboarding=refresh`;
+    const returnUrl = `${baseUrl}/${league.slug}/settings/general?stripe_onboarding=complete`;
+    const refreshUrl = `${baseUrl}/${league.slug}/settings/general?stripe_onboarding=refresh`;
 
     /**
      * Create Account Link using V2 API

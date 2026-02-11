@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripeClient } from '@/lib/stripe/client';
+import { getStripeClient, getPriceIdByTier, type SubscriptionTier } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
@@ -26,11 +26,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const { leagueId } = await request.json();
+    const { leagueId, tier } = await request.json();
 
-    if (!leagueId) {
+    if (!leagueId || !tier) {
       return NextResponse.json(
-        { error: 'Missing required field: leagueId' },
+        { error: 'Missing required fields: leagueId and tier' },
+        { status: 400 }
+      );
+    }
+
+    // Validate tier
+    const validTiers: SubscriptionTier[] = ['platform_monthly', 'advanced_stats', 'ai_news_writer'];
+    if (!validTiers.includes(tier)) {
+      return NextResponse.json(
+        { error: `Invalid tier: ${tier}. Must be one of: ${validTiers.join(', ')}` },
         { status: 400 }
       );
     }
@@ -51,10 +60,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the league's Stripe account ID
+    // Get the league's Stripe account ID and slug
     const { data: league } = await supabase
       .from('leagues')
-      .select('stripe_account_id, slug')
+      .select('id, stripe_account_id, slug')
       .eq('id', leagueId)
       .single();
 
@@ -65,36 +74,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    /**
-     * TODO: Create a subscription price on your platform account first
-     *
-     * You can create this in the Stripe Dashboard or programmatically:
-     *
-     * const price = await getStripeClient().prices.create({
-     *   product: 'prod_xxxxx', // Your platform subscription product
-     *   currency: 'usd',
-     *   unit_amount: 9900, // $99/month
-     *   recurring: { interval: 'month' },
-     * });
-     *
-     * Then set the PRICE_ID environment variable to the price ID.
-     */
-    const PRICE_ID = process.env.STRIPE_SUBSCRIPTION_PRICE_ID;
-
-    if (!PRICE_ID) {
+    // Get the Stripe Price ID for the requested tier
+    let priceId: string;
+    try {
+      priceId = getPriceIdByTier(tier);
+    } catch (error) {
       return NextResponse.json(
-        {
-          error: 'Platform subscription price not configured. ' +
-                 'Please create a subscription price in Stripe Dashboard and set STRIPE_SUBSCRIPTION_PRICE_ID environment variable.',
-        },
+        { error: error instanceof Error ? error.message : 'Invalid subscription tier' },
         { status: 500 }
       );
     }
 
-    // Construct URLs
+    // Construct callback URLs (match dashboard route structure)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const successUrl = `${baseUrl}/dashboard/leagues/${league.slug}/settings/billing?subscription=success&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${baseUrl}/dashboard/leagues/${league.slug}/settings/billing?subscription=cancelled`;
+    const successUrl = `${baseUrl}/${league.slug}/settings/subscription?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/${league.slug}/settings/subscription?checkout=cancelled`;
 
     /**
      * Create Subscription Checkout Session
@@ -119,8 +113,8 @@ export async function POST(request: NextRequest) {
       // Line items (subscription price)
       line_items: [
         {
-          // Platform subscription price ID
-          price: PRICE_ID,
+          // Subscription price ID for the selected tier
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -136,10 +130,11 @@ export async function POST(request: NextRequest) {
 
       // Subscription options
       subscription_data: {
-        // Metadata to track which league this subscription belongs to
+        // Metadata to track which league and tier this subscription belongs to
         metadata: {
           league_id: leagueId,
           user_id: user.id,
+          tier: tier,
         },
       },
     });

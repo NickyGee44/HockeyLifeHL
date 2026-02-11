@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the league's Stripe account ID
+    // Get the league's Stripe account ID and slug
     const { data: league } = await supabase
       .from('leagues')
       .select('stripe_account_id, slug')
@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Construct return URL
+    // Construct return URL (match dashboard route structure)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const returnUrl = `${baseUrl}/dashboard/leagues/${league.slug}/settings/billing`;
+    const returnUrl = `${baseUrl}/${league.slug}/settings/subscription`;
 
     /**
      * Create Billing Portal Session
