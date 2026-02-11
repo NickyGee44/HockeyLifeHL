@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getVenues, getTeams } from '@/lib/data';
 import { WeekPicker } from '@/components/schedule/WeekPicker';
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
@@ -54,7 +55,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   const { week, day, season: seasonFilter, division: divisionFilter, team: teamFilter, type: typeFilter, venue: venueFilter, status: statusFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
-  if (!league) return null;
+  if (!league) notFound();
 
   // Parse week or default to current week
   const weekStart = week ? new Date(week) : getStartOfWeek(new Date());

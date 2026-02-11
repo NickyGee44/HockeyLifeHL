@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import {
   Calendar,
@@ -59,7 +60,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) {
-    return null;
+    notFound();
   }
 
   const [
