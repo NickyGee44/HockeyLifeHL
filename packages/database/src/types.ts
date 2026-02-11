@@ -4049,40 +4049,67 @@ export type Database = {
         Row: {
           can_edit_games: boolean | null
           can_verify_games: boolean | null
+          completed_assignments: number | null
           created_at: string | null
+          display_name: string | null
+          email: string | null
           hired_date: string | null
           hourly_rate: number | null
+          hourly_rate_cents: number | null
           id: string
+          is_active: boolean | null
           league_id: string
+          max_games_per_week: number | null
           notes: string | null
+          phone: string | null
+          preferred_days: string[] | null
           scorekeeper_id: string
           status: string | null
+          total_assignments: number | null
           updated_at: string | null
         }
         Insert: {
           can_edit_games?: boolean | null
           can_verify_games?: boolean | null
+          completed_assignments?: number | null
           created_at?: string | null
+          display_name?: string | null
+          email?: string | null
           hired_date?: string | null
           hourly_rate?: number | null
+          hourly_rate_cents?: number | null
           id?: string
+          is_active?: boolean | null
           league_id: string
+          max_games_per_week?: number | null
           notes?: string | null
+          phone?: string | null
+          preferred_days?: string[] | null
           scorekeeper_id: string
           status?: string | null
+          total_assignments?: number | null
           updated_at?: string | null
         }
         Update: {
           can_edit_games?: boolean | null
           can_verify_games?: boolean | null
+          completed_assignments?: number | null
           created_at?: string | null
+          display_name?: string | null
+          email?: string | null
           hired_date?: string | null
           hourly_rate?: number | null
+          hourly_rate_cents?: number | null
           id?: string
+          is_active?: boolean | null
           league_id?: string
+          max_games_per_week?: number | null
           notes?: string | null
+          phone?: string | null
+          preferred_days?: string[] | null
           scorekeeper_id?: string
           status?: string | null
+          total_assignments?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -4948,6 +4975,90 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_addons: {
+        Row: {
+          activated_at: string | null
+          addon_type: string
+          amount_cents: number
+          cancelled_at: string | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          organization_id: string
+          status: string
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          addon_type: string
+          amount_cents?: number
+          cancelled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          organization_id: string
+          status?: string
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          addon_type?: string
+          amount_cents?: number
+          cancelled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          organization_id?: string
+          status?: string
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_addons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "mv_org_daily_revenue"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_addons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "mv_org_game_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_addons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "mv_org_registration_funnel"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_addons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "mv_org_user_role_counts"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_addons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -7495,6 +7606,99 @@ export type Database = {
           },
         ]
       }
+      scorekeeper_auto_assign_log: {
+        Row: {
+          id: string
+          league_id: string
+          season_id: string | null
+          games_processed: number
+          games_assigned: number
+          games_skipped: number
+          assignment_strategy: string
+          assignments: Json | null
+          skipped_games: Json | null
+          conflicts_detected: number | null
+          started_at: string | null
+          completed_at: string | null
+          status: string | null
+          error_message: string | null
+          triggered_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          league_id: string
+          season_id?: string | null
+          games_processed?: number
+          games_assigned?: number
+          games_skipped?: number
+          assignment_strategy?: string
+          assignments?: Json | null
+          skipped_games?: Json | null
+          conflicts_detected?: number | null
+          started_at?: string | null
+          completed_at?: string | null
+          status?: string | null
+          error_message?: string | null
+          triggered_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          league_id?: string
+          season_id?: string | null
+          games_processed?: number
+          games_assigned?: number
+          games_skipped?: number
+          assignment_strategy?: string
+          assignments?: Json | null
+          skipped_games?: Json | null
+          conflicts_detected?: number | null
+          started_at?: string | null
+          completed_at?: string | null
+          status?: string | null
+          error_message?: string | null
+          triggered_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_auto_assign_log_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scorekeeper_sessions: {
         Row: {
           access_count: number | null
@@ -7510,6 +7714,7 @@ export type Database = {
           is_active: boolean | null
           last_accessed_at: string | null
           league_id: string
+          league_scorekeeper_id: string | null
           scorekeeper_id: string | null
           session_type: string
           token: string
@@ -7528,6 +7733,7 @@ export type Database = {
           is_active?: boolean | null
           last_accessed_at?: string | null
           league_id: string
+          league_scorekeeper_id?: string | null
           scorekeeper_id?: string | null
           session_type?: string
           token: string
@@ -7546,6 +7752,7 @@ export type Database = {
           is_active?: boolean | null
           last_accessed_at?: string | null
           league_id?: string
+          league_scorekeeper_id?: string | null
           scorekeeper_id?: string | null
           session_type?: string
           token?: string
@@ -7577,6 +7784,68 @@ export type Database = {
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_sessions_league_scorekeeper_id_fkey"
+            columns: ["league_scorekeeper_id"]
+            isOneToOne: false
+            referencedRelation: "league_scorekeepers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scorekeeper_swap_requests: {
+        Row: {
+          accepting_scorekeeper_id: string | null
+          created_at: string | null
+          game_id: string
+          id: string
+          reason: string | null
+          requesting_scorekeeper_id: string
+          resolved_at: string | null
+          status: string | null
+        }
+        Insert: {
+          accepting_scorekeeper_id?: string | null
+          created_at?: string | null
+          game_id: string
+          id?: string
+          reason?: string | null
+          requesting_scorekeeper_id: string
+          resolved_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          accepting_scorekeeper_id?: string | null
+          created_at?: string | null
+          game_id?: string
+          id?: string
+          reason?: string | null
+          requesting_scorekeeper_id?: string
+          resolved_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorekeeper_swap_requests_accepting_scorekeeper_id_fkey"
+            columns: ["accepting_scorekeeper_id"]
+            isOneToOne: false
+            referencedRelation: "league_scorekeepers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_swap_requests_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_swap_requests_requesting_scorekeeper_id_fkey"
+            columns: ["requesting_scorekeeper_id"]
+            isOneToOne: false
+            referencedRelation: "league_scorekeepers"
             referencedColumns: ["id"]
           },
         ]
@@ -11771,6 +12040,14 @@ export type Database = {
       }
       increment_game_score: {
         Args: { p_game_id: string; p_team_type: string }
+        Returns: undefined
+      }
+      increment_scorekeeper_assignments: {
+        Args: { p_count?: number; p_league_scorekeeper_id: string }
+        Returns: undefined
+      }
+      increment_scorekeeper_completed: {
+        Args: { p_count?: number; p_league_scorekeeper_id: string }
         Returns: undefined
       }
       is_account_locked: {
