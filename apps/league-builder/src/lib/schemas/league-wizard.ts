@@ -68,8 +68,8 @@ export const step2Schema = z.object({
     .string()
     .min(2, 'State/Province is required')
     .max(100, 'State/Province must be less than 100 characters'),
-  country: z.string().default('USA'),
-  timezone: z.string().default('America/New_York'),
+  country: z.string().default('CA'),
+  timezone: z.string().default('America/Toronto'),
 
   // Branding
   primary_color: z
@@ -455,8 +455,8 @@ export const defaultValues: Partial<WizardFormData> = {
   orgBusinessCountry: 'CA',
 
   // Step 2: League Info
-  country: 'USA',
-  timezone: 'America/New_York',
+  country: 'CA',
+  timezone: 'America/Toronto',
   primary_color: '#1E40AF',
   secondary_color: '#3B82F6',
 
