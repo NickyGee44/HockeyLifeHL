@@ -16,11 +16,115 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripeClient } from '@/lib/stripe/client';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
 
+export const runtime = 'nodejs';
+
+type ServiceRoleSupabaseClient = ReturnType<typeof createServiceRoleClient>;
+type WebhookLockState = 'acquired' | 'duplicate' | 'in_progress';
+
+const WEBHOOK_LOCK_STALE_MS = 15 * 60 * 1000;
+const UNIQUE_VIOLATION_CODE = '23505';
+
+function isWebhookLockRecent(createdAt: string | null): boolean {
+  if (!createdAt) {
+    return false;
+  }
+
+  const createdAtMs = Date.parse(createdAt);
+  if (Number.isNaN(createdAtMs)) {
+    return false;
+  }
+
+  return Date.now() - createdAtMs < WEBHOOK_LOCK_STALE_MS;
+}
+
+async function acquireWebhookLock(
+  supabase: ServiceRoleSupabaseClient,
+  stripeEventId: string,
+  eventType: string
+): Promise<WebhookLockState> {
+  const { error: insertError } = await supabase.from('webhook_events').insert({
+    stripe_event_id: stripeEventId,
+    event_type: eventType,
+    processed_at: null,
+  });
+
+  if (!insertError) {
+    return 'acquired';
+  }
+
+  if ((insertError as { code?: string }).code !== UNIQUE_VIOLATION_CODE) {
+    throw insertError;
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('webhook_events')
+    .select('created_at, processed_at')
+    .eq('stripe_event_id', stripeEventId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw existingError;
+  }
+
+  if (!existing) {
+    throw new Error(`Webhook lock row missing for duplicate event ${stripeEventId}`);
+  }
+
+  if (existing.processed_at) {
+    return 'duplicate';
+  }
+
+  if (isWebhookLockRecent(existing.created_at)) {
+    return 'in_progress';
+  }
+
+  const claimPayload = {
+    created_at: new Date().toISOString(),
+    event_type: eventType,
+  };
+
+  const claimResult = existing.created_at
+    ? await supabase
+        .from('webhook_events')
+        .update(claimPayload)
+        .eq('stripe_event_id', stripeEventId)
+        .is('processed_at', null)
+        .eq('created_at', existing.created_at)
+        .select('stripe_event_id')
+        .maybeSingle()
+    : await supabase
+        .from('webhook_events')
+        .update(claimPayload)
+        .eq('stripe_event_id', stripeEventId)
+        .is('processed_at', null)
+        .is('created_at', null)
+        .select('stripe_event_id')
+        .maybeSingle();
+
+  if (claimResult.error) {
+    throw claimResult.error;
+  }
+
+  return claimResult.data ? 'acquired' : 'in_progress';
+}
+
+async function completeWebhookLock(supabase: ServiceRoleSupabaseClient, stripeEventId: string): Promise<void> {
+  const { error } = await supabase
+    .from('webhook_events')
+    .update({ processed_at: new Date().toISOString() })
+    .eq('stripe_event_id', stripeEventId)
+    .is('processed_at', null);
+
+  if (error) throw error;
+}
+
 export async function POST(request: NextRequest) {
+  let lockedEventId: string | null = null;
+
   try {
     // Get the raw body for signature verification
     const body = await request.text();
@@ -60,6 +164,25 @@ export async function POST(request: NextRequest) {
 
     console.log('Received thin event:', thinEvent.type, 'ID:', thinEvent.id);
 
+    const supabase = createServiceRoleClient();
+    const lockState = await acquireWebhookLock(
+      supabase,
+      thinEvent.id,
+      String(thinEvent.type)
+    );
+
+    if (lockState === 'duplicate') {
+      console.log(`Thin webhook event ${thinEvent.id} already processed - ignoring duplicate`);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+
+    if (lockState === 'in_progress') {
+      console.log(`Thin webhook event ${thinEvent.id} is currently in progress - skipping`);
+      return NextResponse.json({ received: true, inProgress: true });
+    }
+
+    lockedEventId = thinEvent.id;
+
     /**
      * Fetch Full Event Data
      * We need to retrieve the full event from Stripe to get the details
@@ -75,7 +198,7 @@ export async function POST(request: NextRequest) {
        * Triggered when account requirements change (e.g., need to verify identity)
        */
       case 'v2.core.account[requirements].updated':
-        await handleRequirementsUpdated(event);
+        await handleRequirementsUpdated(event, supabase);
         break;
 
       /**
@@ -83,7 +206,7 @@ export async function POST(request: NextRequest) {
        * Triggered when the merchant (payment acceptance) capability status changes
        */
       case 'v2.core.account[configuration.merchant].capability_status_updated':
-        await handleMerchantCapabilityUpdated(event);
+        await handleMerchantCapabilityUpdated(event, supabase);
         break;
 
       /**
@@ -91,16 +214,25 @@ export async function POST(request: NextRequest) {
        * Triggered when the customer (being charged) capability status changes
        */
       case 'v2.core.account[configuration.customer].capability_status_updated':
-        await handleCustomerCapabilityUpdated(event);
+        await handleCustomerCapabilityUpdated(event, supabase);
         break;
 
       default:
         console.log('Unhandled event type:', event.type);
     }
 
-    return NextResponse.json({ received: true });
+    await completeWebhookLock(supabase, thinEvent.id);
+    lockedEventId = null;
+
+    return NextResponse.json({ received: true});
 
   } catch (error: unknown) {
+    if (lockedEventId) {
+      console.error('V2 account webhook processing failed after lock acquisition; leaving processed_at null for stale retry:', {
+        stripe_event_id: lockedEventId,
+        error,
+      });
+    }
     console.error('Webhook error:', error);
 
     if (error instanceof Error && 'type' in error) {
@@ -126,8 +258,9 @@ export async function POST(request: NextRequest) {
  * - Card network requirements
  * - Identity verification needs
  */
-async function handleRequirementsUpdated(event: any) {
+async function handleRequirementsUpdated(event: any, supabase: ServiceRoleSupabaseClient) {
   console.log('Handling requirements updated for account:', event.data?.object?.id);
+  void supabase;
 
   const accountId = event.data?.object?.id;
   if (!accountId) return;
@@ -147,9 +280,6 @@ async function handleRequirementsUpdated(event: any) {
       pastDue,
       eventuallyDue,
     });
-
-    // Update database with requirements status
-    const supabase = await createClient();
 
     // TODO: Store requirements in database for tracking
     // await supabase.from('leagues')
@@ -176,7 +306,7 @@ async function handleRequirementsUpdated(event: any) {
  * Triggered when card_payments capability status changes
  * Statuses: inactive, pending, active, restricted, suspended
  */
-async function handleMerchantCapabilityUpdated(event: any) {
+async function handleMerchantCapabilityUpdated(event: any, supabase: ServiceRoleSupabaseClient) {
   console.log('Handling merchant capability updated for account:', event.data?.object?.id);
 
   const accountId = event.data?.object?.id;
@@ -192,9 +322,6 @@ async function handleMerchantCapabilityUpdated(event: any) {
       account.configuration?.merchant?.capabilities?.card_payments?.status;
 
     console.log('Card payments capability status:', cardPaymentsStatus);
-
-    // Update database
-    const supabase = await createClient();
 
     const status = cardPaymentsStatus === 'active' ? 'active' : 'pending';
 
@@ -221,8 +348,9 @@ async function handleMerchantCapabilityUpdated(event: any) {
  * Triggered when the account's ability to be charged changes
  * This is important for platform subscriptions
  */
-async function handleCustomerCapabilityUpdated(event: any) {
+async function handleCustomerCapabilityUpdated(event: any, supabase: ServiceRoleSupabaseClient) {
   console.log('Handling customer capability updated for account:', event.data?.object?.id);
+  void supabase;
 
   const accountId = event.data?.object?.id;
   if (!accountId) return;

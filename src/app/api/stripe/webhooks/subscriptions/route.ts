@@ -32,10 +32,103 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripeClient } from '@/lib/stripe/client';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 
+export const runtime = 'nodejs';
+
+const WEBHOOK_LOCK_STALE_MS = 15 * 60 * 1000;
+const UNIQUE_VIOLATION_CODE = '23505';
+
+function isWebhookLockRecent(createdAt: string | null): boolean {
+  if (!createdAt) return false;
+  const createdAtMs = Date.parse(createdAt);
+  if (Number.isNaN(createdAtMs)) return false;
+  return Date.now() - createdAtMs < WEBHOOK_LOCK_STALE_MS;
+}
+
+async function acquireWebhookLock(supabase: any, stripeEventId: string, eventType: string) {
+  const { error: insertError } = await supabase.from('webhook_events').insert({
+    stripe_event_id: stripeEventId,
+    event_type: eventType,
+    processed_at: null,
+  });
+
+  if (!insertError) {
+    return 'acquired' as const;
+  }
+
+  if ((insertError as { code?: string }).code !== UNIQUE_VIOLATION_CODE) {
+    throw insertError;
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('webhook_events')
+    .select('created_at, processed_at')
+    .eq('stripe_event_id', stripeEventId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw existingError;
+  }
+
+  if (!existing) {
+    throw new Error(`Webhook lock row missing for duplicate event ${stripeEventId}`);
+  }
+
+  if (existing.processed_at) {
+    return 'duplicate' as const;
+  }
+
+  if (isWebhookLockRecent(existing.created_at)) {
+    return 'in_progress' as const;
+  }
+
+  const claimPayload = {
+    created_at: new Date().toISOString(),
+    event_type: eventType,
+  };
+
+  const claimResult = existing.created_at
+    ? await supabase
+        .from('webhook_events')
+        .update(claimPayload)
+        .eq('stripe_event_id', stripeEventId)
+        .is('processed_at', null)
+        .eq('created_at', existing.created_at)
+        .select('stripe_event_id')
+        .maybeSingle()
+    : await supabase
+        .from('webhook_events')
+        .update(claimPayload)
+        .eq('stripe_event_id', stripeEventId)
+        .is('processed_at', null)
+        .is('created_at', null)
+        .select('stripe_event_id')
+        .maybeSingle();
+
+  if (claimResult.error) {
+    throw claimResult.error;
+  }
+
+  return claimResult.data ? ('acquired' as const) : ('in_progress' as const);
+}
+
+async function completeWebhookLock(supabase: any, stripeEventId: string) {
+  const { error } = await supabase
+    .from('webhook_events')
+    .update({ processed_at: new Date().toISOString() })
+    .eq('stripe_event_id', stripeEventId)
+    .is('processed_at', null);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function POST(request: NextRequest) {
+  let lockedEventId: string | null = null;
+
   try {
     // Get the raw body for signature verification
     const body = await request.text();
@@ -80,34 +173,34 @@ export async function POST(request: NextRequest) {
 
     console.log('Received webhook event:', event.type, 'ID:', event.id);
 
-    // Log webhook event to database for audit trail
-    try {
-      const supabase = await createClient();
-      await supabase.from('stripe_webhook_events').insert({
-        stripe_event_id: event.id,
-        event_type: event.type,
-        stripe_account_id: (event.account as string) || null,
-        event_data: event.data.object as any,
-        stripe_created_at: new Date(event.created * 1000).toISOString(),
-      });
-    } catch (err) {
-      console.error('Error logging webhook event:', err);
-      // Continue processing even if logging fails
+    const supabase = createServiceRoleClient();
+    const lockState = await acquireWebhookLock(supabase, event.id, event.type);
+
+    if (lockState === 'duplicate') {
+      console.log(`Webhook event ${event.id} already processed - ignoring duplicate`);
+      return NextResponse.json({ received: true, duplicate: true });
     }
+
+    if (lockState === 'in_progress') {
+      console.log(`Webhook event ${event.id} is currently in progress - skipping`);
+      return NextResponse.json({ received: true, inProgress: true });
+    }
+
+    lockedEventId = event.id;
 
     // Handle different event types
     switch (event.type) {
       // Subscription Events
       case 'customer.subscription.created':
-        await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
+        await handleSubscriptionCreated(event.data.object as Stripe.Subscription, supabase);
         break;
 
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, supabase);
         break;
 
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, supabase);
         break;
 
       // Payment Method Events
@@ -141,20 +234,29 @@ export async function POST(request: NextRequest) {
 
       // Invoice Events
       case 'invoice.paid':
-        await handleInvoicePaid(event.data.object as Stripe.Invoice);
+        await handleInvoicePaid(event.data.object as Stripe.Invoice, supabase);
         break;
 
       case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, supabase);
         break;
 
       default:
         console.log('Unhandled event type:', event.type);
     }
 
+    await completeWebhookLock(supabase, event.id);
+    lockedEventId = null;
+
     return NextResponse.json({ received: true });
 
   } catch (error: unknown) {
+    if (lockedEventId) {
+      console.error('Subscription webhook processing failed after lock acquisition; leaving processed_at null for stale retry:', {
+        stripe_event_id: lockedEventId,
+        error,
+      });
+    }
     console.error('Webhook error:', error);
 
     if (error instanceof Error && 'type' in error) {
@@ -176,7 +278,7 @@ export async function POST(request: NextRequest) {
  * Handle Subscription Created
  * Triggered when a new subscription is created
  */
-async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
+async function handleSubscriptionCreated(subscription: Stripe.Subscription, supabase: any) {
   console.log('Subscription created:', subscription.id);
 
   /**
@@ -192,7 +294,6 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   }
 
   try {
-    const supabase = await createClient();
 
     // Store subscription in database
     const { error: insertError } = await supabase.from('stripe_subscriptions').insert({
@@ -247,7 +348,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
  * - Cancellation reverted (cancel_at_period_end = false)
  * - Pause/resume
  */
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supabase: any) {
   console.log('Subscription updated:', subscription.id);
 
   const accountId = subscription.customer_account as string;
@@ -260,7 +361,6 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const pauseCollection = subscription.pause_collection;
 
   try {
-    const supabase = await createClient();
 
     // Update subscription in database
     const { error: updateError } = await supabase.from('stripe_subscriptions')
@@ -327,14 +427,13 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
  * Handle Subscription Deleted
  * Triggered when a subscription is canceled/ended
  */
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supabase: any) {
   console.log('Subscription deleted:', subscription.id);
 
   const accountId = subscription.customer_account as string;
   const leagueId = subscription.metadata?.league_id;
 
-  try {
-    const supabase = await createClient();
+  try{
 
     // Update subscription status in database
     const { error: updateError } = await supabase.from('stripe_subscriptions')
@@ -422,7 +521,7 @@ async function handleTaxIdEvent(event: Stripe.Event) {
  * Handle Invoice Paid
  * Triggered when an invoice is successfully paid
  */
-async function handleInvoicePaid(invoice: Stripe.Invoice) {
+async function handleInvoicePaid(invoice: Stripe.Invoice, supabase: any) {
   console.log('Invoice paid:', invoice.id, 'Amount:', invoice.amount_paid);
 
   const accountId = invoice.customer_account as string;
@@ -430,7 +529,6 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
 
   try {
-    const supabase = await createClient();
 
     // Get subscription from database to link payment
     const { data: subscription } = await supabase
@@ -479,7 +577,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
  * Handle Invoice Payment Failed
  * Triggered when an invoice payment fails
  */
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any) {
   console.log('Invoice payment failed:', invoice.id);
 
   const accountId = invoice.customer_account as string;
@@ -487,7 +585,6 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
 
   try {
-    const supabase = await createClient();
 
     // Get subscription from database
     const { data: subscription } = await supabase
