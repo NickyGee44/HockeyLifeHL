@@ -217,7 +217,7 @@ export function ScheduleConfigStep({
               }))}
               className={cn(
                 'p-4 rounded-lg border text-left transition-colors',
-                (config as any).playoffFormat === format.value
+                config.playoffFormat === format.value
                   ? 'border-rink-500 bg-rink-500/10'
                   : 'border-neutral-700 hover:border-rink-500/50'
               )}
@@ -229,7 +229,7 @@ export function ScheduleConfigStep({
         </div>
 
         {/* Playoff Teams Selection */}
-        {(config as any).playoffFormat && (config as any).playoffFormat !== 'none' && (
+        {config.playoffFormat && config.playoffFormat !== 'none' && (
           <div className="mt-4">
             <label className="block text-sm font-medium text-neutral-300 mb-2">
               Number of Playoff Teams
@@ -238,10 +238,10 @@ export function ScheduleConfigStep({
               {[4, 6, 8, 10, 12, 16].filter(n => n <= teamCount).map((num) => (
                 <button
                   key={num}
-                  onClick={() => setConfig((prev) => ({ ...prev, playoffTeams: num } as any))}
+                  onClick={() => setConfig((prev) => ({ ...prev, playoffTeams: num }))}
                   className={cn(
                     'px-4 py-2 rounded-lg border text-sm transition-colors',
-                    (config as any).playoffTeams === num
+                    config.playoffTeams === num
                       ? 'border-rink-500 bg-rink-500/10 text-rink-500'
                       : 'border-neutral-700 text-neutral-400 hover:border-rink-500/50'
                   )}
@@ -257,14 +257,14 @@ export function ScheduleConfigStep({
                 <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-blue-300">
                   <p>
-                    {(config as any).playoffFormat === 'single_elimination' && (
-                      <>Single elimination bracket with {(config as any).playoffTeams || 8} teams = {Math.ceil(Math.log2((config as any).playoffTeams || 8))} rounds</>
+                    {config.playoffFormat === 'single_elimination' && (
+                      <>Single elimination bracket with {config.playoffTeams || 8} teams = {Math.ceil(Math.log2(config.playoffTeams || 8))} rounds</>
                     )}
-                    {(config as any).playoffFormat === 'best_of_3' && (
-                      <>Best of 3 series: Up to {((config as any).playoffTeams || 8) / 2 * 3} playoff games</>
+                    {config.playoffFormat === 'best_of_3' && (
+                      <>Best of 3 series: Up to {(config.playoffTeams || 8) / 2 * 3} playoff games</>
                     )}
-                    {(config as any).playoffFormat === 'best_of_5' && (
-                      <>Best of 5 series: Up to {((config as any).playoffTeams || 8) / 2 * 5} playoff games</>
+                    {config.playoffFormat === 'best_of_5' && (
+                      <>Best of 5 series: Up to {(config.playoffTeams || 8) / 2 * 5} playoff games</>
                     )}
                   </p>
                   <p className="mt-1 text-blue-400/80">

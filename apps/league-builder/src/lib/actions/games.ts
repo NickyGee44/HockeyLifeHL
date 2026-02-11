@@ -751,6 +751,63 @@ export async function bulkCancelGames(
 }
 
 // ==============================================================================
+// BULK POSTPONE GAMES
+// ==============================================================================
+
+export async function bulkPostponeGames(
+  gameIds: string[],
+  reason: string
+): Promise<ActionResult<{ postponed: number; failed: string[] }>> {
+  try {
+    if (!reason.trim()) {
+      return { success: false, error: 'Postponement reason is required' };
+    }
+
+    if (gameIds.length === 0) {
+      return { success: false, error: 'No games selected' };
+    }
+
+    if (gameIds.length > MAX_BULK_OPERATIONS) {
+      return {
+        success: false,
+        error: `Cannot postpone more than ${MAX_BULK_OPERATIONS} games at once`
+      };
+    }
+
+    for (const gameId of gameIds) {
+      if (!isValidUUID(gameId)) {
+        return { success: false, error: 'Invalid game ID format in selection' };
+      }
+    }
+
+    const postponed: string[] = [];
+    const failed: string[] = [];
+
+    for (const gameId of gameIds) {
+      const result = await postponeGame(gameId, reason);
+      if (result.success) {
+        postponed.push(gameId);
+      } else {
+        failed.push(gameId);
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        postponed: postponed.length,
+        failed,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'bulkPostponeGames'),
+    };
+  }
+}
+
+// ==============================================================================
 // BULK RESCHEDULE GAMES (shift by days)
 // ==============================================================================
 

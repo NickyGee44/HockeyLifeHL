@@ -6,13 +6,25 @@
  * Client-side interactivity for schedule management.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, RefreshCw, Calendar, List, Grid } from 'lucide-react';
+import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { ScheduleWizard } from '@/components/schedule-wizard';
 import { ScheduleCalendar } from '@/components/schedule-wizard/ScheduleCalendar';
+import { GameReschedulePanel } from '@/components/dashboard/seasons/GameReschedulePanel';
+import { GameDetailSheet } from '@/components/dashboard/seasons/GameDetailSheet';
 import { saveScheduleGames } from '@/lib/schedule/actions';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/dialog';
 import type { Team, Venue, ScheduledGame, ScheduleTemplate, ScheduleGenerationResult } from '@/lib/schedule/types';
 
 // ============================================================================
@@ -34,6 +46,47 @@ interface SchedulePageClientProps {
 type ViewMode = 'calendar' | 'list';
 
 // ============================================================================
+// STATUS BADGE
+// ============================================================================
+
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  scheduled: {
+    label: 'Scheduled',
+    className: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  },
+  in_progress: {
+    label: 'In Progress',
+    className: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+  },
+  completed: {
+    label: 'Completed',
+    className: 'bg-green-500/10 text-green-400 border-green-500/30',
+  },
+  postponed: {
+    label: 'Postponed',
+    className: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    className: 'bg-red-500/10 text-red-400 border-red-500/30',
+  },
+};
+
+function GameStatusBadge({ status }: { status: string }) {
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.scheduled;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border',
+        config.className
+      )}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
@@ -53,8 +106,17 @@ export function SchedulePageClient({
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [games, setGames] = useState<ScheduledGame[]>(existingGames);
   const [isSaving, setIsSaving] = useState(false);
+  const [showReschedulePanel, setShowReschedulePanel] = useState(false);
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<ScheduledGame | null>(null);
+  const [showGameDetail, setShowGameDetail] = useState(false);
 
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
+
+  const postponedCount = useMemo(
+    () => games.filter((g) => g.status === 'postponed').length,
+    [games]
+  );
 
   // Handle wizard completion
   const handleWizardComplete = useCallback(
@@ -151,13 +213,30 @@ export function SchedulePageClient({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Manage Cancellations */}
           {hasExistingSchedule && (
             <button
-              onClick={() => setShowWizard(true)}
+              onClick={() => setShowReschedulePanel(true)}
+              className="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition-colors"
+            >
+              <CloudOff className="w-4 h-4" />
+              Manage Cancellations
+              {postponedCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {postponedCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Regenerate All */}
+          {hasExistingSchedule && (
+            <button
+              onClick={() => setShowRegenerateConfirm(true)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-300 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
-              Regenerate
+              Regenerate All
             </button>
           )}
           <button
@@ -191,7 +270,8 @@ export function SchedulePageClient({
           games={games}
           teams={teams}
           onGameClick={(game) => {
-            console.log('Game clicked:', game);
+            setSelectedGame(game);
+            setShowGameDetail(true);
           }}
         />
       ) : (
@@ -219,6 +299,9 @@ export function SchedulePageClient({
                     Location
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase">
                     Round
                   </th>
                 </tr>
@@ -227,7 +310,15 @@ export function SchedulePageClient({
                 {games.map((game, index) => (
                   <tr
                     key={game.id ?? index}
-                    className="border-b border-neutral-800 last:border-0 hover:bg-neutral-800/50 transition-colors"
+                    onClick={() => {
+                      setSelectedGame(game);
+                      setShowGameDetail(true);
+                    }}
+                    className={cn(
+                      'border-b border-neutral-800 last:border-0 hover:bg-neutral-800/50 transition-colors cursor-pointer',
+                      game.status === 'cancelled' && 'opacity-50',
+                      game.status === 'postponed' && 'bg-yellow-500/[0.02]'
+                    )}
                   >
                     <td className="px-4 py-3 text-sm text-white">
                       {game.scheduledAt.toLocaleDateString('en-US', {
@@ -244,12 +335,27 @@ export function SchedulePageClient({
                     </td>
                     <td className="px-4 py-3 text-sm text-white font-medium">
                       {teamsById[game.homeTeamId]?.name ?? 'Unknown'}
+                      {game.status === 'completed' && game.homeScore != null && (
+                        <span className="ml-2 text-green-400 font-bold">{game.homeScore}</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-center text-sm text-neutral-500">vs</td>
+                    <td className="px-4 py-3 text-center text-sm text-neutral-500">
+                      {game.status === 'completed' &&
+                      game.homeScore != null &&
+                      game.awayScore != null
+                        ? '-'
+                        : 'vs'}
+                    </td>
                     <td className="px-4 py-3 text-sm text-white font-medium">
+                      {game.status === 'completed' && game.awayScore != null && (
+                        <span className="mr-2 text-green-400 font-bold">{game.awayScore}</span>
+                      )}
                       {teamsById[game.awayTeamId]?.name ?? 'Unknown'}
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-400">{game.location}</td>
+                    <td className="px-4 py-3">
+                      <GameStatusBadge status={game.status ?? 'scheduled'} />
+                    </td>
                     <td className="px-4 py-3 text-sm text-neutral-400">Round {game.roundNumber}</td>
                   </tr>
                 ))}
@@ -258,6 +364,54 @@ export function SchedulePageClient({
           </div>
         </div>
       )}
+
+      {/* Regenerate All Confirmation Dialog */}
+      <AlertDialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
+        <AlertDialogContent className="bg-neutral-800 border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-white">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              Regenerate Entire Schedule?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-400">
+              This will replace all unplayed games. Completed games will be preserved.
+              Use &apos;Manage Cancellations&apos; to reschedule individual games.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-neutral-600 text-neutral-300 hover:bg-neutral-700">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowRegenerateConfirm(false);
+                setShowWizard(true);
+              }}
+              className="bg-yellow-600 text-white hover:bg-yellow-700"
+            >
+              Yes, Regenerate All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Game Reschedule Panel */}
+      <GameReschedulePanel
+        open={showReschedulePanel}
+        onOpenChange={setShowReschedulePanel}
+        games={games}
+        teams={teams}
+        onGamesUpdated={() => router.refresh()}
+      />
+
+      {/* Game Detail Sheet */}
+      <GameDetailSheet
+        open={showGameDetail}
+        onOpenChange={setShowGameDetail}
+        game={selectedGame}
+        teams={teams}
+        onGameUpdated={() => router.refresh()}
+      />
     </div>
   );
 }

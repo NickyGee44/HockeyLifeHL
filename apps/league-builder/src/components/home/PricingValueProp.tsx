@@ -2,13 +2,19 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, BarChart3, Sparkles, Crown } from 'lucide-react';
 
 const benefits = [
   'pricing.benefit1',
   'pricing.benefit2',
   'pricing.benefit3',
   'pricing.benefit4',
+];
+
+const addons = [
+  { key: 'addon1', icon: BarChart3, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  { key: 'addon2', icon: Sparkles, color: 'text-violet-400', bg: 'bg-violet-500/10' },
+  { key: 'addon3', icon: Crown, color: 'text-amber-400', bg: 'bg-amber-500/10' },
 ];
 
 export function PricingValueProp() {
@@ -74,6 +80,41 @@ export function PricingValueProp() {
                 {t('pricing.noCard')}
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Optional Premium Add-Ons */}
+        <div className="mt-12">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-white mb-2">
+              {t('pricing.addonsHeadline')}
+            </h3>
+            <p className="text-neutral-400">
+              {t('pricing.addonsSubheadline')}
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {addons.map(({ key, icon: Icon, color, bg }) => (
+              <div
+                key={key}
+                className="p-5 rounded-xl bg-neutral-800/50 border border-white/5 hover:border-white/10 transition-colors"
+              >
+                <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center mb-3`}>
+                  <Icon className={`w-5 h-5 ${color}`} />
+                </div>
+                <div className="flex items-baseline justify-between mb-2">
+                  <h4 className="font-semibold text-white text-sm">
+                    {t(`pricing.${key}Name`)}
+                  </h4>
+                  <span className={`text-sm font-bold ${color}`}>
+                    {t(`pricing.${key}Price`)}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  {t(`pricing.${key}Description`)}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -205,6 +205,9 @@ export default async function SeasonSchedulePage({ params }: Props) {
               venueId: null,
               roundNumber: g.round_number ?? 1,
               gameNumber: g.game_number ?? 1,
+              status: g.status ?? 'scheduled',
+              homeScore: g.home_score ?? null,
+              awayScore: g.away_score ?? null,
             }))}
             templates={data.templates.map((t) => ({
               id: t.id,

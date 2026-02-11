@@ -129,6 +129,9 @@ export interface ScheduledGame extends GameMatchup {
   location: string;
   venueId: string | null;
   gameNumber: number;
+  status?: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
 }
 
 // ============================================================================
