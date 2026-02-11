@@ -26,7 +26,7 @@ export function ScoresFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
-  const prevDivisionRef = useRef(currentFilters.division || null);
+  const prevDivisionRef = useRef<string | null | undefined>(undefined);
 
   // Cascade team list by selected division
   const filteredTeams = selectedDivisionId
@@ -35,6 +35,12 @@ export function ScoresFilters({
 
   // Sync global division filter → URL param so server-side query picks it up
   useEffect(() => {
+    // First render: capture current URL state without navigating
+    if (prevDivisionRef.current === undefined) {
+      prevDivisionRef.current = searchParams.get('division') || null;
+      return;
+    }
+
     if (prevDivisionRef.current === selectedDivisionId) return;
     prevDivisionRef.current = selectedDivisionId;
 
