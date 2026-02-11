@@ -40,7 +40,7 @@ export function TokenEntryPage({ leagueSlug, initialToken }: TokenEntryPageProps
 
       if (result.success && result.session) {
         if (result.session.sessionType === 'multi') {
-          router.push(`/${leagueSlug}/scorekeeper`);
+          router.push(`/${leagueSlug}/scorekeeper/dashboard`);
         } else {
           router.push(`/${leagueSlug}/scorekeeper/game/${result.session.gameId}`);
         }

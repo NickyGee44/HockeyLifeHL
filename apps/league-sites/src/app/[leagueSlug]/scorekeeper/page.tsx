@@ -1,6 +1,5 @@
-import { getScorekeeperSession, getSessionGames } from '@/lib/actions/scorekeeper';
+import { getScorekeeperSession } from '@/lib/actions/scorekeeper';
 import { TokenEntryPage } from '@/components/scorekeeper/TokenEntryPage';
-import { GameSelector } from '@/components/scorekeeper/GameSelector';
 import { redirect } from 'next/navigation';
 
 interface ScorekeeperPageProps {
@@ -22,16 +21,8 @@ export default async function ScorekeeperPage({
     const session = sessionResult.session;
 
     if (session.sessionType === 'multi') {
-      // Multi-game session: show game selector
-      const gamesResult = await getSessionGames();
-      if (gamesResult.success && gamesResult.games) {
-        return (
-          <GameSelector
-            games={gamesResult.games}
-            leagueSlug={leagueSlug}
-          />
-        );
-      }
+      // Multi-game session: redirect to dashboard
+      redirect(`/${leagueSlug}/scorekeeper/dashboard`);
     }
 
     // Single-game session: redirect to game
