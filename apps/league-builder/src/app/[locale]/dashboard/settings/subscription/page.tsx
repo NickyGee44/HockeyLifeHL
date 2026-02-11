@@ -16,10 +16,12 @@
  * - Accessible (WCAG 2.2 AA)
  */
 
-import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
+import { redirect } from 'next/navigation';
+import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
+import { getOrgAddons } from '@/lib/actions/addons';
+import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 import { SubscriptionContent } from '@/components/subscription/subscription-content';
-import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +36,29 @@ export default async function SubscriptionPage({ params, searchParams }: Props) 
 
   setRequestLocale(locale);
 
+  // Get authenticated user
+  const userData = await getCurrentUser();
+  if (!userData) {
+    redirect('/login');
+    return null;
+  }
+
+  // Get organization
+  const organizations = await getUserOrganizations();
+  const organization = organizations[0];
+
+  if (!organization) {
+    redirect('/dashboard');
+    return null;
+  }
+
+  // Get platform fee config
+  const feeConfig = await getPlatformFeeConfig();
+
+  // Get organization add-ons
+  const addonsResult = await getOrgAddons(organization.id);
+  const addons = addonsResult.success ? addonsResult.data : [];
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -44,19 +69,15 @@ export default async function SubscriptionPage({ params, searchParams }: Props) 
         </p>
       </div>
 
-      {/* Subscription Content (Client Component) */}
-      <Suspense
-        fallback={
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-rink-500" />
-          </div>
-        }
-      >
-        <SubscriptionContent
-          checkoutStatus={search.checkout as string | undefined}
-          addonActivated={search.addon_activated as string | undefined}
-        />
-      </Suspense>
+      {/* Subscription Content */}
+      <SubscriptionContent
+        orgId={organization.id}
+        stripeCustomerId={organization.stripe_customer_id || null}
+        platformFeePercent={feeConfig.processingFeePercent}
+        initialAddons={addons}
+        checkoutStatus={search.checkout as string | undefined}
+        addonActivated={search.addon_activated as string | undefined}
+      />
     </div>
   );
 }
