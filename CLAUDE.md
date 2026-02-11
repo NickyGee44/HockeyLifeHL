@@ -95,12 +95,24 @@ packages/
 - Never push directly to `production` - merge from `main`
 - Use `/ship` skill before production deploys
 
+## Stripe Payments & Custom Domain
+- **Custom Payment Domain**: `pay.beerleaguehockey.ca`
+- Configured in Stripe Dashboard (Settings → Branding → Custom domain)
+- Automatically used for all Checkout sessions and payment links
+- No code changes required - handled by Stripe based on account settings
+- **Documentation**: See `STRIPE_CUSTOM_DOMAIN_SETUP.md` for full setup guide
+- **Business Model**: 2.99% platform fee on all league registration payments
+- Uses Stripe Connect Express for league accounts
+
 ## Known Issues & Gotchas
 <!-- Update this section when Claude makes mistakes to prevent repeats -->
 - domain.ts has TypeScript errors related to custom_domain column not in generated Supabase types
 - Radix UI Select components cause hydration mismatch - use mounted state pattern to fix
 - `packages/auth/node_modules/@hockey-life/database/src/types.ts` can go stale - run `pnpm install` to refresh symlinks after type changes
 - Stripe SDK version mismatches between apps - keep versions aligned
+- **Enum-to-Boolean Transformation Pattern**: Database uses enums (e.g., `leadership_role`), app layer transforms to booleans (e.g., `is_captain`). See `usePlayerProfile.ts` for canonical pattern.
+- **PWA Query Validation**: Type-check doesn't catch database column mismatches in PWA queries. Always test PWA queries with actual database connection.
+- **Trust Database Schema First**: If 99% of code works with schema, the schema is correct. Look for outlier bugs, not wholesale schema problems.
 
 ## Key Features (Active Development)
 - **Captain Dashboard** - roster management, join requests, import roster
