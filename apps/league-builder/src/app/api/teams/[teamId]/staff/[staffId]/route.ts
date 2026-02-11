@@ -7,6 +7,7 @@ export async function DELETE(
 ) {
   const { staffId } = await params;
 
+  // Auth is verified internally by removeStaffMember() via verifyCaptainOrAdminAccess()
   const result = await removeStaffMember(staffId);
 
   if (result.error) {

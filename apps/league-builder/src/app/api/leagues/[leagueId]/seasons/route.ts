@@ -14,6 +14,29 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verify user has access to this league via league_memberships or org ownership
+  const { data: membership } = await supabase
+    .from('league_memberships')
+    .select('role')
+    .eq('league_id', leagueId)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .single();
+
+  if (!membership) {
+    // Fallback: check org ownership
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('organization_id, organizations(owner_user_id)')
+      .eq('id', leagueId)
+      .single();
+
+    const org = league?.organizations as any;
+    if (!org || org.owner_user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
   // Fetch seasons for the league
   const { data: seasons, error } = await supabase
     .from('seasons')
@@ -48,10 +71,23 @@ export async function POST(
     .select('role')
     .eq('league_id', leagueId)
     .eq('user_id', user.id)
+    .eq('status', 'active')
     .single();
 
-  if (!membership || !['owner', 'admin'].includes(membership.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const isAdmin = membership && ['owner', 'admin'].includes(membership.role);
+
+  if (!isAdmin) {
+    // Fallback: check org ownership
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('organization_id, organizations(owner_user_id)')
+      .eq('id', leagueId)
+      .single();
+
+    const org = league?.organizations as any;
+    if (!org || org.owner_user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   try {
@@ -119,6 +155,162 @@ export async function POST(
     return NextResponse.json({ id: newSeason.id, name: newSeason.name });
   } catch (error) {
     console.error('Error in POST /api/leagues/[leagueId]/seasons:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ leagueId: string }> }
+) {
+  const { leagueId } = await params;
+  const supabase = await createClient();
+
+  // Verify user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify user has admin/owner access to this league
+  const { data: membership } = await supabase
+    .from('league_memberships')
+    .select('role')
+    .eq('league_id', leagueId)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .single();
+
+  const isAdmin = membership && ['owner', 'admin'].includes(membership.role);
+
+  if (!isAdmin) {
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('organization_id, organizations(owner_user_id)')
+      .eq('id', leagueId)
+      .single();
+
+    const org = league?.organizations as any;
+    if (!org || org.owner_user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
+  try {
+    const body = await request.json();
+    const { id, name, start_date, end_date, status } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Season ID is required' }, { status: 400 });
+    }
+
+    // Build update object with only provided fields
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (start_date !== undefined) updateData.start_date = start_date;
+    if (end_date !== undefined) updateData.end_date = end_date;
+    if (status !== undefined) updateData.status = status;
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
+    const { data: updated, error } = await supabase
+      .from('seasons')
+      .update(updateData)
+      .eq('id', id)
+      .eq('league_id', leagueId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating season:', error);
+      return NextResponse.json({ error: 'Failed to update season' }, { status: 500 });
+    }
+
+    if (!updated) {
+      return NextResponse.json({ error: 'Season not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Error in PUT /api/leagues/[leagueId]/seasons:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ leagueId: string }> }
+) {
+  const { leagueId } = await params;
+  const supabase = await createClient();
+
+  // Verify user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Verify user has admin/owner access to this league
+  const { data: membership } = await supabase
+    .from('league_memberships')
+    .select('role')
+    .eq('league_id', leagueId)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .single();
+
+  const isAdmin = membership && ['owner', 'admin'].includes(membership.role);
+
+  if (!isAdmin) {
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('organization_id, organizations(owner_user_id)')
+      .eq('id', leagueId)
+      .single();
+
+    const org = league?.organizations as any;
+    if (!org || org.owner_user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const seasonId = searchParams.get('seasonId');
+
+    if (!seasonId) {
+      return NextResponse.json({ error: 'seasonId is required' }, { status: 400 });
+    }
+
+    // Check if the season has any games before deleting
+    const { count: gameCount } = await supabase
+      .from('games')
+      .select('*', { count: 'exact', head: true })
+      .eq('season_id', seasonId);
+
+    if (gameCount && gameCount > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete a season with existing games. Remove all games first.' },
+        { status: 409 }
+      );
+    }
+
+    const { error } = await supabase
+      .from('seasons')
+      .delete()
+      .eq('id', seasonId)
+      .eq('league_id', leagueId);
+
+    if (error) {
+      console.error('Error deleting season:', error);
+      return NextResponse.json({ error: 'Failed to delete season' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error in DELETE /api/leagues/[leagueId]/seasons:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

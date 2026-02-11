@@ -1,7 +1,7 @@
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getCachedDashboardData } from '@/lib/actions/dashboard';
 import { redirect } from 'next/navigation';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import {
@@ -28,6 +28,7 @@ export default async function LeaguesPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const t = await getTranslations('leagues');
   const userData = await getCurrentUser();
 
   if (!userData) {
@@ -62,13 +63,13 @@ export default async function LeaguesPage({ params }: Props) {
               className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
+              {t('backToDashboard')}
             </Link>
             <h1 className="text-3xl font-black text-white tracking-tight">
-              Your Leagues
+              {t('yourLeagues')}
             </h1>
             <p className="text-neutral-400 mt-2">
-              Manage all your hockey leagues in one place
+              {t('yourLeaguesDescription')}
             </p>
           </div>
           <Link
@@ -80,7 +81,7 @@ export default async function LeaguesPage({ params }: Props) {
             )}
           >
             <Plus className="w-4 h-4" />
-            Create League
+            {t('createLeague')}
           </Link>
         </div>
 
@@ -90,10 +91,9 @@ export default async function LeaguesPage({ params }: Props) {
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-rink-500/10 flex items-center justify-center">
               <Trophy className="w-10 h-10 text-rink-500" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-3">No Leagues Yet</h2>
+            <h2 className="text-2xl font-bold text-white mb-3">{t('noLeaguesYet')}</h2>
             <p className="text-neutral-400 mb-8 max-w-md mx-auto">
-              Create your first hockey league to start managing teams, schedules, and
-              player statistics.
+              {t('noLeaguesDescription')}
             </p>
             <Link
               href="/dashboard/leagues/new"
@@ -104,13 +104,13 @@ export default async function LeaguesPage({ params }: Props) {
               )}
             >
               <Plus className="w-5 h-5" />
-              Create Your First League
+              {t('createYourFirstLeague')}
             </Link>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {allLeagues.map((league) => (
-              <LeagueCard key={league.id} league={league} />
+              <LeagueCard key={league.id} league={league} t={t} />
             ))}
 
             {/* Add New League Card */}
@@ -126,9 +126,9 @@ export default async function LeaguesPage({ params }: Props) {
               <div className="w-12 h-12 rounded-full bg-rink-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Plus className="w-6 h-6 text-rink-500" />
               </div>
-              <span className="font-semibold text-white">Create New League</span>
+              <span className="font-semibold text-white">{t('createNewLeague')}</span>
               <span className="text-sm text-neutral-500 mt-1">
-                Set up a new hockey league
+                {t('setupNewLeague')}
               </span>
             </Link>
           </div>
@@ -138,7 +138,7 @@ export default async function LeaguesPage({ params }: Props) {
   );
 }
 
-function LeagueCard({ league }: { league: any }) {
+function LeagueCard({ league, t }: { league: any; t: any }) {
   return (
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden hover:border-white/20 transition-all group">
       {/* League Header with Color */}
@@ -185,14 +185,14 @@ function LeagueCard({ league }: { league: any }) {
           <div>
             <div className="flex items-center gap-2 text-neutral-500 mb-1">
               <Users className="w-4 h-4" />
-              <span className="text-xs">Teams</span>
+              <span className="text-xs">{t('teams')}</span>
             </div>
             <p className="text-xl font-bold text-white">{league.team_count}</p>
           </div>
           <div>
             <div className="flex items-center gap-2 text-neutral-500 mb-1">
               <Calendar className="w-4 h-4" />
-              <span className="text-xs">Players</span>
+              <span className="text-xs">{t('players')}</span>
             </div>
             <p className="text-xl font-bold text-white">{league.player_count}</p>
           </div>
@@ -208,7 +208,7 @@ function LeagueCard({ league }: { league: any }) {
               'hover:bg-rink-500/20 transition-colors font-medium text-sm'
             )}
           >
-            Manage League
+            {t('manageLeague')}
           </Link>
           <Link
             href={`/dashboard/leagues/${league.id}/billing`}
@@ -217,7 +217,7 @@ function LeagueCard({ league }: { league: any }) {
               'bg-neutral-800 text-neutral-400',
               'hover:bg-neutral-700 hover:text-white transition-colors'
             )}
-            title="League Billing"
+            title={t('leagueBilling')}
           >
             <CreditCard className="w-4 h-4" />
           </Link>
@@ -228,7 +228,7 @@ function LeagueCard({ league }: { league: any }) {
               'bg-neutral-800 text-neutral-400',
               'hover:bg-neutral-700 hover:text-white transition-colors'
             )}
-            title="League Settings"
+            title={t('leagueSettings')}
           >
             <Settings className="w-4 h-4" />
           </Link>

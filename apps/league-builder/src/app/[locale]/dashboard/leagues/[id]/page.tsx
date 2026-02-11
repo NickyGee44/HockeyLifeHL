@@ -1,4 +1,4 @@
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { redirect } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -34,6 +34,7 @@ export default async function LeagueDetailPage({ params }: Props) {
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
+  const t = await getTranslations('leagues');
   const userData = await getCurrentUser();
   if (!userData) {
     nextRedirect(`/${locale}/login`);
@@ -88,7 +89,7 @@ export default async function LeagueDetailPage({ params }: Props) {
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Leagues
+            {t('backToLeagues')}
           </Link>
 
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -105,7 +106,7 @@ export default async function LeagueDetailPage({ params }: Props) {
                 <h1 className="text-3xl font-black text-white tracking-tight">
                   {league.name}
                 </h1>
-                <p className="text-neutral-400 mt-1">{league.description || 'No description'}</p>
+                <p className="text-neutral-400 mt-1">{league.description || t('noDescription')}</p>
               </div>
             </div>
 
@@ -131,39 +132,39 @@ export default async function LeagueDetailPage({ params }: Props) {
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <Users className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Teams</span>
+              <span className="text-sm text-neutral-400">{t('teams')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{teamsCount || 0}</p>
           </div>
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <LayoutGrid className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Divisions</span>
+              <span className="text-sm text-neutral-400">{t('divisions')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{divisionsCount || 0}</p>
           </div>
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <Calendar className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Seasons</span>
+              <span className="text-sm text-neutral-400">{t('seasons')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{league.seasons?.length || 0}</p>
           </div>
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <Globe className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Location</span>
+              <span className="text-sm text-neutral-400">{t('location')}</span>
             </div>
             <p className="text-lg font-semibold text-white truncate">
-              {league.city || 'Unknown'}{league.city && league.state_province ? ', ' : ''}{league.state_province || ''}
+              {league.city || t('unknown')}{league.city && league.state_province ? ', ' : ''}{league.state_province || ''}
             </p>
           </div>
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <BarChart3 className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Timezone</span>
+              <span className="text-sm text-neutral-400">{t('timezone')}</span>
             </div>
-            <p className="text-lg font-semibold text-white truncate">{league.timezone || 'Not set'}</p>
+            <p className="text-lg font-semibold text-white truncate">{league.timezone || t('notSet')}</p>
           </div>
         </div>
 
@@ -173,72 +174,72 @@ export default async function LeagueDetailPage({ params }: Props) {
             <QuickActionButton
               href={`/${locale}/dashboard/leagues/${leagueId}/draft`}
               icon={<Shuffle className="w-5 h-5" />}
-              title="Draft Room"
-              description="Set up and run the live draft"
+              title={t('draftRoom')}
+              description={t('draftRoomDescription')}
               highlight
             />
           )}
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/teams`}
             icon={<Users className="w-5 h-5" />}
-            title="Manage Teams"
-            description="Add, edit, or remove teams"
+            title={t('manageTeams')}
+            description={t('manageTeamsDescription')}
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/divisions`}
             icon={<LayoutGrid className="w-5 h-5" />}
-            title="Divisions"
-            description="Organize teams by skill"
+            title={t('divisionsAction')}
+            description={t('divisionsDescription')}
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/schedule`}
             icon={<Calendar className="w-5 h-5" />}
-            title="Schedule"
-            description="View and manage games"
+            title={t('schedule')}
+            description={t('scheduleDescription')}
           />
           <QuickActionButton
             href={`/${locale}/website-editor`}
             icon={<Globe className="w-5 h-5" />}
-            title="Website Editor"
-            description="Customize your league site"
+            title={t('websiteEditor')}
+            description={t('websiteEditorDescription')}
             highlight
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/payments`}
             icon={<CreditCard className="w-5 h-5" />}
-            title="Player Payments"
-            description="Track player fees"
+            title={t('playerPayments')}
+            description={t('playerPaymentsDescription')}
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/settings`}
             icon={<Settings className="w-5 h-5" />}
-            title="Settings"
-            description="League configuration"
+            title={t('settings')}
+            description={t('settingsDescription')}
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/news`}
             icon={<Newspaper className="w-5 h-5" />}
-            title="News & Articles"
-            description="Publish league news"
+            title={t('newsArticles')}
+            description={t('newsArticlesDescription')}
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/sponsors`}
             icon={<Handshake className="w-5 h-5" />}
-            title="Sponsors"
-            description="Manage league sponsors"
+            title={t('sponsors')}
+            description={t('sponsorsDescription')}
           />
           <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/awards`}
             icon={<Trophy className="w-5 h-5" />}
-            title="Awards"
-            description="Recognize players & teams"
+            title={t('awards')}
+            description={t('awardsDescription')}
           />
         </div>
 
         {/* Seasons Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">Seasons</h2>
+            <h2 className="text-lg font-bold text-white">{t('seasons')}</h2>
             <Link
               href={`/${locale}/dashboard/leagues/${leagueId}/seasons/new`}
               className={cn(
@@ -248,22 +249,22 @@ export default async function LeagueDetailPage({ params }: Props) {
               )}
             >
               <Plus className="w-4 h-4" />
-              New Season
+              {t('newSeason')}
             </Link>
           </div>
 
           {league.seasons && league.seasons.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2">
               {league.seasons.map((season: any) => (
-                <SeasonCard key={season.id} season={season} leagueId={leagueId} locale={locale} />
+                <SeasonCard key={season.id} season={season} leagueId={leagueId} locale={locale} t={t} />
               ))}
             </div>
           ) : (
             <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
               <Calendar className="w-12 h-12 text-rink-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">No Seasons Yet</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">{t('noSeasonsYet')}</h3>
               <p className="text-neutral-400 mb-4">
-                Create your first season to start scheduling games
+                {t('noSeasonsDescription')}
               </p>
               <Link
                 href={`/${locale}/dashboard/leagues/${leagueId}/seasons/new`}
@@ -274,7 +275,7 @@ export default async function LeagueDetailPage({ params }: Props) {
                 )}
               >
                 <Plus className="w-4 h-4" />
-                Create Season
+                {t('createSeason')}
               </Link>
             </div>
           )}
@@ -327,7 +328,7 @@ function QuickActionButton({
   );
 }
 
-function SeasonCard({ season, leagueId, locale }: { season: any; leagueId: string; locale: string }) {
+function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: string; locale: string; t: any }) {
   const statusColors: Record<string, string> = {
     active: 'bg-green-500/10 text-green-500 border-green-500/30',
     draft: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
@@ -342,7 +343,7 @@ function SeasonCard({ season, leagueId, locale }: { season: any; leagueId: strin
           <h3 className="font-semibold text-white">{season.name}</h3>
           <p className="text-sm text-neutral-500">
             {new Date(season.start_date).toLocaleDateString()} -{' '}
-            {season.end_date ? new Date(season.end_date).toLocaleDateString() : 'Ongoing'}
+            {season.end_date ? new Date(season.end_date).toLocaleDateString() : t('ongoing')}
           </p>
         </div>
         <span
@@ -365,7 +366,7 @@ function SeasonCard({ season, leagueId, locale }: { season: any; leagueId: strin
           )}
         >
           <Play className="w-4 h-4" />
-          Manage
+          {t('manage')}
         </Link>
         <Link
           href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${season.id}/edit`}

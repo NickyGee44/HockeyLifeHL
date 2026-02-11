@@ -74,7 +74,7 @@ export async function getNewsArticles(leagueId: string): Promise<ActionResult<Ne
       .from('articles')
       .select('*')
       .eq('league_id', leagueId)
-      .eq('article_type', 'news')
+      .eq('type', 'news')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -104,7 +104,7 @@ export async function getNewsArticle(articleId: string): Promise<ActionResult<Ne
       .from('articles')
       .select('*')
       .eq('id', articleId)
-      .eq('article_type', 'news')
+      .eq('type', 'news')
       .single();
 
     if (error || !article) {
@@ -185,7 +185,7 @@ export async function createNewsArticle(params: CreateNewsArticleParams): Promis
         excerpt: excerpt || null,
         image_url: imageUrl || null,
         slug: articleSlug,
-        article_type: 'news',
+        type: 'news',
         published: false,
         author_id: user?.id || null,
       })
@@ -228,7 +228,7 @@ export async function updateNewsArticle(
       .from('articles')
       .select('league_id')
       .eq('id', articleId)
-      .eq('article_type', 'news')
+      .eq('type', 'news')
       .single();
 
     if (fetchError || !existingArticle) {
@@ -306,7 +306,7 @@ export async function deleteNewsArticle(articleId: string): Promise<ActionResult
       .from('articles')
       .select('league_id')
       .eq('id', articleId)
-      .eq('article_type', 'news')
+      .eq('type', 'news')
       .single();
 
     if (fetchError || !article) {
