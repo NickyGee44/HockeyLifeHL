@@ -1742,6 +1742,7 @@ export async function getPlayerProfile(playerId: string): Promise<Player | null>
     `;
 
   // First try by team_rosters.id (from player grid links)
+  // eslint-disable-next-line prefer-const -- data is reassigned below, must use let for destructuring
   let { data, error } = await supabase
     .from('team_rosters')
     .select(selectQuery)

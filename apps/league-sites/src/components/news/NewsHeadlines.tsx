@@ -18,9 +18,9 @@ export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
   if (articles.length === 0) return null;
 
   return (
-    <div className="flex h-full w-full flex-col rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_50%,transparent)] p-6 backdrop-blur-xl md:p-8">
-      <div className="mb-5 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-lg font-black uppercase tracking-wide text-[var(--color-text-primary)]">
+    <div className="flex h-full w-full flex-col rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_50%,transparent)] p-5 backdrop-blur-xl md:p-6 lg:p-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-base font-black uppercase tracking-wide text-[var(--color-text-primary)] md:text-lg">
           <Newspaper className="h-5 w-5 text-[var(--league-primary)]" />
           <span>Around The League <span className="text-[var(--league-primary)]">NEWS</span></span>
         </h3>
@@ -38,17 +38,17 @@ export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
           <Link
             key={article.id}
             href={`/${leagueSlug}/news/${article.slug || article.id}`}
-            className="group block py-4 first:pt-0 last:pb-0 transition-colors"
+            className="group block py-3 first:pt-0 last:pb-0 transition-colors"
           >
-            <h4 className="font-bold text-[var(--color-text-primary)] line-clamp-2 group-hover:text-[var(--league-primary)] transition-colors">
+            <h4 className="text-sm font-bold text-[var(--color-text-primary)] line-clamp-2 group-hover:text-[var(--league-primary)] transition-colors md:text-base">
               {article.title}
             </h4>
             {article.excerpt && (
-              <p className="mt-1 text-sm text-[var(--color-text-secondary)] line-clamp-2">
+              <p className="mt-1 text-xs text-[var(--color-text-secondary)] line-clamp-2 md:text-sm">
                 {article.excerpt}
               </p>
             )}
-            <div className="mt-2 flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+            <div className="mt-1.5 flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
               <Calendar className="h-3 w-3" />
               <time dateTime={article.created_at}>{formatDate(article.created_at)}</time>
               {article.author && (
@@ -64,7 +64,7 @@ export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
 
       <Link
         href={`/${leagueSlug}/news`}
-        className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border-emphasis)] bg-[color-mix(in_srgb,var(--color-surface)_65%,transparent)] px-4 py-2.5 text-sm font-bold text-[var(--color-text-primary)] backdrop-blur-sm transition-all duration-200 hover:bg-[var(--color-surface-hover)] hover:border-[var(--league-primary)]"
+        className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border-emphasis)] bg-[color-mix(in_srgb,var(--color-surface)_65%,transparent)] px-4 py-2 text-sm font-bold text-[var(--color-text-primary)] backdrop-blur-sm transition-all duration-200 hover:bg-[var(--color-surface-hover)] hover:border-[var(--league-primary)]"
       >
         <Newspaper className="h-4 w-4 text-[var(--league-primary)]" />
         View All News
