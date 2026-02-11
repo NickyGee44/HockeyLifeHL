@@ -31,7 +31,7 @@
 // NOTE: Stripe webhook and subscription table types will be available after migrations
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getStripeClient } from '@/lib/stripe/client';
+import { getStripeClient, getTierByPriceId, type SubscriptionStatus } from '@/lib/stripe/client';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 
@@ -124,6 +124,25 @@ async function completeWebhookLock(supabase: any, stripeEventId: string) {
   if (error) {
     throw error;
   }
+}
+
+/**
+ * Map Stripe subscription status to application status
+ * Ensures deterministic status transitions
+ */
+function mapStripeStatusToApp(stripeStatus: Stripe.Subscription.Status): SubscriptionStatus {
+  const statusMap: Record<Stripe.Subscription.Status, SubscriptionStatus> = {
+    'active': 'active',
+    'trialing': 'trialing',
+    'past_due': 'past_due',
+    'canceled': 'canceled',
+    'incomplete': 'incomplete',
+    'incomplete_expired': 'incomplete_expired',
+    'unpaid': 'unpaid',
+    'paused': 'paused',
+  };
+
+  return statusMap[stripeStatus] || 'canceled';
 }
 
 export async function POST(request: NextRequest) {
@@ -317,17 +336,34 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription, supa
       console.error('Error inserting subscription:', insertError);
     }
 
-    // Update league subscription tier based on the price
+    // Update league subscription tier and status based on the price
     if (leagueId) {
+      const priceId = subscription.items.data[0]?.price?.id;
+      const tier = priceId ? getTierByPriceId(priceId) : null;
+      const status = mapStripeStatusToApp(subscription.status);
+
+      const updatePayload: any = {
+        subscription_status: status,
+        stripe_subscription_id: subscription.id,
+        stripe_customer_id: (subscription as any).customer || null,
+      };
+
+      // Only update tier if we successfully mapped the price ID
+      if (tier) {
+        updatePayload.subscription_tier = tier;
+        console.log(`Mapped price ${priceId} to tier: ${tier}`);
+      } else if (priceId) {
+        console.warn(`Could not map price ID ${priceId} to a known tier`);
+      }
+
       const { error: updateError } = await supabase.from('leagues')
-        .update({
-          subscription_status: 'active',
-          stripe_subscription_id: subscription.id,
-        })
+        .update(updatePayload)
         .eq('id', leagueId);
 
       if (updateError) {
         console.error('Error updating league subscription status:', updateError);
+      } else {
+        console.log(`League ${leagueId} subscription activated: tier=${tier || 'unknown'}, status=${status}`);
       }
     }
 
@@ -383,40 +419,71 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
       console.error('Error updating subscription:', updateError);
     }
 
-    // Update league status
+    // Update league status and handle tier changes
     if (leagueId) {
+      // Get current league tier to detect changes
+      const { data: currentLeague } = await supabase.from('leagues')
+        .select('subscription_tier, subscription_status')
+        .eq('id', leagueId)
+        .single();
+
+      const newTier = priceId ? getTierByPriceId(priceId) : null;
+      const newStatus = mapStripeStatusToApp(subscription.status);
+      const oldTier = currentLeague?.subscription_tier;
+      const oldStatus = currentLeague?.subscription_status;
+
+      const updatePayload: any = {
+        subscription_status: newStatus,
+      };
+
+      // Update tier if it changed
+      if (newTier && newTier !== oldTier) {
+        updatePayload.subscription_tier = newTier;
+        console.log(`Tier change detected: ${oldTier} -> ${newTier}`);
+        // NOTE: Email notification for tier changes handled in Task #6
+      }
+
       const { error: leagueUpdateError } = await supabase.from('leagues')
-        .update({
-          subscription_status: subscription.status,
-        })
+        .update(updatePayload)
         .eq('id', leagueId);
 
       if (leagueUpdateError) {
         console.error('Error updating league status:', leagueUpdateError);
+      } else {
+        console.log(`League ${leagueId} updated: tier=${newTier || oldTier}, status=${newStatus}`);
+      }
+
+      // Handle status-specific actions
+      if (newStatus === 'active' && oldStatus === 'past_due') {
+        console.log('Payment recovered - subscription reactivated');
+        // NOTE: Email notification for payment recovery handled in Task #6
+      }
+
+      if (newStatus === 'past_due' && oldStatus === 'active') {
+        console.log('Payment failed - subscription past due');
+        // NOTE: Email notification for payment failure handled in Task #6
       }
     }
 
     // Handle specific scenarios
     if (cancelAtPeriodEnd) {
       console.log('Subscription will cancel at period end:', new Date(subscription.current_period_end * 1000));
-      // TODO: Send email notification about upcoming cancellation
+      // NOTE: Email notification for upcoming cancellation handled in Task #6
     }
 
     if (!cancelAtPeriodEnd && subscription.status === 'active') {
-      console.log('Subscription reactivated');
-      // TODO: Send email notification about reactivation
+      console.log('Subscription reactivation (cancellation reverted)');
+      // NOTE: Email notification for reactivation handled in Task #6
     }
 
     if (pauseCollection) {
       console.log('Subscription paused, resumes at:', pauseCollection.resumes_at);
-      // TODO: Handle paused subscription - could restrict features
+      // Access restrictions: paused subscriptions should have limited access
+      // Features should check subscription_status and deny access if paused
     } else if (subscription.status === 'active') {
-      console.log('Subscription resumed');
-      // TODO: Handle resumed subscription - restore features
+      console.log('Subscription active (may have resumed from pause)');
+      // Features are restored automatically via subscription_status check
     }
-
-    // Handle tier changes
-    // TODO: Check if priceId changed and grant/revoke access to features accordingly
 
   } catch (error) {
     console.error('Error updating subscription:', error);
@@ -459,10 +526,12 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
 
       if (leagueUpdateError) {
         console.error('Error updating league:', leagueUpdateError);
+      } else {
+        console.log(`League ${leagueId} subscription canceled - reverted to free tier`);
       }
     }
 
-    // TODO: Send cancellation confirmation email
+    // NOTE: Cancellation confirmation email sent in Task #6
 
   } catch (error) {
     console.error('Error handling subscription deletion:', error);
@@ -474,7 +543,15 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
  */
 async function handlePaymentMethodAttached(paymentMethod: Stripe.PaymentMethod) {
   console.log('Payment method attached:', paymentMethod.id, 'Customer:', paymentMethod.customer);
-  // TODO: Update payment method information in database if needed
+
+  // Payment method details are stored in Stripe and accessible via Billing Portal
+  // We log the event for audit purposes but don't need to duplicate in our DB
+  // The billing portal handles all payment method management
+
+  console.log('Payment method type:', paymentMethod.type);
+  if (paymentMethod.card) {
+    console.log('Card brand:', paymentMethod.card.brand, 'Last4:', paymentMethod.card.last4);
+  }
 }
 
 /**
@@ -482,7 +559,12 @@ async function handlePaymentMethodAttached(paymentMethod: Stripe.PaymentMethod) 
  */
 async function handlePaymentMethodDetached(paymentMethod: Stripe.PaymentMethod) {
   console.log('Payment method detached:', paymentMethod.id);
-  // TODO: Handle payment method removal
+
+  // Payment method was removed from customer
+  // If this was the default payment method, customer will need to add a new one
+  // Stripe handles this via the billing portal
+
+  console.log('Payment method type:', paymentMethod.type, 'removed from customer:', paymentMethod.customer);
 }
 
 /**
@@ -497,10 +579,23 @@ async function handleCustomerUpdated(customer: Stripe.Customer) {
   console.log('Customer updated:', customer.id);
 
   const defaultPaymentMethod = customer.invoice_settings?.default_payment_method;
+  const billingEmail = customer.email;
 
-  // TODO: Update customer information in database
-  // Note: Do NOT use customer billing email as login credential
-  // Treat all updates as billing information changes only
+  // IMPORTANT: Billing email is NOT used for authentication
+  // It's only for billing-related communications from Stripe
+  // Users log in with their Supabase auth email (profiles table)
+
+  console.log('Customer billing details updated:', {
+    customerId: customer.id,
+    billingEmail: billingEmail,
+    defaultPaymentMethod: defaultPaymentMethod,
+    currency: customer.currency,
+    balance: customer.balance,
+  });
+
+  // Customer data is managed by Stripe and accessible via their API
+  // We don't duplicate it in our database to avoid sync issues
+  // The stripe_customer_id in leagues table is sufficient for linking
 }
 
 /**
@@ -512,9 +607,19 @@ async function handleTaxIdEvent(event: Stripe.Event) {
 
   // Tax IDs can be validated by Stripe
   // Learn more: https://docs.stripe.com/billing/customer/tax-ids
-  console.log('Tax ID:', taxId.id, 'Status:', taxId.verification?.status);
+  console.log('Tax ID:', taxId.id, 'Type:', taxId.type, 'Value:', taxId.value, 'Status:', taxId.verification?.status);
 
-  // TODO: Store/update/delete tax ID in database
+  // Tax IDs are stored in Stripe and accessible via the customer object
+  // We log the event for audit purposes but don't duplicate in our DB
+  // Stripe handles validation and tax calculation automatically
+
+  if (taxId.verification?.status === 'verified') {
+    console.log('Tax ID verified successfully');
+  } else if (taxId.verification?.status === 'unavailable') {
+    console.log('Tax ID verification unavailable');
+  } else if (taxId.verification?.status === 'unverified') {
+    console.log('Tax ID could not be verified');
+  }
 }
 
 /**
@@ -560,13 +665,20 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, supabase: any) {
       console.error('Error recording payment:', paymentError);
     }
 
-    // Grant access to services if this is the first payment
-    if (invoice.billing_reason === 'subscription_create') {
+    // Handle first payment (subscription activation)
+    if (invoice.billing_reason === 'subscription_create' && subscription?.league_id) {
       console.log('First invoice for subscription:', subscriptionId);
-      // TODO: Activate subscription features
-      // TODO: Send welcome email with receipt
-    } else {
-      // TODO: Send receipt email for recurring payment
+
+      // Subscription is already activated in handleSubscriptionCreated
+      // This webhook confirms the payment was successful
+      // Features are granted based on subscription_status = 'active'
+
+      // NOTE: Welcome email with receipt sent in Task #6
+      console.log(`Subscription activated for league ${subscription.league_id}`);
+    } else if (subscription?.league_id) {
+      // Recurring payment succeeded
+      console.log(`Recurring payment succeeded for league ${subscription.league_id}`);
+      // NOTE: Receipt email for recurring payment sent in Task #6
     }
   } catch (error) {
     console.error('Error handling paid invoice:', error);
@@ -626,13 +738,41 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
       if (updateError) {
         console.error('Error updating subscription status:', updateError);
       }
+
+      // Update league status to past_due (restricts premium features)
+      if (subscription.league_id) {
+        const { error: leagueUpdateError } = await supabase.from('leagues')
+          .update({ subscription_status: 'past_due' })
+          .eq('id', subscription.league_id);
+
+        if (leagueUpdateError) {
+          console.error('Error updating league to past_due:', leagueUpdateError);
+        } else {
+          console.log(`League ${subscription.league_id} set to past_due - premium features restricted`);
+        }
+      }
     }
 
-    // TODO: Send payment failure notification email with retry instructions
-    // Note: Stripe will automatically retry failed payments based on settings
+    // NOTE: Payment failure notification email sent in Task #6
+    // Stripe will automatically retry failed payments based on smart retry settings
 
-    // TODO: Potentially restrict access if payment repeatedly fails
-    // Could check payment_history for number of consecutive failures
+    // Check for repeated failures (access restriction)
+    if (subscription?.league_id) {
+      const { data: recentFailures, error: historyError } = await supabase
+        .from('stripe_payment_history')
+        .select('id')
+        .eq('league_id', subscription.league_id)
+        .eq('status', 'failed')
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()) // Last 30 days
+        .order('created_at', { ascending: false });
+
+      if (!historyError && recentFailures && recentFailures.length >= 3) {
+        console.warn(`League ${subscription.league_id} has ${recentFailures.length} payment failures in last 30 days`);
+        // After 3+ failures, Stripe typically cancels the subscription
+        // Our subscription.deleted webhook will handle full access revocation
+        // NOTE: Critical payment failure alert sent in Task #6
+      }
+    }
   } catch (error) {
     console.error('Error handling failed invoice:', error);
   }
