@@ -15,6 +15,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { stripe, STRIPE_WEBHOOK_SECRET_ORGANIZATIONS, getTierByPriceId } from '@/lib/stripe/client';
 import Stripe from 'stripe';
+import {
+  sendWelcomeEmail,
+  sendPaymentSuccessEmail,
+  sendPaymentFailedEmail,
+  sendSubscriptionUpgradedEmail,
+  sendSubscriptionDowngradedEmail,
+  sendSubscriptionCancelledEmail,
+  sendPaymentRecoveredEmail,
+  sendRecurringPaymentReceiptEmail,
+} from '@/lib/email/subscription-emails';
+import {
+  logSubscriptionLifecycle,
+  logPaymentEvent,
+  logDuplicateEvent,
+  logEventOrderingRejection,
+  logWebhookError,
+  logNotificationSent,
+} from '@/lib/logging/webhook-logger';
 
 // ============================================================================
 // Webhook Configuration
@@ -231,9 +249,12 @@ async function handleSubscriptionCreated(
   );
 
   if (!valid) {
-    console.warn(
-      `[Webhook] Rejecting out-of-order event ${eventId} (timestamp: ${eventTimestamp}, last: ${lastTimestamp})`
-    );
+    logEventOrderingRejection({
+      stripe_event_id: eventId,
+      organization_id: organizationId,
+      event_timestamp: eventTimestamp,
+      last_timestamp: lastTimestamp,
+    });
     return;
   }
 
@@ -261,8 +282,22 @@ async function handleSubscriptionCreated(
   });
 
   if (isDuplicate) {
-    console.log(`[Webhook] Duplicate event ${eventId}, skipping organization update`);
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      organization_id: organizationId,
+    });
     return;
+  }
+
+  // Fetch organization details for email notification
+  const { data: org, error: orgFetchError } = await supabase
+    .from('organizations')
+    .select('name, owner_user_id')
+    .eq('id', organizationId)
+    .single();
+
+  if (orgFetchError || !org) {
+    throw new Error(`Organization not found: ${organizationId}`);
   }
 
   // Update organization
@@ -288,7 +323,13 @@ async function handleSubscriptionCreated(
     .eq('id', organizationId);
 
   if (error) {
-    console.error('[Webhook] Failed to update organization:', error);
+    logWebhookError(error, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'customer.subscription.created',
+      organization_id: organizationId,
+      action: 'update_organization',
+      error_type: 'database_error',
+    });
     throw error;
   }
 
@@ -306,7 +347,52 @@ async function handleSubscriptionCreated(
     );
   }
 
-  console.log(`[Webhook] Subscription created for org ${organizationId}`);
+  // Log structured event
+  logSubscriptionLifecycle({
+    stripe_event_id: eventId,
+    organization_id: organizationId,
+    action: 'created',
+    to_tier: tier,
+    to_status: subscription.status,
+    decision_path: subscription.trial_end ? 'with_trial' : 'no_trial',
+  });
+
+  // Send welcome email notification (async, don't block webhook response)
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', org.owner_user_id)
+      .single();
+
+    if (profile?.email) {
+      const emailResult = await sendWelcomeEmail({
+        to: profile.email,
+        organizationName: org.name,
+        tier: tier as any,
+        trialEndsAt: subscription.trial_end
+          ? new Date(subscription.trial_end * 1000)
+          : undefined,
+      });
+
+      logNotificationSent({
+        stripe_event_id: eventId,
+        organization_id: organizationId,
+        notification_type: 'subscription_created',
+        recipient_email: profile.email,
+        success: emailResult.success,
+      });
+    }
+  } catch (emailError) {
+    // Don't throw - email errors shouldn't block webhook processing
+    logWebhookError(emailError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'customer.subscription.created',
+      organization_id: organizationId,
+      action: 'send_welcome_email',
+      error_type: 'notification_error',
+    });
+  }
 }
 
 /**
@@ -335,21 +421,30 @@ async function handleSubscriptionUpdated(
   );
 
   if (!valid) {
-    console.warn(
-      `[Webhook] Rejecting out-of-order event ${eventId} (timestamp: ${eventTimestamp}, last: ${lastTimestamp})`
-    );
+    logEventOrderingRejection({
+      stripe_event_id: eventId,
+      organization_id: organizationId,
+      event_timestamp: eventTimestamp,
+      last_timestamp: lastTimestamp,
+    });
     return;
   }
 
-  // Get current organization state
+  // Get current organization state (including name and owner for notifications)
   const { data: org, error: fetchError } = await supabase
     .from('organizations')
-    .select('subscription_tier, subscription_status')
+    .select('subscription_tier, subscription_status, name, owner_user_id, current_period_end')
     .eq('id', organizationId)
     .single();
 
   if (fetchError) {
-    console.error('[Webhook] Failed to fetch organization:', fetchError);
+    logWebhookError(fetchError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'customer.subscription.updated',
+      organization_id: organizationId,
+      action: 'fetch_organization',
+      error_type: 'database_error',
+    });
     throw fetchError;
   }
 
@@ -389,7 +484,10 @@ async function handleSubscriptionUpdated(
   });
 
   if (isDuplicate) {
-    console.log(`[Webhook] Duplicate event ${eventId}, skipping organization update`);
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      organization_id: organizationId,
+    });
     return;
   }
 
@@ -414,7 +512,13 @@ async function handleSubscriptionUpdated(
     .eq('id', organizationId);
 
   if (error) {
-    console.error('[Webhook] Failed to update organization:', error);
+    logWebhookError(error, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'customer.subscription.updated',
+      organization_id: organizationId,
+      action: 'update_organization',
+      error_type: 'database_error',
+    });
     throw error;
   }
 
@@ -432,7 +536,76 @@ async function handleSubscriptionUpdated(
     );
   }
 
-  console.log(`[Webhook] Subscription updated for org ${organizationId}: ${eventType}`);
+  // Log structured event with decision path
+  const decisionPath = eventType === 'upgraded'
+    ? `tier_change_${org.subscription_tier}_to_${tier}`
+    : eventType === 'downgraded'
+    ? `tier_change_${org.subscription_tier}_to_${tier}`
+    : eventType === 'payment_failed'
+    ? 'status_change_to_past_due'
+    : 'general_update';
+
+  logSubscriptionLifecycle({
+    stripe_event_id: eventId,
+    organization_id: organizationId,
+    action: eventType as any,
+    from_tier: org.subscription_tier,
+    to_tier: tier,
+    from_status: org.subscription_status,
+    to_status: subscription.status,
+    decision_path: decisionPath,
+  });
+
+  // Send email notifications based on event type
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', org.owner_user_id)
+      .single();
+
+    if (profile?.email) {
+      let emailResult: { success: boolean; error?: string } | null = null;
+
+      if (eventType === 'upgraded') {
+        emailResult = await sendSubscriptionUpgradedEmail({
+          to: profile.email,
+          organizationName: org.name,
+          fromTier: org.subscription_tier as any,
+          toTier: tier as any,
+        });
+      } else if (eventType === 'downgraded') {
+        emailResult = await sendSubscriptionDowngradedEmail({
+          to: profile.email,
+          organizationName: org.name,
+          fromTier: org.subscription_tier as any,
+          toTier: tier as any,
+          effectiveDate: org.current_period_end
+            ? new Date(org.current_period_end)
+            : new Date(),
+        });
+      }
+
+      if (emailResult) {
+        logNotificationSent({
+          stripe_event_id: eventId,
+          organization_id: organizationId,
+          notification_type: `subscription_${eventType}`,
+          recipient_email: profile.email,
+          success: emailResult.success,
+        });
+      }
+    }
+  } catch (emailError) {
+    // Don't throw - email errors shouldn't block webhook processing
+    logWebhookError(emailError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'customer.subscription.updated',
+      organization_id: organizationId,
+      action: `send_${eventType}_email`,
+      error_type: 'notification_error',
+    });
+  }
 }
 
 /**
@@ -461,9 +634,12 @@ async function handleSubscriptionDeleted(
   );
 
   if (!valid) {
-    console.warn(
-      `[Webhook] Rejecting out-of-order event ${eventId} (timestamp: ${eventTimestamp}, last: ${lastTimestamp})`
-    );
+    logEventOrderingRejection({
+      stripe_event_id: eventId,
+      organization_id: organizationId,
+      event_timestamp: eventTimestamp,
+      last_timestamp: lastTimestamp,
+    });
     return;
   }
 
@@ -476,8 +652,22 @@ async function handleSubscriptionDeleted(
   });
 
   if (isDuplicate) {
-    console.log(`[Webhook] Duplicate event ${eventId}, skipping organization update`);
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      organization_id: organizationId,
+    });
     return;
+  }
+
+  // Fetch organization details for email notification
+  const { data: org, error: orgFetchError } = await supabase
+    .from('organizations')
+    .select('name, owner_user_id')
+    .eq('id', organizationId)
+    .single();
+
+  if (orgFetchError || !org) {
+    throw new Error(`Organization not found: ${organizationId}`);
   }
 
   // Update organization - enterprise licensing model, subscription becomes inactive
@@ -492,7 +682,13 @@ async function handleSubscriptionDeleted(
     .eq('id', organizationId);
 
   if (error) {
-    console.error('[Webhook] Failed to update organization:', error);
+    logWebhookError(error, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'customer.subscription.deleted',
+      organization_id: organizationId,
+      action: 'update_organization',
+      error_type: 'database_error',
+    });
     throw error;
   }
 
@@ -510,7 +706,49 @@ async function handleSubscriptionDeleted(
     );
   }
 
-  console.log(`[Webhook] Subscription deleted for org ${organizationId}`);
+  // Log structured event
+  logSubscriptionLifecycle({
+    stripe_event_id: eventId,
+    organization_id: organizationId,
+    action: 'cancelled',
+    to_status: 'canceled',
+    decision_path: 'subscription_deleted',
+  });
+
+  // Send cancellation confirmation email
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', org.owner_user_id)
+      .single();
+
+    if (profile?.email) {
+      const emailResult = await sendSubscriptionCancelledEmail({
+        to: profile.email,
+        organizationName: org.name,
+        effectiveDate: new Date(),
+        immediate: true,
+      });
+
+      logNotificationSent({
+        stripe_event_id: eventId,
+        organization_id: organizationId,
+        notification_type: 'subscription_cancelled',
+        recipient_email: profile.email,
+        success: emailResult.success,
+      });
+    }
+  } catch (emailError) {
+    // Don't throw - email errors shouldn't block webhook processing
+    logWebhookError(emailError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'customer.subscription.deleted',
+      organization_id: organizationId,
+      action: 'send_cancellation_email',
+      error_type: 'notification_error',
+    });
+  }
 }
 
 /**
@@ -533,7 +771,7 @@ async function handleInvoicePaid(
   // Look up organization by subscription ID (primary lookup)
   const { data: org, error: fetchError } = await supabase
     .from('organizations')
-    .select('id, subscription_status, stripe_customer_id')
+    .select('id, subscription_status, stripe_customer_id, name, owner_user_id, subscription_tier, current_period_start, current_period_end')
     .eq('stripe_subscription_id', subscriptionId)
     .single();
 
@@ -561,9 +799,12 @@ async function handleInvoicePaid(
   );
 
   if (!valid) {
-    console.warn(
-      `[Webhook] Rejecting out-of-order event ${eventId} (timestamp: ${eventTimestamp}, last: ${lastTimestamp})`
-    );
+    logEventOrderingRejection({
+      stripe_event_id: eventId,
+      organization_id: org.id,
+      event_timestamp: eventTimestamp,
+      last_timestamp: lastTimestamp,
+    });
     return;
   }
 
@@ -576,19 +817,30 @@ async function handleInvoicePaid(
   });
 
   if (isDuplicate) {
-    console.log(`[Webhook] Duplicate event ${eventId}, skipping organization update`);
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      organization_id: org.id,
+    });
     return;
   }
 
+  const wasPastDue = org.subscription_status === 'past_due';
+
   // If subscription was past_due, restore it
-  if (org.subscription_status === 'past_due') {
+  if (wasPastDue) {
     const { error } = await supabase
       .from('organizations')
       .update({ subscription_status: 'active' })
       .eq('id', org.id);
 
     if (error) {
-      console.error('[Webhook] Failed to update organization status:', error);
+      logWebhookError(error, {
+        stripe_event_id: eventId,
+        stripe_event_type: 'invoice.paid',
+        organization_id: org.id,
+        action: 'restore_subscription',
+        error_type: 'database_error',
+      });
       throw error;
     }
   }
@@ -607,7 +859,69 @@ async function handleInvoicePaid(
     );
   }
 
-  console.log(`[Webhook] Invoice paid for org ${org.id}: $${invoice.amount_paid / 100}`);
+  // Log structured event
+  logPaymentEvent({
+    stripe_event_id: eventId,
+    organization_id: org.id,
+    action: wasPastDue ? 'payment_recovered' : 'payment_succeeded',
+    amount_cents: invoice.amount_paid,
+    decision_path: wasPastDue ? 'payment_recovered_from_past_due' : 'recurring_payment',
+  });
+
+  // Send email notification
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', org.owner_user_id)
+      .single();
+
+    if (profile?.email) {
+      let emailResult: { success: boolean; error?: string };
+
+      if (wasPastDue) {
+        // Payment recovered - subscription reactivated
+        emailResult = await sendPaymentRecoveredEmail({
+          to: profile.email,
+          organizationName: org.name,
+          amount: invoice.amount_paid,
+        });
+      } else {
+        // Recurring payment receipt
+        emailResult = await sendRecurringPaymentReceiptEmail({
+          to: profile.email,
+          organizationName: org.name,
+          tier: org.subscription_tier as any,
+          amount: invoice.amount_paid,
+          currency: invoice.currency || 'usd',
+          periodStart: org.current_period_start
+            ? new Date(org.current_period_start)
+            : new Date(),
+          periodEnd: org.current_period_end
+            ? new Date(org.current_period_end)
+            : new Date(),
+          invoiceUrl: invoice.hosted_invoice_url || undefined,
+        });
+      }
+
+      logNotificationSent({
+        stripe_event_id: eventId,
+        organization_id: org.id,
+        notification_type: wasPastDue ? 'payment_recovered' : 'recurring_payment',
+        recipient_email: profile.email,
+        success: emailResult.success,
+      });
+    }
+  } catch (emailError) {
+    // Don't throw - email errors shouldn't block webhook processing
+    logWebhookError(emailError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'invoice.paid',
+      organization_id: org.id,
+      action: 'send_payment_email',
+      error_type: 'notification_error',
+    });
+  }
 }
 
 /**
@@ -630,7 +944,7 @@ async function handleInvoicePaymentFailed(
   // Look up organization by subscription ID (primary lookup)
   const { data: org, error: fetchError } = await supabase
     .from('organizations')
-    .select('id, stripe_customer_id')
+    .select('id, stripe_customer_id, name, owner_user_id')
     .eq('stripe_subscription_id', subscriptionId)
     .single();
 
@@ -658,9 +972,12 @@ async function handleInvoicePaymentFailed(
   );
 
   if (!valid) {
-    console.warn(
-      `[Webhook] Rejecting out-of-order event ${eventId} (timestamp: ${eventTimestamp}, last: ${lastTimestamp})`
-    );
+    logEventOrderingRejection({
+      stripe_event_id: eventId,
+      organization_id: org.id,
+      event_timestamp: eventTimestamp,
+      last_timestamp: lastTimestamp,
+    });
     return;
   }
 
@@ -677,7 +994,10 @@ async function handleInvoicePaymentFailed(
   });
 
   if (isDuplicate) {
-    console.log(`[Webhook] Duplicate event ${eventId}, skipping organization update`);
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      organization_id: org.id,
+    });
     return;
   }
 
@@ -688,7 +1008,13 @@ async function handleInvoicePaymentFailed(
     .eq('id', org.id);
 
   if (error) {
-    console.error('[Webhook] Failed to update organization status:', error);
+    logWebhookError(error, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'invoice.payment_failed',
+      organization_id: org.id,
+      action: 'update_organization_status',
+      error_type: 'database_error',
+    });
     throw error;
   }
 
@@ -706,7 +1032,53 @@ async function handleInvoicePaymentFailed(
     );
   }
 
-  console.log(`[Webhook] Payment failed for org ${org.id}: $${invoice.amount_due / 100}`);
+  // Log structured event
+  logPaymentEvent({
+    stripe_event_id: eventId,
+    organization_id: org.id,
+    action: 'payment_failed',
+    amount_cents: invoice.amount_due,
+    decision_path: `payment_failed_attempt_${invoice.attempt_count}`,
+    metadata: {
+      attempt_count: invoice.attempt_count,
+      next_payment_attempt: invoice.next_payment_attempt,
+    },
+  });
+
+  // Send payment failure notification
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', org.owner_user_id)
+      .single();
+
+    if (profile?.email) {
+      const emailResult = await sendPaymentFailedEmail({
+        to: profile.email,
+        organizationName: org.name,
+        amount: invoice.amount_due,
+        attemptCount: invoice.attempt_count || 1,
+      });
+
+      logNotificationSent({
+        stripe_event_id: eventId,
+        organization_id: org.id,
+        notification_type: 'payment_failed',
+        recipient_email: profile.email,
+        success: emailResult.success,
+      });
+    }
+  } catch (emailError) {
+    // Don't throw - email errors shouldn't block webhook processing
+    logWebhookError(emailError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'invoice.payment_failed',
+      organization_id: org.id,
+      action: 'send_payment_failed_email',
+      error_type: 'notification_error',
+    });
+  }
 }
 
 /**
@@ -747,9 +1119,12 @@ async function handlePaymentMethodAttached(
   );
 
   if (!valid) {
-    console.warn(
-      `[Webhook] Rejecting out-of-order event ${eventId} (timestamp: ${eventTimestamp}, last: ${lastTimestamp})`
-    );
+    logEventOrderingRejection({
+      stripe_event_id: eventId,
+      organization_id: organizationId,
+      event_timestamp: eventTimestamp,
+      last_timestamp: lastTimestamp,
+    });
     return;
   }
 

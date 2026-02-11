@@ -474,3 +474,167 @@ export async function sendSubscriptionReactivatedEmail(params: {
     html: getEmailLayout(content),
   });
 }
+
+// ============================================================================
+// 9. Recurring Payment Receipt Email
+// ============================================================================
+
+export async function sendRecurringPaymentReceiptEmail(params: {
+  to: string;
+  organizationName: string;
+  tier: SubscriptionTier;
+  amount: number;
+  currency: string;
+  periodStart: Date;
+  periodEnd: Date;
+  invoiceUrl?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const { to, organizationName, tier, amount, currency, periodStart, periodEnd, invoiceUrl } = params;
+
+  const currencySymbol = currency.toUpperCase() === 'CAD' ? 'CA$' : '$';
+
+  const content = `
+    <h1>Payment Receipt</h1>
+    <p>Hi there,</p>
+    <p>Your subscription payment for <strong>${organizationName}</strong> has been processed successfully.</p>
+
+    <div class="highlight">
+      <p><strong>Payment Details</strong></p>
+      <p>Plan: <strong>${tier.charAt(0).toUpperCase() + tier.slice(1)}</strong></p>
+      <p>Amount: <strong>${currencySymbol}${(amount / 100).toFixed(2)}</strong></p>
+      <p>Billing Period: ${periodStart.toLocaleDateString()} - ${periodEnd.toLocaleDateString()}</p>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+    </div>
+
+    ${
+      invoiceUrl
+        ? `<a href="${invoiceUrl}" class="button">View Invoice</a>`
+        : ''
+    }
+
+    <p>Your subscription will automatically renew on ${periodEnd.toLocaleDateString()}.</p>
+
+    <p>Thank you for being a valued Beer League Hockey customer!</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Payment Receipt - Beer League Hockey ${tier.charAt(0).toUpperCase() + tier.slice(1)}`,
+    html: getEmailLayout(content),
+  });
+}
+
+// ============================================================================
+// 10. Payment Recovered Email
+// ============================================================================
+
+export async function sendPaymentRecoveredEmail(params: {
+  to: string;
+  organizationName: string;
+  amount: number;
+}): Promise<{ success: boolean; error?: string }> {
+  const { to, organizationName, amount } = params;
+
+  const content = `
+    <h1>Payment Successful!</h1>
+    <p>Hi there,</p>
+    <p>Great news! We've successfully processed your payment for <strong>${organizationName}</strong>.</p>
+
+    <div class="highlight">
+      <p><strong>Your subscription has been reactivated</strong></p>
+      <p>Amount: <strong>$${(amount / 100).toFixed(2)}</strong></p>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+    </div>
+
+    <p>Your account is now active again, and you have full access to all features.</p>
+
+    <a href="${SITE_URL}/dashboard" class="button">Go to Dashboard</a>
+
+    <p>Thank you for resolving the payment issue!</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: 'Payment Successful - Subscription Reactivated',
+    html: getEmailLayout(content),
+  });
+}
+
+// ============================================================================
+// 11. Stripe Requirements Due Email
+// ============================================================================
+
+export async function sendStripeRequirementsDueEmail(params: {
+  to: string;
+  organizationName: string;
+  requirementsList: string[];
+  deadline?: Date;
+}): Promise<{ success: boolean; error?: string }> {
+  const { to, organizationName, requirementsList, deadline } = params;
+
+  const content = `
+    <h1>Action Required: Stripe Account Update</h1>
+    <p>Hi there,</p>
+    <p>Your Stripe account for <strong>${organizationName}</strong> requires additional information to maintain payment capabilities.</p>
+
+    <div class="highlight">
+      <p><strong>Required Information:</strong></p>
+      <ul>
+        ${requirementsList.map(req => `<li>${req}</li>`).join('')}
+      </ul>
+      ${deadline ? `<p><strong>Deadline:</strong> ${deadline.toLocaleDateString()}</p>` : ''}
+    </div>
+
+    <p>Please update your account information as soon as possible to avoid any interruption in payment processing.</p>
+
+    <a href="${SITE_URL}/dashboard/settings/payments" class="button">Update Account</a>
+
+    <p>If you have any questions, please contact our support team.</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: 'Action Required: Stripe Account Update',
+    html: getEmailLayout(content),
+  });
+}
+
+// ============================================================================
+// 12. Merchant Capability Active Email
+// ============================================================================
+
+export async function sendMerchantCapabilityActiveEmail(params: {
+  to: string;
+  organizationName: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const { to, organizationName } = params;
+
+  const content = `
+    <h1>Payment Processing Active!</h1>
+    <p>Hi there,</p>
+    <p>Great news! Your Stripe account for <strong>${organizationName}</strong> is now fully activated and ready to accept payments.</p>
+
+    <div class="highlight">
+      <p><strong>You can now:</strong></p>
+      <ul>
+        <li>Accept player registration payments</li>
+        <li>Process league fees</li>
+        <li>Receive automatic payouts to your bank account</li>
+      </ul>
+    </div>
+
+    <a href="${SITE_URL}/dashboard" class="button">Go to Dashboard</a>
+
+    <p>Your players can now complete their registrations and pay online!</p>
+    <p>Best regards,<br>The Beer League Hockey Team</p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: 'Payment Processing Activated - Beer League Hockey',
+    html: getEmailLayout(content),
+  });
+}

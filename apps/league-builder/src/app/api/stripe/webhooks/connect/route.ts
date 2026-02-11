@@ -16,6 +16,16 @@ import { createClient } from '@supabase/supabase-js';
 import { stripe } from '@/lib/stripe/client';
 import Stripe from 'stripe';
 import { sendPayoutFailureAlertEmail } from '@/lib/email/payment-emails';
+import {
+  sendStripeRequirementsDueEmail,
+  sendMerchantCapabilityActiveEmail,
+} from '@/lib/email/subscription-emails';
+import {
+  logConnectAccountEvent,
+  logDuplicateEvent,
+  logWebhookError,
+  logNotificationSent,
+} from '@/lib/logging/webhook-logger';
 
 // ============================================================================
 // Webhook Configuration
@@ -123,20 +133,29 @@ async function handleAccountUpdated(
   });
 
   if (!isNew) {
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      league_id: league.id,
+    });
     return; // Duplicate event
   }
 
   // Determine account status
   let status = 'pending';
+  let decisionPath = 'pending';
+
   if (account.charges_enabled && account.payouts_enabled) {
     status = 'complete';
+    decisionPath = 'fully_enabled';
   } else if (account.requirements?.disabled_reason) {
     status = 'disabled';
+    decisionPath = `disabled_${account.requirements.disabled_reason}`;
   } else if (
     account.requirements?.currently_due &&
     account.requirements.currently_due.length > 0
   ) {
     status = 'restricted';
+    decisionPath = `restricted_${account.requirements.currently_due.length}_requirements`;
   }
 
   // Update league
@@ -149,11 +168,79 @@ async function handleAccountUpdated(
     .eq('id', league.id);
 
   if (error) {
-    console.error('[Connect Webhook] Failed to update league:', error);
+    logWebhookError(error, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'account.updated',
+      league_id: league.id,
+      action: 'update_league',
+      error_type: 'database_error',
+    });
     throw error;
   }
 
-  console.log(`[Connect Webhook] Account updated for league ${league.id}: ${status}`);
+  // Log structured event
+  logConnectAccountEvent({
+    stripe_event_id: eventId,
+    league_id: league.id,
+    action: 'account_updated',
+    decision_path: decisionPath,
+    metadata: {
+      status,
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+    },
+  });
+
+  // Send notification if account is fully enabled (new capability)
+  if (status === 'complete' && !account.capabilities?.card_payments) {
+    try {
+      // Fetch league owner email
+      const { data: leagueData } = await supabase
+        .from('leagues')
+        .select('organization_id')
+        .eq('id', league.id)
+        .single();
+
+      if (leagueData?.organization_id) {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('owner_user_id')
+          .eq('id', leagueData.organization_id)
+          .single();
+
+        if (org?.owner_user_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', org.owner_user_id)
+            .single();
+
+          if (profile?.email) {
+            const emailResult = await sendMerchantCapabilityActiveEmail({
+              to: profile.email,
+              organizationName: league.name,
+            });
+
+            logNotificationSent({
+              stripe_event_id: eventId,
+              league_id: league.id,
+              notification_type: 'merchant_capability_active',
+              recipient_email: profile.email,
+              success: emailResult.success,
+            });
+          }
+        }
+      }
+    } catch (emailError) {
+      logWebhookError(emailError, {
+        stripe_event_id: eventId,
+        stripe_event_type: 'account.updated',
+        league_id: league.id,
+        action: 'send_capability_active_email',
+        error_type: 'notification_error',
+      });
+    }
+  }
 }
 
 /**
@@ -180,6 +267,10 @@ async function handlePaymentIntentSucceeded(
   });
 
   if (!isNew) {
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      league_id: leagueId,
+    });
     return; // Duplicate event
   }
 
@@ -200,7 +291,17 @@ async function handlePaymentIntentSucceeded(
     throw error;
   }
 
-  console.log(`[Connect Webhook] Payment succeeded for league ${leagueId}: $${paymentIntent.amount / 100}`);
+  // Log structured event
+  logConnectAccountEvent({
+    stripe_event_id: eventId,
+    league_id: leagueId,
+    action: 'account_updated',
+    decision_path: 'payment_succeeded',
+    metadata: {
+      payment_intent_id: paymentIntent.id,
+      amount_cents: paymentIntent.amount,
+    },
+  });
 }
 
 /**
@@ -246,7 +347,17 @@ async function handlePaymentIntentFailed(
     throw error;
   }
 
-  console.log(`[Connect Webhook] Payment failed for league ${leagueId}: ${paymentIntent.last_payment_error?.message}`);
+  // Log structured event
+  logConnectAccountEvent({
+    stripe_event_id: eventId,
+    league_id: leagueId,
+    action: 'account_updated',
+    decision_path: 'payment_failed',
+    metadata: {
+      payment_intent_id: paymentIntent.id,
+      error_message: paymentIntent.last_payment_error?.message,
+    },
+  });
 }
 
 /**
@@ -286,6 +397,10 @@ async function handleChargeRefunded(
   });
 
   if (!isNew) {
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      league_id: payment.league_id,
+    });
     return; // Duplicate event
   }
 
@@ -299,11 +414,28 @@ async function handleChargeRefunded(
     .eq('id', payment.id);
 
   if (error) {
-    console.error('[Connect Webhook] Failed to update payment:', error);
+    logWebhookError(error, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'charge.refunded',
+      league_id: payment.league_id,
+      action: 'update_payment',
+      error_type: 'database_error',
+    });
     throw error;
   }
 
-  console.log(`[Connect Webhook] Charge ${status} for league ${payment.league_id}: $${charge.amount_refunded / 100}`);
+  // Log structured event
+  logConnectAccountEvent({
+    stripe_event_id: eventId,
+    league_id: payment.league_id,
+    action: 'account_updated',
+    decision_path: `charge_${status}`,
+    metadata: {
+      charge_id: charge.id,
+      amount_refunded_cents: charge.amount_refunded,
+      fully_refunded: charge.refunded,
+    },
+  });
 }
 
 /**
@@ -332,10 +464,25 @@ async function handlePayoutPaid(
   });
 
   if (!isNew) {
+    logDuplicateEvent({
+      stripe_event_id: eventId,
+      league_id: league.id,
+    });
     return; // Duplicate event
   }
 
-  console.log(`[Connect Webhook] Payout completed for league ${league.id}: $${payout.amount / 100}`);
+  // Log structured event
+  logConnectAccountEvent({
+    stripe_event_id: eventId,
+    league_id: league.id,
+    action: 'account_updated',
+    decision_path: 'payout_paid',
+    metadata: {
+      payout_id: payout.id,
+      amount_cents: payout.amount,
+      arrival_date: payout.arrival_date,
+    },
+  });
 }
 
 /**
