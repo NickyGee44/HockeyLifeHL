@@ -106,9 +106,9 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
                 <Image
                   src={team.logo_url}
                   alt={team.name}
-                  width={24}
-                  height={24}
-                  className="rounded object-contain"
+                  width={48}
+                  height={48}
+                  className="w-8 h-8 md:w-12 md:h-12 rounded object-contain"
                 />
               )}
               {team.name}
@@ -155,9 +155,9 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
             <Image
               src={team.logo_url}
               alt={team.name}
-              width={120}
-              height={120}
-              className="rounded-xl opacity-60 hover:opacity-90 transition-opacity object-contain"
+              width={240}
+              height={240}
+              className="w-[160px] h-[160px] md:w-[240px] md:h-[240px] rounded-xl opacity-60 hover:opacity-90 transition-opacity object-contain"
             />
           </Link>
         )}

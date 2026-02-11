@@ -197,7 +197,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
       {/* 3. Sponsor Banner */}
       {hasSponsors && (
-        <div className="mt-8 border-y border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="mt-8">
           <SponsorBanner sponsors={sponsors} />
         </div>
       )}
@@ -463,7 +463,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             <h3 className="mb-6 text-center text-sm font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
               Our Partners &amp; Sponsors
             </h3>
-            <div className="flex flex-wrap items-center justify-center gap-8">
+            <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16">
               {sponsors
                 .filter((s) => s.logo_url && (s.tier === 'premier' || s.tier === 'gold'))
                 .map((sponsor) => (
@@ -479,8 +479,8 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                       alt={sponsor.name}
                       className={
                         sponsor.tier === 'premier'
-                          ? 'h-14 max-w-[180px] object-contain'
-                          : 'h-10 max-w-[140px] object-contain'
+                          ? 'h-20 md:h-24 max-w-[280px] object-contain'
+                          : 'h-16 md:h-20 max-w-[240px] object-contain'
                       }
                     />
                   </a>

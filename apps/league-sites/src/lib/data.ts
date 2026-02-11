@@ -1244,7 +1244,7 @@ export async function getStatsLeaders(
     player_id: s.player_id,
     player_name: s.full_name || 'Unknown',
     team_name: s.team_name || 'Unknown',
-    team_id: '',
+    team_id: s.team_id || '',
     position: s.position || null,
     games_played: Number(s.games_played) || 0,
     goals: Number(s.goals) || 0,

@@ -99,7 +99,7 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl overflow-hidden z-50">
+        <div className="absolute right-0 bottom-full mb-2 sm:bottom-auto sm:mb-0 sm:mt-2 w-64 max-h-[calc(100dvh-120px)] overflow-y-auto bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl z-50">
           {/* User Info Header */}
           <div className="p-4 border-b border-[var(--color-border)]">
             <div className="flex items-center gap-3">

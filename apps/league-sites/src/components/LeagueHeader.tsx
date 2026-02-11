@@ -173,7 +173,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
         </div>
 
         {isMobileMenuOpen && (
-          <nav className="border-t border-[var(--header-border)] pb-4 pt-3 lg:hidden" data-testid="mobile-nav">
+          <nav className="border-t border-[var(--header-border)] pb-4 pt-3 lg:hidden max-h-[calc(100dvh-80px)] overflow-y-auto" data-testid="mobile-nav">
             {/* Mobile Division Filter */}
             {divisions.length > 1 && (
               <div className="mb-3 px-1">
@@ -204,7 +204,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                   <Link
                     key={item.href}
                     href={`/${leagueSlug}${item.href}`}
-                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
                       active
                         ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
                         : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
