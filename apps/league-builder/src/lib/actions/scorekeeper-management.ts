@@ -45,30 +45,27 @@ function sanitizeError(error: unknown, context: string): string {
 // TYPES
 // ==============================================================================
 
-// Note: The actual league_scorekeepers table only has these columns:
-// id, league_id, scorekeeper_id, status, notes, hired_date, hourly_rate,
-// can_edit_games, can_verify_games, created_at, updated_at
-// The additional fields below are for future use and computed/derived values
 export interface LeagueScorekeeper {
   id: string;
   league_id: string;
   scorekeeper_id: string;
   status: 'active' | 'inactive';
   hourly_rate: number | null;
+  hourly_rate_cents: number;
   notes: string | null;
   can_edit_games: boolean;
   can_verify_games: boolean;
   hired_date: string | null;
   created_at: string;
   updated_at: string;
-  // TODO: These columns don't exist in the table yet - add via migration
-  // For now, these are computed/derived or extracted from notes field
-  total_assignments?: number;
-  completed_assignments?: number;
-  preferred_days?: number[] | null;
-  max_games_per_week?: number | null;
-  email?: string | null;
-  display_name?: string | null;
+  total_assignments: number;
+  completed_assignments: number;
+  preferred_days: number[] | null;
+  max_games_per_week: number | null;
+  email: string | null;
+  display_name: string | null;
+  phone: string | null;
+  is_active: boolean;
   // Joined data from profiles table
   profile?: {
     id: string;
@@ -271,17 +268,16 @@ export async function addScorekeeperToLeague(params: {
 
     // Create the league scorekeeper record
     // If no user found by email, we'll create a placeholder entry
-    // Note: The league_scorekeepers table only has these columns:
-    // id, league_id, scorekeeper_id, status, notes, hired_date, hourly_rate,
-    // can_edit_games, can_verify_games, created_at, updated_at
-    // TODO: Add email, display_name, total_assignments, completed_assignments columns to league_scorekeepers table
     const insertData = {
       league_id: leagueId,
       hourly_rate: hourlyRate || null,
-      notes: notes ? `${displayName.trim()} (${email.toLowerCase()})${notes ? ' - ' + notes : ''}` : `${displayName.trim()} (${email.toLowerCase()})`,
+      notes: notes || null,
+      email: email.toLowerCase(),
+      display_name: displayName.trim(),
       status: 'active' as const,
+      is_active: true,
       hired_date: new Date().toISOString().split('T')[0],
-      scorekeeper_id: finalScorekeeperId || auth.userId, // Use admin's ID as placeholder for non-registered scorekeepers
+      scorekeeper_id: finalScorekeeperId || auth.userId,
     };
 
     const { data, error } = await supabase
@@ -337,32 +333,19 @@ export async function updateScorekeeper(params: {
 
     const supabase = await createServiceRoleClient();
 
-    // Note: league_scorekeepers table only has these columns:
-    // id, league_id, scorekeeper_id, status, notes, hired_date, hourly_rate,
-    // can_edit_games, can_verify_games, created_at, updated_at
-    // TODO: Add display_name, max_games_per_week, preferred_days columns to table
-    const updateData: {
-      updated_at: string;
-      status?: 'active' | 'inactive';
-      hourly_rate?: number | null;
-      notes?: string | null;
-    } = {
+    const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
 
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.hourlyRate !== undefined) updateData.hourly_rate = updates.hourlyRate;
-    // Append displayName to notes since display_name column doesn't exist yet
-    if (updates.notes !== undefined || updates.displayName !== undefined) {
-      const notesParts: string[] = [];
-      if (updates.displayName) notesParts.push(`Name: ${updates.displayName}`);
-      if (updates.notes) notesParts.push(updates.notes);
-      updateData.notes = notesParts.join(' - ') || null;
+    if (updates.status !== undefined) {
+      updateData.status = updates.status;
+      updateData.is_active = updates.status === 'active';
     }
-    // TODO: Uncomment when columns exist
-    // if (updates.displayName !== undefined) updateData.display_name = updates.displayName;
-    // if (updates.maxGamesPerWeek !== undefined) updateData.max_games_per_week = updates.maxGamesPerWeek;
-    // if (updates.preferredDays !== undefined) updateData.preferred_days = updates.preferredDays;
+    if (updates.hourlyRate !== undefined) updateData.hourly_rate = updates.hourlyRate;
+    if (updates.notes !== undefined) updateData.notes = updates.notes;
+    if (updates.displayName !== undefined) updateData.display_name = updates.displayName;
+    if (updates.maxGamesPerWeek !== undefined) updateData.max_games_per_week = updates.maxGamesPerWeek;
+    if (updates.preferredDays !== undefined) updateData.preferred_days = updates.preferredDays;
 
     const { data, error } = await supabase
       .from('league_scorekeepers')
@@ -603,22 +586,29 @@ export async function bulkAssignScorekepers(params: {
       }
     }
 
-    // TODO: Update scorekeeper assignment counts when increment_scorekeeper_assignments RPC is created
-    // The RPC should increment total_assignments column on league_scorekeepers table
-    // Currently skipped because RPC and column don't exist yet
-    // const scorekeeperCounts = new Map<string, number>();
-    // for (const { scorekeeperId } of assignments) {
-    //   if (assigned.includes(assignments.find(a => a.scorekeeperId === scorekeeperId)?.gameId || '')) {
-    //     scorekeeperCounts.set(scorekeeperId, (scorekeeperCounts.get(scorekeeperId) || 0) + 1);
-    //   }
-    // }
-    // for (const [scorekeeperId, count] of scorekeeperCounts.entries()) {
-    //   await supabase.rpc('increment_scorekeeper_assignments', {
-    //     p_league_id: leagueId,
-    //     p_scorekeeper_id: scorekeeperId,
-    //     p_count: count,
-    //   });
-    // }
+    // Update scorekeeper assignment counts
+    const scorekeeperCounts = new Map<string, number>();
+    for (const { gameId, scorekeeperId } of assignments) {
+      if (assigned.includes(gameId)) {
+        scorekeeperCounts.set(scorekeeperId, (scorekeeperCounts.get(scorekeeperId) || 0) + 1);
+      }
+    }
+    for (const [scorekeeperId, count] of scorekeeperCounts.entries()) {
+      // Find the league_scorekeeper record
+      const { data: lsk } = await supabase
+        .from('league_scorekeepers')
+        .select('id')
+        .eq('league_id', leagueId)
+        .eq('scorekeeper_id', scorekeeperId)
+        .maybeSingle();
+
+      if (lsk) {
+        await supabase.rpc('increment_scorekeeper_assignments', {
+          p_league_scorekeeper_id: lsk.id,
+          p_count: count,
+        });
+      }
+    }
 
     revalidatePath(`/dashboard/leagues/${leagueId}/settings/scorekeepers`);
     revalidatePath(`/dashboard/leagues/${leagueId}/games`);
@@ -711,22 +701,21 @@ export async function autoAssignScorekepers(params: {
 
     const supabase = await createServiceRoleClient();
 
-    // TODO: Create auto-assign log entry when scorekeeper_auto_assign_log table exists
-    // const { data: logEntry, error: logError } = await supabase
-    //   .from('scorekeeper_auto_assign_log')
-    //   .insert({
-    //     league_id: leagueId,
-    //     season_id: options.seasonId || null,
-    //     assignment_strategy: options.strategy,
-    //     triggered_by: auth.userId,
-    //     status: 'running',
-    //   })
-    //   .select('id')
-    //   .single();
-    // if (logError) {
-    //   console.error('Failed to create log entry:', logError);
-    // }
-    const logEntry: { id: string } | null = null; // Stub until table exists
+    // Create auto-assign log entry
+    const { data: logEntry, error: logError } = await supabase
+      .from('scorekeeper_auto_assign_log')
+      .insert({
+        league_id: leagueId,
+        season_id: options.seasonId || null,
+        assignment_strategy: options.strategy,
+        triggered_by: auth.userId,
+        status: 'running',
+      })
+      .select('id')
+      .single();
+    if (logError) {
+      console.error('Failed to create log entry:', logError);
+    }
 
     // Get active scorekeepers
     const { data: scorekeepers, error: skError } = await supabase
@@ -784,11 +773,10 @@ export async function autoAssignScorekepers(params: {
       (existingAssignments || []).map(a => [a.game_id, a.scorekeeper_id])
     );
 
-    // Track assignments for round-robin
-    // TODO: Use sk.total_assignments when column exists on league_scorekeepers table
+    // Track assignments for round-robin using actual total_assignments column
     const scorekeeperAssignments = new Map<string, number>();
     scorekeepers.forEach(sk => {
-      scorekeeperAssignments.set(sk.scorekeeper_id, 0); // Start at 0 since total_assignments column doesn't exist yet
+      scorekeeperAssignments.set(sk.scorekeeper_id, (sk as any).total_assignments || 0);
     });
 
     // Track conflicts (same scorekeeper at same time)
@@ -833,35 +821,37 @@ export async function autoAssignScorekepers(params: {
           continue;
         }
 
-        // TODO: Check max games per week limit when max_games_per_week column exists on league_scorekeepers
-        // if (sk.max_games_per_week) {
-        //   const weekStart = new Date(game.scheduled_at);
-        //   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        //   const weekEnd = new Date(weekStart);
-        //   weekEnd.setDate(weekEnd.getDate() + 7);
-        //   const weekGames = games.filter(g => {
-        //     const gDate = new Date(g.scheduled_at);
-        //     return gDate >= weekStart && gDate < weekEnd;
-        //   });
-        //   const weekAssignments = weekGames.filter(g =>
-        //     result.assignments.some(a => a.gameId === g.id && a.scorekeeperId === sk.scorekeeper_id)
-        //   ).length;
-        //   if (weekAssignments >= sk.max_games_per_week) {
-        //     continue;
-        //   }
-        // }
+        // Check max games per week limit
+        const skMaxGames = (sk as any).max_games_per_week;
+        if (skMaxGames && skMaxGames > 0) {
+          const weekStart = new Date(game.scheduled_at);
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 7);
+          const weekGames = games.filter(g => {
+            const gDate = new Date(g.scheduled_at);
+            return gDate >= weekStart && gDate < weekEnd;
+          });
+          const weekAssignments = weekGames.filter(g =>
+            result.assignments.some(a => a.gameId === g.id && a.scorekeeperId === sk.scorekeeper_id)
+          ).length;
+          if (weekAssignments >= skMaxGames) {
+            continue;
+          }
+        }
 
-        // TODO: Check preferred days when preferred_days column exists on league_scorekeepers
-        // if (sk.preferred_days && sk.preferred_days.length > 0) {
-        //   const gameDay = new Date(game.scheduled_at).getDay();
-        //   if (!sk.preferred_days.includes(gameDay)) {
-        //     // Skip to next if there are other options, but remember this one
-        //     if (!selectedScorekeeper) {
-        //       selectedScorekeeper = sk;
-        //     }
-        //     continue;
-        //   }
-        // }
+        // Check preferred days
+        const skPreferredDays = (sk as any).preferred_days;
+        if (skPreferredDays && Array.isArray(skPreferredDays) && skPreferredDays.length > 0) {
+          const gameDay = new Date(game.scheduled_at).getDay();
+          if (!skPreferredDays.includes(gameDay)) {
+            // Skip to next if there are other options, but remember this one as fallback
+            if (!selectedScorekeeper) {
+              selectedScorekeeper = sk;
+            }
+            continue;
+          }
+        }
 
         selectedScorekeeper = sk;
         break;
@@ -916,29 +906,51 @@ export async function autoAssignScorekepers(params: {
       result.assignments.push({
         gameId: game.id,
         scorekeeperId: selectedScorekeeper.scorekeeper_id,
-        // TODO: Use display_name and email when columns exist on league_scorekeepers
-        // For now, fetch from joined profile or use 'Unknown'
-        scorekeeperName: 'Scorekeeper', // Stub - columns don't exist yet
+        scorekeeperName: (selectedScorekeeper as any).display_name || (selectedScorekeeper as any).email || 'Scorekeeper',
       });
     }
 
-    // TODO: Update log entry when scorekeeper_auto_assign_log table exists
-    // if (logEntry) {
-    //   await supabase
-    //     .from('scorekeeper_auto_assign_log')
-    //     .update({
-    //       games_processed: result.gamesProcessed,
-    //       games_assigned: result.gamesAssigned,
-    //       games_skipped: result.gamesSkipped,
-    //       conflicts_detected: result.conflictsDetected,
-    //       assignments: result.assignments,
-    //       skipped_games: result.skipped,
-    //       completed_at: new Date().toISOString(),
-    //       status: result.gamesAssigned > 0 ? 'completed' : 'partial',
-    //     })
-    //     .eq('id', logEntry.id);
-    // }
-    void logEntry; // Suppress unused variable warning
+    // Update assignment counts for scorekeepers
+    const scorekeeperCountUpdates = new Map<string, number>();
+    for (const assignment of result.assignments) {
+      const currentCount = scorekeeperCountUpdates.get(assignment.scorekeeperId) || 0;
+      scorekeeperCountUpdates.set(assignment.scorekeeperId, currentCount + 1);
+    }
+    for (const [skId, count] of scorekeeperCountUpdates.entries()) {
+      // Find the league_scorekeeper record by scorekeeper_id
+      const { data: lsk } = await supabase
+        .from('league_scorekeepers')
+        .select('id, total_assignments')
+        .eq('league_id', leagueId)
+        .eq('scorekeeper_id', skId)
+        .maybeSingle();
+
+      if (lsk) {
+        await supabase
+          .from('league_scorekeepers')
+          .update({
+            total_assignments: ((lsk as any).total_assignments || 0) + count,
+          })
+          .eq('id', lsk.id);
+      }
+    }
+
+    // Update auto-assign log entry
+    if (logEntry) {
+      await supabase
+        .from('scorekeeper_auto_assign_log')
+        .update({
+          games_processed: result.gamesProcessed,
+          games_assigned: result.gamesAssigned,
+          games_skipped: result.gamesSkipped,
+          conflicts_detected: result.conflictsDetected,
+          assignments: result.assignments as any,
+          skipped_games: result.skipped as any,
+          completed_at: new Date().toISOString(),
+          status: result.gamesAssigned > 0 ? 'completed' : 'partial',
+        })
+        .eq('id', logEntry.id);
+    }
 
     revalidatePath(`/dashboard/leagues/${leagueId}/settings/scorekeepers`);
     revalidatePath(`/dashboard/leagues/${leagueId}/games`);
@@ -1053,8 +1065,6 @@ export async function exportScorekepers(
       return result as ActionResult<never>;
     }
 
-    // Note: display_name, email, total_assignments, completed_assignments columns
-    // don't exist on league_scorekeepers yet - use profile data and defaults
     const exportData = result.data.scorekeepers.map(sk => ({
       name: sk.display_name || sk.profile?.full_name || '',
       email: sk.email || sk.profile?.email || '',

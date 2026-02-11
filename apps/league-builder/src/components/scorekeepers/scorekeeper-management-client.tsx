@@ -3,6 +3,8 @@
 import { useState, useCallback, useTransition } from 'react';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import {
   getLeagueScorekepers,
   removeScorekeeperFromLeague,
@@ -21,6 +23,7 @@ import {
   Download,
   Wand2,
   Calendar,
+  CalendarDays,
   Trash2,
   Loader2,
 } from 'lucide-react';
@@ -167,6 +170,9 @@ export function ScorekeeperManagementClient({
     setEditScorekeeper(null);
   };
 
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
+
   return (
     <div className="space-y-6">
       {/* Action buttons */}
@@ -201,6 +207,17 @@ export function ScorekeeperManagementClient({
         </Button>
 
         <div className="flex-1" />
+
+        <Button
+          variant="outline"
+          asChild
+          className="border-rink-500/30 text-rink-500 hover:bg-rink-500/10"
+        >
+          <Link href={`/${locale}/dashboard/leagues/${leagueId}/scorekeepers/schedule`}>
+            <CalendarDays className="w-4 h-4 mr-2" />
+            View Schedule
+          </Link>
+        </Button>
 
         <Button
           variant="outline"
