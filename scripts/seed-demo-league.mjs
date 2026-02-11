@@ -278,23 +278,7 @@ async function seedDemoLeague() {
     console.log('  Team created: %s (%s)', t.name, t.id);
   }
 
-  // Step 6: Link teams to season via season_teams
-  console.log('Linking teams to season...');
-  const seasonTeamInserts = teamIds.map((teamId) => ({
-    season_id: season.id,
-    team_id: teamId,
-  }));
-
-  const { error: stErr } = await supabase.from('season_teams').insert(seasonTeamInserts);
-
-  if (stErr) {
-    console.error('Failed to link teams to season:', stErr);
-    // Continue anyway
-  } else {
-    console.log('  Linked %d teams to season', teamIds.length);
-  }
-
-  // Step 7: Create venues
+  // Step 6: Create venues
   console.log('Creating venues...');
   const venuesToInsert = venues.map((v) => ({
     league_id: league.id,

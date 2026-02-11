@@ -180,15 +180,24 @@ async function seedDemoRosters() {
 
   const teamCount = teams.length;
 
-  // Step 4: Check for existing rosters
-  console.log('\nChecking for existing demo rosters...');
+  // Step 4: Check for existing rosters and demo users
+  console.log('\nChecking for existing demo data...');
+
   const { count: existingCount } = await supabase
     .from('team_rosters')
     .select('id', { count: 'exact', head: true })
     .eq('league_id', league.id)
     .eq('season_id', season.id);
 
-  if (existingCount > 0 && !RESET) {
+  // Also check for orphaned demo auth users (from previous runs where league was deleted)
+  const { data: orphanedProfiles } = await supabase
+    .from('profiles')
+    .select('id, email')
+    .like('email', `%@${EMAIL_DOMAIN}`);
+
+  const hasOrphanedUsers = orphanedProfiles && orphanedProfiles.length > 0;
+
+  if (existingCount > 0 && !RESET && !hasOrphanedUsers) {
     console.log(
       'Demo rosters already exist (%d entries). Use --reset to recreate.',
       existingCount
@@ -196,66 +205,51 @@ async function seedDemoRosters() {
     return;
   }
 
-  if (existingCount > 0 && RESET) {
-    console.log('--reset flag detected. Cleaning up %d existing roster entries...', existingCount);
+  if (RESET || hasOrphanedUsers) {
+    console.log('Cleaning up existing demo data...');
 
-    // Get all player_ids from existing rosters to clean up auth users and profiles
-    const { data: existingRosters } = await supabase
-      .from('team_rosters')
-      .select('player_id')
-      .eq('league_id', league.id)
-      .eq('season_id', season.id);
+    // Delete roster entries for this league/season
+    if (existingCount > 0) {
+      const { error: rosterDelErr } = await supabase
+        .from('team_rosters')
+        .delete()
+        .eq('league_id', league.id)
+        .eq('season_id', season.id);
 
-    const playerIds = existingRosters?.map((r) => r.player_id) || [];
-
-    // Delete roster entries
-    const { error: rosterDelErr } = await supabase
-      .from('team_rosters')
-      .delete()
-      .eq('league_id', league.id)
-      .eq('season_id', season.id);
-
-    if (rosterDelErr) {
-      console.error('Failed to delete existing rosters:', rosterDelErr);
-      process.exit(1);
-    }
-    console.log('  Deleted roster entries.');
-
-    // Delete profiles and auth users created by this script
-    // Identify them by the demo email pattern
-    if (playerIds.length > 0) {
-      const { data: demoProfiles } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('id', playerIds)
-        .like('email', `%@${EMAIL_DOMAIN}`);
-
-      if (demoProfiles && demoProfiles.length > 0) {
-        const demoIds = demoProfiles.map((p) => p.id);
-
-        // Delete profiles
-        const { error: profDelErr } = await supabase
-          .from('profiles')
-          .delete()
-          .in('id', demoIds);
-
-        if (profDelErr) {
-          console.error('Failed to delete demo profiles:', profDelErr);
-        } else {
-          console.log('  Deleted %d demo profiles.', demoIds.length);
-        }
-
-        // Delete auth users
-        let authDeleted = 0;
-        for (const uid of demoIds) {
-          const { error: authErr } = await supabase.auth.admin.deleteUser(uid);
-          if (!authErr) authDeleted++;
-        }
-        console.log('  Deleted %d auth users.', authDeleted);
+      if (rosterDelErr) {
+        console.error('Failed to delete existing rosters:', rosterDelErr);
+      } else {
+        console.log('  Deleted %d roster entries.', existingCount);
       }
     }
 
-    // Also clean up any legacy_player matched_to_profile_id references
+    // Clean up ALL demo profiles and auth users by email pattern
+    if (orphanedProfiles && orphanedProfiles.length > 0) {
+      const demoIds = orphanedProfiles.map((p) => p.id);
+      console.log('  Found %d demo profiles to clean up.', demoIds.length);
+
+      // Delete profiles
+      const { error: profDelErr } = await supabase
+        .from('profiles')
+        .delete()
+        .in('id', demoIds);
+
+      if (profDelErr) {
+        console.error('Failed to delete demo profiles:', profDelErr);
+      } else {
+        console.log('  Deleted %d demo profiles.', demoIds.length);
+      }
+
+      // Delete auth users
+      let authDeleted = 0;
+      for (const uid of demoIds) {
+        const { error: authErr } = await supabase.auth.admin.deleteUser(uid);
+        if (!authErr) authDeleted++;
+      }
+      console.log('  Deleted %d auth users.', authDeleted);
+    }
+
+    // Clear legacy player match references
     const { error: unmatchErr } = await supabase
       .from('legacy_players')
       .update({ matched_to_profile_id: null, matched_at: null })
@@ -367,7 +361,8 @@ async function seedDemoRosters() {
       const fullName =
         legacy.full_name || `${legacy.first_name} ${legacy.last_name}`.trim();
 
-      // Create auth user
+      // Create auth user (or find existing one)
+      let userId;
       const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
         email,
         password: DEFAULT_PASSWORD,
@@ -379,24 +374,41 @@ async function seedDemoRosters() {
       });
 
       if (authErr) {
-        console.warn('    Skipping %s: auth error: %s', fullName, authErr.message);
-        totalSkipped++;
-        continue;
-      }
+        // If user already exists, look them up by email
+        if (authErr.message.includes('already been registered')) {
+          const { data: existingUsers } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', email)
+            .single();
 
-      const userId = authData.user.id;
+          if (existingUsers) {
+            userId = existingUsers.id;
+          } else {
+            console.warn('    Skipping %s: user exists but profile not found', fullName);
+            totalSkipped++;
+            continue;
+          }
+        } else {
+          console.warn('    Skipping %s: auth error: %s', fullName, authErr.message);
+          totalSkipped++;
+          continue;
+        }
+      } else {
+        userId = authData.user.id;
+      }
 
       // Determine position and player type
       let position;
       let playerType;
       if (isGoalie) {
         position = 'Goalie';
-        playerType = 'goalie';
+        playerType = 'regular';
       } else {
         // Cycle through Forward/Defense distribution
         const posIndex = i - teamGoalies.length; // index among skaters on this team
         position = SKATER_POSITIONS[posIndex % SKATER_POSITIONS.length];
-        playerType = 'skater';
+        playerType = 'regular';
       }
 
       const jerseyNumber = generateJerseyNumber(isGoalie, usedJerseyNumbers);
@@ -413,7 +425,6 @@ async function seedDemoRosters() {
         id: userId,
         email,
         full_name: fullName,
-        position,
         jersey_number: jerseyNumber,
         role: 'player',
         is_platform_admin: false,
@@ -436,7 +447,7 @@ async function seedDemoRosters() {
         console.warn('    Warning: could not match legacy player %s: %s', legacy.id, matchErr.message);
       }
 
-      // Prepare roster entry
+      // Prepare roster entry (is_goalie is a generated column, don't set it)
       allRosterInserts.push({
         player_id: userId,
         team_id: team.id,
@@ -446,7 +457,6 @@ async function seedDemoRosters() {
         player_type: playerType,
         position,
         jersey_number: jerseyNumber,
-        is_goalie: isGoalie,
         leadership_role: leadershipRole,
         start_date: SEASON_START_DATE,
       });

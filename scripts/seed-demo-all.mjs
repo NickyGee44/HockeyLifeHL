@@ -75,7 +75,7 @@ function printBanner() {
   console.log('  Steps: %d', steps.length);
   console.log('');
   for (let i = 0; i < steps.length; i++) {
-    console.log('    %d. %-12s %s', i + 1, steps[i].name, steps[i].description);
+    console.log('    %d. %s  %s', i + 1, steps[i].name.padEnd(12), steps[i].description);
   }
   console.log('');
   console.log('----------------------------------------------------------------');
@@ -171,12 +171,12 @@ function printSummary(results, startTime) {
 
   for (const r of results) {
     const icon = r.status === 'OK' ? '[OK]    ' : '[FAILED]';
-    console.log('    %s  %-12s  %s', icon, r.name, formatDuration(r.elapsed));
+    console.log('    %s  %s  %s', icon, r.name.padEnd(12), formatDuration(r.elapsed));
   }
 
   if (remaining > 0) {
     for (let i = results.length; i < steps.length; i++) {
-      console.log('    [SKIP]    %-12s  (not reached)', steps[i].name);
+      console.log('    [SKIP]    %s  (not reached)', steps[i].name.padEnd(12));
     }
   }
 
