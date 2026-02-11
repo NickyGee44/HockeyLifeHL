@@ -575,7 +575,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
       (supabase as any)
         .from('team_rosters')
         .select(`
-          player_id, jersey_number, position, is_captain, is_assistant_captain,
+          player_id, jersey_number, position, leadership_role,
           profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
         `)
         .eq('team_id', (game.home_team as { id: string }).id)
@@ -583,7 +583,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
       (supabase as any)
         .from('team_rosters')
         .select(`
-          player_id, jersey_number, position, is_captain, is_assistant_captain,
+          player_id, jersey_number, position, leadership_role,
           profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
         `)
         .eq('team_id', (game.away_team as { id: string }).id)
@@ -600,8 +600,8 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           avatarUrl: r.profiles.avatar_url || null,
           jerseyNumber: r.jersey_number,
           position: r.position as 'Forward' | 'Defense' | 'Goalie',
-          isCaptain: r.is_captain,
-          isAssistantCaptain: r.is_assistant_captain,
+          isCaptain: r.leadership_role === 'captain',
+          isAssistantCaptain: r.leadership_role === 'alternate_captain',
         }))
         .sort((a, b) => a.jerseyNumber - b.jerseyNumber);
     };
