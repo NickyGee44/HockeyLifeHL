@@ -260,7 +260,6 @@ export async function POST(request: NextRequest) {
  */
 async function handleRequirementsUpdated(event: any, supabase: ServiceRoleSupabaseClient) {
   console.log('Handling requirements updated for account:', event.data?.object?.id);
-  void supabase;
 
   const accountId = event.data?.object?.id;
   if (!accountId) return;
@@ -281,18 +280,54 @@ async function handleRequirementsUpdated(event: any, supabase: ServiceRoleSupaba
       eventuallyDue,
     });
 
-    // TODO: Store requirements in database for tracking
-    // await supabase.from('leagues')
-    //   .update({
-    //     stripe_requirements_currently_due: currentlyDue,
-    //     stripe_requirements_past_due: pastDue,
-    //     stripe_requirements_eventually_due: eventuallyDue,
-    //   })
-    //   .eq('stripe_account_id', accountId);
+    // Store requirements in database for tracking
+    const { data: league, error: updateError } = await supabase
+      .from('leagues')
+      .update({
+        stripe_requirements_currently_due: currentlyDue,
+        stripe_requirements_past_due: pastDue,
+        stripe_requirements_eventually_due: eventuallyDue,
+        stripe_requirements_updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_account_id', accountId)
+      .select('id, owner_id')
+      .maybeSingle();
 
-    // TODO: Send email notification to league owner if requirements are due
+    if (updateError) {
+      console.error('[V2 Account Webhook] Failed to update requirements:', {
+        stripe_event_id: event.id,
+        stripe_account_id: accountId,
+        error: updateError,
+      });
+      throw updateError;
+    }
+
+    if (!league) {
+      console.warn('[V2 Account Webhook] No league found for account:', {
+        stripe_event_id: event.id,
+        stripe_account_id: accountId,
+      });
+      return;
+    }
+
+    console.log('[V2 Account Webhook] Requirements updated:', {
+      stripe_event_id: event.id,
+      stripe_account_id: accountId,
+      league_id: league.id,
+      currently_due_count: currentlyDue.length,
+      past_due_count: pastDue.length,
+      eventually_due_count: eventuallyDue.length,
+    });
+
+    // TODO (Task #6): Send email notification to league owner if requirements are due
     // if (currentlyDue.length > 0 || pastDue.length > 0) {
-    //   await sendRequirementsNotificationEmail(accountId, currentlyDue, pastDue);
+    //   await sendRequirementsNotificationEmail({
+    //     leagueId: league.id,
+    //     ownerId: league.owner_id,
+    //     accountId,
+    //     currentlyDue,
+    //     pastDue,
+    //   });
     // }
 
   } catch (error) {
@@ -325,16 +360,47 @@ async function handleMerchantCapabilityUpdated(event: any, supabase: ServiceRole
 
     const status = cardPaymentsStatus === 'active' ? 'active' : 'pending';
 
-    await supabase
+    const { data: league, error: updateError } = await supabase
       .from('leagues')
       .update({
         stripe_account_status: status,
       })
-      .eq('stripe_account_id', accountId);
+      .eq('stripe_account_id', accountId)
+      .select('id, owner_id, stripe_account_status')
+      .maybeSingle();
 
-    // TODO: Send notification if capability became active
-    // if (cardPaymentsStatus === 'active') {
-    //   await sendCapabilityActiveNotification(accountId);
+    if (updateError) {
+      console.error('[V2 Account Webhook] Failed to update merchant capability:', {
+        stripe_event_id: event.id,
+        stripe_account_id: accountId,
+        error: updateError,
+      });
+      throw updateError;
+    }
+
+    if (!league) {
+      console.warn('[V2 Account Webhook] No league found for account:', {
+        stripe_event_id: event.id,
+        stripe_account_id: accountId,
+      });
+      return;
+    }
+
+    console.log('[V2 Account Webhook] Merchant capability updated:', {
+      stripe_event_id: event.id,
+      stripe_account_id: accountId,
+      league_id: league.id,
+      capability_status: cardPaymentsStatus,
+      account_status: status,
+    });
+
+    // TODO (Task #6): Send notification if capability became active
+    // if (cardPaymentsStatus === 'active' && league.stripe_account_status !== 'active') {
+    //   await sendMerchantCapabilityActiveNotification({
+    //     leagueId: league.id,
+    //     ownerId: league.owner_id,
+    //     accountId,
+    //   });
     // }
 
   } catch (error) {
@@ -350,7 +416,6 @@ async function handleMerchantCapabilityUpdated(event: any, supabase: ServiceRole
  */
 async function handleCustomerCapabilityUpdated(event: any, supabase: ServiceRoleSupabaseClient) {
   console.log('Handling customer capability updated for account:', event.data?.object?.id);
-  void supabase;
 
   const accountId = event.data?.object?.id;
   if (!accountId) return;
@@ -361,12 +426,46 @@ async function handleCustomerCapabilityUpdated(event: any, supabase: ServiceRole
       include: ['configuration.customer'],
     });
 
-    const customerStatus = account.configuration?.customer;
+    const customerCapability = account.configuration?.customer?.capabilities;
+    const customerStatus = customerCapability?.status;
 
     console.log('Customer capability status:', customerStatus);
 
-    // TODO: Update database with customer capability status
+    // Update database with customer capability status
     // This affects whether the platform can charge subscriptions to this account
+    const { data: league, error: updateError } = await supabase
+      .from('leagues')
+      .update({
+        stripe_customer_capability_status: customerStatus || null,
+        stripe_customer_capability_updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_account_id', accountId)
+      .select('id')
+      .maybeSingle();
+
+    if (updateError) {
+      console.error('[V2 Account Webhook] Failed to update customer capability:', {
+        stripe_event_id: event.id,
+        stripe_account_id: accountId,
+        error: updateError,
+      });
+      throw updateError;
+    }
+
+    if (!league) {
+      console.warn('[V2 Account Webhook] No league found for account:', {
+        stripe_event_id: event.id,
+        stripe_account_id: accountId,
+      });
+      return;
+    }
+
+    console.log('[V2 Account Webhook] Customer capability updated:', {
+      stripe_event_id: event.id,
+      stripe_account_id: accountId,
+      league_id: league.id,
+      customer_capability_status: customerStatus,
+    });
 
   } catch (error) {
     console.error('Error handling customer capability updated:', error);

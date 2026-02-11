@@ -4380,6 +4380,12 @@ export type Database = {
           status: string | null
           stripe_account_id: string | null
           stripe_account_status: string | null
+          stripe_customer_capability_status: string | null
+          stripe_customer_capability_updated_at: string | null
+          stripe_requirements_currently_due: Json | null
+          stripe_requirements_eventually_due: Json | null
+          stripe_requirements_past_due: Json | null
+          stripe_requirements_updated_at: string | null
           subdomain: string | null
           subscription_status: string | null
           subscription_tier: string | null
@@ -4428,6 +4434,12 @@ export type Database = {
           status?: string | null
           stripe_account_id?: string | null
           stripe_account_status?: string | null
+          stripe_customer_capability_status?: string | null
+          stripe_customer_capability_updated_at?: string | null
+          stripe_requirements_currently_due?: Json | null
+          stripe_requirements_eventually_due?: Json | null
+          stripe_requirements_past_due?: Json | null
+          stripe_requirements_updated_at?: string | null
           subdomain?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
@@ -4476,6 +4488,12 @@ export type Database = {
           status?: string | null
           stripe_account_id?: string | null
           stripe_account_status?: string | null
+          stripe_customer_capability_status?: string | null
+          stripe_customer_capability_updated_at?: string | null
+          stripe_requirements_currently_due?: Json | null
+          stripe_requirements_eventually_due?: Json | null
+          stripe_requirements_past_due?: Json | null
+          stripe_requirements_updated_at?: string | null
           subdomain?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
