@@ -1,6 +1,6 @@
 # Mobile App Progress Tracker
 
-## Current Status: PHASE 1 COMPLETE - Foundation Implemented
+## Current Status: PHASE 2 COMPLETE - Full Feature Parity
 
 ## Session Log
 
@@ -32,7 +32,31 @@
 - [x] Created push_device_tokens DB migration with RLS
 - [x] Updated turbo.json with mobile env vars
 - [x] Added `dev:mobile` script to root package.json
-- [ ] **NEXT**: `pnpm install` to resolve dependencies, then test with Expo Go
+- [x] `pnpm install` resolves all dependencies
+
+### Session 3 (2026-02-12) - Phase 2 Implementation
+- [x] Added shared types (CheckinStatus, GameCheckin, CheckinSummary, JoinRequestStatus, TeamJoinRequest, TeamForJoin)
+- [x] Created `packages/data/src/queries/checkins.ts` (4 functions: update, getMyCheckins, getGame, getSummaries)
+- [x] Created `packages/data/src/queries/join-requests.ts` (4 functions: getMy, getTeams, submit, cancel)
+- [x] Added `getNewsArticleById` to content queries
+- [x] Created hooks: useCheckins (4), useJoinRequests (4), useContent (3)
+- [x] Updated all barrel exports (queries, hooks, mobile re-exports)
+- [x] Built news article detail screen with hero image, author row, content paragraphs
+- [x] Added news list → detail navigation (tap to read)
+- [x] Built PhotoViewer component (full-screen modal, pinch-to-zoom, swipe between photos, double-tap zoom)
+- [x] Built album detail screen (3-column photo grid, tap to view)
+- [x] Added gallery list → album navigation (tap to browse)
+- [x] Built CheckinButtons component (IN/MAYBE/OUT with color states)
+- [x] Built CheckinList component (collapsible player lists grouped by status)
+- [x] Enhanced game detail with RSVP section + check-in lists + Add to Calendar
+- [x] Enhanced schedule with RSVP status badges (IN/MAYBE/OUT) + Export All button
+- [x] Built team join request screen (browse teams, request with message, cancel pending)
+- [x] Enhanced league detail with conditional "Join Team" menu item
+- [x] Created iCal generation utilities (single game + full schedule)
+- [x] Created calendar export utility (write .ics + share sheet via expo-file-system + expo-sharing)
+- [x] Added expo-file-system and expo-sharing dependencies
+- [x] All TypeScript checks pass (packages/data, packages/ui-native, apps/mobile)
+- [ ] **NEXT**: Phase 3 (Push notifications Edge Functions, Realtime live scores, team chat)
 
 ---
 
@@ -61,15 +85,15 @@
 | Push notification system | DONE | Registration, DB migration, RLS |
 | Stripe payments | DONE | WebView checkout, payment banners |
 
-### Phase 2: Full Feature Parity (Weeks 4-6)
+### Phase 2: Full Feature Parity (Weeks 4-6) - COMPLETE
 | Task | Status | Notes |
 |------|--------|-------|
-| Game RSVP / check-in | Not Started | |
-| Team join requests | Not Started | |
-| Calendar export (iCal) | Not Started | |
+| Game RSVP / check-in | DONE | CheckinButtons, CheckinList, game detail + schedule integration |
+| Team join requests | DONE | Browse teams, submit/cancel requests, league detail integration |
+| Calendar export (iCal) | DONE | Single game + full schedule export via share sheet |
 | Goalie stats screen | DONE | Dedicated goalie leaders view |
-| News article detail view | Not Started | Full article rendering |
-| Gallery photo viewer | Not Started | Full-screen viewer with zoom |
+| News article detail view | DONE | Full article with hero image, author, content paragraphs |
+| Gallery photo viewer | DONE | Full-screen modal with pinch-to-zoom, swipe, double-tap |
 
 ### Phase 3: Brodie League Features (Weeks 7-9)
 | Task | Status | Notes |
@@ -98,18 +122,33 @@
 
 ### `apps/mobile/` (Expo React Native app)
 - **Config**: app.json, eas.json, package.json, tsconfig.json, tailwind.config.ts, babel.config.js, metro.config.js
-- **App screens**: 20 screens across 5 tabs + auth
-- **Lib**: Supabase client, auth provider, offline DB, push registration, payment checkout
-- **Components**: NextGameCountdown, PaymentBanner
+- **App screens**: 24 screens across 5 tabs + auth (Phase 1: 20, Phase 2: +4)
+- **Lib**: Supabase client, auth provider, offline DB, push registration, payment checkout, calendar export
+- **Components**: NextGameCountdown, PaymentBanner, PhotoViewer, CheckinButtons, CheckinList
 - **Theme**: Brand color tokens
 
 ### `packages/data/` (Shared query layer)
-- **Queries**: leagues.ts, teams.ts, games.ts, stats.ts, players.ts, payments.ts, content.ts
-- **Hooks**: useLeague.ts, useTeams.ts, useGames.ts, useStats.ts, usePlayerProfile.ts, usePayments.ts
-- **Types**: Full domain type definitions (re-exported from league-sites)
+- **Queries**: leagues.ts, teams.ts, games.ts, stats.ts, players.ts, payments.ts, content.ts, checkins.ts, join-requests.ts
+- **Hooks**: useLeague.ts, useTeams.ts, useGames.ts, useStats.ts, usePlayerProfile.ts, usePayments.ts, useCheckins.ts, useJoinRequests.ts, useContent.ts
+- **Types**: Full domain type definitions including checkins and join requests
 
 ### `packages/ui-native/` (React Native component library)
 - Text, Card, Button, Avatar, TeamLogo, Badge, Input, LoadingScreen, EmptyState, Divider, GameCard, StatCard, SectionHeader
 
 ### Database
 - `supabase/migrations/20260217_push_device_tokens.sql`
+
+### Phase 2 New Files (13 created, 11 modified)
+- `packages/data/src/queries/checkins.ts` - RSVP query layer
+- `packages/data/src/queries/join-requests.ts` - Join request query layer
+- `packages/data/src/hooks/useCheckins.ts` - RSVP hooks (4)
+- `packages/data/src/hooks/useJoinRequests.ts` - Join request hooks (4)
+- `packages/data/src/hooks/useContent.ts` - News + gallery hooks (3)
+- `apps/mobile/app/(tabs)/leagues/[leagueId]/news/[slug].tsx` - Article detail
+- `apps/mobile/app/(tabs)/leagues/[leagueId]/gallery/[albumId].tsx` - Album detail
+- `apps/mobile/app/(tabs)/leagues/[leagueId]/join.tsx` - Join team screen
+- `apps/mobile/src/components/gallery/PhotoViewer.tsx` - Full-screen photo viewer
+- `apps/mobile/src/components/game/CheckinButtons.tsx` - RSVP buttons
+- `apps/mobile/src/components/game/CheckinList.tsx` - Check-in player list
+- `apps/mobile/src/lib/calendar/ical.ts` - iCal generation
+- `apps/mobile/src/lib/calendar/export.ts` - Share sheet export

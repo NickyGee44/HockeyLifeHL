@@ -363,3 +363,52 @@ export interface PlayerBadge {
   season?: { name: string } | null;
   team?: { name: string; logo_url: string | null; slug: string } | null;
 }
+
+// ─── Check-ins / RSVP ──────────────────────────────────────────────
+
+export type CheckinStatus = 'confirmed' | 'tentative' | 'out';
+
+export interface GameCheckin {
+  id: string;
+  game_id: string;
+  player_id: string;
+  team_id: string;
+  status: CheckinStatus;
+  note: string | null;
+  updated_at: string | null;
+  profile?: { id: string; full_name: string | null; avatar_url: string | null };
+}
+
+export interface CheckinSummary {
+  gameId: string;
+  confirmed: number;
+  tentative: number;
+  out: number;
+  total: number;
+}
+
+// ─── Team Join Requests ─────────────────────────────────────────────
+
+export type JoinRequestStatus = 'pending' | 'accepted' | 'rejected' | 'accepted_sub' | 'waitlist';
+
+export interface TeamJoinRequest {
+  id: string;
+  team_id: string;
+  player_id: string;
+  league_id: string;
+  season_id: string;
+  status: JoinRequestStatus;
+  message: string | null;
+  requested_at: string | null;
+  reviewed_at: string | null;
+  team?: { id: string; name: string; slug: string; logo_url: string | null } | null;
+}
+
+export interface TeamForJoin {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  division_name: string | null;
+  roster_count: number;
+}

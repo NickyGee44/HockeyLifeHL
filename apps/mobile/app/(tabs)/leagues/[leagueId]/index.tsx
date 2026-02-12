@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, TeamLogo, Card, LoadingScreen } from '@hockey-life/ui-native';
-import { useLeague, useCurrentSeason } from '@hockey-life/data';
+import { useLeague, useCurrentSeason, usePlayerTeams } from '@hockey-life/data';
+import { useAuth } from '../../../../src/lib/auth/provider';
 import { supabase } from '../../../../src/lib/supabase/client';
 
 const menuItems = [
@@ -18,11 +19,29 @@ const menuItems = [
 
 export default function LeagueDetailScreen() {
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
+  const { user } = useAuth();
   const { data: league, isLoading } = useLeague(supabase, leagueId);
   const { data: season } = useCurrentSeason(supabase, leagueId);
+  const { data: playerTeams } = usePlayerTeams(supabase, user?.id);
+
+  // Check if user is on a team in THIS league
+  const isOnTeamInLeague = useMemo(() => {
+    if (!playerTeams || !leagueId) return true; // Default to true (hide join) until loaded
+    return playerTeams.some((pt: any) => {
+      const lid = pt.team?.league_id ?? pt.league_id;
+      return lid === leagueId;
+    });
+  }, [playerTeams, leagueId]);
 
   if (isLoading) return <LoadingScreen />;
   if (!league) return <LoadingScreen message="League not found" />;
+
+  const allMenuItems = [
+    ...menuItems,
+    ...(!isOnTeamInLeague
+      ? [{ id: 'join', label: 'Join Team', icon: 'person-add' as const, route: 'join' }]
+      : []),
+  ];
 
   return (
     <ScrollView className="flex-1 bg-neutral-950" contentContainerStyle={{ paddingBottom: 32 }}>
@@ -57,7 +76,7 @@ export default function LeagueDetailScreen() {
       {/* Menu grid */}
       <View className="px-5">
         <View className="flex-row flex-wrap gap-3">
-          {menuItems.map((item) => (
+          {allMenuItems.map((item) => (
             <Card
               key={item.id}
               variant="interactive"

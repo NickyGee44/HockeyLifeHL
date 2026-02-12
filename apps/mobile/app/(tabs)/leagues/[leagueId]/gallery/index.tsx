@@ -21,7 +21,12 @@ export default function GalleryScreen() {
   });
 
   const renderAlbum = ({ item }: { item: GalleryAlbum }) => (
-    <Card variant="interactive" className="overflow-hidden" style={{ width: albumWidth }}>
+    <Card
+      variant="interactive"
+      className="overflow-hidden"
+      style={{ width: albumWidth }}
+      onPress={() => router.push(`/(tabs)/leagues/${leagueId}/gallery/${item.id}` as any)}
+    >
       {item.cover_photo_url ? (
         <Image
           source={{ uri: item.cover_photo_url }}

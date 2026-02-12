@@ -1,15 +1,43 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { format } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, TeamLogo, Badge, Card, LoadingScreen } from '@hockey-life/ui-native';
-import { useGamePreview } from '@hockey-life/data';
+import { useGamePreview, usePlayerTeams, useMyCheckins, useUpdateCheckin } from '@hockey-life/data';
+import { useAuth } from '../../../../../src/lib/auth/provider';
 import { supabase } from '../../../../../src/lib/supabase/client';
+import { CheckinButtons } from '../../../../../src/components/game/CheckinButtons';
+import { CheckinList } from '../../../../../src/components/game/CheckinList';
+import { generateGameIcal } from '../../../../../src/lib/calendar/ical';
+import { shareIcalFile } from '../../../../../src/lib/calendar/export';
+import type { CheckinStatus } from '@hockey-life/data';
 
 export default function GameDetailScreen() {
   const { leagueId, gameId } = useLocalSearchParams<{ leagueId: string; gameId: string }>();
+  const { user } = useAuth();
   const { data: game, isLoading } = useGamePreview(supabase, gameId);
+  const { data: playerTeams } = usePlayerTeams(supabase, user?.id);
+
+  // Determine the user's team in this game
+  const userTeamId = useMemo(() => {
+    if (!game || !playerTeams) return undefined;
+    for (const pt of playerTeams) {
+      const teamId = (pt as any).team_id ?? (pt as any).id;
+      if (teamId === game.home_team_id || teamId === game.away_team_id) {
+        return teamId as string;
+      }
+    }
+    return undefined;
+  }, [game, playerTeams]);
+
+  const { data: myCheckins } = useMyCheckins(supabase, user?.id, userTeamId);
+  const updateCheckin = useUpdateCheckin(
+    supabase,
+    user?.id || '',
+    gameId || '',
+    userTeamId || '',
+  );
 
   if (isLoading) return <LoadingScreen />;
   if (!game) return <LoadingScreen message="Game not found" />;
@@ -17,6 +45,16 @@ export default function GameDetailScreen() {
   const isCompleted = game.status === 'completed' || game.status === 'pending_verification';
   const isLive = game.status === 'in_progress';
   const gameDate = new Date(game.scheduled_at);
+  const currentStatus: CheckinStatus | null = myCheckins?.[game.id] ?? null;
+
+  const handleStatusChange = (status: CheckinStatus) => {
+    updateCheckin.mutate({ status });
+  };
+
+  const handleAddToCalendar = async () => {
+    const icalContent = generateGameIcal(game);
+    await shareIcalFile(icalContent, `game-${game.id}.ics`);
+  };
 
   return (
     <ScrollView className="flex-1 bg-neutral-950" contentContainerStyle={{ paddingBottom: 32 }}>
@@ -128,6 +166,47 @@ export default function GameDetailScreen() {
             )}
           </View>
         </Card>
+
+        {/* Add to Calendar */}
+        {!isCompleted && (
+          <Pressable
+            onPress={handleAddToCalendar}
+            className="mt-3 flex-row items-center justify-center py-3 rounded-xl border border-neutral-700"
+          >
+            <Ionicons name="calendar" size={18} color="#D4AF37" />
+            <Text variant="body" className="ml-2 text-gold-400 font-medium">
+              Add to Calendar
+            </Text>
+          </Pressable>
+        )}
+
+        {/* RSVP section - only if user is on a team in this game */}
+        {userTeamId && !isCompleted && (
+          <Card className="mt-4 p-4">
+            <Text variant="body" className="text-neutral-200 font-semibold mb-3">
+              RSVP
+            </Text>
+            <CheckinButtons
+              currentStatus={currentStatus}
+              onStatusChange={handleStatusChange}
+              loading={updateCheckin.isPending}
+            />
+          </Card>
+        )}
+
+        {/* Check-in lists */}
+        <CheckinList
+          supabase={supabase}
+          gameId={game.id}
+          teamId={game.away_team_id}
+          teamName={game.away_team?.name || 'Away'}
+        />
+        <CheckinList
+          supabase={supabase}
+          gameId={game.id}
+          teamId={game.home_team_id}
+          teamName={game.home_team?.name || 'Home'}
+        />
       </View>
     </ScrollView>
   );

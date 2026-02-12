@@ -34,6 +34,21 @@ export async function getNewsArticleBySlug(
   return data as NewsArticle;
 }
 
+export async function getNewsArticleById(
+  supabase: SupabaseClientArg,
+  articleId: string,
+): Promise<NewsArticle | null> {
+  const { data, error } = await supabase
+    .from('articles')
+    .select('*, author:profiles(full_name, avatar_url)')
+    .eq('id', articleId)
+    .eq('published', true)
+    .single();
+
+  if (error || !data) return null;
+  return data as NewsArticle;
+}
+
 export async function getGalleryAlbums(
   supabase: SupabaseClientArg,
   leagueId: string,

@@ -19,7 +19,11 @@ export default function NewsScreen() {
   });
 
   const renderArticle = ({ item }: { item: NewsArticle }) => (
-    <Card variant="interactive" className="mx-5 mb-3 overflow-hidden">
+    <Card
+      variant="interactive"
+      className="mx-5 mb-3 overflow-hidden"
+      onPress={() => router.push(`/(tabs)/leagues/${leagueId}/news/${item.slug || item.id}` as any)}
+    >
       {item.image_url && (
         <Image
           source={{ uri: item.image_url }}

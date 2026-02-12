@@ -5,3 +5,5 @@ export * from './stats';
 export * from './players';
 export * from './payments';
 export * from './content';
+export * from './checkins';
+export * from './join-requests';

@@ -30,6 +30,20 @@ export {
   useUpdateProfile,
   usePaymentHistory,
   usePaymentsDue,
+  // Phase 2: Check-ins / RSVP
+  useMyCheckins,
+  useGameCheckins,
+  useCheckinSummaries,
+  useUpdateCheckin,
+  // Phase 2: Join Requests
+  useMyJoinRequests,
+  useTeamsForJoin,
+  useSubmitJoinRequest,
+  useCancelJoinRequest,
+  // Phase 2: Content (news + gallery)
+  useNewsArticle,
+  useNewsArticleById,
+  useAlbumWithPhotos,
 } from '@hockey-life/data';
 
 export { useAuth } from '../lib/auth/provider';
