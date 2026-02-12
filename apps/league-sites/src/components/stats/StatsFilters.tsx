@@ -30,7 +30,7 @@ export function StatsFilters({ leagueSlug }: StatsFiltersProps) {
       params.delete('division');
     }
     const qs = params.toString();
-    router.push(qs ? `/${leagueSlug}/stats?${qs}` : `/${leagueSlug}/stats`);
+    router.replace(qs ? `/${leagueSlug}/stats?${qs}` : `/${leagueSlug}/stats`);
   }, [selectedDivisionId, searchParams, router, leagueSlug]);
 
   if (divisions.length <= 1) return null;

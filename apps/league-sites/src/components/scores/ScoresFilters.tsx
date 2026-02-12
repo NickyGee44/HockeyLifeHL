@@ -56,7 +56,7 @@ export function ScoresFilters({
       params.set('period', currentFilters.period);
     }
 
-    router.push(`/${leagueSlug}/scores?${params.toString()}`);
+    router.replace(`/${leagueSlug}/scores?${params.toString()}`);
   }, [selectedDivisionId, searchParams, router, leagueSlug, currentFilters.period]);
 
   const handleFilterChange = (key: string, value: string) => {

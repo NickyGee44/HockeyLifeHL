@@ -68,7 +68,7 @@ export function PlayerDirectoryFilters({
       params.delete('division');
     }
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
   }, [selectedDivisionId, searchParams, router, pathname]);
 
   const updateFilters = (key: string, value: string | null) => {

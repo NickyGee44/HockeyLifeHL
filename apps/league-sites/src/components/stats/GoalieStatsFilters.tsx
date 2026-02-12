@@ -42,7 +42,7 @@ export function GoalieStatsFilters({
     } else {
       params.delete('division');
     }
-    router.push(`/${leagueSlug}/stats/goalies?${params.toString()}`);
+    router.replace(`/${leagueSlug}/stats/goalies?${params.toString()}`);
   }, [selectedDivisionId, searchParams, router, leagueSlug]);
 
   const handleFilterChange = (key: string, value: string) => {

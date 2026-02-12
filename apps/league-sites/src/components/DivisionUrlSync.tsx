@@ -33,7 +33,7 @@ export function DivisionUrlSync({ pagePath }: { pagePath: string }) {
       params.delete('division');
     }
     const qs = params.toString();
-    router.push(qs ? `${pagePath}?${qs}` : pagePath);
+    router.replace(qs ? `${pagePath}?${qs}` : pagePath);
   }, [selectedDivisionId, searchParams, router, pagePath]);
 
   return null;

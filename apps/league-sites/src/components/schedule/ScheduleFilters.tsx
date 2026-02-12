@@ -73,7 +73,7 @@ export function ScheduleFilters({
     } else {
       params.delete('division');
     }
-    router.push(`/${leagueSlug}/schedule?${params.toString()}`);
+    router.replace(`/${leagueSlug}/schedule?${params.toString()}`);
   }, [selectedDivisionId, searchParams, router, leagueSlug]);
 
   // Handle filter change - update URL params
