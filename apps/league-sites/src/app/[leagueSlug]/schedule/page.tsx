@@ -110,22 +110,16 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
           </div>
         </div>
 
-        {/* Filter Row: Week selector + Dropdowns on left, Sponsor tile on right */}
+        {/* Filter Row */}
         <div className="px-6 md:px-8 pb-4">
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Left: Filters */}
-            <div className="flex-1 min-w-0">
-              <ScheduleFilters
-                seasons={seasons}
-                venues={venues}
-                teams={teams}
-                currentFilters={{ season: seasonFilter, division: divisionFilter, team: teamFilter, type: typeFilter, venue: venueFilter, status: statusFilter }}
-                leagueSlug={leagueSlug}
-                weekStart={weekStart}
-              />
-            </div>
-
-          </div>
+          <ScheduleFilters
+            seasons={seasons}
+            venues={venues}
+            teams={teams}
+            currentFilters={{ season: seasonFilter, division: divisionFilter, team: teamFilter, type: typeFilter, venue: venueFilter, status: statusFilter }}
+            leagueSlug={leagueSlug}
+            weekStart={weekStart}
+          />
         </div>
 
         {/* Weekday Summary Strip */}
