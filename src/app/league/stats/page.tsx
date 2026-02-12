@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -25,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { getSeasonPlayerStats, getSeasonGoalieStats, getCareerPlayerStats, getCareerGoalieStats } from "@/lib/stats/queries";
 import { getAllSeasons, getActiveSeason } from "@/lib/seasons/actions";
+import { getAllDivisions } from "@/lib/divisions/actions";
 import type { Season } from "@/types/database";
 
 /**
@@ -34,6 +36,10 @@ import type { Season } from "@/types/database";
  * Supports season and career views with sortable columns.
  */
 export default function LeagueStatsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [viewMode, setViewMode] = useState<"season" | "career">("season");
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -42,6 +48,8 @@ export default function LeagueStatsPage() {
   const [playerStats, setPlayerStats] = useState<any[]>([]);
   const [goalieStats, setGoalieStats] = useState<any[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [divisions, setDivisions] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(null);
 
   // Sorting state for players
   const [playerSortColumn, setPlayerSortColumn] = useState<string | null>(null);
@@ -55,9 +63,10 @@ export default function LeagueStatsPage() {
   useEffect(() => {
     async function loadSeasons() {
       setLoading(true);
-      const [seasonsResult, activeSeasonResult] = await Promise.all([
+      const [seasonsResult, activeSeasonResult, divisionsResult] = await Promise.all([
         getAllSeasons(),
         getActiveSeason(),
+        getAllDivisions(),
       ]);
 
       if (seasonsResult.seasons) {
@@ -71,11 +80,38 @@ export default function LeagueStatsPage() {
         setSelectedSeasonId(seasonsResult.seasons[0].id);
       }
 
+      setDivisions((divisionsResult.divisions || []).map((division: any) => ({
+        id: division.id,
+        name: division.name,
+      })));
+
       setLoading(false);
     }
 
     loadSeasons();
   }, []);
+
+  useEffect(() => {
+    const divisionFromUrl = searchParams.get("division");
+    if (!divisionFromUrl) {
+      setSelectedDivisionId(null);
+      return;
+    }
+    const isValidDivision = divisions.some((division) => division.id === divisionFromUrl);
+    setSelectedDivisionId(isValidDivision ? divisionFromUrl : null);
+  }, [searchParams, divisions]);
+
+  const handleDivisionChange = (value: string) => {
+    const nextDivisionId = value === "all" ? null : value;
+    setSelectedDivisionId(nextDivisionId);
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextDivisionId) params.set("division", nextDivisionId);
+    else params.delete("division");
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
 
   // Load stats when view mode or season changes
   useEffect(() => {
@@ -93,8 +129,8 @@ export default function LeagueStatsPage() {
       } else if (selectedSeasonId) {
         setStatsLoading(true);
         const [playerResult, goalieResult] = await Promise.all([
-          getSeasonPlayerStats(selectedSeasonId),
-          getSeasonGoalieStats(selectedSeasonId),
+          getSeasonPlayerStats(selectedSeasonId, selectedDivisionId || undefined),
+          getSeasonGoalieStats(selectedSeasonId, selectedDivisionId || undefined),
         ]);
 
         setPlayerStats(playerResult.stats || []);
@@ -104,7 +140,7 @@ export default function LeagueStatsPage() {
     }
 
     loadStats();
-  }, [viewMode, selectedSeasonId]);
+  }, [viewMode, selectedSeasonId, selectedDivisionId]);
 
   const getInitials = (name: string | null) => {
     if (!name) return "??";
@@ -331,6 +367,24 @@ export default function LeagueStatsPage() {
                         )}
                       </div>
                     </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {viewMode === "season" && divisions.length > 1 && (
+              <Select
+                value={selectedDivisionId || "all"}
+                onValueChange={handleDivisionChange}
+                disabled={loading}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="All divisions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Divisions</SelectItem>
+                  {divisions.map((division) => (
+                    <SelectItem key={division.id} value={division.id}>{division.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
