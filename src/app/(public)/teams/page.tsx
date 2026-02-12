@@ -9,9 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 // Cache this page for 60 seconds
 export const revalidate = 60;
 
-async function getTeamsWithRosters() {
+async function getTeamsWithRosters(divisionId?: string) {
   const supabase = await createClient();
-  
+
   // Get active season
   const { data: activeSeason } = await supabase
     .from("seasons")
@@ -21,14 +21,31 @@ async function getTeamsWithRosters() {
     .limit(1)
     .single();
 
-  // Get all teams with their captains
-  const { data: teams } = await supabase
-    .from("teams")
-    .select(`
-      *,
-      captain:profiles!teams_captain_id_fkey(id, full_name, avatar_url, jersey_number)
-    `)
+  const { data: divisionsData } = await supabase
+    .from("divisions")
+    .select("id, name")
     .order("name", { ascending: true });
+
+  const divisions = divisionsData || [];
+  const selectedDivision =
+    divisionId ? divisions.find((d) => d.id === divisionId) || null : null;
+
+  const teamsQuery = divisionId
+    ? supabase
+        .from("teams")
+        .select(`
+        *,
+        captain:profiles!teams_captain_id_fkey(id, full_name, avatar_url, jersey_number)
+      `)
+        .eq("division_id", divisionId)
+    : supabase
+        .from("teams")
+        .select(`
+        *,
+        captain:profiles!teams_captain_id_fkey(id, full_name, avatar_url, jersey_number)
+      `);
+
+  const { data: teams } = await teamsQuery.order("name", { ascending: true });
 
   // Get roster counts for active season
   let rosterCounts: Record<string, number> = {};
@@ -46,11 +63,23 @@ async function getTeamsWithRosters() {
     }
   }
 
-  return { teams: teams || [], activeSeason, rosterCounts };
+  return { teams: teams || [], activeSeason, rosterCounts, divisions, selectedDivision };
 }
 
-export default async function TeamsPage() {
-  const { teams, activeSeason, rosterCounts } = await getTeamsWithRosters();
+export default async function TeamsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ division?: string }>;
+}) {
+  const params = await searchParams;
+  const { teams, activeSeason, rosterCounts, divisions, selectedDivision } =
+    await getTeamsWithRosters(params.division);
+
+  const buildDivisionHref = (divisionId?: string) => {
+    const query = new URLSearchParams();
+    if (divisionId) query.set("division", divisionId);
+    return query.toString() ? `?${query.toString()}` : ".";
+  };
 
   const getInitials = (name: string | null) => {
     if (!name) return "??";
@@ -69,13 +98,39 @@ export default async function TeamsPage() {
           <span className="text-foreground">League </span>
           <span className="text-rink-blue">Teams</span>
         </h1>
-        {activeSeason && (
+        {(selectedDivision || activeSeason) && (
           <p className="text-muted-foreground">
-            {activeSeason.name} Season
+            {selectedDivision ? `${selectedDivision.name} Division` : null}
+            {selectedDivision && activeSeason ? " • " : ""}
+            {activeSeason ? `${activeSeason.name} Season` : null}
           </p>
         )}
       </div>
-      
+
+      {divisions.length > 1 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Link
+            href={buildDivisionHref()}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              !params.division ? "bg-rink-blue text-white" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            All Divisions
+          </Link>
+          {divisions.map((division) => (
+            <Link
+              key={division.id}
+              href={buildDivisionHref(division.id)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                params.division === division.id ? "bg-rink-blue text-white" : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {division.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {teams.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
