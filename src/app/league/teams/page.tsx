@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 // Cache this page for 60 seconds
 export const revalidate = 60;
 
-async function getTeamsWithRosters() {
+async function getTeamsWithRosters(divisionId?: string) {
   const supabase = await createClient();
 
   // Get active season
@@ -25,14 +25,31 @@ async function getTeamsWithRosters() {
     .limit(1)
     .single();
 
-  // Get all teams with their captains
-  const { data: teams } = await supabase
-    .from("teams")
-    .select(`
-      *,
-      captain:profiles!teams_captain_id_fkey(id, full_name, avatar_url, jersey_number)
-    `)
+  const { data: divisionsData } = await supabase
+    .from("divisions")
+    .select("id, name")
     .order("name", { ascending: true });
+
+  const divisions = divisionsData || [];
+  const selectedDivision =
+    divisionId ? divisions.find((d) => d.id === divisionId) || null : null;
+
+  const teamsQuery = divisionId
+    ? supabase
+        .from("teams")
+        .select(`
+        *,
+        captain:profiles!teams_captain_id_fkey(id, full_name, avatar_url, jersey_number)
+      `)
+        .eq("division_id", divisionId)
+    : supabase
+        .from("teams")
+        .select(`
+        *,
+        captain:profiles!teams_captain_id_fkey(id, full_name, avatar_url, jersey_number)
+      `);
+
+  const { data: teams } = await teamsQuery.order("name", { ascending: true });
 
   // Get roster counts for active season
   let rosterCounts: Record<string, number> = {};
@@ -50,7 +67,7 @@ async function getTeamsWithRosters() {
     }
   }
 
-  return { teams: teams || [], activeSeason, rosterCounts };
+  return { teams: teams || [], activeSeason, rosterCounts, divisions, selectedDivision };
 }
 
 /**
@@ -59,9 +76,21 @@ async function getTeamsWithRosters() {
  * Shows all teams for the league instance accessed via subdomain/custom domain.
  * Displays team cards with league branding colors.
  */
-export default async function LeagueTeamsPage() {
+export default async function LeagueTeamsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ division?: string }>;
+}) {
+  const params = await searchParams;
   const league = await getLeagueFromHostname();
-  const { teams, activeSeason, rosterCounts } = await getTeamsWithRosters();
+  const { teams, activeSeason, rosterCounts, divisions, selectedDivision } =
+    await getTeamsWithRosters(params.division);
+
+  const buildDivisionHref = (divisionId?: string) => {
+    const query = new URLSearchParams();
+    if (divisionId) query.set("division", divisionId);
+    return query.toString() ? `?${query.toString()}` : ".";
+  };
 
   const primaryColor = league?.primaryColor || '#0066CC';
   const secondaryColor = league?.secondaryColor || '#E31837';
@@ -83,12 +112,43 @@ export default async function LeagueTeamsPage() {
           <span className="text-foreground">League </span>
           <span style={{ color: primaryColor }}>Teams</span>
         </h1>
-        {activeSeason && (
+        {(selectedDivision || activeSeason) && (
           <p className="text-muted-foreground">
-            {activeSeason.name} Season
+            {selectedDivision ? `${selectedDivision.name} Division` : null}
+            {selectedDivision && activeSeason ? " • " : ""}
+            {activeSeason ? `${activeSeason.name} Season` : null}
           </p>
         )}
       </div>
+
+      {divisions.length > 1 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Link
+            href={buildDivisionHref()}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              !params.division ? "text-white" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+            style={!params.division ? { backgroundColor: primaryColor } : undefined}
+          >
+            All Divisions
+          </Link>
+          {divisions.map((division) => {
+            const isActive = params.division === division.id;
+            return (
+              <Link
+                key={division.id}
+                href={buildDivisionHref(division.id)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  isActive ? "text-white" : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+                style={isActive ? { backgroundColor: primaryColor } : undefined}
+              >
+                {division.name}
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {teams.length === 0 ? (
         <Card>
