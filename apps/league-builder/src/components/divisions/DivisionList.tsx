@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Plus, Trophy, Loader2 } from 'lucide-react';
 import { DivisionCard } from './DivisionCard';
@@ -39,6 +40,7 @@ export function DivisionList({
   locale,
   initialDivisions = [],
 }: DivisionListProps) {
+  const t = useTranslations('divisions');
   const router = useRouter();
   const [divisions, setDivisions] = useState<DivisionWithTeamCount[]>(initialDivisions);
   const [divisionTeams, setDivisionTeams] = useState<Record<string, any[]>>({});
@@ -134,7 +136,7 @@ export function DivisionList({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <p className="text-neutral-400">
-            Organize teams into divisions for scheduling and standings.
+            {t('description')}
           </p>
         </div>
 
@@ -147,7 +149,7 @@ export function DivisionList({
           )}
         >
           <Plus className="w-4 h-4" />
-          Create Division
+          {t('createDivision')}
         </button>
       </div>
 
@@ -169,10 +171,9 @@ export function DivisionList({
       ) : (
         <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
           <Trophy className="w-16 h-16 text-rink-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">No Divisions Yet</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">{t('noDivisionsYet')}</h3>
           <p className="text-neutral-400 mb-6 max-w-md mx-auto">
-            Create divisions to organize your teams by skill level or category.
-            Divisions help with scheduling intra-division games and tracking standings.
+            {t('noDivisionsDescription')}
           </p>
           <button
             onClick={handleCreateDivision}
@@ -183,7 +184,7 @@ export function DivisionList({
             )}
           >
             <Plus className="w-4 h-4" />
-            Create First Division
+            {t('createFirstDivision')}
           </button>
         </div>
       )}

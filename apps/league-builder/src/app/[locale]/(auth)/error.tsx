@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 export default function AuthError({
@@ -12,8 +12,7 @@ export default function AuthError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const params = useParams();
-  const locale = (params.locale as string) || 'en';
+  const t = useTranslations('auth');
 
   useEffect(() => {
     console.error('Auth error:', error);
@@ -26,10 +25,9 @@ export default function AuthError({
           <AlertTriangle className="w-8 h-8" />
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-2">Something went wrong</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">{t('errorTitle')}</h2>
         <p className="text-neutral-400 mb-8">
-          An unexpected error occurred while loading the page. Please try again or go back to the
-          home page.
+          {t('errorDescription')}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -38,14 +36,14 @@ export default function AuthError({
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20 transition-all"
           >
             <RefreshCw className="w-4 h-4" />
-            Try Again
+            {t('tryAgain')}
           </button>
           <Link
-            href={`/${locale}/login`}
+            href="/login"
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm border border-white/10 text-white hover:bg-white/5 transition-colors"
           >
             <Home className="w-4 h-4" />
-            Go to Login
+            {t('goToLogin')}
           </Link>
         </div>
       </div>

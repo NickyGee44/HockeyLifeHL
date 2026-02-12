@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ export function AddScorekeeperModal({
   onOpenChange,
   onSuccess,
 }: AddScorekeeperModalProps) {
+  const t = useTranslations('scorekeepers.addModal');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -67,9 +69,9 @@ export function AddScorekeeperModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Scorekeeper</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription className="text-neutral-400">
-            Add a new scorekeeper to your league. They will receive assignment notifications.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -82,10 +84,10 @@ export function AddScorekeeperModal({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="displayName">Name *</Label>
+            <Label htmlFor="displayName">{t('name')}</Label>
             <Input
               id="displayName"
-              placeholder="John Smith"
+              placeholder={t('namePlaceholder')}
               value={formData.displayName}
               onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
               required
@@ -94,11 +96,11 @@ export function AddScorekeeperModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="email">{t('email')}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="john@example.com"
+              placeholder={t('emailPlaceholder')}
               value={formData.email}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               required
@@ -107,7 +109,7 @@ export function AddScorekeeperModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="hourlyRate">Hourly Rate (optional)</Label>
+            <Label htmlFor="hourlyRate">{t('hourlyRate')}</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
               <Input
@@ -124,10 +126,10 @@ export function AddScorekeeperModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optional)</Label>
+            <Label htmlFor="notes">{t('notes')}</Label>
             <Textarea
               id="notes"
-              placeholder="Any special notes about availability, preferences, etc."
+              placeholder={t('notesPlaceholder')}
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               rows={3}
@@ -142,7 +144,7 @@ export function AddScorekeeperModal({
               onClick={() => onOpenChange(false)}
               className="border-white/10 text-neutral-300 hover:bg-neutral-800"
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               type="submit"
@@ -153,7 +155,7 @@ export function AddScorekeeperModal({
               )}
             >
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Add Scorekeeper
+              {t('submit')}
             </Button>
           </DialogFooter>
         </form>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ export function ScorekeeperCard({
   onRemove,
   onAssignGames,
 }: ScorekeeperCardProps) {
+  const t = useTranslations('scorekeepers.card');
   const displayName = scorekeeper.display_name || scorekeeper.profile?.full_name || 'Unknown';
   const email = scorekeeper.email || scorekeeper.profile?.email || '';
 
@@ -80,10 +82,10 @@ export function ScorekeeperCard({
           <div className="flex items-center gap-4 text-xs text-neutral-500">
             <span className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              {scorekeeper.total_assignments || 0} assigned
+              {t('assigned', { count: scorekeeper.total_assignments || 0 })}
             </span>
             <span>
-              {scorekeeper.completed_assignments || 0} completed
+              {t('completed', { count: scorekeeper.completed_assignments || 0 })}
             </span>
             {scorekeeper.hourly_rate && (
               <span className="text-rink-500">
@@ -111,7 +113,7 @@ export function ScorekeeperCard({
                 className="text-white hover:bg-neutral-800 cursor-pointer"
               >
                 <Calendar className="w-4 h-4 mr-2" />
-                Assign to Games
+                {t('assignToGames')}
               </DropdownMenuItem>
             )}
             {onEdit && (
@@ -120,7 +122,7 @@ export function ScorekeeperCard({
                 className="text-white hover:bg-neutral-800 cursor-pointer"
               >
                 <Edit className="w-4 h-4 mr-2" />
-                Edit
+                {t('edit')}
               </DropdownMenuItem>
             )}
             {onRemove && (
@@ -129,7 +131,7 @@ export function ScorekeeperCard({
                 className="text-red-500 hover:bg-neutral-800 cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Remove
+                {t('remove')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

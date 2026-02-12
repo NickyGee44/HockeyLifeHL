@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useSyncState } from '@/lib/scorekeeper';
 import { cn } from '@hockey-life/ui';
 
@@ -9,13 +10,14 @@ import { cn } from '@hockey-life/ui';
  * iPad-optimized with large touch targets
  */
 export function SyncStatusBanner() {
+  const t = useTranslations('scorekeeper.sync');
   const syncState = useSyncState();
 
   const getStatusConfig = () => {
     if (!syncState.isOnline) {
       return {
-        label: 'Offline Mode',
-        description: 'Events saved locally. Will sync when online.',
+        label: t('offlineMode'),
+        description: t('offlineDescription'),
         icon: OfflineIcon,
         bgClass: 'bg-amber-500/10 border-amber-500/30',
         textClass: 'text-amber-400',
@@ -25,8 +27,8 @@ export function SyncStatusBanner() {
 
     if (syncState.isSyncing) {
       return {
-        label: 'Syncing...',
-        description: `${syncState.pendingCount} event${syncState.pendingCount !== 1 ? 's' : ''} pending`,
+        label: t('syncing'),
+        description: t('eventsPending', { count: syncState.pendingCount }),
         icon: SyncingIcon,
         bgClass: 'bg-rink-500/10 border-rink-500/30',
         textClass: 'text-rink-400',
@@ -36,8 +38,8 @@ export function SyncStatusBanner() {
 
     if (syncState.pendingCount > 0) {
       return {
-        label: 'Pending Sync',
-        description: `${syncState.pendingCount} event${syncState.pendingCount !== 1 ? 's' : ''} waiting`,
+        label: t('pendingSync'),
+        description: t('eventsWaiting', { count: syncState.pendingCount }),
         icon: PendingIcon,
         bgClass: 'bg-rink-500/10 border-rink-500/30',
         textClass: 'text-rink-500',
@@ -47,7 +49,7 @@ export function SyncStatusBanner() {
 
     if (syncState.lastError) {
       return {
-        label: 'Sync Error',
+        label: t('syncError'),
         description: syncState.lastError,
         icon: ErrorIcon,
         bgClass: 'bg-red-500/10 border-red-500/30',
@@ -57,10 +59,10 @@ export function SyncStatusBanner() {
     }
 
     return {
-      label: 'Online',
+      label: t('online'),
       description: syncState.lastSyncAt
-        ? `Last synced ${formatTimeAgo(syncState.lastSyncAt)}`
-        : 'Connected to server',
+        ? t('lastSynced', { time: formatTimeAgo(syncState.lastSyncAt) })
+        : t('connectedToServer'),
       icon: OnlineIcon,
       bgClass: 'bg-emerald-500/10 border-emerald-500/30',
       textClass: 'text-emerald-400',

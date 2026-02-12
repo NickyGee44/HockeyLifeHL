@@ -47,7 +47,7 @@ function LoginForm() {
 
         // Show remaining attempts warning if close to lockout
         if (result.remainingAttempts !== undefined && result.remainingAttempts <= 2 && result.remainingAttempts > 0) {
-          setWarning(`${result.remainingAttempts} attempt${result.remainingAttempts === 1 ? '' : 's'} remaining before your account is locked.`);
+          setWarning(t('auth.attemptsRemaining', { count: result.remainingAttempts }));
         }
       }
     } catch (error) {

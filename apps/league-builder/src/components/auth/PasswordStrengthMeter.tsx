@@ -8,6 +8,7 @@
  */
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Check, X } from 'lucide-react';
 
 interface PasswordStrengthMeterProps {
@@ -24,13 +25,15 @@ export function PasswordStrengthMeter({
   password,
   showRequirements = true,
 }: PasswordStrengthMeterProps) {
+  const t = useTranslations('auth');
+
   const analysis = useMemo(() => {
     const requirements: Requirement[] = [
-      { label: 'At least 8 characters', met: password.length >= 8 },
-      { label: 'Uppercase letter (A-Z)', met: /[A-Z]/.test(password) },
-      { label: 'Lowercase letter (a-z)', met: /[a-z]/.test(password) },
-      { label: 'Number (0-9)', met: /[0-9]/.test(password) },
-      { label: 'Special character (!@#$%^&*)', met: /[^A-Za-z0-9]/.test(password) },
+      { label: t('requirementLength'), met: password.length >= 8 },
+      { label: t('requirementUppercase'), met: /[A-Z]/.test(password) },
+      { label: t('requirementLowercase'), met: /[a-z]/.test(password) },
+      { label: t('requirementNumber'), met: /[0-9]/.test(password) },
+      { label: t('requirementSpecial'), met: /[^A-Za-z0-9]/.test(password) },
     ];
 
     let score = 0;
@@ -58,19 +61,19 @@ export function PasswordStrengthMeter({
     } else if (score <= 2) {
       strength = 'weak';
       color = 'bg-red-500';
-      label = 'Weak';
+      label = t('strengthWeak');
     } else if (score <= 4) {
       strength = 'fair';
       color = 'bg-orange-500';
-      label = 'Fair';
+      label = t('strengthFair');
     } else if (score <= 5) {
       strength = 'good';
       color = 'bg-yellow-500';
-      label = 'Good';
+      label = t('strengthGood');
     } else {
       strength = 'strong';
       color = 'bg-green-500';
-      label = 'Strong';
+      label = t('strengthStrong');
     }
 
     const percentage = password.length === 0 ? 0 : Math.min(100, (score / 7) * 100);
@@ -84,7 +87,7 @@ export function PasswordStrengthMeter({
       percentage,
       allMet: requirements.every((r) => r.met),
     };
-  }, [password]);
+  }, [password, t]);
 
   if (password.length === 0) {
     return null;
@@ -95,7 +98,7 @@ export function PasswordStrengthMeter({
       {/* Strength Bar */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-neutral-400">Password strength</span>
+          <span className="text-xs text-neutral-400">{t('passwordStrength')}</span>
           <span
             className={`text-xs font-medium ${
               analysis.strength === 'weak'

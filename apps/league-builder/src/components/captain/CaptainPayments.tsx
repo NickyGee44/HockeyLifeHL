@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import {
   DollarSign,
@@ -17,19 +18,32 @@ interface CaptainPaymentsProps {
   teamId: string;
 }
 
-const STATUS_STYLES: Record<string, { label: string; className: string }> = {
-  paid: { label: 'Paid', className: 'bg-green-500/10 text-green-400 border-green-500/30' },
-  partially_paid: { label: 'Partial', className: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' },
-  pending: { label: 'Pending', className: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/30' },
-  processing: { label: 'Processing', className: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
-  overdue: { label: 'Overdue', className: 'bg-red-500/10 text-red-400 border-red-500/30' },
-  refunded: { label: 'Refunded', className: 'bg-purple-500/10 text-purple-400 border-purple-500/30' },
-  cancelled: { label: 'Cancelled', className: 'bg-neutral-500/10 text-neutral-500 border-neutral-600/30' },
-  failed: { label: 'Failed', className: 'bg-red-500/10 text-red-400 border-red-500/30' },
-  disputed: { label: 'Disputed', className: 'bg-orange-500/10 text-orange-400 border-orange-500/30' },
+const STATUS_CLASS_MAP: Record<string, string> = {
+  paid: 'bg-green-500/10 text-green-400 border-green-500/30',
+  partially_paid: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+  pending: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/30',
+  processing: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  overdue: 'bg-red-500/10 text-red-400 border-red-500/30',
+  refunded: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  cancelled: 'bg-neutral-500/10 text-neutral-500 border-neutral-600/30',
+  failed: 'bg-red-500/10 text-red-400 border-red-500/30',
+  disputed: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+};
+
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  paid: 'paid',
+  partially_paid: 'partiallyPaid',
+  pending: 'pending',
+  processing: 'processing',
+  overdue: 'overdue',
+  refunded: 'refunded',
+  cancelled: 'cancelled',
+  failed: 'failed',
+  disputed: 'disputed',
 };
 
 export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
+  const t = useTranslations('captain.payments');
   const [payments, setPayments] = useState<PlayerPaymentWithDetails[]>([]);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,9 +96,9 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
     return (
       <div className="text-center py-12">
         <DollarSign className="w-16 h-16 mx-auto mb-4 text-neutral-600" />
-        <h3 className="text-lg font-bold text-white mb-2">No Fees Set Up</h3>
+        <h3 className="text-lg font-bold text-white mb-2">{t('noFeesTitle')}</h3>
         <p className="text-neutral-400">
-          No registration fees have been configured for this season yet.
+          {t('noFeesDescription')}
         </p>
       </div>
     );
@@ -98,28 +112,28 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
       {summary && (
         <div className="grid gap-4 md:grid-cols-4">
           <SummaryCard
-            title="Total Due"
+            title={t('totalDue')}
             value={formatCents(summary.totalExpectedCents)}
             icon={<DollarSign className="w-5 h-5 text-rink-500" />}
-            subtitle={`${summary.playersPaidFull + summary.playersPartial + summary.playersPending + summary.playersOverdue} players`}
+            subtitle={`${summary.playersPaidFull + summary.playersPartial + summary.playersPending + summary.playersOverdue} ${t('players')}`}
           />
           <SummaryCard
-            title="Collected"
+            title={t('collected')}
             value={formatCents(summary.totalCollectedCents)}
             icon={<CheckCircle2 className="w-5 h-5 text-green-500" />}
-            subtitle={`${summary.playersPaidFull} fully paid`}
+            subtitle={t('fullyPaid', { count: summary.playersPaidFull })}
           />
           <SummaryCard
-            title="Outstanding"
+            title={t('outstanding')}
             value={formatCents(summary.totalOutstandingCents)}
             icon={<Clock className="w-5 h-5 text-yellow-500" />}
-            subtitle={`${summary.playersPartial + summary.playersPending} pending`}
+            subtitle={t('pendingCount', { count: summary.playersPartial + summary.playersPending })}
           />
           <SummaryCard
-            title="Overdue"
+            title={t('overdue')}
             value={summary.playersOverdue}
             icon={<AlertTriangle className="w-5 h-5 text-red-500" />}
-            subtitle="players"
+            subtitle={t('players')}
             highlight={summary.playersOverdue > 0}
           />
         </div>
@@ -129,7 +143,7 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
       {summary && summary.totalExpectedCents > 0 && (
         <div className="bg-neutral-800/50 border border-neutral-700 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-neutral-400">Collection Progress</span>
+            <span className="text-sm text-neutral-400">{t('collectionProgress')}</span>
             <span className="text-sm font-medium text-white">
               {Math.round((summary.totalCollectedCents / summary.totalExpectedCents) * 100)}%
             </span>
@@ -149,7 +163,7 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
       <div>
         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
           <Users className="w-5 h-5" />
-          Player Payments
+          {t('playerPayments')}
         </h3>
         <div className="bg-neutral-800/50 border border-neutral-700 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -157,25 +171,26 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
               <thead>
                 <tr className="border-b border-neutral-700">
                   <th className="text-left text-xs font-medium text-neutral-500 uppercase tracking-wider px-4 py-3">
-                    Player
+                    {t('playerHeader')}
                   </th>
                   <th className="text-left text-xs font-medium text-neutral-500 uppercase tracking-wider px-4 py-3">
-                    Fee
+                    {t('feeHeader')}
                   </th>
                   <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-4 py-3">
-                    Amount
+                    {t('amountHeader')}
                   </th>
                   <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-4 py-3">
-                    Paid
+                    {t('paidHeader')}
                   </th>
                   <th className="text-center text-xs font-medium text-neutral-500 uppercase tracking-wider px-4 py-3">
-                    Status
+                    {t('statusHeader')}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-700/50">
                 {payments.map((payment) => {
-                  const statusStyle = STATUS_STYLES[payment.status] || STATUS_STYLES.pending;
+                  const statusClassName = STATUS_CLASS_MAP[payment.status] || STATUS_CLASS_MAP.pending;
+                  const statusLabelKey = STATUS_LABEL_KEYS[payment.status] || STATUS_LABEL_KEYS.pending;
                   const progress = payment.total_amount_cents > 0
                     ? Math.round((payment.amount_paid_cents / payment.total_amount_cents) * 100)
                     : 0;
@@ -197,7 +212,7 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
                           )}
                           <div>
                             <div className="text-sm font-medium text-white">
-                              {payment.player?.full_name || 'Unknown'}
+                              {payment.player?.full_name || t('unknown')}
                             </div>
                             <div className="text-xs text-neutral-500">
                               {payment.player?.email || ''}
@@ -207,10 +222,10 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm text-neutral-300">
-                          {payment.season_fee?.name || 'Season Fee'}
+                          {payment.season_fee?.name || t('seasonFee')}
                         </div>
                         <div className="text-xs text-neutral-500 capitalize">
-                          {payment.payment_plan.replace('_', '-')} payment
+                          {t('paymentPlan', { plan: payment.payment_plan.replace('_', '-') })}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -238,10 +253,10 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
                         <span
                           className={cn(
                             'inline-flex px-2 py-0.5 text-xs font-medium rounded-full border',
-                            statusStyle.className
+                            statusClassName
                           )}
                         >
-                          {statusStyle.label}
+                          {t(`status.${statusLabelKey}`)}
                         </span>
                       </td>
                     </tr>

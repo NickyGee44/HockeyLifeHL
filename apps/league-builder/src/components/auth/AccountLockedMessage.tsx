@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * Account Locked Message Component
@@ -9,7 +9,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { Lock, Clock, AlertTriangle, Mail, HelpCircle } from 'lucide-react';
 
 interface AccountLockedMessageProps {
@@ -26,6 +27,7 @@ export function AccountLockedMessage({
   email,
   onExpired,
 }: AccountLockedMessageProps) {
+  const t = useTranslations('auth');
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [isExpired, setIsExpired] = useState(false);
 
@@ -63,15 +65,15 @@ export function AccountLockedMessage({
         <div className="w-16 h-16 mx-auto mb-6 bg-green-500/10 rounded-full flex items-center justify-center">
           <Lock className="h-8 w-8 text-green-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-3">Account Unlocked</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-3">{t('accountUnlocked')}</h2>
         <p className="text-neutral-400 mb-6">
-          Your account has been unlocked. You can now try logging in again.
+          {t('accountUnlockedDescription')}
         </p>
         <Link
           href="/login"
           className="inline-block w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
         >
-          Try Logging In
+          {t('tryLoggingIn')}
         </Link>
       </div>
     );
@@ -84,10 +86,9 @@ export function AccountLockedMessage({
         <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
           <Lock className="h-8 w-8 text-red-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-2">Account Temporarily Locked</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-2">{t('accountTemporarilyLocked')}</h2>
         <p className="text-neutral-400">
-          For your security, this account has been temporarily locked due to multiple failed login
-          attempts.
+          {t('accountLockedDescription')}
         </p>
       </div>
 
@@ -95,7 +96,7 @@ export function AccountLockedMessage({
       <div className="bg-neutral-900/50 border border-red-500/20 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-center gap-3 mb-2">
           <Clock className="h-5 w-5 text-rink-500" />
-          <span className="text-sm text-neutral-400">Time until unlock:</span>
+          <span className="text-sm text-neutral-400">{t('timeUntilUnlock')}</span>
         </div>
         <div className="text-3xl font-bold text-rink-500 text-center font-mono">
           {timeRemaining}
@@ -107,10 +108,9 @@ export function AccountLockedMessage({
         <div className="flex gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm text-amber-200 font-medium mb-1">Security Notice</p>
+            <p className="text-sm text-amber-200 font-medium mb-1">{t('securityNotice')}</p>
             <p className="text-xs text-amber-300/70">
-              If you didn't attempt to log in, someone may be trying to access your account.
-              Consider changing your password after regaining access.
+              {t('securityNoticeDescription')}
             </p>
           </div>
         </div>
@@ -118,15 +118,15 @@ export function AccountLockedMessage({
 
       {/* Options */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-neutral-300 mb-2">What can I do?</h3>
+        <h3 className="text-sm font-medium text-neutral-300 mb-2">{t('whatCanIDo')}</h3>
 
         {/* Wait Option */}
         <div className="flex items-start gap-3 p-3 bg-neutral-900/50 rounded-lg">
           <Clock className="h-5 w-5 text-neutral-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm text-neutral-300">Wait for the lockout to expire</p>
+            <p className="text-sm text-neutral-300">{t('waitForLockout')}</p>
             <p className="text-xs text-neutral-500">
-              Your account will automatically unlock in {timeRemaining}
+              {t('accountAutoUnlock', { time: timeRemaining })}
             </p>
           </div>
         </div>
@@ -138,9 +138,9 @@ export function AccountLockedMessage({
         >
           <Mail className="h-5 w-5 text-rink-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm text-rink-500">Reset your password</p>
+            <p className="text-sm text-rink-500">{t('resetYourPassword')}</p>
             <p className="text-xs text-neutral-500">
-              Request a password reset link to your email
+              {t('requestPasswordResetLink')}
             </p>
           </div>
         </Link>
@@ -152,9 +152,9 @@ export function AccountLockedMessage({
         >
           <HelpCircle className="h-5 w-5 text-rink-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm text-rink-500">Contact support</p>
+            <p className="text-sm text-rink-500">{t('contactSupportOption')}</p>
             <p className="text-xs text-neutral-500">
-              If you're locked out and can't reset your password
+              {t('lockedOutHelp')}
             </p>
           </div>
         </Link>
@@ -166,7 +166,7 @@ export function AccountLockedMessage({
           href="/login"
           className="text-sm text-neutral-400 hover:text-rink-500 transition-colors"
         >
-          Back to Login
+          {t('backToLogin')}
         </Link>
       </div>
     </div>

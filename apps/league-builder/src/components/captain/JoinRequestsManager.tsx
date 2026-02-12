@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import {
   UserPlus,
@@ -21,6 +22,7 @@ interface JoinRequestsManagerProps {
 }
 
 export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps) {
+  const t = useTranslations('captain.joinRequests');
   const [requests, setRequests] = useState<TeamJoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -113,7 +115,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
               : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
           )}
         >
-          Pending
+          {t('pending')}
         </button>
         <button
           onClick={() => setFilter('approved')}
@@ -124,7 +126,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
               : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
           )}
         >
-          Approved
+          {t('approved')}
         </button>
         <button
           onClick={() => setFilter('rejected')}
@@ -135,7 +137,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
               : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
           )}
         >
-          Rejected
+          {t('rejected')}
         </button>
       </div>
 
@@ -154,12 +156,12 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
             <UserPlus className="w-8 h-8 text-neutral-600" />
           </div>
           <h3 className="text-lg font-bold text-white mb-2">
-            No {filter} requests
+            {t('noRequests', { filter })}
           </h3>
           <p className="text-neutral-400">
             {filter === 'pending'
-              ? 'Join requests will appear here when players want to join your team.'
-              : `No ${filter} requests to show.`}
+              ? t('pendingDescription')
+              : t('noRequestsDescription', { filter })}
           </p>
         </div>
       ) : (
@@ -174,7 +176,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
                 <div className="flex-1 space-y-3">
                   <div>
                     <h3 className="text-lg font-bold text-white">
-                      {request.player?.full_name || 'Unknown Player'}
+                      {request.player?.full_name || t('unknownPlayer')}
                     </h3>
                     <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-neutral-400">
                       {request.player?.email && (
@@ -207,8 +209,9 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
                   {/* Reviewed Info */}
                   {request.status !== 'pending' && request.reviewed_at && (
                     <div className="text-xs text-neutral-500">
-                      {request.status === 'approved' ? 'Approved' : 'Rejected'} on{' '}
-                      {formatDate(request.reviewed_at)}
+                      {request.status === 'approved'
+                        ? t('approvedOn', { date: formatDate(request.reviewed_at) })
+                        : t('rejectedOn', { date: formatDate(request.reviewed_at) })}
                     </div>
                   )}
                 </div>
@@ -219,7 +222,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
                     {/* Jersey Number Input */}
                     <div>
                       <label className="block text-xs text-neutral-400 mb-1">
-                        Jersey # (optional)
+                        {t('jerseyOptional')}
                       </label>
                       <input
                         type="number"
@@ -254,7 +257,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
                         ) : (
                           <Check className="w-4 h-4" />
                         )}
-                        Approve
+                        {t('approve')}
                       </button>
                       <button
                         onClick={() => handleReject(request.id)}
@@ -271,7 +274,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
                         ) : (
                           <X className="w-4 h-4" />
                         )}
-                        Reject
+                        {t('reject')}
                       </button>
                     </div>
                   </div>
@@ -287,7 +290,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
                         : 'bg-red-500/10 text-red-500'
                     )}
                   >
-                    {request.status === 'approved' ? 'Approved' : 'Rejected'}
+                    {request.status === 'approved' ? t('approved') : t('rejected')}
                   </div>
                 )}
               </div>

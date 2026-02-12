@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import type { Team, Player, GameSubmission } from '@/lib/scorekeeper';
 
@@ -21,6 +22,7 @@ function SignatureCanvas({
   height = 150,
   disabled = false,
 }: SignatureCanvasProps) {
+  const t = useTranslations('scorekeeper.signature');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
@@ -164,7 +166,7 @@ function SignatureCanvas({
         {/* Instructions */}
         {!hasSignature && !disabled && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-neutral-500 text-sm">Sign here</p>
+            <p className="text-neutral-500 text-sm">{t('signHere')}</p>
           </div>
         )}
       </div>
@@ -175,7 +177,7 @@ function SignatureCanvas({
           onClick={clearSignature}
           className="text-sm text-neutral-400 hover:text-white transition-colors"
         >
-          Clear signature
+          {t('clearSignature')}
         </button>
       )}
     </div>
@@ -204,6 +206,7 @@ export function CaptainSignature({
   isSubmitting = false,
   disabled = false,
 }: CaptainSignatureProps) {
+  const t = useTranslations('scorekeeper.signature');
   const [signature, setSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -212,7 +215,7 @@ export function CaptainSignature({
 
   const handleSubmit = async () => {
     if (!signature) {
-      setError('Please provide a signature');
+      setError(t('pleaseProvideSignature'));
       return;
     }
 
@@ -220,7 +223,7 @@ export function CaptainSignature({
       setError(null);
       await onSign(signature);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit signature');
+      setError(err instanceof Error ? err.message : t('failedToSubmit'));
     }
   };
 
@@ -253,7 +256,7 @@ export function CaptainSignature({
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
             </svg>
-            <span className="text-sm font-medium">Signed</span>
+            <span className="text-sm font-medium">{t('signed')}</span>
           </div>
         )}
       </div>
@@ -304,10 +307,10 @@ export function CaptainSignature({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                Submitting...
+                {t('submitting')}
               </span>
             ) : (
-              'Confirm & Sign'
+              t('confirmAndSign')
             )}
           </button>
         </div>
@@ -346,6 +349,7 @@ export function GameSignatureVerification({
   onFinalSubmit,
   isSubmitting = false,
 }: GameSignatureVerificationProps) {
+  const t = useTranslations('scorekeeper.verification');
   const homeIsSigned = !!submission?.home_captain_signed_at;
   const awayIsSigned = !!submission?.away_captain_signed_at;
   const bothSigned = homeIsSigned && awayIsSigned;
@@ -354,9 +358,9 @@ export function GameSignatureVerification({
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">Game Verification</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">{t('gameVerification')}</h2>
         <p className="text-neutral-400">
-          Both team captains must sign to verify the game scoresheet
+          {t('bothCaptainsMustSign')}
         </p>
       </div>
 
@@ -467,14 +471,14 @@ export function GameSignatureVerification({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                Submitting Game...
+                {t('submittingGame')}
               </span>
             ) : (
-              'Submit Verified Game'
+              t('submitVerifiedGame')
             )}
           </button>
           <p className="text-center text-xs text-neutral-500 mt-2">
-            Game will be marked as official after submission
+            {t('markedAsOfficial')}
           </p>
         </div>
       )}

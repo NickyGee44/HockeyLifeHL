@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * Forgot Password Form Component
@@ -8,7 +8,8 @@
  */
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { Mail, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { requestPasswordReset } from '@/lib/actions/password-reset';
 
@@ -17,6 +18,7 @@ interface ForgotPasswordFormProps {
 }
 
 export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
+  const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -34,10 +36,10 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         setSubmitted(true);
         onSuccess?.();
       } else {
-        setError(result.error || 'Something went wrong. Please try again.');
+        setError(result.error || t('somethingWentWrong'));
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError(t('unexpectedError'));
     } finally {
       setLoading(false);
     }
@@ -50,16 +52,17 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         <div className="w-16 h-16 mx-auto mb-6 bg-green-500/10 rounded-full flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-3">Check Your Email</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-3">{t('checkYourEmail')}</h2>
         <p className="text-neutral-400 mb-6">
-          If an account exists for <span className="text-rink-500">{email}</span>, you'll
-          receive a password reset link within a few minutes.
+          {t.rich('resetEmailSent', {
+            email: () => <span className="text-rink-500">{email}</span>,
+          })}
         </p>
         <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4 mb-6">
           <p className="text-sm text-neutral-300">
-            <strong className="text-rink-500">Didn't receive an email?</strong>
+            <strong className="text-rink-500">{t('didntReceiveEmail')}</strong>
             <br />
-            Check your spam folder or try again with a different email address.
+            {t('checkSpamFolder')}
           </p>
         </div>
         <div className="space-y-3">
@@ -70,14 +73,14 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
             }}
             className="w-full py-3 px-6 border border-rink-500/30 text-rink-500 font-medium rounded-xl hover:bg-rink-500/10 transition-all"
           >
-            Try Different Email
+            {t('tryDifferentEmail')}
           </button>
           <Link
             href="/login"
             className="flex items-center justify-center gap-2 w-full py-3 px-6 text-neutral-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Login
+            {t('backToLogin')}
           </Link>
         </div>
       </div>
@@ -90,9 +93,9 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         <div className="w-12 h-12 mx-auto mb-4 bg-rink-500/10 rounded-full flex items-center justify-center">
           <Mail className="h-6 w-6 text-rink-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-2">Forgot Password?</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-2">{t('forgotPasswordTitle')}</h2>
         <p className="text-neutral-400 text-sm">
-          Enter your email address and we'll send you a link to reset your password.
+          {t('forgotPasswordDescription')}
         </p>
       </div>
 
@@ -102,7 +105,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
             htmlFor="email"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            Email Address
+            {t('emailAddress')}
           </label>
           <input
             type="email"
@@ -113,7 +116,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
             autoComplete="email"
             autoFocus
             className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
-            placeholder="you@company.com"
+            placeholder={t('emailPlaceholder')}
           />
         </div>
 
@@ -131,10 +134,10 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Sending...
+              {t('sending')}
             </>
           ) : (
-            'Send Reset Link'
+            t('sendResetLink')
           )}
         </button>
       </form>
@@ -145,15 +148,15 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
           className="flex items-center justify-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Login
+          {t('backToLogin')}
         </Link>
       </div>
 
       <div className="mt-6 pt-6 border-t border-neutral-700">
         <p className="text-xs text-neutral-500 text-center">
-          Can't access your email?{' '}
+          {t('cantAccessEmail')}{' '}
           <Link href="/account-recovery" className="text-rink-500 hover:underline">
-            Contact Support
+            {t('contactSupport')}
           </Link>
         </p>
       </div>

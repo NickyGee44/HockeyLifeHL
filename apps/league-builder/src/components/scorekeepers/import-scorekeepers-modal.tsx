@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +34,7 @@ export function ImportScorekepersModal({
   onOpenChange,
   onSuccess,
 }: ImportScorekepersModalProps) {
+  const t = useTranslations('scorekeepers.importModal');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
@@ -84,17 +86,17 @@ export function ImportScorekepersModal({
         }
 
         if (parsed.length === 0) {
-          setError('No valid data found in file. Please check the format.');
+          setError(t('noValidData'));
         } else {
           setParsedData(parsed);
         }
       } catch (err) {
-        setError('Failed to parse CSV file. Please check the format.');
+        setError(t('failedToParse'));
       }
     };
 
     reader.onerror = () => {
-      setError('Failed to read file');
+      setError(t('failedToRead'));
     };
 
     reader.readAsText(file);
@@ -143,9 +145,9 @@ export function ImportScorekepersModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Import Scorekeepers</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription className="text-neutral-400">
-            Upload a CSV file with scorekeeper information.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -161,22 +163,22 @@ export function ImportScorekepersModal({
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
               <div className="flex items-center gap-2 text-green-500 font-medium mb-2">
                 <CheckCircle className="w-5 h-5" />
-                Import Complete
+                {t('importComplete')}
               </div>
               <div className="text-sm text-neutral-300 space-y-1">
-                <p>{importResult.imported} scorekeeper(s) imported successfully</p>
+                <p>{t('importedSuccessfully', { count: importResult.imported })}</p>
                 {importResult.skipped > 0 && (
-                  <p className="text-yellow-500">{importResult.skipped} skipped (already exist or invalid)</p>
+                  <p className="text-yellow-500">{t('skipped', { count: importResult.skipped })}</p>
                 )}
                 {importResult.errors.length > 0 && (
                   <div className="mt-2 text-red-400">
-                    <p className="font-medium">Errors:</p>
+                    <p className="font-medium">{t('errors')}</p>
                     <ul className="list-disc list-inside text-xs">
                       {importResult.errors.slice(0, 5).map((err, i) => (
                         <li key={i}>{err}</li>
                       ))}
                       {importResult.errors.length > 5 && (
-                        <li>...and {importResult.errors.length - 5} more</li>
+                        <li>{t('andMoreErrors', { count: importResult.errors.length - 5 })}</li>
                       )}
                     </ul>
                   </div>
@@ -204,10 +206,10 @@ export function ImportScorekepersModal({
                 />
                 <Upload className="w-10 h-10 text-neutral-500 mx-auto mb-3" />
                 <p className="text-neutral-300 font-medium mb-1">
-                  Click to upload or drag and drop
+                  {t('clickToUpload')}
                 </p>
                 <p className="text-sm text-neutral-500">
-                  CSV file (email, name, hourlyRate)
+                  {t('csvFormat')}
                 </p>
               </div>
 
@@ -220,7 +222,7 @@ export function ImportScorekepersModal({
                 className="w-full border-white/10 text-neutral-300 hover:bg-neutral-800"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Download Template
+                {t('downloadTemplate')}
               </Button>
 
               {/* Preview */}
@@ -229,16 +231,16 @@ export function ImportScorekepersModal({
                   <div className="bg-neutral-800 px-4 py-2 flex items-center gap-2 border-b border-white/10">
                     <FileText className="w-4 h-4 text-neutral-400" />
                     <span className="text-sm font-medium text-white">
-                      Preview ({parsedData.length} rows)
+                      {t('preview', { count: parsedData.length })}
                     </span>
                   </div>
                   <div className="max-h-48 overflow-y-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-neutral-800/50">
                         <tr>
-                          <th className="px-4 py-2 text-left text-neutral-400 font-medium">Email</th>
-                          <th className="px-4 py-2 text-left text-neutral-400 font-medium">Name</th>
-                          <th className="px-4 py-2 text-left text-neutral-400 font-medium">Rate</th>
+                          <th className="px-4 py-2 text-left text-neutral-400 font-medium">{t('emailHeader')}</th>
+                          <th className="px-4 py-2 text-left text-neutral-400 font-medium">{t('nameHeader')}</th>
+                          <th className="px-4 py-2 text-left text-neutral-400 font-medium">{t('rateHeader')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -254,7 +256,7 @@ export function ImportScorekepersModal({
                         {parsedData.length > 10 && (
                           <tr className="border-t border-white/5">
                             <td colSpan={3} className="px-4 py-2 text-center text-neutral-500">
-                              ...and {parsedData.length - 10} more rows
+                              {t('andMoreRows', { count: parsedData.length - 10 })}
                             </td>
                           </tr>
                         )}
@@ -274,7 +276,7 @@ export function ImportScorekepersModal({
             onClick={handleClose}
             className="border-white/10 text-neutral-300 hover:bg-neutral-800"
           >
-            {importResult ? 'Close' : 'Cancel'}
+            {importResult ? t('close') : t('cancel')}
           </Button>
           {!importResult && (
             <Button
@@ -287,7 +289,7 @@ export function ImportScorekepersModal({
               )}
             >
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Import {parsedData.length} Scorekeeper{parsedData.length !== 1 ? 's' : ''}
+              {t('importCount', { count: parsedData.length })}
             </Button>
           )}
         </DialogFooter>

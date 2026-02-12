@@ -147,7 +147,7 @@ export default function ImportRosterModal({
         );
         if (jerseyConflicts.length > 0) {
           toast.warning(
-            `${jerseyConflicts.length} player(s) imported without jersey number (already taken)`
+            t('importJerseyConflict', { count: jerseyConflicts.length })
           );
         }
       }
@@ -209,7 +209,7 @@ export default function ImportRosterModal({
                 {t('noSeasonHistory')}
               </h3>
               <p className="text-neutral-400">
-                There are no previous seasons to import from.
+                {t('noPreviousSeasonsDescription')}
               </p>
             </div>
           ) : (
@@ -334,7 +334,7 @@ export default function ImportRosterModal({
                   <AlertCircle className="w-5 h-5 text-rink-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm text-neutral-300">
-                      Players will be imported to:{' '}
+                      {t('importToSeason')}{' '}
                       <span className="font-semibold text-white">
                         {currentSeason.name}
                       </span>
@@ -348,7 +348,7 @@ export default function ImportRosterModal({
                   <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm text-yellow-200">
-                      No active season found. Please create a season first before importing players.
+                      {t('noActiveSeason')}
                     </p>
                   </div>
                 </div>
@@ -363,7 +363,7 @@ export default function ImportRosterModal({
             onClick={onClose}
             className="px-4 py-2 rounded-xl font-medium text-sm text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             onClick={handleImport}

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * Reset Password Form Component
@@ -10,7 +10,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { Eye, EyeOff, Lock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { updatePassword, validatePassword, type PasswordValidation } from '@/lib/actions/password-reset';
 import { PasswordStrengthMeter } from './PasswordStrengthMeter';
@@ -23,6 +24,7 @@ interface ResetPasswordFormProps {
 }
 
 export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPasswordFormProps) {
+  const t = useTranslations('auth');
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -50,13 +52,13 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
 
     // Check password match
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('passwordsDoNotMatch'));
       return;
     }
 
     // Check password strength
     if (validation && !validation.valid) {
-      setError('Please meet all password requirements');
+      setError(t('meetPasswordRequirements'));
       return;
     }
 
@@ -73,10 +75,10 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
           router.push('/login');
         }, 3000);
       } else {
-        setError(result.error || 'Failed to update password. Please try again.');
+        setError(result.error || t('failedToUpdatePassword'));
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError(t('unexpectedError'));
     } finally {
       setLoading(false);
     }
@@ -89,15 +91,15 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
         <div className="w-16 h-16 mx-auto mb-6 bg-red-500/10 rounded-full flex items-center justify-center">
           <AlertCircle className="h-8 w-8 text-red-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-3">Link Expired</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-3">{t('linkExpired')}</h2>
         <p className="text-neutral-400 mb-6">
-          This password reset link has expired or is invalid. Please request a new one.
+          {t('linkExpiredDescription')}
         </p>
         <Link
           href="/forgot-password"
           className="inline-block w-full py-3 px-6 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.2)] hover:scale-[1.02] transition-all duration-300 text-center"
         >
-          Request New Link
+          {t('requestNewLink')}
         </Link>
       </div>
     );
@@ -110,10 +112,9 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
         <div className="w-16 h-16 mx-auto mb-6 bg-green-500/10 rounded-full flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-3">Password Updated!</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-3">{t('passwordUpdatedTitle')}</h2>
         <p className="text-neutral-400 mb-6">
-          Your password has been successfully updated. You'll be redirected to the login page
-          shortly.
+          {t('passwordUpdatedDescription')}
         </p>
         <div className="animate-pulse flex justify-center">
           <div className="h-1 w-24 bg-rink-500/30 rounded-full overflow-hidden">
@@ -124,7 +125,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
           href="/login"
           className="inline-block mt-6 text-rink-500 hover:text-rink-400 text-sm transition-colors"
         >
-          Go to Login Now
+          {t('goToLoginNow')}
         </Link>
       </div>
     );
@@ -136,9 +137,9 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
         <div className="w-12 h-12 mx-auto mb-4 bg-rink-500/10 rounded-full flex items-center justify-center">
           <Lock className="h-6 w-6 text-rink-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-2">Create New Password</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-2">{t('createNewPassword')}</h2>
         <p className="text-neutral-400 text-sm">
-          Enter a strong password that you haven't used before.
+          {t('createNewPasswordDescription')}
         </p>
       </div>
 
@@ -149,7 +150,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
             htmlFor="password"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            New Password
+            {t('newPassword')}
           </label>
           <div className="relative">
             <input
@@ -161,7 +162,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
               autoComplete="new-password"
               autoFocus
               className="w-full px-4 py-3 pr-12 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
-              placeholder="Enter new password"
+              placeholder={t('newPasswordPlaceholder')}
             />
             <button
               type="button"
@@ -186,7 +187,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
             htmlFor="confirmPassword"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            Confirm Password
+            {t('confirmPassword')}
           </label>
           <div className="relative">
             <input
@@ -201,7 +202,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
                   ? 'border-red-500/50 focus:ring-red-500/50'
                   : 'border-rink-500/30 focus:ring-rink-500/50'
               }`}
-              placeholder="Confirm new password"
+              placeholder={t('confirmPasswordPlaceholder')}
             />
             <button
               type="button"
@@ -216,7 +217,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
             </button>
           </div>
           {confirmPassword.length > 0 && password !== confirmPassword && (
-            <p className="mt-1.5 text-xs text-red-400">Passwords do not match</p>
+            <p className="mt-1.5 text-xs text-red-400">{t('passwordsDoNotMatch')}</p>
           )}
         </div>
 
@@ -242,19 +243,19 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Updating...
+              {t('updating')}
             </>
           ) : (
-            'Update Password'
+            t('updatePassword')
           )}
         </button>
       </form>
 
       <div className="mt-6 pt-6 border-t border-neutral-700">
         <p className="text-xs text-neutral-500 text-center">
-          Remember your password?{' '}
+          {t('rememberYourPassword')}{' '}
           <Link href="/login" className="text-rink-500 hover:underline">
-            Back to Login
+            {t('backToLogin')}
           </Link>
         </p>
       </div>

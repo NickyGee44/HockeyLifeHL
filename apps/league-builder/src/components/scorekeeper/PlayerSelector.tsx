@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { usePlayerSearch, type Player, type Team } from '@/lib/scorekeeper';
 import { cn } from '@hockey-life/ui';
 
@@ -28,9 +29,12 @@ export function PlayerSelector({
   onSelect,
   onCancel,
   excludePlayerIds = [],
-  label = 'Select Player',
-  placeholder = 'Jersey # or name',
+  label,
+  placeholder,
 }: PlayerSelectorProps) {
+  const t = useTranslations('scorekeeper.playerSelector');
+  const resolvedLabel = label ?? t('selectPlayer');
+  const resolvedPlaceholder = placeholder ?? t('jerseyOrName');
   const { players, searchTerm, setSearchTerm } = usePlayerSearch(teamId);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -61,7 +65,7 @@ export function PlayerSelector({
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">{label}</h3>
+        <h3 className="text-lg font-semibold text-white">{resolvedLabel}</h3>
         {onCancel && (
           <button
             onClick={onCancel}
@@ -83,7 +87,7 @@ export function PlayerSelector({
             inputMode="search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             className={cn(
               'w-full px-4 py-4 text-xl font-mono',
               'bg-neutral-950 border border-neutral-700 rounded-xl',
@@ -140,7 +144,7 @@ export function PlayerSelector({
         {availablePlayers.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-neutral-400">
-              {searchTerm ? 'No players found' : 'No players available'}
+              {searchTerm ? t('noPlayersFound') : t('noPlayersAvailable')}
             </p>
           </div>
         ) : (

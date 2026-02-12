@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * Support Ticket Form Component
@@ -9,7 +9,8 @@
  */
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import {
   HelpCircle,
   ArrowLeft,
@@ -31,38 +32,12 @@ interface SupportTicketFormProps {
   onSuccess?: (ticketId: string) => void;
 }
 
-const RECOVERY_TYPES = [
-  {
-    value: 'password_reset',
-    label: "Can't Reset Password",
-    description: "I'm not receiving password reset emails",
-    icon: Lock,
-  },
-  {
-    value: 'account_unlock',
-    label: 'Account Locked',
-    description: 'My account is locked and I need help',
-    icon: Lock,
-  },
-  {
-    value: 'email_change',
-    label: 'Email Change',
-    description: "I need to update my account email",
-    icon: Mail,
-  },
-  {
-    value: 'account_access',
-    label: 'Account Access',
-    description: "I can't access my account for other reasons",
-    icon: User,
-  },
-];
-
 export function SupportTicketForm({
   defaultEmail,
   defaultType,
   onSuccess,
 }: SupportTicketFormProps) {
+  const t = useTranslations('auth');
   const [email, setEmail] = useState(defaultEmail || '');
   const [recoveryType, setRecoveryType] = useState(defaultType || '');
   const [description, setDescription] = useState('');
@@ -71,17 +46,44 @@ export function SupportTicketForm({
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const RECOVERY_TYPES = [
+    {
+      value: 'password_reset',
+      label: t('cantResetPassword'),
+      description: t('cantResetPasswordDescription'),
+      icon: Lock,
+    },
+    {
+      value: 'account_unlock',
+      label: t('accountLocked'),
+      description: t('accountLockedHelp'),
+      icon: Lock,
+    },
+    {
+      value: 'email_change',
+      label: t('emailChange'),
+      description: t('emailChangeDescription'),
+      icon: Mail,
+    },
+    {
+      value: 'account_access',
+      label: t('accountAccess'),
+      description: t('accountAccessDescription'),
+      icon: User,
+    },
+  ];
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
     if (!email || !recoveryType || !description) {
-      setError('Please fill in all fields');
+      setError(t('fillAllFields'));
       return;
     }
 
     if (description.length < 10) {
-      setError('Please provide more details about your issue');
+      setError(t('provideMoreDetails'));
       return;
     }
 
@@ -100,10 +102,10 @@ export function SupportTicketForm({
         setSubmitted(true);
         onSuccess?.(result.data.ticketId);
       } else {
-        setError(result.error || 'Failed to submit request. Please try again.');
+        setError(result.error || t('failedToSubmit'));
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError(t('unexpectedError'));
     } finally {
       setLoading(false);
     }
@@ -116,23 +118,23 @@ export function SupportTicketForm({
         <div className="w-16 h-16 mx-auto mb-6 bg-green-500/10 rounded-full flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-3">Request Submitted</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-3">{t('requestSubmitted')}</h2>
         <p className="text-neutral-400 mb-4">
-          Your account recovery request has been submitted successfully.
+          {t('requestSubmittedDescription')}
         </p>
 
         {/* Ticket ID */}
         <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4 mb-6">
-          <p className="text-xs text-neutral-500 mb-1">Reference Number</p>
+          <p className="text-xs text-neutral-500 mb-1">{t('referenceNumber')}</p>
           <p className="text-lg font-mono text-rink-500">{ticketId.substring(0, 8).toUpperCase()}</p>
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 text-left">
-          <h3 className="text-sm font-medium text-blue-300 mb-2">What happens next?</h3>
+          <h3 className="text-sm font-medium text-blue-300 mb-2">{t('whatHappensNext')}</h3>
           <ul className="text-xs text-blue-200/70 space-y-1.5">
-            <li>Our support team will review your request</li>
-            <li>You'll receive an email update within 24-48 hours</li>
-            <li>We may ask for additional verification</li>
+            <li>{t('supportReview')}</li>
+            <li>{t('emailUpdate')}</li>
+            <li>{t('additionalVerification')}</li>
           </ul>
         </div>
 
@@ -145,14 +147,14 @@ export function SupportTicketForm({
             }}
             className="w-full py-3 px-6 border border-rink-500/30 text-rink-500 font-medium rounded-xl hover:bg-rink-500/10 transition-all"
           >
-            Submit Another Request
+            {t('submitAnotherRequest')}
           </button>
           <Link
             href="/login"
             className="flex items-center justify-center gap-2 w-full py-3 px-6 text-neutral-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Login
+            {t('backToLogin')}
           </Link>
         </div>
       </div>
@@ -166,9 +168,9 @@ export function SupportTicketForm({
         <div className="w-12 h-12 mx-auto mb-4 bg-rink-500/10 rounded-full flex items-center justify-center">
           <HelpCircle className="h-6 w-6 text-rink-500" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-100 mb-2">Account Recovery</h2>
+        <h2 className="text-2xl font-bold text-neutral-100 mb-2">{t('accountRecovery')}</h2>
         <p className="text-neutral-400 text-sm">
-          Can't access your account? Tell us what's happening and we'll help.
+          {t('accountRecoveryDescription')}
         </p>
       </div>
 
@@ -179,7 +181,7 @@ export function SupportTicketForm({
             htmlFor="email"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            Account Email
+            {t('accountEmail')}
           </label>
           <input
             type="email"
@@ -189,14 +191,14 @@ export function SupportTicketForm({
             required
             autoComplete="email"
             className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
-            placeholder="you@company.com"
+            placeholder={t('emailPlaceholder')}
           />
         </div>
 
         {/* Recovery Type Selection */}
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-3">
-            What's the issue?
+            {t('whatsTheIssue')}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {RECOVERY_TYPES.map((type) => (
@@ -236,7 +238,7 @@ export function SupportTicketForm({
             htmlFor="description"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            Describe your issue
+            {t('describeYourIssue')}
           </label>
           <textarea
             id="description"
@@ -245,10 +247,10 @@ export function SupportTicketForm({
             required
             rows={4}
             className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all resize-none"
-            placeholder="Please describe what happened and any steps you've already tried..."
+            placeholder={t('descriptionPlaceholder')}
           />
           <p className="mt-1.5 text-xs text-neutral-500">
-            {description.length}/500 characters (minimum 10)
+            {t('characterCount', { count: description.length })}
           </p>
         </div>
 
@@ -258,8 +260,7 @@ export function SupportTicketForm({
             <AlertCircle className="h-5 w-5 text-neutral-500 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-xs text-neutral-400">
-                For your security, we may ask you to verify your identity before making changes to
-                your account. This helps protect your data.
+                {t('securityVerificationNotice')}
               </p>
             </div>
           </div>
@@ -281,10 +282,10 @@ export function SupportTicketForm({
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Submitting...
+              {t('submitting')}
             </>
           ) : (
-            'Submit Request'
+            t('submitRequest')
           )}
         </button>
       </form>
@@ -296,20 +297,20 @@ export function SupportTicketForm({
           className="flex items-center justify-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Login
+          {t('backToLogin')}
         </Link>
       </div>
 
       {/* Alternative Options */}
       <div className="mt-6 pt-6 border-t border-neutral-700">
         <p className="text-xs text-neutral-500 text-center">
-          Remember your password?{' '}
+          {t('rememberYourPassword')}{' '}
           <Link href="/login" className="text-rink-500 hover:underline">
-            Sign in
+            {t('signIn')}
           </Link>
           {' | '}
           <Link href="/forgot-password" className="text-rink-500 hover:underline">
-            Reset password
+            {t('resetPassword')}
           </Link>
         </p>
       </div>

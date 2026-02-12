@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useGameSession, useGameScore, type Team } from '@/lib/scorekeeper';
 import { cn } from '@hockey-life/ui';
 import { usePeriodTimer } from './usePeriodTimer';
@@ -17,6 +18,8 @@ interface ScoreCardProps {
  * Shows team names, logos, and current score
  */
 export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCardProps) {
+  const t = useTranslations('scorekeeper.scoreCard');
+  const tScoring = useTranslations('scorekeeper.scoring');
   const { game, isLoading, error } = useGameSession(gameId);
   const score = useGameScore(gameId);
   const [activePeriod, setActivePeriod] = useState(currentPeriod);
@@ -53,8 +56,8 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
   if (error || !game) {
     return (
       <div className="bg-neutral-900 border border-red-500/30 rounded-2xl p-8 text-center">
-        <p className="text-red-400 font-medium">Failed to load game</p>
-        <p className="text-neutral-400 text-sm mt-1">{error || 'Game not found'}</p>
+        <p className="text-red-400 font-medium">{t('failedToLoad')}</p>
+        <p className="text-neutral-400 text-sm mt-1">{error || t('gameNotFound')}</p>
       </div>
     );
   }
@@ -77,7 +80,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
                 : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50'
             )}
           >
-            {period <= 3 ? `P${period}` : period === 4 ? 'OT' : `OT${period - 3}`}
+            {period <= 3 ? `P${period}` : period === 4 ? t('ot') : `${t('ot')}${period - 3}`}
           </button>
         ))}
       </div>
@@ -90,13 +93,15 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
             team={game.home_team}
             score={score.home}
             isHome={true}
+            homeLabel={tScoring('home')}
+            awayLabel={tScoring('away')}
           />
 
           {/* VS Divider */}
           <div className="flex flex-col items-center">
             <span className="text-3xl md:text-4xl font-black text-rink-500">VS</span>
             <span className="text-xs text-neutral-500 mt-1 uppercase tracking-widest">
-              Period {activePeriod}
+              {t('period', { period: activePeriod })}
             </span>
           </div>
 
@@ -105,6 +110,8 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
             team={game.away_team}
             score={score.away}
             isHome={false}
+            homeLabel={tScoring('home')}
+            awayLabel={tScoring('away')}
           />
         </div>
       </div>
@@ -123,7 +130,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
               {timer.displayTime}
             </div>
             <div className="text-xs text-neutral-500 mt-1 uppercase tracking-widest">
-              Period {activePeriod}{timer.isRunning ? ' — Running' : ''}
+              {t('period', { period: activePeriod })}{timer.isRunning ? ` — ${t('running')}` : ''}
             </div>
           </div>
 
@@ -139,7 +146,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
                   : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
               )}
             >
-              {timer.isRunning ? 'Stop' : 'Start'}
+              {timer.isRunning ? t('stop') : t('start')}
             </button>
 
             <button
@@ -154,7 +161,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
                   : 'hover:bg-neutral-800 hover:text-white'
               )}
             >
-              Reset
+              {t('reset')}
             </button>
 
             <button
@@ -169,7 +176,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
                   : 'hover:bg-rink-500/25'
               )}
             >
-              {isLastPeriod ? 'End Game' : 'End Period'}
+              {isLastPeriod ? t('endGame') : t('endPeriod')}
             </button>
           </div>
         </div>
@@ -182,9 +189,11 @@ interface TeamDisplayProps {
   team?: Team;
   score: number;
   isHome: boolean;
+  homeLabel: string;
+  awayLabel: string;
 }
 
-function TeamDisplay({ team, score, isHome }: TeamDisplayProps) {
+function TeamDisplay({ team, score, isHome, homeLabel, awayLabel }: TeamDisplayProps) {
   const teamColor = team?.primary_color || (isHome ? '#22D3EE' : '#A3A3A3');
 
   return (
@@ -204,10 +213,10 @@ function TeamDisplay({ team, score, isHome }: TeamDisplayProps) {
 
       {/* Team Name */}
       <h3 className="text-lg md:text-xl font-bold text-white truncate px-2">
-        {team?.name || (isHome ? 'Home' : 'Away')}
+        {team?.name || (isHome ? homeLabel : awayLabel)}
       </h3>
       <p className="text-xs text-neutral-500 uppercase tracking-wider mt-0.5">
-        {isHome ? 'Home' : 'Away'}
+        {isHome ? homeLabel : awayLabel}
       </p>
 
       {/* Score */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,15 +27,7 @@ interface EditScorekeeperModalProps {
   onSuccess: (updated: LeagueScorekeeper) => void;
 }
 
-const DAYS = [
-  { value: 0, label: 'Sun' },
-  { value: 1, label: 'Mon' },
-  { value: 2, label: 'Tue' },
-  { value: 3, label: 'Wed' },
-  { value: 4, label: 'Thu' },
-  { value: 5, label: 'Fri' },
-  { value: 6, label: 'Sat' },
-];
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 export function EditScorekeeperModal({
   scorekeeper,
@@ -43,6 +36,7 @@ export function EditScorekeeperModal({
   onOpenChange,
   onSuccess,
 }: EditScorekeeperModalProps) {
+  const t = useTranslations('scorekeepers.editModal');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -104,9 +98,9 @@ export function EditScorekeeperModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Scorekeeper</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription className="text-neutral-400">
-            Update scorekeeper details and preferences.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -119,7 +113,7 @@ export function EditScorekeeperModal({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="displayName">Display Name</Label>
+            <Label htmlFor="displayName">{t('displayName')}</Label>
             <Input
               id="displayName"
               placeholder="John Smith"
@@ -130,7 +124,7 @@ export function EditScorekeeperModal({
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="isActive">Active Status</Label>
+            <Label htmlFor="isActive">{t('activeStatus')}</Label>
             <Switch
               id="isActive"
               checked={formData.isActive}
@@ -139,7 +133,7 @@ export function EditScorekeeperModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="hourlyRate">Hourly Rate</Label>
+            <Label htmlFor="hourlyRate">{t('hourlyRate')}</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
               <Input
@@ -156,48 +150,48 @@ export function EditScorekeeperModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="maxGamesPerWeek">Max Games Per Week</Label>
+            <Label htmlFor="maxGamesPerWeek">{t('maxGamesPerWeek')}</Label>
             <Input
               id="maxGamesPerWeek"
               type="number"
               min="1"
-              placeholder="No limit"
+              placeholder={t('noLimit')}
               value={formData.maxGamesPerWeek}
               onChange={(e) => setFormData(prev => ({ ...prev, maxGamesPerWeek: e.target.value }))}
               className="bg-neutral-800 border-white/10 text-white placeholder:text-neutral-500"
             />
-            <p className="text-xs text-neutral-500">Leave empty for no limit</p>
+            <p className="text-xs text-neutral-500">{t('leaveEmptyNoLimit')}</p>
           </div>
 
           <div className="space-y-2">
-            <Label>Preferred Days</Label>
+            <Label>{t('preferredDays')}</Label>
             <div className="flex flex-wrap gap-2">
-              {DAYS.map((day) => (
+              {DAY_KEYS.map((dayKey, index) => (
                 <button
-                  key={day.value}
+                  key={index}
                   type="button"
-                  onClick={() => handleDayToggle(day.value)}
+                  onClick={() => handleDayToggle(index)}
                   className={cn(
                     'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
-                    formData.preferredDays.includes(day.value)
+                    formData.preferredDays.includes(index)
                       ? 'bg-rink-500 text-black'
                       : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                   )}
                 >
-                  {day.label}
+                  {t(dayKey)}
                 </button>
               ))}
             </div>
             <p className="text-xs text-neutral-500">
-              Select days when this scorekeeper prefers to work
+              {t('selectDaysPreference')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">{t('notes')}</Label>
             <Textarea
               id="notes"
-              placeholder="Any special notes..."
+              placeholder={t('notesPlaceholder')}
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               rows={3}
@@ -212,7 +206,7 @@ export function EditScorekeeperModal({
               onClick={() => onOpenChange(false)}
               className="border-white/10 text-neutral-300 hover:bg-neutral-800"
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               type="submit"
@@ -223,7 +217,7 @@ export function EditScorekeeperModal({
               )}
             >
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Save Changes
+              {t('saveChanges')}
             </Button>
           </DialogFooter>
         </form>

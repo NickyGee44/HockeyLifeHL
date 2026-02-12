@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -39,6 +40,7 @@ export function AutoAssignModal({
   onOpenChange,
   onSuccess,
 }: AutoAssignModalProps) {
+  const t = useTranslations('scorekeepers.autoAssign');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AutoAssignResult | null>(null);
@@ -98,10 +100,10 @@ export function AutoAssignModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wand2 className="w-5 h-5 text-rink-500" />
-            Auto-Assign Scorekeepers
+            {t('title')}
           </DialogTitle>
           <DialogDescription className="text-neutral-400">
-            Automatically assign scorekeepers to games using round-robin distribution.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -129,37 +131,37 @@ export function AutoAssignModal({
                 ) : (
                   <AlertTriangle className="w-5 h-5" />
                 )}
-                Auto-Assignment Complete
+                {t('complete')}
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-neutral-400">Games Processed</p>
+                  <p className="text-neutral-400">{t('gamesProcessed')}</p>
                   <p className="text-xl font-bold text-white">{result.gamesProcessed}</p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-neutral-400">Assigned</p>
+                  <p className="text-neutral-400">{t('gamesAssigned')}</p>
                   <p className="text-xl font-bold text-green-500">{result.gamesAssigned}</p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-neutral-400">Skipped</p>
+                  <p className="text-neutral-400">{t('gamesSkipped')}</p>
                   <p className="text-xl font-bold text-yellow-500">{result.gamesSkipped}</p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-neutral-400">Conflicts</p>
+                  <p className="text-neutral-400">{t('conflicts')}</p>
                   <p className="text-xl font-bold text-red-500">{result.conflictsDetected}</p>
                 </div>
               </div>
 
               {result.skipped.length > 0 && (
                 <div className="mt-3 text-sm">
-                  <p className="text-neutral-400 mb-1">Skipped Reasons:</p>
+                  <p className="text-neutral-400 mb-1">{t('skippedReasons')}</p>
                   <ul className="text-xs text-neutral-500 space-y-1 max-h-24 overflow-y-auto">
                     {result.skipped.slice(0, 5).map((skip, i) => (
                       <li key={i}>Game: {skip.reason}</li>
                     ))}
                     {result.skipped.length > 5 && (
-                      <li>...and {result.skipped.length - 5} more</li>
+                      <li>{t('andMore', { count: result.skipped.length - 5 })}</li>
                     )}
                   </ul>
                 </div>
@@ -171,16 +173,16 @@ export function AutoAssignModal({
             <>
               {/* Season filter */}
               <div className="space-y-2">
-                <Label>Season (optional)</Label>
+                <Label>{t('season')}</Label>
                 <Select
                   value={options.seasonId}
                   onValueChange={(value) => setOptions(prev => ({ ...prev, seasonId: value }))}
                 >
                   <SelectTrigger className="bg-neutral-800 border-white/10 text-white">
-                    <SelectValue placeholder="All seasons" />
+                    <SelectValue placeholder={t('allSeasons')} />
                   </SelectTrigger>
                   <SelectContent className="bg-neutral-900 border-white/10">
-                    <SelectItem value="" className="text-white">All seasons</SelectItem>
+                    <SelectItem value="" className="text-white">{t('allSeasons')}</SelectItem>
                     {seasons.map((season) => (
                       <SelectItem key={season.id} value={season.id} className="text-white">
                         {season.name}
@@ -193,7 +195,7 @@ export function AutoAssignModal({
               {/* Date range */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dateFrom">From Date (optional)</Label>
+                  <Label htmlFor="dateFrom">{t('fromDate')}</Label>
                   <Input
                     id="dateFrom"
                     type="date"
@@ -203,7 +205,7 @@ export function AutoAssignModal({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dateTo">To Date (optional)</Label>
+                  <Label htmlFor="dateTo">{t('toDate')}</Label>
                   <Input
                     id="dateTo"
                     type="date"
@@ -216,7 +218,7 @@ export function AutoAssignModal({
 
               {/* Strategy */}
               <div className="space-y-2">
-                <Label>Assignment Strategy</Label>
+                <Label>{t('strategy')}</Label>
                 <Select
                   value={options.strategy}
                   onValueChange={(value: 'round_robin' | 'least_assigned' | 'availability_based') =>
@@ -228,13 +230,13 @@ export function AutoAssignModal({
                   </SelectTrigger>
                   <SelectContent className="bg-neutral-900 border-white/10">
                     <SelectItem value="round_robin" className="text-white">
-                      Round Robin (distribute evenly)
+                      {t('roundRobin')}
                     </SelectItem>
                     <SelectItem value="least_assigned" className="text-white">
-                      Least Assigned First
+                      {t('leastAssigned')}
                     </SelectItem>
                     <SelectItem value="availability_based" className="text-white">
-                      Availability Based
+                      {t('availabilityBased')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -243,9 +245,9 @@ export function AutoAssignModal({
               {/* Overwrite existing */}
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <Label htmlFor="overwrite" className="text-white">Overwrite Existing</Label>
+                  <Label htmlFor="overwrite" className="text-white">{t('overwriteExisting')}</Label>
                   <p className="text-xs text-neutral-500">
-                    Replace games that already have scorekeepers assigned
+                    {t('overwriteDescription')}
                   </p>
                 </div>
                 <Switch
@@ -259,10 +261,9 @@ export function AutoAssignModal({
               <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-sm">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">Important</p>
+                  <p className="font-medium">{t('important')}</p>
                   <p className="text-xs text-yellow-500/80">
-                    Auto-assignment will skip games that conflict with a scorekeeper&apos;s existing
-                    assignments at the same time. Preferred days and max games per week limits are respected.
+                    {t('autoAssignWarning')}
                   </p>
                 </div>
               </div>
@@ -277,7 +278,7 @@ export function AutoAssignModal({
             onClick={handleClose}
             className="border-white/10 text-neutral-300 hover:bg-neutral-800"
           >
-            {result ? 'Close' : 'Cancel'}
+            {result ? t('close') : t('cancel')}
           </Button>
           {!result && (
             <Button
@@ -290,7 +291,7 @@ export function AutoAssignModal({
               )}
             >
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isPending ? 'Assigning...' : 'Start Auto-Assign'}
+              {isPending ? t('assigning') : t('startAutoAssign')}
             </Button>
           )}
         </DialogFooter>

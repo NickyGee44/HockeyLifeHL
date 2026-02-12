@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { TeamData, PlayerData } from '@/lib/actions/scorekeeper';
 
 interface PenaltyEntryModalProps {
@@ -51,6 +52,7 @@ export function PenaltyEntryModal({
   onCancel,
   isSubmitting,
 }: PenaltyEntryModalProps) {
+  const t = useTranslations('scorekeeper.penaltyEntry');
   const [searchTerm, setSearchTerm] = useState('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [presetKey, setPresetKey] = useState<string>('minor_tripping');
@@ -102,15 +104,15 @@ export function PenaltyEntryModal({
       <div className="bg-neutral-900 w-full md:max-w-3xl md:rounded-2xl border-t md:border border-red-500/20 max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
           <div>
-            <h2 className="text-lg font-bold text-white">Record Penalty</h2>
+            <h2 className="text-lg font-bold text-white">{t('recordPenalty')}</h2>
             <p className="text-sm text-neutral-400">
-              {team.name} - Period {period}
+              {t('teamPeriod', { team: team.name, period })}
             </p>
           </div>
           <button
             onClick={onCancel}
             className="p-2 text-neutral-400 hover:text-white transition-colors"
-            aria-label="Close penalty modal"
+            aria-label={t('closeModal')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -120,12 +122,12 @@ export function PenaltyEntryModal({
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
           <div>
-            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Select Player</p>
+            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('selectPlayer')}</p>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by jersey, name, position"
+              placeholder={t('searchPlaceholder')}
               className="w-full px-4 py-3 bg-neutral-950 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
             />
             <div className="mt-3 space-y-2 max-h-64 overflow-auto">
@@ -142,7 +144,7 @@ export function PenaltyEntryModal({
           </div>
 
           <div>
-            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Penalty Type</p>
+            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('penaltyType')}</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {PENALTY_PRESETS.map((preset) => (
                 <button
@@ -156,7 +158,7 @@ export function PenaltyEntryModal({
                   }`}
                 >
                   <p className="text-sm font-semibold">{preset.label}</p>
-                  <p className="text-xs opacity-80">{preset.minutes} min</p>
+                  <p className="text-xs opacity-80">{preset.minutes} {t('min')}</p>
                 </button>
               ))}
             </div>
@@ -164,7 +166,7 @@ export function PenaltyEntryModal({
 
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Minutes</p>
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('minutes')}</p>
               <input
                 type="number"
                 min={1}
@@ -176,7 +178,7 @@ export function PenaltyEntryModal({
               />
             </div>
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Minute</p>
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('minute')}</p>
               <input
                 type="number"
                 min={0}
@@ -188,7 +190,7 @@ export function PenaltyEntryModal({
               />
             </div>
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Second</p>
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('second')}</p>
               <input
                 type="number"
                 min={0}
@@ -202,12 +204,12 @@ export function PenaltyEntryModal({
           </div>
 
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-            <p className="text-sm text-red-100 font-semibold">Penalty Summary</p>
+            <p className="text-sm text-red-100 font-semibold">{t('penaltySummary')}</p>
             <p className="text-sm text-neutral-300 mt-1">
-              Player: {selectedPlayer ? `#${selectedPlayer.jerseyNumber} ${selectedPlayer.fullName}` : 'Not selected'}
+              {t('playerLabel')} {selectedPlayer ? `#${selectedPlayer.jerseyNumber} ${selectedPlayer.fullName}` : t('notSelected')}
             </p>
             <p className="text-sm text-neutral-300">
-              Type: {selectedPreset.label}
+              {t('typeLabel')} {selectedPreset.label}
               {customMinutes.trim() ? ` (${customMinutes} min)` : ` (${selectedPreset.minutes} min)`}
             </p>
           </div>
@@ -218,14 +220,14 @@ export function PenaltyEntryModal({
             onClick={onCancel}
             className="flex-1 py-3 px-5 rounded-xl bg-neutral-800 text-white font-semibold"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!playerId || isSubmitting}
             className="flex-1 py-3 px-5 rounded-xl bg-red-600 text-white font-semibold disabled:opacity-50"
           >
-            {isSubmitting ? 'Saving...' : 'Add Penalty'}
+            {isSubmitting ? t('saving') : t('addPenalty')}
           </button>
         </div>
       </div>

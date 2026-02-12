@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import {
   Home,
@@ -64,15 +65,6 @@ interface CaptainDashboardProps {
   initialTab: string;
 }
 
-const TABS = [
-  { id: 'overview', label: 'Overview', icon: Home },
-  { id: 'roster', label: 'Roster', icon: Users },
-  { id: 'requests', label: 'Join Requests', icon: UserPlus },
-  { id: 'payments', label: 'Payments', icon: DollarSign },
-  { id: 'schedule', label: 'Schedule', icon: Calendar },
-  { id: 'stats', label: 'Statistics', icon: BarChart3 },
-];
-
 export default function CaptainDashboard({
   teamId,
   team,
@@ -83,7 +75,17 @@ export default function CaptainDashboard({
 }: CaptainDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('captain.dashboard');
   const [currentTab, setCurrentTab] = useState(initialTab);
+
+  const TABS = [
+    { id: 'overview', label: t('overview'), icon: Home },
+    { id: 'roster', label: t('roster'), icon: Users },
+    { id: 'requests', label: t('joinRequests'), icon: UserPlus },
+    { id: 'payments', label: t('payments'), icon: DollarSign },
+    { id: 'schedule', label: t('schedule'), icon: Calendar },
+    { id: 'stats', label: t('statistics'), icon: BarChart3 },
+  ];
 
   const handleTabChange = (tabId: string) => {
     setCurrentTab(tabId);
@@ -118,33 +120,33 @@ export default function CaptainDashboard({
             {/* Quick Stats Grid */}
             <div className="grid gap-4 md:grid-cols-3">
               <StatCard
-                title="Roster Size"
+                title={t('rosterSize')}
                 value={`${rosterCount}/${team.max_roster_size || 23}`}
                 icon={<Users className="w-5 h-5 text-rink-500" />}
-                subtitle={`${(team.max_roster_size || 23) - rosterCount} spots available`}
+                subtitle={t('spotsAvailable', { count: (team.max_roster_size || 23) - rosterCount })}
               />
               <StatCard
-                title="Pending Requests"
+                title={t('pendingRequests')}
                 value={pendingRequestsCount}
                 icon={<UserPlus className="w-5 h-5 text-yellow-500" />}
-                subtitle={pendingRequestsCount > 0 ? 'Needs your review' : 'All caught up'}
+                subtitle={pendingRequestsCount > 0 ? t('needsReview') : t('allCaughtUp')}
                 highlight={pendingRequestsCount > 0}
               />
               <StatCard
-                title="Upcoming Games"
+                title={t('upcomingGames')}
                 value={upcomingGames.length}
                 icon={<Calendar className="w-5 h-5 text-arena-500" />}
-                subtitle="Next 5 games"
+                subtitle={t('next5Games')}
               />
             </div>
 
             {/* Upcoming Games */}
             <div>
-              <h3 className="text-lg font-bold text-white mb-4">Upcoming Games</h3>
+              <h3 className="text-lg font-bold text-white mb-4">{t('upcomingGames')}</h3>
               {upcomingGames.length === 0 ? (
                 <div className="bg-neutral-800/50 border border-neutral-700 rounded-xl p-8 text-center">
                   <Calendar className="w-12 h-12 mx-auto mb-3 text-neutral-600" />
-                  <p className="text-neutral-400">No upcoming games scheduled</p>
+                  <p className="text-neutral-400">{t('noUpcomingGames')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -179,16 +181,16 @@ export default function CaptainDashboard({
                                   {team.short_name}
                                 </div>
                                 <div className="text-xs text-rink-500">
-                                  {isHome ? 'Home' : 'Away'}
+                                  {isHome ? t('home') : t('away')}
                                 </div>
                               </div>
-                              <div className="text-neutral-600 font-bold">VS</div>
+                              <div className="text-neutral-600 font-bold">{t('vs')}</div>
                               <div className="text-center">
                                 <div className="text-sm font-semibold text-white">
-                                  {opponent?.short_name || 'TBD'}
+                                  {opponent?.short_name || t('tbd')}
                                 </div>
                                 <div className="text-xs text-neutral-500">
-                                  {isHome ? 'Away' : 'Home'}
+                                  {isHome ? t('away') : t('home')}
                                 </div>
                               </div>
                             </div>
@@ -222,9 +224,9 @@ export default function CaptainDashboard({
                 className="p-6 bg-gradient-to-br from-rink-500/10 to-arena-500/10 border border-rink-500/30 rounded-xl text-left hover:scale-105 transition-transform"
               >
                 <UserPlus className="w-8 h-8 text-rink-500 mb-2" />
-                <h4 className="text-lg font-bold text-white mb-1">Review Join Requests</h4>
+                <h4 className="text-lg font-bold text-white mb-1">{t('reviewJoinRequests')}</h4>
                 <p className="text-sm text-neutral-400">
-                  {pendingRequestsCount} pending request{pendingRequestsCount !== 1 ? 's' : ''}
+                  {t('pendingRequestCount', { count: pendingRequestsCount })}
                 </p>
               </button>
               <button
@@ -232,9 +234,9 @@ export default function CaptainDashboard({
                 className="p-6 bg-neutral-800/50 border border-neutral-700 rounded-xl text-left hover:scale-105 transition-transform"
               >
                 <Users className="w-8 h-8 text-neutral-400 mb-2" />
-                <h4 className="text-lg font-bold text-white mb-1">Manage Roster</h4>
+                <h4 className="text-lg font-bold text-white mb-1">{t('manageRoster')}</h4>
                 <p className="text-sm text-neutral-400">
-                  {rosterCount} player{rosterCount !== 1 ? 's' : ''} on roster
+                  {t('playersOnRoster', { count: rosterCount })}
                 </p>
               </button>
             </div>
@@ -254,16 +256,16 @@ export default function CaptainDashboard({
         return (
           <div className="text-center py-12">
             <Calendar className="w-16 h-16 mx-auto mb-4 text-neutral-600" />
-            <h3 className="text-lg font-bold text-white mb-2">Full Schedule</h3>
+            <h3 className="text-lg font-bold text-white mb-2">{t('fullSchedule')}</h3>
             <p className="text-neutral-400 mb-6">
-              View all games for your team in the season schedule.
+              {t('fullScheduleDescription')}
             </p>
             <button
               onClick={() => router.push(`/dashboard/leagues/${team.league_id}/seasons`)}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
             >
               <Calendar className="w-4 h-4" />
-              Go to Season Schedule
+              {t('goToSeasonSchedule')}
             </button>
           </div>
         );
@@ -273,29 +275,29 @@ export default function CaptainDashboard({
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
               <StatCard
-                title="Wins"
+                title={t('wins')}
                 value={0}
                 icon={<Trophy className="w-5 h-5 text-green-500" />}
-                subtitle="This season"
+                subtitle={t('thisSeason')}
               />
               <StatCard
-                title="Losses"
+                title={t('losses')}
                 value={0}
                 icon={<Trophy className="w-5 h-5 text-red-500" />}
-                subtitle="This season"
+                subtitle={t('thisSeason')}
               />
               <StatCard
-                title="Ties"
+                title={t('ties')}
                 value={0}
                 icon={<Trophy className="w-5 h-5 text-yellow-500" />}
-                subtitle="This season"
+                subtitle={t('thisSeason')}
               />
             </div>
             <div className="text-center py-12">
               <BarChart3 className="w-16 h-16 mx-auto mb-4 text-neutral-600" />
-              <h3 className="text-lg font-bold text-white mb-2">No Stats Yet</h3>
+              <h3 className="text-lg font-bold text-white mb-2">{t('noStatsYet')}</h3>
               <p className="text-neutral-400">
-                Team statistics will appear here after games are played and scored.
+                {t('noStatsDescription')}
               </p>
             </div>
           </div>

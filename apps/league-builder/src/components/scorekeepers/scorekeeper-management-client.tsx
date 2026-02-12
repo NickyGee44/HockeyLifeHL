@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -49,6 +50,7 @@ export function ScorekeeperManagementClient({
   initialScorekepers,
   seasons,
 }: ScorekeeperManagementClientProps) {
+  const t = useTranslations('scorekeepers.management');
   const [isPending, startTransition] = useTransition();
   const [scorekeepers, setScorekepers] = useState<LeagueScorekeeper[]>(initialScorekepers);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -185,7 +187,7 @@ export function ScorekeeperManagementClient({
           )}
         >
           <UserPlus className="w-4 h-4 mr-2" />
-          Add Scorekeeper
+          {t('addScorekeeper')}
         </Button>
 
         <Button
@@ -194,7 +196,7 @@ export function ScorekeeperManagementClient({
           className="border-white/10 text-neutral-300 hover:bg-neutral-800"
         >
           <Upload className="w-4 h-4 mr-2" />
-          Import CSV
+          {t('importCsv')}
         </Button>
 
         <Button
@@ -203,7 +205,7 @@ export function ScorekeeperManagementClient({
           className="border-white/10 text-neutral-300 hover:bg-neutral-800"
         >
           <Download className="w-4 h-4 mr-2" />
-          Export
+          {t('export')}
         </Button>
 
         <div className="flex-1" />
@@ -215,7 +217,7 @@ export function ScorekeeperManagementClient({
         >
           <Link href={`/${locale}/dashboard/leagues/${leagueId}/scorekeepers/schedule`}>
             <CalendarDays className="w-4 h-4 mr-2" />
-            View Schedule
+            {t('viewSchedule')}
           </Link>
         </Button>
 
@@ -228,7 +230,7 @@ export function ScorekeeperManagementClient({
           className="border-rink-500/30 text-rink-500 hover:bg-rink-500/10"
         >
           <Calendar className="w-4 h-4 mr-2" />
-          Bulk Assign
+          {t('bulkAssign')}
         </Button>
 
         <Button
@@ -237,7 +239,7 @@ export function ScorekeeperManagementClient({
           className="border-rink-500/30 text-rink-500 hover:bg-rink-500/10"
         >
           <Wand2 className="w-4 h-4 mr-2" />
-          Auto-Assign
+          {t('autoAssign')}
         </Button>
       </div>
 
@@ -245,7 +247,7 @@ export function ScorekeeperManagementClient({
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 p-3 bg-neutral-800/50 rounded-lg border border-white/10">
           <span className="text-sm text-neutral-300">
-            {selectedIds.size} selected
+            {t('selected', { count: selectedIds.size })}
           </span>
           <Button
             size="sm"
@@ -254,7 +256,7 @@ export function ScorekeeperManagementClient({
             className="border-red-500/30 text-red-500 hover:bg-red-500/10"
           >
             <Trash2 className="w-4 h-4 mr-1" />
-            Remove Selected
+            {t('removeSelected')}
           </Button>
           <Button
             size="sm"
@@ -262,7 +264,7 @@ export function ScorekeeperManagementClient({
             onClick={() => setSelectedIds(new Set())}
             className="border-white/10 text-neutral-400 hover:bg-neutral-700"
           >
-            Clear Selection
+            {t('clearSelection')}
           </Button>
         </div>
       )}
@@ -330,25 +332,21 @@ export function ScorekeeperManagementClient({
       <AlertDialog open={!!removeScorekeeper} onOpenChange={(open) => !open && setRemoveScorekeeper(null)}>
         <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Scorekeeper</AlertDialogTitle>
+            <AlertDialogTitle>{t('removeScorekeeper')}</AlertDialogTitle>
             <AlertDialogDescription className="text-neutral-400">
-              Are you sure you want to remove{' '}
-              <span className="text-white font-medium">
-                {removeScorekeeper?.display_name || removeScorekeeper?.profile?.full_name}
-              </span>{' '}
-              from this league? This will not affect their existing game assignments.
+              {t('removeConfirm', { name: removeScorekeeper?.display_name || removeScorekeeper?.profile?.full_name || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-white/10 text-neutral-300 hover:bg-neutral-800">
-              Cancel
+              {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => removeScorekeeper && handleRemove(removeScorekeeper)}
               className="bg-red-500 text-white hover:bg-red-600"
             >
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Remove
+              {t('remove')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -358,22 +356,21 @@ export function ScorekeeperManagementClient({
       <AlertDialog open={showBulkRemoveConfirm} onOpenChange={setShowBulkRemoveConfirm}>
         <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {selectedIds.size} Scorekeepers</AlertDialogTitle>
+            <AlertDialogTitle>{t('removeCount', { count: selectedIds.size })}</AlertDialogTitle>
             <AlertDialogDescription className="text-neutral-400">
-              Are you sure you want to remove {selectedIds.size} scorekeeper(s) from this league?
-              This will not affect their existing game assignments.
+              {t('bulkRemoveConfirm', { count: selectedIds.size })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-white/10 text-neutral-300 hover:bg-neutral-800">
-              Cancel
+              {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkRemove}
               className="bg-red-500 text-white hover:bg-red-600"
             >
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Remove All
+              {t('removeAll')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import type { LeagueScorekeeper } from '@/lib/actions/scorekeeper-management';
@@ -31,6 +32,7 @@ export function ScorekeepersList({
   onRefresh,
   isLoading,
 }: ScorekeepersListProps) {
+  const t = useTranslations('scorekeepers.list');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredScorekepers = scorekeepers.filter((sk) => {
@@ -51,7 +53,7 @@ export function ScorekeepersList({
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
           <Input
-            placeholder="Search scorekeepers..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 bg-neutral-900 border-white/10 text-white placeholder:text-neutral-500"
@@ -67,7 +69,7 @@ export function ScorekeepersList({
               className="w-4 h-4 rounded border-rink-500/30 bg-neutral-800 text-rink-500 focus:ring-rink-500 focus:ring-offset-neutral-900"
             />
             <span className="text-sm text-neutral-400">
-              {isAllSelected ? 'Deselect all' : 'Select all'}
+              {isAllSelected ? t('deselectAll') : t('selectAll')}
             </span>
           </label>
         )}
@@ -84,13 +86,13 @@ export function ScorekeepersList({
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          Refresh
+          {t('refresh')}
         </Button>
       </div>
 
       {/* Count */}
       <p className="text-sm text-neutral-500">
-        {filteredScorekepers.length} scorekeeper{filteredScorekepers.length !== 1 ? 's' : ''}
+        {t('count', { count: filteredScorekepers.length })}
         {selectedIds.size > 0 && ` (${selectedIds.size} selected)`}
       </p>
 
@@ -99,12 +101,12 @@ export function ScorekeepersList({
         <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
           <Users className="w-16 h-16 text-rink-500 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">
-            {searchQuery ? 'No Scorekeepers Found' : 'No Scorekeepers Yet'}
+            {searchQuery ? t('noScorekeepersFound') : t('noScorekeepersYet')}
           </h3>
           <p className="text-neutral-400 max-w-md mx-auto">
             {searchQuery
-              ? 'No scorekeepers match your search. Try a different query.'
-              : 'Add scorekeepers to manage game assignments for your league.'}
+              ? t('noMatchSearch')
+              : t('addToManage')}
           </p>
         </div>
       ) : (

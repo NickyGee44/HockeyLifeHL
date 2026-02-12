@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import {
   Users,
@@ -60,6 +61,7 @@ export function DivisionCard({
   onDelete,
   teams = [],
 }: DivisionCardProps) {
+  const t = useTranslations('divisions');
   const [isExpanded, setIsExpanded] = useState(false);
 
   const skillLevelColors: Record<string, string> = {
@@ -99,7 +101,7 @@ export function DivisionCard({
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => onEdit(division)}>
                 <Edit className="w-4 h-4 mr-2" />
-                Edit Division
+                {t('editDivision')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -107,7 +109,7 @@ export function DivisionCard({
                 className="text-red-500 focus:text-red-500"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete Division
+                {t('deleteDivision')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -118,9 +120,9 @@ export function DivisionCard({
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-800/50">
             <Users className="w-4 h-4 text-rink-500" />
             <span className="text-sm text-neutral-300">
-              {division.team_count} {division.team_count === 1 ? 'team' : 'teams'}
+              {t('card.team', { count: division.team_count })}
               {division.max_teams && (
-                <span className="text-neutral-500"> / {division.max_teams} max</span>
+                <span className="text-neutral-500"> {t('card.max', { max: division.max_teams })}</span>
               )}
             </span>
           </div>
@@ -139,7 +141,7 @@ export function DivisionCard({
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-800/50">
             <Clock className="w-4 h-4 text-neutral-500" />
             <span className="text-sm text-neutral-400">
-              {division.game_duration_minutes}min / {division.period_count} periods
+              {t('card.durationPeriods', { duration: division.game_duration_minutes, periods: division.period_count })}
             </span>
           </div>
         </div>
@@ -152,7 +154,7 @@ export function DivisionCard({
             onClick={() => setIsExpanded(!isExpanded)}
             className="w-full px-5 py-3 flex items-center justify-between text-sm text-neutral-400 hover:bg-white/[0.02] transition-colors"
           >
-            <span>View teams in this division</span>
+            <span>{t('viewTeams')}</span>
             {isExpanded ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
@@ -193,7 +195,7 @@ export function DivisionCard({
           )}
         >
           <Users className="w-4 h-4" />
-          Manage Teams
+          {t('manageTeams')}
         </Link>
       </div>
     </div>

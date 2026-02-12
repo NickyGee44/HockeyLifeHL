@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,23 +56,19 @@ interface FormData {
   periodCount: string;
 }
 
-const SKILL_LEVELS = [
-  { value: '', label: 'No skill level' },
-  { value: 'A', label: 'A (Advanced)' },
-  { value: 'B', label: 'B (Intermediate)' },
-  { value: 'C', label: 'C (Beginner)' },
-  { value: 'Beginner', label: 'Beginner' },
-  { value: 'Intermediate', label: 'Intermediate' },
-  { value: 'Advanced', label: 'Advanced' },
-  { value: 'Recreational', label: 'Recreational' },
-  { value: 'Competitive', label: 'Competitive' },
+const SKILL_LEVEL_KEYS: Array<{ value: string; labelKey: string }> = [
+  { value: '', labelKey: 'noSkillLevel' },
+  { value: 'A', labelKey: 'skillA' },
+  { value: 'B', labelKey: 'skillB' },
+  { value: 'C', labelKey: 'skillC' },
+  { value: 'Beginner', labelKey: 'beginner' },
+  { value: 'Intermediate', labelKey: 'intermediate' },
+  { value: 'Advanced', labelKey: 'advanced' },
+  { value: 'Recreational', labelKey: 'recreational' },
+  { value: 'Competitive', labelKey: 'competitive' },
 ];
 
-const PERIOD_OPTIONS = [
-  { value: '2', label: '2 periods' },
-  { value: '3', label: '3 periods' },
-  { value: '4', label: '4 periods' },
-];
+const PERIOD_VALUES = ['2', '3', '4'];
 
 // ==============================================================================
 // COMPONENT
@@ -84,6 +81,7 @@ export function DivisionFormModal({
   division,
   onSuccess,
 }: DivisionFormModalProps) {
+  const t = useTranslations('divisions.form');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
@@ -166,7 +164,7 @@ export function DivisionFormModal({
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError(t('unexpectedError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -177,12 +175,12 @@ export function DivisionFormModal({
       <DialogContent className="sm:max-w-[500px] bg-neutral-900 border-white/10">
         <DialogHeader>
           <DialogTitle className="text-white">
-            {isEditing ? 'Edit Division' : 'Create Division'}
+            {isEditing ? t('editTitle') : t('createTitle')}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? 'Update the division settings below.'
-              : 'Create a new division to organize teams by skill level or category.'}
+              ? t('editDescription')
+              : t('createDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -191,13 +189,13 @@ export function DivisionFormModal({
             {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-neutral-300">
-                Division Name <span className="text-red-500">*</span>
+                {t('divisionName')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Division A, Elite, Recreational"
+                placeholder={t('divisionNamePlaceholder')}
                 required
                 className="bg-neutral-800 border-neutral-700 text-white"
               />
@@ -206,13 +204,13 @@ export function DivisionFormModal({
             {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description" className="text-neutral-300">
-                Description
+                {t('descriptionLabel')}
               </Label>
               <Input
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Optional description of this division"
+                placeholder={t('descriptionPlaceholder')}
                 className="bg-neutral-800 border-neutral-700 text-white"
               />
             </div>
@@ -220,19 +218,19 @@ export function DivisionFormModal({
             {/* Skill Level */}
             <div className="space-y-2">
               <Label htmlFor="skillLevel" className="text-neutral-300">
-                Skill Level
+                {t('skillLevel')}
               </Label>
               <Select
                 value={formData.skillLevel || '_none'}
                 onValueChange={(value) => setFormData({ ...formData, skillLevel: value === '_none' ? '' : value })}
               >
                 <SelectTrigger className="bg-neutral-800 border-neutral-700 text-white">
-                  <SelectValue placeholder="Select skill level" />
+                  <SelectValue placeholder={t('skillLevelPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-neutral-800 border-neutral-700">
-                  {SKILL_LEVELS.map((level) => (
+                  {SKILL_LEVEL_KEYS.map((level) => (
                     <SelectItem key={level.value || '_none'} value={level.value || '_none'}>
-                      {level.label}
+                      {t(level.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -242,7 +240,7 @@ export function DivisionFormModal({
             {/* Max Teams */}
             <div className="space-y-2">
               <Label htmlFor="maxTeams" className="text-neutral-300">
-                Maximum Teams
+                {t('maxTeams')}
               </Label>
               <Input
                 id="maxTeams"
@@ -250,11 +248,11 @@ export function DivisionFormModal({
                 min="1"
                 value={formData.maxTeams}
                 onChange={(e) => setFormData({ ...formData, maxTeams: e.target.value })}
-                placeholder="Leave empty for no limit"
+                placeholder={t('maxTeamsPlaceholder')}
                 className="bg-neutral-800 border-neutral-700 text-white"
               />
               <p className="text-xs text-neutral-500">
-                Set a maximum number of teams allowed in this division.
+                {t('maxTeamsHelp')}
               </p>
             </div>
 
@@ -263,7 +261,7 @@ export function DivisionFormModal({
               {/* Game Duration */}
               <div className="space-y-2">
                 <Label htmlFor="gameDuration" className="text-neutral-300">
-                  Game Duration
+                  {t('gameDuration')}
                 </Label>
                 <div className="relative">
                   <Input
@@ -278,7 +276,7 @@ export function DivisionFormModal({
                     className="bg-neutral-800 border-neutral-700 text-white pr-12"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm">
-                    min
+                    {t('durationUnit')}
                   </span>
                 </div>
               </div>
@@ -286,7 +284,7 @@ export function DivisionFormModal({
               {/* Period Count */}
               <div className="space-y-2">
                 <Label htmlFor="periodCount" className="text-neutral-300">
-                  Periods
+                  {t('periods')}
                 </Label>
                 <Select
                   value={formData.periodCount}
@@ -296,9 +294,9 @@ export function DivisionFormModal({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-neutral-800 border-neutral-700">
-                    {PERIOD_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {PERIOD_VALUES.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {t('periodCount', { count: parseInt(value) })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -322,7 +320,7 @@ export function DivisionFormModal({
               disabled={isSubmitting}
               className="text-neutral-400 hover:text-white"
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               type="submit"
@@ -335,12 +333,12 @@ export function DivisionFormModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isEditing ? 'Updating...' : 'Creating...'}
+                  {isEditing ? t('updating') : t('creating')}
                 </>
               ) : isEditing ? (
-                'Update Division'
+                t('update')
               ) : (
-                'Create Division'
+                t('create')
               )}
             </Button>
           </DialogFooter>

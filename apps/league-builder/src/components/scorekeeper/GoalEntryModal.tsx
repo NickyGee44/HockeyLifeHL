@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { TeamData, PlayerData } from '@/lib/actions/scorekeeper';
 
 interface GoalEntryModalProps {
@@ -33,6 +34,7 @@ export function GoalEntryModal({
   onCancel,
   isSubmitting,
 }: GoalEntryModalProps) {
+  const t = useTranslations('scorekeeper.goalEntry');
   const [step, setStep] = useState<Step>('scorer');
   const [searchTerm, setSearchTerm] = useState('');
   const [scorerId, setScorerId] = useState<string | null>(null);
@@ -119,15 +121,15 @@ export function GoalEntryModal({
       <div className="bg-neutral-900 w-full md:max-w-3xl md:rounded-2xl border-t md:border border-white/10 max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
           <div>
-            <h2 className="text-lg font-bold text-white">Record Goal</h2>
+            <h2 className="text-lg font-bold text-white">{t('recordGoal')}</h2>
             <p className="text-sm text-neutral-400">
-              {team.name} - Period {period}
+              {t('teamPeriod', { team: team.name, period })}
             </p>
           </div>
           <button
             onClick={onCancel}
             className="p-2 text-neutral-400 hover:text-white transition-colors"
-            aria-label="Close goal modal"
+            aria-label={t('closeModal')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -138,9 +140,9 @@ export function GoalEntryModal({
         <div className="px-4 pt-3">
           <div className="grid grid-cols-3 gap-2">
             {[
-              ['scorer', 'Scorer'],
-              ['assists', 'Assists'],
-              ['details', 'Details'],
+              ['scorer', t('scorer')],
+              ['assists', t('assists')],
+              ['details', t('details')],
             ].map(([id, label]) => (
               <div
                 key={id}
@@ -163,7 +165,7 @@ export function GoalEntryModal({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by jersey, name, position"
+                placeholder={t('searchPlaceholder')}
                 className="w-full px-4 py-3 bg-neutral-950 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/30"
               />
             </div>
@@ -171,7 +173,7 @@ export function GoalEntryModal({
 
           {step === 'scorer' && (
             <div className="space-y-2">
-              <p className="text-xs text-neutral-400 uppercase tracking-wider">Select Goal Scorer</p>
+              <p className="text-xs text-neutral-400 uppercase tracking-wider">{t('selectGoalScorer')}</p>
               <div className="space-y-2">
                 {filteredRoster.map((player) => (
                   <PlayerRow
@@ -190,14 +192,14 @@ export function GoalEntryModal({
             <div className="space-y-4">
               {scorer && (
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
-                  <p className="text-xs text-emerald-300 uppercase tracking-wider mb-1">Scorer</p>
+                  <p className="text-xs text-emerald-300 uppercase tracking-wider mb-1">{t('scorer')}</p>
                   <p className="text-white font-medium">#{scorer.jerseyNumber} {scorer.fullName}</p>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Assist 1</p>
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('assist1')}</p>
                   <button
                     type="button"
                     onClick={() => handleAssistSelect(1, null)}
@@ -207,7 +209,7 @@ export function GoalEntryModal({
                         : 'bg-neutral-900 border-neutral-700 text-neutral-300'
                     }`}
                   >
-                    No Assist
+                    {t('noAssist')}
                   </button>
                   {assist1 && (
                     <p className="mt-2 text-sm text-white">#{assist1.jerseyNumber} {assist1.fullName}</p>
@@ -215,7 +217,7 @@ export function GoalEntryModal({
                 </div>
 
                 <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Assist 2</p>
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('assist2')}</p>
                   <button
                     type="button"
                     onClick={() => handleAssistSelect(2, null)}
@@ -225,7 +227,7 @@ export function GoalEntryModal({
                         : 'bg-neutral-900 border-neutral-700 text-neutral-300'
                     }`}
                   >
-                    No Assist
+                    {t('noAssist')}
                   </button>
                   {assist2 && (
                     <p className="mt-2 text-sm text-white">#{assist2.jerseyNumber} {assist2.fullName}</p>
@@ -234,7 +236,7 @@ export function GoalEntryModal({
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs text-neutral-400 uppercase tracking-wider">Select Assists</p>
+                <p className="text-xs text-neutral-400 uppercase tracking-wider">{t('selectAssists')}</p>
                 {filteredRoster
                   .filter((player) => player.id !== scorerId)
                   .map((player) => (
@@ -281,19 +283,19 @@ export function GoalEntryModal({
           {step === 'details' && (
             <div className="space-y-4">
               <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3 space-y-2">
-                <p className="text-xs text-neutral-400 uppercase tracking-wider">Goal Summary</p>
-                <p className="text-white text-sm">{scorer ? `#${scorer.jerseyNumber} ${scorer.fullName}` : 'No scorer selected'}</p>
+                <p className="text-xs text-neutral-400 uppercase tracking-wider">{t('goalSummary')}</p>
+                <p className="text-white text-sm">{scorer ? `#${scorer.jerseyNumber} ${scorer.fullName}` : t('noScorerSelected')}</p>
                 <p className="text-neutral-300 text-sm">
-                  Assists:{' '}
+                  {t('assistsLabel')}{' '}
                   {[
-                    assist1 ? `#${assist1.jerseyNumber} ${assist1.fullName}` : 'None',
-                    assist2 ? `#${assist2.jerseyNumber} ${assist2.fullName}` : 'None',
+                    assist1 ? `#${assist1.jerseyNumber} ${assist1.fullName}` : t('none'),
+                    assist2 ? `#${assist2.jerseyNumber} ${assist2.fullName}` : t('none'),
                   ].join(', ')}
                 </p>
               </div>
 
               <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-                <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Goalie In Net ({opposingTeam.name})</p>
+                <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('goalieInNet', { team: opposingTeam.name })}</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -306,7 +308,7 @@ export function GoalEntryModal({
                       : 'bg-neutral-900 border-neutral-700 text-neutral-300'
                   }`}
                 >
-                  Empty Net
+                  {t('emptyNet')}
                 </button>
                 <div className="space-y-2">
                   {opposingGoalies.map((goalie) => (
@@ -326,7 +328,7 @@ export function GoalEntryModal({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Minute</p>
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('minute')}</p>
                   <input
                     type="number"
                     min={0}
@@ -338,7 +340,7 @@ export function GoalEntryModal({
                   />
                 </div>
                 <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Second</p>
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('second')}</p>
                   <input
                     type="number"
                     min={0}
@@ -352,15 +354,15 @@ export function GoalEntryModal({
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                <ToggleBadge label="Power Play" active={isPowerPlay} onClick={() => {
+                <ToggleBadge label={t('powerPlay')} active={isPowerPlay} onClick={() => {
                   setIsPowerPlay((v) => !v);
                   setIsShortHanded(false);
                 }} />
-                <ToggleBadge label="Short-Handed" active={isShortHanded} onClick={() => {
+                <ToggleBadge label={t('shortHanded')} active={isShortHanded} onClick={() => {
                   setIsShortHanded((v) => !v);
                   setIsPowerPlay(false);
                 }} />
-                <ToggleBadge label="Empty Net" active={isEmptyNet} onClick={() => {
+                <ToggleBadge label={t('emptyNet')} active={isEmptyNet} onClick={() => {
                   const next = !isEmptyNet;
                   setIsEmptyNet(next);
                   if (next) setGoalieInNetId(null);
@@ -376,7 +378,7 @@ export function GoalEntryModal({
               onClick={() => setStep(step === 'details' ? 'assists' : 'scorer')}
               className="px-5 py-3 rounded-xl bg-neutral-800 text-white font-semibold"
             >
-              Back
+              {t('back')}
             </button>
           )}
           {step === 'scorer' && (
@@ -384,7 +386,7 @@ export function GoalEntryModal({
               onClick={onCancel}
               className="px-5 py-3 rounded-xl bg-neutral-800 text-white font-semibold"
             >
-              Cancel
+              {t('cancel')}
             </button>
           )}
           {step === 'assists' && (
@@ -393,7 +395,7 @@ export function GoalEntryModal({
               disabled={!canContinueToDetails}
               className="flex-1 px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold disabled:opacity-50"
             >
-              Continue
+              {t('continue')}
             </button>
           )}
           {step === 'details' && (
@@ -402,7 +404,7 @@ export function GoalEntryModal({
               disabled={isSubmitting || !scorerId}
               className="flex-1 px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold disabled:opacity-50"
             >
-              {isSubmitting ? 'Saving...' : 'Add Goal'}
+              {isSubmitting ? t('saving') : t('addGoal')}
             </button>
           )}
         </div>

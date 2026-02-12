@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -48,6 +49,7 @@ export function BulkAssignGamesModal({
   onOpenChange,
   onSuccess,
 }: BulkAssignGamesModalProps) {
+  const t = useTranslations('scorekeepers.bulkAssign');
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -204,9 +206,9 @@ export function BulkAssignGamesModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Bulk Assign Games</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription className="text-neutral-400">
-            Select games and assign them to a scorekeeper.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -219,10 +221,10 @@ export function BulkAssignGamesModal({
                 onValueChange={(value) => setFilters((prev) => ({ ...prev, seasonId: value }))}
               >
                 <SelectTrigger className="bg-neutral-800 border-white/10 text-white h-9 text-sm">
-                  <SelectValue placeholder="All seasons" />
+                  <SelectValue placeholder={t('allSeasons')} />
                 </SelectTrigger>
                 <SelectContent className="bg-neutral-900 border-white/10">
-                  <SelectItem value="" className="text-white">All seasons</SelectItem>
+                  <SelectItem value="" className="text-white">{t('allSeasons')}</SelectItem>
                   {seasons.map((season) => (
                     <SelectItem key={season.id} value={season.id} className="text-white">
                       {season.name}
@@ -252,19 +254,19 @@ export function BulkAssignGamesModal({
                 onChange={(e) => setFilters((prev) => ({ ...prev, unassignedOnly: e.target.checked }))}
                 className="w-4 h-4 rounded border-white/30 bg-neutral-800"
               />
-              Unassigned only
+              {t('unassignedOnly')}
             </label>
           </div>
 
           {/* Assign to */}
           <div className="flex items-center gap-3">
-            <Label className="text-sm whitespace-nowrap">Assign to:</Label>
+            <Label className="text-sm whitespace-nowrap">{t('assignTo')}</Label>
             <Select
               value={assignToScorekeeper}
               onValueChange={setAssignToScorekeeper}
             >
               <SelectTrigger className="bg-neutral-800 border-white/10 text-white flex-1">
-                <SelectValue placeholder="Select scorekeeper" />
+                <SelectValue placeholder={t('selectScorekeeper')} />
               </SelectTrigger>
               <SelectContent className="bg-neutral-900 border-white/10">
                 {scorekeepers
@@ -283,7 +285,7 @@ export function BulkAssignGamesModal({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
               <Input
-                placeholder="Search games..."
+                placeholder={t('searchGames')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 bg-neutral-800 border-white/10 text-white placeholder:text-neutral-500 h-9"
@@ -297,7 +299,7 @@ export function BulkAssignGamesModal({
                   onChange={handleSelectAll}
                   className="w-4 h-4 rounded border-white/30 bg-neutral-800"
                 />
-                <span className="text-neutral-400">Select all</span>
+                <span className="text-neutral-400">{t('selectAll')}</span>
               </label>
             )}
           </div>
@@ -326,8 +328,8 @@ export function BulkAssignGamesModal({
             ) : filteredGames.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center">
                 <Calendar className="w-12 h-12 text-neutral-600 mb-3" />
-                <p className="text-neutral-400">No games found</p>
-                <p className="text-sm text-neutral-500">Try adjusting your filters</p>
+                <p className="text-neutral-400">{t('noGamesFound')}</p>
+                <p className="text-sm text-neutral-500">{t('adjustFilters')}</p>
               </div>
             ) : (
               <div className="divide-y divide-white/5">
@@ -379,7 +381,7 @@ export function BulkAssignGamesModal({
 
           {/* Selection count */}
           <p className="text-sm text-neutral-500">
-            {selectedGameIds.size} game{selectedGameIds.size !== 1 ? 's' : ''} selected
+            {t('gamesSelected', { count: selectedGameIds.size })}
           </p>
         </div>
 
@@ -390,7 +392,7 @@ export function BulkAssignGamesModal({
             onClick={handleClose}
             className="border-white/10 text-neutral-300 hover:bg-neutral-800"
           >
-            Close
+            {t('close')}
           </Button>
           {!filters.unassignedOnly && selectedGameIds.size > 0 && (
             <Button
@@ -401,7 +403,7 @@ export function BulkAssignGamesModal({
               className="border-red-500/30 text-red-500 hover:bg-red-500/10"
             >
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Unassign Selected
+              {t('unassignSelected')}
             </Button>
           )}
           <Button
@@ -414,7 +416,7 @@ export function BulkAssignGamesModal({
             )}
           >
             {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Assign Selected
+            {t('assignSelected')}
           </Button>
         </DialogFooter>
       </DialogContent>

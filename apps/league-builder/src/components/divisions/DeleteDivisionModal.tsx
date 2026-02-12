@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Loader2, AlertTriangle, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ export function DeleteDivisionModal({
   leagueId,
   onSuccess,
 }: DeleteDivisionModalProps) {
+  const t = useTranslations('divisions.delete');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reassignTo, setReassignTo] = useState<string>('_unassigned');
@@ -111,7 +113,7 @@ export function DeleteDivisionModal({
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError(t('unexpectedError'));
       setIsDeleting(false);
     }
   };
@@ -126,11 +128,13 @@ export function DeleteDivisionModal({
             <div className="p-2 rounded-full bg-red-500/10">
               <AlertTriangle className="w-5 h-5 text-red-500" />
             </div>
-            <DialogTitle className="text-white">Delete Division</DialogTitle>
+            <DialogTitle className="text-white">{t('title')}</DialogTitle>
           </div>
           <DialogDescription>
-            Are you sure you want to delete <strong className="text-white">{division.name}</strong>?
-            This action cannot be undone.
+            {t.rich('confirmation', {
+              name: division.name,
+              bold: (chunks) => <strong className="text-white">{chunks}</strong>,
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -142,18 +146,17 @@ export function DeleteDivisionModal({
                 <Users className="w-5 h-5 text-yellow-500 mt-0.5" />
                 <div>
                   <p className="text-sm text-yellow-200 font-medium">
-                    This division has {division.team_count}{' '}
-                    {division.team_count === 1 ? 'team' : 'teams'}
+                    {t('hasTeams', { count: division.team_count })}
                   </p>
                   <p className="text-xs text-yellow-200/70 mt-1">
-                    Choose what happens to these teams when the division is deleted.
+                    {t('teamWarning')}
                   </p>
                 </div>
               </div>
 
               <div className="mt-4">
                 <label className="text-sm text-neutral-300 block mb-2">
-                  Reassign teams to:
+                  {t('reassignTo')}
                 </label>
                 <Select
                   value={reassignTo}
@@ -161,11 +164,11 @@ export function DeleteDivisionModal({
                   disabled={loadingDivisions}
                 >
                   <SelectTrigger className="bg-neutral-800 border-neutral-700 text-white">
-                    <SelectValue placeholder="Select destination" />
+                    <SelectValue placeholder={t('selectDestination')} />
                   </SelectTrigger>
                   <SelectContent className="bg-neutral-800 border-neutral-700">
                     <SelectItem value="_unassigned">
-                      Leave unassigned (no division)
+                      {t('leaveUnassigned')}
                     </SelectItem>
                     {otherDivisions.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
@@ -186,7 +189,7 @@ export function DeleteDivisionModal({
           {/* No teams info */}
           {!hasTeams && (
             <div className="p-4 rounded-lg bg-neutral-800/50 text-neutral-400 text-sm">
-              This division has no teams assigned. It can be safely deleted.
+              {t('noTeams')}
             </div>
           )}
 
@@ -206,7 +209,7 @@ export function DeleteDivisionModal({
             disabled={isDeleting}
             className="text-neutral-400 hover:text-white"
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             onClick={handleDelete}
@@ -219,10 +222,10 @@ export function DeleteDivisionModal({
             {isDeleting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Deleting...
+                {t('deleting')}
               </>
             ) : (
-              'Delete Division'
+              t('confirm')
             )}
           </Button>
         </DialogFooter>

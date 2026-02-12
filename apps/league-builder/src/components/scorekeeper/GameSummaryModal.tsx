@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import {
   getGameSummary,
@@ -26,6 +27,7 @@ export function GameSummaryModal({
   events,
   onClose,
 }: GameSummaryModalProps) {
+  const t = useTranslations('scorekeeper.gameSummary');
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,7 +116,7 @@ export function GameSummaryModal({
           <div className="flex items-center justify-center">
             <div className="w-12 h-12 border-4 border-white/10 border-t-rink-500 rounded-full animate-spin" />
           </div>
-          <p className="text-neutral-400 text-center mt-4">Loading summary...</p>
+          <p className="text-neutral-400 text-center mt-4">{t('loadingSummary')}</p>
         </div>
       </div>
     );
@@ -126,9 +128,9 @@ export function GameSummaryModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-800 sticky top-0 bg-neutral-900 z-10">
           <div>
-            <h2 className="text-lg font-bold text-white">Game Summary</h2>
+            <h2 className="text-lg font-bold text-white">{t('title')}</h2>
             <p className="text-sm text-neutral-400">
-              Review and submit for verification
+              {t('reviewAndSubmit')}
             </p>
           </div>
           <button
@@ -146,7 +148,7 @@ export function GameSummaryModal({
           {/* Final Score */}
           <div className="bg-neutral-800 rounded-2xl p-6">
             <h3 className="text-xs text-neutral-500 uppercase tracking-wider text-center mb-4">
-              Final Score
+              {t('finalScore')}
             </h3>
             <div className="flex items-center justify-between">
               <div className="flex-1 text-center">
@@ -175,9 +177,9 @@ export function GameSummaryModal({
 
           {/* Period Breakdown */}
           <div className="bg-neutral-800 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-neutral-300 mb-3">Score by Period</h3>
+            <h3 className="text-sm font-medium text-neutral-300 mb-3">{t('scoreByPeriod')}</h3>
             <div className="grid grid-cols-4 gap-2 text-center">
-              <div className="text-xs text-neutral-500">Team</div>
+              <div className="text-xs text-neutral-500">{t('team')}</div>
               {(summary?.periods || []).map((p) => (
                 <div key={p.period} className="text-xs text-neutral-500">P{p.period}</div>
               ))}
@@ -197,7 +199,7 @@ export function GameSummaryModal({
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-neutral-800 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-neutral-300 mb-3">Shots</h3>
+              <h3 className="text-sm font-medium text-neutral-300 mb-3">{t('shots')}</h3>
               <div className="flex justify-between">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-white">{summary?.homeShots ?? 0}</p>
@@ -211,7 +213,7 @@ export function GameSummaryModal({
             </div>
 
             <div className="bg-neutral-800 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-neutral-300 mb-3">Penalty Minutes</h3>
+              <h3 className="text-sm font-medium text-neutral-300 mb-3">{t('penaltyMinutes')}</h3>
               <div className="flex justify-between">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-white">{summary?.homePenaltyMinutes ?? 0}</p>
@@ -228,23 +230,23 @@ export function GameSummaryModal({
           {/* Special Teams Stats */}
           {summary && (summary.homePPGoals > 0 || summary.awayPPGoals > 0 || summary.homeSHGoals > 0 || summary.awaySHGoals > 0) && (
             <div className="bg-neutral-800 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-neutral-300 mb-3">Special Teams</h3>
+              <h3 className="text-sm font-medium text-neutral-300 mb-3">{t('specialTeams')}</h3>
               <div className="grid grid-cols-3 gap-4 text-center text-sm">
                 <div className="text-neutral-500 font-medium">&nbsp;</div>
                 <div className="text-neutral-500 font-medium">{game.homeTeam.shortName || 'Home'}</div>
                 <div className="text-neutral-500 font-medium">{game.awayTeam.shortName || 'Away'}</div>
 
-                <div className="text-neutral-400 text-left">Power Play Goals</div>
+                <div className="text-neutral-400 text-left">{t('powerPlayGoals')}</div>
                 <div className="text-amber-400 font-semibold">{summary.homePPGoals}</div>
                 <div className="text-amber-400 font-semibold">{summary.awayPPGoals}</div>
 
-                <div className="text-neutral-400 text-left">Short Handed Goals</div>
+                <div className="text-neutral-400 text-left">{t('shortHandedGoals')}</div>
                 <div className="text-purple-400 font-semibold">{summary.homeSHGoals}</div>
                 <div className="text-purple-400 font-semibold">{summary.awaySHGoals}</div>
 
                 {(summary.homeENGoals > 0 || summary.awayENGoals > 0) && (
                   <>
-                    <div className="text-neutral-400 text-left">Empty Net Goals</div>
+                    <div className="text-neutral-400 text-left">{t('emptyNetGoals')}</div>
                     <div className="text-orange-400 font-semibold">{summary.homeENGoals}</div>
                     <div className="text-orange-400 font-semibold">{summary.awayENGoals}</div>
                   </>
@@ -256,7 +258,7 @@ export function GameSummaryModal({
           {/* Top Scorers */}
           {summary && summary.scorers.length > 0 && (
             <div className="bg-neutral-800 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-neutral-300 mb-3">Scoring Summary</h3>
+              <h3 className="text-sm font-medium text-neutral-300 mb-3">{t('scoringSummary')}</h3>
               <div className="space-y-2">
                 {summary.scorers.slice(0, 10).map((scorer) => (
                   <div
@@ -309,7 +311,7 @@ export function GameSummaryModal({
           {/* Goalie Stats */}
           {summary && summary.goalies.length > 0 && (
             <div className="bg-neutral-800 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-neutral-300 mb-3">Goalie Summary</h3>
+              <h3 className="text-sm font-medium text-neutral-300 mb-3">{t('goalieSummary')}</h3>
               <div className="space-y-4">
                 {summary.goalies.map((goalie) => (
                   <div
@@ -343,17 +345,17 @@ export function GameSummaryModal({
                     {/* Period-by-period breakdown */}
                     {goalie.periodStats && goalie.periodStats.some(p => p.saves > 0 || p.goalsAgainst > 0) && (
                       <div className="mt-2 grid grid-cols-4 gap-2 text-xs text-center">
-                        <div className="text-neutral-500">Period</div>
+                        <div className="text-neutral-500">{t('period')}</div>
                         {goalie.periodStats.map((ps) => (
                           <div key={ps.period} className="text-neutral-500">P{ps.period}</div>
                         ))}
 
-                        <div className="text-neutral-400">Saves</div>
+                        <div className="text-neutral-400">{t('saves')}</div>
                         {goalie.periodStats.map((ps) => (
                           <div key={`sv-${ps.period}`} className="text-blue-400">{ps.saves}</div>
                         ))}
 
-                        <div className="text-neutral-400">Shots</div>
+                        <div className="text-neutral-400">{t('shots')}</div>
                         {goalie.periodStats.map((ps) => (
                           <div key={`sh-${ps.period}`} className="text-neutral-300">{ps.saves + ps.goalsAgainst}</div>
                         ))}
@@ -375,16 +377,16 @@ export function GameSummaryModal({
                   </svg>
                 </div>
                 <div>
-                  <p className="text-rink-400 font-semibold">Submitted for Verification</p>
+                  <p className="text-rink-400 font-semibold">{t('submittedForVerification')}</p>
                   <p className="text-sm text-neutral-400">
-                    Share verification links with team captains
+                    {t('shareVerificationLinks')}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="bg-neutral-900/50 rounded-lg p-3">
-                  <p className="text-xs text-neutral-500 mb-1">Home Captain Link</p>
+                  <p className="text-xs text-neutral-500 mb-1">{t('homeCaptainLink')}</p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 text-sm text-white bg-neutral-950 px-3 py-2 rounded break-all">
                       {getBaseUrl()}/verify/{verificationLinks.homeToken}
@@ -401,7 +403,7 @@ export function GameSummaryModal({
                 </div>
 
                 <div className="bg-neutral-900/50 rounded-lg p-3">
-                  <p className="text-xs text-neutral-500 mb-1">Away Captain Link</p>
+                  <p className="text-xs text-neutral-500 mb-1">{t('awayCaptainLink')}</p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 text-sm text-white bg-neutral-950 px-3 py-2 rounded break-all">
                       {getBaseUrl()}/verify/{verificationLinks.awayToken}
@@ -422,7 +424,7 @@ export function GameSummaryModal({
 
           {/* Verification Status Badges */}
           <div className="bg-neutral-800 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-neutral-300 mb-3">Verification Status</h3>
+            <h3 className="text-sm font-medium text-neutral-300 mb-3">{t('verificationStatus')}</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className={`p-3 rounded-lg border ${game.homeVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-900 border-neutral-700'}`}>
                 <div className="flex items-center gap-2 mb-1">
@@ -436,11 +438,11 @@ export function GameSummaryModal({
                     </svg>
                   )}
                   <span className={game.homeVerifiedAt ? 'text-emerald-400' : 'text-neutral-400'}>
-                    {game.homeTeam.shortName || 'Home'} Captain
+                    {game.homeTeam.shortName || 'Home'} {t('captain')}
                   </span>
                 </div>
                 <p className="text-xs text-neutral-500">
-                  {game.homeVerifiedAt ? 'Verified' : 'Pending verification'}
+                  {game.homeVerifiedAt ? t('verified') : t('pendingVerification')}
                 </p>
               </div>
 
@@ -456,11 +458,11 @@ export function GameSummaryModal({
                     </svg>
                   )}
                   <span className={game.awayVerifiedAt ? 'text-emerald-400' : 'text-neutral-400'}>
-                    {game.awayTeam.shortName || 'Away'} Captain
+                    {game.awayTeam.shortName || 'Away'} {t('captain')}
                   </span>
                 </div>
                 <p className="text-xs text-neutral-500">
-                  {game.awayVerifiedAt ? 'Verified' : 'Pending verification'}
+                  {game.awayVerifiedAt ? t('verified') : t('pendingVerification')}
                 </p>
               </div>
             </div>
@@ -474,7 +476,7 @@ export function GameSummaryModal({
             className="flex-1 py-4 px-6 bg-neutral-800 text-white font-semibold rounded-xl
               hover:bg-neutral-700 transition-colors touch-manipulation min-h-[56px]"
           >
-            {submitted ? 'Close' : 'Continue Editing'}
+            {submitted ? t('close') : t('continueEditing')}
           </button>
           {!submitted && !game.statsLockedAt && (
             <button
@@ -484,12 +486,12 @@ export function GameSummaryModal({
                 hover:shadow-lg hover:shadow-rink-500/20 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-all touch-manipulation min-h-[56px]"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
+              {isSubmitting ? t('submitting') : t('submitForVerification')}
             </button>
           )}
           {game.statsLockedAt && (
             <div className="flex-1 py-4 px-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold rounded-xl text-center min-h-[56px] flex items-center justify-center">
-              Stats Locked & Verified
+              {t('statsLockedVerified')}
             </div>
           )}
         </div>

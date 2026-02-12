@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { TeamData, PlayerData } from '@/lib/actions/scorekeeper';
 
 interface SaveEntryModalProps {
@@ -26,6 +27,7 @@ export function SaveEntryModal({
   onCancel,
   isSubmitting,
 }: SaveEntryModalProps) {
+  const t = useTranslations('scorekeeper.saveEntry');
   const goalies = useMemo(
     () => team.roster.filter((p) => p.position === 'Goalie').sort((a, b) => a.jerseyNumber - b.jerseyNumber),
     [team.roster]
@@ -75,15 +77,15 @@ export function SaveEntryModal({
       <div className="bg-neutral-900 w-full md:max-w-3xl md:rounded-2xl border-t md:border border-blue-500/20 max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
           <div>
-            <h2 className="text-lg font-bold text-white">Record Save</h2>
+            <h2 className="text-lg font-bold text-white">{t('recordSave')}</h2>
             <p className="text-sm text-neutral-400">
-              {team.name} - Period {period}
+              {t('teamPeriod', { team: team.name, period })}
             </p>
           </div>
           <button
             onClick={onCancel}
             className="p-2 text-neutral-400 hover:text-white transition-colors"
-            aria-label="Close save modal"
+            aria-label={t('closeModal')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -93,10 +95,10 @@ export function SaveEntryModal({
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
           <div>
-            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Goalie</p>
+            <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('goalie')}</p>
             {goalies.length === 0 ? (
               <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-100 text-sm">
-                No goalies found on roster for this team.
+                {t('noGoaliesFound')}
               </div>
             ) : (
               <div className="space-y-2">
@@ -115,12 +117,12 @@ export function SaveEntryModal({
 
           {shooters.length > 0 && (
             <div>
-              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Shooter (Optional)</p>
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('shooterOptional')}</p>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={`Search ${opposingTeam?.name} shooter`}
+                placeholder={t('searchShooter', { team: opposingTeam?.name || '' })}
                 className="w-full px-4 py-3 bg-neutral-950 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
               <button
@@ -132,7 +134,7 @@ export function SaveEntryModal({
                     : 'bg-neutral-800 border-neutral-700 text-neutral-300'
                 }`}
               >
-                Team Shot (no specific shooter)
+                {t('teamShot')}
               </button>
               <div className="mt-2 space-y-2 max-h-56 overflow-auto">
                 {filteredShooters.map((player) => (
@@ -150,7 +152,7 @@ export function SaveEntryModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Minute</p>
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('minute')}</p>
               <input
                 type="number"
                 min={0}
@@ -162,7 +164,7 @@ export function SaveEntryModal({
               />
             </div>
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3">
-              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Second</p>
+              <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">{t('second')}</p>
               <input
                 type="number"
                 min={0}
@@ -176,12 +178,12 @@ export function SaveEntryModal({
           </div>
 
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
-            <p className="text-sm text-blue-100 font-semibold">Save Summary</p>
+            <p className="text-sm text-blue-100 font-semibold">{t('saveSummary')}</p>
             <p className="text-sm text-neutral-300 mt-1">
-              Goalie: {selectedGoalie ? `#${selectedGoalie.jerseyNumber} ${selectedGoalie.fullName}` : 'Not selected'}
+              {t('goalieLabel')} {selectedGoalie ? `#${selectedGoalie.jerseyNumber} ${selectedGoalie.fullName}` : t('notSelected')}
             </p>
             <p className="text-sm text-neutral-300">
-              Shooter: {selectedShooter ? `#${selectedShooter.jerseyNumber} ${selectedShooter.fullName}` : 'Team shot'}
+              {t('shooterLabel')} {selectedShooter ? `#${selectedShooter.jerseyNumber} ${selectedShooter.fullName}` : t('teamShotLabel')}
             </p>
           </div>
         </div>
@@ -191,14 +193,14 @@ export function SaveEntryModal({
             onClick={onCancel}
             className="flex-1 py-3 px-5 rounded-xl bg-neutral-800 text-white font-semibold"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!goalieId || isSubmitting}
             className="flex-1 py-3 px-5 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-50"
           >
-            {isSubmitting ? 'Saving...' : 'Add Save'}
+            {isSubmitting ? t('saving') : t('addSave')}
           </button>
         </div>
       </div>

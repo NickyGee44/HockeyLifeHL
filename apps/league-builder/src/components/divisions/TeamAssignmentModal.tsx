@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Loader2, Users, Check, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ export function TeamAssignmentModal({
   leagueId,
   onSuccess,
 }: TeamAssignmentModalProps) {
+  const t = useTranslations('divisions.assign');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +139,7 @@ export function TeamAssignmentModal({
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError(t('unexpectedError'));
       setIsSaving(false);
     }
   };
@@ -148,10 +150,9 @@ export function TeamAssignmentModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-neutral-900 border-white/10 max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-white">Assign Teams to {division.name}</DialogTitle>
+          <DialogTitle className="text-white">{t('title', { name: division.name })}</DialogTitle>
           <DialogDescription>
-            Select teams to add to this division. Teams already in other divisions must be
-            moved from their current division first.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -162,7 +163,7 @@ export function TeamAssignmentModal({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search teams..."
+              placeholder={t('searchPlaceholder')}
               className="pl-10 bg-neutral-800 border-neutral-700 text-white"
             />
           </div>
@@ -170,7 +171,7 @@ export function TeamAssignmentModal({
           {/* Selection Info */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-neutral-400">
-              {selectedTeamIds.size} team{selectedTeamIds.size !== 1 ? 's' : ''} selected
+              {t('teamsSelected', { count: selectedTeamIds.size })}
             </span>
             <div className="flex gap-2">
               <button
@@ -178,14 +179,14 @@ export function TeamAssignmentModal({
                 className="text-rink-500 hover:text-rink-400 font-medium"
                 disabled={filteredAvailableTeams.length === 0}
               >
-                Select All
+                {t('selectAll')}
               </button>
               {selectedTeamIds.size > 0 && (
                 <button
                   onClick={clearSelection}
                   className="text-neutral-400 hover:text-white font-medium"
                 >
-                  Clear
+                  {t('clear')}
                 </button>
               )}
             </div>
@@ -202,12 +203,12 @@ export function TeamAssignmentModal({
                 <Users className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
                 <p className="text-neutral-400">
                   {searchQuery
-                    ? 'No teams match your search'
-                    : 'No unassigned teams available'}
+                    ? t('noTeamsMatch')
+                    : t('noTeamsAvailable')}
                 </p>
                 {!searchQuery && (
                   <p className="text-sm text-neutral-500 mt-1">
-                    All teams are already assigned to divisions.
+                    {t('allTeamsAssigned')}
                   </p>
                 )}
               </div>
@@ -256,7 +257,7 @@ export function TeamAssignmentModal({
           {assignedTeams.length > 0 && (
             <div className="pt-4 border-t border-white/10">
               <h4 className="text-sm font-medium text-neutral-300 mb-2">
-                Currently in {division.name} ({assignedTeams.length})
+                {t('currentlyIn', { name: division.name, count: assignedTeams.length })}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {assignedTeams.map((team) => (
@@ -294,7 +295,7 @@ export function TeamAssignmentModal({
             disabled={isSaving}
             className="text-neutral-400 hover:text-white"
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             onClick={handleAssign}
@@ -307,12 +308,12 @@ export function TeamAssignmentModal({
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Assigning...
+                {t('assigning')}
               </>
             ) : (
               <>
                 <Users className="w-4 h-4 mr-2" />
-                Assign {selectedTeamIds.size} Team{selectedTeamIds.size !== 1 ? 's' : ''}
+                {t('assignButton', { count: selectedTeamIds.size })}
               </>
             )}
           </Button>

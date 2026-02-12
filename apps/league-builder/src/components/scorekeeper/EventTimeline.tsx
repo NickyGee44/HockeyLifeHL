@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   useGameEvents,
   usePeriodEvents,
@@ -37,6 +38,7 @@ export function EventTimeline({
   showPeriodHeaders = true,
   maxHeight = '400px',
 }: EventTimelineProps) {
+  const t = useTranslations('scorekeeper.timeline');
   const { events, undoEvent, isLoading } = useGameEvents(gameId);
   const [players, setPlayers] = useState<Map<string, Player>>(new Map());
   const [undoingId, setUndoingId] = useState<string | null>(null);
@@ -120,9 +122,9 @@ export function EventTimeline({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
         </div>
-        <p className="text-neutral-400 font-medium">No events recorded</p>
+        <p className="text-neutral-400 font-medium">{t('noEventsRecorded')}</p>
         <p className="text-neutral-500 text-sm mt-1">
-          {period ? `No events in period ${period}` : 'Start recording game events'}
+          {period ? t('noEventsInPeriod', { period }) : t('startRecording')}
         </p>
       </div>
     );
@@ -141,7 +143,7 @@ export function EventTimeline({
               {/* Period Header */}
               <div className="sticky top-0 z-10 px-4 py-2 bg-neutral-950 border-b border-neutral-800">
                 <span className="text-xs font-semibold text-rink-500 uppercase tracking-wider">
-                  Period {periodNum}
+                  {t('period', { period: periodNum })}
                 </span>
               </div>
 
@@ -199,10 +201,11 @@ function EventItem({
   onUndo,
   isUndoing,
 }: EventItemProps) {
+  const t = useTranslations('scorekeeper.timeline');
   const [showUndo, setShowUndo] = useState(false);
   const teamColor = team?.primary_color || '#22D3EE';
 
-  const eventConfig = getEventConfig(event.event_type);
+  const eventConfig = getEventConfig(event.event_type, t);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -261,7 +264,7 @@ function EventItem({
         {/* Assists */}
         {assistPlayers && assistPlayers.length > 0 && (
           <p className="text-sm text-neutral-400 mt-0.5">
-            Assists:{' '}
+            {t('assistsLabel')}{' '}
             {assistPlayers.map((p, i) => (
               <span key={p.id}>
                 {i > 0 && ', '}
@@ -315,11 +318,11 @@ function EventItem({
 }
 
 // Event type configuration
-function getEventConfig(type: EventType) {
+function getEventConfig(type: EventType, t: (key: string) => string) {
   switch (type) {
     case 'goal':
       return {
-        label: 'GOAL',
+        label: t('goalLabel'),
         icon: GoalIcon,
         bgClass: 'bg-emerald-500/20',
         iconClass: 'text-emerald-400',
@@ -327,7 +330,7 @@ function getEventConfig(type: EventType) {
       };
     case 'assist':
       return {
-        label: 'ASSIST',
+        label: t('assistLabel'),
         icon: AssistIcon,
         bgClass: 'bg-blue-500/20',
         iconClass: 'text-blue-400',
@@ -335,7 +338,7 @@ function getEventConfig(type: EventType) {
       };
     case 'penalty':
       return {
-        label: 'PENALTY',
+        label: t('penaltyLabel'),
         icon: PenaltyIcon,
         bgClass: 'bg-red-500/20',
         iconClass: 'text-red-400',
@@ -343,7 +346,7 @@ function getEventConfig(type: EventType) {
       };
     case 'save':
       return {
-        label: 'SAVE',
+        label: t('saveLabel'),
         icon: SaveIcon,
         bgClass: 'bg-purple-500/20',
         iconClass: 'text-purple-400',
@@ -351,7 +354,7 @@ function getEventConfig(type: EventType) {
       };
     case 'period_start':
       return {
-        label: 'PERIOD START',
+        label: t('periodStartLabel'),
         icon: ClockIcon,
         bgClass: 'bg-rink-500/20',
         iconClass: 'text-rink-400',
@@ -359,7 +362,7 @@ function getEventConfig(type: EventType) {
       };
     case 'period_end':
       return {
-        label: 'PERIOD END',
+        label: t('periodEndLabel'),
         icon: ClockIcon,
         bgClass: 'bg-neutral-700',
         iconClass: 'text-neutral-400',

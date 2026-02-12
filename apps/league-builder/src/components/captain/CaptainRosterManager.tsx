@@ -111,9 +111,9 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
       {/* Header with Search */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-white">Team Roster</h2>
+          <h2 className="text-lg font-bold text-white">{t('title')}</h2>
           <p className="text-sm text-neutral-400">
-            {roster.length} player{roster.length !== 1 ? 's' : ''} on roster
+            {t('playerCount', { count: roster.length })}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -131,7 +131,7 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
           <div className="relative">
             <input
               type="text"
-              placeholder="Search players..."
+              placeholder={t('searchPlayers')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full sm:w-64 px-4 py-2 pl-10 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-rink-500"
@@ -156,12 +156,12 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
             <Users className="w-8 h-8 text-neutral-600" />
           </div>
           <h3 className="text-lg font-bold text-white mb-2">
-            {searchTerm ? 'No players found' : 'No players on roster'}
+            {searchTerm ? t('noPlayersFound') : t('noPlayersOnRoster')}
           </h3>
           <p className="text-neutral-400">
             {searchTerm
-              ? 'Try adjusting your search terms.'
-              : 'Players will appear here once they join your team.'}
+              ? t('adjustSearch')
+              : t('playersWillAppear')}
           </p>
         </div>
       ) : (
@@ -170,19 +170,19 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
             <thead>
               <tr className="border-b border-white/[0.06]">
                 <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  #
+                  {t('numberHeader')}
                 </th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Player
+                  {t('playerHeader')}
                 </th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Position
+                  {t('positionHeader')}
                 </th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Contact
+                  {t('contactHeader')}
                 </th>
                 <th className="text-right py-3 px-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Actions
+                  {t('actionsHeader')}
                 </th>
               </tr>
             </thead>
@@ -216,12 +216,12 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-white">
-                          {entry.player?.full_name || 'Unknown'}
+                          {entry.player?.full_name || t('unknown')}
                         </span>
                         {isCaptain && (
                           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rink-500/10 text-rink-500">
                             <Shield className="w-3 h-3" />
-                            <span className="text-xs font-semibold">Captain</span>
+                            <span className="text-xs font-semibold">{t('captain')}</span>
                           </div>
                         )}
                       </div>
@@ -276,7 +276,7 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
                           ) : (
                             <UserX className="w-4 h-4" />
                           )}
-                          Remove
+                          {t('remove')}
                         </button>
                       )}
                     </td>
@@ -300,21 +300,21 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
       <AlertDialog open={!!playerToRemove} onOpenChange={(open) => !open && setPlayerToRemove(null)}>
         <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Player</AlertDialogTitle>
+            <AlertDialogTitle>{t('removePlayer')}</AlertDialogTitle>
             <AlertDialogDescription className="text-neutral-400">
-              Are you sure you want to remove this player from the roster? This action cannot be undone.
+              {t('removePlayerConfirm')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-white/10 text-neutral-300 hover:bg-neutral-800">
-              Cancel
+              {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => playerToRemove && handleRemovePlayer(playerToRemove)}
               className="bg-red-500 text-white hover:bg-red-600"
             >
               {removingId && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Remove
+              {t('remove')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
