@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Settings,
@@ -13,15 +13,21 @@ import {
   Zap,
   RefreshCcw,
   AlertCircle,
+  ChevronUp,
+  ChevronDown,
+  ListOrdered,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
+import { setDraftOrder as saveDraftOrder } from '@/lib/actions/draft';
 import type { DraftSetupWizardProps, DraftSetupConfig } from './types';
 
 const STEPS = [
-  { id: 'basics', title: 'Draft Settings', icon: Settings },
-  { id: 'timing', title: 'Pick Timer', icon: Clock },
-  { id: 'options', title: 'Options', icon: Zap },
-  { id: 'review', title: 'Review', icon: Check },
+  { id: 'basics', titleKey: 'stepDraftSettings' as const, icon: Settings },
+  { id: 'timing', titleKey: 'stepPickTimer' as const, icon: Clock },
+  { id: 'options', titleKey: 'stepOptions' as const, icon: Zap },
+  { id: 'order', titleKey: 'stepDraftOrder' as const, icon: ListOrdered },
+  { id: 'review', titleKey: 'stepReview' as const, icon: Check },
 ];
 
 const DEFAULT_CONFIG: DraftSetupConfig = {
@@ -37,15 +43,21 @@ const DEFAULT_CONFIG: DraftSetupConfig = {
 export function DraftSetupWizard({
   leagueId,
   seasonId,
+  teams,
   onComplete,
   onCancel,
 }: DraftSetupWizardProps) {
+  const t = useTranslations('draft');
   const [supabase] = useState(() => createClient());
   const [currentStep, setCurrentStep] = useState(0);
   const [config, setConfig] = useState<DraftSetupConfig>(DEFAULT_CONFIG);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Draft order state: array of team objects in pick order
+  const [draftOrder, setDraftOrder] = useState<{ id: string; name: string }[]>(
+    () => [...teams]
+  );
   const updateConfig = (updates: Partial<DraftSetupConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
   };
@@ -62,9 +74,41 @@ export function DraftSetupWizard({
     }
   };
 
+  // Move a team up in the draft order
+  const moveTeamUp = useCallback((index: number) => {
+    if (index <= 0) return;
+    setDraftOrder((prev) => {
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  }, []);
+
+  // Move a team down in the draft order
+  const moveTeamDown = useCallback((index: number) => {
+    setDraftOrder((prev) => {
+      if (index >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
+    });
+  }, []);
+
+  // Randomize the draft order using Fisher-Yates shuffle
+  const randomizeOrder = useCallback(() => {
+    setDraftOrder((prev) => {
+      const shuffled = [...prev];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    });
+  }, []);
+
   const handleSubmit = async () => {
     if (!config.name.trim()) {
-      setError('Please enter a draft name');
+      setError(t('draftNameRequired'));
       setCurrentStep(0);
       return;
     }
@@ -91,7 +135,26 @@ export function DraftSetupWizard({
       const result = data as { success?: boolean; error?: string; draft_id?: string };
       if (!result?.success) throw new Error(result?.error || 'Failed to create draft');
 
-      onComplete(result.draft_id!);
+      const newDraftId = result.draft_id!;
+
+      // Save draft order if teams exist
+      if (draftOrder.length > 0) {
+        const orderResult = await saveDraftOrder(
+          newDraftId,
+          leagueId,
+          draftOrder.map((team, index) => ({
+            teamId: team.id,
+            pickPosition: index + 1,
+          }))
+        );
+
+        if (!orderResult.success) {
+          console.error('Failed to save draft order:', orderResult.error);
+          // Non-blocking: draft was created, order can be set later
+        }
+      }
+
+      onComplete(newDraftId);
     } catch (err) {
       console.error('Error creating draft:', err);
       setError(err instanceof Error ? err.message : 'Failed to create draft');
@@ -107,20 +170,20 @@ export function DraftSetupWizard({
           <div className="space-y-6">
             <div>
               <label className="mb-2 block text-sm font-medium text-neutral-300">
-                Draft Name
+                {t('draftName')}
               </label>
               <input
                 type="text"
                 value={config.name}
                 onChange={(e) => updateConfig({ name: e.target.value })}
-                placeholder="e.g., 2026 Season Draft"
+                placeholder={t('draftNamePlaceholder')}
                 className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
               />
             </div>
 
             <div>
               <label className="mb-3 block text-sm font-medium text-neutral-300">
-                Draft Type
+                {t('draftType')}
               </label>
               <div className="grid grid-cols-2 gap-4">
                 <button
@@ -139,9 +202,9 @@ export function DraftSetupWizard({
                     )}
                   />
                   <div className="text-center">
-                    <p className="font-semibold text-white">Snake Draft</p>
+                    <p className="font-semibold text-white">{t('snakeDraft')}</p>
                     <p className="text-xs text-neutral-400">
-                      Order reverses each round
+                      {t('snakeDraftDescription')}
                     </p>
                   </div>
                 </button>
@@ -161,9 +224,9 @@ export function DraftSetupWizard({
                     )}
                   />
                   <div className="text-center">
-                    <p className="font-semibold text-white">Linear Draft</p>
+                    <p className="font-semibold text-white">{t('linearDraft')}</p>
                     <p className="text-xs text-neutral-400">
-                      Same order each round
+                      {t('linearDraftDescription')}
                     </p>
                   </div>
                 </button>
@@ -172,7 +235,7 @@ export function DraftSetupWizard({
 
             <div>
               <label className="mb-2 block text-sm font-medium text-neutral-300">
-                Total Rounds
+                {t('totalRounds')}
               </label>
               <div className="flex items-center gap-4">
                 <input
@@ -196,7 +259,7 @@ export function DraftSetupWizard({
           <div className="space-y-6">
             <div>
               <label className="mb-2 block text-sm font-medium text-neutral-300">
-                Time Per Pick (seconds)
+                {t('timePerPick')}
               </label>
               <div className="flex items-center gap-4">
                 <input
@@ -218,16 +281,16 @@ export function DraftSetupWizard({
                 </span>
               </div>
               <div className="mt-4 flex justify-between text-xs text-neutral-500">
-                <span>Quick (30s)</span>
-                <span>Normal (90s)</span>
-                <span>Extended (5m)</span>
+                <span>{t('timerQuick')}</span>
+                <span>{t('timerNormal')}</span>
+                <span>{t('timerExtended')}</span>
               </div>
             </div>
 
             <div className="rounded-xl border border-neutral-700 bg-neutral-800/50 p-4">
               <div className="mb-4 flex items-center gap-2">
                 <Clock className="h-5 w-5 text-rink-500" />
-                <span className="font-medium text-white">Timer Preview</span>
+                <span className="font-medium text-white">{t('timerPreview')}</span>
               </div>
               <div className="flex items-center justify-center">
                 <div className="relative h-32 w-32">
@@ -267,9 +330,9 @@ export function DraftSetupWizard({
               <div className="flex items-center gap-3">
                 <Zap className="h-5 w-5 text-rink-500" />
                 <div>
-                  <p className="font-medium text-white">Auto-Pick on Timeout</p>
+                  <p className="font-medium text-white">{t('autoPickOnTimeout')}</p>
                   <p className="text-xs text-neutral-400">
-                    Automatically pick best available when timer expires
+                    {t('autoPickOnTimeoutDescription')}
                   </p>
                 </div>
               </div>
@@ -298,9 +361,9 @@ export function DraftSetupWizard({
               <div className="flex items-center gap-3">
                 <RefreshCcw className="h-5 w-5 text-rink-500" />
                 <div>
-                  <p className="font-medium text-white">Allow Pick Trading</p>
+                  <p className="font-medium text-white">{t('allowPickTrading')}</p>
                   <p className="text-xs text-neutral-400">
-                    Commissioners can trade future picks between teams
+                    {t('allowPickTradingDescription')}
                   </p>
                 </div>
               </div>
@@ -324,9 +387,9 @@ export function DraftSetupWizard({
               <div className="flex items-center gap-3">
                 <Users className="h-5 w-5 text-rink-500" />
                 <div>
-                  <p className="font-medium text-white">Require Roster Confirmation</p>
+                  <p className="font-medium text-white">{t('requireRosterConfirmation')}</p>
                   <p className="text-xs text-neutral-400">
-                    Captains must confirm their roster after the draft
+                    {t('requireRosterConfirmationDescription')}
                   </p>
                 </div>
               </div>
@@ -352,51 +415,160 @@ export function DraftSetupWizard({
           </div>
         );
 
+      // Draft Order step
       case 3:
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Review Settings</h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">{t('draftOrderTitle')}</h3>
+                <p className="text-sm text-neutral-400">
+                  {config.draftType === 'snake' ? t('draftOrderDescSnake') : t('draftOrderDescLinear')}
+                </p>
+              </div>
+              <button
+                onClick={randomizeOrder}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+                  'hover:bg-rink-500/20 transition-colors'
+                )}
+              >
+                <Shuffle className="h-4 w-4" />
+                {t('randomize')}
+              </button>
+            </div>
+
+            {draftOrder.length === 0 ? (
+              <div className="rounded-xl border border-neutral-700 bg-neutral-800/50 p-8 text-center">
+                <Users className="mx-auto mb-3 h-8 w-8 text-neutral-500" />
+                <p className="text-neutral-400">{t('noTeamsAvailable')}</p>
+                <p className="text-sm text-neutral-500">
+                  {t('addTeamsFirst')}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {draftOrder.map((team, index) => (
+                  <div
+                    key={team.id}
+                    className="flex items-center gap-3 rounded-xl border border-neutral-700 bg-neutral-800/50 p-3 transition-colors hover:border-neutral-600"
+                  >
+                    {/* Pick number */}
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-rink-500/10 text-sm font-bold text-rink-500">
+                      {index + 1}
+                    </div>
+
+                    {/* Team name */}
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate font-medium text-white">{team.name}</p>
+                    </div>
+
+                    {/* Move buttons */}
+                    <div className="flex flex-shrink-0 flex-col gap-0.5">
+                      <button
+                        onClick={() => moveTeamUp(index)}
+                        disabled={index === 0}
+                        className={cn(
+                          'rounded p-1 transition-colors',
+                          index === 0
+                            ? 'cursor-not-allowed text-neutral-600'
+                            : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'
+                        )}
+                        aria-label={`Move ${team.name} up`}
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => moveTeamDown(index)}
+                        disabled={index === draftOrder.length - 1}
+                        className={cn(
+                          'rounded p-1 transition-colors',
+                          index === draftOrder.length - 1
+                            ? 'cursor-not-allowed text-neutral-600'
+                            : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'
+                        )}
+                        aria-label={`Move ${team.name} down`}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {draftOrder.length > 0 && (
+              <p className="text-xs text-neutral-500 text-center">
+                {t('draftOrderHint')}
+              </p>
+            )}
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-white">{t('reviewSettings')}</h3>
             <div className="rounded-xl border border-rink-500/30 bg-rink-500/5 p-6">
               <dl className="space-y-4">
                 <div className="flex justify-between">
-                  <dt className="text-neutral-400">Draft Name</dt>
-                  <dd className="font-medium text-white">{config.name || 'Not set'}</dd>
+                  <dt className="text-neutral-400">{t('draftName')}</dt>
+                  <dd className="font-medium text-white">{config.name || t('notSet')}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-neutral-400">Type</dt>
+                  <dt className="text-neutral-400">{t('reviewType')}</dt>
                   <dd className="font-medium text-white capitalize">{config.draftType}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-neutral-400">Rounds</dt>
+                  <dt className="text-neutral-400">{t('reviewRounds')}</dt>
                   <dd className="font-medium text-white">{config.totalRounds}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-neutral-400">Pick Time</dt>
+                  <dt className="text-neutral-400">{t('reviewPickTime')}</dt>
                   <dd className="font-medium text-white">
                     {Math.floor(config.pickTimeSeconds / 60)}:
                     {(config.pickTimeSeconds % 60).toString().padStart(2, '0')}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-neutral-400">Auto-Pick</dt>
+                  <dt className="text-neutral-400">{t('reviewAutoPick')}</dt>
                   <dd className="font-medium text-white">
-                    {config.autoPickEnabled ? 'Enabled' : 'Disabled'}
+                    {config.autoPickEnabled ? t('enabled') : t('disabled')}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-neutral-400">Trading</dt>
+                  <dt className="text-neutral-400">{t('reviewTrading')}</dt>
                   <dd className="font-medium text-white">
-                    {config.allowTrades ? 'Allowed' : 'Disabled'}
+                    {config.allowTrades ? t('allowed') : t('disabled')}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-neutral-400">Roster Confirmation</dt>
+                  <dt className="text-neutral-400">{t('reviewRosterConfirmation')}</dt>
                   <dd className="font-medium text-white">
-                    {config.requireRosterConfirmation ? 'Required' : 'Optional'}
+                    {config.requireRosterConfirmation ? t('required') : t('optional')}
                   </dd>
                 </div>
               </dl>
             </div>
+
+            {/* Draft Order Summary */}
+            {draftOrder.length > 0 && (
+              <div className="rounded-xl border border-rink-500/30 bg-rink-500/5 p-6">
+                <h4 className="mb-3 text-sm font-semibold text-neutral-300">{t('draftOrderSummary')}</h4>
+                <div className="flex flex-wrap gap-2">
+                  {draftOrder.map((team, index) => (
+                    <span
+                      key={team.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-800 px-2.5 py-1 text-sm"
+                    >
+                      <span className="font-bold text-rink-500">{index + 1}.</span>
+                      <span className="text-white">{team.name}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -409,8 +581,8 @@ export function DraftSetupWizard({
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h2 className="text-2xl font-bold text-white">Set Up Your Draft</h2>
-        <p className="text-neutral-400">Configure the draft settings before starting</p>
+        <h2 className="text-2xl font-bold text-white">{t('setupTitle')}</h2>
+        <p className="text-neutral-400">{t('setupSubtitle')}</p>
       </div>
 
       {/* Progress Steps */}
@@ -439,7 +611,7 @@ export function DraftSetupWizard({
               {index < STEPS.length - 1 && (
                 <div
                   className={cn(
-                    'h-0.5 w-12',
+                    'h-0.5 w-8 sm:w-12',
                     index < currentStep ? 'bg-green-500' : 'bg-neutral-700'
                   )}
                 />
@@ -469,7 +641,7 @@ export function DraftSetupWizard({
           className="flex items-center gap-2 rounded-lg px-4 py-2 text-neutral-400 transition-colors hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
-          {currentStep === 0 ? 'Cancel' : 'Back'}
+          {currentStep === 0 ? t('cancel') : t('back')}
         </button>
 
         {currentStep < STEPS.length - 1 ? (
@@ -477,7 +649,7 @@ export function DraftSetupWizard({
             onClick={handleNext}
             className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]"
           >
-            Next
+            {t('next')}
             <ArrowRight className="h-4 w-4" />
           </button>
         ) : (
@@ -489,12 +661,12 @@ export function DraftSetupWizard({
             {isSubmitting ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                Creating...
+                {t('creating')}
               </>
             ) : (
               <>
                 <Check className="h-4 w-4" />
-                Create Draft
+                {t('createDraft')}
               </>
             )}
           </button>

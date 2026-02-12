@@ -118,6 +118,7 @@ export function DraftDashboard({
         <DraftSetupWizard
           leagueId={leagueId}
           seasonId={seasonId}
+          teams={teams}
           onComplete={handleDraftSetupComplete}
           onCancel={() => setShowSetupWizard(false)}
         />

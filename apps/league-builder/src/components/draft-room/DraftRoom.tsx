@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle, Users, MessageCircle, X, Monitor } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 
 import {
@@ -48,6 +49,7 @@ export function DraftRoom({
   isAdmin = false,
   isCaptain = false,
 }: DraftRoomProps) {
+  const t = useTranslations('draft');
   const [supabase] = useState(() => createClient());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -556,7 +558,7 @@ export function DraftRoom({
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-rink-500 border-t-transparent" />
-          <p className="text-muted-foreground">Loading draft room...</p>
+          <p className="text-muted-foreground">{t('loadingDraftRoom')}</p>
         </div>
       </div>
     );
@@ -573,7 +575,7 @@ export function DraftRoom({
             onClick={fetchDraftData}
             className="rounded-lg bg-rink-500 px-4 py-2 font-medium text-black hover:bg-rink-600"
           >
-            Try Again
+            {t('tryAgain')}
           </button>
         </div>
       </div>
@@ -601,9 +603,9 @@ export function DraftRoom({
           <div className="flex items-center gap-3 rounded-lg border-2 border-green-500 bg-green-500/10 p-4">
             <CheckCircle className="h-6 w-6 text-green-500" />
             <div>
-              <p className="font-semibold text-green-500">Draft Complete!</p>
+              <p className="font-semibold text-green-500">{t('draftComplete')}</p>
               <p className="text-sm text-muted-foreground">
-                All {picks.length} picks have been made.
+                {t('allPicksMade', { count: picks.length })}
               </p>
             </div>
           </div>
@@ -678,12 +680,12 @@ export function DraftRoom({
       <AlertDialog open={showPickConfirm} onOpenChange={setShowPickConfirm}>
         <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Pick</AlertDialogTitle>
+            <AlertDialogTitle>{t('confirmPick')}</AlertDialogTitle>
             <AlertDialogDescription className="text-neutral-400">
-              Draft <span className="font-semibold text-white">{selectedPlayer?.player_name}</span> for{' '}
-              <span className="font-semibold text-white">
-                {teams.find((t) => t.id === draft?.current_team_id)?.name || 'your team'}
-              </span>?
+              {t('confirmPickDescription', {
+                player: selectedPlayer?.player_name || '',
+                team: teams.find((tm) => tm.id === draft?.current_team_id)?.name || t('yourTeam'),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -701,7 +703,7 @@ export function DraftRoom({
               disabled={isSubmitting}
               className="bg-rink-500 text-black font-semibold hover:bg-rink-600"
             >
-              {isSubmitting ? 'Picking...' : 'Confirm Pick'}
+              {isSubmitting ? t('picking') : t('confirmPick')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -711,9 +713,9 @@ export function DraftRoom({
       <AlertDialog open={showUndoConfirm} onOpenChange={setShowUndoConfirm}>
         <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Undo Last Pick?</AlertDialogTitle>
+            <AlertDialogTitle>{t('undoLastPick')}</AlertDialogTitle>
             <AlertDialogDescription className="text-neutral-400">
-              This will reverse the last pick and return the player to the pool.
+              {t('undoLastPickDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -731,7 +733,7 @@ export function DraftRoom({
               disabled={isSubmitting}
               className="bg-orange-500 text-white font-semibold hover:bg-orange-600"
             >
-              {isSubmitting ? 'Undoing...' : 'Undo Pick'}
+              {isSubmitting ? t('undoing') : t('undoPick')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -747,11 +749,11 @@ export function DraftRoom({
             <h1 className={cn(
               'font-bold truncate',
               isMobile ? 'text-base' : 'text-xl'
-            )}>{draft?.name || 'Draft Room'}</h1>
+            )}>{draft?.name || t('draftRoom')}</h1>
             <p className="text-sm text-muted-foreground">
-              Round {draft?.current_round || 1} - Pick {draft?.current_pick || 1}
+              {t('roundAndPick', { round: draft?.current_round || 1, pick: draft?.current_pick || 1 })}
               {draft?.draft_type === 'snake' && (
-                <span className="ml-2 text-rink-500">(Snake Draft)</span>
+                <span className="ml-2 text-rink-500">{t('snakeDraftLabel')}</span>
               )}
             </p>
           </div>
@@ -786,7 +788,7 @@ export function DraftRoom({
               'rounded-lg bg-rink-500/20 font-medium text-rink-500',
               isMobile ? 'px-3 py-1 text-sm' : 'px-4 py-2'
             )}>
-              Your Pick!
+              {t('yourPick')}
             </div>
           )}
         </div>
@@ -809,7 +811,7 @@ export function DraftRoom({
         <div className="flex items-center gap-3 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2">
           <Monitor className="h-4 w-4 flex-shrink-0 text-amber-500" />
           <p className="flex-1 text-sm text-amber-500">
-            Draft Room works best on a larger screen. Some features may be harder to use on mobile.
+            {t('mobileNotice')}
           </p>
           <button
             onClick={() => setDismissedMobileBanner(true)}
@@ -867,7 +869,7 @@ export function DraftRoom({
                 )}
               >
                 {showPlayerPool ? <X className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
-                Players
+                {t('players')}
               </button>
               <button
                 onClick={() => {
@@ -882,7 +884,7 @@ export function DraftRoom({
                 )}
               >
                 {showChat ? <X className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
-                Chat
+                {t('chat')}
                 {messages.length > 0 && !showChat && (
                   <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-rink-500/20 text-xs text-rink-500">
                     {messages.length}
@@ -916,13 +918,13 @@ export function DraftRoom({
                   isMobile && 'flex-col'
                 )}>
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Selected</p>
+                    <p className="text-sm text-muted-foreground">{t('selected')}</p>
                     <p className={cn(
                       'font-bold',
                       isMobile ? 'text-lg' : 'text-xl'
                     )}>{selectedPlayer.player_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {selectedPlayer.player_position} - Skill {selectedPlayer.skill_level}
+                      {t('positionAndSkill', { position: selectedPlayer.player_position ?? '?', skill: selectedPlayer.skill_level ?? '?' })}
                     </p>
                   </div>
                   <button
@@ -940,22 +942,22 @@ export function DraftRoom({
                       isMobile ? 'px-6 py-2 text-base w-full' : 'px-8 py-3 text-lg'
                     )}
                   >
-                    {isSubmitting ? 'Picking...' : 'Confirm Pick'}
+                    {isSubmitting ? t('picking') : t('confirmPick')}
                   </button>
                 </div>
               ) : canPick ? (
                 <p className="text-muted-foreground text-center">
                   {isMobile || isTablet
-                    ? 'Tap "Players" to select a player'
-                    : 'Select a player from the pool to make your pick'}
+                    ? t('selectPlayerMobile')
+                    : t('selectPlayerDesktop')}
                 </p>
               ) : isMyPick ? (
                 <p className="text-muted-foreground text-center">
-                  Waiting for captain to make the pick...
+                  {t('waitingForCaptain')}
                 </p>
               ) : (
                 <p className="text-muted-foreground text-center">
-                  Waiting for {draftState?.current_pick?.team_name || 'team'} to pick...
+                  {t('waitingForTeam', { team: draftState?.current_pick?.team_name || 'team' })}
                 </p>
               )}
             </div>

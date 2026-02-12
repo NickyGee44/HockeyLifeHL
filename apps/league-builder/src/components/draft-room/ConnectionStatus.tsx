@@ -1,6 +1,7 @@
 'use client';
 
 import { Wifi, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 
 type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
@@ -18,6 +19,8 @@ export function ConnectionStatus({
   lastSyncTime,
   onForceSync,
 }: ConnectionStatusProps) {
+  const t = useTranslations('draft');
+
   // Only show when there's an issue
   if (state === 'connected' && !isPollingFallback) {
     return null;
@@ -31,7 +34,7 @@ export function ConnectionStatus({
           iconClass: 'animate-spin text-rink-500',
           bgClass: 'bg-rink-500/10 border-rink-500/30',
           textClass: 'text-rink-400',
-          message: 'Connecting to draft...',
+          message: t('connectingToDraft'),
         };
       case 'disconnected':
         return {
@@ -39,7 +42,7 @@ export function ConnectionStatus({
           iconClass: 'text-red-500',
           bgClass: 'bg-red-500/10 border-red-500/30',
           textClass: 'text-red-400',
-          message: 'Connection lost. Using fallback polling.',
+          message: t('connectionLost'),
         };
       case 'reconnecting':
         return {
@@ -47,7 +50,7 @@ export function ConnectionStatus({
           iconClass: 'animate-spin text-yellow-500',
           bgClass: 'bg-yellow-500/10 border-yellow-500/30',
           textClass: 'text-yellow-400',
-          message: 'Reconnecting...',
+          message: t('reconnecting'),
         };
       default:
         return {
@@ -55,7 +58,7 @@ export function ConnectionStatus({
           iconClass: 'text-green-500',
           bgClass: 'bg-green-500/10 border-green-500/30',
           textClass: 'text-green-400',
-          message: 'Connected',
+          message: t('connected'),
         };
     }
   };
@@ -77,7 +80,7 @@ export function ConnectionStatus({
         </p>
         {isPollingFallback && lastSyncTime && (
           <p className="text-xs text-neutral-500">
-            Last sync: {lastSyncTime.toLocaleTimeString()}
+            {t('lastSync', { time: lastSyncTime.toLocaleTimeString() })}
           </p>
         )}
       </div>
@@ -88,7 +91,7 @@ export function ConnectionStatus({
           className="flex items-center gap-1.5 rounded-md bg-neutral-800 px-2 py-1 text-xs font-medium text-neutral-300 transition-colors hover:bg-neutral-700 hover:text-white"
         >
           <RefreshCw className="h-3 w-3" />
-          Sync Now
+          {t('syncNow')}
         </button>
       )}
     </div>
@@ -103,11 +106,13 @@ export function ConnectionStatusBadge({
 }: {
   state: ConnectionState;
 }) {
+  const t = useTranslations('draft');
+
   if (state === 'connected') {
     return (
       <div className="flex items-center gap-1.5">
         <div className="h-2 w-2 rounded-full bg-green-500" />
-        <span className="text-xs text-neutral-400">Live</span>
+        <span className="text-xs text-neutral-400">{t('live')}</span>
       </div>
     );
   }
@@ -116,7 +121,7 @@ export function ConnectionStatusBadge({
     return (
       <div className="flex items-center gap-1.5 rounded-md bg-red-500/10 px-2 py-1">
         <WifiOff className="h-3 w-3 text-red-500" />
-        <span className="text-xs text-red-400">Offline</span>
+        <span className="text-xs text-red-400">{t('offline')}</span>
       </div>
     );
   }
@@ -126,7 +131,7 @@ export function ConnectionStatusBadge({
       <div className="flex items-center gap-1.5 rounded-md bg-yellow-500/10 px-2 py-1">
         <RefreshCw className="h-3 w-3 animate-spin text-yellow-500" />
         <span className="text-xs text-yellow-400">
-          {state === 'connecting' ? 'Connecting' : 'Reconnecting'}
+          {state === 'connecting' ? t('connecting') : t('reconnectingBadge')}
         </span>
       </div>
     );

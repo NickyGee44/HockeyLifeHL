@@ -1,6 +1,7 @@
 'use client';
 
 import { Play, Pause, Undo2, RefreshCcw, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { DraftControlsProps } from './types';
 
@@ -13,6 +14,8 @@ export function DraftControls({
   onOpenTrade,
   isSubmitting,
 }: DraftControlsProps) {
+  const t = useTranslations('draft');
+
   if (!isAdmin) return null;
 
   const isPaused = draft.status === 'paused';
@@ -33,7 +36,7 @@ export function DraftControls({
           )}
         >
           <Pause className="h-4 w-4" />
-          Pause
+          {t('pause')}
         </button>
       ) : isPaused ? (
         <button
@@ -46,7 +49,7 @@ export function DraftControls({
           )}
         >
           <Play className="h-4 w-4" />
-          Resume
+          {t('resume')}
         </button>
       ) : null}
 
@@ -55,7 +58,7 @@ export function DraftControls({
         <button
           onClick={onUndo}
           disabled={isSubmitting || !canUndo}
-          title={canUndo ? 'Undo last pick' : 'No pick to undo'}
+          title={canUndo ? t('undoLastPickTitle') : t('noPickToUndo')}
           className={cn(
             'flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-all',
             canUndo
@@ -65,7 +68,7 @@ export function DraftControls({
           )}
         >
           <Undo2 className="h-4 w-4" />
-          Undo
+          {t('undo')}
         </button>
       )}
 
@@ -81,7 +84,7 @@ export function DraftControls({
           )}
         >
           <RefreshCcw className="h-4 w-4" />
-          Trade Pick
+          {t('tradePick')}
         </button>
       )}
 
@@ -89,7 +92,7 @@ export function DraftControls({
       {isPaused && (
         <div className="ml-2 flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-1.5">
           <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          <span className="text-sm font-medium text-yellow-500">Draft Paused</span>
+          <span className="text-sm font-medium text-yellow-500">{t('draftPaused')}</span>
         </div>
       )}
     </div>

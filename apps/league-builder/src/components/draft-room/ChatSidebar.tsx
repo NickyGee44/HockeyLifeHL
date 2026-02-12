@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, MessageCircle, Info } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { DraftMessage } from './types';
 
@@ -25,6 +26,7 @@ export function ChatSidebar({
   currentTeamName,
   canSend,
 }: ChatSidebarProps) {
+  const t = useTranslations('draft');
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -47,10 +49,10 @@ export function ChatSidebar({
       <div className="border-b p-4">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5 text-rink-500" />
-          <h2 className="text-lg font-semibold">Captain Chat</h2>
+          <h2 className="text-lg font-semibold">{t('captainChat')}</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          {messages.length} messages
+          {t('messagesCount', { count: messages.length })}
         </p>
       </div>
 
@@ -60,10 +62,10 @@ export function ChatSidebar({
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <MessageCircle className="h-12 w-12 text-muted-foreground/50" />
             <p className="mt-2 text-sm text-muted-foreground">
-              No messages yet
+              {t('noMessages')}
             </p>
             <p className="text-xs text-muted-foreground">
-              Be the first to say something!
+              {t('beFirstToChat')}
             </p>
           </div>
         ) : (
@@ -96,7 +98,7 @@ export function ChatSidebar({
                 {/* Sender info */}
                 <div className="mb-1 flex items-center gap-2 text-xs">
                   <span className="font-medium text-muted-foreground">
-                    {isOwnMessage ? 'You' : msg.user_name || 'Captain'}
+                    {isOwnMessage ? t('you') : msg.user_name || 'Captain'}
                   </span>
                   {msg.team_name && (
                     <span className="text-muted-foreground/70">
@@ -133,7 +135,7 @@ export function ChatSidebar({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={canSend ? 'Type a message...' : 'Only captains can chat'}
+            placeholder={canSend ? t('typeMessage') : t('captainsOnly')}
             disabled={!canSend}
             maxLength={500}
             className={cn(
@@ -155,7 +157,7 @@ export function ChatSidebar({
         </div>
         {currentTeamName && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Sending as {currentTeamName}
+            {t('sendingAs', { team: currentTeamName })}
           </p>
         )}
       </form>

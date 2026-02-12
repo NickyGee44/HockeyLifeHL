@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { RosterConfirmationProps, DraftPick } from './types';
 
@@ -20,6 +21,7 @@ export function RosterConfirmation({
   isConfirmed,
   supabase,
 }: RosterConfirmationProps & { supabase: SupabaseClient }) {
+  const t = useTranslations('draft');
   const [isExpanded, setIsExpanded] = useState(true);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,9 +75,9 @@ export function RosterConfirmation({
             <CheckCircle className="h-6 w-6 text-green-500" />
           </div>
           <div>
-            <h3 className="font-semibold text-green-400">Roster Confirmed</h3>
+            <h3 className="font-semibold text-green-400">{t('rosterConfirmed')}</h3>
             <p className="text-sm text-green-400/70">
-              Your roster has been confirmed and is ready for the season.
+              {t('rosterConfirmedDescription')}
             </p>
           </div>
         </div>
@@ -95,9 +97,9 @@ export function RosterConfirmation({
             <Users className="h-5 w-5 text-rink-500" />
           </div>
           <div className="text-left">
-            <h3 className="font-semibold text-white">Confirm Your Roster</h3>
+            <h3 className="font-semibold text-white">{t('confirmYourRoster')}</h3>
             <p className="text-sm text-neutral-400">
-              {teamPicks.length} players drafted
+              {t('playersDrafted', { count: teamPicks.length })}
             </p>
           </div>
         </div>
@@ -129,10 +131,10 @@ export function RosterConfirmation({
                     <span
                       className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-rink-500/20 text-rink-400 border-rink-500/30"
                     >
-                      Round {round}
+                      {t('round', { round })}
                     </span>
                     <span className="text-xs text-neutral-500">
-                      {roundPicks.length} pick{roundPicks.length !== 1 ? 's' : ''}
+                      {t('pickCount', { count: roundPicks.length })}
                     </span>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -158,12 +160,12 @@ export function RosterConfirmation({
           {/* Notes */}
           <div className="mb-4">
             <label className="mb-2 block text-sm font-medium text-neutral-400">
-              Notes (Optional)
+              {t('notesOptional')}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any concerns or issues with your roster..."
+              placeholder={t('rosterNotesPlaceholder')}
               className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
               rows={2}
             />
@@ -182,18 +184,18 @@ export function RosterConfirmation({
             {isSubmitting ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                Confirming...
+                {t('confirming')}
               </>
             ) : (
               <>
                 <CheckCircle className="h-5 w-5" />
-                Confirm Roster
+                {t('confirmRoster')}
               </>
             )}
           </button>
 
           <p className="mt-3 text-center text-xs text-neutral-500">
-            By confirming, you acknowledge that your roster is complete and ready for the season.
+            {t('confirmRosterDisclaimer')}
           </p>
         </div>
       )}

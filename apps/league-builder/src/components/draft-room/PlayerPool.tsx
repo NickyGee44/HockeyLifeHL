@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Search, User, Filter } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { DraftPlayer } from './types';
 
@@ -23,6 +24,7 @@ export function PlayerPool({
   canPick,
   isLoading = false,
 }: PlayerPoolProps) {
+  const t = useTranslations('draft');
   const [search, setSearch] = useState('');
   const [positionFilter, setPositionFilter] = useState<string>('All');
   const [skillFilter, setSkillFilter] = useState<string>('All');
@@ -54,9 +56,9 @@ export function PlayerPool({
     <div className="flex h-full flex-col rounded-lg border bg-card">
       {/* Header */}
       <div className="border-b p-4">
-        <h2 className="text-lg font-semibold">Available Players</h2>
+        <h2 className="text-lg font-semibold">{t('availablePlayers')}</h2>
         <p className="text-sm text-muted-foreground">
-          {filteredPlayers.length} of {players.length} players
+          {t('playersCount', { filtered: filteredPlayers.length, total: players.length })}
         </p>
       </div>
 
@@ -66,7 +68,7 @@ export function PlayerPool({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search players..."
+            placeholder={t('searchPlayers')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-rink-500"
@@ -112,7 +114,7 @@ export function PlayerPool({
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             )}
           >
-            {skill === 'All' ? 'All Skills' : `Skill ${skill}`}
+            {skill === 'All' ? t('allSkills') : t('skillLevel', { level: skill })}
           </button>
         ))}
       </div>
@@ -126,7 +128,7 @@ export function PlayerPool({
         ) : filteredPlayers.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <User className="h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-2 text-sm text-muted-foreground">No players found</p>
+            <p className="mt-2 text-sm text-muted-foreground">{t('noPlayersFound')}</p>
           </div>
         ) : (
           <ul className="divide-y">
@@ -162,7 +164,7 @@ export function PlayerPool({
                         <p className="font-medium">{player.player_name}</p>
                         {player.skill_level && (
                           <p className="text-xs text-muted-foreground">
-                            Skill Level: {player.skill_level}
+                            {t('skillLevelLabel', { level: player.skill_level })}
                           </p>
                         )}
                       </div>

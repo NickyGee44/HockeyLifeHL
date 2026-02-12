@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { DraftPick, DraftTeam, DraftOrder } from './types';
 
@@ -23,6 +24,8 @@ export function DraftBoard({
   currentTeamId,
   totalRounds,
 }: DraftBoardProps) {
+  const t = useTranslations('draft');
+
   // Organize picks by round and team
   const picksByRoundAndTeam = useMemo(() => {
     const organized: Record<number, Record<string, DraftPick | null>> = {};
@@ -64,9 +67,9 @@ export function DraftBoard({
     <div className="rounded-lg border bg-card">
       {/* Header */}
       <div className="border-b p-4">
-        <h2 className="text-lg font-semibold">Draft Board</h2>
+        <h2 className="text-lg font-semibold">{t('draftBoard')}</h2>
         <p className="text-sm text-muted-foreground">
-          Round {currentRound} - Pick {currentPick}
+          {t('roundAndPick', { round: currentRound, pick: currentPick })}
         </p>
       </div>
 
@@ -76,7 +79,7 @@ export function DraftBoard({
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="sticky left-0 z-10 bg-muted/50 px-4 py-3 text-left text-sm font-medium">
-                Round
+                {t('roundHeader')}
               </th>
               {teams.map((team) => (
                 <th
@@ -144,7 +147,7 @@ export function DraftBoard({
                           </p>
                           {pick.auto_picked && (
                             <p className="text-[10px] text-muted-foreground">
-                              Auto-picked
+                              {t('autoPicked')}
                             </p>
                           )}
                         </div>

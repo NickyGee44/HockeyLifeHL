@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Clock, User, Zap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { DraftPick } from './types';
 
@@ -27,6 +28,7 @@ function formatTimestamp(timestamp: string): string {
 }
 
 export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
+  const t = useTranslations('draft');
   const [showAll, setShowAll] = useState(false);
 
   // Sort picks by pick_number descending (most recent first)
@@ -37,9 +39,9 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
     <div className="rounded-lg border bg-card">
       {/* Header */}
       <div className="border-b p-4">
-        <h2 className="text-lg font-semibold">Draft History</h2>
+        <h2 className="text-lg font-semibold">{t('draftHistory')}</h2>
         <p className="text-sm text-muted-foreground">
-          {picks.length} picks made
+          {t('picksMade', { count: picks.length })}
         </p>
       </div>
 
@@ -49,7 +51,7 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <Clock className="h-12 w-12 text-muted-foreground/50" />
             <p className="mt-2 text-sm text-muted-foreground">
-              No picks yet
+              {t('noPicksYet')}
             </p>
           </div>
         ) : (
@@ -84,7 +86,7 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
                       {pick.auto_picked && (
                         <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                           <Zap className="h-3 w-3" />
-                          Auto
+                          {t('auto')}
                         </span>
                       )}
                     </div>
@@ -93,7 +95,7 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
                         <User className="h-3 w-3" />
                         {pick.team_name || 'Team'}
                       </span>
-                      <span>Round {pick.round}</span>
+                      <span>{t('round', { round: pick.round })}</span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {formatTime(pick.pick_time_ms)}
@@ -120,8 +122,8 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             {showAll
-              ? 'Show less'
-              : `+${sortedPicks.length - maxDisplay} more picks`}
+              ? t('showLess')
+              : t('morePicks', { count: sortedPicks.length - maxDisplay })}
           </button>
         </div>
       )}

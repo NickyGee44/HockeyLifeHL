@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { X, ArrowRight, RefreshCcw, AlertCircle, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { TradePickerModalProps, DraftTeam } from './types';
 
@@ -16,6 +17,7 @@ export function TradePickerModal({
   onTradeComplete,
   supabase,
 }: TradePickerModalProps & { supabase: SupabaseClient }) {
+  const t = useTranslations('draft');
   const [fromTeamId, setFromTeamId] = useState<string>('');
   const [toTeamId, setToTeamId] = useState<string>('');
   const [selectedRound, setSelectedRound] = useState<number>(currentRound + 1);
@@ -33,7 +35,7 @@ export function TradePickerModal({
 
   const handleSubmit = async () => {
     if (!fromTeamId || !toTeamId || fromTeamId === toTeamId) {
-      setError('Please select two different teams');
+      setError(t('selectTwoDifferentTeams'));
       return;
     }
 
@@ -93,8 +95,8 @@ export function TradePickerModal({
               <RefreshCcw className="h-5 w-5 text-rink-500" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Trade Pick</h2>
-              <p className="text-sm text-neutral-400">Swap a future draft pick between teams</p>
+              <h2 className="text-xl font-bold text-white">{t('tradePickTitle')}</h2>
+              <p className="text-sm text-neutral-400">{t('tradePickSubtitle')}</p>
             </div>
           </div>
           <button
@@ -111,7 +113,7 @@ export function TradePickerModal({
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
               <Check className="h-8 w-8 text-green-500" />
             </div>
-            <p className="text-lg font-semibold text-white">Trade Complete!</p>
+            <p className="text-lg font-semibold text-white">{t('tradeComplete')}</p>
           </div>
         ) : (
           <>
@@ -128,7 +130,7 @@ export function TradePickerModal({
               {/* Round Selection */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-neutral-300">
-                  Round to Trade
+                  {t('roundToTrade')}
                 </label>
                 <select
                   value={selectedRound}
@@ -137,13 +139,13 @@ export function TradePickerModal({
                 >
                   {availableRounds.map((round) => (
                     <option key={round} value={round}>
-                      Round {round}
+                      {t('round', { round })}
                     </option>
                   ))}
                 </select>
                 {availableRounds.length === 0 && (
                   <p className="mt-2 text-sm text-yellow-500">
-                    No future rounds available to trade
+                    {t('noFutureRounds')}
                   </p>
                 )}
               </div>
@@ -152,14 +154,14 @@ export function TradePickerModal({
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <label className="mb-2 block text-sm font-medium text-neutral-300">
-                    From Team
+                    {t('fromTeam')}
                   </label>
                   <select
                     value={fromTeamId}
                     onChange={(e) => setFromTeamId(e.target.value)}
                     className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
                   >
-                    <option value="">Select team...</option>
+                    <option value="">{t('selectTeam')}</option>
                     {teams.map((team) => (
                       <option key={team.id} value={team.id}>
                         {team.name}
@@ -178,14 +180,14 @@ export function TradePickerModal({
 
                 <div className="flex-1">
                   <label className="mb-2 block text-sm font-medium text-neutral-300">
-                    To Team
+                    {t('toTeam')}
                   </label>
                   <select
                     value={toTeamId}
                     onChange={(e) => setToTeamId(e.target.value)}
                     className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
                   >
-                    <option value="">Select team...</option>
+                    <option value="">{t('selectTeam')}</option>
                     {teams
                       .filter((t) => t.id !== fromTeamId)
                       .map((team) => (
@@ -201,14 +203,14 @@ export function TradePickerModal({
               {fromTeamId && toTeamId && (
                 <div className="rounded-xl border border-white/10 bg-rink-500/5 p-4">
                   <p className="mb-2 text-xs font-medium uppercase tracking-wide text-rink-500">
-                    Trade Preview
+                    {t('tradePreview')}
                   </p>
                   <div className="flex items-center justify-center gap-4">
                     <span className="font-medium text-white">
                       {teams.find((t) => t.id === fromTeamId)?.name}
                     </span>
                     <div className="flex items-center gap-2 text-neutral-400">
-                      <span className="text-sm">Round {selectedRound}</span>
+                      <span className="text-sm">{t('round', { round: selectedRound })}</span>
                       <ArrowRight className="h-4 w-4 text-rink-500" />
                     </div>
                     <span className="font-medium text-white">
@@ -221,12 +223,12 @@ export function TradePickerModal({
               {/* Notes */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-neutral-300">
-                  Notes (Optional)
+                  {t('notesOptional')}
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any notes about this trade..."
+                  placeholder={t('tradeNotesPlaceholder')}
                   className="w-full rounded-xl border border-rink-500/30 bg-black/50 px-4 py-3 text-white placeholder-neutral-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rink-500"
                   rows={2}
                 />
@@ -239,7 +241,7 @@ export function TradePickerModal({
                 onClick={onClose}
                 className="rounded-lg px-4 py-2 text-neutral-400 transition-colors hover:text-white"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={handleSubmit}
@@ -253,12 +255,12 @@ export function TradePickerModal({
                 {isSubmitting ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                    Processing...
+                    {t('processing')}
                   </>
                 ) : (
                   <>
                     <RefreshCcw className="h-4 w-4" />
-                    Confirm Trade
+                    {t('confirmTrade')}
                   </>
                 )}
               </button>

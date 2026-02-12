@@ -7,6 +7,7 @@ import { ScheduleTable } from '@/components/schedule/ScheduleTable';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import type { WeekPickerDay, ScheduleGame } from '@/lib/types';
+import { buildScheduleJsonLd } from '@/lib/jsonld';
 
 interface SchedulePageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -101,8 +102,18 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   // Group games by date for date-grouped rendering
   const gamesByDate = groupGamesByDate(games as ScheduleGame[]);
 
+  const scheduleJsonLd = buildScheduleJsonLd(games as ScheduleGame[], league, leagueSlug);
+
   return (
     <div className="min-h-screen py-8 px-4" style={{ background: 'var(--color-background)' }}>
+      {/* JSON-LD Structured Data for SEO */}
+      {scheduleJsonLd.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(scheduleJsonLd) }}
+        />
+      )}
+
       {/* Centered BMHL-style white card */}
       <div
         className="max-w-[1200px] mx-auto rounded-2xl shadow-xl overflow-hidden"

@@ -48,6 +48,7 @@ import { LeadersShowcase } from '@/components/LeadersShowcase';
 import { SocialLinks } from '@/components/SocialLinks';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
+import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
 
 interface HomePageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -178,8 +179,16 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     },
   ];
 
+  const jsonLd = buildSportsOrganizationJsonLd(league);
+
   return (
     <div className={`animate-fade-in league-home league-home-${templateVariant} league-home-shell`}>
+      {/* JSON-LD Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Division filter URL sync */}
       <DivisionUrlSync pagePath={`/${leagueSlug}`} />
 

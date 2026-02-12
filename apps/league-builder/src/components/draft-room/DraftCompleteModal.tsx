@@ -9,6 +9,7 @@ import {
   Clock,
   Zap,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { DraftCompleteModalProps } from './types';
 
 // Confetti particle type
@@ -122,6 +123,7 @@ export function DraftCompleteModal({
   teams,
   onClose,
 }: DraftCompleteModalProps) {
+  const t = useTranslations('draft');
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -173,9 +175,9 @@ export function DraftCompleteModal({
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rink-400 to-rink-600 shadow-[0_0_40px_rgba(34,211,238,0.4)]">
               <Trophy className="h-10 w-10 text-black" />
             </div>
-            <h2 className="text-3xl font-bold text-white">Draft Complete!</h2>
+            <h2 className="text-3xl font-bold text-white">{t('draftCompleteTitle')}</h2>
             <p className="mt-2 text-neutral-400">
-              {draft.name} has finished with {totalPicks} picks
+              {t('draftFinished', { name: draft.name, count: totalPicks })}
             </p>
           </div>
 
@@ -184,24 +186,24 @@ export function DraftCompleteModal({
             <div className="rounded-xl border border-white/10 bg-rink-500/5 p-4 text-center">
               <Users className="mx-auto mb-2 h-6 w-6 text-rink-500" />
               <p className="text-2xl font-bold text-white">{teams.length}</p>
-              <p className="text-xs text-neutral-400">Teams</p>
+              <p className="text-xs text-neutral-400">{t('teamsLabel')}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-rink-500/5 p-4 text-center">
               <Clock className="mx-auto mb-2 h-6 w-6 text-rink-500" />
               <p className="text-2xl font-bold text-white">{avgPickTime.toFixed(1)}s</p>
-              <p className="text-xs text-neutral-400">Avg Pick Time</p>
+              <p className="text-xs text-neutral-400">{t('avgPickTime')}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-rink-500/5 p-4 text-center">
               <Zap className="mx-auto mb-2 h-6 w-6 text-rink-500" />
               <p className="text-2xl font-bold text-white">{autoPicks}</p>
-              <p className="text-xs text-neutral-400">Auto-Picks</p>
+              <p className="text-xs text-neutral-400">{t('autoPicksLabel')}</p>
             </div>
           </div>
 
           {/* Team Results Preview */}
           <div className="mb-8">
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-              Team Results
+              {t('teamResults')}
             </h3>
             <div className="max-h-48 space-y-2 overflow-y-auto">
               {teamStats.map((team, index) => (
@@ -217,7 +219,7 @@ export function DraftCompleteModal({
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-neutral-400">
-                      {team.totalPicks} picks
+                      {t('teamPicksCount', { count: team.totalPicks })}
                     </span>
                     {team.autoPicks > 0 && (
                       <span className="flex items-center gap-1 text-yellow-500">
@@ -234,7 +236,7 @@ export function DraftCompleteModal({
           {/* Export Note */}
           <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 text-center">
             <p className="text-sm text-neutral-400">
-              Use the CSV and PDF export buttons in the results section below to download draft results.
+              {t('exportNote')}
             </p>
           </div>
 
@@ -244,14 +246,14 @@ export function DraftCompleteModal({
               onClick={onClose}
               className="rounded-lg px-4 py-2 text-neutral-400 transition-colors hover:text-white"
             >
-              Close
+              {t('close')}
             </button>
             <button
               onClick={onClose}
               className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]"
             >
               <Download className="h-4 w-4" />
-              View Full Results
+              {t('viewFullResults')}
             </button>
           </div>
         </div>

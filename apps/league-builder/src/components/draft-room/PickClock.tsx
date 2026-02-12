@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 
 interface PickClockProps {
@@ -12,6 +13,7 @@ interface PickClockProps {
 }
 
 export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout, pickTimeSeconds }: PickClockProps) {
+  const t = useTranslations('draft');
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isExpired, setIsExpired] = useState(false);
 
@@ -98,7 +100,7 @@ export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout, pickTimeSe
               !isUrgent && !isWarning && !isPaused && 'text-foreground'
             )}
           >
-            {isPaused ? 'PAUSED' : formattedTime}
+            {isPaused ? t('paused') : formattedTime}
           </span>
         </div>
       </div>
@@ -106,13 +108,13 @@ export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout, pickTimeSe
       {/* Status text */}
       <div className="mt-4 text-center">
         {isMyPick && !isPaused && (
-          <p className="text-sm font-medium text-rink-500">Your Pick!</p>
+          <p className="text-sm font-medium text-rink-500">{t('yourPick')}</p>
         )}
         {!isMyPick && !isPaused && (
-          <p className="text-sm text-muted-foreground">Waiting...</p>
+          <p className="text-sm text-muted-foreground">{t('waiting')}</p>
         )}
         {isPaused && (
-          <p className="text-sm text-muted-foreground">Draft Paused</p>
+          <p className="text-sm text-muted-foreground">{t('draftPaused')}</p>
         )}
       </div>
     </div>

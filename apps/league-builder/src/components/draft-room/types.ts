@@ -122,6 +122,7 @@ export interface DraftSetupConfig {
 export interface DraftSetupWizardProps {
   leagueId: string;
   seasonId: string;
+  teams: { id: string; name: string }[];
   onComplete: (draftId: string) => void;
   onCancel: () => void;
 }
