@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions, getSeasons } from '@/lib/data';
+import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions, getSeasons, getLeagueSponsors } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
 import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
@@ -7,6 +7,7 @@ import { PreviewModeProvider } from '@/components/PreviewModeProvider';
 import { AuthProvider } from '@/components/auth';
 import { ScoreTicker } from '@/components/ScoreTicker';
 import { DivisionFilterProvider } from '@/components/DivisionFilterProvider';
+import { SponsorFooterStrip } from '@/components/sponsors/SponsorFooterStrip';
 import type { Metadata } from 'next';
 
 /**
@@ -71,11 +72,12 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     notFound();
   }
 
-  const [theme, tickerGames, divisions, seasons] = await Promise.all([
+  const [theme, tickerGames, divisions, seasons, sponsors] = await Promise.all([
     Promise.resolve(getLeagueTheme(league)),
     getTickerGames(league.id),
     getDivisions(league.id),
     getSeasons(league.id),
+    getLeagueSponsors(league.id),
   ]);
   const templateClass = `league-template-${theme.templateVariant}`;
 
@@ -103,6 +105,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                 visiblePages={(league as any).settings?.website?.visiblePages}
               />
               <main className="flex-1">{children}</main>
+              <SponsorFooterStrip sponsors={sponsors} />
               <LeagueFooter league={league} leagueSlug={leagueSlug} />
             </div>
           </DivisionFilterProvider>

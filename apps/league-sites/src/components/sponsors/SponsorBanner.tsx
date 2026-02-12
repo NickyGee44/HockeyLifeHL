@@ -1,6 +1,7 @@
 'use client';
 
 import type { LeagueSponsor } from '@/lib/types';
+import { DEFAULT_BLH_SPONSOR } from '@/lib/constants';
 
 interface SponsorBannerProps {
   sponsors: LeagueSponsor[];
@@ -24,7 +25,10 @@ function getSponsorSize(tier: string): string {
 export function SponsorBanner({ sponsors }: SponsorBannerProps) {
   const sponsorsWithLogos = sponsors.filter((s) => s.logo_url);
 
-  if (sponsorsWithLogos.length === 0) return null;
+  // Fall back to BLH default sponsor if none have logos
+  if (sponsorsWithLogos.length === 0) {
+    sponsorsWithLogos.push(DEFAULT_BLH_SPONSOR);
+  }
 
   // Repeat sponsors enough times to guarantee the strip fills >2x screen width
   const repeatCount = Math.max(4, Math.ceil(12 / sponsorsWithLogos.length));

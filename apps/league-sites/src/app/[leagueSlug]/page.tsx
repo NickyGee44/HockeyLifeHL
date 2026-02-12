@@ -109,7 +109,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     .slice(0, 3);
 
   const hasNews = newsArticles.length > 0;
-  const hasSponsors = sponsors.length > 0;
   const hasEvents = upcomingEvents.length > 0;
   const hasAwards = awards.length > 0;
   const hasAlbums = albums.length > 0;
@@ -197,11 +196,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       )}
 
       {/* 3. Sponsor Banner */}
-      {hasSponsors && (
-        <div className="mt-8">
-          <SponsorBanner sponsors={sponsors} />
-        </div>
-      )}
+      <div className="mt-8">
+        <SponsorBanner sponsors={sponsors} />
+      </div>
 
       {/* 4. Pulse Items */}
       <section className="container mx-auto px-4 pt-8">
@@ -457,39 +454,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         </section>
       )}
 
-      {/* 9. Partners/Sponsors footer */}
-      {hasSponsors && sponsors.some((s) => s.tier === 'premier' || s.tier === 'gold') && (
-        <section className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
-          <div className="container mx-auto px-4 py-10">
-            <h3 className="mb-6 text-center text-sm font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
-              Our Partners &amp; Sponsors
-            </h3>
-            <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16">
-              {sponsors
-                .filter((s) => s.logo_url && (s.tier === 'premier' || s.tier === 'gold'))
-                .map((sponsor) => (
-                  <a
-                    key={sponsor.id}
-                    href={sponsor.website_url || '#'}
-                    target={sponsor.website_url ? '_blank' : undefined}
-                    rel={sponsor.website_url ? 'noopener noreferrer' : undefined}
-                    className="opacity-60 transition-opacity duration-300 hover:opacity-100"
-                  >
-                    <img
-                      src={sponsor.logo_url!}
-                      alt={sponsor.name}
-                      className={
-                        sponsor.tier === 'premier'
-                          ? 'h-20 md:h-24 max-w-[280px] object-contain'
-                          : 'h-16 md:h-20 max-w-[240px] object-contain'
-                      }
-                    />
-                  </a>
-                ))}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
