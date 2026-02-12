@@ -110,8 +110,8 @@ export function BulkAssignGamesModal({
     if (!searchQuery) return games;
     const query = searchQuery.toLowerCase();
     return games.filter((game) => {
-      const homeTeam = game.home_team.name.toLowerCase();
-      const awayTeam = game.away_team.name.toLowerCase();
+      const homeTeam = (game.home_team?.name || 'Home').toLowerCase();
+      const awayTeam = (game.away_team?.name || 'Away').toLowerCase();
       return homeTeam.includes(query) || awayTeam.includes(query);
     });
   }, [games, searchQuery]);
@@ -350,11 +350,11 @@ export function BulkAssignGamesModal({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-white truncate">
-                          {game.home_team.name}
+                          {game.home_team?.name || 'Home'}
                         </span>
                         <span className="text-neutral-500">vs</span>
                         <span className="font-medium text-white truncate">
-                          {game.away_team.name}
+                          {game.away_team?.name || 'Away'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-neutral-500">

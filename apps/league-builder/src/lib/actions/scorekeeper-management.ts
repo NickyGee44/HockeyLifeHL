@@ -78,8 +78,8 @@ export interface GameWithScorekeeper {
   id: string;
   scheduled_at: string;
   status: string;
-  home_team: { id: string; name: string };
-  away_team: { id: string; name: string };
+  home_team: { id: string; name: string } | null;
+  away_team: { id: string; name: string } | null;
   scorekeeper_assignment?: {
     id: string;
     scorekeeper_id: string;

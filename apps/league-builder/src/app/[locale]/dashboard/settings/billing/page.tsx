@@ -43,18 +43,33 @@ export default async function BillingSettingsPage({ params }: Props) {
   const organizations = await getUserOrganizations();
   const organization = organizations[0];
 
-  if (!organization) {
-    redirect({ href: '/dashboard', locale });
-    return null;
+  // Get leagues - either by organization or by league membership
+  const supabase = await createClient();
+  let leagues: any[] | null = null;
+
+  if (organization) {
+    const { data } = await supabase
+      .from('leagues')
+      .select('id, name, logo_url, primary_color, stripe_account_id, stripe_account_status')
+      .eq('organization_id', organization.id)
+      .order('name');
+    leagues = data;
   }
 
-  // Get leagues with their Stripe Connect status
-  const supabase = await createClient();
-  const { data: leagues } = await supabase
-    .from('leagues')
-    .select('id, name, logo_url, primary_color, stripe_account_id, stripe_account_status')
-    .eq('organization_id', organization.id)
-    .order('name');
+  // Fallback: also get leagues where user is owner/admin (handles leagues without organizations)
+  if (!leagues || leagues.length === 0) {
+    const { data: memberLeagues } = await supabase
+      .from('league_memberships')
+      .select('league:leagues(id, name, logo_url, primary_color, stripe_account_id, stripe_account_status)')
+      .eq('user_id', userData.user.id)
+      .in('role', ['owner', 'admin']);
+
+    if (memberLeagues && memberLeagues.length > 0) {
+      leagues = memberLeagues
+        .map((m: any) => m.league)
+        .filter(Boolean);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -201,10 +216,12 @@ export default async function BillingSettingsPage({ params }: Props) {
       </div>
 
       {/* Premium Add-Ons Section */}
-      <AddOnsSection
-        orgId={organization.id}
-        hasStripeCustomer={!!organization.stripe_customer_id}
-      />
+      {organization && (
+        <AddOnsSection
+          orgId={organization.id}
+          hasStripeCustomer={!!organization.stripe_customer_id}
+        />
+      )}
 
       {/* Premium Services Section */}
       <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-6">
