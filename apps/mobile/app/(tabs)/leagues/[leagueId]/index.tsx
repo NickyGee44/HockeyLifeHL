@@ -10,7 +10,7 @@ const menuItems = [
   { id: 'standings', label: 'Standings', icon: 'podium' as const, route: 'standings' },
   { id: 'teams', label: 'Teams', icon: 'people' as const, route: 'teams' },
   { id: 'schedule', label: 'Schedule', icon: 'calendar' as const, route: 'schedule' },
-  { id: 'scores', label: 'Scores', icon: 'scoreboard' as const, route: 'scores' },
+  { id: 'scores', label: 'Scores', icon: 'football' as const, route: 'scores' },
   { id: 'stats', label: 'Stats', icon: 'stats-chart' as const, route: 'stats' },
   { id: 'news', label: 'News', icon: 'newspaper' as const, route: 'news' },
   { id: 'gallery', label: 'Gallery', icon: 'images' as const, route: 'gallery' },
