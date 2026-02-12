@@ -74,7 +74,7 @@ async function logAuditEvent(
   if (error) {
     // If it's a duplicate key error, that's expected (idempotency)
     if (error.code === '23505') {
-      console.log(`[Connect Webhook] Duplicate event ${stripeEventId}, skipping`);
+      console.info(`[connect-webhook] Duplicate event ${stripeEventId}, skipping`);
       return false; // Indicates duplicate
     }
     console.error('[Connect Webhook] Failed to log audit event:', error);
@@ -693,7 +693,7 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.log(`[Connect Webhook] Unhandled event type: ${event.type}`);
+        console.info(`[connect-webhook] Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });

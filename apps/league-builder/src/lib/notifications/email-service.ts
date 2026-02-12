@@ -139,7 +139,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   // If Resend is not configured, log to console (dev mode)
   // PII is redacted from logs for privacy compliance
   if (!resend) {
-    console.log('[Email Service] Would send email:', {
+    console.info('[email-service] Would send email:', {
       to: redactEmails(params.to),
       subject: params.subject,
       htmlLength: params.html.length,
@@ -169,7 +169,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       return { success: false, error: error.message };
     }
 
-    console.log('[Email Service] Email sent:', data?.id);
+    console.info('[email-service] Email sent:', data?.id);
     return { success: true, messageId: data?.id };
   } catch (error) {
     console.error('[Email Service] Send error:', error);
@@ -269,7 +269,7 @@ export async function sendBatchEmails(
     }
   }
 
-  console.log(`[Email Service] Batch complete: ${result.sent}/${result.total} sent`);
+  console.info(`[email-service] Batch complete: ${result.sent}/${result.total} sent`);
   return result;
 }
 

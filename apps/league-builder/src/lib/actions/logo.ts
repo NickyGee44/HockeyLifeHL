@@ -73,7 +73,7 @@ export async function uploadWizardLogo(
       .getPublicUrl(path);
 
     if (isDevelopment) {
-      console.log('[uploadWizardLogo] Logo uploaded:', urlData.publicUrl);
+      console.info('[logo] Logo uploaded:', urlData.publicUrl);
     }
 
     return {

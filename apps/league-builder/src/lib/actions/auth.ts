@@ -30,8 +30,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 
 export async function signUp(formData: FormData) {
   if (isDevelopment) {
-    console.log('🚀 SignUp v2.0 - Starting signup process');
-    console.log('FormData entries:', Object.fromEntries(formData.entries()));
+    console.info('[auth] signUp started');
   }
 
   const email = formData.get('email') as string;
@@ -53,12 +52,7 @@ export async function signUp(formData: FormData) {
   const analyticsTracking = analyticsTrackingValue === 'on' || analyticsTrackingValue === 'true';
 
   if (isDevelopment) {
-    console.log('Consent values:', {
-      acceptTermsValue,
-      acceptPrivacyValue,
-      acceptTerms,
-      acceptPrivacy,
-    });
+    console.info('[auth] Consent collected:', { acceptTerms, acceptPrivacy });
   }
 
   if (!acceptTerms || !acceptPrivacy) {
@@ -437,7 +431,7 @@ export async function getUserOrganizations() {
         }
 
         allOrgs.set(testOrg.id, testOrg);
-        console.log(`[DEV] Auto-associated ${user.email} with test organization`);
+        console.info('[auth] Auto-associated user with test organization');
       }
     }
   }

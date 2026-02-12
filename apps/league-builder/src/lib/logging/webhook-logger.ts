@@ -49,7 +49,7 @@ export function logWebhookEvent(
       console.warn('[Webhook]', JSON.stringify(logEntry));
       break;
     default:
-      console.log('[Webhook]', JSON.stringify(logEntry));
+      console.info('[Webhook]', JSON.stringify(logEntry));
   }
 }
 

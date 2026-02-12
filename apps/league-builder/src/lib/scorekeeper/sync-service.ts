@@ -256,7 +256,7 @@ class ScorekeeperSyncService {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('Subscribed to game events realtime');
+          console.info('[scorekeeper] Subscribed to game events realtime');
         }
       });
   }

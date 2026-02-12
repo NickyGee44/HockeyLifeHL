@@ -1168,7 +1168,7 @@ async function handlePaymentMethodAttached(
     );
   }
 
-  console.log(`[Webhook] Payment method attached for org ${org.id}`);
+  console.info(`[subscription-webhook] Payment method attached for org ${org.id}`);
 }
 
 // ============================================================================
@@ -1221,7 +1221,7 @@ export async function POST(request: NextRequest) {
     const isDuplicate = await checkEventDuplicate(supabase, event.id);
 
     if (isDuplicate) {
-      console.log(`[Webhook] Duplicate event ${event.id}, returning early`);
+      console.info(`[subscription-webhook] Duplicate event ${event.id}, returning early`);
       return NextResponse.json({ received: true, duplicate: true });
     }
 
@@ -1286,7 +1286,7 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.log(`[Webhook] Unhandled event type: ${event.type}`);
+        console.info(`[subscription-webhook] Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
