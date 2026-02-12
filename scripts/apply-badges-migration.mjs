@@ -5,9 +5,15 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SUPABASE_URL = 'https://ntplczcmhvfkijjxavdl.supabase.co';
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cGxjemNtaHZma2lqanhhdmRsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODI3OTQwNywiZXhwIjoyMDgzODU1NDA3fQ.hza-FltTs_UZzH1nEpKUSZpAvVD7DvsKoOsPI8QFj3M';
-const PROJECT_REF = 'ntplczcmhvfkijjxavdl';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const PROJECT_REF = SUPABASE_URL?.match(/https:\/\/([^.]+)/)?.[1];
+
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  console.error('Missing required env vars: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+  console.error('Set them in .env.local or pass them inline: NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/apply-badges-migration.mjs');
+  process.exit(1);
+}
 
 // Read the migration SQL
 const migrationPath = join(__dirname, '..', 'supabase', 'migrations', '20260209_create_player_badges.sql');
@@ -55,7 +61,7 @@ async function main() {
   console.log('\n--- Manual steps required ---');
   console.log('The migration cannot be applied programmatically due to migration history mismatch.');
   console.log('Please apply the migration manually:');
-  console.log('1. Go to https://supabase.com/dashboard/project/ntplczcmhvfkijjxavdl/sql/new');
+  console.log(`1. Go to https://supabase.com/dashboard/project/${PROJECT_REF}/sql/new`);
   console.log('2. Paste the contents of: supabase/migrations/20260209_create_player_badges.sql');
   console.log('3. Click "Run"');
   console.log('4. Then run: node scripts/seed-test-badges.mjs');

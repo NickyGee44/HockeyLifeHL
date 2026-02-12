@@ -54,3 +54,10 @@ public/workbox-*.js.map
 # Electron build artifacts
 tools/orchestrator/dist/
 *.exe
+
+# E2E auth state (contains session tokens)
+e2e/**/.auth/
+**/playwright-report/
+
+# Supabase temp
+supabase/.temp/

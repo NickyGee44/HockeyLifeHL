@@ -13,11 +13,18 @@ const { Client } = pg;
 const DB_HOST = 'aws-1-us-east-1.pooler.supabase.com';
 const DB_PORT = 5432;
 const DB_NAME = 'postgres';
-const DB_USER = 'postgres.ntplczcmhvfkijjxavdl';
+const PROJECT_REF = SUPABASE_URL?.match(/https:\/\/([^.]+)/)?.[1];
+const DB_USER = `postgres.${PROJECT_REF}`;
 const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD;
 
-const SUPABASE_URL = 'https://ntplczcmhvfkijjxavdl.supabase.co';
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cGxjemNtaHZma2lqanhhdmRsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODI3OTQwNywiZXhwIjoyMDgzODU1NDA3fQ.hza-FltTs_UZzH1nEpKUSZpAvVD7DvsKoOsPI8QFj3M';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  console.error('Missing required env vars: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+  console.error('Set them in .env.local or pass them inline.');
+  process.exit(1);
+}
 const LEAGUE_ID = 'b0000000-0000-0000-0000-000000000002';
 const SEASON_ID = 'b0000000-0000-0000-0000-000000000003';
 
