@@ -26,7 +26,7 @@ async function sendEmail(params: {
 }): Promise<{ success: boolean; error?: string }> {
   // If Resend is not configured, log to console
   if (!resend) {
-    console.log('[Payment Email] Would send email:', {
+    console.info('[email:payment] Would send email:', {
       to: params.to,
       subject: params.subject,
       html: params.html.substring(0, 200) + '...',
@@ -42,7 +42,7 @@ async function sendEmail(params: {
       html: params.html,
     });
 
-    console.log('[Payment Email] Sent email to:', params.to);
+    console.info('[email:payment] Sent email to:', params.to);
     return { success: true };
   } catch (error) {
     console.error('[Payment Email] Failed to send email:', error);

@@ -185,7 +185,7 @@ async function handleRegistrationCheckoutCompleted(
 
   // Check if already processed (idempotent)
   if (result.already_processed) {
-    console.log('[Payments Webhook] Registration payment already processed:', result.message);
+    console.info('[webhook] Registration payment already processed:', result.message);
     return { success: true, message: result.message ?? 'Already processed' };
   }
 
@@ -220,7 +220,7 @@ async function handleCheckoutCompleted(
 ): Promise<WebhookResult> {
   // Check for duplicate event processing
   if (await isEventProcessed(eventId)) {
-    console.log(`[Payments Webhook] Event ${eventId} already processed, skipping`);
+    console.info(`[webhook] Event ${eventId} already processed, skipping`);
     return { success: true, message: 'Event already processed' };
   }
 
@@ -294,7 +294,7 @@ async function handleCheckoutCompleted(
 
   // Check if already processed (idempotent)
   if (result.already_processed) {
-    console.log('[Payments Webhook] Payment already processed:', result.message);
+    console.info('[webhook] Payment already processed:', result.message);
     return { success: true, message: result.message ?? 'Already processed' };
   }
 
@@ -493,7 +493,7 @@ async function handleChargeRefunded(
 
   // Check if already processed
   if (refundResult.already_processed) {
-    console.log('[Payments Webhook] Refund already processed:', refundResult.message);
+    console.info('[webhook] Refund already processed:', refundResult.message);
     return { success: true, message: refundResult.message ?? 'Already processed' };
   }
 
@@ -621,7 +621,7 @@ async function handleDisputeCreated(
 
   // Check if already processed
   if (disputeResult.already_processed) {
-    console.log('[Payments Webhook] Dispute already processed:', disputeResult.message);
+    console.info('[webhook] Dispute already processed:', disputeResult.message);
     return { success: true, message: disputeResult.message ?? 'Already processed' };
   }
 
@@ -713,7 +713,7 @@ async function handleDisputeCreated(
         dashboardUrl: `${SITE_URL}/dashboard/leagues/${payment.league_id}/payments`,
       });
 
-      console.log('[Payments Webhook] Chargeback alert email sent to:', adminEmail);
+      console.info('[webhook] Chargeback alert email sent to:', adminEmail);
     } else {
       console.warn('[Payments Webhook] Could not send chargeback alert - admin email not found');
     }
@@ -850,7 +850,7 @@ async function handleDisputeClosed(
           disputeId: dispute.id,
         });
 
-        console.log('[Payments Webhook] Chargeback resolution email sent to:', adminEmail);
+        console.info('[webhook] Chargeback resolution email sent to:', adminEmail);
       }
     } catch (emailError) {
       // Don't fail the webhook if email fails - log and continue
@@ -871,7 +871,7 @@ async function handleDisputeClosed(
 export async function handlePlayerPaymentsWebhook(
   event: Stripe.Event
 ): Promise<WebhookResult> {
-  console.log(`[Payments Webhook] Processing event: ${event.type}`);
+  console.info(`[webhook] Processing event: ${event.type}`);
 
   try {
     switch (event.type) {

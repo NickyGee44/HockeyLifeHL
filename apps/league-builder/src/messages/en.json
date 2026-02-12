@@ -492,6 +492,7 @@
     "typeMessage": "Type a message...",
     "captainsOnly": "Only captains can chat",
     "sendingAs": "Sending as {team}",
+    "sendMessage": "Send message",
     "pause": "Pause",
     "resume": "Resume",
     "undo": "Undo",

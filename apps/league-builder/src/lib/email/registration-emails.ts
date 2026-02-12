@@ -42,7 +42,7 @@ async function sendEmail(params: {
 }): Promise<{ success: boolean; error?: string }> {
   // If Resend is not configured, log to console
   if (!resend) {
-    console.log('[RegistrationEmail] Would send email:', {
+    console.info('[email:registration] Would send email:', {
       to: params.to,
       subject: params.subject,
     });
@@ -57,7 +57,7 @@ async function sendEmail(params: {
       html: params.html,
     });
 
-    console.log('[RegistrationEmail] Sent email to:', params.to, params.subject);
+    console.info('[email:registration] Sent email to:', params.to, params.subject);
     return { success: true };
   } catch (error) {
     console.error('[RegistrationEmail] Failed to send email:', error);

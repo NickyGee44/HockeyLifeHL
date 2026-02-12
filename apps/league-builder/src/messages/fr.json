@@ -492,6 +492,7 @@
     "typeMessage": "Ecrire un message...",
     "captainsOnly": "Seuls les capitaines peuvent clavarder",
     "sendingAs": "Envoi en tant que {team}",
+    "sendMessage": "Envoyer le message",
     "pause": "Pause",
     "resume": "Reprendre",
     "undo": "Annuler",

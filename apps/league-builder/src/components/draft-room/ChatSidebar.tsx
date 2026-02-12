@@ -147,6 +147,7 @@ export function ChatSidebar({
           <button
             type="submit"
             disabled={!canSend || !input.trim()}
+            aria-label={t('sendMessage')}
             className={cn(
               'rounded-lg bg-rink-500 p-2 text-black transition-colors',
               'hover:bg-rink-600 disabled:cursor-not-allowed disabled:opacity-50'

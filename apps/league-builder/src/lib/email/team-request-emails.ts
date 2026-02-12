@@ -42,7 +42,7 @@ async function sendEmail(params: {
 }): Promise<{ success: boolean; error?: string }> {
   // If Resend is not configured, log to console
   if (!resend) {
-    console.log('[TeamRequestEmail] Would send email:', {
+    console.info('[email:team-request] Would send email:', {
       to: params.to,
       subject: params.subject,
     });
@@ -57,7 +57,7 @@ async function sendEmail(params: {
       html: params.html,
     });
 
-    console.log('[TeamRequestEmail] Sent email to:', params.to, params.subject);
+    console.info('[email:team-request] Sent email to:', params.to, params.subject);
     return { success: true };
   } catch (error) {
     console.error('[TeamRequestEmail] Failed to send email:', error);
