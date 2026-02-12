@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,34 +16,47 @@ import { SeasonSelector } from "@/components/standings/SeasonSelector";
 // Cache this page for 60 seconds
 export const revalidate = 60;
 
-async function getStandings(seasonId?: string) {
+async function getStandings(seasonId?: string, divisionId?: string) {
   const supabase = await createClient();
-  
+
   // Get all viewable seasons for the dropdown
   const { data: allSeasons } = await supabase
     .from("seasons")
     .select("id, name, status, current_game_count, games_per_cycle")
     .in("status", ["active", "playoffs", "completed"])
     .order("start_date", { ascending: false });
+
+  const { data: divisionsData } = await supabase
+    .from("divisions")
+    .select("id, name")
+    .order("name", { ascending: true });
+
+  const divisions = divisionsData || [];
+  const selectedDivision =
+    divisionId ? divisions.find((d) => d.id === divisionId) || null : null;
   
   // Get active season
   const activeSeason = allSeasons?.find(s => s.status === "active" || s.status === "playoffs") || null;
   
   // Determine which season to show standings for
-  let selectedSeason = seasonId 
-    ? allSeasons?.find(s => s.id === seasonId) 
+  let selectedSeason = seasonId
+    ? allSeasons?.find(s => s.id === seasonId)
     : activeSeason;
 
   if (!selectedSeason) {
-    return { activeSeason, selectedSeason: null, allSeasons: allSeasons || [], standings: [] };
+    return { activeSeason, selectedSeason: null, allSeasons: allSeasons || [], standings: [], divisions, selectedDivision };
   }
 
-  // Run teams and games queries in parallel
-  const [teamsResult, gamesResult] = await Promise.all([
-    supabase
-      .from("teams")
-      .select("id, name, short_name, logo_url, primary_color, secondary_color"),
-    supabase
+  const teamsQuery = divisionId
+    ? supabase
+        .from("teams")
+        .select("id, name, short_name, logo_url, primary_color, secondary_color, division_id")
+        .eq("division_id", divisionId)
+    : supabase
+        .from("teams")
+        .select("id, name, short_name, logo_url, primary_color, secondary_color, division_id");
+
+  const [teamsResult, gamesResult] = await Promise.all([teamsQuery, supabase
       .from("games")
       .select("home_team_id, away_team_id, home_score, away_score, status")
       .eq("season_id", selectedSeason.id)
@@ -53,7 +67,7 @@ async function getStandings(seasonId?: string) {
   const games = gamesResult.data;
 
   if (!teams || teams.length === 0) {
-    return { activeSeason, selectedSeason, allSeasons: allSeasons || [], standings: [] };
+    return { activeSeason, selectedSeason, allSeasons: allSeasons || [], standings: [], divisions, selectedDivision };
   }
 
   // Calculate standings
@@ -125,16 +139,24 @@ async function getStandings(seasonId?: string) {
     return bDiff - aDiff;
   });
 
-  return { activeSeason, selectedSeason, allSeasons: allSeasons || [], standings };
+  return { activeSeason, selectedSeason, allSeasons: allSeasons || [], standings, divisions, selectedDivision };
 }
 
 export default async function StandingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ season?: string }>;
+  searchParams: Promise<{ season?: string; division?: string }>;
 }) {
   const params = await searchParams;
-  const { activeSeason, selectedSeason, allSeasons, standings } = await getStandings(params.season);
+  const { activeSeason, selectedSeason, allSeasons, standings, divisions, selectedDivision } =
+    await getStandings(params.season, params.division);
+
+  const buildDivisionHref = (divisionId?: string) => {
+    const query = new URLSearchParams();
+    if (params.season) query.set("season", params.season);
+    if (divisionId) query.set("division", divisionId);
+    return query.toString() ? `?${query.toString()}` : ".";
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -152,6 +174,9 @@ export default async function StandingsPage({
             {selectedSeason.status === "completed" && (
               <Badge variant="outline">✓ Completed</Badge>
             )}
+            {selectedDivision && (
+              <Badge variant="outline">{selectedDivision.name}</Badge>
+            )}
           </div>
         )}
       </div>
@@ -159,11 +184,35 @@ export default async function StandingsPage({
       {/* Season Selector */}
       {allSeasons.length > 0 && (
         <div className="mb-6">
-          <SeasonSelector 
-            seasons={allSeasons} 
+          <SeasonSelector
+            seasons={allSeasons}
             currentSeasonId={selectedSeason?.id}
             activeSeason={activeSeason}
           />
+        </div>
+      )}
+
+      {divisions.length > 1 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Link
+            href={buildDivisionHref()}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              !params.division ? "bg-canada-red text-white" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            All Divisions
+          </Link>
+          {divisions.map((division) => (
+            <Link
+              key={division.id}
+              href={buildDivisionHref(division.id)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                params.division === division.id ? "bg-canada-red text-white" : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {division.name}
+            </Link>
+          ))}
         </div>
       )}
 

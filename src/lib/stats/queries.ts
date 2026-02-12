@@ -4,18 +4,43 @@
 import { createClient } from "@/lib/supabase/server";
 
 // Get all player stats for a season
-export async function getSeasonPlayerStats(seasonId: string) {
+export async function getSeasonPlayerStats(seasonId: string, divisionId?: string) {
   const supabase = await createClient();
+  let divisionTeamIds: string[] | null = null;
 
-  // First, get all players from rosters for this season (non-goalies)
-  const { data: rosterPlayers, error: rosterError } = await supabase
+  if (divisionId) {
+    const { data: divisionTeams, error: divisionError } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("division_id", divisionId);
+
+    if (divisionError) {
+      console.error("Error fetching division teams:", divisionError);
+      return { error: divisionError.message, stats: [] };
+    }
+
+    divisionTeamIds = (divisionTeams || []).map((team: any) => team.id);
+    if (divisionTeamIds.length === 0) {
+      return { stats: [] };
+    }
+  }
+
+  let rosterQuery = supabase
     .from("team_rosters")
     .select(`
       player_id,
+      team_id,
       player:profiles!team_rosters_player_id_fkey(id, full_name, jersey_number, position, avatar_url)
     `)
     .eq("season_id", seasonId)
     .or("is_goalie.is.null,is_goalie.eq.false"); // Only non-goalies
+
+  if (divisionTeamIds) {
+    rosterQuery = rosterQuery.in("team_id", divisionTeamIds);
+  }
+
+  // First, get all players from rosters for this season (non-goalies)
+  const { data: rosterPlayers, error: rosterError} = await rosterQuery;
 
   if (rosterError) {
     console.error("Error fetching roster players:", rosterError);
@@ -74,7 +99,7 @@ export async function getSeasonPlayerStats(seasonId: string) {
   }
 
   // Now fetch stats only for verified games
-  const { data: stats, error } = await supabase
+  let statsQuery = supabase
     .from("player_stats")
     .select(`
       player_id,
@@ -84,8 +109,13 @@ export async function getSeasonPlayerStats(seasonId: string) {
       player:profiles!player_stats_player_id_fkey(id, full_name, jersey_number, position, avatar_url)
     `)
     .eq("season_id", seasonId)
-    .in("game_id", verifiedGameIds)
-    .limit(10000); // Safety limit
+    .in("game_id", verifiedGameIds);
+
+  if (divisionTeamIds) {
+    statsQuery = statsQuery.in("team_id", divisionTeamIds);
+  }
+
+  const { data: stats, error } = await statsQuery.limit(10000); // Safety limit
 
   if (error) {
     console.error("Error fetching player stats:", error);
@@ -140,18 +170,43 @@ export async function getSeasonPlayerStats(seasonId: string) {
 }
 
 // Get all goalie stats for a season
-export async function getSeasonGoalieStats(seasonId: string) {
+export async function getSeasonGoalieStats(seasonId: string, divisionId?: string) {
   const supabase = await createClient();
+  let divisionTeamIds: string[] | null = null;
 
-  // First, get all goalies from rosters for this season
-  const { data: rosterGoalies, error: rosterError } = await supabase
+  if (divisionId) {
+    const { data: divisionTeams, error: divisionError } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("division_id", divisionId);
+
+    if (divisionError) {
+      console.error("Error fetching division teams:", divisionError);
+      return { error: divisionError.message, stats: [] };
+    }
+
+    divisionTeamIds = (divisionTeams || []).map((team: any) => team.id);
+    if (divisionTeamIds.length === 0) {
+      return { stats: [] };
+    }
+  }
+
+  let rosterQuery = supabase
     .from("team_rosters")
     .select(`
       player_id,
+      team_id,
       player:profiles!team_rosters_player_id_fkey(id, full_name, jersey_number, avatar_url)
     `)
     .eq("season_id", seasonId)
     .eq("is_goalie", true);
+
+  if (divisionTeamIds) {
+    rosterQuery = rosterQuery.in("team_id", divisionTeamIds);
+  }
+
+  // First, get all goalies from rosters for this season
+  const { data: rosterGoalies, error: rosterError } = await rosterQuery;
 
   if (rosterError) {
     console.error("Error fetching roster goalies:", rosterError);
@@ -214,7 +269,7 @@ export async function getSeasonGoalieStats(seasonId: string) {
   }
 
   // Fetch stats only for verified games
-  const { data: stats, error } = await supabase
+  let statsQuery = supabase
     .from("goalie_stats")
     .select(`
       player_id,
@@ -225,8 +280,13 @@ export async function getSeasonGoalieStats(seasonId: string) {
       player:profiles!goalie_stats_player_id_fkey(id, full_name, jersey_number, avatar_url)
     `)
     .eq("season_id", seasonId)
-    .in("game_id", verifiedGameIds)
-    .limit(5000); // Safety limit
+    .in("game_id", verifiedGameIds);
+
+  if (divisionTeamIds) {
+    statsQuery = statsQuery.in("team_id", divisionTeamIds);
+  }
+
+  const { data: stats, error } = await statsQuery.limit(5000); // Safety limit
 
   if (error) {
     console.error("Error fetching goalie stats:", error);

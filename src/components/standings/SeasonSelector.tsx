@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -22,19 +22,24 @@ type SeasonSelectorProps = {
   activeSeason?: Season | null;
 };
 
-export function SeasonSelector({ 
-  seasons, 
-  currentSeasonId, 
-  activeSeason 
+export function SeasonSelector({
+  seasons,
+  currentSeasonId,
+  activeSeason
 }: SeasonSelectorProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const handleSeasonChange = (seasonId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
     if (seasonId === "current" && activeSeason) {
-      router.push("/standings");
+      params.delete("season");
     } else {
-      router.push(`/standings?season=${seasonId}`);
+      params.set("season", seasonId);
     }
+    router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   };
 
   return (
