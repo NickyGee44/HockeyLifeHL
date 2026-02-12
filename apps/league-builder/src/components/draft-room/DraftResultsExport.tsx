@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { Download, FileText, Table, Loader2 } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
@@ -10,6 +11,7 @@ interface DraftResultsExportProps {
   draftId: string;
   picks?: DraftPick[];
   teams?: DraftTeam[];
+  supabase?: SupabaseClient;
 }
 
 const escapeCSV = (value: string | number | null | undefined): string => {
@@ -20,8 +22,9 @@ const escapeCSV = (value: string | number | null | undefined): string => {
   return str;
 };
 
-export function DraftResultsExport({ draftId }: DraftResultsExportProps) {
-  const [supabase] = useState(() => createClient());
+export function DraftResultsExport({ draftId, supabase: supabaseProp }: DraftResultsExportProps) {
+  const [fallbackClient] = useState(() => supabaseProp ? null : createClient());
+  const supabase = supabaseProp ?? fallbackClient!;
   const [isExporting, setIsExporting] = useState<'csv' | 'pdf' | null>(null);
 
   const exportToCSV = async () => {

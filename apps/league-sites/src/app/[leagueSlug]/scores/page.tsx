@@ -26,10 +26,21 @@ interface ScoresPageProps {
   }>;
 }
 
-export const metadata: Metadata = {
-  title: 'Scores',
-  description: 'Recent game scores and results',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ leagueSlug: string }>;
+}): Promise<Metadata> {
+  const { leagueSlug } = await params;
+  const league = await getLeagueBySlug(leagueSlug);
+
+  return {
+    title: 'Scores',
+    description: league
+      ? `Recent game scores and results for ${league.name}`
+      : 'Recent game scores and results',
+  };
+}
 
 function groupGamesByDate(games: RecentGame[]): Map<string, RecentGame[]> {
   const grouped = new Map<string, RecentGame[]>();

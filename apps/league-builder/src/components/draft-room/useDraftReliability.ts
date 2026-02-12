@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
 
 interface UseDraftReliabilityOptions {
+  supabase: SupabaseClient;
   draftId: string;
   onStateVersionMismatch?: (serverVersion: number, localVersion: number) => void;
   onConnectionChange?: (state: ConnectionState) => void;
@@ -32,13 +33,13 @@ interface UseDraftReliabilityReturn {
  * - Event deduplication
  */
 export function useDraftReliability({
+  supabase,
   draftId,
   onStateVersionMismatch,
   onConnectionChange,
   pollInterval = 5000,
   driftCheckInterval = 30000,
 }: UseDraftReliabilityOptions): UseDraftReliabilityReturn {
-  const [supabase] = useState(() => createClient());
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
   const [localStateVersion, setLocalStateVersion] = useState<number>(0);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);

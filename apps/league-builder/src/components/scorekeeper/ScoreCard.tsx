@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useGameSession, useGameScore, type Game, type Team } from '@/lib/scorekeeper';
+import { useGameSession, useGameScore, type Team } from '@/lib/scorekeeper';
 import { cn } from '@hockey-life/ui';
+import { usePeriodTimer } from './usePeriodTimer';
 
 interface ScoreCardProps {
   gameId: string;
@@ -20,10 +21,30 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
   const score = useGameScore(gameId);
   const [activePeriod, setActivePeriod] = useState(currentPeriod);
 
+  const periodLengthMinutes = game?.period_length_minutes || 20;
+
+  const timer = usePeriodTimer({
+    periodLengthMinutes,
+  });
+
+  const periodCount = game?.period_count || 3;
+  const isLastPeriod = activePeriod >= periodCount;
+
   const handlePeriodChange = useCallback((period: number) => {
     setActivePeriod(period);
     onPeriodChange?.(period);
-  }, [onPeriodChange]);
+    timer.reset();
+  }, [onPeriodChange, timer]);
+
+  const handleEndPeriod = useCallback(() => {
+    timer.stop();
+    if (!isLastPeriod) {
+      const nextPeriod = activePeriod + 1;
+      setActivePeriod(nextPeriod);
+      onPeriodChange?.(nextPeriod);
+      timer.reset();
+    }
+  }, [activePeriod, isLastPeriod, onPeriodChange, timer]);
 
   if (isLoading) {
     return <ScoreCardSkeleton />;
@@ -38,9 +59,7 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
     );
   }
 
-  const periodCount = game.period_count || 3;
   const periods = Array.from({ length: periodCount }, (_, i) => i + 1);
-  const hasOvertime = periodCount > 3;
 
   return (
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
@@ -90,14 +109,68 @@ export function ScoreCard({ gameId, onPeriodChange, currentPeriod = 1 }: ScoreCa
         </div>
       </div>
 
-      {/* Game Time (Optional display) */}
+      {/* Period Timer */}
       <div className="px-6 pb-6 md:px-8 md:pb-8">
-        <div className="bg-neutral-950 rounded-xl p-4 text-center">
-          <div className="text-4xl md:text-5xl font-mono font-bold text-white tracking-wider">
-            20:00
+        <div className="bg-neutral-950 rounded-xl p-4">
+          {/* Timer Display */}
+          <div className="text-center">
+            <div
+              className={cn(
+                'text-4xl md:text-5xl font-mono font-bold tracking-wider transition-colors duration-300',
+                timer.timerColorClass
+              )}
+            >
+              {timer.displayTime}
+            </div>
+            <div className="text-xs text-neutral-500 mt-1 uppercase tracking-widest">
+              Period {activePeriod}{timer.isRunning ? ' — Running' : ''}
+            </div>
           </div>
-          <div className="text-xs text-neutral-500 mt-1 uppercase tracking-widest">
-            Period {activePeriod}
+
+          {/* Timer Controls */}
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button
+              onClick={timer.toggle}
+              className={cn(
+                'flex-1 max-w-[140px] py-3 px-5 rounded-xl text-sm font-bold uppercase tracking-wider',
+                'touch-manipulation min-h-[48px] transition-all duration-200',
+                timer.isRunning
+                  ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25'
+                  : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
+              )}
+            >
+              {timer.isRunning ? 'Stop' : 'Start'}
+            </button>
+
+            <button
+              onClick={timer.reset}
+              disabled={timer.isRunning}
+              className={cn(
+                'flex-1 max-w-[140px] py-3 px-5 rounded-xl text-sm font-bold uppercase tracking-wider',
+                'touch-manipulation min-h-[48px] transition-all duration-200',
+                'bg-neutral-800/60 text-neutral-300 border border-neutral-700/50',
+                timer.isRunning
+                  ? 'opacity-40 cursor-not-allowed'
+                  : 'hover:bg-neutral-800 hover:text-white'
+              )}
+            >
+              Reset
+            </button>
+
+            <button
+              onClick={handleEndPeriod}
+              disabled={isLastPeriod && timer.timeRemaining === 0}
+              className={cn(
+                'flex-1 max-w-[160px] py-3 px-5 rounded-xl text-sm font-bold uppercase tracking-wider',
+                'touch-manipulation min-h-[48px] transition-all duration-200',
+                'bg-rink-500/15 text-rink-400 border border-rink-500/30',
+                isLastPeriod && timer.timeRemaining === 0
+                  ? 'opacity-40 cursor-not-allowed'
+                  : 'hover:bg-rink-500/25'
+              )}
+            >
+              {isLastPeriod ? 'End Game' : 'End Period'}
+            </button>
           </div>
         </div>
       </div>

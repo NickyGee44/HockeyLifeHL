@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { X, ArrowRight, RefreshCcw, AlertCircle, Check } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { TradePickerModalProps, DraftTeam } from './types';
@@ -14,8 +14,8 @@ export function TradePickerModal({
   currentRound,
   totalRounds,
   onTradeComplete,
-}: TradePickerModalProps) {
-  const [supabase] = useState(() => createClient());
+  supabase,
+}: TradePickerModalProps & { supabase: SupabaseClient }) {
   const [fromTeamId, setFromTeamId] = useState<string>('');
   const [toTeamId, setToTeamId] = useState<string>('');
   const [selectedRound, setSelectedRound] = useState<number>(currentRound + 1);

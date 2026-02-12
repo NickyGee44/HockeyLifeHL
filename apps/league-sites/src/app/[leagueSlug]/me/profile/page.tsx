@@ -239,19 +239,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </form>
 
-        {/* Danger Zone */}
-        <div className="mt-6 bg-red-500/5 border border-red-500/20 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-red-400 mb-2">Danger Zone</h2>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-            Once you delete your account, there is no going back. Please be certain.
-          </p>
-          <button
-            type="button"
-            className="px-4 py-2 border border-red-500/30 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/10 transition-colors"
-          >
-            Delete Account
-          </button>
-        </div>
       </div>
     </div>
   );

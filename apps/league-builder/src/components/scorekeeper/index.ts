@@ -10,3 +10,4 @@ export {
   GameSignatureVerification,
   SignatureCanvas,
 } from './CaptainSignature';
+export { usePeriodTimer, formatTime } from './usePeriodTimer';

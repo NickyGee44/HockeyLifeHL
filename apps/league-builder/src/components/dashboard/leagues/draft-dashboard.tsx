@@ -12,6 +12,16 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/dialog';
 import { DraftSetupWizard } from '@/components/draft-room/DraftSetupWizard';
 import { DraftRoom } from '@/components/draft-room/DraftRoom';
 import { DraftResultsExport } from '@/components/draft-room/DraftResultsExport';
@@ -52,6 +62,7 @@ export function DraftDashboard({
   const [isPopulating, setIsPopulating] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
 
   // Handle draft setup completion
   const handleDraftSetupComplete = (newDraftId: string) => {
@@ -247,7 +258,7 @@ export function DraftDashboard({
 
             {isAdmin && (
               <button
-                onClick={handleStartDraft}
+                onClick={() => setShowStartConfirm(true)}
                 disabled={isStarting}
                 className={cn(
                   'w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm',
@@ -271,6 +282,43 @@ export function DraftDashboard({
             )}
           </div>
         </div>
+
+        {/* Start Draft Confirmation Dialog */}
+        <AlertDialog open={showStartConfirm} onOpenChange={setShowStartConfirm}>
+          <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Start Draft?</AlertDialogTitle>
+              <AlertDialogDescription className="text-neutral-400">
+                Once started, the draft will be live for all captains. Make sure all teams are ready and the player pool is populated.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="border-white/10 text-neutral-300 hover:bg-neutral-800"
+                disabled={isStarting}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowStartConfirm(false);
+                  handleStartDraft();
+                }}
+                disabled={isStarting}
+                className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold hover:shadow-lg hover:shadow-rink-500/20"
+              >
+                {isStarting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  'Start Draft'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Team list */}
         <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">

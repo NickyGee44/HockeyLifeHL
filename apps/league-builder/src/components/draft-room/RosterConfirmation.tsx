@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   CheckCircle,
   Users,
@@ -18,8 +18,8 @@ export function RosterConfirmation({
   picks,
   onConfirm,
   isConfirmed,
-}: RosterConfirmationProps) {
-  const [supabase] = useState(() => createClient());
+  supabase,
+}: RosterConfirmationProps & { supabase: SupabaseClient }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

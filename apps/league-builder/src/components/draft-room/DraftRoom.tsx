@@ -2,8 +2,20 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { AlertTriangle, CheckCircle, Users, MessageCircle, X, Monitor } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/dialog';
 
 import { PickClock } from './PickClock';
 import { PlayerPool } from './PlayerPool';
@@ -55,6 +67,37 @@ export function DraftRoom({
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [rosterConfirmations, setRosterConfirmations] = useState<RosterConfirmationType[]>([]);
+  const [showPickConfirm, setShowPickConfirm] = useState(false);
+  const [showUndoConfirm, setShowUndoConfirm] = useState(false);
+
+  // Responsive sidebar state
+  const [showPlayerPool, setShowPlayerPool] = useState(true);
+  const [showChat, setShowChat] = useState(true);
+  const [dismissedMobileBanner, setDismissedMobileBanner] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  // Track viewport size for responsive behavior
+  useEffect(() => {
+    const checkViewport = () => {
+      const width = window.innerWidth;
+      const mobile = width < 768;
+      const tablet = width >= 768 && width < 1280;
+      setIsMobile(mobile);
+      setIsTablet(tablet);
+      // Auto-collapse sidebars on smaller screens
+      if (mobile || tablet) {
+        setShowPlayerPool(false);
+        setShowChat(false);
+      } else {
+        setShowPlayerPool(true);
+        setShowChat(true);
+      }
+    };
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
 
   // Computed properties
   const isMyPick = draft?.current_team_id === userTeamId;
@@ -73,6 +116,7 @@ export function DraftRoom({
     forceSync,
     processedEventIds,
   } = useDraftReliability({
+    supabase,
     draftId,
     onStateVersionMismatch: (serverVersion, localVersion) => {
       fetchDraftData(); // Full refresh on drift
@@ -145,14 +189,21 @@ export function DraftRoom({
       }
 
       // Fetch available players
+      const playerLimit = 500;
       const { data: playersData, error: playersError } = await supabase.rpc(
         'get_available_players',
-        { p_draft_id: draftId, p_limit: 200 }
+        { p_draft_id: draftId, p_limit: playerLimit }
       );
 
       if (controller.signal.aborted) return;
       if (playersError) throw playersError;
-      setPlayers((playersData as DraftPlayer[]) || []);
+      const fetchedPlayers = (playersData as DraftPlayer[]) || [];
+      setPlayers(fetchedPlayers);
+
+      // Warn if the player pool hit the limit (some players may be hidden)
+      if (fetchedPlayers.length >= playerLimit) {
+        toast.warning(`Showing first ${playerLimit} players. Some players may not be visible.`);
+      }
 
       // Fetch teams
       const leagueId = state?.draft?.league_id;
@@ -558,7 +609,7 @@ export function DraftRoom({
           </div>
 
           {/* Export buttons */}
-          <DraftResultsExport draftId={draftId} picks={picks} teams={teams} />
+          <DraftResultsExport draftId={draftId} picks={picks} teams={teams} supabase={supabase} />
         </div>
 
         {/* Roster Confirmation for team captain */}
@@ -568,6 +619,7 @@ export function DraftRoom({
               draftId={draftId}
               teamId={userTeamId}
               picks={picks}
+              supabase={supabase}
               onConfirm={() => {
                 const newConfirmation: RosterConfirmationType = {
                   id: crypto.randomUUID(),
@@ -618,14 +670,84 @@ export function DraftRoom({
           currentRound={draft.current_round}
           totalRounds={draft.total_rounds || 10}
           onTradeComplete={handleTradeComplete}
+          supabase={supabase}
         />
       )}
 
+      {/* Confirm Pick Dialog */}
+      <AlertDialog open={showPickConfirm} onOpenChange={setShowPickConfirm}>
+        <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Pick</AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-400">
+              Draft <span className="font-semibold text-white">{selectedPlayer?.player_name}</span> for{' '}
+              <span className="font-semibold text-white">
+                {teams.find((t) => t.id === draft?.current_team_id)?.name || 'your team'}
+              </span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="border-white/10 text-neutral-300 hover:bg-neutral-800"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowPickConfirm(false);
+                handleMakePick();
+              }}
+              disabled={isSubmitting}
+              className="bg-rink-500 text-black font-semibold hover:bg-rink-600"
+            >
+              {isSubmitting ? 'Picking...' : 'Confirm Pick'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Undo Pick Confirmation Dialog */}
+      <AlertDialog open={showUndoConfirm} onOpenChange={setShowUndoConfirm}>
+        <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo Last Pick?</AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-400">
+              This will reverse the last pick and return the player to the pool.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="border-white/10 text-neutral-300 hover:bg-neutral-800"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowUndoConfirm(false);
+                handleUndoPick();
+              }}
+              disabled={isSubmitting}
+              className="bg-orange-500 text-white font-semibold hover:bg-orange-600"
+            >
+              {isSubmitting ? 'Undoing...' : 'Undo Pick'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
-      <header className="flex items-center justify-between border-b bg-card px-6 py-4">
+      <header className={cn(
+        'flex items-center justify-between border-b bg-card px-4 py-3',
+        isMobile ? 'flex-col gap-2' : 'px-6 py-4'
+      )}>
         <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-xl font-bold">{draft?.name || 'Draft Room'}</h1>
+          <div className="min-w-0">
+            <h1 className={cn(
+              'font-bold truncate',
+              isMobile ? 'text-base' : 'text-xl'
+            )}>{draft?.name || 'Draft Room'}</h1>
             <p className="text-sm text-muted-foreground">
               Round {draft?.current_round || 1} - Pick {draft?.current_pick || 1}
               {draft?.draft_type === 'snake' && (
@@ -637,7 +759,7 @@ export function DraftRoom({
           <ConnectionStatusBadge state={connectionState} />
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 flex-wrap">
           {/* Error display */}
           {error && (
             <div className="rounded-lg bg-red-500/10 px-3 py-1 text-sm text-red-500">
@@ -652,7 +774,7 @@ export function DraftRoom({
               isAdmin={isAdmin}
               onPause={handlePauseDraft}
               onResume={handleResumeDraft}
-              onUndo={handleUndoPick}
+              onUndo={() => setShowUndoConfirm(true)}
               onOpenTrade={() => setShowTradeModal(true)}
               isSubmitting={isSubmitting}
             />
@@ -660,7 +782,10 @@ export function DraftRoom({
 
           {/* Pick status */}
           {isMyPick && !isPaused && (
-            <div className="rounded-lg bg-rink-500/20 px-4 py-2 font-medium text-rink-500">
+            <div className={cn(
+              'rounded-lg bg-rink-500/20 font-medium text-rink-500',
+              isMobile ? 'px-3 py-1 text-sm' : 'px-4 py-2'
+            )}>
               Your Pick!
             </div>
           )}
@@ -679,22 +804,99 @@ export function DraftRoom({
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar - Player pool */}
-        <div className="w-80 flex-shrink-0 border-r overflow-hidden">
-          <PlayerPool
-            players={players}
-            onSelectPlayer={setSelectedPlayer}
-            selectedPlayerId={selectedPlayer?.player_id}
-            canPick={canPick}
-          />
+      {/* Mobile notice banner */}
+      {isMobile && !dismissedMobileBanner && (
+        <div className="flex items-center gap-3 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2">
+          <Monitor className="h-4 w-4 flex-shrink-0 text-amber-500" />
+          <p className="flex-1 text-sm text-amber-500">
+            Draft Room works best on a larger screen. Some features may be harder to use on mobile.
+          </p>
+          <button
+            onClick={() => setDismissedMobileBanner(true)}
+            className="flex-shrink-0 rounded p-1 text-amber-500 hover:bg-amber-500/20"
+            aria-label="Dismiss notice"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
+      )}
+
+      {/* Main content */}
+      <div className={cn(
+        'flex flex-1 overflow-hidden',
+        isMobile && 'flex-col'
+      )}>
+        {/* Left sidebar - Player pool */}
+        {showPlayerPool && (
+          <div className={cn(
+            'border-r overflow-hidden flex-shrink-0',
+            isMobile
+              ? 'w-full border-r-0 border-b max-h-[50vh]'
+              : 'w-80'
+          )}>
+            <PlayerPool
+              players={players}
+              onSelectPlayer={(player) => {
+                setSelectedPlayer(player);
+                // On mobile/tablet, auto-collapse player pool after selection
+                if (isMobile || isTablet) {
+                  setShowPlayerPool(false);
+                }
+              }}
+              selectedPlayerId={selectedPlayer?.player_id}
+              canPick={canPick}
+            />
+          </div>
+        )}
 
         {/* Center - Draft board and timer */}
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+          {/* Sidebar toggle buttons (visible on tablet/mobile) */}
+          {(isMobile || isTablet) && (
+            <div className="flex items-center gap-2 border-b px-3 py-2 bg-muted/30">
+              <button
+                onClick={() => {
+                  setShowPlayerPool(!showPlayerPool);
+                  if (!showPlayerPool) setShowChat(false);
+                }}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  showPlayerPool
+                    ? 'bg-rink-500 text-black'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                {showPlayerPool ? <X className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                Players
+              </button>
+              <button
+                onClick={() => {
+                  setShowChat(!showChat);
+                  if (!showChat) setShowPlayerPool(false);
+                }}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  showChat
+                    ? 'bg-rink-500 text-black'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                {showChat ? <X className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                Chat
+                {messages.length > 0 && !showChat && (
+                  <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-rink-500/20 text-xs text-rink-500">
+                    {messages.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
           {/* Pick clock and selected player */}
-          <div className="flex items-center justify-between border-b p-4">
+          <div className={cn(
+            'flex items-center justify-between border-b p-4',
+            isMobile && 'flex-col gap-3'
+          )}>
             <PickClock
               expiresAt={draft?.current_pick_expires_at || null}
               isPaused={isPaused}
@@ -704,43 +906,61 @@ export function DraftRoom({
             />
 
             {/* Selected player confirmation */}
-            <div className="flex flex-1 items-center justify-center gap-4 px-8">
+            <div className={cn(
+              'flex flex-1 items-center justify-center gap-4',
+              isMobile ? 'px-2 w-full' : 'px-8'
+            )}>
               {selectedPlayer ? (
-                <div className="flex items-center gap-4">
+                <div className={cn(
+                  'flex items-center gap-4',
+                  isMobile && 'flex-col'
+                )}>
                   <div className="text-center">
                     <p className="text-sm text-muted-foreground">Selected</p>
-                    <p className="text-xl font-bold">{selectedPlayer.player_name}</p>
+                    <p className={cn(
+                      'font-bold',
+                      isMobile ? 'text-lg' : 'text-xl'
+                    )}>{selectedPlayer.player_name}</p>
                     <p className="text-sm text-muted-foreground">
                       {selectedPlayer.player_position} - Skill {selectedPlayer.skill_level}
                     </p>
                   </div>
                   <button
-                    onClick={handleMakePick}
+                    onClick={() => {
+                      if (isMyPick) {
+                        setShowPickConfirm(true);
+                      } else {
+                        handleMakePick();
+                      }
+                    }}
                     disabled={!canPick || isSubmitting}
                     className={cn(
-                      'rounded-lg bg-rink-500 px-8 py-3 text-lg font-bold text-black',
-                      'hover:bg-rink-600 disabled:cursor-not-allowed disabled:opacity-50'
+                      'rounded-lg bg-rink-500 font-bold text-black',
+                      'hover:bg-rink-600 disabled:cursor-not-allowed disabled:opacity-50',
+                      isMobile ? 'px-6 py-2 text-base w-full' : 'px-8 py-3 text-lg'
                     )}
                   >
                     {isSubmitting ? 'Picking...' : 'Confirm Pick'}
                   </button>
                 </div>
               ) : canPick ? (
-                <p className="text-muted-foreground">
-                  Select a player from the pool to make your pick
+                <p className="text-muted-foreground text-center">
+                  {isMobile || isTablet
+                    ? 'Tap "Players" to select a player'
+                    : 'Select a player from the pool to make your pick'}
                 </p>
               ) : isMyPick ? (
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-center">
                   Waiting for captain to make the pick...
                 </p>
               ) : (
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-center">
                   Waiting for {draftState?.current_pick?.team_name || 'team'} to pick...
                 </p>
               )}
             </div>
 
-            <DraftHistory picks={picks} maxDisplay={5} />
+            {!isMobile && <DraftHistory picks={picks} maxDisplay={5} />}
           </div>
 
           {/* Draft board */}
@@ -758,15 +978,22 @@ export function DraftRoom({
         </div>
 
         {/* Right sidebar - Chat */}
-        <div className="w-80 flex-shrink-0 border-l overflow-hidden">
-          <ChatSidebar
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            currentUserId={userId}
-            currentTeamName={teams.find((t) => t.id === userTeamId)?.name}
-            canSend={canChat}
-          />
-        </div>
+        {showChat && (
+          <div className={cn(
+            'border-l overflow-hidden flex-shrink-0',
+            isMobile
+              ? 'w-full border-l-0 border-t max-h-[50vh]'
+              : 'w-80'
+          )}>
+            <ChatSidebar
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              currentUserId={userId}
+              currentTeamName={teams.find((t) => t.id === userTeamId)?.name}
+              canSend={canChat}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

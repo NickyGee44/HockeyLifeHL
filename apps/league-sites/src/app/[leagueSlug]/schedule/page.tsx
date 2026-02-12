@@ -22,10 +22,21 @@ interface SchedulePageProps {
   }>;
 }
 
-export const metadata: Metadata = {
-  title: 'Schedule',
-  description: 'View the complete game schedule',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ leagueSlug: string }>;
+}): Promise<Metadata> {
+  const { leagueSlug } = await params;
+  const league = await getLeagueBySlug(leagueSlug);
+
+  return {
+    title: 'Schedule',
+    description: league
+      ? `View the complete game schedule for ${league.name}`
+      : 'View the complete game schedule',
+  };
+}
 
 /**
  * Group games by their scheduled date (YYYY-MM-DD key).

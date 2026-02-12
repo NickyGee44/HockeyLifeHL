@@ -315,8 +315,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                 <SectionHeading
                   title="Upcoming Events"
                   icon={<CalendarDays className="w-5 h-5 text-[var(--league-primary)]" />}
-                  href={`/${leagueSlug}/events`}
-                  cta="All Events"
                 />
                 <div className="mt-5 space-y-3">
                   {upcomingEvents.map((event) => (
