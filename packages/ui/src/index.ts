@@ -32,3 +32,7 @@ export type {
 // Export standings component
 export { StandingsTable } from './components/standings-table';
 export type { StandingsTableProps, StandingsTeam } from './components/standings-table';
+
+// Export team logo component
+export { TeamLogo } from './components/team-logo';
+export type { TeamLogoProps } from './components/team-logo';

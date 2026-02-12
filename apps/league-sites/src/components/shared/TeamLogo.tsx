@@ -1,76 +1,23 @@
 import Image from 'next/image';
+import { TeamLogo as BaseTeamLogo, type TeamLogoProps as BaseProps } from '@hockey-life/ui';
 
-interface TeamLogoProps {
-  logoUrl: string | null;
-  teamName: string;
-  teamColor?: string | null;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
-}
+type TeamLogoProps = Omit<BaseProps, 'renderImage'>;
 
-const sizeMap = {
-  xs: 24,
-  sm: 32,
-  md: 48,
-  lg: 64,
-  xl: 96,
-  '2xl': 128,
-  '3xl': 160,
-} as const;
-
-/**
- * TeamLogo - Reusable team logo component with fallback to initials
- *
- * Displays the team logo image if available, otherwise shows the first
- * letter of the team name in a colored circle using the team's color
- * or the league primary color as fallback.
- */
-export function TeamLogo({
-  logoUrl,
-  teamName,
-  teamColor,
-  size = 'md',
-}: TeamLogoProps) {
-  const pixelSize = sizeMap[size];
-  const initial = teamName.charAt(0).toUpperCase();
-
-  // Calculate font size based on container size (approximately 50% of container)
-  const fontSizeMap = {
-    xs: 'text-xs',
-    sm: 'text-sm',
-    md: 'text-lg',
-    lg: 'text-2xl',
-    xl: 'text-4xl',
-    '2xl': 'text-5xl',
-    '3xl': 'text-6xl',
-  } as const;
-
-  if (logoUrl) {
-    return (
-      <Image
-        src={logoUrl}
-        alt={`${teamName} logo`}
-        width={pixelSize}
-        height={pixelSize}
-        className="rounded-lg object-cover"
-        style={{ width: pixelSize, height: pixelSize }}
-      />
-    );
-  }
-
-  // Fallback to team initial in colored circle
+export function TeamLogo(props: TeamLogoProps) {
   return (
-    <div
-      className={`flex items-center justify-center rounded-lg font-bold ${fontSizeMap[size]}`}
-      style={{
-        width: pixelSize,
-        height: pixelSize,
-        backgroundColor: teamColor || 'var(--league-primary)',
-        color: 'var(--color-background)',
-      }}
-      aria-label={`${teamName} logo`}
-    >
-      {initial}
-    </div>
+    <BaseTeamLogo
+      {...props}
+      renderImage={({ src, alt, width, height, className }) => (
+        <Image
+          src={src}
+          alt={alt}
+          width={width}
+          height={height}
+          className={className}
+          style={{ width, height }}
+        />
+      )}
+    />
   );
 }
 
