@@ -325,8 +325,6 @@ export function DraftDashboard({
 
           <DraftResultsExport
             draftId={draftId}
-            picks={[]}
-            teams={teams.map((t) => ({ ...t, picks: [] }))}
           />
         </div>
 

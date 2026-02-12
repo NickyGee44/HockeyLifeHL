@@ -119,7 +119,7 @@ export async function createConnectAccount(
   const account = await stripe.accounts.create(
     {
       type: 'express',
-      country: 'US',
+      country: 'CA',
       email,
       business_type: 'company',
       company: {
@@ -285,7 +285,7 @@ export async function createPaymentIntent(
     leagueId,
     connectedAccountId,
     amountCents,
-    currency = 'usd',
+    currency = 'cad',
     description,
     customerEmail,
     metadata = {},
@@ -457,14 +457,14 @@ export async function getPayoutInfo(
     ),
   ]);
 
-  // Find USD balance (primary currency)
-  const availableUSD = balance.available.find((b) => b.currency === 'usd');
-  const pendingUSD = balance.pending.find((b) => b.currency === 'usd');
+  // Find CAD balance (primary currency)
+  const availableCAD = balance.available.find((b) => b.currency === 'cad');
+  const pendingCAD = balance.pending.find((b) => b.currency === 'cad');
 
   return {
-    availableBalance: availableUSD?.amount || 0,
-    pendingBalance: pendingUSD?.amount || 0,
-    currency: 'usd',
+    availableBalance: availableCAD?.amount || 0,
+    pendingBalance: pendingCAD?.amount || 0,
+    currency: 'cad',
     payoutSchedule: {
       interval: account.settings?.payouts?.schedule?.interval || 'daily',
       delayDays: account.settings?.payouts?.schedule?.delay_days || 2,

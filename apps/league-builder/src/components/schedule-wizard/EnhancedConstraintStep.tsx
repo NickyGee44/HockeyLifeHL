@@ -267,14 +267,24 @@ export function EnhancedConstraintStep({
             teams={teams}
             venues={venues}
             constraints={basicConstraints.map((c) => c.id)}
-            setConstraints={(ids) => {
-              // This is a simplified handler - in real implementation,
-              // you'd need to sync the full constraint objects
-              if (typeof ids === 'function') {
-                // Handle function update
-                return;
-              }
-              // Basic constraints are managed by the BasicConstraintStep internally
+            setConstraints={(idsOrUpdater) => {
+              // The BasicConstraintStep manages full constraint objects internally
+              // and uses this setter to keep the parent's ID list in sync.
+              // We need to support both direct values and function updaters.
+              setBasicConstraints((prev) => {
+                const currentIds = prev.map((c) => c.id);
+                const newIds = typeof idsOrUpdater === 'function'
+                  ? idsOrUpdater(currentIds)
+                  : idsOrUpdater;
+
+                // For removals, filter out constraints no longer in the list
+                const filtered = prev.filter((c) => newIds.includes(c.id));
+
+                // If new IDs were added that we don't have objects for yet,
+                // they will be loaded by the BasicConstraintStep's internal state.
+                // The parent effect will re-sync on next render.
+                return filtered;
+              });
             }}
           />
         )}

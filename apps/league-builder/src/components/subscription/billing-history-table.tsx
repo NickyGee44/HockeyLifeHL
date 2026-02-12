@@ -18,7 +18,7 @@ interface BillingHistoryTableProps {
 }
 
 function formatCurrency(cents: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
     currency: currency.toUpperCase(),
   }).format(cents / 100);

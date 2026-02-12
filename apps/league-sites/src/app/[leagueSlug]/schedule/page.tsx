@@ -125,19 +125,6 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
               />
             </div>
 
-            {/* Right: Sponsor Tile placeholder */}
-            <div className="hidden lg:flex flex-shrink-0 w-[280px]">
-              <div
-                className="w-full rounded-xl flex items-center justify-center text-[var(--color-text-muted)] text-sm"
-                style={{
-                  background: 'color-mix(in srgb, var(--color-surface) 50%, transparent)',
-                  border: '2px dashed var(--color-border)',
-                  minHeight: '140px',
-                }}
-              >
-                Sponsor Space
-              </div>
-            </div>
           </div>
         </div>
 
