@@ -1,0 +1,21 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@hockey-life/data": ["../../packages/data/src"],
+      "@hockey-life/data/*": ["../../packages/data/src/*"],
+      "@hockey-life/database": ["../../packages/database/src"],
+      "@hockey-life/database/*": ["../../packages/database/src/*"],
+      "@hockey-life/ui-native": ["../../packages/ui-native/src"],
+      "@hockey-life/ui-native/*": ["../../packages/ui-native/src/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}
