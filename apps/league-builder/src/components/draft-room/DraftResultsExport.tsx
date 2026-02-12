@@ -8,11 +8,19 @@ import type { DraftResults, DraftPick, DraftTeam } from './types';
 
 interface DraftResultsExportProps {
   draftId: string;
-  picks: DraftPick[];
-  teams: DraftTeam[];
+  picks?: DraftPick[];
+  teams?: DraftTeam[];
 }
 
-export function DraftResultsExport({ draftId, picks, teams }: DraftResultsExportProps) {
+const escapeCSV = (value: string | number | null | undefined): string => {
+  const str = String(value ?? '');
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+export function DraftResultsExport({ draftId }: DraftResultsExportProps) {
   const [supabase] = useState(() => createClient());
   const [isExporting, setIsExporting] = useState<'csv' | 'pdf' | null>(null);
 
@@ -55,13 +63,13 @@ export function DraftResultsExport({ draftId, picks, teams }: DraftResultsExport
 
       const csvContent = [
         // Draft info header
-        `Draft: ${results.draft.name}`,
-        `Type: ${results.draft.draft_type}`,
+        `Draft: ${escapeCSV(results.draft.name)}`,
+        `Type: ${escapeCSV(results.draft.draft_type)}`,
         `Completed: ${results.draft.completed_at ? new Date(results.draft.completed_at).toLocaleString() : 'N/A'}`,
         '',
         // Column headers and data
-        headers.join(','),
-        ...rows.map((row) => row.join(',')),
+        headers.map(escapeCSV).join(','),
+        ...rows.map((row) => row.map(escapeCSV).join(',')),
       ].join('\n');
 
       // Download

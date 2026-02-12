@@ -59,6 +59,9 @@ pnpm lint           # ESLint check
 /payments-check     # Stripe payment & billing audit
 /cleanup            # Dead code, i18n gaps, and consistency scan
 /review             # Self-review before commit
+/wizard             # League wizard file paths and dev context
+/sites              # League-sites templates and theming context
+/checkpoint         # WIP save + push (crash resilience)
 ```
 
 ## Monorepo Structure

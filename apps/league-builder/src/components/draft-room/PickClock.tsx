@@ -8,9 +8,10 @@ interface PickClockProps {
   isPaused: boolean;
   isMyPick: boolean;
   onTimeout?: () => void;
+  pickTimeSeconds?: number;
 }
 
-export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout }: PickClockProps) {
+export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout, pickTimeSeconds }: PickClockProps) {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isExpired, setIsExpired] = useState(false);
 
@@ -43,7 +44,7 @@ export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout }: PickCloc
   const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
   // Calculate progress percentage
-  const totalTime = 90; // Default, should come from draft settings
+  const totalTime = pickTimeSeconds ?? 90;
   const progress = Math.min(100, (timeLeft / totalTime) * 100);
 
   // Determine urgency level

@@ -5,11 +5,19 @@ import {
   updatePlayerStatus,
   assignCaptain,
 } from '@/lib/actions/roster';
+import { createClient } from '@/lib/supabase/server';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ teamId: string; rosterId: string }> }
 ) {
+  // Verify user is authenticated
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { rosterId, teamId } = await params;
 
   try {
@@ -108,6 +116,13 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ teamId: string; rosterId: string }> }
 ) {
+  // Verify user is authenticated
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { rosterId } = await params;
 
   const result = await removePlayerFromRoster(rosterId);

@@ -14,6 +14,16 @@ import {
   Shield,
   Download,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/dialog';
 import { getCaptainTeamRoster, removePlayerFromRoster } from '@/lib/actions/captain';
 import ImportRosterModal from './ImportRosterModal';
 
@@ -46,6 +56,7 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [playerToRemove, setPlayerToRemove] = useState<string | null>(null);
 
   const loadRoster = async () => {
     setLoading(true);
@@ -64,11 +75,6 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
   }, [teamId]);
 
   const handleRemovePlayer = async (playerId: string) => {
-    // Confirm before removing
-    if (!confirm('Are you sure you want to remove this player from the roster?')) {
-      return;
-    }
-
     setRemovingId(playerId);
     setError(null);
 
@@ -82,6 +88,7 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
     }
 
     setRemovingId(null);
+    setPlayerToRemove(null);
   };
 
   const filteredRoster = roster.filter((entry) => {
@@ -255,7 +262,7 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
                     <td className="py-4 px-4 text-right">
                       {!isCaptain && (
                         <button
-                          onClick={() => handleRemovePlayer(entry.player_id)}
+                          onClick={() => setPlayerToRemove(entry.player_id)}
                           disabled={isRemoving}
                           className={cn(
                             'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
@@ -288,6 +295,30 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
         teamId={teamId}
         onImportComplete={loadRoster}
       />
+
+      {/* Remove Player Confirmation Dialog */}
+      <AlertDialog open={!!playerToRemove} onOpenChange={(open) => !open && setPlayerToRemove(null)}>
+        <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Player</AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-400">
+              Are you sure you want to remove this player from the roster? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10 text-neutral-300 hover:bg-neutral-800">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => playerToRemove && handleRemovePlayer(playerToRemove)}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
+              {removingId && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

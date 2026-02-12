@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { getLeagueBySlug, getGoalieLeaders, getCurrentSeason, getSeasons, getPlayerBadgesByIds } from '@/lib/data';
@@ -24,7 +25,7 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
   const { season: seasonFilter, sort = 'wins', division: divisionFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
-  if (!league) return null;
+  if (!league) notFound();
 
   const currentSeason = await getCurrentSeason(league.id);
   const seasonId = seasonFilter || currentSeason?.id;

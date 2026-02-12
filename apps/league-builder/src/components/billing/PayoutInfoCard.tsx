@@ -22,9 +22,9 @@ interface PayoutInfoCardProps {
 }
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
   }).format(cents / 100);
 }
 

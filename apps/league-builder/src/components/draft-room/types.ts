@@ -192,7 +192,6 @@ export interface DraftCompleteModalProps {
   picks: DraftPick[];
   teams: DraftTeam[];
   onClose: () => void;
-  onExport: (format: 'csv' | 'pdf') => void;
 }
 
 // Draft Results Export Types

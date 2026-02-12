@@ -8,29 +8,9 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  Shield,
-  Target,
-  Zap,
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { RosterConfirmationProps, DraftPick } from './types';
-
-// Position colors matching brand kit
-const POSITION_COLORS: Record<string, string> = {
-  G: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  D: 'bg-green-500/20 text-green-400 border-green-500/30',
-  C: 'bg-rink-500/20 text-rink-400 border-rink-500/30',
-  LW: 'bg-rink-500/20 text-rink-400 border-rink-500/30',
-  RW: 'bg-rink-500/20 text-rink-400 border-rink-500/30',
-};
-
-const POSITION_ICONS: Record<string, typeof Shield> = {
-  G: Shield,
-  D: Shield,
-  C: Target,
-  LW: Zap,
-  RW: Zap,
-};
 
 export function RosterConfirmation({
   draftId,
@@ -48,15 +28,16 @@ export function RosterConfirmation({
   // Filter picks for this team
   const teamPicks = picks.filter((p) => p.team_id === teamId);
 
-  // Group by position
-  const byPosition: Record<string, DraftPick[]> = {};
+  // Group by round
+  const byRound: Record<number, DraftPick[]> = {};
   teamPicks.forEach((pick) => {
-    const pos = pick.player_name?.includes('(')
-      ? pick.player_name.split('(')[1]?.replace(')', '')
-      : 'Unknown';
-    if (!byPosition[pos]) byPosition[pos] = [];
-    byPosition[pos].push(pick);
+    const round = pick.round ?? 0;
+    if (!byRound[round]) byRound[round] = [];
+    byRound[round].push(pick);
   });
+  const sortedRounds = Object.keys(byRound)
+    .map(Number)
+    .sort((a, b) => a - b);
 
   const handleConfirm = async () => {
     setIsSubmitting(true);
@@ -140,26 +121,22 @@ export function RosterConfirmation({
 
           {/* Roster Preview */}
           <div className="mb-6 space-y-4">
-            {Object.entries(byPosition).map(([position, positionPicks]) => {
-              const Icon = POSITION_ICONS[position] || Users;
+            {sortedRounds.map((round) => {
+              const roundPicks = byRound[round];
               return (
-                <div key={position}>
+                <div key={round}>
                   <div className="mb-2 flex items-center gap-2">
                     <span
-                      className={cn(
-                        'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium',
-                        POSITION_COLORS[position] || 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30'
-                      )}
+                      className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-rink-500/20 text-rink-400 border-rink-500/30"
                     >
-                      <Icon className="h-3 w-3" />
-                      {position}
+                      Round {round}
                     </span>
                     <span className="text-xs text-neutral-500">
-                      {positionPicks.length} player{positionPicks.length !== 1 ? 's' : ''}
+                      {roundPicks.length} pick{roundPicks.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {positionPicks.map((pick) => (
+                    {roundPicks.map((pick) => (
                       <div
                         key={pick.id}
                         className="flex items-center justify-between rounded-lg bg-neutral-800/50 px-3 py-2"
@@ -168,7 +145,7 @@ export function RosterConfirmation({
                           {pick.player_name}
                         </span>
                         <span className="text-xs text-neutral-500">
-                          Rd {pick.round}, #{pick.pick_number}
+                          #{pick.pick_number}
                         </span>
                       </div>
                     ))}

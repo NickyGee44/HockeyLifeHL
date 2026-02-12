@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Clock, User, Zap } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { DraftPick } from './types';
@@ -26,9 +27,11 @@ function formatTimestamp(timestamp: string): string {
 }
 
 export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
+  const [showAll, setShowAll] = useState(false);
+
   // Sort picks by pick_number descending (most recent first)
   const sortedPicks = [...picks].sort((a, b) => b.pick_number - a.pick_number);
-  const displayedPicks = sortedPicks.slice(0, maxDisplay);
+  const displayedPicks = showAll ? sortedPicks : sortedPicks.slice(0, maxDisplay);
 
   return (
     <div className="rounded-lg border bg-card">
@@ -109,12 +112,17 @@ export function DraftHistory({ picks, maxDisplay = 10 }: DraftHistoryProps) {
         )}
       </div>
 
-      {/* Show more */}
+      {/* Show more / Show less */}
       {sortedPicks.length > maxDisplay && (
         <div className="border-t p-3 text-center">
-          <span className="text-xs text-muted-foreground">
-            +{sortedPicks.length - maxDisplay} more picks
-          </span>
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showAll
+              ? 'Show less'
+              : `+${sortedPicks.length - maxDisplay} more picks`}
+          </button>
         </div>
       )}
     </div>

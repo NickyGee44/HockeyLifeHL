@@ -31,9 +31,9 @@ export function Step6Payment() {
   const paymentStatus = watch('payment_status');
 
   // Format amount for display
-  const formattedAmount = new Intl.NumberFormat('en-US', {
+  const formattedAmount = new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
   }).format(registrationFee / 100);
 
   // Create PaymentIntent on component mount

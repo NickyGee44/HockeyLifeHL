@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addStaffMember, getTeamStaff } from '@/lib/actions/roster';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ teamId: string }> }
 ) {
+  // Verify user is authenticated
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { teamId } = await params;
   const { searchParams } = new URL(request.url);
   const seasonId = searchParams.get('seasonId');
@@ -32,6 +40,13 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ teamId: string }> }
 ) {
+  // Verify user is authenticated
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { teamId } = await params;
 
   try {

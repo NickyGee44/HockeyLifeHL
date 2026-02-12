@@ -128,9 +128,9 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
 
   // Format fee for display
   const formatFee = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-CA', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'CAD',
     }).format(cents / 100);
   };
 

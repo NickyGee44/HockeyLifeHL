@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { MessageSquare, Mail, Phone, MapPin, Globe, Clock, ArrowLeft, ExternalLink } from 'lucide-react';
 import { getLeagueBySlug } from '@/lib/data';
 import { ContactForm } from '@/components/contact/ContactForm';
@@ -26,7 +27,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
   const { leagueSlug } = await params;
   const league = await getLeagueBySlug(leagueSlug);
 
-  if (!league) return null;
+  if (!league) notFound();
 
   const hasContactInfo =
     league.contact_email || league.contact_phone || league.website_url || league.address;

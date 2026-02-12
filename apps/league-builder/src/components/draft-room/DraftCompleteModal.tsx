@@ -1,19 +1,15 @@
 ﻿'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Trophy,
   Download,
-  FileText,
-  Table,
   X,
   Users,
   Clock,
   Zap,
-  CheckCircle,
 } from 'lucide-react';
-import { cn } from '@hockey-life/ui/lib/utils';
-import type { DraftCompleteModalProps, DraftPick } from './types';
+import type { DraftCompleteModalProps } from './types';
 
 // Confetti particle type
 interface ConfettiParticle {
@@ -30,9 +26,9 @@ interface ConfettiParticle {
 
 // Confetti colors (gold theme)
 const CONFETTI_COLORS = [
-  '#22D3EE', // Gold
+  '#22D3EE', // Cyan
   '#FFD700', // Bright Gold
-  '#06b6d4', // Dark Gold
+  '#06b6d4', // Dark Cyan
   '#FFFFFF', // White
   '#F0E68C', // Khaki
   '#FFC107', // Amber
@@ -40,7 +36,6 @@ const CONFETTI_COLORS = [
 
 function Confetti() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [particles, setParticles] = useState<ConfettiParticle[]>([]);
 
   useEffect(() => {
     // Create initial particles
@@ -58,7 +53,6 @@ function Confetti() {
         rotationSpeed: (Math.random() - 0.5) * 10,
       });
     }
-    setParticles(initialParticles);
 
     // Animation loop
     const canvas = canvasRef.current;
@@ -127,10 +121,8 @@ export function DraftCompleteModal({
   picks,
   teams,
   onClose,
-  onExport,
 }: DraftCompleteModalProps) {
   const [showConfetti, setShowConfetti] = useState(false);
-  const [selectedExport, setSelectedExport] = useState<'csv' | 'pdf' | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -239,66 +231,11 @@ export function DraftCompleteModal({
             </div>
           </div>
 
-          {/* Export Options */}
-          <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-              Export Results
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => {
-                  setSelectedExport('csv');
-                  onExport('csv');
-                }}
-                className={cn(
-                  'flex items-center justify-center gap-3 rounded-xl border-2 p-4 transition-all',
-                  selectedExport === 'csv'
-                    ? 'border-green-500 bg-green-500/10'
-                    : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
-                )}
-              >
-                <Table
-                  className={cn(
-                    'h-6 w-6',
-                    selectedExport === 'csv' ? 'text-green-500' : 'text-neutral-400'
-                  )}
-                />
-                <div className="text-left">
-                  <p className="font-semibold text-white">CSV Spreadsheet</p>
-                  <p className="text-xs text-neutral-400">Excel, Google Sheets</p>
-                </div>
-                {selectedExport === 'csv' && (
-                  <CheckCircle className="ml-auto h-5 w-5 text-green-500" />
-                )}
-              </button>
-
-              <button
-                onClick={() => {
-                  setSelectedExport('pdf');
-                  onExport('pdf');
-                }}
-                className={cn(
-                  'flex items-center justify-center gap-3 rounded-xl border-2 p-4 transition-all',
-                  selectedExport === 'pdf'
-                    ? 'border-green-500 bg-green-500/10'
-                    : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
-                )}
-              >
-                <FileText
-                  className={cn(
-                    'h-6 w-6',
-                    selectedExport === 'pdf' ? 'text-green-500' : 'text-neutral-400'
-                  )}
-                />
-                <div className="text-left">
-                  <p className="font-semibold text-white">PDF Document</p>
-                  <p className="text-xs text-neutral-400">Print-ready format</p>
-                </div>
-                {selectedExport === 'pdf' && (
-                  <CheckCircle className="ml-auto h-5 w-5 text-green-500" />
-                )}
-              </button>
-            </div>
+          {/* Export Note */}
+          <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 text-center">
+            <p className="text-sm text-neutral-400">
+              Use the CSV and PDF export buttons in the results section below to download draft results.
+            </p>
           </div>
 
           {/* Actions */}

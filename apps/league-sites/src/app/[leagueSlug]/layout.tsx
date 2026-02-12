@@ -11,10 +11,10 @@ import { SponsorFooterStrip } from '@/components/sponsors/SponsorFooterStrip';
 import type { Metadata } from 'next';
 
 /**
- * Force dynamic rendering so branding/theme changes reflect immediately.
- * The Supabase client uses cache: 'no-store' for fresh data on every request.
+ * Revalidate every 60 seconds as a time-based fallback.
+ * On-demand revalidation is handled via /api/revalidate endpoint.
  */
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 interface LeagueLayoutProps {
   children: React.ReactNode;

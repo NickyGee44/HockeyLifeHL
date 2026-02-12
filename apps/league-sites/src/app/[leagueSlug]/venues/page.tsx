@@ -43,51 +43,64 @@ async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
 
   // Get all venues
   const venues = await getVenues(leagueId);
+  if (venues.length === 0) return [];
 
-  // Get upcoming games for each venue
   const now = new Date();
   const twoWeeksLater = new Date(now);
   twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
 
-  const venuesWithGames = await Promise.all(
-    venues.map(async (venue) => {
-      // Get upcoming games at this venue
-      const { data: upcomingGames } = await supabase
-        .from('games')
-        .select(`
-          id,
-          scheduled_at,
-          home_team:teams!games_home_team_id_fkey(name, slug),
-          away_team:teams!games_away_team_id_fkey(name, slug)
-        `)
-        .eq('league_id', leagueId)
-        .eq('location', venue)
-        .gte('scheduled_at', now.toISOString())
-        .lte('scheduled_at', twoWeeksLater.toISOString())
-        .order('scheduled_at', { ascending: true })
-        .limit(3);
+  // Fetch ALL upcoming games across all venues in a single query
+  const [{ data: allUpcomingGames }, { data: allGameCounts }] = await Promise.all([
+    supabase
+      .from('games')
+      .select(`
+        id,
+        scheduled_at,
+        location,
+        home_team:teams!games_home_team_id_fkey(name, slug),
+        away_team:teams!games_away_team_id_fkey(name, slug)
+      `)
+      .eq('league_id', leagueId)
+      .in('location', venues)
+      .gte('scheduled_at', now.toISOString())
+      .lte('scheduled_at', twoWeeksLater.toISOString())
+      .order('scheduled_at', { ascending: true }),
+    supabase
+      .from('games')
+      .select('location')
+      .eq('league_id', leagueId)
+      .in('location', venues),
+  ]);
 
-      // Get total game count at this venue
-      const { count } = await supabase
-        .from('games')
-        .select('*', { count: 'exact', head: true })
-        .eq('league_id', leagueId)
-        .eq('location', venue);
-
-      // Transform nested arrays
-      const games = (upcomingGames || []).map((g: any) => ({
-        ...g,
+  // Group upcoming games by venue, taking top 3 per venue
+  const upcomingByVenue = new Map<string, VenueWithGames['upcomingGames']>();
+  for (const g of allUpcomingGames || []) {
+    const loc = (g as any).location as string;
+    if (!upcomingByVenue.has(loc)) upcomingByVenue.set(loc, []);
+    const venueGames = upcomingByVenue.get(loc)!;
+    if (venueGames.length < 3) {
+      venueGames.push({
+        id: g.id,
+        scheduled_at: g.scheduled_at,
         home_team: Array.isArray(g.home_team) ? g.home_team[0] : g.home_team,
         away_team: Array.isArray(g.away_team) ? g.away_team[0] : g.away_team,
-      }));
+      });
+    }
+  }
 
-      return {
-        name: venue,
-        upcomingGames: games,
-        totalGames: count || 0,
-      };
-    })
-  );
+  // Count total games per venue
+  const countByVenue = new Map<string, number>();
+  for (const row of allGameCounts || []) {
+    const loc = (row as any).location as string;
+    countByVenue.set(loc, (countByVenue.get(loc) || 0) + 1);
+  }
+
+  // Build result array
+  const venuesWithGames: VenueWithGames[] = venues.map((venue) => ({
+    name: venue,
+    upcomingGames: upcomingByVenue.get(venue) || [],
+    totalGames: countByVenue.get(venue) || 0,
+  }));
 
   // Sort by total games (most active first)
   return venuesWithGames.sort((a, b) => b.totalGames - a.totalGames);

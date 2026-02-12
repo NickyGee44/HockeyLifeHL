@@ -36,9 +36,9 @@ export function Step7Confirmation() {
 
   // Format payment amount
   const formattedAmount = requiresPayment
-    ? new Intl.NumberFormat('en-US', {
+    ? new Intl.NumberFormat('en-CA', {
         style: 'currency',
-        currency: 'USD',
+        currency: 'CAD',
       }).format(registrationFee / 100)
     : null;
 

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { AlertTriangle, CheckCircle, Download } from 'lucide-react';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 
 import { PickClock } from './PickClock';
@@ -85,8 +85,16 @@ export function DraftRoom({
     },
   });
 
+  // AbortController ref to cancel in-flight fetch requests on re-entry
+  const fetchControllerRef = useRef<AbortController | null>(null);
+
   // Fetch initial data
   const fetchDraftData = useCallback(async () => {
+    // Cancel any in-flight request
+    fetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    fetchControllerRef.current = controller;
+
     setIsLoading(true);
     setError(null);
 
@@ -97,6 +105,7 @@ export function DraftRoom({
         { p_draft_id: draftId }
       );
 
+      if (controller.signal.aborted) return;
       if (stateError) throw stateError;
 
       // Handle RPC response type
@@ -120,6 +129,7 @@ export function DraftRoom({
         .is('undone_at', null)  // Only active picks
         .order('pick_number', { ascending: true });
 
+      if (controller.signal.aborted) return;
       if (picksError) throw picksError;
 
       const mappedPicks: DraftPick[] = (picksData || []).map((p: any) => ({
@@ -140,6 +150,7 @@ export function DraftRoom({
         { p_draft_id: draftId, p_limit: 200 }
       );
 
+      if (controller.signal.aborted) return;
       if (playersError) throw playersError;
       setPlayers((playersData as DraftPlayer[]) || []);
 
@@ -151,6 +162,7 @@ export function DraftRoom({
           .select('id, name')
           .eq('league_id', leagueId);
 
+        if (controller.signal.aborted) return;
         if (teamsError) throw teamsError;
         const mappedTeams: DraftTeam[] = (teamsData || []).map((t: any) => ({
           id: t.id,
@@ -168,6 +180,7 @@ export function DraftRoom({
         .order('round', { ascending: true })
         .order('pick_position', { ascending: true });
 
+      if (controller.signal.aborted) return;
       if (orderError) throw orderError;
 
       const mappedOrder: DraftOrder[] = (orderData || []).map((o: any) => ({
@@ -187,6 +200,7 @@ export function DraftRoom({
         .eq('draft_id', draftId)
         .order('created_at', { ascending: true });
 
+      if (controller.signal.aborted) return;
       if (messagesError) throw messagesError;
 
       const mappedMessages: DraftMessage[] = (messagesData || []).map((m: any) => ({
@@ -196,10 +210,13 @@ export function DraftRoom({
       }));
       setMessages(mappedMessages);
     } catch (err) {
+      if (controller.signal.aborted) return;
       console.error('Error fetching draft data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load draft');
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [draftId, supabase]);
 
@@ -456,11 +473,6 @@ export function DraftRoom({
     fetchDraftData(); // Refresh to get updated draft order
   };
 
-  // Handle export
-  const handleExport = async (format: 'csv' | 'pdf') => {
-    // Export is handled by DraftResultsExport component
-  };
-
   // Check for draft completion and show modal
   useEffect(() => {
     if (draft?.status === 'complete' && !showCompleteModal) {
@@ -531,7 +543,6 @@ export function DraftRoom({
             picks={picks}
             teams={teams}
             onClose={() => setShowCompleteModal(false)}
-            onExport={handleExport}
           />
         )}
 
@@ -689,6 +700,7 @@ export function DraftRoom({
               isPaused={isPaused}
               isMyPick={isMyPick}
               onTimeout={handleTimeout}
+              pickTimeSeconds={draft?.pick_time_seconds ?? 90}
             />
 
             {/* Selected player confirmation */}

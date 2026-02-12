@@ -42,6 +42,7 @@
 | [CAPTAIN_VERIFICATION_SYSTEM_DESIGN](CAPTAIN_VERIFICATION_SYSTEM_DESIGN.md) | Captain identity verification architecture |
 | [DIVISION_MANAGEMENT](DIVISION_MANAGEMENT.md) | Division feature overview |
 | [DIVISION_MANAGEMENT_ARCHITECTURE](DIVISION_MANAGEMENT_ARCHITECTURE.md) | Division system technical architecture |
+| [DRAFT_ROOM_UX_AUDIT](DRAFT_ROOM_UX_AUDIT.md) | Comprehensive UX audit of draft room feature (34 issues identified) |
 | [PHASE_1C_ADMIN_OPS_CONSOLE_SPEC](PHASE_1C_ADMIN_OPS_CONSOLE_SPEC.md) | Admin ops console specification (Phase 1C) |
 | [MULTI_TENANT_EDGE_CASES](MULTI_TENANT_EDGE_CASES.md) | Multi-tenancy edge cases and solutions |
 
@@ -102,4 +103,4 @@ Session logs for multi-agent coordination live in `.claude/work-logs/`:
 
 ---
 
-*Last updated: 2026-11-02*
+*Last updated: 2026-02-12*

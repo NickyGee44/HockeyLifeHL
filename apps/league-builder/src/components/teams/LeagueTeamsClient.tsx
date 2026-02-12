@@ -12,6 +12,8 @@ import {
   Edit,
   Trash2,
   Clock,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,8 +22,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { PendingTeamsTab } from './PendingTeamsTab';
 import { getPendingTeamRegistrationRequestsCount } from '@/lib/actions/team-registration-requests';
+import { deleteTeam } from '@/lib/actions/teams';
 
 interface Team {
   id: string;
@@ -67,6 +78,9 @@ export function LeagueTeamsClient({
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || initialTab);
   const [selectedDivision, setSelectedDivision] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Fetch pending count on mount
   useEffect(() => {
@@ -182,6 +196,7 @@ export function LeagueTeamsClient({
                   team={team}
                   leagueId={leagueId}
                   locale={locale}
+                  onDelete={setTeamToDelete}
                 />
               ))}
             </div>
@@ -222,6 +237,94 @@ export function LeagueTeamsClient({
           initialDivisions={divisions}
         />
       )}
+
+      {/* Delete Team Confirmation Dialog */}
+      <Dialog
+        open={teamToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTeamToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[450px] bg-neutral-900 border-white/10">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-red-500/10">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+              </div>
+              <DialogTitle className="text-white">Delete Team</DialogTitle>
+            </div>
+            <DialogDescription>
+              Are you sure you want to delete{' '}
+              <strong className="text-white">{teamToDelete?.name}</strong>?
+              The team will be marked as inactive.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="p-4 rounded-lg bg-neutral-800/50 text-neutral-400 text-sm">
+              If the team has active roster members, you will need to remove them first.
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                {deleteError}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setTeamToDelete(null);
+                setDeleteError(null);
+              }}
+              disabled={isDeleting}
+              className="text-neutral-400 hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!teamToDelete) return;
+                setIsDeleting(true);
+                setDeleteError(null);
+                try {
+                  const result = await deleteTeam(teamToDelete.id);
+                  if ('error' in result && result.error) {
+                    setDeleteError(result.error);
+                  } else {
+                    setTeamToDelete(null);
+                    router.refresh();
+                  }
+                } catch {
+                  setDeleteError('An unexpected error occurred');
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+              disabled={isDeleting}
+              className={cn(
+                'bg-red-600 hover:bg-red-700 text-white font-semibold',
+                'transition-colors'
+              )}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Team'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -230,10 +333,12 @@ function TeamCardInner({
   team,
   leagueId,
   locale,
+  onDelete,
 }: {
   team: Team;
   leagueId: string;
   locale: string;
+  onDelete: (team: Team) => void;
 }) {
   const statusColors: Record<string, string> = {
     active: 'bg-green-500/10 text-green-500 border-green-500/30',
@@ -280,7 +385,10 @@ function TeamCardInner({
                 Edit Team
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-red-500">
+            <DropdownMenuItem
+              className="text-red-500"
+              onClick={() => onDelete(team)}
+            >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete Team
             </DropdownMenuItem>

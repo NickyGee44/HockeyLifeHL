@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
+import { notFound } from 'next/navigation';
 import { Info, Mail, Phone, MapPin, Globe, Calendar, Users, Trophy } from 'lucide-react';
 import { getLeagueBySlug, getLeagueStats, getCurrentSeason, getLeagueStaff } from '@/lib/data';
 import { SocialLinks } from '@/components/SocialLinks';
@@ -27,7 +28,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
   const { leagueSlug } = await params;
   const league = await getLeagueBySlug(leagueSlug);
 
-  if (!league) return null;
+  if (!league) notFound();
 
   const [stats, season, staff] = await Promise.all([
     getLeagueStats(league.id),

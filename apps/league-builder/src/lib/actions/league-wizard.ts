@@ -158,7 +158,7 @@ export async function saveDraft(
         .eq('id', existingDraft.id);
 
       if (updateError) {
-        console.error('Draft update error:', updateError);
+        console.error('[league-wizard] Draft update error:', updateError.message);
         return {
           success: false,
           error: `Failed to update draft: ${updateError.message}`,
@@ -178,7 +178,7 @@ export async function saveDraft(
         .single();
 
       if (insertError || !newDraft) {
-        console.error('Draft creation error:', insertError);
+        console.error('[league-wizard] Draft creation error:', insertError?.message);
         return {
           success: false,
           error: `Failed to create draft: ${insertError?.message}`,
@@ -191,7 +191,7 @@ export async function saveDraft(
       };
     }
   } catch (error) {
-    console.error('saveDraft error:', error);
+    console.error('[league-wizard] saveDraft error:', error instanceof Error ? error.message : error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -230,7 +230,7 @@ export async function getDraft(): Promise<
       .maybeSingle();
 
     if (draftError) {
-      console.error('getDraft error:', draftError);
+      console.error('[league-wizard] getDraft error:', draftError.message);
       return {
         success: false,
         error: `Failed to load draft: ${draftError.message}`,
@@ -263,7 +263,7 @@ export async function getDraft(): Promise<
 
     return { success: true, data: formData };
   } catch (error) {
-    console.error('getDraft error:', error);
+    console.error('[league-wizard] getDraft error:', error instanceof Error ? error.message : error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -319,7 +319,7 @@ export async function deleteDraft(
       .eq('status', 'draft');
 
     if (deleteError) {
-      console.error('deleteDraft error:', deleteError);
+      console.error('[league-wizard] deleteDraft error:', deleteError.message);
       return {
         success: false,
         error: `Failed to delete draft: ${deleteError.message}`,
@@ -328,7 +328,7 @@ export async function deleteDraft(
 
     return { success: true, data: undefined };
   } catch (error) {
-    console.error('deleteDraft error:', error);
+    console.error('[league-wizard] deleteDraft error:', error instanceof Error ? error.message : error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -364,13 +364,10 @@ export async function createLeague(
     seasonId: string;
   }>
 > {
-  console.log('🏒 createLeague - Starting atomic league creation');
-
   try {
     // Validate form data
     const validation = wizardSchema.safeParse(formData);
     if (!validation.success) {
-      console.error('Validation error:', validation.error);
       return {
         success: false,
         error: `Validation failed: ${validation.error.issues[0].message}`,
@@ -392,8 +389,6 @@ export async function createLeague(
       return { success: false, error: 'Not authenticated' };
     }
 
-    console.log(`👤 User: ${user.id}`);
-
     // Get user's organization
     const { data: org, error: orgError } = await serviceSupabase
       .from('organizations')
@@ -402,14 +397,11 @@ export async function createLeague(
       .single();
 
     if (orgError || !org) {
-      console.error('Organization error:', orgError);
       return {
         success: false,
         error: 'No organization found. Please create an organization first.',
       };
     }
-
-    console.log(`🏢 Organization: ${org.id}`);
 
     // Generate unique slug with collision detection
     const slug = generateSlug(data.name);
@@ -435,8 +427,6 @@ export async function createLeague(
         };
       }
     }
-
-    console.log(`🔗 Generated slug: ${uniqueSlug}`);
 
     // ATOMIC TRANSACTION BEGINS
     // Step 1: Create league
@@ -539,14 +529,12 @@ export async function createLeague(
       .single();
 
     if (leagueError || !league) {
-      console.error('❌ League creation error:', leagueError);
+      console.error('[league-wizard] League creation error:', leagueError?.message);
       return {
         success: false,
         error: `Failed to create league: ${leagueError?.message}`,
       };
     }
-
-    console.log(`✅ League created: ${league.id}`);
 
     try {
       // Step 2: Create league membership (owner role)
@@ -562,8 +550,6 @@ export async function createLeague(
       if (membershipError) {
         throw new Error(`Membership creation failed: ${membershipError.message}`);
       }
-
-      console.log('✅ League membership created');
 
       // Step 3: Create season
       // Map wizard registration_type to database enum values
@@ -602,8 +588,6 @@ export async function createLeague(
         throw new Error(`Season creation failed: ${seasonError?.message}`);
       }
 
-      console.log(`✅ Season created: ${season.id}`);
-
       // Step 3b: Create season fee if paid registration is enabled
       if (data.enablePaidRegistration && data.registrationFee > 0) {
         const earlyBirdDiscountCents = data.earlyBirdDiscount?.enabled
@@ -632,10 +616,8 @@ export async function createLeague(
         });
 
         if (feeError) {
-          console.error('Failed to create season fee:', feeError);
+          console.error('[league-wizard] Failed to create season fee:', feeError.message);
           // Continue anyway - league is created, fee can be added later
-        } else {
-          console.log('✅ Season fee created');
         }
       }
 
@@ -658,8 +640,6 @@ export async function createLeague(
           throw new Error(`Teams creation failed: ${teamsError.message}`);
         }
 
-        console.log(`✅ Created ${data.teams.length} teams`);
-
         // Step 4b: Link teams to season via season_teams junction table
         if (createdTeams && createdTeams.length > 0) {
           const teamIds = createdTeams.map((t: { id: string }) => t.id);
@@ -673,10 +653,8 @@ export async function createLeague(
             .insert(seasonTeamInserts);
 
           if (seasonTeamsError) {
-            console.error('Failed to link teams to season:', seasonTeamsError);
+            console.error('[league-wizard] Failed to link teams to season:', seasonTeamsError.message);
             // Continue anyway - teams are created, just not linked
-          } else {
-            console.log(`✅ Linked ${teamIds.length} teams to season`);
           }
         }
       }
@@ -718,10 +696,8 @@ export async function createLeague(
           );
 
         if (addonError) {
-          console.error(`Failed to create addon ${addon.addon_type}:`, addonError);
+          console.error(`[league-wizard] Failed to create addon ${addon.addon_type}:`, addonError.message);
           // Continue anyway - addons can be set up later
-        } else {
-          console.log(`✅ Add-on record created: ${addon.addon_type}`);
         }
       }
 
@@ -733,15 +709,11 @@ export async function createLeague(
           .eq('id', draftId)
           .eq('created_by', user.id)
           .eq('status', 'draft');
-
-        console.log(`✅ Cleaned up draft: ${draftId}`);
       }
 
       // Revalidate relevant paths
       revalidatePath('/dashboard');
       revalidatePath('/dashboard/leagues');
-
-      console.log('🎉 League creation complete!');
 
       return {
         success: true,
@@ -753,7 +725,7 @@ export async function createLeague(
       };
     } catch (rollbackError) {
       // ROLLBACK: Delete the league (cascades to all related records)
-      console.error('❌ Rolling back due to error:', rollbackError);
+      console.error('[league-wizard] Rolling back league creation due to error:', rollbackError instanceof Error ? rollbackError.message : rollbackError);
 
       await serviceSupabase.from('leagues').delete().eq('id', league.id);
 
@@ -766,7 +738,7 @@ export async function createLeague(
       };
     }
   } catch (error) {
-    console.error('createLeague error:', error);
+    console.error('[league-wizard] createLeague error:', error instanceof Error ? error.message : error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',

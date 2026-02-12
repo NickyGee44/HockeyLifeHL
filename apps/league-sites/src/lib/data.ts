@@ -170,7 +170,7 @@ export async function getDivisions(leagueId: string): Promise<Division[]> {
     .from('divisions')
     .select('*')
     .eq('league_id', leagueId)
-    .order('name', { ascending: true });
+    .order('sort_order', { ascending: true });
 
   if (error || !data) {
     return [];

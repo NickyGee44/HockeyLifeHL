@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
@@ -114,7 +115,7 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
           { label: 'Last 14 days', value: '14' },
           { label: 'Last 30 days', value: '30' },
         ].map((opt) => (
-          <a
+          <Link
             key={opt.value}
             href={`/${leagueSlug}/scores?period=${opt.value}${seasonFilter ? `&season=${seasonFilter}` : ''}${teamFilter ? `&team=${teamFilter}` : ''}`}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
@@ -124,7 +125,7 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
             }`}
           >
             {opt.label}
-          </a>
+          </Link>
         ))}
       </div>
 

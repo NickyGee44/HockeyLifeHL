@@ -91,7 +91,6 @@ export interface Season {
 export interface Division {
   id: string;
   name: string;
-  season_id: string;
   league_id: string;
   sort_order: number;
 }

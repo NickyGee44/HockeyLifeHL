@@ -2,6 +2,30 @@
 
 import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import Stripe from 'stripe';
+
+// ============================================================================
+// Stripe Client (Lazy Initialization)
+// ============================================================================
+
+let _stripe: Stripe | null = null;
+
+function getStripeClient(): Stripe {
+  if (_stripe) return _stripe;
+
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey) {
+    throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+  }
+
+  _stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2026-01-28.clover',
+    typescript: true,
+  });
+
+  return _stripe;
+}
 
 // ============================================================================
 // Types
@@ -323,18 +347,33 @@ export async function submitPlayerRegistration(
     const expectedFeeCents = seasonFee?.amount_cents ?? 0;
 
     if (expectedFeeCents > 0) {
-      if (data.payment_status !== 'completed') {
-        return {
-          success: false,
-          error: 'Payment is required for this registration. Please complete payment before submitting.',
-        };
-      }
       if (!data.payment_intent_id) {
         return {
           success: false,
           error: 'Missing payment confirmation. Please complete the payment step.',
         };
       }
+
+      // Verify payment with Stripe - never trust client-supplied payment_status
+      try {
+        const stripe = getStripeClient();
+        const paymentIntent = await stripe.paymentIntents.retrieve(data.payment_intent_id);
+
+        if (paymentIntent.status !== 'succeeded') {
+          return {
+            success: false,
+            error: `Payment has not been completed (status: ${paymentIntent.status}). Please complete payment before submitting.`,
+          };
+        }
+      } catch (stripeError) {
+        console.error('Stripe PaymentIntent verification failed:', stripeError);
+        return {
+          success: false,
+          error: 'Unable to verify payment. Please try again or contact support.',
+        };
+      }
+
+      data.payment_status = 'completed';
       data.amount_cents = expectedFeeCents;
     } else {
       data.payment_status = 'not_required';

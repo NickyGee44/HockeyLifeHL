@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart3, Trophy, Target, Shield, ChevronRight, Zap } from 'lucide-react';
 import { getLeagueBySlug, getStatsLeaders, getCurrentSeason, getSpecialTeamsLeaders, getPlayerBadgesByIds } from '@/lib/data';
@@ -22,7 +23,7 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
   const { division: divisionFilter } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
-  if (!league) return null;
+  if (!league) notFound();
 
   const season = await getCurrentSeason(league.id);
 
