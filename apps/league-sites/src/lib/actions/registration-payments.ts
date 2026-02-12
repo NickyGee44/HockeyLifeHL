@@ -18,8 +18,6 @@ import { createAuthClient as createClient, createServiceRoleClient } from '@/lib
 import Stripe from 'stripe';
 import crypto from 'crypto';
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
-
 // ============================================================================
 // Types
 // ============================================================================
@@ -296,15 +294,6 @@ export async function createRegistrationCheckout(
       })
       .eq('id', registrationId);
 
-    if (isDevelopment) {
-      console.log('[Registration Payments] Checkout session created:', {
-        registration_id: registrationId,
-        session_id: session.id,
-        amount: amountOwed,
-        application_fee: applicationFee,
-      });
-    }
-
     return {
       success: true,
       data: {
@@ -505,15 +494,6 @@ export async function createEmbeddedCheckout(
         payment_status: 'pending',
       })
       .eq('id', registrationId);
-
-    if (isDevelopment) {
-      console.log('[Registration Payments] Embedded checkout session created:', {
-        registration_id: registrationId,
-        session_id: session.id,
-        amount: amountOwed,
-        application_fee: applicationFee,
-      });
-    }
 
     return {
       success: true,

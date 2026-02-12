@@ -75,7 +75,6 @@ export function DraftRoom({
   } = useDraftReliability({
     draftId,
     onStateVersionMismatch: (serverVersion, localVersion) => {
-      console.log(`[DraftRoom] State drift detected: server=${serverVersion}, local=${localVersion}`);
       fetchDraftData(); // Full refresh on drift
     },
     onConnectionChange: (state) => {
@@ -225,7 +224,6 @@ export function DraftRoom({
           filter: `id=eq.${draftId}`,
         },
         (payload) => {
-          console.log('Draft updated:', payload);
           const newDraft = payload.new as Draft & { state_version?: number };
 
           // Update state version for drift detection
@@ -249,12 +247,9 @@ export function DraftRoom({
 
           // Deduplicate events
           if (processedEventIds.current.has(pickId)) {
-            console.log('Duplicate pick event ignored:', pickId);
             return;
           }
           processedEventIds.current.add(pickId);
-
-          console.log('New pick:', payload);
 
           try {
             // Fetch the full pick with relations
@@ -315,7 +310,6 @@ export function DraftRoom({
           // Handle undo (pick marked with undone_at)
           const updatedPick = payload.new as any;
           if (updatedPick.undone_at) {
-            console.log('Pick undone:', updatedPick.id);
             // Remove from picks list
             setPicks((prev) => prev.filter((p) => p.id !== updatedPick.id));
             // Restore player to pool
@@ -332,7 +326,6 @@ export function DraftRoom({
           filter: `draft_id=eq.${draftId}`,
         },
         async (payload) => {
-          console.log('New message:', payload);
           // Fetch the full message with relations
           const { data } = await supabase
             .from('draft_messages')
@@ -393,7 +386,6 @@ export function DraftRoom({
   const handleTimeout = useCallback(async () => {
     if (!isMyPick || !draft?.auto_pick_enabled) return;
 
-    console.log('Pick timed out, triggering auto-pick...');
     // Auto-pick will be handled by the server/cron job
     // Just refresh the state
     fetchDraftData();
@@ -467,7 +459,6 @@ export function DraftRoom({
   // Handle export
   const handleExport = async (format: 'csv' | 'pdf') => {
     // Export is handled by DraftResultsExport component
-    console.log('Export requested:', format);
   };
 
   // Check for draft completion and show modal

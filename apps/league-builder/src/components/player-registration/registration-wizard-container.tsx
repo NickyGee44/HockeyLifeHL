@@ -189,8 +189,6 @@ export function RegistrationWizardContainer({
 
   // Handle final form submission
   const handleSubmit = async (data: RegistrationFormData) => {
-    console.log('Submitting registration:', data);
-
     // Client-side payment gate: if fee > 0, payment must be completed
     if (requiresPayment && data.payment_status !== 'completed') {
       toast.error('Payment is required to complete registration. Please complete the payment step.');

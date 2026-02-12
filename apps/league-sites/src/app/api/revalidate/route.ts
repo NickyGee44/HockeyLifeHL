@@ -56,8 +56,6 @@ export async function POST(request: NextRequest) {
     // Also revalidate the layout (affects all child pages)
     revalidatePath(`/${slug}`, 'layout');
 
-    console.log(`[Revalidation] Triggered for league: ${slug}, type: ${type}`);
-
     return NextResponse.json({
       success: true,
       revalidated: paths,

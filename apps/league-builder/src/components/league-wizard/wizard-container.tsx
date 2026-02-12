@@ -152,8 +152,6 @@ export function WizardContainer({
 
   // Handle final form submission
   const handleSubmit = async (data: WizardFormData) => {
-    console.log('Submitting wizard form:', data);
-
     setIsSubmitting(true);
 
     try {

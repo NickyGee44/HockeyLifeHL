@@ -55,7 +55,6 @@ export function useDraftReliability({
     (newState: ConnectionState) => {
       setConnectionState((prev) => {
         if (prev !== newState) {
-          console.log(`[DraftReliability] Connection state: ${prev} -> ${newState}`);
           onConnectionChange?.(newState);
         }
         return newState;
@@ -82,9 +81,6 @@ export function useDraftReliability({
       setLastSyncTime(new Date());
 
       if (data && data.state_version !== localStateVersion) {
-        console.log(
-          `[DraftReliability] State drift detected: local=${localStateVersion}, server=${data.state_version}`
-        );
         onStateVersionMismatch?.(data.state_version, localStateVersion);
       }
     } catch (err) {
@@ -134,8 +130,6 @@ export function useDraftReliability({
   // Fallback polling when disconnected
   useEffect(() => {
     if (isPollingFallback) {
-      console.log(`[DraftReliability] Starting fallback polling (every ${pollInterval}ms)`);
-
       pollIntervalRef.current = setInterval(() => {
         forceSync();
       }, pollInterval);
@@ -144,7 +138,6 @@ export function useDraftReliability({
       forceSync();
     } else {
       if (pollIntervalRef.current) {
-        console.log('[DraftReliability] Stopping fallback polling');
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
       }
