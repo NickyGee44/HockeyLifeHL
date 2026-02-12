@@ -10,6 +10,7 @@
  */
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Check, Clock, Gift, AlertTriangle, Calendar, CreditCard } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import type { SeasonFee } from '@/lib/payments/types';
@@ -118,6 +119,7 @@ export function FeeBreakdown({
   onPlanSelect,
   className,
 }: FeeBreakdownProps) {
+  const t = useTranslations('payments.feeBreakdown');
   const calculated = calculateFeeAmount(fee);
 
   // Calculate payment plan details
@@ -146,7 +148,7 @@ export function FeeBreakdown({
       <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-5 space-y-3">
         {/* Base Amount */}
         <div className="flex items-center justify-between pb-3 border-b border-neutral-700">
-          <span className="text-neutral-400">Base Registration Fee</span>
+          <span className="text-neutral-400">{t('baseRegistrationFee')}</span>
           <span className="text-lg font-semibold text-white">
             {formatCurrency(calculated.baseAmount, fee.currency)}
           </span>
@@ -157,7 +159,7 @@ export function FeeBreakdown({
           <div className="flex items-center justify-between text-green-400">
             <div className="flex items-center gap-2">
               <Gift className="w-4 h-4" />
-              <span className="text-sm">Early Bird Discount</span>
+              <span className="text-sm">{t('earlyBirdDiscount')}</span>
             </div>
             <span className="font-semibold">
               -{formatCurrency(calculated.discount, fee.currency)}
@@ -173,10 +175,9 @@ export function FeeBreakdown({
             <div className="flex items-start gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
               <Clock className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
               <div className="text-xs text-green-400">
-                <div className="font-semibold mb-1">Early Bird Available!</div>
+                <div className="font-semibold mb-1">{t('earlyBirdAvailable')}</div>
                 <div>
-                  Register by {new Date(fee.early_bird_deadline).toLocaleDateString()} to save{' '}
-                  {formatCurrency(fee.early_bird_discount_cents, fee.currency)}
+                  {t('registerBySave', { date: new Date(fee.early_bird_deadline).toLocaleDateString(), amount: formatCurrency(fee.early_bird_discount_cents, fee.currency) })}
                 </div>
               </div>
             </div>
@@ -187,7 +188,7 @@ export function FeeBreakdown({
           <div className="flex items-center justify-between text-orange-400">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              <span className="text-sm">Late Registration Fee</span>
+              <span className="text-sm">{t('lateRegistrationFee')}</span>
             </div>
             <span className="font-semibold">
               +{formatCurrency(calculated.lateFee, fee.currency)}
@@ -200,10 +201,9 @@ export function FeeBreakdown({
           <div className="flex items-start gap-2 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
             <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5 shrink-0" />
             <div className="text-xs text-orange-400">
-              <div className="font-semibold mb-1">Payment Deadline</div>
+              <div className="font-semibold mb-1">{t('paymentDeadline')}</div>
               <div>
-                Register by {new Date(fee.payment_deadline).toLocaleDateString()} to avoid a{' '}
-                {formatCurrency(fee.late_fee_cents, fee.currency)} late fee
+                {t('registerByAvoidFee', { date: new Date(fee.payment_deadline).toLocaleDateString(), amount: formatCurrency(fee.late_fee_cents, fee.currency) })}
               </div>
             </div>
           </div>
@@ -211,7 +211,7 @@ export function FeeBreakdown({
 
         {/* Total */}
         <div className="flex items-center justify-between pt-3 border-t border-neutral-700">
-          <span className="font-semibold text-white">Total Due</span>
+          <span className="font-semibold text-white">{t('totalDue')}</span>
           <span className="text-2xl font-bold text-rink-500">
             {formatCurrency(calculated.total, fee.currency)}
           </span>
@@ -223,7 +223,7 @@ export function FeeBreakdown({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-neutral-400" />
-            <h4 className="text-sm font-semibold text-white">Choose Payment Plan</h4>
+            <h4 className="text-sm font-semibold text-white">{t('choosePaymentPlan')}</h4>
           </div>
 
           <div className="space-y-2">
@@ -242,12 +242,12 @@ export function FeeBreakdown({
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-white">Pay in Full</span>
+                      <span className="font-semibold text-white">{t('payInFull')}</span>
                       {selectedPlan === 'full' && (
                         <Check className="w-4 h-4 text-rink-500" />
                       )}
                     </div>
-                    <div className="text-xs text-neutral-400">Single payment</div>
+                    <div className="text-xs text-neutral-400">{t('singlePayment')}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-xl font-bold text-white">
@@ -273,13 +273,13 @@ export function FeeBreakdown({
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-white">2 Payments</span>
+                      <span className="font-semibold text-white">{t('twoPayments')}</span>
                       {selectedPlan === 'two_pay' && (
                         <Check className="w-4 h-4 text-rink-500" />
                       )}
                     </div>
                     <div className="text-xs text-neutral-400">
-                      {formatCurrency(twoPayPlan.perPayment, fee.currency)} per payment
+                      {t('perPayment', { amount: formatCurrency(twoPayPlan.perPayment, fee.currency) })}
                     </div>
                   </div>
                   <div className="text-right">
@@ -288,7 +288,7 @@ export function FeeBreakdown({
                     </div>
                     {fee.installment_fee_cents > 0 && (
                       <div className="text-xs text-neutral-500">
-                        +{formatCurrency(fee.installment_fee_cents * 2, fee.currency)} fees
+                        {t('fees', { amount: formatCurrency(fee.installment_fee_cents * 2, fee.currency) })}
                       </div>
                     )}
                   </div>
@@ -311,13 +311,13 @@ export function FeeBreakdown({
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-white">3 Payments</span>
+                      <span className="font-semibold text-white">{t('threePayments')}</span>
                       {selectedPlan === 'three_pay' && (
                         <Check className="w-4 h-4 text-rink-500" />
                       )}
                     </div>
                     <div className="text-xs text-neutral-400">
-                      {formatCurrency(threePayPlan.perPayment, fee.currency)} per payment
+                      {t('perPayment', { amount: formatCurrency(threePayPlan.perPayment, fee.currency) })}
                     </div>
                   </div>
                   <div className="text-right">
@@ -326,7 +326,7 @@ export function FeeBreakdown({
                     </div>
                     {fee.installment_fee_cents > 0 && (
                       <div className="text-xs text-neutral-500">
-                        +{formatCurrency(fee.installment_fee_cents * 3, fee.currency)} fees
+                        {t('fees', { amount: formatCurrency(fee.installment_fee_cents * 3, fee.currency) })}
                       </div>
                     )}
                   </div>
@@ -342,7 +342,7 @@ export function FeeBreakdown({
         <div className="flex items-start gap-2 p-3 bg-neutral-800/50 rounded-lg">
           <Calendar className="w-4 h-4 text-neutral-400 mt-0.5 shrink-0" />
           <div className="text-xs text-neutral-400">
-            <div className="font-semibold mb-1">Payment Deadline</div>
+            <div className="font-semibold mb-1">{t('paymentDeadline')}</div>
             <div>{new Date(fee.payment_deadline).toLocaleDateString()}</div>
           </div>
         </div>

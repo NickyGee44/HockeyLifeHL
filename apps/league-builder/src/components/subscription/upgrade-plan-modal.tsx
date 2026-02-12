@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Check, Loader2, TrendingUp, Globe, Zap } from 'lucide-react';
 import {
   Dialog,
@@ -34,6 +35,7 @@ const TIER_ICONS = {
 } as const;
 
 export function UpgradePlanModal({ open, onOpenChange, currentTier }: UpgradePlanModalProps) {
+  const t = useTranslations('subscription.upgradePlanModal');
   const [redirecting, setRedirecting] = useState(false);
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null);
 
@@ -77,8 +79,8 @@ export function UpgradePlanModal({ open, onOpenChange, currentTier }: UpgradePla
       }
     } catch (error) {
       console.error('Upgrade error:', error);
-      toast.error('Failed to start checkout', {
-        description: error instanceof Error ? error.message : 'Please try again',
+      toast.error(t('failedCheckout'), {
+        description: error instanceof Error ? error.message : undefined,
       });
       setRedirecting(false);
       setSelectedTier(null);
@@ -89,9 +91,9 @@ export function UpgradePlanModal({ open, onOpenChange, currentTier }: UpgradePla
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl bg-neutral-900 border-white/10 text-neutral-100">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-neutral-100">Upgrade Your Plan</DialogTitle>
+          <DialogTitle className="text-2xl text-neutral-100">{t('title')}</DialogTitle>
           <DialogDescription className="text-neutral-400">
-            Choose the plan that best fits your needs
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -120,7 +122,7 @@ export function UpgradePlanModal({ open, onOpenChange, currentTier }: UpgradePla
                         <span className="text-sm">/{tierInfo.interval}</span>
                       </>
                     ) : (
-                      <span className="text-lg font-semibold text-neutral-200">Custom Pricing</span>
+                      <span className="text-lg font-semibold text-neutral-200">{t('contactSales')}</span>
                     )}
                   </CardDescription>
                 </CardHeader>
@@ -144,19 +146,19 @@ export function UpgradePlanModal({ open, onOpenChange, currentTier }: UpgradePla
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Redirecting to Checkout...
+                        {t('redirectingToCheckout')}
                       </>
                     ) : (
                       <>
                         <TrendingUp className="h-4 w-4 mr-2" />
-                        Upgrade to {tierInfo.name}
+                        {t('upgradeTo', { name: tierInfo.name })}
                       </>
                     )}
                   </Button>
 
                   {tierInfo.price === 0 && (
                     <p className="text-xs text-center text-neutral-500">
-                      Contact sales for custom pricing
+                      {t('contactSales')}
                     </p>
                   )}
                 </CardContent>
@@ -167,13 +169,13 @@ export function UpgradePlanModal({ open, onOpenChange, currentTier }: UpgradePla
 
         {availableTiers.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-neutral-400">You are already on the highest tier.</p>
+            <p className="text-neutral-400">{t('highestTier')}</p>
           </div>
         )}
 
         <div className="mt-4 text-center">
           <p className="text-sm text-neutral-500">
-            All plans include 14-day free trial. Cancel anytime.
+            {t('trialInfo')}
           </p>
         </div>
       </DialogContent>

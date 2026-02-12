@@ -18,6 +18,7 @@ import {
   TrendingUp,
   X,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { OrganizationSubscription } from '@/lib/types/subscription';
 import { SUBSCRIPTION_TIERS, SUBSCRIPTION_STATUS_LABELS } from '@/lib/types/subscription';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ export function CurrentPlanCard({
   onUpgradeClick,
   onRefresh,
 }: CurrentPlanCardProps) {
+  const t = useTranslations('subscription');
   const [redirecting, setRedirecting] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [reactivating, setReactivating] = useState(false);
@@ -63,7 +65,7 @@ export function CurrentPlanCard({
     if (result.success) {
       window.location.href = result.data.url;
     } else {
-      toast.error('Failed to open billing portal', {
+      toast.error(t('failedOpenPortal'), {
         description: result.error,
       });
       setRedirecting(false);
@@ -72,9 +74,7 @@ export function CurrentPlanCard({
 
   async function handleCancelSubscription() {
     if (
-      !confirm(
-        'Are you sure you want to cancel your subscription? It will remain active until the end of your billing period.'
-      )
+      !confirm(t('cancelConfirm'))
     ) {
       return;
     }
@@ -84,12 +84,12 @@ export function CurrentPlanCard({
     const result = await cancelSubscription(false);
 
     if (result.success) {
-      toast.success('Subscription cancelled', {
-        description: `Your subscription will end on ${format(result.data.effectiveDate, 'MMMM d, yyyy')}`,
+      toast.success(t('subscriptionCancelled'), {
+        description: t('subscriptionEndOn', { date: format(result.data.effectiveDate, 'MMMM d, yyyy') }),
       });
       onRefresh();
     } else {
-      toast.error('Failed to cancel subscription', {
+      toast.error(t('failedCancelSubscription'), {
         description: result.error,
       });
     }
@@ -103,12 +103,12 @@ export function CurrentPlanCard({
     const result = await reactivateSubscription();
 
     if (result.success) {
-      toast.success('Subscription reactivated', {
-        description: 'Your subscription will continue as normal',
+      toast.success(t('subscriptionReactivated'), {
+        description: t('reactivatedDesc'),
       });
       onRefresh();
     } else {
-      toast.error('Failed to reactivate subscription', {
+      toast.error(t('failedReactivate'), {
         description: result.error,
       });
     }
@@ -121,9 +121,9 @@ export function CurrentPlanCard({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-neutral-100">Current Subscription</CardTitle>
+            <CardTitle className="text-neutral-100">{t('currentSubscription')}</CardTitle>
             <CardDescription className="text-neutral-400">
-              Manage your subscription and billing
+              {t('description')}
             </CardDescription>
           </div>
           <Badge
@@ -154,7 +154,7 @@ export function CurrentPlanCard({
         {/* Current Plan */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-neutral-400">Current Plan</h3>
+            <h3 className="text-sm font-medium text-neutral-400">{t('currentPlan')}</h3>
             <div className="text-right">
               <p className="text-2xl font-bold text-neutral-100">{tierInfo.name}</p>
               {tierInfo.price > 0 && (
@@ -172,19 +172,16 @@ export function CurrentPlanCard({
             <div className="flex items-start gap-3">
               <Clock className="h-5 w-5 text-blue-400 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-blue-300">Trial Period</p>
+                <p className="text-sm font-medium text-blue-300">{t('trialPeriod')}</p>
                 <p className="text-sm text-blue-200 mt-1">
                   {trialDaysRemaining > 0 ? (
-                    <>
-                      {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} remaining in
-                      your free trial
-                    </>
+                    t('trialDaysRemaining', { count: trialDaysRemaining })
                   ) : (
-                    'Your trial ends today'
+                    t('trialEndsToday')
                   )}
                 </p>
                 <p className="text-xs text-blue-400 mt-1">
-                  Ends {format(subscription.trialEndsAt, 'MMMM d, yyyy')}
+                  {t('trialEnds', { date: format(subscription.trialEndsAt, 'MMMM d, yyyy') })}
                 </p>
               </div>
             </div>
@@ -197,10 +194,9 @@ export function CurrentPlanCard({
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-amber-300">Subscription Ending</p>
+                <p className="text-sm font-medium text-amber-300">{t('subscriptionEnding')}</p>
                 <p className="text-sm text-amber-200 mt-1">
-                  Your subscription will end on{' '}
-                  {format(subscription.currentPeriodEnd, 'MMMM d, yyyy')}
+                  {t('subscriptionEndDate', { date: format(subscription.currentPeriodEnd, 'MMMM d, yyyy') })}
                 </p>
                 <Button
                   size="sm"
@@ -209,7 +205,7 @@ export function CurrentPlanCard({
                   onClick={handleReactivateSubscription}
                   disabled={reactivating}
                 >
-                  {reactivating ? 'Reactivating...' : 'Reactivate Subscription'}
+                  {reactivating ? t('reactivating') : t('reactivateSubscription')}
                 </Button>
               </div>
             </div>
@@ -222,9 +218,9 @@ export function CurrentPlanCard({
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-red-300">Payment Failed</p>
+                <p className="text-sm font-medium text-red-300">{t('paymentFailed')}</p>
                 <p className="text-sm text-red-200 mt-1">
-                  Please update your payment method to continue your subscription
+                  {t('updatePaymentDesc')}
                 </p>
                 <Button
                   size="sm"
@@ -233,7 +229,7 @@ export function CurrentPlanCard({
                   onClick={handleManageBilling}
                   disabled={redirecting}
                 >
-                  Update Payment Method
+                  {t('updatePaymentMethod')}
                 </Button>
               </div>
             </div>
@@ -245,7 +241,7 @@ export function CurrentPlanCard({
           <div className="flex items-start gap-3">
             <Calendar className="h-5 w-5 text-neutral-400 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-neutral-200">Next Billing Date</p>
+              <p className="text-sm font-medium text-neutral-200">{t('nextBillingDate')}</p>
               <p className="text-sm text-neutral-400">
                 {format(subscription.currentPeriodEnd, 'MMMM d, yyyy')}
               </p>
@@ -258,10 +254,9 @@ export function CurrentPlanCard({
           <div className="flex items-start gap-3">
             <CreditCard className="h-5 w-5 text-neutral-400 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-neutral-200">Payment Method</p>
+              <p className="text-sm font-medium text-neutral-200">{t('paymentMethod')}</p>
               <p className="text-sm text-neutral-400">
-                {subscription.paymentMethodBrand?.toUpperCase()} ending in{' '}
-                {subscription.paymentMethodLast4}
+                {t('cardEndingIn', { brand: subscription.paymentMethodBrand?.toUpperCase() || '', last4: subscription.paymentMethodLast4 })}
               </p>
             </div>
           </div>
@@ -276,7 +271,7 @@ export function CurrentPlanCard({
                 className="flex-1 bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20"
               >
                 <TrendingUp className="h-4 w-4 mr-2" />
-                Upgrade Plan
+                {t('upgradePlan')}
               </Button>
             )}
             <Button
@@ -285,7 +280,7 @@ export function CurrentPlanCard({
               disabled={redirecting}
               className="flex-1 border-white/10 text-neutral-200 hover:bg-white/5"
             >
-              {redirecting ? 'Redirecting...' : 'Manage Billing'}
+              {redirecting ? t('redirecting') : t('manageBilling')}
             </Button>
           </div>
 
@@ -299,7 +294,7 @@ export function CurrentPlanCard({
                 className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
               >
                 <X className="h-4 w-4 mr-2" />
-                {canceling ? 'Canceling...' : 'Cancel Subscription'}
+                {canceling ? t('canceling') : t('cancelSubscription')}
               </Button>
             )}
         </div>

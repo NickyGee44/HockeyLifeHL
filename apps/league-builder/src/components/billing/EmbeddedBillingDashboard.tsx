@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { DollarSign, CreditCard, Wallet, Settings, Percent, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,22 +50,23 @@ function formatCurrency(cents: number): string {
   }).format(cents / 100);
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
-    complete: { icon: CheckCircle2, color: 'text-green-500', label: 'Active' },
-    pending: { icon: Clock, color: 'text-amber-500', label: 'Pending' },
-    restricted: { icon: AlertCircle, color: 'text-amber-500', label: 'Action Required' },
-    not_created: { icon: AlertCircle, color: 'text-neutral-500', label: 'Not Set Up' },
-    disabled: { icon: AlertCircle, color: 'text-red-500', label: 'Disabled' },
-  };
+const STATUS_BADGE_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; labelKey: string }> = {
+  complete: { icon: CheckCircle2, color: 'text-green-500', labelKey: 'active' },
+  pending: { icon: Clock, color: 'text-amber-500', labelKey: 'pending' },
+  restricted: { icon: AlertCircle, color: 'text-amber-500', labelKey: 'actionRequired' },
+  not_created: { icon: AlertCircle, color: 'text-neutral-500', labelKey: 'notSetUp' },
+  disabled: { icon: AlertCircle, color: 'text-red-500', labelKey: 'disabled' },
+};
 
-  const config = statusConfig[status] || statusConfig.not_created;
+function StatusBadge({ status }: { status: string }) {
+  const tStatus = useTranslations('billing.embedded.statusLabels');
+  const config = STATUS_BADGE_CONFIG[status] || STATUS_BADGE_CONFIG.not_created;
   const Icon = config.icon;
 
   return (
     <div className={`flex items-center gap-1.5 ${config.color}`}>
       <Icon className="w-4 h-4" />
-      <span className="text-sm font-medium">{config.label}</span>
+      <span className="text-sm font-medium">{tStatus(config.labelKey)}</span>
     </div>
   );
 }
@@ -74,6 +76,7 @@ export function EmbeddedBillingDashboard({
   leagueName,
   platformFeePercent,
 }: EmbeddedBillingDashboardProps) {
+  const t = useTranslations('billing.embedded');
   const [accountInfo, setAccountInfo] = useState<ConnectAccountInfo | null>(null);
   const [stats, setStats] = useState<PaymentStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +94,7 @@ export function EmbeddedBillingDashboard({
         setActiveTab('setup');
       }
     } else {
-      toast.error('Failed to load account status', {
+      toast.error(t('failedLoadStatus'), {
         description: accountResult.error,
       });
     }
@@ -133,9 +136,9 @@ export function EmbeddedBillingDashboard({
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">Payments & Billing</h1>
+            <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
             <p className="text-neutral-400">
-              Manage payments and payouts for {leagueName}
+              {t('managePayments', { leagueName })}
             </p>
           </div>
           {accountInfo && <StatusBadge status={accountInfo.status} />}
@@ -154,7 +157,7 @@ export function EmbeddedBillingDashboard({
                     <DollarSign className="h-5 w-5 text-green-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-neutral-400">Total Revenue</p>
+                    <p className="text-sm text-neutral-400">{t('totalRevenue')}</p>
                     <p className="text-2xl font-bold text-white">
                       {formatCurrency(stats.totalRevenue)}
                     </p>
@@ -170,7 +173,7 @@ export function EmbeddedBillingDashboard({
                     <Wallet className="h-5 w-5 text-emerald-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-neutral-400">Net Earnings</p>
+                    <p className="text-sm text-neutral-400">{t('netEarnings')}</p>
                     <p className="text-2xl font-bold text-white">
                       {formatCurrency(stats.netRevenue)}
                     </p>
@@ -186,7 +189,7 @@ export function EmbeddedBillingDashboard({
                     <CreditCard className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-neutral-400">Transactions</p>
+                    <p className="text-sm text-neutral-400">{t('transactions')}</p>
                     <p className="text-2xl font-bold text-white">{stats.paymentCount}</p>
                   </div>
                 </div>
@@ -200,7 +203,7 @@ export function EmbeddedBillingDashboard({
                     <Percent className="h-5 w-5 text-amber-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-neutral-400">Platform Fees</p>
+                    <p className="text-sm text-neutral-400">{t('platformFees')}</p>
                     <p className="text-2xl font-bold text-white">
                       {formatCurrency(stats.totalFeesPaid)}
                     </p>
@@ -216,20 +219,20 @@ export function EmbeddedBillingDashboard({
           <TabsList className="bg-neutral-900 border border-neutral-800">
             {needsOnboarding && (
               <TabsTrigger value="setup" className="data-[state=active]:bg-emerald-600">
-                Setup
+                {t('setup')}
               </TabsTrigger>
             )}
             <TabsTrigger value="overview" disabled={!isConnected}>
-              Balance
+              {t('balance')}
             </TabsTrigger>
             <TabsTrigger value="payments" disabled={!isConnected}>
-              Payments
+              {t('payments')}
             </TabsTrigger>
             <TabsTrigger value="payouts" disabled={!isConnected}>
-              Payouts
+              {t('payouts')}
             </TabsTrigger>
             <TabsTrigger value="settings" disabled={!isConnected}>
-              Settings
+              {t('settings')}
             </TabsTrigger>
           </TabsList>
 
@@ -238,9 +241,9 @@ export function EmbeddedBillingDashboard({
             <TabsContent value="setup">
               <Card className="bg-neutral-900 border-neutral-800">
                 <CardHeader>
-                  <CardTitle className="text-white">Connect Your Stripe Account</CardTitle>
+                  <CardTitle className="text-white">{t('connectStripe')}</CardTitle>
                   <CardDescription>
-                    Complete your Stripe account setup to start accepting payments from players and teams.
+                    {t('connectStripeDesc')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -259,9 +262,9 @@ export function EmbeddedBillingDashboard({
           <TabsContent value="overview">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader>
-                <CardTitle className="text-white">Account Balance</CardTitle>
+                <CardTitle className="text-white">{t('accountBalance')}</CardTitle>
                 <CardDescription>
-                  Your current balance and available funds
+                  {t('accountBalanceDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -274,9 +277,9 @@ export function EmbeddedBillingDashboard({
           <TabsContent value="payments">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader>
-                <CardTitle className="text-white">Payments Received</CardTitle>
+                <CardTitle className="text-white">{t('paymentsReceived')}</CardTitle>
                 <CardDescription>
-                  View and manage all payments from players and teams
+                  {t('paymentsReceivedDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
@@ -289,9 +292,9 @@ export function EmbeddedBillingDashboard({
           <TabsContent value="payouts">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader>
-                <CardTitle className="text-white">Payouts</CardTitle>
+                <CardTitle className="text-white">{t('payoutsTitle')}</CardTitle>
                 <CardDescription>
-                  Track payouts to your bank account
+                  {t('payoutsDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
@@ -304,9 +307,9 @@ export function EmbeddedBillingDashboard({
           <TabsContent value="settings">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader>
-                <CardTitle className="text-white">Account Settings</CardTitle>
+                <CardTitle className="text-white">{t('accountSettings')}</CardTitle>
                 <CardDescription>
-                  Manage your Stripe account settings, payout schedule, and more
+                  {t('accountSettingsDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -323,9 +326,7 @@ export function EmbeddedBillingDashboard({
               <Percent className="h-5 w-5 text-neutral-400 mt-0.5" />
               <div className="text-sm text-neutral-400">
                 <p>
-                  A <span className="text-white font-medium">{platformFeePercent}%</span> platform fee
-                  is applied to all transactions. This fee covers payment processing, platform hosting,
-                  and support.
+                  {t('platformFeeNotice', { percent: platformFeePercent })}
                 </p>
               </div>
             </div>

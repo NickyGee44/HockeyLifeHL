@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { CreditCard, Calendar, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getCurrentSubscription } from '@/lib/actions/subscription';
 import { createBillingPortalSession } from '@/lib/actions/subscription';
 import type { OrganizationSubscription } from '@/lib/types/subscription';
@@ -24,6 +25,7 @@ interface SubscriptionOverviewProps {
 }
 
 export function SubscriptionOverview({ platformFeePercent = 2.99 }: SubscriptionOverviewProps) {
+  const t = useTranslations('subscription');
   const [subscription, setSubscription] = useState<OrganizationSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
@@ -36,7 +38,7 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
     if (result.success) {
       setSubscription(result.data);
     } else {
-      toast.error('Failed to load subscription', {
+      toast.error(t('failedLoadSubscription'), {
         description: result.error,
       });
     }
@@ -57,7 +59,7 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
     if (result.success) {
       window.location.href = result.data.url;
     } else {
-      toast.error('Failed to open billing portal', {
+      toast.error(t('failedOpenPortal'), {
         description: result.error,
       });
       setRedirecting(false);
@@ -68,8 +70,8 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Subscription</CardTitle>
-          <CardDescription>Loading subscription details...</CardDescription>
+          <CardTitle>{t('title')}</CardTitle>
+          <CardDescription>{t('loadingDetails')}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -79,8 +81,8 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Subscription</CardTitle>
-          <CardDescription>No subscription found</CardDescription>
+          <CardTitle>{t('title')}</CardTitle>
+          <CardDescription>{t('noSubscription')}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -99,8 +101,8 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Subscription</CardTitle>
-            <CardDescription>Manage your subscription and billing</CardDescription>
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('description')}</CardDescription>
           </div>
           <Badge
             variant={
@@ -121,12 +123,12 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
         {/* Current Plan */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Current Plan</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t('currentPlan')}</h3>
             <div className="text-right">
               <p className="text-2xl font-bold">{tierInfo.name}</p>
               {subscription.tier === 'free' && (
                 <p className="text-sm text-muted-foreground">
-                  {platformFeePercent}% transaction fee on payments
+                  {t('transactionFee', { percent: platformFeePercent })}
                 </p>
               )}
             </div>
@@ -140,20 +142,17 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
               <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  Trial Period
+                  {t('trialPeriod')}
                 </p>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                   {trialDaysRemaining > 0 ? (
-                    <>
-                      {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} remaining
-                      in your free trial
-                    </>
+                    t('trialDaysRemaining', { count: trialDaysRemaining })
                   ) : (
-                    'Your trial ends today'
+                    t('trialEndsToday')
                   )}
                 </p>
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  Ends {format(subscription.trialEndsAt, 'MMMM d, yyyy')}
+                  {t('trialEnds', { date: format(subscription.trialEndsAt, 'MMMM d, yyyy') })}
                 </p>
               </div>
             </div>
@@ -167,11 +166,10 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
               <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                  Subscription Ending
+                  {t('subscriptionEnding')}
                 </p>
                 <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                  Your subscription will end on{' '}
-                  {format(subscription.currentPeriodEnd, 'MMMM d, yyyy')}
+                  {t('subscriptionEndDate', { date: format(subscription.currentPeriodEnd, 'MMMM d, yyyy') })}
                 </p>
               </div>
             </div>
@@ -185,10 +183,10 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
               <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-red-900 dark:text-red-100">
-                  Payment Failed
+                  {t('paymentFailed')}
                 </p>
                 <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                  Please update your payment method to continue your subscription
+                  {t('updatePaymentDesc')}
                 </p>
                 <Button
                   size="sm"
@@ -197,7 +195,7 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
                   onClick={handleManageBilling}
                   disabled={redirecting}
                 >
-                  Update Payment Method
+                  {t('updatePaymentMethod')}
                 </Button>
               </div>
             </div>
@@ -209,7 +207,7 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
           <div className="flex items-start gap-3">
             <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-sm font-medium">Next Billing Date</p>
+              <p className="text-sm font-medium">{t('nextBillingDate')}</p>
               <p className="text-sm text-muted-foreground">
                 {format(subscription.currentPeriodEnd, 'MMMM d, yyyy')}
               </p>
@@ -222,10 +220,9 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
           <div className="flex items-start gap-3">
             <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-sm font-medium">Payment Method</p>
+              <p className="text-sm font-medium">{t('paymentMethod')}</p>
               <p className="text-sm text-muted-foreground">
-                {subscription.paymentMethodBrand?.toUpperCase()} ending in{' '}
-                {subscription.paymentMethodLast4}
+                {t('cardEndingIn', { brand: subscription.paymentMethodBrand?.toUpperCase() || '', last4: subscription.paymentMethodLast4 })}
               </p>
             </div>
           </div>
@@ -239,7 +236,7 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
             disabled={redirecting}
             className="flex-1"
           >
-            {redirecting ? 'Redirecting...' : 'Manage Billing'}
+            {redirecting ? t('redirecting') : t('manageBilling')}
           </Button>
         </div>
       </CardContent>

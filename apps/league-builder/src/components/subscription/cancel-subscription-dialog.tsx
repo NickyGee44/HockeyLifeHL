@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle } from 'lucide-react';
 import { cancelSubscription, reactivateSubscription } from '@/lib/actions/subscription';
 import { CANCELLATION_REASONS } from '@/lib/types/subscription';
@@ -42,6 +43,8 @@ export function CancelSubscriptionDialog({
   onCancelled,
   trigger,
 }: CancelSubscriptionDialogProps) {
+  const t = useTranslations('subscription.cancelDialog');
+  const tSub = useTranslations('subscription');
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<'select-reason' | 'confirm'>('select-reason');
   const [reason, setReason] = useState<string>('');
@@ -64,7 +67,7 @@ export function CancelSubscriptionDialog({
 
   function handleNext() {
     if (!reason) {
-      toast.error('Please select a reason for cancellation');
+      toast.error(t('pleaseSelectReason'));
       return;
     }
     setStep('confirm');
@@ -87,19 +90,19 @@ export function CancelSubscriptionDialog({
       const effectiveDate = result.data.effectiveDate;
       toast.success(
         cancelTiming === 'immediately'
-          ? 'Subscription cancelled'
-          : 'Cancellation scheduled',
+          ? t('cancelledSuccess')
+          : t('cancellationScheduled'),
         {
           description:
             cancelTiming === 'immediately'
-              ? 'Your subscription has been cancelled immediately.'
-              : `Your subscription will end on ${effectiveDate.toLocaleDateString()}.`,
+              ? t('cancelledImmediately')
+              : t('cancellationScheduledDesc', { date: effectiveDate.toLocaleDateString() }),
         }
       );
       setOpen(false);
       onCancelled?.();
     } else {
-      toast.error('Failed to cancel subscription', {
+      toast.error(tSub('failedCancelSubscription'), {
         description: result.error,
       });
     }
@@ -114,20 +117,19 @@ export function CancelSubscriptionDialog({
         {step === 'select-reason' && (
           <>
             <DialogHeader>
-              <DialogTitle>Cancel Subscription</DialogTitle>
+              <DialogTitle>{t('title')}</DialogTitle>
               <DialogDescription>
-                We're sorry to see you go. Please let us know why you're cancelling so we
-                can improve.
+                {t('description')}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
               {/* Reason Select */}
               <div className="space-y-2">
-                <Label htmlFor="reason">Reason for cancellation *</Label>
+                <Label htmlFor="reason">{t('reasonLabel')}</Label>
                 <Select value={reason} onValueChange={setReason}>
                   <SelectTrigger id="reason">
-                    <SelectValue placeholder="Select a reason" />
+                    <SelectValue placeholder={t('selectReason')} />
                   </SelectTrigger>
                   <SelectContent>
                     {CANCELLATION_REASONS.map((r) => (
@@ -142,11 +144,11 @@ export function CancelSubscriptionDialog({
               {/* Feedback Textarea */}
               <div className="space-y-2">
                 <Label htmlFor="feedback">
-                  Additional feedback (optional)
+                  {t('feedbackLabel')}
                 </Label>
                 <Textarea
                   id="feedback"
-                  placeholder="Tell us more about your experience..."
+                  placeholder={t('feedbackPlaceholder')}
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   rows={4}
@@ -156,10 +158,10 @@ export function CancelSubscriptionDialog({
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>
-                Keep Subscription
+                {t('keepSubscription')}
               </Button>
               <Button variant="destructive" onClick={handleNext}>
-                Continue
+                {t('continue')}
               </Button>
             </DialogFooter>
           </>
@@ -168,9 +170,9 @@ export function CancelSubscriptionDialog({
         {step === 'confirm' && (
           <>
             <DialogHeader>
-              <DialogTitle>Confirm Cancellation</DialogTitle>
+              <DialogTitle>{t('confirmTitle')}</DialogTitle>
               <DialogDescription>
-                Choose when you'd like your cancellation to take effect.
+                {t('confirmDescription')}
               </DialogDescription>
             </DialogHeader>
 
@@ -183,11 +185,10 @@ export function CancelSubscriptionDialog({
                     <RadioGroupItem value="end-of-period" id="end-of-period" className="mt-0.5" />
                     <div className="flex-1">
                       <Label htmlFor="end-of-period" className="cursor-pointer font-medium">
-                        Cancel at end of billing period (Recommended)
+                        {t('endOfPeriod')}
                       </Label>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Keep access to your subscription until your current billing period ends.
-                        You won't be charged again.
+                        {t('endOfPeriodDesc')}
                       </p>
                     </div>
                   </div>
@@ -197,11 +198,10 @@ export function CancelSubscriptionDialog({
                     <RadioGroupItem value="immediately" id="immediately" className="mt-0.5" />
                     <div className="flex-1">
                       <Label htmlFor="immediately" className="cursor-pointer font-medium">
-                        Cancel immediately
+                        {t('immediately')}
                       </Label>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Lose access to your subscription immediately. No refund will be issued for
-                        the current period.
+                        {t('immediatelyDesc')}
                       </p>
                     </div>
                   </div>
@@ -214,13 +214,13 @@ export function CancelSubscriptionDialog({
                   <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                      What happens when you cancel
+                      {t('whatHappens')}
                     </p>
                     <ul className="text-sm text-amber-700 dark:text-amber-300 mt-2 space-y-1 list-disc list-inside">
-                      <li>Your paid add-on features will be revoked (e.g., custom domain)</li>
-                      <li>The free platform features remain available</li>
-                      <li>All historical data will be preserved</li>
-                      <li>Contact support to reactivate add-ons anytime</li>
+                      <li>{t('paidFeaturesRevoked')}</li>
+                      <li>{t('freeFeaturesRemain')}</li>
+                      <li>{t('dataPreserved')}</li>
+                      <li>{t('reactivateAnytime')}</li>
                     </ul>
                   </div>
                 </div>
@@ -229,14 +229,14 @@ export function CancelSubscriptionDialog({
 
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={handleBack} disabled={loading}>
-                Back
+                {t('back')}
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleConfirmCancel}
                 disabled={loading}
               >
-                {loading ? 'Processing...' : 'Confirm Cancellation'}
+                {loading ? t('processingAction') : t('confirmCancellation')}
               </Button>
             </DialogFooter>
           </>
@@ -256,6 +256,7 @@ interface ReactivateSubscriptionProps {
 }
 
 export function ReactivateSubscription({ onReactivated }: ReactivateSubscriptionProps) {
+  const t = useTranslations('subscription.reactivate');
   const [loading, setLoading] = useState(false);
 
   async function handleReactivate() {
@@ -264,12 +265,12 @@ export function ReactivateSubscription({ onReactivated }: ReactivateSubscription
     const result = await reactivateSubscription();
 
     if (result.success) {
-      toast.success('Subscription reactivated!', {
-        description: 'Your subscription will continue as normal.',
+      toast.success(t('success'), {
+        description: t('successDesc'),
       });
       onReactivated?.();
     } else {
-      toast.error('Failed to reactivate subscription', {
+      toast.error(t('failed'), {
         description: result.error,
       });
     }
@@ -283,11 +284,10 @@ export function ReactivateSubscription({ onReactivated }: ReactivateSubscription
         <AlertCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
         <div className="flex-1">
           <p className="text-sm font-medium text-green-900 dark:text-green-100">
-            Subscription Scheduled for Cancellation
+            {t('title')}
           </p>
           <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-            Your subscription is set to cancel at the end of the billing period. You can
-            reactivate it anytime before then.
+            {t('description')}
           </p>
           <Button
             size="sm"
@@ -296,7 +296,7 @@ export function ReactivateSubscription({ onReactivated }: ReactivateSubscription
             onClick={handleReactivate}
             disabled={loading}
           >
-            {loading ? 'Reactivating...' : 'Reactivate Subscription'}
+            {loading ? t('reactivating') : t('button')}
           </Button>
         </div>
       </div>

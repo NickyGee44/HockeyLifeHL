@@ -2,11 +2,13 @@
 
 import { useCallback } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { updateLeagueBranding } from '@/lib/actions/organization';
 import { useEditor } from '../EditorContext';
 
 export function useEditorSave() {
   const { state, setSaving, markClean } = useEditor();
+  const t = useTranslations('websiteEditor.toasts');
 
   const save = useCallback(async () => {
     if (state.isSaving || !state.selectedLeagueId) return;
@@ -55,17 +57,17 @@ export function useEditorSave() {
       });
 
       if (result.success) {
-        toast.success('Changes saved successfully!');
+        toast.success(t('saveSuccess'));
         markClean();
       } else {
-        toast.error(result.error || 'Failed to save changes');
+        toast.error(result.error || t('saveError'));
       }
     } catch {
-      toast.error('Failed to save changes');
+      toast.error(t('saveError'));
     } finally {
       setSaving(false);
     }
-  }, [state, setSaving, markClean]);
+  }, [state, setSaving, markClean, t]);
 
   return { save, isSaving: state.isSaving };
 }

@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import {
   CheckCircle2,
@@ -72,37 +73,38 @@ function formatCurrency(cents: number): string {
   }).format(cents / 100);
 }
 
-const STATUS_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
+const STATUS_CONFIG: Record<string, { icon: any; color: string; labelKey: string }> = {
   pending: {
     icon: Clock,
     color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    label: 'Pending',
+    labelKey: 'pending',
   },
   succeeded: {
     icon: CheckCircle2,
     color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    label: 'Succeeded',
+    labelKey: 'succeeded',
   },
   failed: {
     icon: XCircle,
     color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    label: 'Failed',
+    labelKey: 'failed',
   },
   refunded: {
     icon: RotateCcw,
     color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-    label: 'Refunded',
+    labelKey: 'refunded',
   },
   partially_refunded: {
     icon: RotateCcw,
     color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-    label: 'Partial Refund',
+    labelKey: 'partialRefund',
   },
 };
 
 const PAGE_SIZE = 10;
 
 export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTableProps) {
+  const t = useTranslations('billing.paymentHistory');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -192,13 +194,13 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>Complete payment setup to view transactions</CardDescription>
+          <CardTitle>{t('title')}</CardTitle>
+          <CardDescription>{t('completeSetup')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Set up payments to start accepting transactions</p>
+            <p>{t('setupPayments')}</p>
           </div>
         </CardContent>
       </Card>
@@ -211,22 +213,22 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Payment History</CardTitle>
+              <CardTitle>{t('title')}</CardTitle>
               <CardDescription>
-                {total} total payment{total !== 1 ? 's' : ''}
+                {t('totalPayments', { count: total })}
               </CardDescription>
             </div>
             <div className="flex items-center gap-3">
               <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder={t('filterByStatus')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="succeeded">Succeeded</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
+                  <SelectItem value="all">{t('allStatuses')}</SelectItem>
+                  <SelectItem value="succeeded">{t('succeeded')}</SelectItem>
+                  <SelectItem value="pending">{t('pending')}</SelectItem>
+                  <SelectItem value="failed">{t('failed')}</SelectItem>
+                  <SelectItem value="refunded">{t('refunded')}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -248,14 +250,14 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
           ) : payments.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No payments found</p>
+              <p>{t('noPayments')}</p>
               {statusFilter !== 'all' && (
                 <Button
                   variant="link"
                   onClick={() => setStatusFilter('all')}
                   className="mt-2"
                 >
-                  Clear filter
+                  {t('clearFilter')}
                 </Button>
               )}
             </div>
@@ -264,14 +266,14 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Fee</TableHead>
-                    <TableHead>Net</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('date')}</TableHead>
+                    <TableHead>{t('description')}</TableHead>
+                    <TableHead>{t('customer')}</TableHead>
+                    <TableHead>{t('amount')}</TableHead>
+                    <TableHead>{t('fee')}</TableHead>
+                    <TableHead>{t('net')}</TableHead>
+                    <TableHead>{t('status')}</TableHead>
+                    <TableHead className="text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -309,7 +311,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
                             className={`${statusConfig.color} gap-1`}
                           >
                             <StatusIcon className="h-3 w-3" />
-                            {statusConfig.label}
+                            {t(statusConfig.labelKey)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -320,7 +322,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
                               onClick={() => handleRefundClick(payment)}
                             >
                               <RotateCcw className="h-4 w-4 mr-1" />
-                              Refund
+                              {t('refund')}
                             </Button>
                           )}
                         </TableCell>
@@ -334,8 +336,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4">
                   <p className="text-sm text-muted-foreground">
-                    Showing {page * PAGE_SIZE + 1} to{' '}
-                    {Math.min((page + 1) * PAGE_SIZE, total)} of {total}
+                    {t('showing', { start: page * PAGE_SIZE + 1, end: Math.min((page + 1) * PAGE_SIZE, total), total })}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
@@ -347,7 +348,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <span className="text-sm">
-                      Page {page + 1} of {totalPages}
+                      {t('page', { current: page + 1, total: totalPages })}
                     </span>
                     <Button
                       variant="outline"
@@ -369,26 +370,26 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
       <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Refund</DialogTitle>
+            <DialogTitle>{t('confirmRefund')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to refund this payment? This action cannot be undone.
+              {t('confirmRefundDesc')}
             </DialogDescription>
           </DialogHeader>
 
           {selectedPayment && (
             <div className="space-y-2 py-4">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Amount</span>
+                <span className="text-muted-foreground">{t('amount')}</span>
                 <span className="font-medium">
                   {formatCurrency(selectedPayment.amount_cents)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Customer</span>
+                <span className="text-muted-foreground">{t('customer')}</span>
                 <span>{selectedPayment.customer_email || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Description</span>
+                <span className="text-muted-foreground">{t('description')}</span>
                 <span>{selectedPayment.description || 'Payment'}</span>
               </div>
             </div>
@@ -400,7 +401,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
               onClick={() => setRefundDialogOpen(false)}
               disabled={refunding}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -408,7 +409,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
               disabled={refunding}
             >
               {refunding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Refund Payment
+              {t('refundPayment')}
             </Button>
           </DialogFooter>
         </DialogContent>

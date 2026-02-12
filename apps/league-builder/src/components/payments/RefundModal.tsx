@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   X,
   AlertTriangle,
@@ -29,25 +30,26 @@ interface RefundModalProps {
 
 type RefundReason = 'duplicate' | 'fraudulent' | 'requested_by_customer';
 
-const REFUND_REASONS: { value: RefundReason; label: string; description: string }[] = [
+const REFUND_REASONS: { value: RefundReason; labelKey: string; descKey: string }[] = [
   {
     value: 'requested_by_customer',
-    label: 'Requested by Player',
-    description: 'Player dropped out or requested a refund',
+    labelKey: 'requestedByPlayer',
+    descKey: 'requestedByPlayerDesc',
   },
   {
     value: 'duplicate',
-    label: 'Duplicate Payment',
-    description: 'Player was charged twice by mistake',
+    labelKey: 'duplicatePayment',
+    descKey: 'duplicatePaymentDesc',
   },
   {
     value: 'fraudulent',
-    label: 'Fraudulent',
-    description: 'Suspected fraudulent transaction',
+    labelKey: 'fraudulent',
+    descKey: 'fraudulentDesc',
   },
 ];
 
 export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModalProps) {
+  const t = useTranslations('payments.refund');
   const [refundType, setRefundType] = useState<'full' | 'partial'>('full');
   const [partialAmountDollars, setPartialAmountDollars] = useState('');
   const [reason, setReason] = useState<RefundReason>('requested_by_customer');
@@ -72,11 +74,11 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
 
     if (refundType === 'partial') {
       if (!partialAmountDollars || refundAmountCents <= 0) {
-        setError('Please enter a valid refund amount.');
+        setError(t('invalidAmount'));
         return;
       }
       if (refundAmountCents > maxRefundCents) {
-        setError(`Refund amount cannot exceed ${maxRefundDollars}.`);
+        setError(t('exceedsMax', { amount: maxRefundDollars }));
         return;
       }
     }
@@ -98,7 +100,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
         setError(result.error);
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError(t('unexpectedError'));
     } finally {
       setLoading(false);
     }
@@ -134,8 +136,8 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
               <RefreshCw className="h-5 w-5 text-red-500" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Issue Refund</h2>
-              <p className="text-sm text-neutral-400">Process a payment refund</p>
+              <h2 className="text-xl font-bold text-white">{t('title')}</h2>
+              <p className="text-sm text-neutral-400">{t('subtitle')}</p>
             </div>
           </div>
           <button
@@ -163,11 +165,11 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-neutral-500">Fee</p>
+                  <p className="text-neutral-500">{t('fee')}</p>
                   <p className="text-white">{payment.season_fee.name}</p>
                 </div>
                 <div>
-                  <p className="text-neutral-500">Amount Paid</p>
+                  <p className="text-neutral-500">{t('amountPaid')}</p>
                   <p className="text-white font-medium">
                     ${(payment.amount_paid_cents / 100).toFixed(2)}
                   </p>
@@ -178,7 +180,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
             {/* Refund Type */}
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-3">
-                Refund Amount
+                {t('refundAmount')}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -195,7 +197,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                       refundType === 'full' ? 'text-rink-500' : 'text-neutral-300'
                     }`}
                   >
-                    Full Refund
+                    {t('fullRefund')}
                   </p>
                   <p className="text-xs text-neutral-500 mt-1">
                     ${maxRefundDollars}
@@ -216,9 +218,9 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                       refundType === 'partial' ? 'text-rink-500' : 'text-neutral-300'
                     }`}
                   >
-                    Partial Refund
+                    {t('partialRefund')}
                   </p>
-                  <p className="text-xs text-neutral-500 mt-1">Custom amount</p>
+                  <p className="text-xs text-neutral-500 mt-1">{t('customAmount')}</p>
                 </button>
               </div>
             </div>
@@ -230,7 +232,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                   htmlFor="partialAmount"
                   className="block text-sm font-medium text-neutral-300 mb-2"
                 >
-                  Refund Amount
+                  {t('refundAmount')}
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
@@ -249,7 +251,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                   />
                 </div>
                 <p className="mt-1 text-xs text-neutral-500">
-                  Maximum refundable: ${maxRefundDollars}
+                  {t('maxRefundable', { amount: `$${maxRefundDollars}` })}
                 </p>
               </div>
             )}
@@ -257,7 +259,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
             {/* Refund Reason */}
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-3">
-                Reason for Refund
+                {t('reasonForRefund')}
               </label>
               <div className="space-y-2">
                 {REFUND_REASONS.map((option) => (
@@ -291,9 +293,9 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                               : 'text-neutral-300'
                           }`}
                         >
-                          {option.label}
+                          {t(option.labelKey)}
                         </p>
-                        <p className="text-xs text-neutral-500">{option.description}</p>
+                        <p className="text-xs text-neutral-500">{t(option.descKey)}</p>
                       </div>
                     </div>
                   </button>
@@ -307,14 +309,14 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                 htmlFor="notes"
                 className="block text-sm font-medium text-neutral-300 mb-2"
               >
-                Notes (Optional)
+                {t('notesOptional')}
               </label>
               <textarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                placeholder="Additional notes for the refund record..."
+                placeholder={t('notesPlaceholder')}
                 className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all resize-none"
               />
             </div>
@@ -325,11 +327,10 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
                 <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-amber-200 font-medium">
-                    Refunds are processed immediately
+                    {t('refundImmediate')}
                   </p>
                   <p className="text-xs text-amber-200/70 mt-1">
-                    The refund will be sent to the player's original payment method. This
-                    action cannot be undone.
+                    {t('refundImmediateDesc')}
                   </p>
                 </div>
               </div>
@@ -340,18 +341,18 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="h-4 w-4 text-neutral-400" />
                 <span className="text-sm font-medium text-neutral-300">
-                  Refund Summary
+                  {t('refundSummary')}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-neutral-400">Amount to refund:</span>
+                <span className="text-neutral-400">{t('amountToRefund')}</span>
                 <span className="text-xl font-bold text-white">
                   ${(refundAmountCents / 100).toFixed(2)}
                 </span>
               </div>
               <p className="text-xs text-neutral-500 mt-2">
                 <Info className="h-3 w-3 inline mr-1" />
-                Platform fee will also be refunded proportionally
+                {t('platformFeeRefund')}
               </p>
             </div>
 
@@ -371,7 +372,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
               disabled={loading}
               className="flex-1 py-3 px-6 border border-neutral-600 text-neutral-300 font-medium rounded-xl hover:bg-neutral-700/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
@@ -381,12 +382,12 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Processing...
+                  {t('processing')}
                 </>
               ) : (
                 <>
                   <RefreshCw className="w-5 h-5" />
-                  Process Refund
+                  {t('processRefund')}
                 </>
               )}
             </button>

@@ -9,6 +9,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Crown, ExternalLink, Loader2, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,13 +23,13 @@ interface PremiumUpgradeCardProps {
   onRefresh: () => void;
 }
 
-const PLATFORM_FEATURES = [
-  'Priority email support (24hr response)',
-  'Custom brand colors and logos',
-  'Advanced admin permissions',
-  'White-label league websites',
-  'Dedicated account manager',
-];
+const PLATFORM_FEATURE_KEYS = [
+  'prioritySupport',
+  'customBranding',
+  'advancedPermissions',
+  'whiteLabel',
+  'dedicatedManager',
+] as const;
 
 export function PremiumUpgradeCard({
   orgId,
@@ -36,6 +37,8 @@ export function PremiumUpgradeCard({
   hasStripeCustomer,
   onRefresh,
 }: PremiumUpgradeCardProps) {
+  const t = useTranslations('subscription.upgrade');
+  const tSub = useTranslations('subscription');
   const [loading, setLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -53,17 +56,17 @@ export function PremiumUpgradeCard({
       if (result.success) {
         window.location.href = result.data.url;
       } else {
-        toast.error('Failed to start checkout', { description: result.error });
+        toast.error(t('failedCheckout'), { description: result.error });
       }
     } catch {
-      toast.error('Failed to start checkout');
+      toast.error(t('failedCheckout'));
     } finally {
       setLoading(false);
     }
   }
 
   async function handleCancel() {
-    if (!confirm('Cancel Platform Monthly subscription? It will remain active until the end of your billing period.')) {
+    if (!confirm(t('cancelConfirm'))) {
       return;
     }
 
@@ -71,13 +74,13 @@ export function PremiumUpgradeCard({
     try {
       const result = await cancelAddon(orgId, 'platform_subscription');
       if (result.success) {
-        toast.success('Subscription will cancel at end of billing period');
+        toast.success(t('cancelAtPeriodEnd'));
         onRefresh();
       } else {
-        toast.error('Failed to cancel subscription', { description: result.error });
+        toast.error(t('failedCancel'), { description: result.error });
       }
     } catch {
-      toast.error('Failed to cancel subscription');
+      toast.error(t('failedCancel'));
     } finally {
       setLoading(false);
     }
@@ -95,13 +98,13 @@ export function PremiumUpgradeCard({
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error('Failed to open billing portal', { description: data.error });
+        toast.error(t('failedCheckout'), { description: data.error });
         return;
       }
 
       window.location.href = data.url;
     } catch {
-      toast.error('Failed to open billing portal');
+      toast.error(t('failedCheckout'));
     } finally {
       setPortalLoading(false);
     }
@@ -118,14 +121,14 @@ export function PremiumUpgradeCard({
         <div className="flex items-start justify-between mb-6">
           <div>
             <Badge className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black border-0 mb-3">
-              MOST POPULAR
+              {t('mostPopular')}
             </Badge>
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-6 h-6 text-yellow-400" />
-              <h2 className="text-2xl font-bold text-white">Platform Monthly</h2>
+              <h2 className="text-2xl font-bold text-white">{t('platformMonthly')}</h2>
             </div>
             <p className="text-neutral-400 text-sm">
-              Unlock priority support, advanced admin tools, and custom branding
+              {t('unlockDesc')}
             </p>
           </div>
         </div>
@@ -134,16 +137,16 @@ export function PremiumUpgradeCard({
         <div className="mb-6">
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-black text-white">$299.99</span>
-            <span className="text-neutral-500">/month</span>
+            <span className="text-neutral-500">{t('perMonth')}</span>
           </div>
         </div>
 
         {/* Features */}
         <div className="flex-1 space-y-3 mb-6">
-          {PLATFORM_FEATURES.map((feature) => (
-            <div key={feature} className="flex items-start gap-2">
+          {PLATFORM_FEATURE_KEYS.map((key) => (
+            <div key={key} className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-rink-500 flex-shrink-0 mt-0.5" />
-              <span className="text-neutral-300 text-sm">{feature}</span>
+              <span className="text-neutral-300 text-sm">{t(`features.${key}`)}</span>
             </div>
           ))}
         </div>
@@ -156,11 +159,11 @@ export function PremiumUpgradeCard({
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-400" />
                 <span className="text-sm text-green-400 font-medium">
-                  {platformAddon?.status === 'trialing' ? 'Trial Active' : 'Active'}
+                  {platformAddon?.status === 'trialing' ? t('trialActive') : t('active')}
                 </span>
                 {platformAddon?.current_period_end && (
                   <span className="text-xs text-neutral-500 ml-auto">
-                    Next billing: {new Date(platformAddon.current_period_end).toLocaleDateString()}
+                    {t('nextBilling', { date: new Date(platformAddon.current_period_end).toLocaleDateString() })}
                   </span>
                 )}
               </div>
@@ -171,7 +174,7 @@ export function PremiumUpgradeCard({
           {isActive && isCancelled && (
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-3">
               <span className="text-sm text-yellow-400">
-                Cancels at end of billing period
+                {t('cancelsAtPeriodEnd')}
               </span>
             </div>
           )}
@@ -180,7 +183,7 @@ export function PremiumUpgradeCard({
           {isPastDue && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-3">
               <span className="text-sm text-red-400 font-medium">
-                Payment issue - Update payment method
+                {t('paymentIssue')}
               </span>
             </div>
           )}
@@ -198,7 +201,7 @@ export function PremiumUpgradeCard({
                 ) : (
                   <>
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Upgrade to Premium
+                    {t('upgradeToPremium')}
                   </>
                 )}
               </Button>
@@ -216,7 +219,7 @@ export function PremiumUpgradeCard({
                     {portalLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      'Manage Billing'
+                      tSub('manageBilling')
                     )}
                   </Button>
                 )}
@@ -228,7 +231,7 @@ export function PremiumUpgradeCard({
                     disabled={loading}
                     className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cancel Subscription'}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('cancelSubscription')}
                   </Button>
                 )}
               </>

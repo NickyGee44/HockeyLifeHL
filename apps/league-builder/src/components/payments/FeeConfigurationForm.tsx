@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   DollarSign,
   Calendar,
@@ -60,6 +61,7 @@ export function FeeConfigurationForm({
   onSuccess,
   onCancel,
 }: FeeConfigurationFormProps) {
+  const t = useTranslations('payments.feeConfig');
   const isEditing = !!existingFee;
 
   const [formData, setFormData] = useState<FormData>({
@@ -123,19 +125,19 @@ export function FeeConfigurationForm({
 
   const validateForm = (): string | null => {
     if (!formData.name.trim()) {
-      return 'Fee name is required.';
+      return t('validationNameRequired');
     }
     if (!formData.amountDollars || dollarsToCents(formData.amountDollars) <= 0) {
-      return 'Please enter a valid fee amount greater than $0.';
+      return t('validationAmountRequired');
     }
     if (!formData.allowFullPayment && !formData.allowTwoPay && !formData.allowThreePay) {
-      return 'At least one payment plan must be enabled.';
+      return t('validationOnePlan');
     }
     if (formData.earlyBirdDeadline && !formData.earlyBirdDiscountDollars) {
-      return 'Early bird discount amount is required when deadline is set.';
+      return t('validationEarlyBirdAmount');
     }
     if (formData.earlyBirdDiscountDollars && !formData.earlyBirdDeadline) {
-      return 'Early bird deadline is required when discount is set.';
+      return t('validationEarlyBirdDeadline');
     }
     return null;
   };
@@ -202,7 +204,7 @@ export function FeeConfigurationForm({
         }
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError(t('unexpectedError'));
     } finally {
       setLoading(false);
     }
@@ -224,10 +226,10 @@ export function FeeConfigurationForm({
           </div>
           <div>
             <h2 className="text-xl font-bold text-neutral-100">
-              {isEditing ? 'Edit Season Fee' : 'Create Season Fee'}
+              {isEditing ? t('editSeasonFee') : t('createSeasonFee')}
             </h2>
             <p className="text-sm text-neutral-400">
-              Configure payment options for players
+              {t('configurePaymentOptions')}
             </p>
           </div>
         </div>
@@ -247,12 +249,12 @@ export function FeeConfigurationForm({
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider flex items-center gap-2">
             <Info className="h-4 w-4" />
-            Basic Information
+            {t('basicInformation')}
           </h3>
 
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-neutral-300 mb-2">
-              Fee Name *
+              {t('feeNameRequired')}
             </label>
             <input
               type="text"
@@ -261,14 +263,14 @@ export function FeeConfigurationForm({
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="e.g., Registration Fee, Tournament Fee"
+              placeholder={t('feeNamePlaceholder')}
               className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
             />
           </div>
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-neutral-300 mb-2">
-              Description
+              {t('description')}
             </label>
             <textarea
               id="description"
@@ -276,14 +278,14 @@ export function FeeConfigurationForm({
               value={formData.description}
               onChange={handleChange}
               rows={2}
-              placeholder="Optional description of what this fee covers..."
+              placeholder={t('descriptionPlaceholder')}
               className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all resize-none"
             />
           </div>
 
           <div>
             <label htmlFor="amountDollars" className="block text-sm font-medium text-neutral-300 mb-2">
-              Fee Amount *
+              {t('feeAmountRequired')}
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">$</span>
@@ -307,7 +309,7 @@ export function FeeConfigurationForm({
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            Payment Plans
+            {t('paymentPlans')}
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -336,9 +338,9 @@ export function FeeConfigurationForm({
                 </div>
                 <div>
                   <p className={`font-medium ${formData.allowFullPayment ? 'text-rink-500' : 'text-neutral-300'}`}>
-                    Full Payment
+                    {t('fullPayment')}
                   </p>
-                  <p className="text-xs text-neutral-500">Pay in one installment</p>
+                  <p className="text-xs text-neutral-500">{t('payOneInstallment')}</p>
                 </div>
               </div>
             </button>
@@ -368,9 +370,9 @@ export function FeeConfigurationForm({
                 </div>
                 <div>
                   <p className={`font-medium ${formData.allowTwoPay ? 'text-rink-500' : 'text-neutral-300'}`}>
-                    2-Pay Plan
+                    {t('twoPayPlan')}
                   </p>
-                  <p className="text-xs text-neutral-500">Split into 2 payments</p>
+                  <p className="text-xs text-neutral-500">{t('splitTwo')}</p>
                 </div>
               </div>
             </button>
@@ -400,9 +402,9 @@ export function FeeConfigurationForm({
                 </div>
                 <div>
                   <p className={`font-medium ${formData.allowThreePay ? 'text-rink-500' : 'text-neutral-300'}`}>
-                    3-Pay Plan
+                    {t('threePayPlan')}
                   </p>
-                  <p className="text-xs text-neutral-500">Split into 3 payments</p>
+                  <p className="text-xs text-neutral-500">{t('splitThree')}</p>
                 </div>
               </div>
             </button>
@@ -411,7 +413,7 @@ export function FeeConfigurationForm({
           {(formData.allowTwoPay || formData.allowThreePay) && (
             <div>
               <label htmlFor="installmentFeeDollars" className="block text-sm font-medium text-neutral-300 mb-2">
-                Installment Fee (per payment plan)
+                {t('installmentFee')}
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">$</span>
@@ -428,7 +430,7 @@ export function FeeConfigurationForm({
                 />
               </div>
               <p className="mt-1 text-xs text-neutral-500">
-                Extra fee added when player chooses payment plan instead of paying in full
+                {t('installmentFeeDescription')}
               </p>
             </div>
           )}
@@ -438,13 +440,13 @@ export function FeeConfigurationForm({
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Deadlines
+            {t('deadlines')}
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="paymentDeadline" className="block text-sm font-medium text-neutral-300 mb-2">
-                Payment Deadline
+                {t('paymentDeadline')}
               </label>
               <input
                 type="date"
@@ -455,13 +457,13 @@ export function FeeConfigurationForm({
                 className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
               />
               <p className="mt-1 text-xs text-neutral-500">
-                After this date, late fees apply
+                {t('afterDeadlineLateFees')}
               </p>
             </div>
 
             <div>
               <label htmlFor="lateFeeDollars" className="block text-sm font-medium text-neutral-300 mb-2">
-                Late Fee
+                {t('lateFee')}
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">$</span>
@@ -485,13 +487,13 @@ export function FeeConfigurationForm({
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider flex items-center gap-2">
             <Gift className="h-4 w-4" />
-            Early Bird Discount
+            {t('earlyBirdDiscount')}
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="earlyBirdDeadline" className="block text-sm font-medium text-neutral-300 mb-2">
-                Early Bird Deadline
+                {t('earlyBirdDeadline')}
               </label>
               <input
                 type="date"
@@ -502,13 +504,13 @@ export function FeeConfigurationForm({
                 className="w-full px-4 py-3 bg-black/50 border border-rink-500/30 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent transition-all"
               />
               <p className="mt-1 text-xs text-neutral-500">
-                Pay before this date for discount
+                {t('payBeforeDiscount')}
               </p>
             </div>
 
             <div>
               <label htmlFor="earlyBirdDiscountDollars" className="block text-sm font-medium text-neutral-300 mb-2">
-                Discount Amount
+                {t('discountAmount')}
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">$</span>
@@ -533,39 +535,39 @@ export function FeeConfigurationForm({
           <div className="bg-neutral-900/50 border border-neutral-700 rounded-xl p-4">
             <h4 className="text-sm font-medium text-neutral-300 mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Payment Preview
+              {t('paymentPreview')}
             </h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-neutral-400">Base Fee</span>
+                <span className="text-neutral-400">{t('baseFee')}</span>
                 <span className="text-white">${(baseAmount / 100).toFixed(2)}</span>
               </div>
               {earlyBirdDiscount > 0 && (
                 <div className="flex justify-between text-green-400">
-                  <span>Early Bird Discount</span>
+                  <span>{t('earlyBirdDiscount')}</span>
                   <span>-${(earlyBirdDiscount / 100).toFixed(2)}</span>
                 </div>
               )}
               {lateFee > 0 && (
                 <div className="flex justify-between text-red-400">
-                  <span>Late Fee (after deadline)</span>
+                  <span>{t('lateFeeLine')}</span>
                   <span>+${(lateFee / 100).toFixed(2)}</span>
                 </div>
               )}
               {installmentFee > 0 && (formData.allowTwoPay || formData.allowThreePay) && (
                 <div className="flex justify-between text-amber-400">
-                  <span>Installment Plan Fee</span>
+                  <span>{t('installmentPlanFee')}</span>
                   <span>+${(installmentFee / 100).toFixed(2)}</span>
                 </div>
               )}
               <div className="border-t border-neutral-700 pt-2 mt-2">
                 <div className="flex justify-between font-semibold">
-                  <span className="text-neutral-300">Standard Total</span>
+                  <span className="text-neutral-300">{t('standardTotal')}</span>
                   <span className="text-rink-500">${(baseAmount / 100).toFixed(2)}</span>
                 </div>
                 {earlyBirdDiscount > 0 && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-neutral-500">Early Bird Total</span>
+                    <span className="text-neutral-500">{t('earlyBirdTotal')}</span>
                     <span className="text-green-400">
                       ${((baseAmount - earlyBirdDiscount) / 100).toFixed(2)}
                     </span>
@@ -592,7 +594,7 @@ export function FeeConfigurationForm({
               disabled={loading}
               className="flex-1 py-3 px-6 border border-neutral-600 text-neutral-300 font-medium rounded-xl hover:bg-neutral-700/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              {t('cancel')}
             </button>
           )}
           <button
@@ -603,12 +605,12 @@ export function FeeConfigurationForm({
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                {isEditing ? 'Updating...' : 'Creating...'}
+                {isEditing ? t('updating') : t('creating')}
               </>
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                {isEditing ? 'Update Fee' : 'Create Fee'}
+                {isEditing ? t('updateFee') : t('createFee')}
               </>
             )}
           </button>

@@ -17,6 +17,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@/components/ui/accordion';
+import { useTranslations } from 'next-intl';
 import { useEditor } from './EditorContext';
 import { PANEL_CONFIG } from './constants';
 import type { EditorPanel } from './types';
@@ -35,19 +36,6 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 // ---------------------------------------------------------------------------
-// Panel display names (hard-coded until i18n wiring by Agent C)
-// ---------------------------------------------------------------------------
-const PANEL_LABELS: Record<EditorPanel, string> = {
-  theme: 'Theme & Colors',
-  images: 'Images & Media',
-  content: 'Content',
-  navigation: 'Navigation',
-  social: 'Social Links',
-  seo: 'SEO',
-  advanced: 'Advanced',
-};
-
-// ---------------------------------------------------------------------------
 // EditorSidebar
 // ---------------------------------------------------------------------------
 
@@ -57,6 +45,7 @@ export interface EditorSidebarProps {
 
 export function EditorSidebar({ panels }: EditorSidebarProps) {
   const { state, setActivePanel } = useEditor();
+  const t = useTranslations('websiteEditor');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -94,13 +83,13 @@ export function EditorSidebar({ panels }: EditorSidebarProps) {
                   <AccordionTrigger className="hover:bg-white/5">
                     <span className="flex items-center gap-2">
                       {Icon && <Icon className="w-4 h-4 text-rink-500" />}
-                      {PANEL_LABELS[panel.id]}
+                      {t(`sidebarPanels.${panel.id}`)}
                     </span>
                   </AccordionTrigger>
                   <AccordionContent>
                     {panels[panel.id] ?? (
                       <p className="text-neutral-500 text-xs">
-                        No content available for this panel.
+                        {t('noPanelContent')}
                       </p>
                     )}
                   </AccordionContent>

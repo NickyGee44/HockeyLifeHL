@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { loadConnectAndInitialize, StripeConnectInstance } from '@stripe/connect-js';
 import { createConnectAccountSession } from '@/lib/actions/stripe-connect-payments';
 
@@ -28,13 +29,14 @@ interface ConnectProviderProps {
 }
 
 export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
+  const t = useTranslations('stripe');
   const [stripeConnectInstance, setStripeConnectInstance] = useState<StripeConnectInstance | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const initializeConnect = useCallback(async () => {
     if (!leagueId) {
-      setError('League ID is required');
+      setError(t('leagueIdRequired'));
       setIsLoading(false);
       return;
     }
@@ -54,7 +56,7 @@ export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
 
       const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
       if (!publishableKey) {
-        setError('Stripe publishable key not configured');
+        setError(t('publishableKeyNotConfigured'));
         setIsLoading(false);
         return;
       }
@@ -82,10 +84,10 @@ export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
       setIsLoading(false);
     } catch (err) {
       console.error('[ConnectProvider] Initialization error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize Stripe Connect');
+      setError(err instanceof Error ? err.message : t('failedInitialize'));
       setIsLoading(false);
     }
-  }, [leagueId]);
+  }, [leagueId, t]);
 
   useEffect(() => {
     initializeConnect();

@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { DollarSign, TrendingUp, Receipt, Percent, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ export function LeagueBillingDashboard({
   leagueName,
   platformFeePercent,
 }: LeagueBillingDashboardProps) {
+  const t = useTranslations('billing.league');
   const [accountInfo, setAccountInfo] = useState<ConnectAccountInfo | null>(null);
   const [stats, setStats] = useState<PaymentStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,12 +95,12 @@ export function LeagueBillingDashboard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billing</CardTitle>
-          <CardDescription>Unable to load billing information</CardDescription>
+          <CardTitle>{t('billingTitle')}</CardTitle>
+          <CardDescription>{t('unableToLoad')}</CardDescription>
         </CardHeader>
         <CardContent>
           <button onClick={loadData} className="text-primary hover:underline">
-            Try again
+            {t('tryAgain')}
           </button>
         </CardContent>
       </Card>
@@ -112,10 +114,10 @@ export function LeagueBillingDashboard({
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          League Billing
+          {t('title')}
         </h1>
         <p className="text-muted-foreground">
-          Manage payments and payouts for {leagueName}
+          {t('managePayments', { leagueName })}
         </p>
       </div>
 
@@ -129,7 +131,7 @@ export function LeagueBillingDashboard({
                   <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  <p className="text-sm text-muted-foreground">{t('totalRevenue')}</p>
                   <p className="text-2xl font-bold">
                     {formatCurrency(stats.totalRevenue)}
                   </p>
@@ -145,7 +147,7 @@ export function LeagueBillingDashboard({
                   <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Net Earnings</p>
+                  <p className="text-sm text-muted-foreground">{t('netEarnings')}</p>
                   <p className="text-2xl font-bold">
                     {formatCurrency(stats.netRevenue)}
                   </p>
@@ -161,7 +163,7 @@ export function LeagueBillingDashboard({
                   <Receipt className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Transactions</p>
+                  <p className="text-sm text-muted-foreground">{t('transactions')}</p>
                   <p className="text-2xl font-bold">{stats.paymentCount}</p>
                 </div>
               </div>
@@ -175,7 +177,7 @@ export function LeagueBillingDashboard({
                   <Percent className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Platform Fees</p>
+                  <p className="text-sm text-muted-foreground">{t('platformFees')}</p>
                   <p className="text-2xl font-bold">
                     {formatCurrency(stats.totalFeesPaid)}
                   </p>
@@ -210,9 +212,7 @@ export function LeagueBillingDashboard({
           <div className="flex items-center gap-3">
             <Percent className="h-5 w-5 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              A {platformFeePercent}% platform fee is applied to all transactions.
-              This fee is separate from Stripe&apos;s card processing fees.
-              You can configure whether this fee is passed to players or absorbed by the league in your billing settings.
+              {t('platformFeeNotice', { percent: platformFeePercent })}
             </p>
           </div>
         </CardContent>

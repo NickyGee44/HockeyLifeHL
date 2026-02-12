@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Download, FileSpreadsheet, FileText, Loader2, Filter, Calendar } from 'lucide-react';
 import { exportPaymentReport } from '@/lib/payments/payment-actions';
 import type { PaymentReportRow, PlayerPaymentStatus } from '@/lib/payments/types';
@@ -22,14 +23,14 @@ interface PaymentReportExportProps {
 type ExportFormat = 'csv' | 'json';
 type StatusFilter = PlayerPaymentStatus | 'all';
 
-const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'All Status' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'partially_paid', label: 'Partially Paid' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'refunded', label: 'Refunded' },
-  { value: 'cancelled', label: 'Cancelled' },
+const STATUS_OPTION_KEYS: { value: StatusFilter; key: string }[] = [
+  { value: 'all', key: 'all' },
+  { value: 'paid', key: 'paid' },
+  { value: 'partially_paid', key: 'partiallyPaid' },
+  { value: 'pending', key: 'pending' },
+  { value: 'overdue', key: 'overdue' },
+  { value: 'refunded', key: 'refunded' },
+  { value: 'cancelled', key: 'cancelled' },
 ];
 
 export function PaymentReportExport({
@@ -38,6 +39,7 @@ export function PaymentReportExport({
   seasonName,
   className = '',
 }: PaymentReportExportProps) {
+  const t = useTranslations('payments');
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [loading, setLoading] = useState(false);
@@ -123,7 +125,7 @@ export function PaymentReportExport({
       }
 
       if (data.length === 0) {
-        setError('No payments match the selected filters.');
+        setError(t('noMatchingPayments'));
         return;
       }
 
@@ -139,7 +141,7 @@ export function PaymentReportExport({
         downloadFile(jsonContent, `${baseFilename}.json`, 'application/json');
       }
     } catch (err) {
-      setError('Failed to export report. Please try again.');
+      setError(t('exportFailed'));
     } finally {
       setLoading(false);
     }
@@ -152,7 +154,7 @@ export function PaymentReportExport({
           <Download className="h-5 w-5 text-rink-500" />
         </div>
         <div>
-          <h3 className="font-semibold text-white">Export Payment Report</h3>
+          <h3 className="font-semibold text-white">{t('exportReport')}</h3>
           <p className="text-sm text-neutral-400">{seasonName}</p>
         </div>
       </div>
@@ -161,7 +163,7 @@ export function PaymentReportExport({
         {/* Format Selection */}
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Export Format
+            {t('exportFormat')}
           </label>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -197,7 +199,7 @@ export function PaymentReportExport({
             htmlFor="statusFilter"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            Filter by Status
+            {t('filterByStatus')}
           </label>
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
@@ -207,9 +209,9 @@ export function PaymentReportExport({
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
               className="w-full pl-10 pr-4 py-2.5 bg-black/50 border border-neutral-700 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent"
             >
-              {STATUS_OPTIONS.map((option) => (
+              {STATUS_OPTION_KEYS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(`statusOptions.${option.key}`)}
                 </option>
               ))}
             </select>
@@ -232,19 +234,19 @@ export function PaymentReportExport({
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Generating Report...
+              {t('generatingReport')}
             </>
           ) : (
             <>
               <Download className="w-5 h-5" />
-              Download {format.toUpperCase()} Report
+              {t('downloadReport', { format: format.toUpperCase() })}
             </>
           )}
         </button>
 
         {/* Info */}
         <p className="text-xs text-neutral-500 text-center">
-          Report includes player details, payment amounts, and status for all fees
+          {t('reportInfo')}
         </p>
       </div>
     </div>

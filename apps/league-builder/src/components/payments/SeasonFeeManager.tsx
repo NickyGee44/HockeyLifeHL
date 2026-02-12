@@ -10,6 +10,7 @@
  */
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus, Edit, Trash2, DollarSign, Calendar, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,6 +116,7 @@ export function SeasonFeeManager({
   seasonName,
   initialFees = [],
 }: SeasonFeeManagerProps) {
+  const t = useTranslations('payments.seasonFee');
   const [fees, setFees] = React.useState<SeasonFeeWithSeason[]>(initialFees);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingFee, setEditingFee] = React.useState<SeasonFeeWithSeason | null>(null);
@@ -180,17 +182,17 @@ export function SeasonFeeManager({
 
     // Validation
     if (!formData.name.trim()) {
-      setError('Fee name is required');
+      setError(t('feeNameRequired'));
       return;
     }
 
     if (formData.amountCents <= 0) {
-      setError('Fee amount must be greater than $0');
+      setError(t('baseAmountRequired'));
       return;
     }
 
     if (!formData.allowFullPayment && !formData.allowTwoPay && !formData.allowThreePay) {
-      setError('At least one payment plan must be enabled');
+      setError(t('atLeastOnePlan'));
       return;
     }
 
@@ -231,7 +233,7 @@ export function SeasonFeeManager({
   };
 
   const handleDelete = async (feeId: string) => {
-    if (!confirm('Are you sure you want to delete this fee? This action cannot be undone.')) {
+    if (!confirm(t('deleteConfirm'))) {
       return;
     }
 
@@ -266,14 +268,14 @@ export function SeasonFeeManager({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Registration Fees</h2>
+          <h2 className="text-2xl font-bold text-white">{t('title')}</h2>
           <p className="text-sm text-neutral-400 mt-1">
-            Configure player registration fees for {seasonName}
+            {t('description', { seasonName })}
           </p>
         </div>
         <Button onClick={openCreateDialog} disabled={isLoading}>
           <Plus className="w-4 h-4 mr-2" />
-          Add Fee
+          {t('addFee')}
         </Button>
       </div>
 
@@ -283,13 +285,13 @@ export function SeasonFeeManager({
           <CardContent className="py-12">
             <div className="text-center">
               <DollarSign className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">No fees configured</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">{t('noFees')}</h3>
               <p className="text-sm text-neutral-400 mb-4">
-                Create your first registration fee to start collecting payments from players.
+                {t('noFeesDescription')}
               </p>
               <Button onClick={openCreateDialog} variant="outline">
                 <Plus className="w-4 h-4 mr-2" />
-                Create Fee
+                {t('createFee')}
               </Button>
             </div>
           </CardContent>
@@ -311,7 +313,7 @@ export function SeasonFeeManager({
                       <CardTitle className="text-lg text-white">{fee.name}</CardTitle>
                       {!fee.is_active && (
                         <span className="px-2 py-0.5 text-xs bg-neutral-700 text-neutral-400 rounded">
-                          Inactive
+                          {t('inactive')}
                         </span>
                       )}
                     </div>
@@ -342,7 +344,7 @@ export function SeasonFeeManager({
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-neutral-400">Base Amount</span>
+                    <span className="text-sm text-neutral-400">{t('baseAmount')}</span>
                     <span className="text-lg font-bold text-white">
                       {formatCurrency(fee.amount_cents, fee.currency)}
                     </span>
@@ -350,17 +352,16 @@ export function SeasonFeeManager({
 
                   {fee.early_bird_discount_cents > 0 && fee.early_bird_deadline && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-green-400">Early Bird</span>
+                      <span className="text-green-400">{t('earlyBird')}</span>
                       <span className="text-green-400">
-                        -{formatCurrency(fee.early_bird_discount_cents, fee.currency)} until{' '}
-                        {new Date(fee.early_bird_deadline).toLocaleDateString()}
+                        {t('earlyBirdUntil', { amount: formatCurrency(fee.early_bird_discount_cents, fee.currency), date: new Date(fee.early_bird_deadline).toLocaleDateString() })}
                       </span>
                     </div>
                   )}
 
                   {fee.late_fee_cents > 0 && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-orange-400">Late Fee</span>
+                      <span className="text-orange-400">{t('lateFee')}</span>
                       <span className="text-orange-400">
                         +{formatCurrency(fee.late_fee_cents, fee.currency)}
                       </span>
@@ -368,28 +369,28 @@ export function SeasonFeeManager({
                   )}
 
                   <div className="pt-2 border-t border-neutral-700">
-                    <div className="text-xs text-neutral-500 mb-2">Payment Plans</div>
+                    <div className="text-xs text-neutral-500 mb-2">{t('paymentPlans')}</div>
                     <div className="flex flex-wrap gap-2">
                       {fee.allow_full_payment && (
                         <span className="px-2 py-1 bg-rink-500/10 text-rink-400 text-xs rounded">
-                          Full Payment
+                          {t('fullPayment')}
                         </span>
                       )}
                       {fee.allow_two_pay && (
                         <span className="px-2 py-1 bg-rink-500/10 text-rink-400 text-xs rounded">
-                          2 Payments
+                          {t('twoPayments')}
                         </span>
                       )}
                       {fee.allow_three_pay && (
                         <span className="px-2 py-1 bg-rink-500/10 text-rink-400 text-xs rounded">
-                          3 Payments
+                          {t('threePayments')}
                         </span>
                       )}
                     </div>
                   </div>
 
                   <div className="pt-2 flex items-center justify-between">
-                    <span className="text-xs text-neutral-500">Active</span>
+                    <span className="text-xs text-neutral-500">{t('active')}</span>
                     <Switch
                       checked={fee.is_active}
                       onCheckedChange={() => toggleActive(fee)}
@@ -408,10 +409,10 @@ export function SeasonFeeManager({
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingFee ? 'Edit Registration Fee' : 'Create Registration Fee'}
+              {editingFee ? t('editFee') : t('createRegistrationFee')}
             </DialogTitle>
             <DialogDescription>
-              Configure the registration fee details and payment options.
+              {t('dialogDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -427,10 +428,10 @@ export function SeasonFeeManager({
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-white mb-2 block">
-                  Fee Name <span className="text-red-400">*</span>
+                  {t('feeName')} <span className="text-red-400">*</span>
                 </label>
                 <Input
-                  placeholder="e.g., Season Registration Fee"
+                  placeholder={t('feeNamePlaceholder')}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
@@ -438,10 +439,10 @@ export function SeasonFeeManager({
 
               <div>
                 <label className="text-sm font-medium text-white mb-2 block">
-                  Description (Optional)
+                  {t('descriptionOptional')}
                 </label>
                 <Input
-                  placeholder="Brief description of this fee"
+                  placeholder={t('descriptionPlaceholder')}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
@@ -450,7 +451,7 @@ export function SeasonFeeManager({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-white mb-2 block">
-                    Base Amount <span className="text-red-400">*</span>
+                    {t('baseAmount')} <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
@@ -472,7 +473,7 @@ export function SeasonFeeManager({
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-white mb-2 block">Currency</label>
+                  <label className="text-sm font-medium text-white mb-2 block">{t('currency')}</label>
                   <Select
                     value={formData.currency}
                     onValueChange={(value) =>
@@ -493,10 +494,10 @@ export function SeasonFeeManager({
 
             {/* Payment Plans */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-white">Payment Plans</label>
+              <label className="text-sm font-medium text-white">{t('paymentPlans')}</label>
               <div className="bg-neutral-800/50 p-4 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-300">Full Payment</span>
+                  <span className="text-sm text-neutral-300">{t('fullPayment')}</span>
                   <Switch
                     checked={formData.allowFullPayment}
                     onCheckedChange={(checked) =>
@@ -505,7 +506,7 @@ export function SeasonFeeManager({
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-300">2 Payments</span>
+                  <span className="text-sm text-neutral-300">{t('twoPayments')}</span>
                   <Switch
                     checked={formData.allowTwoPay}
                     onCheckedChange={(checked) =>
@@ -514,7 +515,7 @@ export function SeasonFeeManager({
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-300">3 Payments</span>
+                  <span className="text-sm text-neutral-300">{t('threePayments')}</span>
                   <Switch
                     checked={formData.allowThreePay}
                     onCheckedChange={(checked) =>
@@ -526,7 +527,7 @@ export function SeasonFeeManager({
               {formData.allowTwoPay || formData.allowThreePay ? (
                 <div>
                   <label className="text-sm font-medium text-white mb-2 block">
-                    Installment Fee (per payment)
+                    {t('installmentFee')}
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
@@ -549,7 +550,7 @@ export function SeasonFeeManager({
                     />
                   </div>
                   <p className="text-xs text-neutral-500 mt-1">
-                    Optional fee charged for each installment payment
+                    {t('installmentFeeDescription')}
                   </p>
                 </div>
               ) : null}
@@ -559,7 +560,7 @@ export function SeasonFeeManager({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-white mb-2 block">
-                  Payment Deadline
+                  {t('paymentDeadline')}
                 </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -576,7 +577,7 @@ export function SeasonFeeManager({
 
               <div>
                 <label className="text-sm font-medium text-white mb-2 block">
-                  Early Bird Deadline
+                  {t('earlyBirdDeadline')}
                 </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -596,7 +597,7 @@ export function SeasonFeeManager({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-white mb-2 block">
-                  Early Bird Discount
+                  {t('earlyBirdDiscount')}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
@@ -621,7 +622,7 @@ export function SeasonFeeManager({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-white mb-2 block">Late Fee</label>
+                <label className="text-sm font-medium text-white mb-2 block">{t('lateFee')}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
                     $
@@ -649,18 +650,17 @@ export function SeasonFeeManager({
             <div className="flex items-start gap-2 p-3 bg-neutral-800/50 rounded-lg">
               <Info className="w-4 h-4 text-neutral-400 mt-0.5 shrink-0" />
               <p className="text-xs text-neutral-400">
-                Late fees are automatically applied after the payment deadline. Early bird
-                discounts apply before the early bird deadline.
+                {t('lateFeesInfo')}
               </p>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button onClick={handleSave} disabled={isLoading}>
-              {isLoading ? 'Saving...' : editingFee ? 'Update Fee' : 'Create Fee'}
+              {isLoading ? t('saving') : editingFee ? t('updateFee') : t('createFee')}
             </Button>
           </DialogFooter>
         </DialogContent>

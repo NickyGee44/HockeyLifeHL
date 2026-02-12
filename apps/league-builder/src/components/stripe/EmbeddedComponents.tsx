@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useStripeConnect } from './ConnectProvider';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 // Loading placeholder component
 function LoadingPlaceholder({ height = 400 }: { height?: number }) {
+  const t = useTranslations('stripe');
   return (
     <div
       className="flex items-center justify-center bg-neutral-900/50 rounded-xl border border-neutral-800"
@@ -13,7 +15,7 @@ function LoadingPlaceholder({ height = 400 }: { height?: number }) {
     >
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mx-auto mb-2" />
-        <p className="text-sm text-neutral-400">Loading Stripe...</p>
+        <p className="text-sm text-neutral-400">{t('loadingStripe')}</p>
       </div>
     </div>
   );

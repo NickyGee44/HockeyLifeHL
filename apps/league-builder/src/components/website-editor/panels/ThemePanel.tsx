@@ -42,36 +42,7 @@ function ColorInput({ label, description, value, onChange }: ColorInputProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Preset label lookup
-// ---------------------------------------------------------------------------
-
-const PRESET_LABELS: Record<string, string> = {
-  classicBlue: 'Classic Blue',
-  forestGreen: 'Forest Green',
-  boldRed: 'Bold Red',
-  royalPurple: 'Royal Purple',
-  sunsetOrange: 'Sunset Orange',
-  midnight: 'Midnight',
-};
-
-const TEMPLATE_OPTIONS = [
-  {
-    value: 'dark',
-    label: 'Dark',
-    description: 'Broadcast-style, high contrast layout.',
-  },
-  {
-    value: 'light',
-    label: 'Light',
-    description: 'Clean editorial look with lighter surfaces.',
-  },
-  {
-    value: 'custom',
-    label: 'Custom',
-    description: 'Expressive gradients and stronger accent treatment.',
-  },
-] as const;
+const TEMPLATE_KEYS = ['dark', 'light', 'custom'] as const;
 
 // ---------------------------------------------------------------------------
 // ThemePanel
@@ -80,6 +51,7 @@ const TEMPLATE_OPTIONS = [
 export function ThemePanel() {
   const { state, setField } = useEditor();
   const t = useTranslations('websiteEditor.theme');
+  const tEditor = useTranslations('websiteEditor');
 
   return (
     <div className="space-y-6">
@@ -136,7 +108,7 @@ export function ThemePanel() {
                 <div className="w-4 h-4 rounded" style={{ backgroundColor: preset.accent }} />
               </div>
               <span className="text-[10px] text-neutral-500 group-hover:text-neutral-300">
-                {PRESET_LABELS[preset.name] ?? preset.name}
+                {tEditor(`presetLabels.${preset.name}`)}
               </span>
             </button>
           ))}
@@ -147,16 +119,16 @@ export function ThemePanel() {
       <div className="pt-4 border-t border-white/10">
         <h4 className="text-xs font-medium text-neutral-400 mb-3 flex items-center gap-2">
           <LayoutTemplate className="w-3.5 h-3.5" />
-          Site Template
+          {tEditor('template.title')}
         </h4>
         <div className="grid grid-cols-1 gap-2">
-          {TEMPLATE_OPTIONS.map((option) => {
-            const isActive = state.themePreset === option.value;
+          {TEMPLATE_KEYS.map((key) => {
+            const isActive = state.themePreset === key;
             return (
               <button
-                key={option.value}
+                key={key}
                 type="button"
-                onClick={() => setField('themePreset', option.value)}
+                onClick={() => setField('themePreset', key)}
                 className={cn(
                   'rounded-lg border px-3 py-2 text-left transition-colors',
                   isActive
@@ -164,8 +136,8 @@ export function ThemePanel() {
                     : 'border-white/10 bg-neutral-900/40 text-neutral-300 hover:border-white/20 hover:bg-neutral-800/60',
                 )}
               >
-                <p className="text-sm font-medium">{option.label}</p>
-                <p className="text-xs text-neutral-500">{option.description}</p>
+                <p className="text-sm font-medium">{tEditor(`template.${key}`)}</p>
+                <p className="text-xs text-neutral-500">{tEditor(`template.${key}Description`)}</p>
               </button>
             );
           })}
@@ -174,7 +146,7 @@ export function ThemePanel() {
 
       {/* Font selector */}
       <div className="pt-4 border-t border-white/10">
-        <h4 className="text-xs font-medium text-neutral-400 mb-3">Typography</h4>
+        <h4 className="text-xs font-medium text-neutral-400 mb-3">{tEditor('typography')}</h4>
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-1">
             {t('fontFamily')}
@@ -207,9 +179,9 @@ export function ThemePanel() {
             className="mt-3 p-3 bg-neutral-800/50 rounded-lg border border-white/5"
             style={{ fontFamily: state.fontFamily }}
           >
-            <p className="text-sm text-neutral-300">The quick brown fox jumps over the lazy dog</p>
+            <p className="text-sm text-neutral-300">{tEditor('fontPreviewText')}</p>
             <p className="text-xs text-neutral-500 mt-1">
-              Preview - {state.fontFamily}
+              {tEditor('fontPreviewLabel', { fontFamily: state.fontFamily })}
             </p>
           </div>
         </div>

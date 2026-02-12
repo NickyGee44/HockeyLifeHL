@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 
@@ -23,6 +24,7 @@ interface StripeProviderProps {
  * ```
  */
 export function StripeProvider({ children, publishableKey }: StripeProviderProps) {
+  const t = useTranslations('payments.stripeProvider');
   const [stripePromise, setStripePromise] = React.useState<Promise<Stripe | null> | null>(null);
 
   React.useEffect(() => {
@@ -39,7 +41,7 @@ export function StripeProvider({ children, publishableKey }: StripeProviderProps
     return (
       <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/10">
         <p className="text-red-400 text-sm">
-          Stripe payment system is not configured. Please contact support.
+          {t('notConfigured')}
         </p>
       </div>
     );

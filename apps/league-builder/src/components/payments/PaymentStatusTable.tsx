@@ -8,6 +8,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Search,
   Filter,
@@ -42,64 +43,64 @@ type SortDirection = 'asc' | 'desc';
 
 const STATUS_CONFIG: Record<
   PlayerPaymentStatus,
-  { label: string; icon: typeof CheckCircle; className: string }
+  { labelKey: string; icon: typeof CheckCircle; className: string }
 > = {
   pending: {
-    label: 'Pending',
+    labelKey: 'pending',
     icon: Clock,
     className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
   },
   processing: {
-    label: 'Processing',
+    labelKey: 'processing',
     icon: RefreshCw,
     className: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
   },
   paid: {
-    label: 'Paid',
+    labelKey: 'paid',
     icon: CheckCircle,
     className: 'bg-green-500/10 text-green-500 border-green-500/30',
   },
   partially_paid: {
-    label: 'Partial',
+    labelKey: 'partiallyPaid',
     icon: DollarSign,
     className: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
   },
   overdue: {
-    label: 'Overdue',
+    labelKey: 'overdue',
     icon: AlertCircle,
     className: 'bg-red-500/10 text-red-500 border-red-500/30',
   },
   refunded: {
-    label: 'Refunded',
+    labelKey: 'refunded',
     icon: RefreshCw,
     className: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
   },
   partially_refunded: {
-    label: 'Part. Refunded',
+    labelKey: 'partiallyRefunded',
     icon: RefreshCw,
     className: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
   },
   cancelled: {
-    label: 'Cancelled',
+    labelKey: 'cancelled',
     icon: XCircle,
     className: 'bg-neutral-500/10 text-neutral-500 border-neutral-500/30',
   },
   failed: {
-    label: 'Failed',
+    labelKey: 'failed',
     icon: XCircle,
     className: 'bg-red-500/10 text-red-500 border-red-500/30',
   },
   disputed: {
-    label: 'Disputed',
+    labelKey: 'disputed',
     icon: AlertCircle,
     className: 'bg-orange-500/10 text-orange-500 border-orange-500/30',
   },
 };
 
-const PAYMENT_PLAN_LABELS: Record<PaymentPlanType, string> = {
-  full: 'Full',
-  two_pay: '2-Pay',
-  three_pay: '3-Pay',
+const PAYMENT_PLAN_KEYS: Record<PaymentPlanType, string> = {
+  full: 'full',
+  two_pay: 'twoPay',
+  three_pay: 'threePay',
 };
 
 interface SortIconProps {
@@ -124,6 +125,9 @@ export function PaymentStatusTable({
   onViewDetails,
   isLoading = false,
 }: PaymentStatusTableProps) {
+  const t = useTranslations('payments.statusTable');
+  const tStatus = useTranslations('payments.history.statusLabels');
+  const tPlan = useTranslations('payments.planLabels');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PlayerPaymentStatus | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('date');
@@ -221,7 +225,7 @@ export function PaymentStatusTable({
       <div className="bg-neutral-800 border border-white/10 rounded-2xl p-8">
         <div className="flex items-center justify-center">
           <RefreshCw className="h-8 w-8 text-rink-500 animate-spin" />
-          <span className="ml-3 text-neutral-400">Loading payments...</span>
+          <span className="ml-3 text-neutral-400">{t('loadingPayments')}</span>
         </div>
       </div>
     );
@@ -232,17 +236,17 @@ export function PaymentStatusTable({
       {/* Header with Stats */}
       <div className="p-6 border-b border-neutral-700">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <h3 className="text-lg font-semibold text-white">Payment Status</h3>
+          <h3 className="text-lg font-semibold text-white">{t('title')}</h3>
           <div className="flex items-center gap-2 text-sm">
             <span className="px-3 py-1 bg-neutral-700 rounded-lg text-neutral-300">
-              {stats.total} total
+              {t('total', { count: stats.total })}
             </span>
             <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400">
-              {stats.paid} paid
+              {t('paid', { count: stats.paid })}
             </span>
             {stats.overdue > 0 && (
               <span className="px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
-                {stats.overdue} overdue
+                {t('overdue', { count: stats.overdue })}
               </span>
             )}
           </div>
@@ -251,7 +255,7 @@ export function PaymentStatusTable({
         {/* Collection Progress */}
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-1">
-            <span className="text-neutral-400">Collection Progress</span>
+            <span className="text-neutral-400">{t('collectionProgress')}</span>
             <span className="text-white">
               {formatCurrency(stats.totalCollected)} / {formatCurrency(stats.totalExpected)}
             </span>
@@ -273,7 +277,7 @@ export function PaymentStatusTable({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
             <input
               type="text"
-              placeholder="Search players or teams..."
+              placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-black/50 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent"
@@ -288,10 +292,10 @@ export function PaymentStatusTable({
               onChange={(e) => setStatusFilter(e.target.value as PlayerPaymentStatus | 'all')}
               className="pl-10 pr-8 py-2 bg-black/50 border border-neutral-700 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent"
             >
-              <option value="all">All Status</option>
+              <option value="all">{t('status')}</option>
               {Object.entries(STATUS_CONFIG).map(([value, config]) => (
                 <option key={value} value={value}>
-                  {config.label}
+                  {tStatus(config.labelKey)}
                 </option>
               ))}
             </select>
@@ -310,7 +314,7 @@ export function PaymentStatusTable({
                 onClick={() => handleSort('player')}
               >
                 <div className="flex items-center gap-1">
-                  Player
+                  {t('player')}
                   <SortIcon field="player" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
@@ -319,7 +323,7 @@ export function PaymentStatusTable({
                 onClick={() => handleSort('team')}
               >
                 <div className="flex items-center gap-1">
-                  Team
+                  {t('team')}
                   <SortIcon field="team" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
@@ -328,7 +332,7 @@ export function PaymentStatusTable({
                 onClick={() => handleSort('amount')}
               >
                 <div className="flex items-center gap-1">
-                  Amount
+                  {t('amount')}
                   <SortIcon field="amount" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
@@ -337,7 +341,7 @@ export function PaymentStatusTable({
                 onClick={() => handleSort('progress')}
               >
                 <div className="flex items-center gap-1">
-                  Progress
+                  {t('progress')}
                   <SortIcon field="progress" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
@@ -346,15 +350,15 @@ export function PaymentStatusTable({
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center gap-1">
-                  Status
+                  {t('status')}
                   <SortIcon field="status" currentSortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                Plan
+                {t('plan')}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                Actions
+                {t('actions')}
               </th>
             </tr>
           </thead>
@@ -363,8 +367,8 @@ export function PaymentStatusTable({
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
                   {searchQuery || statusFilter !== 'all'
-                    ? 'No payments match your filters'
-                    : 'No payments yet'}
+                    ? t('noMatchingFilters')
+                    : t('noPaymentsYet')}
                 </td>
               </tr>
             ) : (
@@ -420,7 +424,7 @@ export function PaymentStatusTable({
                           {formatCurrency(payment.total_amount_cents)}
                         </p>
                         <p className="text-xs text-neutral-500">
-                          Paid: {formatCurrency(payment.amount_paid_cents)}
+                          {t('amountPaid', { amount: formatCurrency(payment.amount_paid_cents) })}
                         </p>
                       </div>
                     </td>
@@ -457,14 +461,14 @@ export function PaymentStatusTable({
                         className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full border ${statusConfig.className}`}
                       >
                         <StatusIcon className="h-3 w-3" />
-                        {statusConfig.label}
+                        {tStatus(statusConfig.labelKey)}
                       </span>
                     </td>
 
                     {/* Payment Plan */}
                     <td className="px-4 py-3">
                       <span className="text-sm text-neutral-300">
-                        {PAYMENT_PLAN_LABELS[payment.payment_plan]}
+                        {tPlan(PAYMENT_PLAN_KEYS[payment.payment_plan])}
                       </span>
                     </td>
 
@@ -499,7 +503,7 @@ export function PaymentStatusTable({
                                   className="w-full px-4 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700 hover:text-white flex items-center gap-2"
                                 >
                                   <DollarSign className="h-4 w-4" />
-                                  View Details
+                                  {t('viewDetails')}
                                 </button>
                               )}
                               {onSendReminder &&
@@ -514,7 +518,7 @@ export function PaymentStatusTable({
                                     className="w-full px-4 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700 hover:text-white flex items-center gap-2"
                                   >
                                     <Mail className="h-4 w-4" />
-                                    Send Reminder
+                                    {t('sendReminder')}
                                   </button>
                                 )}
                               {onRefund &&
@@ -528,7 +532,7 @@ export function PaymentStatusTable({
                                     className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-neutral-700 flex items-center gap-2"
                                   >
                                     <RefreshCw className="h-4 w-4" />
-                                    Issue Refund
+                                    {t('issueRefund')}
                                   </button>
                                 )}
                             </div>
@@ -548,7 +552,7 @@ export function PaymentStatusTable({
       {filteredPayments.length > 0 && (
         <div className="px-4 py-3 border-t border-neutral-700 bg-neutral-900/30">
           <p className="text-xs text-neutral-500">
-            Showing {filteredPayments.length} of {payments.length} payments
+            {t('showing', { shown: filteredPayments.length, total: payments.length })}
           </p>
         </div>
       )}

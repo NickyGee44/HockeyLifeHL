@@ -11,6 +11,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Loader2, CheckCircle2, ExternalLink, TrendingUp, Zap } from 'lucide-react';
 import { createAddonCheckout, cancelAddon, type AddonType, type OrgAddon } from '@/lib/actions/addons';
 import { Button } from '@/components/ui/button';
@@ -25,29 +26,25 @@ interface AddonCardProps {
 
 const ADDON_CONFIG: Record<
   AddonType,
-  { icon: React.ReactNode; name: string; price: string; description: string }
+  { icon: React.ReactNode; configKey: string }
 > = {
   platform_subscription: {
     icon: <TrendingUp className="w-5 h-5" />,
-    name: 'Platform Monthly',
-    price: '$299.99/mo',
-    description: 'Priority support, custom branding, and advanced admin tools',
+    configKey: 'platform_subscription',
   },
   advanced_stats: {
     icon: <span className="text-xl">📊</span>,
-    name: 'Advanced Stats',
-    price: '$14.99/mo',
-    description: 'Deep analytics, player comparisons, and exportable reports',
+    configKey: 'advanced_stats',
   },
   ai_news: {
     icon: <span className="text-xl">✍️</span>,
-    name: 'AI News Writer',
-    price: '$14.99/mo',
-    description: 'Auto-generated game recaps, weekly roundups, and player spotlights',
+    configKey: 'ai_news',
   },
 };
 
 export function AddonCard({ addonType, addon, orgId, onRefresh }: AddonCardProps) {
+  const t = useTranslations('subscription.addon');
+  const tConfig = useTranslations(`subscription.addon.config.${addonType}`);
   const [loading, setLoading] = useState(false);
 
   const config = ADDON_CONFIG[addonType];
@@ -65,17 +62,17 @@ export function AddonCard({ addonType, addon, orgId, onRefresh }: AddonCardProps
       if (result.success) {
         window.location.href = result.data.url;
       } else {
-        toast.error('Failed to start checkout', { description: result.error });
+        toast.error(t('failedCheckout'), { description: result.error });
       }
     } catch {
-      toast.error('Failed to start checkout');
+      toast.error(t('failedCheckout'));
     } finally {
       setLoading(false);
     }
   }
 
   async function handleCancel() {
-    if (!confirm(`Cancel ${config.name}? It will remain active until the end of your billing period.`)) {
+    if (!confirm(t('cancelConfirm', { name: tConfig('name') }))) {
       return;
     }
 
@@ -83,13 +80,13 @@ export function AddonCard({ addonType, addon, orgId, onRefresh }: AddonCardProps
     try {
       const result = await cancelAddon(orgId, addonType);
       if (result.success) {
-        toast.success('Subscription will cancel at end of billing period');
+        toast.success(t('cancelAtPeriodEnd'));
         onRefresh();
       } else {
-        toast.error('Failed to cancel subscription', { description: result.error });
+        toast.error(t('failedCancel'), { description: result.error });
       }
     } catch {
-      toast.error('Failed to cancel subscription');
+      toast.error(t('failedCancel'));
     } finally {
       setLoading(false);
     }
@@ -112,23 +109,23 @@ export function AddonCard({ addonType, addon, orgId, onRefresh }: AddonCardProps
             {config.icon}
           </div>
           <div>
-            <h3 className="font-semibold text-white text-sm">{config.name}</h3>
-            <p className="text-xs text-neutral-500">{config.price}</p>
+            <h3 className="font-semibold text-white text-sm">{tConfig('name')}</h3>
+            <p className="text-xs text-neutral-500">{tConfig('price')}</p>
           </div>
         </div>
       </div>
 
       {/* Description */}
-      <p className="text-sm text-neutral-400 mb-4">{config.description}</p>
+      <p className="text-sm text-neutral-400 mb-4">{tConfig('description')}</p>
 
       {/* Status Badge */}
       {isActive && !isCancelled && (
         <div className="flex items-center gap-1.5 mb-3 text-xs text-green-400">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>Active</span>
+          <span>{t('active')}</span>
           {addon?.current_period_end && (
             <span className="text-neutral-500 ml-1">
-              • Renews {new Date(addon.current_period_end).toLocaleDateString()}
+              • {t('renews', { date: new Date(addon.current_period_end).toLocaleDateString() })}
             </span>
           )}
         </div>
@@ -136,13 +133,13 @@ export function AddonCard({ addonType, addon, orgId, onRefresh }: AddonCardProps
 
       {isActive && isCancelled && (
         <div className="flex items-center gap-1.5 mb-3 text-xs text-yellow-400">
-          <span>Cancelling at period end</span>
+          <span>{t('cancellingAtPeriodEnd')}</span>
         </div>
       )}
 
       {isPastDue && (
         <div className="flex items-center gap-1.5 mb-3 text-xs text-yellow-400">
-          <span>Payment issue</span>
+          <span>{t('paymentIssue')}</span>
         </div>
       )}
 
@@ -159,7 +156,7 @@ export function AddonCard({ addonType, addon, orgId, onRefresh }: AddonCardProps
             ) : (
               <>
                 <ExternalLink className="w-3.5 h-3.5 mr-2" />
-                Add to Plan
+                {t('addToPlan')}
               </>
             )}
           </Button>
@@ -172,7 +169,7 @@ export function AddonCard({ addonType, addon, orgId, onRefresh }: AddonCardProps
             variant="outline"
             className="flex-1 border-white/10 text-neutral-300 hover:bg-white/5 text-sm"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cancel'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('cancel')}
           </Button>
         )}
       </div>

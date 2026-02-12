@@ -12,6 +12,7 @@ import {
   RefreshCw,
   ExternalLink,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEditor } from './EditorContext';
 import { useEditorSave } from './hooks/useEditorSave';
 import type { ViewportSize } from './types';
@@ -29,6 +30,7 @@ export function EditorHeader({ onRefreshPreview }: EditorHeaderProps) {
     previewUrl,
   } = useEditor();
   const { save, isSaving } = useEditorSave();
+  const t = useTranslations('websiteEditor');
 
   const selectedLeague = state.leagues.find((l) => l.id === state.selectedLeagueId);
   const dirty = hasUnsavedChanges();
@@ -54,7 +56,7 @@ export function EditorHeader({ onRefreshPreview }: EditorHeaderProps) {
             />
           )}
           <div>
-            <h1 className="text-lg font-bold text-white">Website Editor</h1>
+            <h1 className="text-lg font-bold text-white">{t('title')}</h1>
             {state.leagues.length > 1 ? (
               <select
                 value={state.selectedLeagueId}
@@ -89,7 +91,7 @@ export function EditorHeader({ onRefreshPreview }: EditorHeaderProps) {
                     ? 'bg-rink-500/20 text-rink-400'
                     : 'text-neutral-400 hover:text-white',
                 )}
-                title={`${size.charAt(0).toUpperCase() + size.slice(1)} view`}
+                title={t(`viewport.${size}`)}
               >
                 <Icon className="w-4 h-4" />
               </button>
@@ -101,7 +103,7 @@ export function EditorHeader({ onRefreshPreview }: EditorHeaderProps) {
         <button
           onClick={onRefreshPreview}
           className="p-2 text-neutral-400 hover:text-white transition-colors"
-          title="Refresh preview"
+          title={t('refreshPreview')}
         >
           <RefreshCw className={cn('w-4 h-4', !state.isPreviewReady && 'animate-spin')} />
         </button>
@@ -112,14 +114,14 @@ export function EditorHeader({ onRefreshPreview }: EditorHeaderProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="p-2 text-neutral-400 hover:text-white transition-colors"
-          title="Open website in new tab"
+          title={t('openNewTab')}
         >
           <ExternalLink className="w-4 h-4" />
         </a>
 
         {/* Unsaved changes indicator */}
         {dirty && (
-          <span className="text-xs text-amber-400 font-medium">Unsaved changes</span>
+          <span className="text-xs text-amber-400 font-medium">{t('unsavedChanges')}</span>
         )}
 
         {/* Save Button */}
@@ -136,12 +138,12 @@ export function EditorHeader({ onRefreshPreview }: EditorHeaderProps) {
           {isSaving ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Saving...
+              {t('saving')}
             </>
           ) : (
             <>
               <Save className="w-4 h-4" />
-              Save Changes
+              {t('save')}
             </>
           )}
         </button>

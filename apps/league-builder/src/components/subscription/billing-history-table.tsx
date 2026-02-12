@@ -7,6 +7,7 @@
 'use client';
 
 import { format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import { Download, ExternalLink, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,39 +39,31 @@ function getStatusVariant(status: Invoice['status']): 'default' | 'secondary' | 
   }
 }
 
-function getStatusLabel(status: Invoice['status']): string {
-  switch (status) {
-    case 'paid':
-      return 'Paid';
-    case 'open':
-      return 'Open';
-    case 'draft':
-      return 'Draft';
-    case 'uncollectible':
-      return 'Uncollectible';
-    case 'void':
-      return 'Void';
-    default:
-      return status;
-  }
-}
-
 export function BillingHistoryTable({ invoices }: BillingHistoryTableProps) {
+  const t = useTranslations('subscription.billingHistory');
+  const tStatus = useTranslations('subscription.billingHistory.statusLabels');
+
+  function getStatusLabel(status: Invoice['status']): string {
+    if (['paid', 'open', 'draft', 'uncollectible', 'void'].includes(status)) {
+      return tStatus(status as 'paid' | 'open' | 'draft' | 'uncollectible' | 'void');
+    }
+    return status;
+  }
   if (invoices.length === 0) {
     return (
       <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
-          <CardTitle className="text-neutral-100">Billing History</CardTitle>
+          <CardTitle className="text-neutral-100">{t('title')}</CardTitle>
           <CardDescription className="text-neutral-400">
-            View your past invoices and payments
+            {t('viewInvoices')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <FileText className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
-            <p className="text-neutral-400">No invoices yet</p>
+            <p className="text-neutral-400">{t('noInvoices')}</p>
             <p className="text-sm text-neutral-500 mt-2">
-              Your billing history will appear here once you start a subscription
+              {t('noInvoicesSubscription')}
             </p>
           </div>
         </CardContent>
@@ -81,9 +74,9 @@ export function BillingHistoryTable({ invoices }: BillingHistoryTableProps) {
   return (
     <Card className="bg-neutral-800/50 border-white/10">
       <CardHeader>
-        <CardTitle className="text-neutral-100">Billing History</CardTitle>
+        <CardTitle className="text-neutral-100">{t('title')}</CardTitle>
         <CardDescription className="text-neutral-400">
-          View and download your past invoices
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -91,18 +84,18 @@ export function BillingHistoryTable({ invoices }: BillingHistoryTableProps) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-3 px-4 text-sm font-medium text-neutral-400">Date</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-neutral-400">{t('date')}</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-neutral-400">
-                  Description
+                  {t('descriptionCol')}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-neutral-400">
-                  Amount
+                  {t('amountCol')}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-neutral-400">
-                  Status
+                  {t('statusCol')}
                 </th>
                 <th className="text-right py-3 px-4 text-sm font-medium text-neutral-400">
-                  Actions
+                  {t('actionsCol')}
                 </th>
               </tr>
             </thead>
@@ -117,7 +110,7 @@ export function BillingHistoryTable({ invoices }: BillingHistoryTableProps) {
                         : '-'}
                   </td>
                   <td className="py-3 px-4 text-sm text-neutral-200">
-                    {invoice.description || 'Subscription payment'}
+                    {invoice.description || t('subscriptionPayment')}
                   </td>
                   <td className="py-3 px-4 text-sm font-medium text-neutral-100">
                     {formatCurrency(invoice.amount, invoice.currency)}
@@ -149,7 +142,7 @@ export function BillingHistoryTable({ invoices }: BillingHistoryTableProps) {
                         >
                           <a href={invoice.invoiceUrl} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="h-3 w-3 mr-1" />
-                            View
+                            {t('view')}
                           </a>
                         </Button>
                       )}

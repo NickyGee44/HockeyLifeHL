@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CreditCard, Loader2, ExternalLink, Calendar, DollarSign } from 'lucide-react';
 import { createCheckoutSession } from '@/lib/payments/payment-actions';
 import type { PlayerPayment, SeasonFee, PaymentPlanType } from '@/lib/payments/types';
@@ -20,10 +21,10 @@ interface CheckoutButtonProps {
   className?: string;
 }
 
-const PAYMENT_PLAN_INFO: Record<PaymentPlanType, { label: string; installments: number }> = {
-  full: { label: 'Pay in Full', installments: 1 },
-  two_pay: { label: '2-Pay Plan', installments: 2 },
-  three_pay: { label: '3-Pay Plan', installments: 3 },
+const PAYMENT_PLAN_INFO: Record<PaymentPlanType, { labelKey: string; installments: number }> = {
+  full: { labelKey: 'payInFull', installments: 1 },
+  two_pay: { labelKey: 'twoPayPlan', installments: 2 },
+  three_pay: { labelKey: 'threePayPlan', installments: 3 },
 };
 
 export function CheckoutButton({
@@ -33,6 +34,7 @@ export function CheckoutButton({
   cancelUrl,
   className = '',
 }: CheckoutButtonProps) {
+  const t = useTranslations('payments.checkout');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +61,7 @@ export function CheckoutButton({
         setError(result.error);
       }
     } catch (err) {
-      setError('Failed to create checkout session. Please try again.');
+      setError(t('checkoutFailed'));
     } finally {
       setLoading(false);
     }
@@ -74,9 +76,9 @@ export function CheckoutButton({
             <DollarSign className="h-5 w-5 text-green-500" />
           </div>
           <div>
-            <p className="font-medium text-green-400">Fully Paid</p>
+            <p className="font-medium text-green-400">{t('fullyPaid')}</p>
             <p className="text-sm text-green-400/70">
-              ${(playerPayment.total_amount_cents / 100).toFixed(2)} paid
+              {t('amountPaid', { amount: `$${(playerPayment.total_amount_cents / 100).toFixed(2)}` })}
             </p>
           </div>
         </div>
@@ -90,24 +92,24 @@ export function CheckoutButton({
       <div className="p-4 border-b border-neutral-700">
         <div className="flex items-center justify-between mb-3">
           <h4 className="font-medium text-white">{seasonFee.name}</h4>
-          <span className="text-sm text-neutral-400">{planInfo.label}</span>
+          <span className="text-sm text-neutral-400">{t(planInfo.labelKey)}</span>
         </div>
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-neutral-400">Total Amount</span>
+            <span className="text-neutral-400">{t('totalAmount')}</span>
             <span className="text-white">
               ${(playerPayment.total_amount_cents / 100).toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-neutral-400">Amount Paid</span>
+            <span className="text-neutral-400">{t('amountPaidLabel')}</span>
             <span className="text-green-400">
               ${(playerPayment.amount_paid_cents / 100).toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between font-medium">
-            <span className="text-neutral-300">Remaining</span>
+            <span className="text-neutral-300">{t('remaining')}</span>
             <span className="text-rink-500">
               ${(remainingAmount / 100).toFixed(2)}
             </span>
@@ -120,7 +122,7 @@ export function CheckoutButton({
             <div className="flex items-center gap-2 text-xs text-neutral-400">
               <Calendar className="h-3 w-3" />
               <span>
-                {remainingInstallments} payments of ${(installmentAmount / 100).toFixed(2)} remaining
+                {t('paymentsRemaining', { count: remainingInstallments, amount: `$${(installmentAmount / 100).toFixed(2)}` })}
               </span>
             </div>
           </div>
@@ -131,12 +133,11 @@ export function CheckoutButton({
           <div className="mt-2 flex items-center gap-2 text-xs text-neutral-400">
             <Calendar className="h-3 w-3" />
             <span>
-              Next payment due:{' '}
-              {new Date(playerPayment.next_payment_date).toLocaleDateString('en-US', {
+              {t('nextPaymentDue', { date: new Date(playerPayment.next_payment_date).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
-              })}
+              }) })}
             </span>
           </div>
         )}
@@ -158,19 +159,19 @@ export function CheckoutButton({
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Preparing Checkout...
+              {t('preparingCheckout')}
             </>
           ) : (
             <>
               <CreditCard className="w-5 h-5" />
-              Pay ${(installmentAmount / 100).toFixed(2)}
+              {t('pay', { amount: `$${(installmentAmount / 100).toFixed(2)}` })}
               <ExternalLink className="w-4 h-4 ml-1" />
             </>
           )}
         </button>
 
         <p className="mt-2 text-xs text-neutral-500 text-center">
-          Secure payment powered by Stripe
+          {t('securePayment')}
         </p>
       </div>
     </div>

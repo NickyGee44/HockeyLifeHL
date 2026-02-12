@@ -8,6 +8,7 @@
  */
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   CheckCircle,
   Clock,
@@ -36,55 +37,55 @@ interface PaymentHistoryCardProps {
 
 const STATUS_CONFIG: Record<
   PlayerPaymentStatus,
-  { label: string; icon: typeof CheckCircle; className: string }
+  { labelKey: string; icon: typeof CheckCircle; className: string }
 > = {
   pending: {
-    label: 'Pending',
+    labelKey: 'pending',
     icon: Clock,
     className: 'bg-yellow-500/10 text-yellow-500',
   },
   processing: {
-    label: 'Processing',
+    labelKey: 'processing',
     icon: RefreshCw,
     className: 'bg-blue-500/10 text-blue-500',
   },
   paid: {
-    label: 'Paid in Full',
+    labelKey: 'paid',
     icon: CheckCircle,
     className: 'bg-green-500/10 text-green-500',
   },
   partially_paid: {
-    label: 'Partially Paid',
+    labelKey: 'partiallyPaid',
     icon: CreditCard,
     className: 'bg-amber-500/10 text-amber-500',
   },
   overdue: {
-    label: 'Overdue',
+    labelKey: 'overdue',
     icon: AlertCircle,
     className: 'bg-red-500/10 text-red-500',
   },
   refunded: {
-    label: 'Refunded',
+    labelKey: 'refunded',
     icon: RefreshCw,
     className: 'bg-purple-500/10 text-purple-500',
   },
   partially_refunded: {
-    label: 'Partially Refunded',
+    labelKey: 'partiallyRefunded',
     icon: RefreshCw,
     className: 'bg-purple-500/10 text-purple-500',
   },
   cancelled: {
-    label: 'Cancelled',
+    labelKey: 'cancelled',
     icon: XCircle,
     className: 'bg-neutral-500/10 text-neutral-500',
   },
   failed: {
-    label: 'Failed',
+    labelKey: 'failed',
     icon: XCircle,
     className: 'bg-red-500/10 text-red-500',
   },
   disputed: {
-    label: 'Disputed',
+    labelKey: 'disputed',
     icon: AlertCircle,
     className: 'bg-orange-500/10 text-orange-500',
   },
@@ -92,13 +93,13 @@ const STATUS_CONFIG: Record<
 
 const TRANSACTION_TYPE_CONFIG: Record<
   PaymentTransactionType,
-  { label: string; icon: typeof ArrowDownRight; positive: boolean }
+  { labelKey: string; icon: typeof ArrowDownRight; positive: boolean }
 > = {
-  payment: { label: 'Payment', icon: ArrowDownRight, positive: true },
-  installment: { label: 'Installment', icon: ArrowDownRight, positive: true },
-  refund: { label: 'Refund', icon: ArrowUpRight, positive: false },
-  late_fee: { label: 'Late Fee', icon: ArrowDownRight, positive: true },
-  adjustment: { label: 'Adjustment', icon: RefreshCw, positive: true },
+  payment: { labelKey: 'payment', icon: ArrowDownRight, positive: true },
+  installment: { labelKey: 'installment', icon: ArrowDownRight, positive: true },
+  refund: { labelKey: 'refund', icon: ArrowUpRight, positive: false },
+  late_fee: { labelKey: 'lateFee', icon: ArrowDownRight, positive: true },
+  adjustment: { labelKey: 'adjustment', icon: RefreshCw, positive: true },
 };
 
 export function PaymentHistoryCard({
@@ -107,6 +108,9 @@ export function PaymentHistoryCard({
   feeName,
   className = '',
 }: PaymentHistoryCardProps) {
+  const t = useTranslations('payments.history');
+  const tStatus = useTranslations('payments.history.statusLabels');
+  const tTx = useTranslations('payments.history.transactionTypes');
   const statusConfig = STATUS_CONFIG[payment.status];
   const StatusIcon = statusConfig.icon;
 
@@ -151,10 +155,10 @@ export function PaymentHistoryCard({
               <h3 className="text-lg font-semibold text-white">{feeName}</h3>
               <p className="text-sm text-neutral-400">
                 {payment.payment_plan === 'full'
-                  ? 'Full Payment'
+                  ? t('fullPayment')
                   : payment.payment_plan === 'two_pay'
-                    ? '2-Pay Plan'
-                    : '3-Pay Plan'}
+                    ? t('twoPayPlan')
+                    : t('threePayPlan')}
               </p>
             </div>
           </div>
@@ -163,14 +167,14 @@ export function PaymentHistoryCard({
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full ${statusConfig.className}`}
           >
             <StatusIcon className="h-4 w-4" />
-            {statusConfig.label}
+            {tStatus(statusConfig.labelKey)}
           </span>
         </div>
 
         {/* Payment Progress */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-neutral-400">Payment Progress</span>
+            <span className="text-neutral-400">{t('paymentProgress')}</span>
             <span className="text-white">
               {formatCurrency(payment.amount_paid_cents)} /{' '}
               {formatCurrency(payment.total_amount_cents)}
@@ -186,9 +190,9 @@ export function PaymentHistoryCard({
           </div>
           <div className="flex justify-between text-xs text-neutral-500">
             <span>
-              Installment {payment.current_installment} of {payment.total_installments}
+              {t('installmentOf', { current: payment.current_installment, total: payment.total_installments })}
             </span>
-            <span>{progressPercent}% complete</span>
+            <span>{t('percentComplete', { percent: progressPercent })}</span>
           </div>
         </div>
 
@@ -198,14 +202,14 @@ export function PaymentHistoryCard({
           payment.status !== 'refunded' && (
             <div className="mt-4 pt-4 border-t border-neutral-700 grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-neutral-500 mb-1">Remaining Balance</p>
+                <p className="text-xs text-neutral-500 mb-1">{t('remainingBalance')}</p>
                 <p className="text-lg font-semibold text-rink-500">
                   {formatCurrency(payment.total_amount_cents - payment.amount_paid_cents)}
                 </p>
               </div>
               {payment.next_payment_date && (
                 <div>
-                  <p className="text-xs text-neutral-500 mb-1">Next Payment Due</p>
+                  <p className="text-xs text-neutral-500 mb-1">{t('nextPaymentDue')}</p>
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-4 w-4 text-neutral-400" />
                     <p className="text-sm text-white">
@@ -220,11 +224,11 @@ export function PaymentHistoryCard({
 
       {/* Transaction History */}
       <div className="p-6">
-        <h4 className="text-sm font-medium text-neutral-300 mb-4">Transaction History</h4>
+        <h4 className="text-sm font-medium text-neutral-300 mb-4">{t('transactionHistory')}</h4>
 
         {sortedTransactions.length === 0 ? (
           <p className="text-sm text-neutral-500 text-center py-4">
-            No transactions yet
+            {t('noTransactions')}
           </p>
         ) : (
           <div className="space-y-3">
@@ -261,7 +265,7 @@ export function PaymentHistoryCard({
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">
-                        {typeConfig.label}
+                        {tTx(typeConfig.labelKey)}
                         {transaction.installment_number &&
                           ` #${transaction.installment_number}`}
                       </p>
@@ -313,7 +317,7 @@ export function PaymentHistoryCard({
           <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-center">
             <p className="text-sm text-green-400">
               <CheckCircle className="h-4 w-4 inline mr-1.5" />
-              Paid in full on {formatDate(payment.paid_at)}
+              {t('paidInFullOn', { date: formatDate(payment.paid_at) })}
             </p>
           </div>
         </div>

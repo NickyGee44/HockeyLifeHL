@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, AlertCircle, Clock, ExternalLink, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ interface ConnectOnboardingCardProps {
 
 const STATUS_CONFIG = {
   not_created: {
-    label: 'Not Started',
+    labelKey: 'notStarted',
     variant: 'outline' as const,
     icon: Clock,
     color: 'text-gray-500',
@@ -35,7 +36,7 @@ const STATUS_CONFIG = {
     borderColor: 'border-gray-200 dark:border-gray-800',
   },
   pending: {
-    label: 'Pending',
+    labelKey: 'pending',
     variant: 'secondary' as const,
     icon: Clock,
     color: 'text-yellow-600 dark:text-yellow-400',
@@ -43,7 +44,7 @@ const STATUS_CONFIG = {
     borderColor: 'border-yellow-200 dark:border-yellow-800',
   },
   restricted: {
-    label: 'Action Required',
+    labelKey: 'actionRequired',
     variant: 'destructive' as const,
     icon: AlertCircle,
     color: 'text-orange-600 dark:text-orange-400',
@@ -51,7 +52,7 @@ const STATUS_CONFIG = {
     borderColor: 'border-orange-200 dark:border-orange-800',
   },
   complete: {
-    label: 'Complete',
+    labelKey: 'complete',
     variant: 'default' as const,
     icon: CheckCircle2,
     color: 'text-green-600 dark:text-green-400',
@@ -59,7 +60,7 @@ const STATUS_CONFIG = {
     borderColor: 'border-green-200 dark:border-green-800',
   },
   disabled: {
-    label: 'Disabled',
+    labelKey: 'disabled',
     variant: 'destructive' as const,
     icon: AlertCircle,
     color: 'text-red-600 dark:text-red-400',
@@ -73,6 +74,8 @@ export function ConnectOnboardingCard({
   accountInfo,
   onStatusChange,
 }: ConnectOnboardingCardProps) {
+  const t = useTranslations('billing.connect');
+  const tStatus = useTranslations('billing.connect.status');
   const [loading, setLoading] = useState(false);
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
@@ -118,12 +121,12 @@ export function ConnectOnboardingCard({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Payment Setup</CardTitle>
+            <CardTitle>{t('paymentSetup')}</CardTitle>
             <CardDescription>
-              Connect your Stripe account to accept payments
+              {t('connectStripeDesc')}
             </CardDescription>
           </div>
-          <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+          <Badge variant={statusConfig.variant}>{tStatus(statusConfig.labelKey)}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -137,11 +140,10 @@ export function ConnectOnboardingCard({
               {accountInfo.status === 'not_created' && (
                 <>
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Set up payments for your league
+                    {t('setupPayments')}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Connect your Stripe account to accept registration fees, game payments,
-                    and more directly through your league portal.
+                    {t('setupPaymentsDesc')}
                   </p>
                 </>
               )}
@@ -149,11 +151,10 @@ export function ConnectOnboardingCard({
               {accountInfo.status === 'pending' && (
                 <>
                   <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-                    Complete your account setup
+                    {t('completeSetup')}
                   </p>
                   <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                    Your Stripe account is being reviewed. Continue onboarding to provide
-                    any remaining information.
+                    {t('completeSetupDesc')}
                   </p>
                 </>
               )}
@@ -161,11 +162,10 @@ export function ConnectOnboardingCard({
               {accountInfo.status === 'restricted' && (
                 <>
                   <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
-                    Action required
+                    {t('actionRequired')}
                   </p>
                   <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                    Stripe needs additional information to enable your account.
-                    Please complete the required steps.
+                    {t('actionRequiredDesc')}
                   </p>
                   {accountInfo.requirements?.currentlyDue &&
                     accountInfo.requirements.currentlyDue.length > 0 && (
@@ -175,7 +175,7 @@ export function ConnectOnboardingCard({
                         ))}
                         {accountInfo.requirements.currentlyDue.length > 3 && (
                           <li>
-                            +{accountInfo.requirements.currentlyDue.length - 3} more items
+                            {t('moreItems', { count: accountInfo.requirements.currentlyDue.length - 3 })}
                           </li>
                         )}
                       </ul>
@@ -186,11 +186,10 @@ export function ConnectOnboardingCard({
               {accountInfo.status === 'complete' && (
                 <>
                   <p className="text-sm font-medium text-green-900 dark:text-green-100">
-                    Ready to accept payments
+                    {t('readyToAccept')}
                   </p>
                   <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                    Your Stripe account is fully configured. You can now accept payments
-                    from players and teams.
+                    {t('readyToAcceptDesc')}
                   </p>
                 </>
               )}
@@ -198,11 +197,10 @@ export function ConnectOnboardingCard({
               {accountInfo.status === 'disabled' && (
                 <>
                   <p className="text-sm font-medium text-red-900 dark:text-red-100">
-                    Account disabled
+                    {t('accountDisabled')}
                   </p>
                   <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                    Your Stripe account has been disabled. Please contact support for
-                    assistance.
+                    {t('accountDisabledDesc')}
                   </p>
                 </>
               )}
@@ -220,7 +218,7 @@ export function ConnectOnboardingCard({
                 <Clock className="h-4 w-4 text-gray-400" />
               )}
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Accept Payments
+                {t('acceptPayments')}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -230,7 +228,7 @@ export function ConnectOnboardingCard({
                 <Clock className="h-4 w-4 text-gray-400" />
               )}
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Receive Payouts
+                {t('receivePayouts')}
               </span>
             </div>
           </div>
@@ -242,8 +240,8 @@ export function ConnectOnboardingCard({
             <Button onClick={handleStartOnboarding} disabled={loading} className="flex-1">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {accountInfo.status === 'not_created'
-                ? 'Start Setup'
-                : 'Continue Setup'}
+                ? t('startSetup')
+                : t('continueSetup')}
             </Button>
           )}
 
@@ -258,14 +256,14 @@ export function ConnectOnboardingCard({
               ) : (
                 <ExternalLink className="mr-2 h-4 w-4" />
               )}
-              Stripe Dashboard
+              {t('stripeDashboard')}
             </Button>
           )}
         </div>
 
         {/* Platform Fee Notice */}
         <p className="text-xs text-muted-foreground text-center pt-2">
-          A 2.99% platform fee applies to all transactions
+          {t('platformFeeNotice')}
         </p>
       </CardContent>
     </Card>

@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import { DollarSign, ArrowUpRight, Clock, Calendar, Loader2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +38,7 @@ const PAYOUT_STATUS_COLORS: Record<string, string> = {
 };
 
 export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
+  const t = useTranslations('billing.payout');
   const [payoutInfo, setPayoutInfo] = useState<PayoutInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,22 +65,22 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
     setRefreshing(true);
     await loadPayoutInfo();
     setRefreshing(false);
-    toast.success('Balance updated');
+    toast.success(t('balanceUpdated'));
   }
 
   if (!isConnected) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Balance & Payouts</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
           <CardDescription>
-            Complete payment setup to view your balance
+            {t('completeSetup')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Set up payments to start tracking your earnings</p>
+            <p>{t('setupPayments')}</p>
           </div>
         </CardContent>
       </Card>
@@ -89,8 +91,8 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Balance & Payouts</CardTitle>
-          <CardDescription>Loading balance information...</CardDescription>
+          <CardTitle>{t('title')}</CardTitle>
+          <CardDescription>{t('loadingBalance')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
@@ -105,14 +107,14 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Balance & Payouts</CardTitle>
-          <CardDescription>Unable to load balance information</CardDescription>
+          <CardTitle>{t('title')}</CardTitle>
+          <CardDescription>{t('unableToLoad')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Button variant="outline" onClick={handleRefresh}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Retry
+              {t('retry')}
             </Button>
           </div>
         </CardContent>
@@ -125,8 +127,8 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Balance & Payouts</CardTitle>
-            <CardDescription>Your earnings and payout schedule</CardDescription>
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('earningsSchedule')}</CardDescription>
           </div>
           <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -140,14 +142,14 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
               <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                Available
+                {t('available')}
               </span>
             </div>
             <p className="text-2xl font-bold text-green-900 dark:text-green-100">
               {formatCurrency(payoutInfo.availableBalance)}
             </p>
             <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-              Ready for payout
+              {t('readyForPayout')}
             </p>
           </div>
 
@@ -155,14 +157,14 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
             <div className="flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                Pending
+                {t('pending')}
               </span>
             </div>
             <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
               {formatCurrency(payoutInfo.pendingBalance)}
             </p>
             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              Processing
+              {t('processing')}
             </p>
           </div>
         </div>
@@ -171,14 +173,16 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
         <div className="flex items-start gap-3 pt-2">
           <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
           <div>
-            <p className="text-sm font-medium">Payout Schedule</p>
+            <p className="text-sm font-medium">{t('payoutSchedule')}</p>
             <p className="text-sm text-muted-foreground">
-              {payoutInfo.payoutSchedule.interval === 'daily'
-                ? 'Daily'
-                : payoutInfo.payoutSchedule.interval === 'weekly'
-                ? 'Weekly'
-                : 'Monthly'}{' '}
-              payouts with {payoutInfo.payoutSchedule.delayDays}-day delay
+              {t('payoutsWithDelay', {
+                interval: payoutInfo.payoutSchedule.interval === 'daily'
+                  ? t('daily')
+                  : payoutInfo.payoutSchedule.interval === 'weekly'
+                  ? t('weekly')
+                  : t('monthly'),
+                days: payoutInfo.payoutSchedule.delayDays,
+              })}
             </p>
           </div>
         </div>
@@ -186,7 +190,7 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
         {/* Recent Payouts */}
         {payoutInfo.recentPayouts.length > 0 && (
           <div className="pt-2">
-            <h4 className="text-sm font-medium mb-3">Recent Payouts</h4>
+            <h4 className="text-sm font-medium mb-3">{t('recentPayouts')}</h4>
             <div className="space-y-2">
               {payoutInfo.recentPayouts.map((payout) => (
                 <div
@@ -218,7 +222,7 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
 
         {payoutInfo.recentPayouts.length === 0 && (
           <div className="text-center py-4 text-muted-foreground text-sm">
-            No payouts yet. Start accepting payments to see your payouts here.
+            {t('noPayoutsYet')}
           </div>
         )}
       </CardContent>

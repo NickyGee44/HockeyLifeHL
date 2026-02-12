@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { getOrgAddons, type AddonType, type OrgAddon } from '@/lib/actions/addons';
 import { PremiumUpgradeCard } from './premium-upgrade-card';
@@ -35,14 +36,22 @@ interface SubscriptionContentProps {
 
 const ADDON_TYPES: AddonType[] = ['advanced_stats', 'ai_news'];
 
-const FREE_FEATURES = [
-  'Unlimited teams and players',
-  'Full-featured league website',
-  'Unlimited seasons and games',
-  'Complete admin dashboard',
-  'Mobile scorekeeper app',
-  'Real-time stats and standings',
-];
+const FREE_FEATURE_KEYS = [
+  'unlimitedTeams',
+  'leagueWebsite',
+  'unlimitedSeasons',
+  'adminDashboard',
+  'scorekeeperApp',
+  'realtimeStats',
+] as const;
+
+const PREMIUM_FEATURE_KEYS = [
+  'everythingInFree',
+  'prioritySupport',
+  'customBranding',
+  'advancedPermissions',
+  'whiteLabel',
+] as const;
 
 export function SubscriptionContent({
   orgId,
@@ -53,6 +62,8 @@ export function SubscriptionContent({
   addonActivated,
 }: SubscriptionContentProps) {
   const router = useRouter();
+  const t = useTranslations('subscription.content');
+  const tAddonConfig = useTranslations('subscription.addon.config');
   const [addons, setAddons] = useState<OrgAddon[]>(initialAddons);
   const [loading, setLoading] = useState(false);
 
@@ -74,14 +85,14 @@ export function SubscriptionContent({
   // Handle checkout status query params
   useEffect(() => {
     if (checkoutStatus === 'success') {
-      toast.success('Subscription activated!', {
-        description: 'Your subscription is now active.',
+      toast.success(t('subscriptionActivated'), {
+        description: t('subscriptionActivatedDesc'),
       });
       // Clean up URL
       router.replace('/dashboard/settings/subscription');
     } else if (checkoutStatus === 'cancelled') {
-      toast.info('Checkout cancelled', {
-        description: 'No charges were made.',
+      toast.info(t('checkoutCancelled'), {
+        description: t('checkoutCancelledDesc'),
       });
       router.replace('/dashboard/settings/subscription');
     }
@@ -90,15 +101,8 @@ export function SubscriptionContent({
   // Handle addon activation success
   useEffect(() => {
     if (addonActivated) {
-      const addonNames: Record<string, string> = {
-        platform_subscription: 'Platform Monthly',
-        advanced_stats: 'Advanced Stats',
-        ai_news: 'AI News Writer',
-      };
-
-      const name = addonNames[addonActivated] || addonActivated;
-      toast.success(`${name} activated!`, {
-        description: 'Your add-on is now active.',
+      toast.success(t('addonActivated', { name: tAddonConfig(`${addonActivated}.name`) }), {
+        description: t('addonActivatedDesc'),
       });
 
       router.replace('/dashboard/settings/subscription');
@@ -112,13 +116,7 @@ export function SubscriptionContent({
 
   const platformAddon = addons.find((a) => a.addon_type === 'platform_subscription') || null;
   const hasPlatformSubscription = platformAddon?.status === 'active' || platformAddon?.status === 'trialing';
-  const features = hasPlatformSubscription ? [
-    'Everything in FREE',
-    'Priority email support (24hr response)',
-    'Custom brand colors and logos',
-    'Advanced admin permissions',
-    'White-label league websites',
-  ] : FREE_FEATURES;
+  const featureKeys = hasPlatformSubscription ? PREMIUM_FEATURE_KEYS : FREE_FEATURE_KEYS;
 
   return (
     <div className="space-y-8">
@@ -135,25 +133,25 @@ export function SubscriptionContent({
                   <Sparkles className="w-6 h-6 text-green-400" />
                 )}
                 <h2 className="text-2xl font-bold text-white">
-                  {hasPlatformSubscription ? 'Platform Monthly' : 'Your Current Plan'}
+                  {hasPlatformSubscription ? t('platformMonthly') : t('yourCurrentPlan')}
                 </h2>
               </div>
               <p className="text-neutral-300 text-sm">
-                {hasPlatformSubscription ? 'Premium features unlocked' : 'FREE Forever'}
+                {hasPlatformSubscription ? t('premiumFeaturesUnlocked') : t('freeForever')}
               </p>
             </div>
             <Badge className={hasPlatformSubscription && platformAddon?.status === 'trialing'
               ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
               : 'bg-green-500/20 text-green-400 border-green-500/30'}>
-              {platformAddon?.status === 'trialing' ? 'TRIAL' : 'ACTIVE'}
+              {platformAddon?.status === 'trialing' ? t('trial') : t('active')}
             </Badge>
           </div>
 
           <div className="flex-1 space-y-3 mb-6">
-            {features.map((feature) => (
-              <div key={feature} className="flex items-start gap-2">
+            {featureKeys.map((key) => (
+              <div key={key} className="flex items-start gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <span className="text-neutral-300 text-sm">{feature}</span>
+                <span className="text-neutral-300 text-sm">{t(`features.${key}`)}</span>
               </div>
             ))}
           </div>
@@ -162,19 +160,19 @@ export function SubscriptionContent({
             {hasPlatformSubscription && platformAddon?.current_period_end ? (
               <>
                 <p className="text-sm text-neutral-400">
-                  Next billing: {new Date(platformAddon.current_period_end).toLocaleDateString()}
+                  {t('nextBilling', { date: new Date(platformAddon.current_period_end).toLocaleDateString() })}
                 </p>
                 {platformAddon.cancelled_at && (
-                  <p className="text-sm text-yellow-400 mt-2">Cancels at end of billing period</p>
+                  <p className="text-sm text-yellow-400 mt-2">{t('cancelsAtPeriodEnd')}</p>
                 )}
               </>
             ) : (
               <>
                 <p className="text-sm text-neutral-400">
-                  {platformFeePercent}% transaction fee on player payments
+                  {t('transactionFeeOnPayments', { percent: platformFeePercent })}
                 </p>
                 <p className="text-xs text-neutral-500 mt-1">
-                  No credit card required. No hidden fees. Always free.
+                  {t('noCreditCard')}
                 </p>
               </>
             )}
@@ -192,7 +190,7 @@ export function SubscriptionContent({
 
       {/* Add-On Cards Grid */}
       <div>
-        <h2 className="text-lg font-bold text-white mb-4">Premium Add-Ons</h2>
+        <h2 className="text-lg font-bold text-white mb-4">{t('premiumAddOns')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {ADDON_TYPES.map((type) => (
             <AddonCard
