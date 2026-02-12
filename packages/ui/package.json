@@ -9,7 +9,8 @@
     "./button": "./src/button.tsx",
     "./card": "./src/card.tsx",
     "./lib/utils": "./src/utils.ts",
-    "./utils": "./src/utils.ts"
+    "./utils": "./src/utils.ts",
+    "./standings-table": "./src/components/standings-table.tsx"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

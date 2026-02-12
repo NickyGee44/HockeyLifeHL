@@ -28,3 +28,7 @@ export type {
   FormFieldProps,
   ColorPickerProps,
 } from './form';
+
+// Export standings component
+export { StandingsTable } from './components/standings-table';
+export type { StandingsTableProps, StandingsTeam } from './components/standings-table';
