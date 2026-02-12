@@ -28,10 +28,6 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [jerseyNumbers, setJerseyNumbers] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    loadRequests();
-  }, [teamId, filter]);
-
   const loadRequests = async () => {
     setLoading(true);
     setError(null);
@@ -43,6 +39,10 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadRequests();
+  }, [teamId, filter]);
 
   const handleApprove = async (requestId: string) => {
     setProcessingId(requestId);

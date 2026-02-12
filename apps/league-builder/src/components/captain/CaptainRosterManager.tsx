@@ -47,10 +47,6 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
   const [searchTerm, setSearchTerm] = useState('');
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadRoster();
-  }, [teamId]);
-
   const loadRoster = async () => {
     setLoading(true);
     setError(null);
@@ -62,6 +58,10 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadRoster();
+  }, [teamId]);
 
   const handleRemovePlayer = async (playerId: string) => {
     // Confirm before removing

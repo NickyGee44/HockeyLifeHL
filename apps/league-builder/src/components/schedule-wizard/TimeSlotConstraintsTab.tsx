@@ -10,7 +10,7 @@
  * - Weekend vs weekday distribution
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Clock, Sun, Moon, CalendarDays, Info } from 'lucide-react';
 import type { Team, TeamSchedulePreference, ScheduleConstraintConfig } from '@/lib/schedule/types';
@@ -53,6 +53,7 @@ export function TimeSlotConstraintsTab({
   onConstraintConfigChange,
 }: TimeSlotConstraintsTabProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const tempIdCounter = useRef(0);
 
   // Get preference for a team
   const getTeamPreference = (teamId: string): TeamSchedulePreference | undefined => {
@@ -70,7 +71,7 @@ export function TimeSlotConstraintsTab({
       // Create new preference
       const team = teams.find((t) => t.id === teamId);
       const newPref: TeamSchedulePreference = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${++tempIdCounter.current}`,
         leagueId: '',
         teamId,
         seasonId: null,

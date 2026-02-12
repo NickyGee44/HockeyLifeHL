@@ -1,12 +1,15 @@
 import type { Config } from 'tailwindcss';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const nativewindPreset = require('nativewind/preset');
+
 export default {
   content: [
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
     '../../packages/ui-native/src/**/*.{ts,tsx}',
   ],
-  presets: [require('nativewind/preset')],
+  presets: [nativewindPreset],
   theme: {
     extend: {
       colors: {

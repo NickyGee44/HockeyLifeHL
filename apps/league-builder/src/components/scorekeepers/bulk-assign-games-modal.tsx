@@ -68,20 +68,6 @@ export function BulkAssignGamesModal({
     selectedScorekeeper?.scorekeeper_id || ''
   );
 
-  // Load games when modal opens or filters change
-  useEffect(() => {
-    if (open) {
-      loadGames();
-    }
-  }, [open, filters]);
-
-  // Set default scorekeeper when provided
-  useEffect(() => {
-    if (selectedScorekeeper) {
-      setAssignToScorekeeper(selectedScorekeeper.scorekeeper_id);
-    }
-  }, [selectedScorekeeper]);
-
   const loadGames = async () => {
     setIsLoading(true);
     setError(null);
@@ -102,6 +88,20 @@ export function BulkAssignGamesModal({
 
     setIsLoading(false);
   };
+
+  // Load games when modal opens or filters change
+  useEffect(() => {
+    if (open) {
+      loadGames();
+    }
+  }, [open, filters]);
+
+  // Set default scorekeeper when provided
+  useEffect(() => {
+    if (selectedScorekeeper) {
+      setAssignToScorekeeper(selectedScorekeeper.scorekeeper_id);
+    }
+  }, [selectedScorekeeper]);
 
   // Filter games by search
   const filteredGames = useMemo(() => {

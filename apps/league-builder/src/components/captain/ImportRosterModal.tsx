@@ -54,13 +54,6 @@ export default function ImportRosterModal({
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set());
   const [loadingRoster, setLoadingRoster] = useState(false);
 
-  // Load previous seasons when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      loadData();
-    }
-  }, [isOpen, teamId]);
-
   const loadData = async () => {
     setLoading(true);
 
@@ -82,12 +75,12 @@ export default function ImportRosterModal({
     setLoading(false);
   };
 
-  // Load roster when season is selected
+  // Load previous seasons when modal opens
   useEffect(() => {
-    if (selectedSeasonId) {
-      loadRoster(selectedSeasonId);
+    if (isOpen) {
+      loadData();
     }
-  }, [selectedSeasonId, teamId]);
+  }, [isOpen, teamId]);
 
   const loadRoster = async (seasonId: string) => {
     setLoadingRoster(true);
@@ -103,6 +96,13 @@ export default function ImportRosterModal({
 
     setLoadingRoster(false);
   };
+
+  // Load roster when season is selected
+  useEffect(() => {
+    if (selectedSeasonId) {
+      loadRoster(selectedSeasonId);
+    }
+  }, [selectedSeasonId, teamId]);
 
   const togglePlayer = (playerId: string) => {
     setSelectedPlayerIds((prev) => {

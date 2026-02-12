@@ -9,7 +9,7 @@
  * - Priority teams get first pick
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Trophy, Users, ArrowUpDown, GripVertical, Info, Star } from 'lucide-react';
 import type { Team, TeamSchedulePreference, ScheduleConstraintConfig } from '@/lib/schedule/types';
@@ -55,6 +55,7 @@ export function TeamPriorityTab({
   onConstraintConfigChange,
 }: TeamPriorityTabProps) {
   const [sortOrder, setSortOrder] = useState<'name' | 'seniority'>('seniority');
+  const tempIdCounter = useRef(0);
 
   // Get preference for a team
   const getTeamPreference = (teamId: string): TeamSchedulePreference | undefined => {
@@ -71,7 +72,7 @@ export function TeamPriorityTab({
     } else {
       const team = teams.find((t) => t.id === teamId);
       const newPref: TeamSchedulePreference = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${++tempIdCounter.current}`,
         leagueId: '',
         teamId,
         seasonId: null,
@@ -96,7 +97,7 @@ export function TeamPriorityTab({
   const sortedTeams = useMemo(() => {
     const teamsWithSeniority = teams.map((team) => ({
       ...team,
-      seniority: getTeamPreference(team.id)?.seniorityLevel ?? 5,
+      seniority: teamPreferences.find((p) => p.teamId === team.id)?.seniorityLevel ?? 5,
     }));
 
     if (sortOrder === 'name') {
