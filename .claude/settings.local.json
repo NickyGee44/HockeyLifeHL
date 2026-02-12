@@ -39,5 +39,9 @@
       "mcp__supabase__get_logs",
       "mcp__supabase__get_advisors"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
 }

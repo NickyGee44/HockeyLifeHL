@@ -1,214 +1,87 @@
 # HockeyLifeHL - Multi-Tenant Hockey League Platform
 
-A modern, full-featured SaaS platform for managing multiple hockey leagues with drafts, stats tracking, payments, and more.
-
-## Overview
-
-HockeyLifeHL is a comprehensive multi-tenant platform that enables hockey leagues to:
-- Manage teams, players, and seasons
-- Run drafts and track stats in real-time
-- Process payments via Stripe Connect
-- Discover and join leagues publicly
-- Support both draft and non-draft registration flows
-- Generate revenue through sponsor management
+A modern SaaS platform for managing hockey leagues -- teams, drafts, stats, payments, schedules, and public league websites. Live at [beerleaguehockey.ca](https://beerleaguehockey.ca). Approximately 70% complete.
 
 ## Tech Stack
 
-- **Frontend:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS
-- **Backend:** Supabase (PostgreSQL with Row Level Security)
-- **Payments:** Stripe Connect
-- **PWA:** Service workers for offline scorekeeper functionality
-- **Deployment:** Vercel
+- **Framework:** Next.js 16.1.1 (App Router), React 19, TypeScript 5
+- **Database:** Supabase (PostgreSQL with Row Level Security)
+- **Payments:** Stripe Connect (2.99% platform fee)
+- **Monorepo:** Turbo with pnpm 9.0.0
+- **i18n:** next-intl (English + French)
+- **Deployment:** Vercel (auto-deploy from `main` and `production` branches)
 
-## Key Features
+## Monorepo Structure
 
-### Multi-Tenant Architecture
-- Fully isolated data per league using Row Level Security (RLS)
-- League-aware helper functions for all database operations
-- Automatic tenant context handling
-
-### League Management
-- Public league discovery and search
-- Location-based league search
-- Flexible registration types (draft, open registration, captain invite)
-- Sponsor management (platform-wide and per-league)
-- Feature flags per league
-
-### Player Features
-- Browse and search for leagues
-- Request to join teams (non-draft leagues)
-- Track personal stats across seasons
-- View game schedules and standings
-
-### Scorekeeper System
-- Offline-first stat entry (PWA)
-- Real-time sync when connection restored
-- iPad-optimized interface
-- Duplicate entry prevention
-- Captain verification system
-
-### Admin Features
-- Complete league setup and configuration
-- Team and player management
-- Sponsor management
-- Payment tracking
-- Draft management
+```
+apps/
+  league-builder/     # Admin platform - league owners & admins (port 3000)
+  league-sites/       # Public websites for leagues (port 3001)
+  player-companion/   # Player PWA - offline-first mobile experience
+  mobile/             # Expo React Native app
+packages/
+  auth/               # Authentication utilities
+  database/           # Supabase client and types (source of truth)
+  data/               # Shared data layer
+  ui/                 # Shared UI components (shadcn/ui)
+  ui-native/          # React Native UI components
+```
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-- Supabase account
-- Stripe account (for payments)
-
-### Installation
-
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd HockeyLeague/HockeyLifeHL
-
 # Install dependencies
-npm install
+pnpm install
 
 # Set up environment variables
 cp .env.example .env.local
 # Edit .env.local with your Supabase and Stripe credentials
 
-# Run development server
-npm run dev
+# Start development servers
+pnpm dev:builder    # Admin platform on http://localhost:3000
+pnpm dev:website    # Public league sites on http://localhost:3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the application.
+### Other Commands
 
-### Environment Variables
-
-Required environment variables:
-```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-NEXT_PUBLIC_SITE_URL=your_site_url
-```
-
-## Database Setup
-
-### Initial Migration
-All core multi-tenant migrations have been executed. For new features, see:
-- `RUN_NEW_FEATURE_MIGRATIONS.md` - New sponsor, registration, and discovery features
-
-### Type Generation
-After running migrations, regenerate TypeScript types:
 ```bash
-npx supabase gen types typescript --project-id YOUR_PROJECT_ID --schema public > src/types/database.ts
+pnpm build          # Build all packages
+pnpm type-check     # TypeScript validation
+pnpm lint           # ESLint check
 ```
+
+## Key Features
+
+- **Multi-Tenant Architecture** -- fully isolated data per league via RLS
+- **League Setup Wizard** -- 7-step guided league creation
+- **Team & Player Management** -- rosters, captains, join requests, imports
+- **Draft System** -- real-time draft room with reliability tracking
+- **Schedule Management** -- game scheduling with conflict detection
+- **Scorekeeper System** -- offline-first PWA for real-time game scoring
+- **Stripe Connect Payments** -- registration fees, early bird pricing, refunds
+- **Public League Websites** -- customizable themes, standings, schedules, stats
+- **Player Companion PWA** -- RSVP, gallery, calendar export, news
+- **Sponsor Management** -- banners and footer strips for league sites
+- **Notification System** -- event-driven email notifications to captains and players
+- **i18n** -- full English and French language support
 
 ## Documentation
 
-- **MULTI_TENANT_PROGRESS_TRACKER.md** - Current project status and progress
-- **RUN_NEW_FEATURE_MIGRATIONS.md** - Instructions for new feature migrations
-- **DEPLOYMENT_GUIDE.md** - Production deployment instructions
-- **SCOREKEEPER_SYSTEM_DESIGN.md** - Scorekeeper system architecture
-- **GIT_WORKFLOW.md** - Git workflow and branch strategy
-- **SECURITY.md** - Security best practices and RLS policies
-- **UI_UX_GUIDE.md** - Design system and component guidelines
-- **BHL-brand-kit.md** - Brand colors, fonts, and assets
-
-For agent-specific prompts and feature details:
-- See project root: `UPDATED_AGENT_PROMPTS_V2.md`, `COPY_PASTE_PROMPTS_V2.md`, `NEW_FEATURES_SUMMARY.md`
-
-## Project Structure
-
-```
-HockeyLifeHL/
-├── src/
-│   ├── app/                    # Next.js app router pages
-│   │   ├── (auth)/            # Authentication pages
-│   │   ├── (dashboard)/       # League dashboard pages
-│   │   ├── (public)/          # Public pages (league discovery)
-│   │   ├── (scorekeeper)/     # Scorekeeper interface
-│   │   └── api/               # API routes
-│   ├── components/            # React components
-│   │   ├── admin/            # Admin-specific components
-│   │   ├── leagues/          # League management components
-│   │   ├── scorekeeper/      # Scorekeeper components
-│   │   ├── sponsors/         # Sponsor display components
-│   │   └── ui/               # Shared UI components
-│   ├── lib/                   # Utility functions and actions
-│   │   ├── admin/            # Admin server actions
-│   │   ├── auth/             # Authentication helpers
-│   │   ├── leagues/          # League management actions
-│   │   ├── scorekeeper/      # Scorekeeper actions
-│   │   ├── sponsors/         # Sponsor management actions
-│   │   └── supabase/         # Supabase client utilities
-│   └── types/                 # TypeScript type definitions
-├── public/                    # Static assets
-├── supabase/                  # Database migrations
-│   └── migrations/           # SQL migration files
-└── docs/                      # Additional documentation
-    └── archive/              # Archived reports and old docs
-```
+- [`CLAUDE.md`](./CLAUDE.md) -- Full development context: coding standards, git workflow, skills, known issues
+- [`docs/INDEX.md`](./docs/INDEX.md) -- Documentation index
+- [`docs/BRAND-KIT.md`](./docs/BRAND-KIT.md) -- Design system (colors, typography, spacing)
 
 ## Development
 
-### Build
-```bash
-npm run build
-```
+See [`CLAUDE.md`](./CLAUDE.md) for full coding standards, git workflow, deployment process, and project conventions.
 
-### Lint
-```bash
-npm run lint
-```
+Key points:
 
-### Type Check
-```bash
-npx tsc --noEmit
-```
-
-## Current Status
-
-**Overall Progress:** ~70% Complete
-**Production Status:** ✅ LIVE at https://beerleaguehockey.ca
-**Last Deployment:** 2026-01-29
-
-**Completed:**
-- ✅ Multi-tenant database architecture (100%)
-- ✅ Core league management features (100%)
-- ✅ Scorekeeper system with offline support (100%)
-- ✅ Stripe Connect payment integration (100%)
-- ✅ Player dashboard and stats tracking (100%)
-- ✅ Admin panels (100%)
-- ✅ **Phase 1A: Schedule Management** (100%) - NEW!
-  - Game rescheduling with conflict detection
-  - Bulk postpone operations
-  - Optimistic locking for concurrent updates
-- ✅ **Phase 1B: Notification System** (100%) - NEW!
-  - Event-driven email notifications
-  - Automatic captain notifications for reschedules/cancellations
-  - Admin notification log with manual resend
-- ✅ Multi-tenant branding (100%)
-- ✅ Free agent signup system (100%)
-
-**In Progress:**
-- ⏳ Phase 1C: Admin Ops Console (inline editing, bulk ops)
-- ⏳ Phase 1D: Scorekeeper enhancements (event sourcing)
-
-**Next Steps:**
-1. User acceptance testing for Phase 1A + 1B
-2. Configure Resend email service in production
-3. Begin Phase 1C planning and implementation
-4. Set up monitoring and error tracking
-
-See `PROJECT_MASTER.md` for comprehensive project documentation and `BMHL_PHASE_1AB_PRODUCTION_DEPLOYMENT.md` for latest deployment details.
-
-## Contributing
-
-This is a private project. For questions or issues, please contact the development team.
+- Work on `main` branch for development; merge to `production` for production deploys
+- Always use RLS policies for new database tables
+- Update both `en.json` and `fr.json` when adding UI strings
+- Never commit secrets or `.env` files -- see CLAUDE.md for details
 
 ## License
 
-Proprietary - All rights reserved
+Proprietary -- All rights reserved

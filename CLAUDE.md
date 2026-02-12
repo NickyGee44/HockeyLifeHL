@@ -67,11 +67,13 @@ apps/
   league-builder/     # Admin platform - league owners & admins (port 3000)
   league-sites/       # Public websites for leagues (port 3001)
   player-companion/   # Player PWA - offline-first mobile experience
-  blh/                # BMHL-specific implementation
+  mobile/             # Expo React Native app
 packages/
   auth/               # Authentication utilities
   database/           # Supabase client and types (source of truth)
   ui/                 # Shared UI components (shadcn/ui based)
+  data/               # Shared data layer (queries, hooks)
+  ui-native/          # React Native UI components
 ```
 
 ## i18n
@@ -100,7 +102,7 @@ packages/
 - Configured in Stripe Dashboard (Settings → Branding → Custom domain)
 - Automatically used for all Checkout sessions and payment links
 - No code changes required - handled by Stripe based on account settings
-- **Documentation**: See `STRIPE_CUSTOM_DOMAIN_SETUP.md` for full setup guide
+- **Documentation**: See `docs/STRIPE_CUSTOM_DOMAIN_SETUP.md` for full setup guide
 - **Business Model**: 2.99% platform fee on all league registration payments
 - Uses Stripe Connect Express for league accounts
 
@@ -188,6 +190,12 @@ Location: `apps/league-sites/`
 - Work on `main` branch for development
 - Merge `main` → `production` for production deploys
 - Use worktrees for parallel feature/bugfix work
+
+## Documentation
+- All docs live in `docs/` — see `docs/INDEX.md` for a categorized table of contents
+- Work logs: `.claude/work-logs/` — daily session logs for multi-agent coordination
+- Agent configs: `.claude/agents/` — agent role definitions
+- Skills: `.claude/commands/` — slash command definitions
 
 ## Design System
 - See `docs/BRAND-KIT.md` for full design system (colors, typography, spacing, components)

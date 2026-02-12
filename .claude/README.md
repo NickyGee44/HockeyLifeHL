@@ -30,7 +30,6 @@ Run these in any Claude Code session:
 ├── settings.local.json                # Local permissions whitelist
 ├── DEVELOPMENT_WORKFLOW.md            # Comprehensive workflow guide
 ├── orchestration.log                  # Session logs
-├── orchestration-report.md            # Codebase audit report
 ├── ralph-loop.local.md                # Ralph Loop session state
 ├── commands/                          # Skill definitions (slash commands)
 │   ├── audit.md                       # /audit
@@ -108,5 +107,5 @@ Create a team: one agent for security review, one for performance, one for testi
 
 ---
 
-**Last Updated:** 2026-02-05
-**Version:** 2.0
+**Last Updated:** 2026-11-02
+**Version:** 2.1
