@@ -1,6 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Image } from 'expo-image';
+import { Image as ExpoImage } from 'expo-image';
+
+// expo-image types incompatible with React 19 JSX
+const Image = ExpoImage as unknown as React.ComponentType<any>;
 import { Text } from './Text';
 
 interface AvatarProps {
