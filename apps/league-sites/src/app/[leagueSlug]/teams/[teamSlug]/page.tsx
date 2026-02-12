@@ -53,7 +53,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   const { tab = 'roster' } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
-  if (!league) return null;
+  if (!league) notFound();
 
   const team = await getTeamWithCaptain(league.id, teamSlug);
   if (!team) {

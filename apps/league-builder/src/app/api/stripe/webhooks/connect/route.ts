@@ -533,7 +533,7 @@ async function handlePayoutFailed(
 
   // Send alert notification to league admin
   try {
-    // Look up league owner: leagues → organization_id → organizations → owner_id → profiles
+    // Look up league owner: leagues → organization_id → organizations → owner_user_id → profiles
     const { data: leagueOrg } = await supabase
       .from('leagues')
       .select('organization_id')
@@ -543,15 +543,15 @@ async function handlePayoutFailed(
     if (leagueOrg?.organization_id) {
       const { data: org } = await supabase
         .from('organizations')
-        .select('owner_id')
+        .select('owner_user_id')
         .eq('id', leagueOrg.organization_id)
         .single();
 
-      if (org?.owner_id) {
+      if (org?.owner_user_id) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('email, full_name')
-          .eq('id', org.owner_id)
+          .eq('id', org.owner_user_id)
           .single();
 
         if (profile?.email) {

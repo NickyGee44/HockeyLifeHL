@@ -111,7 +111,7 @@ export async function setCustomDomain(
     .select('id, name')
     .eq('custom_domain', cleanDomain)
     .neq('id', organizationId)
-    .single();
+    .maybeSingle();
 
   if (existingOrg) {
     return {

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { Trophy } from 'lucide-react';
+import { notFound } from 'next/navigation';
 import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason } from '@/lib/data';
 import { StandingsWithSearch } from '@/components/StandingsWithSearch';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
@@ -20,7 +21,7 @@ export default async function StandingsPage({ params, searchParams }: StandingsP
   await searchParams; // Accept division param for URL sharing
   const league = await getLeagueBySlug(leagueSlug);
 
-  if (!league) return null;
+  if (!league) notFound();
 
   const season = await getCurrentSeason(league.id);
   const [standings, divisions] = await Promise.all([

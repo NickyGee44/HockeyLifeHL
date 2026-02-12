@@ -48,7 +48,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   const { season: seasonFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
-  if (!league) return null;
+  if (!league) notFound();
 
   const player = await getPlayerProfile(playerId);
   if (!player) {

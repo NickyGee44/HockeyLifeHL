@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { Newspaper } from 'lucide-react';
+import { notFound } from 'next/navigation';
 import { getLeagueBySlug, getAllArticles } from '@/lib/data';
 import { NewsList } from '@/components/news/NewsList';
 
@@ -23,7 +24,7 @@ export default async function NewsPage({ params }: NewsPageProps) {
   const { leagueSlug } = await params;
 
   const league = await getLeagueBySlug(leagueSlug);
-  if (!league) return null;
+  if (!league) notFound();
 
   const articles = await getAllArticles(league.id);
 

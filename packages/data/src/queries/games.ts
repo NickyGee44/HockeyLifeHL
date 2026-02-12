@@ -125,9 +125,7 @@ export async function getSchedule(
     games = games.filter(
       (g) =>
         g.division_id === options.divisionId ||
-        g.division?.id === options.divisionId ||
-        g.home_team?.id === options.divisionId ||
-        g.away_team?.id === options.divisionId,
+        g.division?.id === options.divisionId,
     );
   }
 
