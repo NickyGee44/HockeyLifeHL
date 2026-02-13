@@ -43,24 +43,30 @@ export function MobileBottomNav() {
     return pathname.startsWith(localizedPath);
   };
 
+  const hasLeague = !!selected.leagueId;
+
   const primaryTabs = [
     { label: t('overview'), href: '/dashboard', icon: Home },
-    { label: t('schedule'), href: `${leagueBase}/schedule`, icon: Calendar },
-    { label: t('teamsAndDivisions'), href: `${leagueBase}/teams`, icon: Users },
+    ...(hasLeague ? [
+      { label: t('schedule'), href: `${leagueBase}/schedule`, icon: Calendar },
+      { label: t('teamsAndDivisions'), href: `${leagueBase}/teams`, icon: Users },
+    ] : []),
     { label: t('more'), href: '#more', icon: MoreHorizontal, isMore: true },
     { label: t('profile'), href: '/dashboard/settings', icon: User },
   ];
 
   const moreItems = [
-    { label: t('standings'), href: `${leagueBase}/games`, icon: Trophy },
-    { label: t('registration'), href: `${leagueBase}/registrations`, icon: ClipboardCheck },
-    { label: t('staff'), href: `${leagueBase}/staff`, icon: User },
-    { label: t('draftRoom'), href: `${leagueBase}/draft`, icon: Dices },
-    { label: t('news'), href: `${leagueBase}/news`, icon: Newspaper },
-    { label: t('sponsors'), href: `${leagueBase}/sponsors`, icon: Star },
-    { label: t('awards'), href: `${leagueBase}/awards`, icon: Award },
-    { label: t('gallery'), href: `${leagueBase}/gallery`, icon: Image },
-    { label: t('websiteEditor'), href: `/website-editor?league=${selected.leagueId}`, icon: Palette },
+    ...(hasLeague ? [
+      { label: t('standings'), href: `${leagueBase}/games`, icon: Trophy },
+      { label: t('registration'), href: `${leagueBase}/registrations`, icon: ClipboardCheck },
+      { label: t('staff'), href: `${leagueBase}/staff`, icon: User },
+      { label: t('draftRoom'), href: `${leagueBase}/draft`, icon: Dices },
+      { label: t('news'), href: `${leagueBase}/news`, icon: Newspaper },
+      { label: t('sponsors'), href: `${leagueBase}/sponsors`, icon: Star },
+      { label: t('awards'), href: `${leagueBase}/awards`, icon: Award },
+      { label: t('gallery'), href: `${leagueBase}/gallery`, icon: Image },
+      { label: t('websiteEditor'), href: `/website-editor?league=${selected.leagueId}`, icon: Palette },
+    ] : []),
     { label: t('settings'), href: '/dashboard/settings', icon: Settings },
     { label: t('billing'), href: '/dashboard/settings/billing', icon: CreditCard },
   ];

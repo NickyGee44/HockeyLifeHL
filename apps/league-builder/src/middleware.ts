@@ -73,7 +73,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.includes('_next') ||
     pathname.includes('favicon') ||
-    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|mp4|webm|ogg|mp3|wav|woff|woff2|ttf|eot)$/)
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|mp4|webm|ogg|mp3|wav|woff|woff2|ttf|eot|webmanifest|json)$/)
   ) {
     return NextResponse.next();
   }
@@ -135,6 +135,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4|webm|ogg|mp3|wav|woff|woff2|ttf|eot)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|site\\.webmanifest|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp4|webm|ogg|mp3|wav|woff|woff2|ttf|eot|webmanifest|json)$).*)',
   ],
 };

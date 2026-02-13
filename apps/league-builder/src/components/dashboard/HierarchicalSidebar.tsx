@@ -130,91 +130,97 @@ export default function HierarchicalSidebar({
           isActive={pathname === `/${locale}/dashboard` || pathname === `/${locale}/tableau-de-bord`}
           collapsed={sidebarCollapsed}
         />
-        <NavLink
-          href={`${leagueBase}/schedule`}
-          icon={Calendar}
-          label={t('schedule')}
-          isActive={isPathActive(`${leagueBase}/schedule`)}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href={`${leagueBase}/teams`}
-          icon={Users}
-          label={t('teamsAndDivisions')}
-          isActive={isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href={`${leagueBase}/games`}
-          icon={Trophy}
-          label={t('standings')}
-          isActive={isPathActive(`${leagueBase}/games`) || pathname.includes('/standings')}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href={`${leagueBase}/registrations`}
-          icon={ClipboardCheck}
-          label={t('registration')}
-          isActive={isPathActive(`${leagueBase}/registrations`)}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href={`${leagueBase}/staff`}
-          icon={User}
-          label={t('staff')}
-          isActive={isPathActive(`${leagueBase}/staff`)}
-          collapsed={sidebarCollapsed}
-        />
 
-        {/* Divider */}
-        <div className="my-4 border-t border-white/[0.06]" />
+        {/* League-scoped nav — only show when a league is selected */}
+        {selected.leagueId && (
+          <>
+            <NavLink
+              href={`${leagueBase}/schedule`}
+              icon={Calendar}
+              label={t('schedule')}
+              isActive={isPathActive(`${leagueBase}/schedule`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/teams`}
+              icon={Users}
+              label={t('teamsAndDivisions')}
+              isActive={isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/games`}
+              icon={Trophy}
+              label={t('standings')}
+              isActive={isPathActive(`${leagueBase}/games`) || pathname.includes('/standings')}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/registrations`}
+              icon={ClipboardCheck}
+              label={t('registration')}
+              isActive={isPathActive(`${leagueBase}/registrations`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/staff`}
+              icon={User}
+              label={t('staff')}
+              isActive={isPathActive(`${leagueBase}/staff`)}
+              collapsed={sidebarCollapsed}
+            />
 
-        {/* Secondary nav */}
-        {hasDraft && (
-          <NavLink
-            href={`${leagueBase}/draft`}
-            icon={Dices}
-            label={t('draftRoom')}
-            isActive={isPathActive(`${leagueBase}/draft`)}
-            collapsed={sidebarCollapsed}
-          />
+            {/* Divider */}
+            <div className="my-4 border-t border-white/[0.06]" />
+
+            {/* Secondary nav */}
+            {hasDraft && (
+              <NavLink
+                href={`${leagueBase}/draft`}
+                icon={Dices}
+                label={t('draftRoom')}
+                isActive={isPathActive(`${leagueBase}/draft`)}
+                collapsed={sidebarCollapsed}
+              />
+            )}
+            <NavLink
+              href={`${leagueBase}/news`}
+              icon={Newspaper}
+              label={t('news')}
+              isActive={isPathActive(`${leagueBase}/news`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/sponsors`}
+              icon={Star}
+              label={t('sponsors')}
+              isActive={isPathActive(`${leagueBase}/sponsors`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/awards`}
+              icon={Award}
+              label={t('awards')}
+              isActive={isPathActive(`${leagueBase}/awards`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/gallery`}
+              icon={Image}
+              label={t('gallery')}
+              isActive={isPathActive(`${leagueBase}/gallery`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`/website-editor?league=${selected.leagueId}`}
+              icon={Palette}
+              label={t('websiteEditor')}
+              isActive={pathname.includes('website-editor')}
+              collapsed={sidebarCollapsed}
+              highlight
+            />
+          </>
         )}
-        <NavLink
-          href={`${leagueBase}/news`}
-          icon={Newspaper}
-          label={t('news')}
-          isActive={isPathActive(`${leagueBase}/news`)}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href={`${leagueBase}/sponsors`}
-          icon={Star}
-          label={t('sponsors')}
-          isActive={isPathActive(`${leagueBase}/sponsors`)}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href={`${leagueBase}/awards`}
-          icon={Award}
-          label={t('awards')}
-          isActive={isPathActive(`${leagueBase}/awards`)}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href={`${leagueBase}/gallery`}
-          icon={Image}
-          label={t('gallery')}
-          isActive={isPathActive(`${leagueBase}/gallery`)}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href={`/website-editor?league=${selected.leagueId}`}
-          icon={Palette}
-          label={t('websiteEditor')}
-          isActive={pathname.includes('website-editor')}
-          collapsed={sidebarCollapsed}
-          highlight
-        />
 
         {/* Captain Teams Section */}
         {captainTeams.length > 0 && (
