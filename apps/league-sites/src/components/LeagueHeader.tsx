@@ -123,28 +123,6 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
               );
             })}
 
-            {/* Division Filter */}
-            {divisions.length > 1 && (
-              <div className="ml-1 pl-1 border-l border-[var(--header-border)]">
-                <select
-                  value={selectedDivisionId || ''}
-                  onChange={(e) => setDivision(e.target.value || null)}
-                  className="appearance-none rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
-                  style={{
-                    background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
-                    color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
-                    border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
-                  }}
-                  aria-label="Filter by division"
-                  data-testid="division-filter"
-                >
-                  <option value="">All Divisions</option>
-                  {divisions.map((div) => (
-                    <option key={div.id} value={div.id}>{div.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </nav>
 
           <div className="hidden shrink-0 items-center gap-2 lg:flex">
@@ -172,20 +150,20 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
           </button>
         </div>
 
-        {/* Mobile Division Filter - persistent strip below header, outside hamburger */}
+        {/* Division Filter - persistent strip below header on all screen sizes */}
         {divisions.length > 1 && (
-          <div className="border-t border-[var(--header-border)] px-4 py-2 lg:hidden" data-testid="division-filter-strip">
+          <div className="border-t border-[var(--header-border)] px-4 py-2" data-testid="division-filter-strip">
             <select
               value={selectedDivisionId || ''}
               onChange={(e) => setDivision(e.target.value || null)}
-              className="w-full appearance-none rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+              className="w-full max-w-xs appearance-none rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
               style={{
                 background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
                 color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
                 border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
               }}
               aria-label="Filter by division"
-              data-testid="division-filter-mobile"
+              data-testid="division-filter"
             >
               <option value="">All Divisions</option>
               {divisions.map((div) => (
