@@ -145,24 +145,24 @@ export default function HierarchicalSidebar({
           collapsed={sidebarCollapsed}
         />
         <NavLink
-          href={`${leagueBase}/standings`}
+          href={`${leagueBase}/games`}
           icon={Trophy}
           label={t('standings')}
-          isActive={isPathActive(`${leagueBase}/standings`)}
+          isActive={isPathActive(`${leagueBase}/games`) || pathname.includes('/standings')}
           collapsed={sidebarCollapsed}
         />
         <NavLink
-          href={`${leagueBase}/registration`}
+          href={`${leagueBase}/registrations`}
           icon={ClipboardCheck}
           label={t('registration')}
-          isActive={isPathActive(`${leagueBase}/registration`)}
+          isActive={isPathActive(`${leagueBase}/registrations`)}
           collapsed={sidebarCollapsed}
         />
         <NavLink
-          href={`${leagueBase}/players`}
+          href={`${leagueBase}/staff`}
           icon={User}
-          label={t('players')}
-          isActive={isPathActive(`${leagueBase}/players`)}
+          label={t('staff')}
+          isActive={isPathActive(`${leagueBase}/staff`)}
           collapsed={sidebarCollapsed}
         />
 

@@ -52,9 +52,9 @@ export function MobileBottomNav() {
   ];
 
   const moreItems = [
-    { label: t('standings'), href: `${leagueBase}/standings`, icon: Trophy },
-    { label: t('registration'), href: `${leagueBase}/registration`, icon: ClipboardCheck },
-    { label: t('players'), href: `${leagueBase}/players`, icon: User },
+    { label: t('standings'), href: `${leagueBase}/games`, icon: Trophy },
+    { label: t('registration'), href: `${leagueBase}/registrations`, icon: ClipboardCheck },
+    { label: t('staff'), href: `${leagueBase}/staff`, icon: User },
     { label: t('draftRoom'), href: `${leagueBase}/draft`, icon: Dices },
     { label: t('news'), href: `${leagueBase}/news`, icon: Newspaper },
     { label: t('sponsors'), href: `${leagueBase}/sponsors`, icon: Star },

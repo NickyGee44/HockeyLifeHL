@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 
 interface SelectedContext {
   leagueId: string | null;
@@ -24,7 +25,26 @@ interface SidebarContextValue {
 
 const SidebarContext = React.createContext<SidebarContextValue | undefined>(undefined);
 
+/**
+ * Extract league ID from the current URL path.
+ * Matches: /dashboard/leagues/{uuid}/...
+ */
+function extractLeagueIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Extract season ID from the current URL path.
+ * Matches: /dashboard/seasons/{uuid}/... or /dashboard/leagues/.../seasons/{uuid}/...
+ */
+function extractSeasonIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/\/seasons\/([0-9a-f-]{36})/);
+  return match ? match[1] : null;
+}
+
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [selected, setSelected] = React.useState<SelectedContext>({
     leagueId: null,
@@ -32,6 +52,25 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   });
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = React.useState(false);
+
+  // Sync selected league/season from URL on every navigation
+  React.useEffect(() => {
+    const urlLeagueId = extractLeagueIdFromPath(pathname);
+    const urlSeasonId = extractSeasonIdFromPath(pathname);
+
+    if (urlLeagueId && urlLeagueId !== selected.leagueId) {
+      setSelected((prev) => ({
+        ...prev,
+        leagueId: urlLeagueId,
+        seasonId: urlSeasonId,
+      }));
+    } else if (urlSeasonId && urlSeasonId !== selected.seasonId) {
+      setSelected((prev) => ({
+        ...prev,
+        seasonId: urlSeasonId,
+      }));
+    }
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = React.useCallback(() => {
     setIsCollapsed((prev) => !prev);
