@@ -11,7 +11,7 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Edit, Trash2, DollarSign, Calendar, AlertCircle, Info } from 'lucide-react';
+import { Plus, Edit, Trash2, DollarSign, Calendar, AlertCircle, Info, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -43,6 +43,7 @@ import {
   updateSeasonFee,
   deleteSeasonFee,
   getSeasonFees,
+  updateSeasonFeeCollectionModel,
 } from '@/lib/payments/fee-actions';
 import type { SeasonFeeWithSeason } from '@/lib/payments/types';
 
@@ -50,11 +51,14 @@ import type { SeasonFeeWithSeason } from '@/lib/payments/types';
 // Types
 // ============================================================================
 
+type FeeCollectionModel = 'individual' | 'team' | 'hybrid';
+
 interface SeasonFeeManagerProps {
   leagueId: string;
   seasonId: string;
   seasonName: string;
   initialFees?: SeasonFeeWithSeason[];
+  initialFeeCollectionModel?: FeeCollectionModel;
 }
 
 interface FeeFormData {
@@ -115,9 +119,11 @@ export function SeasonFeeManager({
   seasonId,
   seasonName,
   initialFees = [],
+  initialFeeCollectionModel = 'individual',
 }: SeasonFeeManagerProps) {
   const t = useTranslations('payments.seasonFee');
   const [fees, setFees] = React.useState<SeasonFeeWithSeason[]>(initialFees);
+  const [feeCollectionModel, setFeeCollectionModel] = React.useState<FeeCollectionModel>(initialFeeCollectionModel);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingFee, setEditingFee] = React.useState<SeasonFeeWithSeason | null>(null);
   const [formData, setFormData] = React.useState<FeeFormData>(initialFormData);
@@ -263,8 +269,55 @@ export function SeasonFeeManager({
     }
   };
 
+  const handleFeeCollectionModelChange = async (value: string) => {
+    const model = value as FeeCollectionModel;
+    setFeeCollectionModel(model);
+    const result = await updateSeasonFeeCollectionModel(leagueId, seasonId, model);
+    if (!result.success) {
+      // Revert on failure
+      setFeeCollectionModel(feeCollectionModel);
+      alert(result.error);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Fee Collection Model */}
+      <Card className="bg-neutral-800/50 border-neutral-700">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-rink-400" />
+            <CardTitle className="text-lg text-white">
+              Fee Collection Model
+            </CardTitle>
+          </div>
+          <CardDescription>
+            Choose how registration fees are collected for this season.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select value={feeCollectionModel} onValueChange={handleFeeCollectionModelChange}>
+            <SelectTrigger className="w-full md:w-80">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="individual">Individual Players</SelectItem>
+              <SelectItem value="team">Team Billing</SelectItem>
+              <SelectItem value="hybrid">Hybrid (Team + Individual)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {(feeCollectionModel === 'team' || feeCollectionModel === 'hybrid') && (
+            <div className="flex items-start gap-2 p-3 mt-4 bg-rink-500/10 border border-rink-500/20 rounded-lg">
+              <Info className="w-4 h-4 text-rink-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-rink-300">
+                Team billing is enabled. Use &apos;Generate Team Invoices&apos; from the Billing tab to create invoices for each team.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

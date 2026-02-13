@@ -407,7 +407,48 @@ export async function deleteSeasonFee(feeId: string): Promise<ActionResult<void>
 }
 
 // ============================================================================
-// 6. Get Available Fees for Player
+// 6. Update Season Fee Collection Model
+// ============================================================================
+
+export async function updateSeasonFeeCollectionModel(
+  leagueId: string,
+  seasonId: string,
+  feeCollectionModel: 'individual' | 'team' | 'hybrid'
+): Promise<ActionResult<void>> {
+  try {
+    const access = await verifyLeagueAdminAccess(leagueId);
+    if ('error' in access) {
+      return { success: false, error: access.error };
+    }
+
+    const supabase = await createClient();
+
+    const { error } = await (supabase
+      .from('seasons') as any)
+      .update({ fee_collection_model: feeCollectionModel })
+      .eq('id', seasonId)
+      .eq('league_id', leagueId);
+
+    if (error) {
+      console.error('[Payments] Update fee collection model error:', sanitizeErrorForLogging(error));
+      return { success: false, error: 'Failed to update fee collection model.' };
+    }
+
+    await logPaymentAuditEvent(leagueId, 'fee_collection_model_updated', {
+      season_id: seasonId,
+      fee_collection_model: feeCollectionModel,
+    }, access.userId);
+
+    revalidatePath(`/dashboard/leagues/${leagueId}/fees`);
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error('[Payments] Unexpected error in updateSeasonFeeCollectionModel:', sanitizeErrorForLogging(error));
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+// ============================================================================
+// 7. Get Available Fees for Player
 // ============================================================================
 
 export async function getAvailableFeesForPlayer(
@@ -452,7 +493,7 @@ export async function getAvailableFeesForPlayer(
 }
 
 // ============================================================================
-// 7. Get League Seasons with Fees
+// 8. Get League Seasons with Fees
 // ============================================================================
 
 export async function getLeagueSeasonsWithFees(
@@ -493,6 +534,33 @@ export async function getLeagueSeasonsWithFees(
     return { success: true, data: result };
   } catch (error) {
     console.error('[Payments] Unexpected error in getLeagueSeasonsWithFees:', sanitizeErrorForLogging(error));
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+// ============================================================================
+// 9. Get Season Fee Collection Model
+// ============================================================================
+
+export async function getSeasonFeeCollectionModel(
+  seasonId: string
+): Promise<ActionResult<{ fee_collection_model: string }>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: season, error } = await supabase
+      .from('seasons')
+      .select('fee_collection_model')
+      .eq('id', seasonId)
+      .single();
+
+    if (error || !season) {
+      return { success: false, error: 'Season not found.' };
+    }
+
+    return { success: true, data: { fee_collection_model: season.fee_collection_model } };
+  } catch (error) {
+    console.error('[Payments] Unexpected error in getSeasonFeeCollectionModel:', sanitizeErrorForLogging(error));
     return { success: false, error: 'An unexpected error occurred.' };
   }
 }

@@ -16,6 +16,9 @@ import {
   Loader2,
   Shield,
   ArrowRight,
+  User,
+  Users,
+  Split,
 } from 'lucide-react';
 import {
   Input,
@@ -61,6 +64,7 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
 
   // Watch all relevant fields
   const enablePaidRegistration = watch('enablePaidRegistration');
+  const feeCollectionModel = watch('feeCollectionModel') || 'individual';
   const registrationFee = watch('registrationFee') || 0;
   const earlyBirdDiscount = watch('earlyBirdDiscount') || {
     enabled: false,
@@ -228,6 +232,64 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
                   />
                 </div>
               </FormField>
+            </div>
+
+            {/* Fee Collection Model */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Fee Collection Model
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Choose how registration fees are collected from players and teams.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {([
+                  {
+                    value: 'individual' as const,
+                    icon: User,
+                    label: 'Individual Players',
+                    description: 'Each player pays their registration fee individually',
+                  },
+                  {
+                    value: 'team' as const,
+                    icon: Users,
+                    label: 'Team Billing',
+                    description: "Teams receive an invoice for all their players' fees. Captains or team managers pay as a group.",
+                  },
+                  {
+                    value: 'hybrid' as const,
+                    icon: Split,
+                    label: 'Hybrid',
+                    description: 'Teams can pay as a group, or individual players can register and pay separately.',
+                  },
+                ]).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setValue('feeCollectionModel', option.value)}
+                    className={`flex flex-col items-start gap-3 p-4 rounded-lg border transition-colors text-left ${
+                      feeCollectionModel === option.value
+                        ? 'bg-rink-500/10 border-rink-500 text-white'
+                        : 'bg-neutral-800/50 border-white/10 hover:border-white/20 text-neutral-300'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${
+                      feeCollectionModel === option.value
+                        ? 'bg-rink-500/20'
+                        : 'bg-neutral-700/50'
+                    }`}>
+                      <option.icon className={`h-5 w-5 ${
+                        feeCollectionModel === option.value ? 'text-rink-500' : 'text-neutral-400'
+                      }`} />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{option.label}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{option.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Early Bird Discount Section */}

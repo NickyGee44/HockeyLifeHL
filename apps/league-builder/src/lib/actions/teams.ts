@@ -82,8 +82,9 @@ export async function getLeagueTeams(leagueId: string, options?: { status?: Team
   const supabase = await createClient();
 
   try {
-    let query = supabase
-      .from('teams')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = (supabase
+      .from('teams') as any)
       .select(`
         *,
         divisions:division_id (name),
@@ -112,7 +113,7 @@ export async function getLeagueTeams(leagueId: string, options?: { status?: Team
     }
 
     // Get roster counts for each team
-    const teamIds = teams?.map(t => t.id) || [];
+    const teamIds = teams?.map((t: any) => t.id) || [];
     const { data: rosterCounts } = await supabase
       .from('team_rosters')
       .select('team_id')
@@ -124,7 +125,7 @@ export async function getLeagueTeams(leagueId: string, options?: { status?: Team
       countMap.set(r.team_id, (countMap.get(r.team_id) || 0) + 1);
     });
 
-    const teamsWithStats = teams?.map(team => ({
+    const teamsWithStats = teams?.map((team: any) => ({
       ...team,
       roster_count: countMap.get(team.id) || 0,
       captain_name: (team.captain as any)?.full_name || null,
@@ -148,8 +149,9 @@ export async function getTeam(teamId: string) {
   const supabase = await createClient();
 
   try {
-    const { data: team, error } = await supabase
-      .from('teams')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: team, error } = await (supabase
+      .from('teams') as any)
       .select(`
         *,
         leagues!inner(id, name, organization_id, organizations!inner(owner_user_id)),

@@ -130,6 +130,7 @@ export async function saveDraft(
           enableAiNews: data.enableAiNews ?? false,
           // Step 7 - Registration & Payments
           enablePaidRegistration: data.enablePaidRegistration ?? false,
+          feeCollectionModel: data.feeCollectionModel ?? 'individual',
           registrationFee: data.registrationFee ?? 0,
           earlyBirdDiscount: data.earlyBirdDiscount ?? {
             enabled: false,
@@ -473,6 +474,7 @@ export async function createLeague(
           // Fee configuration
           fees: {
             enablePaidRegistration: data.enablePaidRegistration ?? false,
+            feeCollectionModel: data.feeCollectionModel ?? 'individual',
             registrationFee: data.registrationFee ?? 0,
             earlyBirdDiscount: {
               enabled: data.earlyBirdDiscount?.enabled ?? false,
@@ -571,6 +573,7 @@ export async function createLeague(
           registration_opens_at: data.registration_opens || null,
           registration_closes_at: data.registration_closes || null,
           registration_type: dbRegistrationType,
+          fee_collection_model: data.feeCollectionModel || 'individual',
           status: 'active', // Valid enum: active, playoffs, completed, draft, archived
           game_duration_minutes: data.game_duration_minutes,
           period_count: data.period_count,

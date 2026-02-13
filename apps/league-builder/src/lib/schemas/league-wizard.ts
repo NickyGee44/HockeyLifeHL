@@ -293,6 +293,7 @@ export const lateRegistrationFeeSchema = z.object({
 export const step7Schema = z.object({
   // Registration Fees
   enablePaidRegistration: z.boolean().default(false),
+  feeCollectionModel: z.enum(['individual', 'team', 'hybrid']).default('individual'),
   registrationFee: z
     .number()
     .int('Must be a whole number')
@@ -493,6 +494,7 @@ export const defaultValues: Partial<WizardFormData> = {
 
   // Step 7: Registration & Payments
   enablePaidRegistration: false,
+  feeCollectionModel: 'individual',
   registrationFee: 0,
   earlyBirdDiscount: {
     enabled: false,
