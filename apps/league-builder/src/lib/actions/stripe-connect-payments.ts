@@ -542,7 +542,59 @@ export async function getLeaguePayoutInfo(
 }
 
 // ============================================================================
-// 9. Create Account Session (for Embedded Components)
+// 9. Initialize Connect Account (creates account without onboarding link)
+// ============================================================================
+
+export async function initializeConnectAccount(
+  leagueId: string
+): ActionResult<{ accountId: string }> {
+  try {
+    const result = await verifyLeagueAdminAccess(leagueId);
+    if ('error' in result) {
+      return { success: false, error: result.error };
+    }
+    const { league, userId } = result;
+
+    // If account already exists, return it
+    if (league.stripe_account_id) {
+      return { success: true, data: { accountId: league.stripe_account_id } };
+    }
+
+    // Get user email for the account
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', userId)
+      .single();
+
+    const email = profile?.email || '';
+
+    const accountId = await createConnectAccount(leagueId, league.name, email);
+
+    // Update league with account ID
+    const serviceSupabase = createServiceRoleClient();
+    await serviceSupabase
+      .from('leagues')
+      .update({
+        stripe_account_id: accountId,
+        stripe_account_status: 'pending',
+      })
+      .eq('id', leagueId);
+
+    await logAuditEvent(leagueId, 'connect_account_created', {
+      account_id: accountId,
+    }, userId);
+
+    return { success: true, data: { accountId } };
+  } catch (error) {
+    console.error('[Stripe Connect] Initialize account error:', error);
+    return { success: false, error: getStripeErrorMessage(error) };
+  }
+}
+
+// ============================================================================
+// 10. Create Account Session (for Embedded Components)
 // ============================================================================
 
 interface AccountSessionResult {
@@ -602,7 +654,7 @@ export async function createConnectAccountSession(
 }
 
 // ============================================================================
-// 10. Get Payment Statistics
+// 11. Get Payment Statistics
 // ============================================================================
 
 interface PaymentStats {

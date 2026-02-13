@@ -171,6 +171,7 @@
     "teams": "Equipes",
     "teamsAndDivisions": "Equipes et divisions",
     "players": "Joueurs",
+    "staff": "Personnel",
     "schedule": "Calendrier",
     "standings": "Classement",
     "registration": "Inscription",
@@ -960,7 +961,11 @@
         "disabled": "Desactive"
       },
       "loadingStripe": "Chargement de Stripe...",
-      "failedLoadStatus": "Echec du chargement du statut du compte"
+      "failedLoadStatus": "Echec du chargement du statut du compte",
+      "setupButton": "Configurer les paiements",
+      "setupDescription": "Configurez votre compte Stripe pour accepter les paiements en ligne des joueurs et des equipes. Vous serez guide a travers le processus de verification.",
+      "accountCreated": "Compte Stripe cree ! Completez les etapes d'inscription ci-dessous.",
+      "accountCreateFailed": "Echec de la creation du compte Stripe. Veuillez reessayer."
     },
     "league": {
       "title": "Facturation de la ligue",

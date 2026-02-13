@@ -171,6 +171,7 @@
     "teams": "Teams",
     "teamsAndDivisions": "Teams & Divisions",
     "players": "Players",
+    "staff": "Staff",
     "schedule": "Schedule",
     "standings": "Standings",
     "registration": "Registration",
@@ -960,7 +961,11 @@
         "disabled": "Disabled"
       },
       "loadingStripe": "Loading Stripe...",
-      "failedLoadStatus": "Failed to load account status"
+      "failedLoadStatus": "Failed to load account status",
+      "setupButton": "Set Up Payments",
+      "setupDescription": "Set up your Stripe account to accept online payments from players and teams. You'll be guided through the verification process.",
+      "accountCreated": "Stripe account created! Complete the onboarding steps below.",
+      "accountCreateFailed": "Failed to create Stripe account. Please try again."
     },
     "league": {
       "title": "League Billing",

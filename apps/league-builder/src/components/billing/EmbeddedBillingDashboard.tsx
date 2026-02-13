@@ -9,9 +9,10 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { DollarSign, CreditCard, Wallet, Settings, Percent, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { DollarSign, CreditCard, Wallet, Settings, Percent, AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   ConnectProvider,
@@ -25,6 +26,7 @@ import {
 import {
   getConnectAccountStatus,
   getPaymentStatistics,
+  initializeConnectAccount,
 } from '@/lib/actions/stripe-connect-payments';
 import type { ConnectAccountInfo } from '@/lib/leagues/stripe-connect';
 
@@ -111,8 +113,28 @@ export function EmbeddedBillingDashboard({
     loadData(); // eslint-disable-line -- data-fetching on mount and leagueId change
   }, [leagueId]);
 
+  const [creatingAccount, setCreatingAccount] = useState(false);
+
   const isConnected = accountInfo?.status === 'complete';
-  const needsOnboarding = !accountInfo || accountInfo.status === 'not_created' || accountInfo.status === 'pending' || accountInfo.status === 'restricted';
+  const accountNotCreated = !accountInfo || accountInfo.status === 'not_created';
+  const needsOnboarding = !accountNotCreated && (accountInfo.status === 'pending' || accountInfo.status === 'restricted');
+
+  async function handleSetupPayments() {
+    setCreatingAccount(true);
+    try {
+      const result = await initializeConnectAccount(leagueId);
+      if (result.success) {
+        toast.success(t('accountCreated'));
+        await loadData();
+      } else {
+        toast.error(t('accountCreateFailed'), { description: result.error });
+      }
+    } catch {
+      toast.error(t('accountCreateFailed'));
+    } finally {
+      setCreatingAccount(false);
+    }
+  }
 
   // Show loading skeleton
   if (loading) {
@@ -126,6 +148,66 @@ export function EmbeddedBillingDashboard({
           ))}
         </div>
         <div className="h-96 bg-neutral-800 rounded-xl animate-pulse" />
+      </div>
+    );
+  }
+
+  // No Stripe account yet — show setup CTA (don't mount ConnectProvider)
+  if (accountNotCreated) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
+            <p className="text-neutral-400">
+              {t('managePayments', { leagueName })}
+            </p>
+          </div>
+          <StatusBadge status="not_created" />
+        </div>
+
+        <Card className="bg-neutral-900 border-neutral-800">
+          <CardHeader>
+            <CardTitle className="text-white">{t('connectStripe')}</CardTitle>
+            <CardDescription>
+              {t('connectStripeDesc')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center text-center py-8 space-y-4">
+              <div className="p-4 rounded-full bg-emerald-500/10">
+                <CreditCard className="h-10 w-10 text-emerald-500" />
+              </div>
+              <div className="max-w-md space-y-2">
+                <p className="text-neutral-300">{t('setupDescription')}</p>
+              </div>
+              <Button
+                size="lg"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={handleSetupPayments}
+                disabled={creatingAccount}
+              >
+                {creatingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('setupButton')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Platform Fee Notice */}
+        <Card className="bg-neutral-800/50 border-neutral-700">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <Percent className="h-5 w-5 text-neutral-400 mt-0.5" />
+              <div className="text-sm text-neutral-400">
+                <p>
+                  {t('platformFeeNotice', { percent: platformFeePercent })}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
