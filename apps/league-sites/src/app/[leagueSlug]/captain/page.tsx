@@ -264,6 +264,19 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         </Link>
 
         <Link
+          href={`/${leagueSlug}/captain/fees`}
+          className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+            <DollarSign className="w-5 h-5 text-green-400" />
+          </div>
+          <div>
+            <p className="font-medium text-[var(--color-text-primary)]">Team Fees</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">Invoices & payments</p>
+          </div>
+        </Link>
+
+        <Link
           href={`/${leagueSlug}/schedule?team=${currentTeam.team_id}`}
           className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
         >
