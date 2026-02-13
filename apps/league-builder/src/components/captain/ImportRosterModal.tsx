@@ -78,7 +78,7 @@ export default function ImportRosterModal({
   // Load previous seasons when modal opens
   useEffect(() => {
     if (isOpen) {
-      loadData();
+      loadData(); // eslint-disable-line -- data-fetching when modal opens
     }
   }, [isOpen, teamId]);
 
@@ -100,7 +100,7 @@ export default function ImportRosterModal({
   // Load roster when season is selected
   useEffect(() => {
     if (selectedSeasonId) {
-      loadRoster(selectedSeasonId);
+      loadRoster(selectedSeasonId); // eslint-disable-line -- data-fetching when season changes
     }
   }, [selectedSeasonId, teamId]);
 

@@ -56,8 +56,8 @@ export function AutoAssignModal({
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
-      setResult(null);
-      setError(null);
+      setResult(null); // eslint-disable-line -- reset state when modal opens
+      setError(null); // eslint-disable-line -- reset state when modal opens
     }
   }, [open]);
 

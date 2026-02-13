@@ -25,7 +25,7 @@ export default function RegistrationSuccessPage({
           </h1>
 
           <p className="text-neutral-400 mb-8">
-            Your registration has been submitted successfully. You'll receive a
+            Your registration has been submitted successfully. You&apos;ll receive a
             confirmation email shortly.
           </p>
 
@@ -66,7 +66,7 @@ export default function RegistrationSuccessPage({
               <div>
                 <p className="text-white font-medium">Approval Notification</p>
                 <p className="text-sm text-neutral-400">
-                  You'll receive an email when your registration is approved
+                  You&apos;ll receive an email when your registration is approved
                 </p>
               </div>
             </div>

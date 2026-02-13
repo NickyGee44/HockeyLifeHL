@@ -88,7 +88,7 @@ export function PreviewStep({
   // Auto-generate when isGenerating becomes true
   useEffect(() => {
     if (isGenerating && !previewResult) {
-      handleGenerate();
+      handleGenerate(); // eslint-disable-line -- trigger generation when parent sets isGenerating
     }
   }, [isGenerating, previewResult, handleGenerate]);
 
@@ -228,7 +228,7 @@ export function PreviewStep({
           <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-3" />
           <p className="text-green-400 font-medium">Ready to Generate</p>
           <p className="text-sm text-green-400/80 mt-1">
-            Click "Generate Schedule" to create the schedule with these settings.
+            Click &quot;Generate Schedule&quot; to create the schedule with these settings.
           </p>
         </div>
       )}

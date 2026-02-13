@@ -68,7 +68,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchRoster();
+    fetchRoster(); // eslint-disable-line -- data-fetching when team or season changes
   }, [teamId, seasonId]);
 
   const fetchRoster = async () => {
@@ -209,7 +209,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
             <h3 className="text-sm font-semibold text-neutral-400 mb-3 uppercase tracking-wider">
               {position}s ({players.length})
             </h3>
-            <div className="bg-neutral-800/50 rounded-xl overflow-hidden border border-neutral-700">
+            <div className="bg-neutral-800/50 rounded-xl overflow-hidden border border-neutral-700 overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-neutral-700">
@@ -329,7 +329,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
           <DialogHeader>
             <DialogTitle className="text-white">Edit Player</DialogTitle>
             <DialogDescription className="text-neutral-400">
-              Update {editingPlayer?.player.full_name}'s roster information
+              Update {editingPlayer?.player.full_name}&apos;s roster information
             </DialogDescription>
           </DialogHeader>
 

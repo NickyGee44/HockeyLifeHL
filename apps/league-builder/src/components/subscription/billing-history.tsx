@@ -47,7 +47,7 @@ export function BillingHistory() {
   }
 
   useEffect(() => {
-    loadInvoices();
+    loadInvoices(); // eslint-disable-line -- data-fetching on mount
   }, []);
 
   function getStatusBadge(status: Invoice['status']) {

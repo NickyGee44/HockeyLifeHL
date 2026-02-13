@@ -1,14 +1,12 @@
 /**
- * Domain Settings Page (Localized)
+ * Org Domain Settings — Redirect
  *
- * Allows organizations to manage their subdomain and custom domain settings.
- * Custom domains require Enterprise plan or can be purchased as an add-on.
+ * Redirects to the league settings page (organization tab).
  */
 
-import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
-import { redirect } from '@/i18n/navigation';
-import { DomainSettingsContent } from '@/components/dashboard/domain-settings-content';
-import { setRequestLocale } from 'next-intl/server';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/actions/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,22 +16,23 @@ type Props = {
 
 export default async function DomainSettingsPage({ params }: Props) {
   const { locale } = await params;
-  setRequestLocale(locale);
 
   const userData = await getCurrentUser();
-
   if (!userData) {
-    redirect({ href: '/login', locale });
-    return null; // TypeScript needs this after redirect
+    redirect(`/${locale}/login`);
   }
 
-  const organizations = await getUserOrganizations();
-  const organization = organizations[0];
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from('league_memberships')
+    .select('league_id')
+    .eq('user_id', userData.user.id)
+    .limit(1)
+    .single();
 
-  if (!organization) {
-    redirect({ href: '/dashboard', locale });
-    return null; // TypeScript needs this after redirect
+  if (membership?.league_id) {
+    redirect(`/${locale}/dashboard/leagues/${membership.league_id}/settings?tab=organization`);
   }
 
-  return <DomainSettingsContent organization={organization} />;
+  redirect(`/${locale}/dashboard`);
 }

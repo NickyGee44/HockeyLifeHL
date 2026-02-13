@@ -55,9 +55,9 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
 
   useEffect(() => {
     if (isConnected) {
-      loadPayoutInfo();
+      loadPayoutInfo(); // eslint-disable-line -- data-fetching when connected
     } else {
-      setLoading(false);
+      setLoading(false); // eslint-disable-line -- initialize loading state for disconnected
     }
   }, [leagueId, isConnected]);
 

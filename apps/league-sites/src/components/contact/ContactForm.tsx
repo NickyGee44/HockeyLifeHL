@@ -55,7 +55,7 @@ export function ContactForm({ leagueId }: ContactFormProps) {
         </div>
         <h3 className="text-lg font-semibold mb-2">Message Sent!</h3>
         <p className="text-[var(--color-text-secondary)] mb-4">
-          Thank you for reaching out. We'll get back to you soon.
+          Thank you for reaching out. We&apos;ll get back to you soon.
         </p>
         <button
           onClick={() => setFormState('idle')}

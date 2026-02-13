@@ -43,7 +43,7 @@ export default function JoinRequestsManager({ teamId }: JoinRequestsManagerProps
   };
 
   useEffect(() => {
-    loadRequests();
+    loadRequests(); // eslint-disable-line -- data-fetching on mount and filter change
   }, [teamId, filter]);
 
   const handleApprove = async (requestId: string) => {

@@ -171,7 +171,7 @@ export function TeamRequestCard({
                 {request.message && (
                   <div className="bg-neutral-900/50 rounded-lg p-3">
                     <p className="text-xs text-neutral-500 mb-1">Message</p>
-                    <p className="text-sm text-neutral-300 italic">"{request.message}"</p>
+                    <p className="text-sm text-neutral-300 italic">&quot;{request.message}&quot;</p>
                   </div>
                 )}
                 {request.preferred_division_notes && (

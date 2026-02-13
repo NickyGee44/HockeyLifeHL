@@ -93,7 +93,7 @@ export function SetupBanner({ issues }: SetupBannerProps) {
                 onClick={() =>
                   setDismissedIds((prev) => new Set([...prev, key]))
                 }
-                className="p-1 rounded-lg text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition-colors shrink-0"
+                className="p-2 rounded-lg text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition-colors shrink-0"
                 aria-label="Dismiss"
               >
                 <X className="w-4 h-4" />

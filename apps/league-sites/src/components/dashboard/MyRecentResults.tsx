@@ -34,13 +34,10 @@ interface MyRecentResultsProps {
 
 export function MyRecentResults({ teamId, leagueSlug }: MyRecentResultsProps) {
   const [games, setGames] = useState<RecentGame[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!!teamId);
 
   useEffect(() => {
-    if (!teamId) {
-      setIsLoading(false);
-      return;
-    }
+    if (!teamId) return;
 
     const fetchGames = async () => {
       const supabase = createClient();

@@ -137,7 +137,7 @@ export function TeamRegistrationForm({
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-white mb-2">Request Submitted!</h2>
         <p className="text-neutral-300 mb-6 max-w-md mx-auto">
-          Your team registration request for <span className="font-medium text-white">"{teamName}"</span> has been submitted successfully.
+          Your team registration request for <span className="font-medium text-white">&quot;{teamName}&quot;</span> has been submitted successfully.
           The league administrators will review your request and notify you via email.
         </p>
         <div className="flex justify-center gap-3">
@@ -221,7 +221,7 @@ export function TeamRegistrationForm({
           </div>
           <div>
             <h2 className="text-lg font-bold text-white">Team Colors</h2>
-            <p className="text-sm text-neutral-400">Choose your team's primary and secondary colors</p>
+            <p className="text-sm text-neutral-400">Choose your team&apos;s primary and secondary colors</p>
           </div>
         </div>
 

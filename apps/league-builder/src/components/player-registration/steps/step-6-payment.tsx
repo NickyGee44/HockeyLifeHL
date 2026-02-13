@@ -151,7 +151,7 @@ export function Step6Payment() {
             {formattedAmount} has been charged to your card
           </p>
           <p className="text-sm text-green-400">
-            Click "Continue" to complete your registration
+            Click &quot;Continue&quot; to complete your registration
           </p>
         </div>
       </div>

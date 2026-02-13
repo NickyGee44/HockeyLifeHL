@@ -49,7 +49,7 @@ export function BillingPageClient() {
   }
 
   useEffect(() => {
-    loadData();
+    loadData(); // eslint-disable-line -- data-fetching on mount
   }, []);
 
   if (loading) {

@@ -151,7 +151,7 @@ export function VenueConstraintsTab({
           Home Venue Assignments
         </h4>
         <p className="text-sm text-neutral-400 mb-4">
-          Assign each team's home venue for home games.
+          Assign each team&apos;s home venue for home games.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {teams.map((team) => (

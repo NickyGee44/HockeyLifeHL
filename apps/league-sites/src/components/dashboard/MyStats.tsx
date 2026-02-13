@@ -31,13 +31,10 @@ interface MyStatsProps {
 export function MyStats({ playerId, seasonId, leagueSlug }: MyStatsProps) {
   const [skaterStats, setSkaterStats] = useState<SkaterStats | null>(null);
   const [goalieStats, setGoalieStats] = useState<GoalieStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!!(playerId && seasonId));
 
   useEffect(() => {
-    if (!playerId || !seasonId) {
-      setIsLoading(false);
-      return;
-    }
+    if (!playerId || !seasonId) return;
 
     const fetchStats = async () => {
       const supabase = createClient();

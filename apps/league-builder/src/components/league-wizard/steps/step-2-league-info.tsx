@@ -173,7 +173,7 @@ export function Step2LeagueInfo() {
         <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-2">
           <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
-            These colors and logo will be used throughout your league's interface to
+            These colors and logo will be used throughout your league&apos;s interface to
             create a consistent brand experience.
           </p>
         </div>

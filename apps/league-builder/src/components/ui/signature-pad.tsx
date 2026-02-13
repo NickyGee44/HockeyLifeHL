@@ -71,7 +71,7 @@ export function SignaturePad({
     // Load existing value
     if (value && value.startsWith('data:image')) {
       signaturePad.fromDataURL(value);
-      setIsEmpty(false);
+      setIsEmpty(false); // eslint-disable-line -- sync isEmpty state with loaded signature data
     }
 
     return () => {

@@ -16,16 +16,24 @@ import {
   Trash2,
   ClipboardCheck,
   Eye,
+  Building2,
+  AlertTriangle,
+  Archive,
+  Receipt,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
+import { SettingsTabsClient } from './settings-tabs-client';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 };
 
-export default async function LeagueSettingsPage({ params }: Props) {
+export default async function LeagueSettingsPage({ params, searchParams }: Props) {
   const awaited = await params;
+  const awaitedSearch = await searchParams;
   const { locale, id: leagueId } = awaited;
+  const { tab } = awaitedSearch;
   setRequestLocale(locale);
 
   const userData = await getCurrentUser();
@@ -47,78 +55,70 @@ export default async function LeagueSettingsPage({ params }: Props) {
     notFound();
   }
 
-  const settingsSections = [
+  const leagueSettings = [
     {
       title: 'General',
       description: 'Basic league information and settings',
-      icon: Settings,
+      icon: 'Settings',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/general`,
-      available: true,
     },
     {
       title: 'Website Editor',
       description: 'Customize your league website with live preview',
-      icon: Eye,
+      icon: 'Eye',
       href: `/${locale}/website-editor`,
-      available: true,
       highlight: true,
-    },
-    {
-      title: 'Branding',
-      description: 'Logo, colors, and visual identity',
-      icon: Palette,
-      href: `/${locale}/dashboard/settings/branding`,
-      available: true,
-    },
-    {
-      title: 'Custom Domain',
-      description: 'Set up your own domain for the league website',
-      icon: Globe,
-      href: `/${locale}/dashboard/settings/domains`,
-      available: true,
-    },
-    {
-      title: 'Notifications',
-      description: 'Email and push notification preferences',
-      icon: Bell,
-      href: `/${locale}/dashboard/settings/notifications`,
-      available: true,
     },
     {
       title: 'Billing',
       description: 'Payment collection and fee settings',
-      icon: CreditCard,
+      icon: 'CreditCard',
       href: `/${locale}/dashboard/leagues/${leagueId}/billing`,
-      available: true,
     },
     {
       title: 'Scorekeepers',
       description: 'Manage scorekeepers and game assignments',
-      icon: ClipboardCheck,
+      icon: 'ClipboardCheck',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/scorekeepers`,
-      available: true,
+    },
+  ];
+
+  const orgSettings = [
+    {
+      title: 'Branding',
+      description: 'Logo, colors, and visual identity',
+      icon: 'Palette',
+      href: `/${locale}/dashboard/settings/branding`,
+    },
+    {
+      title: 'Custom Domain',
+      description: 'Set up your own domain for the league website',
+      icon: 'Globe',
+      href: `/${locale}/dashboard/settings/domains`,
     },
     {
       title: 'Staff & Permissions',
       description: 'Manage league administrators and roles',
-      icon: Users,
+      icon: 'Users',
       href: `/${locale}/dashboard/settings/members`,
-      available: true,
+    },
+    {
+      title: 'Notifications',
+      description: 'Email and push notification preferences',
+      icon: 'Bell',
+      href: `/${locale}/dashboard/settings/notifications`,
+    },
+    {
+      title: 'Subscription',
+      description: 'Premium add-ons and billing management',
+      icon: 'Receipt',
+      href: `/${locale}/dashboard/settings/subscription`,
     },
     {
       title: 'Privacy',
       description: 'Data privacy and visibility settings',
-      icon: Shield,
+      icon: 'Shield',
       href: `/${locale}/dashboard/settings/privacy`,
-      available: true,
-    },
-    {
-      title: 'Danger Zone',
-      description: 'Delete league or transfer ownership',
-      icon: Trash2,
-      href: `/${locale}/dashboard/leagues/${leagueId}/settings/danger`,
-      available: false,
-      danger: true,
     },
   ];
 
@@ -135,7 +135,7 @@ export default async function LeagueSettingsPage({ params }: Props) {
             Back to {league.name}
           </Link>
 
-          <h1 className="text-3xl font-black text-white tracking-tight">League Settings</h1>
+          <h1 className="text-3xl font-black text-white tracking-tight">Settings</h1>
           <p className="text-neutral-400 mt-1">
             Configure {league.name} settings and preferences
           </p>
@@ -162,85 +162,14 @@ export default async function LeagueSettingsPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Settings Sections */}
-        <div className="space-y-3">
-          {settingsSections.map((section) => {
-            const Icon = section.icon;
-
-            if (!section.available) {
-              return (
-                <div
-                  key={section.title}
-                  className={cn(
-                    'flex items-center gap-4 p-5 rounded-xl opacity-50 cursor-not-allowed',
-                    'bg-white/[0.02] border border-white/5',
-                    section.danger && 'border-red-500/20'
-                  )}
-                >
-                  <div className={cn(
-                    'p-3 rounded-xl',
-                    section.danger ? 'bg-red-500/10 text-red-500' : 'bg-neutral-800 text-neutral-500'
-                  )}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className={cn(
-                      'font-semibold',
-                      section.danger ? 'text-red-500' : 'text-neutral-500'
-                    )}>
-                      {section.title}
-                    </h3>
-                    <p className="text-sm text-neutral-600">{section.description}</p>
-                  </div>
-                  <span className="text-xs text-neutral-600 bg-neutral-800 px-2 py-1 rounded">
-                    Coming Soon
-                  </span>
-                </div>
-              );
-            }
-
-            return (
-              <Link
-                key={section.title}
-                href={section.href}
-                className={cn(
-                  'flex items-center gap-4 p-5 rounded-xl transition-all group',
-                  'bg-white/[0.04] border border-white/10 hover:border-white/20',
-                  section.danger && 'hover:border-red-500/50',
-                  (section as any).highlight && 'border-rink-500/30 bg-rink-500/5'
-                )}
-              >
-                <div className={cn(
-                  'p-3 rounded-xl transition-colors',
-                  section.danger
-                    ? 'bg-red-500/10 text-red-500 group-hover:bg-red-500/20'
-                    : 'bg-rink-500/10 text-rink-500 group-hover:bg-rink-500/20'
-                )}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className={cn(
-                      'font-semibold transition-colors',
-                      section.danger
-                        ? 'text-red-500'
-                        : 'text-white group-hover:text-rink-500'
-                    )}>
-                      {section.title}
-                    </h3>
-                    {(section as any).highlight && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rink-500 text-black rounded">
-                        NEW
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-neutral-400">{section.description}</p>
-                </div>
-                <ArrowLeft className="w-5 h-5 text-neutral-500 rotate-180 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            );
-          })}
-        </div>
+        {/* Tabbed Settings */}
+        <SettingsTabsClient
+          locale={locale}
+          leagueId={leagueId}
+          leagueSettings={leagueSettings}
+          orgSettings={orgSettings}
+          initialTab={tab || 'league'}
+        />
       </div>
     </div>
   );

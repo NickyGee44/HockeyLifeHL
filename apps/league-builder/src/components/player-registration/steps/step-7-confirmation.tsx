@@ -228,7 +228,7 @@ export function Step7Confirmation() {
         <h4 className="font-medium text-blue-400 mb-1">What happens next?</h4>
         <p className="text-sm text-neutral-300">
           After submitting, your registration will be reviewed by the league
-          administrator. You'll receive an email notification once your
+          administrator. You&apos;ll receive an email notification once your
           registration is approved. This typically takes 1-2 business days.
         </p>
       </div>

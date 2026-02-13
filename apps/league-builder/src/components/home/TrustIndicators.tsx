@@ -71,7 +71,7 @@ export function TrustIndicators() {
         {/* Testimonial */}
         <div className="mt-10 max-w-2xl mx-auto text-center">
           <blockquote className="text-lg text-neutral-300 italic mb-4">
-            "{t('trust.testimonial.quote')}"
+            &quot;{t('trust.testimonial.quote')}&quot;
           </blockquote>
           <cite className="text-sm text-neutral-500 not-italic">
             — {t('trust.testimonial.author')}, {t('trust.testimonial.role')}

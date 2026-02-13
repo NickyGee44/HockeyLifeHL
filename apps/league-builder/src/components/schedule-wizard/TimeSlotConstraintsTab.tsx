@@ -142,7 +142,7 @@ export function TimeSlotConstraintsTab({
           Time Slot Definitions
         </h4>
         <p className="text-sm text-neutral-400 mb-4">
-          Define what constitutes "early morning" and "late night" games.
+          Define what constitutes &quot;early morning&quot; and &quot;late night&quot; games.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -165,7 +165,7 @@ export function TimeSlotConstraintsTab({
               ))}
             </select>
             <p className="text-xs text-neutral-500 mt-1">
-              Games before this time are considered "early morning"
+              Games before this time are considered &quot;early morning&quot;
             </p>
           </div>
 
@@ -188,7 +188,7 @@ export function TimeSlotConstraintsTab({
               ))}
             </select>
             <p className="text-xs text-neutral-500 mt-1">
-              Games at or after this time are considered "late night"
+              Games at or after this time are considered &quot;late night&quot;
             </p>
           </div>
         </div>

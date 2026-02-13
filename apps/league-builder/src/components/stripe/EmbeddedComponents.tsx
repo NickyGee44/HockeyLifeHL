@@ -55,7 +55,7 @@ export function EmbeddedOnboarding({ onComplete, className }: EmbeddedOnboarding
       onComplete?.();
     });
     containerRef.current.appendChild(component);
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- track Stripe component mount state
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
@@ -87,7 +87,7 @@ export function EmbeddedAccountManagement({ className }: EmbeddedAccountManageme
 
     const component = stripeConnectInstance.create('account-management');
     containerRef.current.appendChild(component);
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- track Stripe component mount state
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
@@ -119,7 +119,7 @@ export function EmbeddedPayments({ className }: EmbeddedPaymentsProps) {
 
     const component = stripeConnectInstance.create('payments');
     containerRef.current.appendChild(component);
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- track Stripe component mount state
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
@@ -151,7 +151,7 @@ export function EmbeddedPayouts({ className }: EmbeddedPayoutsProps) {
 
     const component = stripeConnectInstance.create('payouts');
     containerRef.current.appendChild(component);
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- track Stripe component mount state
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
@@ -183,7 +183,7 @@ export function EmbeddedBalances({ className }: EmbeddedBalancesProps) {
 
     const component = stripeConnectInstance.create('balances');
     containerRef.current.appendChild(component);
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- track Stripe component mount state
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
@@ -215,7 +215,7 @@ export function EmbeddedNotificationBanner({ className }: EmbeddedNotificationBa
 
     const component = stripeConnectInstance.create('notification-banner');
     containerRef.current.appendChild(component);
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- track Stripe component mount state
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();

@@ -46,7 +46,7 @@ const PLAYOFF_FORMATS = [
   {
     value: 'single_elimination',
     label: 'Single Elimination',
-    description: 'One loss and you\'re out. Quick tournament-style playoffs.',
+    description: "One loss and you're out. Quick tournament-style playoffs.",
     rounds: (teams: number) => Math.ceil(Math.log2(teams)),
     gamesPerRound: (teams: number, round: number) => Math.ceil(teams / Math.pow(2, round)),
   },
@@ -399,7 +399,7 @@ export function ScheduleConfigStep({
             onChange={(e) => setConfig((prev) => ({ ...prev, rotateHomeVenue: e.target.checked }))}
             className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
           />
-          <span className="text-sm text-neutral-300">Use team's home venue when available</span>
+          <span className="text-sm text-neutral-300">Use team&apos;s home venue when available</span>
         </label>
       </div>
     </div>

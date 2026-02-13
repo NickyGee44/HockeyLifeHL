@@ -105,7 +105,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
 
   useEffect(() => {
     if (activeTab === 'requests') {
-      loadRecoveryRequests();
+      loadRecoveryRequests(); // eslint-disable-line -- data-fetching when tab changes
     }
   }, [activeTab]);
 

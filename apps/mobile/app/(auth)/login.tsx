@@ -1,8 +1,57 @@
 import React, { useState } from 'react';
-import { View, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
+import {
+  View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text as RNText,
+  TextInput,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { router } from 'expo-router';
-import { Text, Button, Input } from '@hockey-life/ui-native';
 import { useAuth } from '../../src/lib/auth/provider';
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  center: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  logoArea: { alignItems: 'center', marginBottom: 48 },
+  title: { color: '#D4AF37', fontSize: 28, fontWeight: 'bold' },
+  subtitle: { color: '#737373', fontSize: 14, marginTop: 8 },
+  form: { gap: 16 },
+  label: { color: '#a3a3a3', fontSize: 12, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' },
+  input: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#262626',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#fafafa',
+    fontSize: 16,
+  },
+  button: {
+    backgroundColor: '#D4AF37',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: { color: '#0a0a0a', fontSize: 16, fontWeight: '700' },
+  link: { paddingVertical: 8 },
+  linkText: { color: '#D4AF37', fontSize: 14, textAlign: 'center' },
+  forgotText: { color: '#737373', fontSize: 14, textAlign: 'center' },
+  errorText: { color: '#ef4444', fontSize: 14, textAlign: 'center' },
+  magicText: { color: '#a3a3a3', fontSize: 16, textAlign: 'center', marginBottom: 32 },
+  outlineButton: {
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  outlineButtonText: { color: '#D4AF37', fontSize: 16, fontWeight: '600' },
+});
 
 export default function LoginScreen() {
   const { signIn, signInWithMagicLink } = useAuth();
@@ -46,92 +95,96 @@ export default function LoginScreen() {
 
   if (magicLinkSent) {
     return (
-      <View className="flex-1 bg-neutral-950 items-center justify-center px-6">
-        <Text variant="h1" className="text-center mb-4">
-          Check your email
-        </Text>
-        <Text variant="body" className="text-center text-neutral-400 mb-8">
+      <View cssInterop={false} style={[styles.container, { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }]}>
+        <RNText cssInterop={false} style={[styles.title, { fontSize: 24 }]}>Check your email</RNText>
+        <RNText cssInterop={false} style={styles.magicText}>
           We sent a login link to {email}. Click the link to sign in.
-        </Text>
-        <Button
-          title="Back to login"
-          variant="outline"
+        </RNText>
+        <Pressable
+          cssInterop={false}
+          style={styles.outlineButton}
           onPress={() => {
             setMagicLinkSent(false);
             setMode('password');
           }}
-        />
+        >
+          <RNText cssInterop={false} style={styles.outlineButtonText}>Back to login</RNText>
+        </Pressable>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
+      cssInterop={false}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-neutral-950"
+      style={{ flex: 1, backgroundColor: '#ff0000' }}
     >
-      <View className="flex-1 justify-center px-6">
+      <View cssInterop={false} style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 24, backgroundColor: '#0a0a0a' }}>
         {/* Logo area */}
-        <View className="items-center mb-12">
-          <Text variant="h1" className="text-gold-500 text-3xl font-bold">
-            HockeyLifeHL
-          </Text>
-          <Text variant="caption" className="mt-2">
-            Sign in to your account
-          </Text>
+        <View cssInterop={false} style={styles.logoArea}>
+          <RNText cssInterop={false} style={{ color: '#D4AF37', fontSize: 28, fontWeight: 'bold' }}>HockeyLifeHL TEST</RNText>
+          <RNText cssInterop={false} style={{ color: '#737373', fontSize: 14, marginTop: 8 }}>Sign in to your account</RNText>
         </View>
 
         {/* Form */}
-        <View className="gap-4">
-          <Input
-            label="Email"
-            placeholder="you@example.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
+        <View cssInterop={false} style={styles.form}>
+          <View cssInterop={false}>
+            <RNText cssInterop={false} style={styles.label}>Email</RNText>
+            <TextInput
+              cssInterop={false}
+              style={styles.input}
+              placeholder="you@example.com"
+              placeholderTextColor="#525252"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+          </View>
 
           {mode === 'password' && (
-            <Input
-              label="Password"
-              placeholder="Your password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="password"
-            />
+            <View cssInterop={false}>
+              <RNText cssInterop={false} style={styles.label}>Password</RNText>
+              <TextInput
+                cssInterop={false}
+                style={styles.input}
+                placeholder="Your password"
+                placeholderTextColor="#525252"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoComplete="password"
+              />
+            </View>
           )}
 
-          {error && (
-            <Text className="text-red-400 text-sm text-center">{error}</Text>
-          )}
+          {error && <RNText cssInterop={false} style={styles.errorText}>{error}</RNText>}
 
-          <Button
-            title={mode === 'magic-link' ? 'Send magic link' : 'Sign in'}
-            onPress={handleSignIn}
-            loading={loading}
-            className="mt-2"
-          />
+          <Pressable cssInterop={false} style={styles.button} onPress={handleSignIn} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#0a0a0a" />
+            ) : (
+              <RNText cssInterop={false} style={styles.buttonText}>
+                {mode === 'magic-link' ? 'Send magic link' : 'Sign in'}
+              </RNText>
+            )}
+          </Pressable>
 
           <Pressable
+            cssInterop={false}
+            style={styles.link}
             onPress={() => setMode(mode === 'password' ? 'magic-link' : 'password')}
-            className="py-2"
           >
-            <Text className="text-center text-gold-500 text-sm">
+            <RNText cssInterop={false} style={styles.linkText}>
               {mode === 'password' ? 'Sign in with magic link instead' : 'Sign in with password instead'}
-            </Text>
+            </RNText>
           </Pressable>
 
           {mode === 'password' && (
-            <Pressable
-              onPress={() => router.push('/(auth)/forgot-password')}
-              className="py-2"
-            >
-              <Text className="text-center text-neutral-500 text-sm">
-                Forgot password?
-              </Text>
+            <Pressable cssInterop={false} style={styles.link} onPress={() => router.push('/(auth)/forgot-password')}>
+              <RNText cssInterop={false} style={styles.forgotText}>Forgot password?</RNText>
             </Pressable>
           )}
         </View>

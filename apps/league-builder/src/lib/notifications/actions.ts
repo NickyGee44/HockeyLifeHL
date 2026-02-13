@@ -388,6 +388,7 @@ export async function sendRosterChangeNotification(
   // Get player and team details
   const [playerResult, teamResult, changedByResult] = await Promise.all([
     supabase.from('profiles').select('id, email, full_name').eq('id', playerId).single(),
+    // @ts-expect-error - Supabase nested join types cause TS2589 recursion depth
     supabase.from('teams').select('id, name, league_id, leagues:league_id(name), seasons:season_id(name)').eq('id', teamId).single(),
     changedByUserId ? supabase.from('profiles').select('full_name').eq('id', changedByUserId).single() : null,
   ]);

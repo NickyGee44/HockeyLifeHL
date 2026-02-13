@@ -12,40 +12,30 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   LogOut,
   CreditCard,
   Shield,
-  Building2,
   Calendar,
   Users,
-  LayoutGrid,
   Palette,
-  Loader2,
+  ClipboardCheck,
+  User,
+  Dices,
+  Newspaper,
+  Star,
+  Award,
+  Image,
 } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { signOut } from '@/lib/actions/auth';
 import { useSidebar } from './SidebarContext';
-import { LeagueLogo } from '@/components/ui/league-logo';
+import { LeagueScopeSelector } from './LeagueScopeSelector';
 import type { CaptainTeamOverview } from '@/lib/actions/captain';
 import type { DashboardData } from '@/lib/actions/dashboard';
 
 interface HierarchicalSidebarProps {
   dashboardData: DashboardData | null;
   captainTeams: CaptainTeamOverview[];
-}
-
-interface SeasonData {
-  id: string;
-  name: string;
-  status: string;
-}
-
-interface DivisionData {
-  id: string;
-  name: string;
-  team_count: number;
 }
 
 export default function HierarchicalSidebar({
@@ -58,53 +48,12 @@ export default function HierarchicalSidebar({
   const {
     isCollapsed: sidebarCollapsed,
     toggle: toggleSidebar,
-    expandedSections,
-    toggleSection,
+    selected,
   } = useSidebar();
 
-  // Cache for lazy-loaded seasons and divisions
-  const [seasonsCache, setSeasonsCache] = React.useState<Record<string, SeasonData[]>>({});
-  const [divisionsCache, setDivisionsCache] = React.useState<Record<string, DivisionData[]>>({});
-  const [loadingSeasons, setLoadingSeasons] = React.useState<Record<string, boolean>>({});
-  const [loadingDivisions, setLoadingDivisions] = React.useState<Record<string, boolean>>({});
-
-  const organizations = dashboardData?.organizations || [];
-
-  // Lazy load seasons when league is expanded
-  const loadSeasonsForLeague = React.useCallback(async (leagueId: string) => {
-    if (seasonsCache[leagueId] || loadingSeasons[leagueId]) return;
-
-    setLoadingSeasons(prev => ({ ...prev, [leagueId]: true }));
-    try {
-      const response = await fetch(`/api/leagues/${leagueId}/seasons`);
-      if (response.ok) {
-        const data = await response.json();
-        setSeasonsCache(prev => ({ ...prev, [leagueId]: data.seasons || [] }));
-      }
-    } catch (error) {
-      console.error('Failed to load seasons:', error);
-    } finally {
-      setLoadingSeasons(prev => ({ ...prev, [leagueId]: false }));
-    }
-  }, [seasonsCache, loadingSeasons]);
-
-  // Lazy load divisions when season is expanded
-  const loadDivisionsForLeague = React.useCallback(async (leagueId: string) => {
-    if (divisionsCache[leagueId] || loadingDivisions[leagueId]) return;
-
-    setLoadingDivisions(prev => ({ ...prev, [leagueId]: true }));
-    try {
-      const response = await fetch(`/api/leagues/${leagueId}/divisions`);
-      if (response.ok) {
-        const data = await response.json();
-        setDivisionsCache(prev => ({ ...prev, [leagueId]: data.divisions || [] }));
-      }
-    } catch (error) {
-      console.error('Failed to load divisions:', error);
-    } finally {
-      setLoadingDivisions(prev => ({ ...prev, [leagueId]: false }));
-    }
-  }, [divisionsCache, loadingDivisions]);
+  const leagueBase = selected.leagueId
+    ? `/dashboard/leagues/${selected.leagueId}`
+    : '/dashboard';
 
   const isPathActive = (href: string) => {
     const localizedPath = `/${locale}${href}`;
@@ -118,27 +67,23 @@ export default function HierarchicalSidebar({
     return pathname.includes(`/dashboard/captain/${teamId}`);
   };
 
-  // Toggle league expansion and load seasons
-  const handleLeagueToggle = (leagueId: string) => {
-    const sectionKey = `league-${leagueId}`;
-    toggleSection(sectionKey);
-    if (!expandedSections[sectionKey]) {
-      loadSeasonsForLeague(leagueId);
-      loadDivisionsForLeague(leagueId);
+  // Check if selected league exists (show draft room conditionally)
+  const hasDraft = React.useMemo(() => {
+    if (!dashboardData?.organizations || !selected.leagueId) return false;
+    for (const org of dashboardData.organizations) {
+      const league = org.leagues.find((l) => l.id === selected.leagueId);
+      if (league) return true;
     }
-  };
-
-  // Toggle org expansion
-  const handleOrgToggle = (orgId: string) => {
-    toggleSection(`org-${orgId}`);
-  };
+    return false;
+  }, [dashboardData, selected.leagueId]);
 
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-50 flex flex-col',
+        'fixed inset-y-0 left-0 z-50 flex-col',
         'bg-neutral-900 border-r border-white/10',
         'transition-all duration-300 ease-in-out',
+        'hidden md:flex',
         sidebarCollapsed ? 'w-16' : 'w-72'
       )}
     >
@@ -157,7 +102,7 @@ export default function HierarchicalSidebar({
         <button
           onClick={toggleSidebar}
           className={cn(
-            'p-1.5 rounded-lg transition-colors',
+            'p-2.5 rounded-lg transition-colors',
             'text-neutral-400 hover:text-white hover:bg-neutral-800',
             sidebarCollapsed && 'mx-auto'
           )}
@@ -170,183 +115,106 @@ export default function HierarchicalSidebar({
         </button>
       </div>
 
+      {/* League Scope Selector */}
+      <div className="border-b border-white/[0.06]">
+        <LeagueScopeSelector dashboardData={dashboardData} collapsed={sidebarCollapsed} />
+      </div>
+
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {/* Dashboard Home */}
+        {/* Primary nav */}
         <NavLink
           href="/dashboard"
           icon={Home}
-          label={t('dashboard')}
+          label={t('overview')}
           isActive={pathname === `/${locale}/dashboard` || pathname === `/${locale}/tableau-de-bord`}
           collapsed={sidebarCollapsed}
         />
+        <NavLink
+          href={`${leagueBase}/schedule`}
+          icon={Calendar}
+          label={t('schedule')}
+          isActive={isPathActive(`${leagueBase}/schedule`)}
+          collapsed={sidebarCollapsed}
+        />
+        <NavLink
+          href={`${leagueBase}/teams`}
+          icon={Users}
+          label={t('teamsAndDivisions')}
+          isActive={isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
+          collapsed={sidebarCollapsed}
+        />
+        <NavLink
+          href={`${leagueBase}/standings`}
+          icon={Trophy}
+          label={t('standings')}
+          isActive={isPathActive(`${leagueBase}/standings`)}
+          collapsed={sidebarCollapsed}
+        />
+        <NavLink
+          href={`${leagueBase}/registration`}
+          icon={ClipboardCheck}
+          label={t('registration')}
+          isActive={isPathActive(`${leagueBase}/registration`)}
+          collapsed={sidebarCollapsed}
+        />
+        <NavLink
+          href={`${leagueBase}/players`}
+          icon={User}
+          label={t('players')}
+          isActive={isPathActive(`${leagueBase}/players`)}
+          collapsed={sidebarCollapsed}
+        />
 
-        {/* Your Company & Leagues Hierarchy */}
-        {!sidebarCollapsed && organizations.length > 0 && (
-          <>
-            <div className="my-4 border-t border-white/[0.06]" />
-            <div className="px-3 mb-2">
-              <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                Your Company
-              </span>
-            </div>
-          </>
+        {/* Divider */}
+        <div className="my-4 border-t border-white/[0.06]" />
+
+        {/* Secondary nav */}
+        {hasDraft && (
+          <NavLink
+            href={`${leagueBase}/draft`}
+            icon={Dices}
+            label={t('draftRoom')}
+            isActive={isPathActive(`${leagueBase}/draft`)}
+            collapsed={sidebarCollapsed}
+          />
         )}
-
-        {organizations.map((org) => (
-          <div key={org.id} className="space-y-0.5">
-            {/* Company Row (formerly Organization) */}
-            {!sidebarCollapsed ? (
-              <button
-                onClick={() => handleOrgToggle(org.id)}
-                className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors',
-                  'text-neutral-300 hover:text-white hover:bg-neutral-800/50',
-                  'group'
-                )}
-              >
-                <Building2 className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-                <span className="text-sm font-medium truncate flex-1 text-left">
-                  {org.name}
-                </span>
-                {expandedSections[`org-${org.id}`] ? (
-                  <ChevronUp className="w-4 h-4 text-neutral-500" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-neutral-500" />
-                )}
-              </button>
-            ) : (
-              <div className="relative group">
-                <div className="p-2 mx-auto w-fit">
-                  <Building2 className="w-5 h-5 text-neutral-500" />
-                </div>
-                <div className="absolute left-full ml-2 px-2 py-1 bg-neutral-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
-                  {org.name}
-                </div>
-              </div>
-            )}
-
-            {/* Leagues under Organization */}
-            {!sidebarCollapsed && expandedSections[`org-${org.id}`] && (
-              <div className="ml-4 space-y-0.5">
-                {org.leagues.map((league) => (
-                  <div key={league.id}>
-                    {/* League Row */}
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => handleLeagueToggle(league.id)}
-                        className={cn(
-                          'flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-colors',
-                          'text-neutral-300 hover:text-white hover:bg-neutral-800/50',
-                          isPathActive(`/dashboard/leagues/${league.id}`) &&
-                            'bg-rink-500/10 text-rink-500 border border-rink-500/30'
-                        )}
-                      >
-                        <LeagueLogo
-                          logoUrl={league.logo_url}
-                          leagueName={league.name}
-                          primaryColor={league.primary_color || '#22D3EE'}
-                          size="xs"
-                          shape="square"
-                        />
-                        <span className="text-sm font-medium truncate flex-1 text-left">
-                          {league.name}
-                        </span>
-                        {loadingSeasons[league.id] ? (
-                          <Loader2 className="w-4 h-4 text-neutral-500 animate-spin" />
-                        ) : expandedSections[`league-${league.id}`] ? (
-                          <ChevronUp className="w-4 h-4 text-neutral-500" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-neutral-500" />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* League Sub-Items */}
-                    {expandedSections[`league-${league.id}`] && (
-                      <div className="ml-4 space-y-0.5 mt-1">
-                        {/* Seasons */}
-                        {seasonsCache[league.id]?.map((season) => (
-                          <NavLink
-                            key={season.id}
-                            href={`/dashboard/leagues/${league.id}/schedule?season=${season.id}`}
-                            icon={Calendar}
-                            label={season.name}
-                            isActive={pathname.includes(`season=${season.id}`)}
-                            collapsed={false}
-                            compact
-                          />
-                        ))}
-
-                        {/* Divisions */}
-                        <NavLink
-                          href={`/dashboard/leagues/${league.id}/divisions`}
-                          icon={LayoutGrid}
-                          label="Divisions"
-                          isActive={isPathActive(`/dashboard/leagues/${league.id}/divisions`)}
-                          collapsed={false}
-                          compact
-                        />
-
-                        {/* Teams */}
-                        <NavLink
-                          href={`/dashboard/leagues/${league.id}/teams`}
-                          icon={Users}
-                          label="Teams"
-                          isActive={isPathActive(`/dashboard/leagues/${league.id}/teams`)}
-                          collapsed={false}
-                          compact
-                        />
-
-                        {/* Schedule */}
-                        <NavLink
-                          href={`/dashboard/leagues/${league.id}/schedule`}
-                          icon={Calendar}
-                          label="Schedule"
-                          isActive={isPathActive(`/dashboard/leagues/${league.id}/schedule`)}
-                          collapsed={false}
-                          compact
-                        />
-
-                        {/* Website Editor */}
-                        <NavLink
-                          href={`/website-editor?league=${league.id}`}
-                          icon={Palette}
-                          label="Website Editor"
-                          isActive={pathname.includes(`website-editor`) && pathname.includes(league.id)}
-                          collapsed={false}
-                          compact
-                          highlight
-                        />
-
-                        {/* League Settings */}
-                        <NavLink
-                          href={`/dashboard/leagues/${league.id}/settings`}
-                          icon={Settings}
-                          label="Settings"
-                          isActive={isPathActive(`/dashboard/leagues/${league.id}/settings`)}
-                          collapsed={false}
-                          compact
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Create New League under Org */}
-                <NavLink
-                  href="/dashboard/leagues/new"
-                  icon={Plus}
-                  label={t('createLeague')}
-                  isActive={false}
-                  collapsed={false}
-                  compact
-                  muted
-                />
-              </div>
-            )}
-          </div>
-        ))}
+        <NavLink
+          href={`${leagueBase}/news`}
+          icon={Newspaper}
+          label={t('news')}
+          isActive={isPathActive(`${leagueBase}/news`)}
+          collapsed={sidebarCollapsed}
+        />
+        <NavLink
+          href={`${leagueBase}/sponsors`}
+          icon={Star}
+          label={t('sponsors')}
+          isActive={isPathActive(`${leagueBase}/sponsors`)}
+          collapsed={sidebarCollapsed}
+        />
+        <NavLink
+          href={`${leagueBase}/awards`}
+          icon={Award}
+          label={t('awards')}
+          isActive={isPathActive(`${leagueBase}/awards`)}
+          collapsed={sidebarCollapsed}
+        />
+        <NavLink
+          href={`${leagueBase}/gallery`}
+          icon={Image}
+          label={t('gallery')}
+          isActive={isPathActive(`${leagueBase}/gallery`)}
+          collapsed={sidebarCollapsed}
+        />
+        <NavLink
+          href={`/website-editor?league=${selected.leagueId}`}
+          icon={Palette}
+          label={t('websiteEditor')}
+          isActive={pathname.includes('website-editor')}
+          collapsed={sidebarCollapsed}
+          highlight
+        />
 
         {/* Captain Teams Section */}
         {captainTeams.length > 0 && (
@@ -413,20 +281,12 @@ export default function HierarchicalSidebar({
         {/* Divider */}
         <div className="my-4 border-t border-white/[0.06]" />
 
-        {/* Quick Actions */}
-        {!sidebarCollapsed && (
-          <div className="px-3 mb-2">
-            <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-              {t('help')}
-            </span>
-          </div>
-        )}
-
+        {/* Settings & Actions */}
         <NavLink
-          href="/dashboard/leagues/new"
-          icon={Plus}
-          label={t('createLeague')}
-          isActive={isPathActive('/dashboard/leagues/new')}
+          href="/dashboard/settings"
+          icon={Settings}
+          label={t('settings')}
+          isActive={isPathActive('/dashboard/settings') && !isPathActive('/dashboard/settings/billing')}
           collapsed={sidebarCollapsed}
         />
         <NavLink
@@ -437,11 +297,12 @@ export default function HierarchicalSidebar({
           collapsed={sidebarCollapsed}
         />
         <NavLink
-          href="/dashboard/settings"
-          icon={Settings}
-          label={t('settings')}
-          isActive={isPathActive('/dashboard/settings')}
+          href="/dashboard/leagues/new"
+          icon={Plus}
+          label={t('createLeague')}
+          isActive={isPathActive('/dashboard/leagues/new')}
           collapsed={sidebarCollapsed}
+          muted
         />
 
         {/* Divider */}

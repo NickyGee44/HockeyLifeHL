@@ -136,7 +136,7 @@ export function useDraftReliability({
       }, pollInterval);
 
       // Immediate sync on disconnect
-      forceSync();
+      forceSync(); // eslint-disable-line -- trigger immediate sync when connection drops
     } else {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);

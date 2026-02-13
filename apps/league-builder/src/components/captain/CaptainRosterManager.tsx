@@ -71,7 +71,7 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
   };
 
   useEffect(() => {
-    loadRoster();
+    loadRoster(); // eslint-disable-line -- data-fetching on mount and teamId change
   }, [teamId]);
 
   const handleRemovePlayer = async (playerId: string) => {

@@ -8,8 +8,13 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch all files in the monorepo
-config.watchFolders = [monorepoRoot];
+// Watch workspace packages and root node_modules for pnpm symlink resolution
+config.watchFolders = [
+  path.resolve(monorepoRoot, 'packages/data'),
+  path.resolve(monorepoRoot, 'packages/database'),
+  path.resolve(monorepoRoot, 'packages/ui-native'),
+  path.resolve(monorepoRoot, 'node_modules'),
+];
 
 // Let Metro know where to resolve packages from monorepo
 config.resolver.nodeModulesPaths = [
@@ -17,7 +22,19 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-// Force resolving nested packages to the app's node_modules
-config.resolver.disableHierarchicalLookup = true;
+// Apply NativeWind CSS processing first
+const nativeWindConfig = withNativeWind(config, { input: './global.css' });
 
-module.exports = withNativeWind(config, { input: './global.css' });
+// Then add polyfills on top (SharedArrayBuffer for Hermes)
+const nwGetPolyfills = nativeWindConfig.serializer?.getPolyfills || ((ctx) => []);
+nativeWindConfig.serializer = {
+  ...nativeWindConfig.serializer,
+  getPolyfills: (ctx) => {
+    return [
+      path.resolve(projectRoot, 'polyfills.js'),
+      ...nwGetPolyfills(ctx),
+    ];
+  },
+};
+
+module.exports = nativeWindConfig;

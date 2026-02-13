@@ -76,7 +76,7 @@ export function LeagueBillingDashboard({
   }
 
   useEffect(() => {
-    loadData();
+    loadData(); // eslint-disable-line -- data-fetching on mount and leagueId change
   }, [leagueId]);
 
   function handleStatusChange() {

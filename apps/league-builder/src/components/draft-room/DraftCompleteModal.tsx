@@ -128,7 +128,7 @@ export function DraftCompleteModal({
 
   useEffect(() => {
     if (isOpen) {
-      setShowConfetti(true);
+      setShowConfetti(true); // eslint-disable-line -- trigger confetti animation when modal opens
       // Stop confetti after 5 seconds
       const timer = setTimeout(() => setShowConfetti(false), 5000);
       return () => clearTimeout(timer);

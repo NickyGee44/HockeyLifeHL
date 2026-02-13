@@ -52,7 +52,7 @@ export default function ForgotPasswordScreen() {
       <View className="flex-1 justify-center px-6">
         <Text variant="h1" className="mb-2">Reset password</Text>
         <Text variant="body" className="text-neutral-400 mb-8">
-          Enter your email and we'll send you a reset link.
+          Enter your email and we&apos;ll send you a reset link.
         </Text>
 
         <View className="gap-4">

@@ -96,7 +96,7 @@ export function Step4PhotoUpload() {
 
       {/* Skip note */}
       <p className="text-sm text-neutral-500 text-center">
-        Don't have a photo handy? You can skip this step and add one later from
+        Don&apos;t have a photo handy? You can skip this step and add one later from
         your profile settings.
       </p>
     </div>

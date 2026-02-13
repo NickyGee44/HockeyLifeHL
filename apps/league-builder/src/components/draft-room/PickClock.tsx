@@ -25,8 +25,8 @@ export function PickClock({ expiresAt, isPaused, isMyPick, onTimeout, pickTimeSe
   }, [expiresAt, isPaused]);
 
   useEffect(() => {
-    setTimeLeft(calculateTimeLeft());
-    setIsExpired(false);
+    setTimeLeft(calculateTimeLeft()); // eslint-disable-line -- sync timer state when dependencies change
+    setIsExpired(false); // eslint-disable-line -- reset expired state on dependency change
 
     const interval = setInterval(() => {
       const remaining = calculateTimeLeft();

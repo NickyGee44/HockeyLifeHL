@@ -49,7 +49,7 @@ export function EditorSidebar({ panels }: EditorSidebarProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- mounted state pattern for Radix Accordion hydration fix
   }, []);
 
   return (

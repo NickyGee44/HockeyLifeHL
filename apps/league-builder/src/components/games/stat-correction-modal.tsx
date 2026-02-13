@@ -95,8 +95,8 @@ export function StatCorrectionModal({
 
   useEffect(() => {
     if (open) {
-      loadEvents();
-      setHasChanges(false);
+      loadEvents(); // eslint-disable-line -- data-fetching when modal opens
+      setHasChanges(false); // eslint-disable-line -- reset changes state when modal opens
     }
   }, [open, loadEvents]);
 

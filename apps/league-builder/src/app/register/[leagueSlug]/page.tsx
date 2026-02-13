@@ -206,7 +206,7 @@ export default async function RegisterPage({
               Already Registered!
             </h1>
             <p className="text-neutral-400 mb-6">
-              You're already registered for {activeSeason.name} in {league.name}.
+              You&apos;re already registered for {activeSeason.name} in {league.name}.
             </p>
             <a
               href="/dashboard"
@@ -243,7 +243,7 @@ export default async function RegisterPage({
             </h1>
             <p className="text-neutral-400 mb-6">
               Your registration for {activeSeason.name} is awaiting approval.
-              You'll receive an email once it's been reviewed.
+              You&apos;ll receive an email once it&apos;s been reviewed.
             </p>
             <a
               href="/dashboard"

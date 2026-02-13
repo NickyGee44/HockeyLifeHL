@@ -94,14 +94,14 @@ export function BulkAssignGamesModal({
   // Load games when modal opens or filters change
   useEffect(() => {
     if (open) {
-      loadGames();
+      loadGames(); // eslint-disable-line -- data-fetching when modal opens or filters change
     }
   }, [open, filters]);
 
   // Set default scorekeeper when provided
   useEffect(() => {
     if (selectedScorekeeper) {
-      setAssignToScorekeeper(selectedScorekeeper.scorekeeper_id);
+      setAssignToScorekeeper(selectedScorekeeper.scorekeeper_id); // eslint-disable-line -- sync state from prop
     }
   }, [selectedScorekeeper]);
 

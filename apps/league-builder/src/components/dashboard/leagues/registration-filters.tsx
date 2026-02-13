@@ -35,11 +35,11 @@ export function RegistrationFilters({
 
   // Only render Select components after mount to avoid hydration mismatch
   useEffect(() => {
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- mounted state pattern for Radix Select hydration fix
   }, []);
 
   useEffect(() => {
-    setSearchValue(currentSearch || '');
+    setSearchValue(currentSearch || ''); // eslint-disable-line -- sync local state from prop change
   }, [currentSearch]);
 
   const updateFilters = (key: string, value: string | null) => {

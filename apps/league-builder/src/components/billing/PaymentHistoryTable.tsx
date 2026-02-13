@@ -143,7 +143,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
   }, [leagueId, isConnected, page, statusFilter]);
 
   useEffect(() => {
-    loadPayments();
+    loadPayments(); // eslint-disable-line -- data-fetching when filters/page change
   }, [loadPayments]);
 
   function handleRefresh() {
@@ -263,6 +263,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
             </div>
           ) : (
             <>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -331,6 +332,7 @@ export function PaymentHistoryTable({ leagueId, isConnected }: PaymentHistoryTab
                   })}
                 </TableBody>
               </Table>
+              </div>
 
               {/* Pagination */}
               {totalPages > 1 && (

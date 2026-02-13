@@ -133,7 +133,7 @@ export function useGameEvents(gameId: string | null) {
   }, [gameId]);
 
   useEffect(() => {
-    loadEvents();
+    loadEvents(); // eslint-disable-line -- data-fetching with polling for IndexedDB changes
 
     // Set up polling for local changes (IndexedDB doesn't have native observers)
     const interval = setInterval(loadEvents, 1000);
@@ -213,7 +213,7 @@ export function usePeriodEvents(gameId: string | null, period: number) {
   }, [gameId, period]);
 
   useEffect(() => {
-    loadEvents();
+    loadEvents(); // eslint-disable-line -- data-fetching with polling for period events
     const interval = setInterval(loadEvents, 1000);
     return () => clearInterval(interval);
   }, [loadEvents]);
@@ -255,7 +255,7 @@ export function usePlayerSearch(teamId: string | null) {
 
   useEffect(() => {
     if (!teamId) {
-      setPlayers([]);
+      setPlayers([]); // eslint-disable-line -- reset players when teamId is null
       return;
     }
 
@@ -264,7 +264,7 @@ export function usePlayerSearch(teamId: string | null) {
 
   useEffect(() => {
     if (!searchTerm) {
-      setFilteredPlayers(players);
+      setFilteredPlayers(players); // eslint-disable-line -- sync filtered list when search clears
       return;
     }
 

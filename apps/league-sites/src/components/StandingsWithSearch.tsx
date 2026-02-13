@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { StandingsTable } from './StandingsTable';
 import { StandingsSearch } from './StandingsSearch';
 import { useDivisionFilter } from './DivisionFilterProvider';
@@ -24,23 +24,11 @@ export function StandingsWithSearch({
   // For single/no division leagues: show all standings
   const hasMultipleDivisions = divisions.length > 1;
   const defaultTab = hasMultipleDivisions ? divisions[0].id : 'all';
-  const [activeTab, setActiveTab] = useState<string>(defaultTab);
+  const activeTab = (selectedDivisionId && standingsByDivision[selectedDivisionId])
+    ? selectedDivisionId
+    : defaultTab;
 
-  // Sync local tab with global division filter
-  useEffect(() => {
-    if (selectedDivisionId && standingsByDivision[selectedDivisionId]) {
-      setActiveTab(selectedDivisionId);
-      return;
-    }
-
-    if (!selectedDivisionId && !standingsByDivision[activeTab]) {
-      setActiveTab(defaultTab);
-    }
-  }, [selectedDivisionId, standingsByDivision, activeTab, defaultTab]);
-
-  // When user clicks a division tab, update both local and global state
   const handleTabSelect = (divisionId: string) => {
-    setActiveTab(divisionId);
     setDivision(divisionId);
   };
 

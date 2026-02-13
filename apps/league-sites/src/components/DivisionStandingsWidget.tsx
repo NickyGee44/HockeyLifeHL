@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { StandingsWidget } from './StandingsWidget';
 import { useDivisionFilter } from './DivisionFilterProvider';
 import type { TeamStanding, Division } from '@/lib/types';
@@ -23,28 +22,15 @@ export function DivisionStandingsWidget({
 }: DivisionStandingsWidgetProps) {
   const { selectedDivisionId, setDivision } = useDivisionFilter();
   const fallbackDivisionId = divisions[0]?.id || '';
-  const initialDivision = selectedDivisionId && divisions.some((d) => d.id === selectedDivisionId)
+  const activeDivision = (selectedDivisionId && divisions.some((d) => d.id === selectedDivisionId))
     ? selectedDivisionId
     : fallbackDivisionId;
-  const [activeDivision, setActiveDivision] = useState<string>(initialDivision);
-
-  useEffect(() => {
-    if (selectedDivisionId && divisions.some((d) => d.id === selectedDivisionId)) {
-      setActiveDivision(selectedDivisionId);
-      return;
-    }
-
-    if (!divisions.some((d) => d.id === activeDivision)) {
-      setActiveDivision(fallbackDivisionId);
-    }
-  }, [selectedDivisionId, divisions, activeDivision, fallbackDivisionId]);
 
   const divisionStandings = standings
     .filter((t) => t.division_id === activeDivision)
     .slice(0, teamsPerDivision);
 
   const handleDivisionSelect = (divisionId: string) => {
-    setActiveDivision(divisionId);
     setDivision(divisionId);
   };
 

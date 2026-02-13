@@ -169,7 +169,7 @@ export function Step1RegistrationType() {
           <div className="p-4 rounded-lg border border-blue-500/30 bg-blue-500/10">
             <h4 className="font-medium text-blue-400 mb-1">Free Agent Info</h4>
             <p className="text-sm text-neutral-300">
-              As a free agent, you'll be available for team captains to draft
+              As a free agent, you&apos;ll be available for team captains to draft
               or for league admins to assign you to a team during the draft process.
             </p>
           </div>
@@ -179,7 +179,7 @@ export function Step1RegistrationType() {
           <div className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/10">
             <h4 className="font-medium text-amber-400 mb-1">Individual Registration</h4>
             <p className="text-sm text-neutral-300">
-              You'll be registered as an individual player. This is ideal for
+              You&apos;ll be registered as an individual player. This is ideal for
               drop-in games or leagues without formal team structures.
             </p>
           </div>

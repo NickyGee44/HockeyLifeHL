@@ -1,83 +1,38 @@
 /**
- * Subscription & Billing Page
+ * Org Subscription Settings — Redirect
  *
- * Premium subscription management UI with real-time status, upgrade CTAs,
- * and billing portal integration. Displays FREE forever model with optional
- * premium add-ons (Platform Monthly, Advanced Stats, AI News Writer).
- *
- * Features:
- * - Live subscription status from organization_addons table
- * - Split hero layout (Current Plan vs. Premium Upgrade)
- * - All subscription states (active, trialing, past_due, canceled, incomplete)
- * - Stripe Checkout integration for upgrades
- * - Stripe Billing Portal for payment management
- * - Query param handling (checkout=success, checkout=cancelled)
- * - Mobile-responsive design
- * - Accessible (WCAG 2.2 AA)
+ * Redirects to the league settings page (organization tab).
  */
 
-import { setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
-import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
-import { getOrgAddons } from '@/lib/actions/addons';
-import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
-import { SubscriptionContent } from '@/components/subscription/subscription-content';
+import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/actions/auth';
 
 export const dynamic = 'force-dynamic';
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function SubscriptionPage({ params, searchParams }: Props) {
+export default async function SubscriptionPage({ params }: Props) {
   const { locale } = await params;
-  const search = await searchParams;
 
-  setRequestLocale(locale);
-
-  // Get authenticated user
   const userData = await getCurrentUser();
   if (!userData) {
-    redirect('/login');
-    return null;
+    redirect(`/${locale}/login`);
   }
 
-  // Get organization
-  const organizations = await getUserOrganizations();
-  const organization = organizations[0];
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from('league_memberships')
+    .select('league_id')
+    .eq('user_id', userData.user.id)
+    .limit(1)
+    .single();
 
-  if (!organization) {
-    redirect('/dashboard');
-    return null;
+  if (membership?.league_id) {
+    redirect(`/${locale}/dashboard/leagues/${membership.league_id}/settings?tab=organization`);
   }
 
-  // Get platform fee config
-  const feeConfig = await getPlatformFeeConfig();
-
-  // Get organization add-ons
-  const addonsResult = await getOrgAddons(organization.id);
-  const addons = addonsResult.success ? addonsResult.data : [];
-
-  return (
-    <div className="space-y-8">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-100 mb-2">Billing & Subscriptions</h1>
-        <p className="text-neutral-400">
-          HockeyLife is free forever. Upgrade with premium add-ons to unlock advanced features.
-        </p>
-      </div>
-
-      {/* Subscription Content */}
-      <SubscriptionContent
-        orgId={organization.id}
-        stripeCustomerId={organization.stripe_customer_id || null}
-        platformFeePercent={feeConfig.processingFeePercent}
-        initialAddons={addons}
-        checkoutStatus={search.checkout as string | undefined}
-        addonActivated={search.addon_activated as string | undefined}
-      />
-    </div>
-  );
+  redirect(`/${locale}/dashboard`);
 }

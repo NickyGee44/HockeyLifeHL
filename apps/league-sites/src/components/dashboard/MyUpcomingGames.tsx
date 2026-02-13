@@ -35,7 +35,7 @@ interface MyUpcomingGamesProps {
 export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
   const [games, setGames] = useState<GameWithCheckin[]>([]);
   const [checkins, setCheckins] = useState<Record<string, CheckinStatus>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!!teamId);
   const [isPending, startTransition] = useTransition();
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
   const [showAllGames, setShowAllGames] = useState(false);
@@ -47,10 +47,7 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
   const visibleGroups = showAllGames ? weekGroups : weekGroups.slice(0, 3);
 
   useEffect(() => {
-    if (!teamId) {
-      setIsLoading(false);
-      return;
-    }
+    if (!teamId) return;
 
     const fetchData = async () => {
       const supabase = createClient();

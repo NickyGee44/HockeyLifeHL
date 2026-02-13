@@ -438,7 +438,7 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
               </h4>
               <p className="text-sm text-neutral-400">
                 DNS changes typically propagate within 5-60 minutes, but can take up to 48 hours
-                in some cases. We'll automatically check the status and notify you when verification
+                in some cases. We&apos;ll automatically check the status and notify you when verification
                 is complete.
               </p>
             </div>

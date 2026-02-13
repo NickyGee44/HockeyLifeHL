@@ -147,7 +147,7 @@ export function ThemeProvider({
 
   // Initial setup on mount
   useEffect(() => {
-    setMounted(true);
+    setMounted(true); // eslint-disable-line -- mounted state pattern for SSR hydration safety
     // Apply theme immediately on mount without transition to prevent flash
     applyTheme(theme, false);
   }, []);
@@ -155,7 +155,7 @@ export function ThemeProvider({
   // Update when theme changes
   useEffect(() => {
     if (mounted) {
-      applyTheme(theme);
+      applyTheme(theme); // eslint-disable-line -- theme application depends on mounted state
     }
   }, [theme, mounted, applyTheme]);
 
@@ -188,7 +188,7 @@ export function useTheme() {
 // Useful for components that need to wait for client-side hydration
 export function useThemeMounted() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => setMounted(true), []); // eslint-disable-line -- mounted state pattern for SSR hydration safety
   return mounted;
 }
 

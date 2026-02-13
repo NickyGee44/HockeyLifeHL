@@ -288,7 +288,7 @@ export function Step3SeasonScorekeeping() {
           <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
             Standard hockey games are 60 minutes with 3 periods (20 minutes
-            each). You can adjust these settings to match your league's format.
+            each). You can adjust these settings to match your league&apos;s format.
           </p>
         </div>
       </div>

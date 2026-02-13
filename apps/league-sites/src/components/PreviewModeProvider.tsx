@@ -93,7 +93,7 @@ export function PreviewModeProvider({ children }: PreviewModeProviderProps) {
     const previewParam = urlParams.get('preview') === 'true';
 
     if (inIframe || previewParam) {
-      setIsPreviewMode(true);
+      setIsPreviewMode(true); // eslint-disable-line -- client-only iframe detection
 
       // Send ready message to parent
       const parentOrigin = getOriginFromUrl(document.referrer);

@@ -3,13 +3,8 @@
 import * as React from 'react';
 
 interface SelectedContext {
-  organizationId: string | null;
   leagueId: string | null;
   seasonId: string | null;
-}
-
-interface ExpandedSections {
-  [key: string]: boolean;
 }
 
 interface SidebarContextValue {
@@ -18,13 +13,13 @@ interface SidebarContextValue {
   toggle: () => void;
   // Selection state
   selected: SelectedContext;
-  setSelectedOrganization: (id: string | null) => void;
   setSelectedLeague: (id: string | null) => void;
   setSelectedSeason: (id: string | null) => void;
-  // Expanded sections state
-  expandedSections: ExpandedSections;
-  toggleSection: (sectionId: string) => void;
-  setExpandedSection: (sectionId: string, expanded: boolean) => void;
+  // Mobile nav state
+  isMobileNavOpen: boolean;
+  toggleMobileNav: () => void;
+  isMobileMoreOpen: boolean;
+  toggleMobileMore: () => void;
 }
 
 const SidebarContext = React.createContext<SidebarContextValue | undefined>(undefined);
@@ -32,31 +27,20 @@ const SidebarContext = React.createContext<SidebarContextValue | undefined>(unde
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [selected, setSelected] = React.useState<SelectedContext>({
-    organizationId: null,
     leagueId: null,
     seasonId: null,
   });
-  const [expandedSections, setExpandedSections] = React.useState<ExpandedSections>({});
+  const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = React.useState(false);
 
   const toggle = React.useCallback(() => {
     setIsCollapsed((prev) => !prev);
-  }, []);
-
-  const setSelectedOrganization = React.useCallback((id: string | null) => {
-    setSelected((prev) => ({
-      ...prev,
-      organizationId: id,
-      // Clear league and season when org changes
-      leagueId: null,
-      seasonId: null,
-    }));
   }, []);
 
   const setSelectedLeague = React.useCallback((id: string | null) => {
     setSelected((prev) => ({
       ...prev,
       leagueId: id,
-      // Clear season when league changes
       seasonId: null,
     }));
   }, []);
@@ -68,18 +52,12 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const toggleSection = React.useCallback((sectionId: string) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionId]: !prev[sectionId],
-    }));
+  const toggleMobileNav = React.useCallback(() => {
+    setIsMobileNavOpen((prev) => !prev);
   }, []);
 
-  const setExpandedSection = React.useCallback((sectionId: string, expanded: boolean) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionId]: expanded,
-    }));
+  const toggleMobileMore = React.useCallback(() => {
+    setIsMobileMoreOpen((prev) => !prev);
   }, []);
 
   const value = React.useMemo(
@@ -88,23 +66,23 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       setIsCollapsed,
       toggle,
       selected,
-      setSelectedOrganization,
       setSelectedLeague,
       setSelectedSeason,
-      expandedSections,
-      toggleSection,
-      setExpandedSection,
+      isMobileNavOpen,
+      toggleMobileNav,
+      isMobileMoreOpen,
+      toggleMobileMore,
     }),
     [
       isCollapsed,
       toggle,
       selected,
-      setSelectedOrganization,
       setSelectedLeague,
       setSelectedSeason,
-      expandedSections,
-      toggleSection,
-      setExpandedSection,
+      isMobileNavOpen,
+      toggleMobileNav,
+      isMobileMoreOpen,
+      toggleMobileMore,
     ]
   );
 

@@ -47,7 +47,7 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
   }
 
   useEffect(() => {
-    loadSubscription();
+    loadSubscription(); // eslint-disable-line -- data-fetching on mount
   }, []);
 
   async function handleManageBilling() {

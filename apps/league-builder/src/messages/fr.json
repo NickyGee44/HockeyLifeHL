@@ -167,19 +167,64 @@
   },
   "navigation": {
     "dashboard": "Tableau de bord",
+    "overview": "Apercu",
     "teams": "Equipes",
+    "teamsAndDivisions": "Equipes et divisions",
     "players": "Joueurs",
     "schedule": "Calendrier",
     "standings": "Classement",
+    "registration": "Inscription",
     "drafts": "Repechage",
+    "draftRoom": "Salle de repechage",
+    "news": "Nouvelles",
+    "sponsors": "Commanditaires",
+    "awards": "Prix",
+    "gallery": "Galerie",
+    "websiteEditor": "Editeur de site",
     "settings": "Parametres",
     "profile": "Profil",
     "billing": "Facturation",
     "notifications": "Notifications",
     "help": "Aide",
+    "more": "Plus",
     "logout": "Deconnexion",
     "switchLeague": "Changer de ligue",
-    "createLeague": "Creer une ligue"
+    "changeSeason": "Changer de saison",
+    "createLeague": "Creer une ligue",
+    "searchPlaceholder": "Rechercher...",
+    "close": "Fermer",
+    "menu": "Menu"
+  },
+  "commandPalette": {
+    "searchPlaceholder": "Rechercher des pages et actions...",
+    "noResults": "Aucun resultat.",
+    "sections": {
+      "pages": "Pages",
+      "quickActions": "Actions rapides"
+    },
+    "pages": {
+      "overview": "Apercu",
+      "schedule": "Calendrier",
+      "teamsAndDivisions": "Equipes et divisions",
+      "standings": "Classement",
+      "registration": "Inscription",
+      "players": "Joueurs",
+      "settings": "Parametres",
+      "billing": "Facturation",
+      "websiteEditor": "Editeur de site",
+      "news": "Nouvelles",
+      "sponsors": "Commanditaires",
+      "awards": "Prix",
+      "gallery": "Galerie",
+      "draftRoom": "Salle de repechage"
+    },
+    "actions": {
+      "createLeague": "Creer une ligue",
+      "addTeam": "Ajouter une equipe",
+      "newSeason": "Nouvelle saison"
+    },
+    "hint": "Tapez pour rechercher",
+    "toNavigate": "pour naviguer"
   },
   "auth": {
     "login": "Connexion",

@@ -166,7 +166,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
         <CardHeader>
           <CardTitle className="text-neutral-100">League Logo</CardTitle>
           <CardDescription className="text-neutral-400">
-            Upload your league's logo for branding. Supports crop and resize.
+            Upload your league&apos;s logo for branding. Supports crop and resize.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -212,7 +212,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
         <CardHeader>
           <CardTitle className="text-neutral-100">Color Scheme</CardTitle>
           <CardDescription className="text-neutral-400">
-            Customize your league's brand colors
+            Customize your league&apos;s brand colors
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

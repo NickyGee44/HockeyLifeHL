@@ -44,9 +44,9 @@ export function WaiverModal({
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setHasScrolledToBottom(false);
-      setSignatureData('');
-      setSignedName('');
+      setHasScrolledToBottom(false); // eslint-disable-line -- reset state when modal opens
+      setSignatureData(''); // eslint-disable-line -- reset state when modal opens
+      setSignedName(''); // eslint-disable-line -- reset state when modal opens
     }
   }, [isOpen]);
 

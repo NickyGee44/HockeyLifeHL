@@ -167,19 +167,64 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
+    "overview": "Overview",
     "teams": "Teams",
+    "teamsAndDivisions": "Teams & Divisions",
     "players": "Players",
     "schedule": "Schedule",
     "standings": "Standings",
+    "registration": "Registration",
     "drafts": "Drafts",
+    "draftRoom": "Draft Room",
+    "news": "News",
+    "sponsors": "Sponsors",
+    "awards": "Awards",
+    "gallery": "Gallery",
+    "websiteEditor": "Website Editor",
     "settings": "Settings",
     "profile": "Profile",
     "billing": "Billing",
     "notifications": "Notifications",
     "help": "Help",
+    "more": "More",
     "logout": "Log out",
     "switchLeague": "Switch League",
-    "createLeague": "Create League"
+    "changeSeason": "Change Season",
+    "createLeague": "Create League",
+    "searchPlaceholder": "Search...",
+    "close": "Close",
+    "menu": "Menu"
+  },
+  "commandPalette": {
+    "searchPlaceholder": "Search pages and actions...",
+    "noResults": "No results found.",
+    "sections": {
+      "pages": "Pages",
+      "quickActions": "Quick Actions"
+    },
+    "pages": {
+      "overview": "Overview",
+      "schedule": "Schedule",
+      "teamsAndDivisions": "Teams & Divisions",
+      "standings": "Standings",
+      "registration": "Registration",
+      "players": "Players",
+      "settings": "Settings",
+      "billing": "Billing",
+      "websiteEditor": "Website Editor",
+      "news": "News",
+      "sponsors": "Sponsors",
+      "awards": "Awards",
+      "gallery": "Gallery",
+      "draftRoom": "Draft Room"
+    },
+    "actions": {
+      "createLeague": "Create League",
+      "addTeam": "Add Team",
+      "newSeason": "New Season"
+    },
+    "hint": "Type to search",
+    "toNavigate": "to navigate"
   },
   "auth": {
     "login": "Log in",

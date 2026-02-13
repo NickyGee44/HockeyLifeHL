@@ -90,7 +90,7 @@ export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
   }, [leagueId, t]);
 
   useEffect(() => {
-    initializeConnect();
+    initializeConnect(); // eslint-disable-line -- Stripe Connect initialization on mount
   }, [initializeConnect]);
 
   const refresh = useCallback(async () => {

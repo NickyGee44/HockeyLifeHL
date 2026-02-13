@@ -67,10 +67,7 @@ export function SubInviteModal({
 
     fetchSubs();
     // Reset state when opening
-    setSearchQuery('');
-    setMessage('');
-    setSentInvites(new Set());
-    setError(null);
+    setSearchQuery(''); setMessage(''); setSentInvites(new Set()); setError(null); // eslint-disable-line -- intentional reset on modal open
   }, [isOpen, leagueId, teamId, roster]);
 
   const filteredSubs = availableSubs.filter((sub) => {

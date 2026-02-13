@@ -1,8 +1,12 @@
-import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
-import { getOrganizationLeagues } from '@/lib/actions/organization';
-import { redirect } from '@/i18n/navigation';
-import { BrandingSettingsClient } from '@/components/dashboard/settings/branding-settings-client';
-import { setRequestLocale } from 'next-intl/server';
+/**
+ * Org Branding Settings — Redirect
+ *
+ * Redirects to the league settings page (organization tab).
+ */
+
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/actions/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,31 +16,23 @@ type Props = {
 
 export default async function BrandingSettingsPage({ params }: Props) {
   const { locale } = await params;
-  setRequestLocale(locale);
 
   const userData = await getCurrentUser();
-
   if (!userData) {
-    redirect({ href: '/login', locale });
-    return null; // TypeScript needs this after redirect
+    redirect(`/${locale}/login`);
   }
 
-  const organizations = await getUserOrganizations();
-  const organization = organizations[0];
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from('league_memberships')
+    .select('league_id')
+    .eq('user_id', userData.user.id)
+    .limit(1)
+    .single();
 
-  if (!organization) {
-    redirect({ href: '/dashboard', locale });
-    return null; // TypeScript needs this after redirect
+  if (membership?.league_id) {
+    redirect(`/${locale}/dashboard/leagues/${membership.league_id}/settings?tab=organization`);
   }
 
-  // Get leagues for this organization
-  const leaguesResult = await getOrganizationLeagues(organization.id);
-  const leagues = leaguesResult.success ? leaguesResult.data : [];
-
-  return (
-    <BrandingSettingsClient
-      organizationId={organization.id}
-      leagues={leagues || []}
-    />
-  );
+  redirect(`/${locale}/dashboard`);
 }

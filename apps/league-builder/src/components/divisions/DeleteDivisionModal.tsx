@@ -68,14 +68,14 @@ export function DeleteDivisionModal({
   // Load other divisions when modal opens
   useEffect(() => {
     if (open && division) {
-      setLoadingDivisions(true);
+      setLoadingDivisions(true); // eslint-disable-line -- data-fetching when modal opens
       getDivisions(leagueId).then((result) => {
         if (result.success) {
           setOtherDivisions(result.data.filter((d) => d.id !== division.id));
         }
         setLoadingDivisions(false);
       });
-      setReassignTo('_unassigned');
+      setReassignTo('_unassigned'); // eslint-disable-line -- reset state when modal opens
       setError(null);
     }
   }, [open, division, leagueId]);

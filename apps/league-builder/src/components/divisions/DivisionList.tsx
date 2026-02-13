@@ -76,7 +76,7 @@ export function DivisionList({
   // Initial load
   useEffect(() => {
     if (initialDivisions.length === 0) {
-      fetchDivisions();
+      fetchDivisions(); // eslint-disable-line -- data-fetching on mount when no initial data
     } else {
       // Fetch teams for initial divisions
       const fetchTeams = async () => {
@@ -89,7 +89,7 @@ export function DivisionList({
             }
           })
         );
-        setDivisionTeams(teamsMap);
+        setDivisionTeams(teamsMap); // eslint-disable-line -- data-fetching for initial division teams
       };
       fetchTeams();
     }

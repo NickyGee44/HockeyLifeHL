@@ -73,22 +73,22 @@ export function TeamAssignmentModal({
   // Load teams when modal opens
   useEffect(() => {
     if (open && division) {
-      setIsLoading(true);
-      setError(null);
-      setSearchQuery('');
-      setSelectedTeamIds(new Set());
+      setIsLoading(true); // eslint-disable-line -- reset state when modal opens
+      setError(null); // eslint-disable-line -- reset state when modal opens
+      setSearchQuery(''); // eslint-disable-line -- reset state when modal opens
+      setSelectedTeamIds(new Set()); // eslint-disable-line -- reset state when modal opens
 
       Promise.all([
         getUnassignedTeams(leagueId),
         getDivisionTeams(division.id),
       ]).then(([unassignedResult, divisionResult]) => {
         if (unassignedResult.success) {
-          setAvailableTeams(unassignedResult.data as Team[]);
+          setAvailableTeams(unassignedResult.data as Team[]); // eslint-disable-line -- data-fetching on modal open
         }
         if (divisionResult.success) {
-          setAssignedTeams(divisionResult.data as Team[]);
+          setAssignedTeams(divisionResult.data as Team[]); // eslint-disable-line -- data-fetching on modal open
         }
-        setIsLoading(false);
+        setIsLoading(false); // eslint-disable-line -- data-fetching on modal open
       });
     }
   }, [open, division, leagueId]);

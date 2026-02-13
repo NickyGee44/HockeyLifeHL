@@ -77,7 +77,7 @@ export default async function RegisterTeamPage({ params }: Props) {
             </h2>
             <p className="text-neutral-300 mb-4">
               You already have a pending team registration request for{' '}
-              <span className="font-medium text-white">"{existingRequest.team_name}"</span>.
+              <span className="font-medium text-white">&quot;{existingRequest.team_name}&quot;</span>.
             </p>
             <p className="text-sm text-neutral-400">
               Please wait for the league administrators to review your request.

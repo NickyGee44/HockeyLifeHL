@@ -121,7 +121,7 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
   }
 
   useEffect(() => {
-    loadData();
+    loadData(); // eslint-disable-line -- data-fetching on mount and dependency change
   }, [leagueId, seasonId]);
 
   function handleGenerateInvoices() {

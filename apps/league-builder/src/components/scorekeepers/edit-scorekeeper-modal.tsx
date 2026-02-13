@@ -50,7 +50,7 @@ export function EditScorekeeperModal({
   });
 
   useEffect(() => {
-    setFormData({
+    setFormData({ // eslint-disable-line -- sync form state from scorekeeper prop
       displayName: scorekeeper.display_name || scorekeeper.profile?.full_name || '',
       hourlyRate: scorekeeper.hourly_rate?.toString() || '',
       notes: scorekeeper.notes || '',

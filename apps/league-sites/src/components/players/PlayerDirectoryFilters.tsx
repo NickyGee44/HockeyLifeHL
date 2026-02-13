@@ -40,13 +40,15 @@ export function PlayerDirectoryFilters({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [search, setSearch] = useState(searchQuery || '');
   const { selectedDivisionId } = useDivisionFilter();
   const prevDivisionRef = useRef<string | null | undefined>(undefined);
 
-  useEffect(() => {
+  const [search, setSearch] = useState(searchQuery || '');
+  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
+  if (searchQuery !== prevSearchQuery) {
+    setPrevSearchQuery(searchQuery);
     setSearch(searchQuery || '');
-  }, [searchQuery]);
+  }
 
   // Sync global division filter → URL param so server-side query picks it up
   useEffect(() => {

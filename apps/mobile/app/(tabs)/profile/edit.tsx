@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, ScrollView, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,15 +12,16 @@ export default function EditProfileScreen() {
   const { data: profile } = useCurrentPlayer(supabase, user?.id);
   const updateProfile = useUpdateProfile(supabase, user?.id || '');
 
+  const profileId = profile?.id;
   const [fullName, setFullName] = useState('');
   const [position, setPosition] = useState('');
+  const [initializedFor, setInitializedFor] = useState<string | undefined>();
 
-  useEffect(() => {
-    if (profile) {
-      setFullName(profile.full_name || '');
-      setPosition(profile.position || '');
-    }
-  }, [profile]);
+  if (profileId && initializedFor !== profileId) {
+    setInitializedFor(profileId);
+    setFullName(profile.full_name || '');
+    setPosition(profile.position || '');
+  }
 
   const handleSave = async () => {
     const result = await updateProfile.mutateAsync({
