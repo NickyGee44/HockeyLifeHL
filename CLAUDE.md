@@ -125,9 +125,9 @@ packages/
 - **Stripe Connect Payments** - registration fees (2.99% platform fee), chargebacks, refunds
 - **Website Editor** - theme customization, custom domains, branding
 - **Schedule Management** - game scheduling with conflict detection
-- **League Setup Wizard** - 7-step guided league creation (see below)
+- **League Setup Wizard** - 8-step guided league creation + success screen (see below)
 
-## League Setup Wizard (7 Steps)
+## League Setup Wizard (8 Steps + Success Screen)
 Location: `apps/league-builder/src/components/league-wizard/`
 
 **Steps:**
@@ -138,11 +138,13 @@ Location: `apps/league-builder/src/components/league-wizard/`
 5. Payment Setup - Stripe Connect integration (if fees enabled)
 6. Website & Branding - visibility, theme, social links
 7. Review & Launch - summary, warnings, create button
+8. Final Configuration - post-launch settings and confirmations
+9. Success Screen - post-creation summary with next steps
 
 **Key Files:**
-- `wizard-container.tsx` - Main container, state management, 7-step navigation
-- `steps/step-{1-7}-*.tsx` - Individual step components
-- `wizard-success.tsx` - Post-creation success screen with next steps
+- `wizard-container.tsx` - Main container, state management, 8-step navigation
+- `steps/step-{1-8}-*.tsx` - Individual step components
+- `wizard-success.tsx` - Post-creation success screen (step 9) with next steps
 - `lib/schemas/league-wizard.ts` - Zod validation schemas
 - `lib/actions/league-wizard.ts` - Server actions (saveDraft, createLeague)
 

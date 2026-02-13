@@ -5,16 +5,16 @@ import { WifiOff, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export function OfflineBanner() {
-  const [isOffline, setIsOffline] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [isOffline, setIsOffline] = useState(() =>
+    typeof navigator !== 'undefined' ? !navigator.onLine : false
+  );
+  const [dismissedOnPathname, setDismissedOnPathname] = useState<string | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
-    setIsOffline(!navigator.onLine);
-
     const handleOffline = () => {
       setIsOffline(true);
-      setDismissed(false);
+      setDismissedOnPathname(null);
     };
     const handleOnline = () => setIsOffline(false);
 
@@ -26,14 +26,10 @@ export function OfflineBanner() {
     };
   }, []);
 
-  // Reappear on navigation while offline
-  useEffect(() => {
-    if (isOffline) {
-      setDismissed(false);
-    }
-  }, [pathname, isOffline]);
+  const handleDismiss = useCallback(() => setDismissedOnPathname(pathname), [pathname]);
 
-  const handleDismiss = useCallback(() => setDismissed(true), []);
+  // Dismissed only if the user dismissed on this exact pathname
+  const dismissed = dismissedOnPathname === pathname;
 
   if (!isOffline || dismissed) return null;
 

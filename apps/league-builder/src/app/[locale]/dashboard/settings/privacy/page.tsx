@@ -43,7 +43,27 @@ export default function PrivacySettingsPage() {
   }
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+
+    async function fetchInitialData() {
+      const [deletion, summary] = await Promise.all([
+        getAccountDeletionStatus(),
+        getUserDataSummary(),
+      ]);
+
+      if (!cancelled) {
+        setDeletionStatus(deletion);
+        if (summary.success && summary.summary) {
+          setDataSummary(summary.summary);
+        }
+      }
+    }
+
+    fetchInitialData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleExportData() {

@@ -2,6 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server';
 
+/** Sanitize input for use in PostgREST filter strings to prevent filter injection */
+function sanitizeFilterInput(input: string): string {
+  return input.replace(/[,.()"\\]/g, '');
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -64,11 +69,13 @@ export async function discoverLeagues(
     .range(offset, offset + limit - 1);
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,city.ilike.%${search}%,description.ilike.%${search}%`);
+    const safeSearch = sanitizeFilterInput(search);
+    query = query.or(`name.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`);
   }
 
   if (city) {
-    query = query.ilike('city', `%${city}%`);
+    const safeCity = sanitizeFilterInput(city);
+    query = query.ilike('city', `%${safeCity}%`);
   }
 
   const { data: leagues, error, count } = await query;

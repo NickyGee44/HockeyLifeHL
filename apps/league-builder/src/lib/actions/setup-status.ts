@@ -71,7 +71,7 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
     const feesEnabled = settings?.fees?.enablePaidRegistration === true;
     const paymentSkipped = settings?.payment?.skipPaymentSetup === true;
     const stripeConnected =
-      league.stripe_account_id && league.stripe_account_status === 'active';
+      league.stripe_account_id && league.stripe_account_status === 'complete';
 
     if (feesEnabled && !paymentSkipped && !stripeConnected) {
       issues.push({

@@ -411,6 +411,11 @@ export async function getLeagueWaiver(
   leagueId: string
 ): ActionResult<LeagueWaiver | null> {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: 'Please sign in.' };
+    }
+
     const supabase = await createClient();
 
     const { data: waiver, error } = await supabase
@@ -528,7 +533,7 @@ export async function createRegistrationPaymentIntent(
       };
     }
 
-    if (league.stripe_account_status !== 'active') {
+    if (league.stripe_account_status !== 'complete') {
       return {
         success: false,
         error: 'The league payment account is not fully set up. Please contact the league administrator.',

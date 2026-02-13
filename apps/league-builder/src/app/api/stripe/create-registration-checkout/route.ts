@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (league.stripe_account_status !== 'active') {
+    if (league.stripe_account_status !== 'complete') {
       return NextResponse.json(
         { error: 'League payment processing is not yet active' },
         { status: 400 }

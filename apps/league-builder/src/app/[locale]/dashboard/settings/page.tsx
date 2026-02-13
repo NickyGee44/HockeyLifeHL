@@ -41,7 +41,7 @@ export default async function OrganizationProfilePage({ params }: Props) {
         <div className="mb-6">
           <h2 className="text-xl font-bold text-white">Organization Profile</h2>
           <p className="text-sm text-neutral-400 mt-1">
-            Manage your organization's basic information and settings
+            Manage your organization&apos;s basic information and settings
           </p>
         </div>
         <OrganizationProfileForm organization={orgData} />

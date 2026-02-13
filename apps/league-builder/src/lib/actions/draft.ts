@@ -43,6 +43,11 @@ export async function setupDraft(
   try {
     const supabase = await createClient();
 
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     // Note: setup_draft RPC is defined in migrations but not in generated types yet
     const { data, error } = await (supabase.rpc as any)('setup_draft', {
       p_league_id: leagueId,
@@ -85,6 +90,11 @@ export async function startDraft(draftId: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     const { data, error } = await supabase.rpc('start_draft', {
       p_draft_id: draftId,
     });
@@ -113,6 +123,11 @@ export async function makeDraftPick(
 ): Promise<ActionResult<DraftPickData>> {
   try {
     const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
 
     const { data, error } = await supabase.rpc('make_draft_pick', {
       p_draft_id: draftId,
@@ -162,6 +177,11 @@ export async function pauseDraft(draftId: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     const { data, error } = await supabase.rpc('pause_draft', {
       p_draft_id: draftId,
     });
@@ -187,6 +207,11 @@ export async function resumeDraft(draftId: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     const { data, error } = await supabase.rpc('resume_draft', {
       p_draft_id: draftId,
     });
@@ -211,6 +236,11 @@ export async function resumeDraft(draftId: string): Promise<ActionResult> {
 export async function undoLastPick(draftId: string): Promise<ActionResult<{ restoredPlayerId: string }>> {
   try {
     const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
 
     // Note: undo_last_pick RPC is defined in migrations but not in generated types yet
     const { data, error } = await (supabase.rpc as any)('undo_last_pick', {
@@ -246,6 +276,11 @@ export async function tradeDraftPick(
 ): Promise<ActionResult<{ tradeId: string }>> {
   try {
     const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
 
     // Note: trade_draft_pick RPC is defined in migrations but not in generated types yet
     const { data, error } = await (supabase.rpc as any)('trade_draft_pick', {
@@ -283,6 +318,11 @@ export async function confirmDraftRoster(
 ): Promise<ActionResult> {
   try {
     const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
 
     // Note: confirm_draft_roster RPC is defined in migrations but not in generated types yet
     const { data, error } = await (supabase.rpc as any)('confirm_draft_roster', {
@@ -344,6 +384,11 @@ export async function getDraftResults(draftId: string): Promise<ActionResult<{
 }>> {
   try {
     const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
 
     // Note: get_draft_results RPC is defined in migrations but not in generated types yet
     const { data, error } = await (supabase.rpc as any)('get_draft_results', {
@@ -416,6 +461,11 @@ export async function addPlayersToDraftPool(
   try {
     const supabase = await createClient();
 
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     const { data: inserted, error } = await supabase
       .from('draft_pool')
       .insert(
@@ -453,6 +503,11 @@ export async function setDraftOrder(
 ): Promise<ActionResult> {
   try {
     const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
 
     // Delete existing order for round 1
     await supabase

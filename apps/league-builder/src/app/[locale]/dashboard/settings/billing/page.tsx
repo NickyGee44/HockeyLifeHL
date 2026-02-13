@@ -149,7 +149,7 @@ export default async function BillingSettingsPage({ params }: Props) {
             </h3>
             <div className="space-y-3">
               {leagues.map((league) => {
-                const isConnected = league.stripe_account_status === 'active';
+                const isConnected = league.stripe_account_status === 'complete';
                 const needsSetup = !league.stripe_account_id;
 
                 return (

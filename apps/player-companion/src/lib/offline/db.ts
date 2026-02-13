@@ -47,7 +47,7 @@ interface PlayerStats {
   assists: number;
   points: number;
   penalty_minutes: number;
-  plus_minus: number;
+  plus_minus: number | null;
   updated_at: string;
 }
 
