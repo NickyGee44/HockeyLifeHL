@@ -2027,6 +2027,41 @@ export async function hasAiNewsAddon(leagueId: string): Promise<boolean> {
 }
 
 /**
+ * Get the latest published announcement for a league
+ */
+export async function getLatestAnnouncement(leagueId: string): Promise<{
+  id: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  publishedAt: string;
+  slug: string | null;
+} | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('articles')
+    .select('id, title, excerpt, content, published_at, slug')
+    .eq('league_id', leagueId)
+    .eq('type', 'announcement')
+    .eq('published', true)
+    .order('published_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    title: data.title,
+    excerpt: data.excerpt,
+    content: data.content,
+    publishedAt: data.published_at || '',
+    slug: data.slug,
+  };
+}
+
+/**
  * Get all published articles (news + AI types)
  * If AI News addon is not active, only returns 'news' type articles
  */
@@ -2458,4 +2493,159 @@ export async function getSeasonBadges(leagueId: string, seasonId: string): Promi
     .order('badge_type', { ascending: true });
   if (error || !data) return [];
   return data as unknown as PlayerBadge[];
+}
+
+// ========== PLAYER vs GOALIE MATCHUPS ==========
+
+export async function getPlayerGoalieMatchups(
+  playerId: string,
+  seasonId?: string
+): Promise<{
+  goalieId: string;
+  goalieName: string;
+  gamesPlayed: number;
+  goals: number;
+  assists: number;
+  points: number;
+  shots: number;
+  shootingPct: number | null;
+}[]> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('player_goalie_matchups')
+    .select('*, goalie:profiles!player_goalie_matchups_goalie_id_fkey(id, full_name)')
+    .eq('player_id', playerId)
+    .order('points', { ascending: false });
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  return data.map((row: any) => {
+    const goalie = Array.isArray(row.goalie) ? row.goalie[0] : row.goalie;
+    return {
+      goalieId: row.goalie_id,
+      goalieName: goalie?.full_name || 'Unknown Goalie',
+      gamesPlayed: row.games_played,
+      goals: row.goals,
+      assists: row.assists,
+      points: row.points,
+      shots: row.shots,
+      shootingPct: row.shooting_percentage,
+    };
+  });
+}
+
+// ========== CHAMPIONSHIP DETAILS ==========
+
+export async function getChampionshipRoster(
+  teamId: string,
+  seasonId: string
+): Promise<{ playerId: string; fullName: string; jerseyNumber: number | null; position: string | null; leadershipRole: string | null }[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('team_rosters')
+    .select('player_id, jersey_number, position, leadership_role, profile:profiles!team_rosters_player_id_fkey(full_name)')
+    .eq('team_id', teamId)
+    .eq('season_id', seasonId)
+    .in('status', ['active', 'injured'])
+    .order('jersey_number', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => {
+    const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+    return {
+      playerId: row.player_id,
+      fullName: profile?.full_name || 'Unknown Player',
+      jerseyNumber: row.jersey_number,
+      position: row.position,
+      leadershipRole: row.leadership_role,
+    };
+  });
+}
+
+export async function getChampionshipGame(
+  seasonId: string,
+  championTeamId: string
+): Promise<{ homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; date: string } | null> {
+  const supabase = await createClient();
+
+  // Get the last completed game of the season involving the champion
+  const { data, error } = await supabase
+    .from('games')
+    .select(`
+      home_score,
+      away_score,
+      scheduled_at,
+      home_team:teams!games_home_team_id_fkey(name),
+      away_team:teams!games_away_team_id_fkey(name)
+    `)
+    .eq('season_id', seasonId)
+    .eq('status', 'completed')
+    .or(`home_team_id.eq.${championTeamId},away_team_id.eq.${championTeamId}`)
+    .order('scheduled_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+
+  const homeTeam = Array.isArray(data.home_team) ? data.home_team[0] : data.home_team;
+  const awayTeam = Array.isArray(data.away_team) ? data.away_team[0] : data.away_team;
+
+  return {
+    homeTeam: (homeTeam as any)?.name || 'Unknown',
+    awayTeam: (awayTeam as any)?.name || 'Unknown',
+    homeScore: data.home_score ?? 0,
+    awayScore: data.away_score ?? 0,
+    date: data.scheduled_at,
+  };
+}
+
+export async function getGoaliePlayerMatchups(
+  goalieId: string,
+  seasonId?: string
+): Promise<{
+  playerId: string;
+  playerName: string;
+  gamesPlayed: number;
+  goals: number;
+  assists: number;
+  points: number;
+  shots: number;
+  shootingPct: number | null;
+}[]> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('player_goalie_matchups')
+    .select('*, player:profiles!player_goalie_matchups_player_id_fkey(id, full_name)')
+    .eq('goalie_id', goalieId)
+    .order('goals', { ascending: false });
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  return data.map((row: any) => {
+    const player = Array.isArray(row.player) ? row.player[0] : row.player;
+    return {
+      playerId: row.player_id,
+      playerName: player?.full_name || 'Unknown Player',
+      gamesPlayed: row.games_played,
+      goals: row.goals,
+      assists: row.assists,
+      points: row.points,
+      shots: row.shots,
+      shootingPct: row.shooting_percentage,
+    };
+  });
 }

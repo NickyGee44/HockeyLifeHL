@@ -33,6 +33,7 @@ import {
   getCurrentSeason,
   getSeasons,
   getPlayerBadgesByIds,
+  getLatestAnnouncement,
 } from '@/lib/data';
 import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
@@ -46,6 +47,7 @@ import { FeaturedNewsBanner } from '@/components/news/FeaturedNewsBanner';
 import { NewsHeadlines } from '@/components/news/NewsHeadlines';
 import { LeadersShowcase } from '@/components/LeadersShowcase';
 import { SocialLinks } from '@/components/SocialLinks';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
@@ -78,6 +80,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     scoringLeaders,
     currentSeason,
     seasons,
+    latestAnnouncement,
   ] = await Promise.all([
     getLeagueStats(league.id),
     getUpcomingGames(league.id, 5, divisionFilter),
@@ -92,6 +95,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getStatsLeadersWithAvatars(league.id, 'points', 5, divisionFilter),
     getCurrentSeason(league.id),
     getSeasons(league.id),
+    getLatestAnnouncement(league.id),
   ]);
 
   // Fetch goalie leaders (depends on currentSeason)
@@ -208,6 +212,13 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       <div className="mt-8">
         <SponsorBanner sponsors={sponsors} />
       </div>
+
+      {/* Announcement Banner */}
+      {latestAnnouncement && (
+        <div className="container mx-auto px-4 pt-8">
+          <AnnouncementBanner announcement={latestAnnouncement} leagueSlug={leagueSlug} />
+        </div>
+      )}
 
       {/* 4. Pulse Items */}
       <section className="container mx-auto px-4 pt-8">

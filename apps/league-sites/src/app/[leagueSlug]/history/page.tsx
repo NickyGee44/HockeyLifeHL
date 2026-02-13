@@ -8,6 +8,8 @@ import {
   getGoalieLeaders,
   getLeagueAwards,
   getLeagueStats,
+  getChampionshipRoster,
+  getChampionshipGame,
 } from '@/lib/data';
 import {
   Trophy,
@@ -86,6 +88,21 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     })
   );
 
+  // Fetch championship details (roster + final game) for each champion
+  const championDetails = await Promise.all(
+    seasonsWithChampions
+      .filter(s => s.champion)
+      .map(async (season) => {
+        const [roster, finalGame] = await Promise.all([
+          getChampionshipRoster(season.champion!.team_id, season.id),
+          getChampionshipGame(season.id, season.champion!.team_id),
+        ]);
+        return { seasonId: season.id, roster, finalGame };
+      })
+  );
+
+  const championDetailsMap = new Map(championDetails.map(d => [d.seasonId, d]));
+
   // Dynasty tracker: count titles per team
   const titleCounts = new Map<string, { name: string; count: number }>();
   for (const season of seasonsWithChampions) {
@@ -155,38 +172,50 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
             <div className="space-y-4">
               {/* Featured Most Recent Champion */}
               {mostRecentChampion?.champion && (
-                <Link
-                  href={`/${leagueSlug}/standings?season=${mostRecentChampion.id}`}
-                  className="block group"
-                >
-                  <div className="relative bg-gradient-to-r from-amber-500/10 via-[var(--color-surface)] to-amber-500/10 border border-amber-500/30 rounded-2xl p-6 md:p-8 hover:border-amber-400/50 transition-all">
-                    <div className="absolute top-3 right-3 bg-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
-                      Latest Champion
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                      <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-amber-500/20">
-                        <Trophy className="w-8 h-8 text-amber-400" />
+                <div>
+                  <Link
+                    href={`/${leagueSlug}/standings?season=${mostRecentChampion.id}`}
+                    className="block group"
+                  >
+                    <div className="relative bg-gradient-to-r from-amber-500/10 via-[var(--color-surface)] to-amber-500/10 border border-amber-500/30 rounded-2xl p-6 md:p-8 hover:border-amber-400/50 transition-all">
+                      <div className="absolute top-3 right-3 bg-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+                        Latest Champion
                       </div>
-                      <div className="text-center sm:text-left flex-1">
-                        <p className="text-xs text-amber-400 uppercase tracking-wider font-semibold mb-1">
-                          {mostRecentChampion.name}
-                        </p>
-                        <h3 className="text-2xl md:text-3xl font-black text-[var(--color-text-primary)]">
-                          {mostRecentChampion.champion.team_name}
-                        </h3>
-                        <p className="text-sm text-[var(--color-text-secondary)] mt-1 flex items-center justify-center sm:justify-start gap-2">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {new Date(mostRecentChampion.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                          {' - '}
-                          {new Date(mostRecentChampion.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                          <span className="mx-1 text-[var(--color-text-muted)]">&middot;</span>
-                          {mostRecentChampion.champion.wins}W-{mostRecentChampion.champion.losses}L-{mostRecentChampion.champion.ties}T
-                        </p>
+                      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                        <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-amber-500/20">
+                          <Trophy className="w-8 h-8 text-amber-400" />
+                        </div>
+                        <div className="text-center sm:text-left flex-1">
+                          <p className="text-xs text-amber-400 uppercase tracking-wider font-semibold mb-1">
+                            {mostRecentChampion.name}
+                          </p>
+                          <h3 className="text-2xl md:text-3xl font-black text-[var(--color-text-primary)]">
+                            {mostRecentChampion.champion.team_name}
+                          </h3>
+                          <p className="text-sm text-[var(--color-text-secondary)] mt-1 flex items-center justify-center sm:justify-start gap-2">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {new Date(mostRecentChampion.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            {' - '}
+                            {new Date(mostRecentChampion.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            <span className="mx-1 text-[var(--color-text-muted)]">&middot;</span>
+                            {mostRecentChampion.champion.wins}W-{mostRecentChampion.champion.losses}L-{mostRecentChampion.champion.ties}T
+                          </p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] hidden sm:block group-hover:text-amber-400 transition-colors" />
                       </div>
-                      <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] hidden sm:block group-hover:text-amber-400 transition-colors" />
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                  {(() => {
+                    const details = championDetailsMap.get(mostRecentChampion.id);
+                    return details ? (
+                      <ChampionDetails
+                        roster={details.roster}
+                        finalGame={details.finalGame}
+                        leagueSlug={leagueSlug}
+                      />
+                    ) : null;
+                  })()}
+                </div>
               )}
 
               {/* Previous Champions Grid */}
@@ -452,6 +481,74 @@ function LeaderBoard({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ChampionDetails({
+  roster,
+  finalGame,
+  leagueSlug,
+}: {
+  roster: { playerId: string; fullName: string; jerseyNumber: number | null; position: string | null; leadershipRole: string | null }[];
+  finalGame: { homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; date: string } | null;
+  leagueSlug: string;
+}) {
+  if (!finalGame && roster.length === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-3">
+      {/* Final Game Score */}
+      {finalGame && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3">
+          <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+            Final Game
+          </p>
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <span className="font-semibold text-[var(--color-text-primary)]">{finalGame.homeTeam}</span>
+            <span className="text-lg font-black text-[var(--league-primary)]">
+              {finalGame.homeScore} - {finalGame.awayScore}
+            </span>
+            <span className="font-semibold text-[var(--color-text-primary)]">{finalGame.awayTeam}</span>
+          </div>
+          <p className="text-xs text-[var(--color-text-muted)] text-center mt-1">
+            {new Date(finalGame.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
+        </div>
+      )}
+
+      {/* Championship Roster */}
+      {roster.length > 0 && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3">
+          <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+            Championship Roster ({roster.length} players)
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            {roster.map((player) => (
+              <Link
+                key={player.playerId}
+                href={`/${leagueSlug}/players/${player.playerId}`}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--color-surface-hover)] transition-colors text-sm"
+              >
+                {player.jerseyNumber !== null && (
+                  <span className="text-xs font-mono text-[var(--color-text-muted)] w-5 text-right">
+                    #{player.jerseyNumber}
+                  </span>
+                )}
+                <span className="text-[var(--color-text-primary)] truncate">
+                  {player.fullName}
+                </span>
+                {player.leadershipRole === 'captain' && (
+                  <span className="text-xs text-amber-400 font-bold">C</span>
+                )}
+                {player.leadershipRole === 'alternate_captain' && (
+                  <span className="text-xs text-[var(--color-text-muted)] font-bold">A</span>
+                )}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,6 +11,8 @@ import {
   getCurrentSeason,
   getPlayerBadges,
   getPlayerArticles,
+  getPlayerGoalieMatchups,
+  getGoaliePlayerMatchups,
 } from '@/lib/data';
 import { PlayerHeader } from '@/components/player/PlayerHeader';
 import { PlayerBadgesSection } from '@/components/player/PlayerBadgesSection';
@@ -18,6 +20,7 @@ import { PlayerStatsCards } from '@/components/player/PlayerStatsCards';
 import { PlayerGameLog } from '@/components/player/PlayerGameLog';
 import { SeasonSelector } from '@/components/player/SeasonSelector';
 import { PlayerArticleCard } from '@/components/player/PlayerArticleCard';
+import { PlayerMatchups } from '@/components/player/PlayerMatchups';
 
 interface PlayerPageProps {
   params: Promise<{ leagueSlug: string; playerId: string }>;
@@ -62,17 +65,32 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   // Use profile ID (player_id) for stats queries, not the URL param
   const profileId = player.player_id;
 
+  const isGoalie = player.position === 'G' || player.position === 'Goalie';
+
   // Fetch data in parallel
-  const [seasons, stats, gameLog, badges, playerArticles] = await Promise.all([
+  const [seasons, stats, gameLog, badges, playerArticles, matchupData] = await Promise.all([
     getSeasons(league.id),
     getPlayerCareerStats(profileId, seasonId),
     getPlayerGameLog(profileId, seasonId, 20),
     getPlayerBadges(profileId),
     getPlayerArticles(profileId, 5),
+    isGoalie
+      ? getGoaliePlayerMatchups(profileId, seasonId)
+      : getPlayerGoalieMatchups(profileId, seasonId),
   ]);
 
   const playerName = player.profile?.full_name || 'Unknown Player';
-  const isGoalie = player.position === 'G' || player.position === 'Goalie';
+
+  const matchups = matchupData.map((m: any) => ({
+    id: isGoalie ? m.playerId : m.goalieId,
+    name: isGoalie ? m.playerName : m.goalieName,
+    gamesPlayed: m.gamesPlayed,
+    goals: m.goals,
+    assists: m.assists,
+    points: m.points,
+    shots: m.shots,
+    shootingPct: m.shootingPct,
+  }));
   const currentSeasonName = seasons.find(s => s.id === seasonId)?.name;
 
   return (
@@ -143,6 +161,13 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
             </div>
           )}
         </div>
+
+        {/* Matchup Stats */}
+        <PlayerMatchups
+          matchups={matchups}
+          isGoalie={isGoalie}
+          leagueSlug={leagueSlug}
+        />
 
         {/* In The News */}
         {playerArticles && playerArticles.length > 0 && (
