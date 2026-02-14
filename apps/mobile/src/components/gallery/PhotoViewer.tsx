@@ -28,7 +28,7 @@ interface PhotoViewerProps {
   onClose: () => void;
 }
 
-function ZoomableImage({ uri, _caption }: { uri: string; caption: string | null }) {
+function ZoomableImage({ uri }: { uri: string; caption: string | null }) {
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);

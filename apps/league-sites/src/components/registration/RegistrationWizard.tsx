@@ -28,7 +28,7 @@ interface RegistrationWizardProps {
   teams: { id: string; name: string }[];
   registrationFee: number; // cents
   waiverContent: string;
-  _waiverVersion: string;
+  waiverVersion: string;
   waiverContentHash: string;
   initialData: RegistrationDraftData | null;
 }

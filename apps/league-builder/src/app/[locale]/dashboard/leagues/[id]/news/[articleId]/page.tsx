@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getNewsArticle, updateNewsArticle, deleteNewsArticle } from '@/lib/actions/news';
+import { uploadNewsImage, deleteNewsImage } from '@/lib/actions/image-upload';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';

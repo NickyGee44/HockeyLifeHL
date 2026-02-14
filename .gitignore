@@ -29,6 +29,8 @@ hockey-life-worktrees/
 # misc
 .DS_Store
 *.pem
+*.p8
+*.key
 nul
 
 # debug

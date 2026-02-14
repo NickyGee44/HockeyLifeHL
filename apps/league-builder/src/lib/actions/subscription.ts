@@ -486,6 +486,7 @@ export async function upgradeSubscription(
     }
 
     // Get new price ID
+    const newPriceId = getPriceIdByTier(newTier);
 
     // Get current subscription
     const subscription = await stripe.subscriptions.retrieve(
@@ -578,6 +579,7 @@ export async function downgradeSubscription(
     }
 
     // Get new price ID
+    const newPriceId = getPriceIdByTier(newTier);
 
     // Get current subscription
     const subscription = await stripe.subscriptions.retrieve(

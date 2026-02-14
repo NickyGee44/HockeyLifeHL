@@ -20,6 +20,7 @@ interface LeagueEvent {
 
 interface EventsAdminClientProps {
   leagueId: string;
+  locale?: string;
   events: LeagueEvent[];
 }
 

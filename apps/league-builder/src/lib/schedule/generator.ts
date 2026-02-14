@@ -11,6 +11,7 @@
 
 import {
   Team,
+  Venue,
   GameMatchup,
   ScheduledGame,
   ScheduleConfig,
@@ -104,7 +105,8 @@ export function generateRoundRobinMatchups(
  */
 function getAvailableTimeSlots(
   config: ScheduleConfig,
-  constraints: ScheduleConstraint[]
+  constraints: ScheduleConstraint[],
+  _venues?: Venue[]
 ): Date[] {
   const slots: Date[] = [];
   const startDate = new Date(config.startDate);
@@ -202,7 +204,8 @@ function isSlotBlackedOutForTeam(
  */
 function validateGameAgainstConstraints(
   game: ScheduledGame,
-  constraints: ScheduleConstraint[]
+  constraints: ScheduleConstraint[],
+  _existingGames?: ScheduledGame[]
 ): ConstraintViolation[] {
   const violations: ConstraintViolation[] = [];
 

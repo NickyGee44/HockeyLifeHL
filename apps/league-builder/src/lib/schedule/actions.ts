@@ -965,7 +965,7 @@ export async function saveTeamSchedulePreference(
 
     const { data, error } = await supabase
       .from('team_schedule_preferences')
-      .update(updateData)
+      .update(rowData)
       .eq('id', preference.id)
       .select()
       .single();
@@ -1145,7 +1145,7 @@ export async function saveScheduleConstraintConfig(
 
     const { data, error } = await supabase
       .from('schedule_constraint_configs')
-      .update(updateData)
+      .update(rowData)
       .eq('id', existing.id)
       .select()
       .single();

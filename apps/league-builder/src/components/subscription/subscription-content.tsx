@@ -64,6 +64,7 @@ export function SubscriptionContent({
   const t = useTranslations('subscription.content');
   const tAddonConfig = useTranslations('subscription.addon.config');
   const [addons, setAddons] = useState<OrgAddon[]>(initialAddons);
+  const [loading, setLoading] = useState(false);
 
   // Refresh add-ons data
   async function loadData() {

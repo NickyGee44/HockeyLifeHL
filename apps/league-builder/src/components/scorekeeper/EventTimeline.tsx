@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   useGameEvents,
+  getTeamPlayers,
   type GameEvent,
   type EventType,
   type Team,
@@ -47,12 +48,12 @@ export function EventTimeline({
       const playerMap = new Map<string, Player>();
 
       if (homeTeam?.id) {
-        const homePlayers = awaitPlayers(homeTeam.id);
+        const homePlayers = await getTeamPlayers(homeTeam.id);
         homePlayers.forEach((p) => playerMap.set(p.id, p));
       }
 
       if (awayTeam?.id) {
-        const awayPlayers = awaitPlayers(awayTeam.id);
+        const awayPlayers = await getTeamPlayers(awayTeam.id);
         awayPlayers.forEach((p) => playerMap.set(p.id, p));
       }
 
@@ -100,7 +101,7 @@ export function EventTimeline({
     [undoEvent, onUndoEvent]
   );
 
-  constForEvent = (event: GameEvent): Team | undefined => {
+  const getTeamForEvent = (event: GameEvent): Team | undefined => {
     if (event.team_id === homeTeam?.id) return homeTeam;
     if (event.team_id === awayTeam?.id) return awayTeam;
     return undefined;
@@ -149,7 +150,7 @@ export function EventTimeline({
                   <EventItem
                     key={event.id}
                     event={event}
-                    team={ForEvent(event)}
+                    team={getTeamForEvent(event)}
                     player={players.get(event.player_id)}
                     assistPlayers={event.assist_player_ids?.map((id) => players.get(id)).filter(Boolean) as Player[]}
                     onUndo={() => handleUndo(event.id)}
@@ -166,7 +167,7 @@ export function EventTimeline({
               <EventItem
                 key={event.id}
                 event={event}
-                team={ForEvent(event)}
+                team={getTeamForEvent(event)}
                 player={players.get(event.player_id)}
                 assistPlayers={event.assist_player_ids?.map((id) => players.get(id)).filter(Boolean) as Player[]}
                 onUndo={() => handleUndo(event.id)}

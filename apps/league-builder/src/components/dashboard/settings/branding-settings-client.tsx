@@ -27,10 +27,11 @@ interface League {
 }
 
 interface BrandingSettingsClientProps {
+  organizationId?: string;
   leagues: League[];
 }
 
-export function BrandingSettingsClient({ leagues }: BrandingSettingsClientProps) {
+export function BrandingSettingsClient({ organizationId: _organizationId, leagues }: BrandingSettingsClientProps) {
   const router = useRouter();
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(
     leagues.length > 0 ? leagues[0].id : null

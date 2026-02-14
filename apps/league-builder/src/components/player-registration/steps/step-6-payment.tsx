@@ -113,8 +113,8 @@ export function Step6Payment() {
       } else {
         setPaymentError('Payment was not successful. Please try again.');
       }
-    } catch {
-      console.error('Payment error:', error);
+    } catch (err) {
+      console.error('Payment error:', err);
       setPaymentError('Payment processing failed. Please try again.');
     } finally {
       setIsProcessing(false);

@@ -140,7 +140,7 @@ export function AddPlayerModalEnhanced({
 
       onSuccess?.();
       onClose();
-    } catch {
+    } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add player');
     } finally {
       setIsSubmitting(false);

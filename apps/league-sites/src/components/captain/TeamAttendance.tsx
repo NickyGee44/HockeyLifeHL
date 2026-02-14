@@ -30,7 +30,7 @@ interface CheckinEntry {
 interface TeamAttendanceProps {
   teamId: string;
   roster: RosterPlayer[];
-  _leagueSlug: string;
+  leagueSlug: string;
   onRequestSub?: (gameId: string) => void;
 }
 

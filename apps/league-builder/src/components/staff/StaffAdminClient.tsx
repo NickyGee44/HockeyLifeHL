@@ -24,10 +24,11 @@ interface StaffMember {
 
 interface StaffAdminClientProps {
   leagueId: string;
+  locale?: string;
   staff: StaffMember[];
 }
 
-export function StaffAdminClient({ leagueId, staff }: StaffAdminClientProps) {
+export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdminClientProps) {
   const t = useTranslations('staff');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();

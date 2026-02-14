@@ -109,6 +109,7 @@ export function SchedulePageClient({
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const [selectedGame, setSelectedGame] = useState<ScheduledGame | null>(null);
   const [showGameDetail, setShowGameDetail] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
 

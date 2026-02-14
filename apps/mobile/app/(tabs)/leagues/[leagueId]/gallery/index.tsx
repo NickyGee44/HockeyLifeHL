@@ -32,7 +32,7 @@ export default function GalleryScreen() {
           source={{ uri: item.cover_photo_url }}
           style={{ width: albumWidth, height: albumWidth * 0.75 }}
           contentFit="cover"
-          alt={`${item.name || 'Album'} cover photo`}
+          alt={`${item.title || 'Album'} cover photo`}
         />
       ) : (
         <View

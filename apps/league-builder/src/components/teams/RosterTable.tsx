@@ -38,6 +38,7 @@ interface RosterPlayer {
 interface RosterTableProps {
   teamId: string;
   seasonId?: string;
+  captainId?: string | null;
 }
 
 const POSITIONS = [

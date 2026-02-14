@@ -87,6 +87,8 @@ export function ScheduleWizard({
   const [generationResult, setGenerationResult] = useState<ScheduleGenerationResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [constraintData, setConstraintData] = useState<ConstraintData | null>(null);
+  const [constraints, setConstraints] = useState<string[]>([]);
 
   // Handle constraint data changes from enhanced constraint step
   const handleConstraintsChange = useCallback((data: ConstraintData) => {

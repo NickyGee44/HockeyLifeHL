@@ -24,7 +24,7 @@ interface PlayerDirectoryFiltersProps {
   selectedPosition?: string;
   selectedDivision?: string;
   searchQuery?: string;
-  _leagueSlug: string;
+  leagueSlug: string;
 }
 
 export function PlayerDirectoryFilters({

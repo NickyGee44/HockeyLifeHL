@@ -1264,7 +1264,7 @@ export async function markPaymentAsPaid(
       .from('player_payments')
       .update({
         status: 'paid',
-        amount_paid_cents: payment.total_amount_cents,
+        amount_paid_cents: payment.total_amount_cents ?? undefined,
         paid_at: new Date().toISOString(),
         current_installment: payment.total_installments,
         notes: notes

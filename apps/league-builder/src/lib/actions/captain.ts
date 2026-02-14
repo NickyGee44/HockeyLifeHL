@@ -250,7 +250,8 @@ export async function getCaptainDashboard(teamId: string) {
 
   try {
     // Get team details
-    const { data: team, error: teamError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: team, error: teamError } = await (supabase as any)
       .from('teams')
       .select(`
         *,
