@@ -1,5 +1,6 @@
 export { ConnectProvider, useStripeConnect } from './ConnectProvider';
 export {
+  StripeErrorBoundary,
   EmbeddedOnboarding,
   EmbeddedAccountManagement,
   EmbeddedPayments,

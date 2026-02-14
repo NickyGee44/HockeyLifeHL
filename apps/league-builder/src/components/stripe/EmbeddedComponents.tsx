@@ -1,9 +1,52 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useStripeConnect } from './ConnectProvider';
 import { Loader2, AlertCircle } from 'lucide-react';
+
+// ============================================================================
+// Stripe Error Boundary
+// ============================================================================
+
+interface StripeErrorBoundaryProps {
+  children: ReactNode;
+  fallbackHeight?: number;
+}
+
+interface StripeErrorBoundaryState {
+  hasError: boolean;
+}
+
+export class StripeErrorBoundary extends Component<StripeErrorBoundaryProps, StripeErrorBoundaryState> {
+  constructor(props: StripeErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): StripeErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          className="flex items-center justify-center bg-red-500/10 rounded-xl border border-red-500/20 p-6"
+          style={{ minHeight: this.props.fallbackHeight ?? 200 }}
+        >
+          <div className="text-center">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+            <p className="text-sm text-red-400">
+              Failed to load Stripe component. Please refresh the page.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Loading placeholder component
 function LoadingPlaceholder({ height = 400 }: { height?: number }) {
