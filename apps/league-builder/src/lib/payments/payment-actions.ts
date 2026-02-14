@@ -1224,3 +1224,189 @@ export async function getTeamPaymentSummary(
     return { success: false, error: 'An unexpected error occurred.' };
   }
 }
+
+// ============================================================================
+// 12. Mark Payment as Paid (Admin - Offline/Manual)
+// ============================================================================
+
+export async function markPaymentAsPaid(
+  paymentId: string,
+  notes?: string
+): Promise<ActionResult<PlayerPayment>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: payment, error: fetchError } = await supabase
+      .from('player_payments')
+      .select('*')
+      .eq('id', paymentId)
+      .single();
+
+    if (fetchError || !payment) {
+      return { success: false, error: 'Payment not found.' };
+    }
+
+    const access = await verifyLeagueAdminAccess(payment.league_id);
+    if ('error' in access) {
+      return { success: false, error: access.error };
+    }
+
+    if (payment.status === 'paid') {
+      return { success: false, error: 'This payment is already marked as paid.' };
+    }
+
+    if (['cancelled', 'refunded'].includes(payment.status)) {
+      return { success: false, error: 'Cannot mark a cancelled or refunded payment as paid.' };
+    }
+
+    const serviceSupabase = createServiceRoleClient();
+    const { data: updated, error: updateError } = await serviceSupabase
+      .from('player_payments')
+      .update({
+        status: 'paid',
+        amount_paid_cents: payment.total_amount_cents,
+        paid_at: new Date().toISOString(),
+        current_installment: payment.total_installments,
+        notes: notes
+          ? `${payment.notes || ''}\n[Manual] ${notes}`.trim()
+          : payment.notes,
+      })
+      .eq('id', paymentId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('[Payments] Mark as paid error:', sanitizeErrorForLogging(updateError));
+      return { success: false, error: 'Failed to mark payment as paid.' };
+    }
+
+    await logPaymentAuditEvent(
+      payment.league_id,
+      'payment_marked_paid_manually',
+      {
+        old_status: payment.status,
+        old_amount_paid_cents: payment.amount_paid_cents,
+        total_amount_cents: payment.total_amount_cents,
+        notes,
+      },
+      access.userId,
+      paymentId
+    );
+
+    revalidatePath(`/dashboard/leagues/${payment.league_id}/payments`);
+    return { success: true, data: updated as PlayerPayment };
+  } catch (error) {
+    console.error('[Payments] Unexpected error in markPaymentAsPaid:', sanitizeErrorForLogging(error));
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+// ============================================================================
+// 13. Send Bulk Payment Reminders (Admin)
+// ============================================================================
+
+export async function sendBulkPaymentReminders(
+  leagueId: string,
+  seasonId: string
+): Promise<ActionResult<{ remindersSent: number; failed: number }>> {
+  try {
+    const access = await verifyLeagueAdminAccess(leagueId);
+    if ('error' in access) {
+      return { success: false, error: access.error };
+    }
+
+    const supabase = await createClient();
+
+    const { data: payments, error: fetchError } = await supabase
+      .from('player_payments')
+      .select(
+        `
+        *,
+        player:player_id (id, full_name, email),
+        season_fee:season_fee_id (name),
+        leagues:league_id (name)
+      `
+      )
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .in('status', ['pending', 'partially_paid', 'overdue']);
+
+    if (fetchError) {
+      console.error('[Payments] Bulk reminders fetch error:', sanitizeErrorForLogging(fetchError));
+      return { success: false, error: 'Failed to fetch unpaid payments.' };
+    }
+
+    if (!payments || payments.length === 0) {
+      return { success: true, data: { remindersSent: 0, failed: 0 } };
+    }
+
+    const { sendPaymentReminderEmail } = await import('@/lib/email/payment-emails');
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const serviceSupabase = createServiceRoleClient();
+
+    let remindersSent = 0;
+    let failed = 0;
+
+    for (const payment of payments) {
+      const player = payment.player as any;
+      const seasonFee = payment.season_fee as any;
+      const league = payment.leagues as any;
+
+      if (!player?.email) {
+        failed++;
+        continue;
+      }
+
+      try {
+        const paymentUrl = `${SITE_URL}/dashboard/payments?payment=${payment.id}`;
+
+        const emailResult = await sendPaymentReminderEmail({
+          to: player.email,
+          playerName: player.full_name || 'Player',
+          leagueName: league?.name || 'Your League',
+          feeName: seasonFee?.name || 'Season Fee',
+          amountDue: (payment.total_amount_cents ?? 0) - (payment.amount_paid_cents ?? 0),
+          dueDate: payment.next_payment_date,
+          paymentUrl,
+          reminderNumber: (payment.reminder_sent_count || 0) + 1,
+        });
+
+        if (emailResult.success) {
+          await serviceSupabase
+            .from('player_payments')
+            .update({
+              reminder_sent_count: (payment.reminder_sent_count || 0) + 1,
+              last_reminder_sent_at: new Date().toISOString(),
+            })
+            .eq('id', payment.id);
+          remindersSent++;
+        } else {
+          failed++;
+        }
+      } catch {
+        failed++;
+      }
+    }
+
+    await logPaymentAuditEvent(
+      leagueId,
+      'bulk_payment_reminders_sent',
+      {
+        season_id: seasonId,
+        total_payments: payments.length,
+        reminders_sent: remindersSent,
+        failed,
+      },
+      access.userId,
+    );
+
+    revalidatePath(`/dashboard/leagues/${leagueId}/payments`);
+    return { success: true, data: { remindersSent, failed } };
+  } catch (error) {
+    console.error(
+      '[Payments] Unexpected error in sendBulkPaymentReminders:',
+      sanitizeErrorForLogging(error),
+    );
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}

@@ -22,7 +22,7 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Download,
+  Users,
 } from 'lucide-react';
 import type {
   PlayerPaymentWithDetails,
@@ -32,9 +32,11 @@ import type {
 
 interface PaymentStatusTableProps {
   payments: PlayerPaymentWithDetails[];
+  teams?: { id: string; name: string }[];
   onRefund?: (payment: PlayerPaymentWithDetails) => void;
   onSendReminder?: (payment: PlayerPaymentWithDetails) => void;
   onViewDetails?: (payment: PlayerPaymentWithDetails) => void;
+  onMarkAsPaid?: (payment: PlayerPaymentWithDetails) => void;
   isLoading?: boolean;
 }
 
@@ -120,9 +122,11 @@ function SortIcon({ field, currentSortField, sortDirection }: SortIconProps) {
 
 export function PaymentStatusTable({
   payments,
+  teams,
   onRefund,
   onSendReminder,
   onViewDetails,
+  onMarkAsPaid,
   isLoading = false,
 }: PaymentStatusTableProps) {
   const t = useTranslations('payments.statusTable');
@@ -130,6 +134,7 @@ export function PaymentStatusTable({
   const tPlan = useTranslations('payments.planLabels');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PlayerPaymentStatus | 'all'>('all');
+  const [teamFilter, setTeamFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -154,6 +159,11 @@ export function PaymentStatusTable({
       result = result.filter((p) => p.status === statusFilter);
     }
 
+    // Apply team filter
+    if (teamFilter !== 'all') {
+      result = result.filter((p) => p.team?.id === teamFilter);
+    }
+
     // Apply sorting
     result.sort((a, b) => {
       let comparison = 0;
@@ -171,11 +181,12 @@ export function PaymentStatusTable({
         case 'status':
           comparison = a.status.localeCompare(b.status);
           break;
-        case 'progress':
+        case 'progress': {
           const aProgress = a.amount_paid_cents / a.total_amount_cents;
           const bProgress = b.amount_paid_cents / b.total_amount_cents;
           comparison = aProgress - bProgress;
           break;
+        }
         case 'date':
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
@@ -185,7 +196,7 @@ export function PaymentStatusTable({
     });
 
     return result;
-  }, [payments, searchQuery, statusFilter, sortField, sortDirection]);
+  }, [payments, searchQuery, statusFilter, teamFilter, sortField, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -198,14 +209,6 @@ export function PaymentStatusTable({
 
   const formatCurrency = (cents: number) => {
     return `$${(cents / 100).toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
   };
 
   // Calculate summary stats
@@ -301,6 +304,26 @@ export function PaymentStatusTable({
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none" />
           </div>
+
+          {/* Team Filter */}
+          {teams && teams.length > 0 && (
+            <div className="relative">
+              <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+              <select
+                value={teamFilter}
+                onChange={(e) => setTeamFilter(e.target.value)}
+                className="pl-10 pr-8 py-2 bg-black/50 border border-neutral-700 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent"
+              >
+                <option value="all">{t('allTeams')}</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -366,7 +389,7 @@ export function PaymentStatusTable({
             {filteredPayments.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
-                  {searchQuery || statusFilter !== 'all'
+                  {searchQuery || statusFilter !== 'all' || teamFilter !== 'all'
                     ? t('noMatchingFilters')
                     : t('noPaymentsYet')}
                 </td>
@@ -506,6 +529,21 @@ export function PaymentStatusTable({
                                   {t('viewDetails')}
                                 </button>
                               )}
+                              {onMarkAsPaid &&
+                                ['pending', 'partially_paid', 'overdue'].includes(
+                                  payment.status
+                                ) && (
+                                  <button
+                                    onClick={() => {
+                                      onMarkAsPaid(payment);
+                                      setOpenMenuId(null);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-green-400 hover:bg-neutral-700 flex items-center gap-2"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                    {t('markAsPaid')}
+                                  </button>
+                                )}
                               {onSendReminder &&
                                 ['pending', 'partially_paid', 'overdue'].includes(
                                   payment.status

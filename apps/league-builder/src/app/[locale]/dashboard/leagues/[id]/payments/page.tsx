@@ -5,9 +5,6 @@ import { getCurrentUser } from '@/lib/actions/auth';
 import {
   getLeaguePlayerPayments,
   getPaymentSummary,
-  sendPaymentReminder,
-  refundPlayerPayment,
-  exportPaymentReport,
 } from '@/lib/payments/payment-actions';
 import { PaymentDashboard } from './PaymentDashboard';
 
@@ -70,6 +67,13 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
     .eq('league_id', leagueId)
     .order('start_date', { ascending: false });
 
+  // Get teams for filtering
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, name')
+    .eq('league_id', leagueId)
+    .order('name');
+
   // Parse search params
   const search = await searchParams;
   const selectedSeasonId = search?.season as string | undefined;
@@ -114,14 +118,17 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
       locale={locale}
       leagueId={leagueId}
       leagueName={league.name}
-      seasons={(seasons || []).map(s => ({ ...s, status: s.status ?? 'draft' }))}
-      selectedSeason={activeSeason ? { ...activeSeason, status: activeSeason.status ?? 'draft' } : null}
+      seasons={(seasons || []).map((s) => ({ ...s, status: s.status ?? 'draft' }))}
+      selectedSeason={
+        activeSeason ? { ...activeSeason, status: activeSeason.status ?? 'draft' } : null
+      }
       payments={payments}
       summary={summary}
       total={total}
       currentPage={page}
       limit={limit}
       statusFilter={statusFilter}
+      teams={(teams || []).map((t) => ({ id: t.id, name: t.name }))}
       hasStripeConnected={
         !!league.stripe_account_id && league.stripe_account_status === 'complete'
       }

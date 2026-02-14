@@ -15,9 +15,7 @@ import {
   Camera,
   Menu,
   X,
-  MapPin,
-  UserPlus,
-} from 'lucide-react';
+  UserPlus } from 'lucide-react';
 import type { League } from '@/lib/types';
 import { AuthButton } from './auth/AuthButton';
 import { usePreviewMode } from './PreviewModeProvider';
@@ -64,7 +62,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
     .map((word) => word.charAt(0))
     .join('')
     .toUpperCase();
-  const location = [league.city, league.state].filter(Boolean).join(', ');
+  const _location = [league.city, league.state].filter(Boolean).join(', ');
 
   const isItemActive = (href: string) => {
     const path = `/${leagueSlug}${href}`;
@@ -79,8 +77,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
       <div
         className="h-[2px]"
         style={{
-          background: 'linear-gradient(90deg, transparent, var(--league-primary), transparent)',
-        }}
+          background: 'linear-gradient(90deg, transparent, var(--league-primary), transparent)' }}
       />
 
       <div className="mx-auto max-w-[1400px] px-6">
@@ -160,8 +157,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
               style={{
                 background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
                 color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
-                border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
-              }}
+                border: selectedDivisionId ? 'none' : '1px solid var(--header-border)' }}
               aria-label="Filter by division"
               data-testid="division-filter"
             >
