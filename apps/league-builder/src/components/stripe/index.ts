@@ -1,3 +1,5 @@
+'use client';
+
 export { ConnectProvider, useStripeConnect } from './ConnectProvider';
 export {
   StripeErrorBoundary,
