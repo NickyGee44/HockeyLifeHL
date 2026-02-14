@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Mail, Lock, User, AlertCircle, Loader2, Check } from 'lucide-react';
 import { signUp } from '@/lib/supabase/auth';
+import { OAuthProviderButton } from './OAuthProviderButton';
 
 interface SignupModalProps {
   isOpen: boolean;
@@ -116,6 +117,30 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
               <p className="text-[var(--color-text-secondary)] mb-6">
                 Join the league community
               </p>
+
+              {/* OAuth Providers */}
+              <div className="space-y-3">
+                <OAuthProviderButton
+                  provider="google"
+                  label="Sign up with Google"
+                />
+                <OAuthProviderButton
+                  provider="apple"
+                  label="Sign up with Apple"
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="relative my-5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[var(--color-border)]" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-[var(--color-background-elevated)] px-3 text-[var(--color-text-muted)]">
+                    or continue with email
+                  </span>
+                </div>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (

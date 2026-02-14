@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useCallback, useState, useRef } from 'react';
+import Image from 'next/image';
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import { Upload, X, ImageIcon, Loader2, Check, Download, Trash2 } from 'lucide-react';
 import { Button, cn } from '@hockey-life/ui';
@@ -284,6 +285,7 @@ export function LogoUploader({
               circularCrop={shape === 'circle'}
               className="max-h-[400px]"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 ref={imgRef}
                 src={previewSrc}
@@ -353,10 +355,12 @@ export function LogoUploader({
             'relative w-28 h-28 overflow-hidden border-2 border-rink-500/30 bg-neutral-800/50',
             shapeClass
           )}>
-            <img
+            <Image
               src={value}
               alt="League logo"
               className="w-full h-full object-contain p-2"
+              fill
+              sizes="112px"
             />
             {(isUploading || isRemoving) && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/60">

@@ -11,9 +11,7 @@ export interface UseWizardFormOptions {
   mode?: 'onChange' | 'onBlur' | 'onSubmit' | 'onTouched' | 'all';
 }
 
-export interface UseWizardFormReturn extends UseFormReturn<WizardFormData> {
-  // Add any custom methods here if needed
-}
+export type UseWizardFormReturn = UseFormReturn<WizardFormData>;
 
 /**
  * Custom hook for managing the league creation wizard form

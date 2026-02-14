@@ -310,6 +310,79 @@ export async function signIn(formData: FormData) {
   redirect({ href: normalizedRedirect, locale });
 }
 
+export async function completeOAuthSetup(formData: FormData) {
+  const organizationName = formData.get('organizationName') as string;
+
+  const acceptTermsValue = formData.get('acceptTerms');
+  const acceptPrivacyValue = formData.get('acceptPrivacy');
+  const acceptTerms = acceptTermsValue === 'on' || acceptTermsValue === 'true';
+  const acceptPrivacy = acceptPrivacyValue === 'on' || acceptPrivacyValue === 'true';
+
+  if (!acceptTerms || !acceptPrivacy) {
+    return { error: 'You must accept the Terms of Service and Privacy Policy.' };
+  }
+
+  if (!organizationName || organizationName.trim().length === 0) {
+    return { error: 'Organization name is required.' };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  const serviceSupabase = createServiceRoleClient();
+
+  try {
+    // Update profile role to 'owner'
+    await (serviceSupabase.from('profiles') as any)
+      .update({ role: 'owner' })
+      .eq('id', user.id);
+
+    // Store consents for GDPR/CCPA compliance
+    await (serviceSupabase.from('user_consents') as any).insert([
+      { user_id: user.id, consent_type: 'terms_v1', granted: true },
+      { user_id: user.id, consent_type: 'privacy_v1', granted: true },
+    ]);
+
+    // Create organization
+    const slug = organizationName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    const { error: orgError } = await serviceSupabase
+      .from('organizations')
+      .insert({
+        name: organizationName,
+        slug,
+        owner_user_id: user.id,
+        subscription_tier: 'free',
+        subscription_status: 'active',
+      });
+
+    if (orgError) {
+      if (isDevelopment) {
+        console.error('Organization creation error:', orgError);
+      }
+      return { error: 'Failed to create organization. Please try again.' };
+    }
+
+    const locale = await getLocale();
+    redirect({ href: '/dashboard', locale });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    if (isDevelopment) {
+      console.error('Unexpected error during OAuth setup:', error);
+    }
+    return { error: 'An unexpected error occurred. Please try again.' };
+  }
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

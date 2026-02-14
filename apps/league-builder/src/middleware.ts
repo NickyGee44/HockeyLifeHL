@@ -32,6 +32,7 @@ const FR_ROUTES: Record<string, string> = {
   '/profil': '/profile',
   '/facturation': '/billing',
   '/notifications': '/notifications',
+  '/configuration-organisation': '/setup-organization',
 };
 
 // API routes that should skip middleware entirely (webhooks, auth callbacks, etc.)

@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
+import { OAuthProviderButton } from '@/components/auth/OAuthProviderButton';
 
 export default function LoginPage() {
   return (
@@ -68,6 +69,32 @@ function LoginForm() {
       <p className="text-sm text-neutral-400 mb-6">
         {t('auth.enterEmail')}
       </p>
+
+      {/* OAuth Providers */}
+      <div className="space-y-3">
+        <OAuthProviderButton
+          provider="google"
+          label={t('auth.continueWithGoogle')}
+          redirectTo={redirectTo || undefined}
+        />
+        <OAuthProviderButton
+          provider="apple"
+          label={t('auth.continueWithApple')}
+          redirectTo={redirectTo || undefined}
+        />
+      </div>
+
+      {/* Divider */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-neutral-700" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-neutral-900 px-3 text-neutral-500">
+            {t('auth.orContinueWithEmail')}
+          </span>
+        </div>
+      </div>
 
       <form action={handleSubmit} className="space-y-4">
         {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}

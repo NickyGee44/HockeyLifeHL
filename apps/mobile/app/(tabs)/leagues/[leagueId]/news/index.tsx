@@ -29,6 +29,7 @@ export default function NewsScreen() {
           source={{ uri: item.image_url }}
           style={{ width: '100%', height: 160 }}
           contentFit="cover"
+          alt={item.title || 'News article image'}
         />
       )}
       <View className="p-4">

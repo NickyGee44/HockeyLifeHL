@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
 import { Users, MapPin, Settings, MoreVertical, Crown, Shield } from 'lucide-react';
 
@@ -46,10 +47,12 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
           <div className="flex items-center gap-3">
             {/* Team Logo/Avatar */}
             {team.logo_url ? (
-              <img
+              <Image
                 src={team.logo_url}
                 alt={team.name}
                 className="w-12 h-12 rounded-xl object-cover"
+                width={48}
+                height={48}
               />
             ) : (
               <div

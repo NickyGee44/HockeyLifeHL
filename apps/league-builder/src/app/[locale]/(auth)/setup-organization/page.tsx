@@ -1,15 +1,14 @@
 'use client';
 
-import { signUp } from '@/lib/actions/auth';
+import { completeOAuthSetup } from '@/lib/actions/auth';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useState } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
-import { OAuthProviderButton } from '@/components/auth/OAuthProviderButton';
 
-export default function SignupPage() {
+export default function SetupOrganizationPage() {
   const t = useTranslations();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,7 +20,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const result = await signUp(formData);
+      const result = await completeOAuthSetup(formData);
       if (result?.error) {
         setError(result.error);
       }
@@ -46,100 +45,14 @@ export default function SignupPage() {
   return (
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8">
       <h2 className="text-2xl font-bold text-white mb-2">
-        {t('auth.createAccount')}
+        {t('auth.setupOrganization')}
       </h2>
       <p className="text-sm text-neutral-400 mb-6">
-        {t('navigation.createLeague')}
+        {t('auth.setupOrganizationDescription')}
       </p>
-
-      {/* OAuth Providers */}
-      <div className="space-y-3">
-        <OAuthProviderButton
-          provider="google"
-          label={t('auth.signUpWithGoogle')}
-        />
-        <OAuthProviderButton
-          provider="apple"
-          label={t('auth.signUpWithApple')}
-        />
-      </div>
-
-      {/* Divider */}
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-neutral-700" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-neutral-900 px-3 text-neutral-500">
-            {t('auth.orContinueWithEmail')}
-          </span>
-        </div>
-      </div>
 
       <form action={handleSubmit} className="space-y-4">
         <div>
-          <label
-            htmlFor="fullName"
-            className="block text-sm font-medium text-neutral-300 mb-2"
-          >
-            {t('auth.fullName')}
-          </label>
-          <input
-            type="text"
-            id="fullName"
-            name="fullName"
-            required
-            className={inputClasses}
-            placeholder={t('auth.fullNamePlaceholder')}
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-neutral-300 mb-2"
-          >
-            {t('auth.email')}
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            className={inputClasses}
-            placeholder="you@example.com"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-neutral-300 mb-2"
-          >
-            {t('auth.password')}
-          </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            required
-            minLength={8}
-            className={inputClasses}
-            placeholder="••••••••"
-          />
-          <div className="text-xs text-neutral-500 mt-1.5 space-y-0.5">
-            <p className="font-medium text-neutral-400">{t('auth.passwordMustContain')}</p>
-            <ul className="list-disc list-inside ml-1 space-y-0.5">
-              <li>{t('auth.passwordRuleLength')}</li>
-              <li>{t('auth.passwordRuleUppercase')}</li>
-              <li>{t('auth.passwordRuleLowercase')}</li>
-              <li>{t('auth.passwordRuleNumber')}</li>
-              <li>{t('auth.passwordRuleSpecial')}</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="border-t border-neutral-700 pt-4">
           <label
             htmlFor="organizationName"
             className="block text-sm font-medium text-neutral-300 mb-2"
@@ -235,22 +148,10 @@ export default function SignupPage() {
               {t('common.loading')}
             </>
           ) : (
-            t('auth.signup')
+            t('auth.completeSetup')
           )}
         </button>
       </form>
-
-      <div className="mt-6 text-center">
-        <p className="text-sm text-neutral-400">
-          {t('auth.alreadyHaveAccount')}{' '}
-          <Link
-            href="/login"
-            className="text-rink-500 hover:text-rink-400 font-medium"
-          >
-            {t('auth.loginNow')}
-          </Link>
-        </p>
-      </div>
     </div>
   );
 }

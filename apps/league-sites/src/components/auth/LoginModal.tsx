@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { signInWithPassword, resetPassword } from '@/lib/supabase/auth';
+import { OAuthProviderButton } from './OAuthProviderButton';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -180,6 +181,30 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onSuccess }: LoginM
               <p className="text-[var(--color-text-secondary)] mb-6">
                 Sign in to access your dashboard
               </p>
+
+              {/* OAuth Providers */}
+              <div className="space-y-3">
+                <OAuthProviderButton
+                  provider="google"
+                  label="Continue with Google"
+                />
+                <OAuthProviderButton
+                  provider="apple"
+                  label="Continue with Apple"
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="relative my-5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[var(--color-border)]" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-[var(--color-background-elevated)] px-3 text-[var(--color-text-muted)]">
+                    or continue with email
+                  </span>
+                </div>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (

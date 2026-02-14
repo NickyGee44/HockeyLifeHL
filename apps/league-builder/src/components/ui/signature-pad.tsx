@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRef, useEffect, useCallback, useState } from 'react';
+import Image from 'next/image';
 import SignaturePadLib from 'signature_pad';
 import { RotateCcw, Check, Type, Pen } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
@@ -291,10 +292,13 @@ export function SignaturePad({
             className="inline-block rounded-lg overflow-hidden border border-rink-500/30"
             style={{ backgroundColor }}
           >
-            <img
+            <Image
               src={value}
               alt="Signature preview"
               className="max-w-[200px] h-auto"
+              width={200}
+              height={100}
+              unoptimized
             />
           </div>
         </div>

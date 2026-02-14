@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -13,9 +12,7 @@ export interface UseRegistrationFormOptions {
   mode?: 'onChange' | 'onBlur' | 'onSubmit' | 'onTouched' | 'all';
 }
 
-export interface UseRegistrationFormReturn extends UseFormReturn<RegistrationFormData> {
-  // Add any custom methods here if needed
-}
+export type UseRegistrationFormReturn = UseFormReturn<RegistrationFormData>;
 
 /**
  * Custom hook for managing the player registration wizard form

@@ -33,6 +33,7 @@ export default function AlbumDetailScreen() {
         source={{ uri: item.thumbnail_url || item.url }}
         style={{ width: thumbSize, height: thumbSize, borderRadius: 4 }}
         contentFit="cover"
+        alt="Gallery photo"
       />
     </Pressable>
   );

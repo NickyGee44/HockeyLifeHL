@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -66,10 +67,12 @@ export function TeamRequestCard({
           <div className="flex items-center gap-3">
             {/* Team Logo/Avatar */}
             {request.team_logo_url ? (
-              <img
+              <Image
                 src={request.team_logo_url}
                 alt={request.team_name}
                 className="w-12 h-12 rounded-xl object-cover"
+                width={48}
+                height={48}
               />
             ) : (
               <div

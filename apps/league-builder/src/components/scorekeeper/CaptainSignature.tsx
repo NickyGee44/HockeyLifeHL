@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import type { Team, Player, GameSubmission } from '@/lib/scorekeeper';
@@ -266,10 +267,13 @@ export function CaptainSignature({
         <div className="space-y-2">
           {existingSignature && (
             <div className="bg-neutral-950 rounded-xl p-4 border border-neutral-800">
-              <img
+              <Image
                 src={existingSignature}
                 alt="Captain signature"
                 className="max-h-24 mx-auto"
+                width={200}
+                height={96}
+                unoptimized
               />
             </div>
           )}

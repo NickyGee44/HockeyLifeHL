@@ -935,10 +935,9 @@ export async function getWeekGames(
 
   // Apply optional filters
   if (filters?.day) {
-    const dayStart = new Date(filters.day);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(filters.day);
-    dayEnd.setHours(23, 59, 59, 999);
+    // Parse with T00:00:00 local time to avoid UTC midnight shifting to previous day
+    const dayStart = new Date(filters.day + 'T00:00:00');
+    const dayEnd = new Date(filters.day + 'T23:59:59.999');
     query = query.gte('scheduled_at', dayStart.toISOString()).lte('scheduled_at', dayEnd.toISOString());
   }
 

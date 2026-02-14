@@ -100,6 +100,7 @@ function ZoomableImage({ uri, caption }: { uri: string; caption: string | null }
           source={{ uri }}
           style={styles.fullImage}
           contentFit="contain"
+          alt="Full size gallery photo"
         />
       </Animated.View>
     </GestureDetector>

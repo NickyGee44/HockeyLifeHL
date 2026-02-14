@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
 import { Trophy } from 'lucide-react';
 
@@ -101,12 +102,14 @@ export function LeagueLogo({
     return (
       <div className={containerClasses} style={containerStyle}>
         <div className="absolute inset-0 bg-neutral-800/50" />
-        <img
+        <Image
           src={logoUrl}
           alt={leagueName ? `${leagueName} logo` : 'League logo'}
           className="relative w-full h-full object-contain p-1"
           onError={() => setImageError(true)}
           loading="lazy"
+          fill
+          sizes={`${dimension}px`}
         />
       </div>
     );

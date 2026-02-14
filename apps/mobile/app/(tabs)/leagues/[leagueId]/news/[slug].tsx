@@ -33,6 +33,7 @@ export default function NewsArticleScreen() {
           source={{ uri: article.image_url }}
           style={{ width: '100%', aspectRatio: 2 }}
           contentFit="cover"
+          alt={article.title || 'News article image'}
         />
       )}
 

@@ -15,6 +15,10 @@ const eslintConfig = defineConfig([
     // Ignore .next folders in apps
     "apps/**/.next/**",
     "**/node_modules/**",
+    // Generated PWA service worker files (player-companion)
+    "apps/player-companion/public/sw.js",
+    "apps/player-companion/public/swe-worker-*.js",
+    "apps/player-companion/public/workbox-*.js",
   ]),
   // Custom rule overrides - downgrade some strict rules to warnings
   {
@@ -24,7 +28,7 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/ban-ts-comment": "warn",
       "@typescript-eslint/no-empty-object-type": "warn",
-      "@next/next/no-html-link-for-pages": "warn",
+      "@next/next/no-html-link-for-pages": "off",
       "@next/next/no-img-element": "warn",
     },
   },

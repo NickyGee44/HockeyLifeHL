@@ -42,11 +42,13 @@ export async function generateMetadata({
 /**
  * Group games by their scheduled date (YYYY-MM-DD key).
  * Returns a Map with date keys in chronological order.
+ * Uses date-fns format() to get the local date, avoiding UTC shifts
+ * (e.g. a 9 PM EST game becoming the next day in UTC).
  */
 function groupGamesByDate(games: ScheduleGame[]): Map<string, ScheduleGame[]> {
   const grouped = new Map<string, ScheduleGame[]>();
   for (const game of games) {
-    const dateKey = new Date(game.scheduled_at).toISOString().split('T')[0];
+    const dateKey = format(new Date(game.scheduled_at), 'yyyy-MM-dd');
     if (!grouped.has(dateKey)) grouped.set(dateKey, []);
     grouped.get(dateKey)!.push(game);
   }
@@ -70,7 +72,8 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   if (!league) notFound();
 
   // Parse week or default to current week
-  const weekStart = week ? new Date(week) : getStartOfWeek(new Date());
+  // Use parseDateString to avoid UTC midnight → local time day shift
+  const weekStart = week ? parseDateString(week) : getStartOfWeek(new Date());
 
   // Fetch all data in parallel
   const [seasons, venues, teams, games, gameCounts] = await Promise.all([
@@ -197,12 +200,21 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
 }
 
 // Helper functions
+
+/**
+ * Parse a YYYY-MM-DD string into a Date at local noon to avoid timezone
+ * boundary issues (midnight UTC can shift to the previous day in local time).
+ */
+function parseDateString(dateStr: string): Date {
+  return new Date(dateStr + 'T12:00:00');
+}
+
 function getStartOfWeek(date: Date): Date {
   const d = new Date(date);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
   d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
+  d.setHours(12, 0, 0, 0);
   return d;
 }
 
@@ -213,7 +225,7 @@ function buildWeekDays(weekStart: Date, counts: Record<string, number>): WeekPic
   for (let i = 0; i < 7; i++) {
     const date = new Date(weekStart);
     date.setDate(date.getDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = format(date, 'yyyy-MM-dd');
 
     days.push({
       date: dateStr,

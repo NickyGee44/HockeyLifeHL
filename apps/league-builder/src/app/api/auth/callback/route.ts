@@ -61,6 +61,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/en/reset-password', request.url));
     }
 
+    // For OAuth users, check if they need to complete org setup
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const isOAuthUser = user.app_metadata?.providers?.some(
+        (p: string) => p === 'google' || p === 'apple'
+      );
+
+      if (isOAuthUser) {
+        // Check if user owns or belongs to any organization
+        const { data: ownedOrgs } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('owner_user_id', user.id)
+          .limit(1);
+
+        const { data: memberships } = await supabase
+          .from('organization_members')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+
+        const hasOrg = (ownedOrgs && ownedOrgs.length > 0) || (memberships && memberships.length > 0);
+
+        if (!hasOrg) {
+          return NextResponse.redirect(new URL('/en/setup-organization', request.url));
+        }
+      }
+    }
+
     return NextResponse.redirect(new URL(next, request.url));
   }
 

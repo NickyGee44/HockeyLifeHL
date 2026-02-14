@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useCallback, useState, useRef } from 'react';
+import Image from 'next/image';
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import { Upload, X, Camera, Loader2, Check } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
@@ -222,6 +223,7 @@ export function PhotoUploader({
               circularCrop
               className="max-h-[400px]"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 ref={imgRef}
                 src={previewSrc}
@@ -282,11 +284,13 @@ export function PhotoUploader({
       {/* Photo Preview or Upload Area */}
       {value ? (
         <div className="relative inline-block">
-          <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-rink-500/50 bg-neutral-800">
-            <img
+          <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-rink-500/50 bg-neutral-800">
+            <Image
               src={value}
               alt="Profile photo"
               className="w-full h-full object-cover"
+              fill
+              sizes="128px"
             />
           </div>
 

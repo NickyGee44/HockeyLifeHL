@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { cn } from '@hockey-life/ui';
-import { Upload, X, Image, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 
 interface LogoUploaderProps {
   currentLogo?: string | null;
@@ -211,7 +211,7 @@ export function LogoUploader({
                 {isDragging ? (
                   <Upload className="w-8 h-8" style={{ color: primaryColor }} />
                 ) : (
-                  <Image className="w-8 h-8" style={{ color: primaryColor }} />
+                  <ImageIcon className="w-8 h-8" style={{ color: primaryColor }} />
                 )}
               </div>
               <div>
