@@ -17,7 +17,7 @@
  */
 
 import { setRequestLocale } from 'next-intl/server';
-import { redirect } from 'next/navigation';
+import { redirect } from '@/i18n/navigation';
 import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
 import { getOrgAddons } from '@/lib/actions/addons';
 import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
@@ -39,7 +39,7 @@ export default async function SubscriptionPage({ params, searchParams }: Props) 
   // Get authenticated user
   const userData = await getCurrentUser();
   if (!userData) {
-    redirect('/login');
+    redirect({ href: '/login', locale });
     return null;
   }
 
@@ -48,7 +48,7 @@ export default async function SubscriptionPage({ params, searchParams }: Props) 
   const organization = organizations[0];
 
   if (!organization) {
-    redirect('/dashboard');
+    redirect({ href: '/dashboard', locale });
     return null;
   }
 

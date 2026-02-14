@@ -42,7 +42,7 @@ export default async function LeagueBillingPage({ params, searchParams }: Props)
   // Get league details
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
-    .select('id, name, stripe_account_id, stripe_account_status')
+    .select('id, name, stripe_account_id, stripe_account_status, created_by')
     .eq('id', leagueId)
     .single();
 
@@ -60,7 +60,7 @@ export default async function LeagueBillingPage({ params, searchParams }: Props)
 
   if (membershipError || !membership) {
     // Check if they created the league (owner via leagues.created_by)
-    if (league && (league as any).created_by !== user.id) {
+    if (league && league.created_by !== user.id) {
       nextRedirect(`/${locale}/dashboard?error=unauthorized`);
     }
   } else {
