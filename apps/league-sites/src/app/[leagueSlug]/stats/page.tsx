@@ -29,9 +29,9 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
 
   // Fetch different stat categories in parallel, with division filter
   const [pointsLeaders, goalsLeaders, assistsLeaders, specialTeamsLeaders] = await Promise.all([
-    getStatsLeaders(league.id, 'points', 10, divisionFilter),
-    getStatsLeaders(league.id, 'goals', 10, divisionFilter),
-    getStatsLeaders(league.id, 'assists', 10, divisionFilter),
+    getStatsLeaders(league.id, 'points', 50, divisionFilter),
+    getStatsLeaders(league.id, 'goals', 50, divisionFilter),
+    getStatsLeaders(league.id, 'assists', 50, divisionFilter),
     getSpecialTeamsLeaders(league.id, season?.id, divisionFilter),
   ]);
 

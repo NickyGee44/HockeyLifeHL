@@ -25,6 +25,7 @@ export function StatsLeadersTabs({
 }: StatsLeadersTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('points');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
   const tabs = [
     { id: 'points' as TabType, label: 'Points', icon: Trophy, data: pointsLeaders },
@@ -36,13 +37,17 @@ export function StatsLeadersTabs({
 
   // Filter data based on search term
   const normalizedSearch = searchTerm.toLowerCase().trim();
-  const filteredData = normalizedSearch
+  const isSearching = normalizedSearch.length > 0;
+  const filteredData = isSearching
     ? activeData.filter(
         (player) =>
           player.player_name.toLowerCase().includes(normalizedSearch) ||
           player.team_name.toLowerCase().includes(normalizedSearch)
       )
-    : activeData;
+    : showAll
+      ? activeData
+      : activeData.slice(0, 10);
+  const hasMorePlayers = !isSearching && activeData.length > 10;
 
   return (
     <div>
@@ -114,7 +119,7 @@ export function StatsLeadersTabs({
               {filteredData.map((player, index) => {
                 // Find original rank
                 const originalRank = activeData.findIndex((p) => p.player_id === player.player_id);
-                const isHighlighted = normalizedSearch && (
+                const isHighlighted = isSearching && (
                   player.player_name.toLowerCase().includes(normalizedSearch) ||
                   player.team_name.toLowerCase().includes(normalizedSearch)
                 );
@@ -193,7 +198,7 @@ export function StatsLeadersTabs({
               })}
             </tbody>
           </table>
-        ) : searchTerm ? (
+        ) : isSearching ? (
           <div className="p-12 text-center">
             <Search className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-3" />
             <p className="text-[var(--color-text-secondary)]">
@@ -208,6 +213,16 @@ export function StatsLeadersTabs({
           </div>
         )}
       </div>
+
+      {/* Show All / Show Less toggle */}
+      {hasMorePlayers && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-colors bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)]"
+        >
+          {showAll ? 'Show Top 10' : `Show All ${activeData.length} Players`}
+        </button>
+      )}
     </div>
   );
 }
