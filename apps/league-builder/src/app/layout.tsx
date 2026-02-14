@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Analytics } from '@vercel/analytics/next';
+import { CookieConsentBanner, ConditionalAnalytics } from '@/components/cookie-consent';
 import './globals.css';
 
 export const viewport: Viewport = {
@@ -33,7 +33,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-neutral-950 text-white antialiased">
         {children}
-        <Analytics />
+        <ConditionalAnalytics />
+        <CookieConsentBanner />
       </body>
     </html>
   );

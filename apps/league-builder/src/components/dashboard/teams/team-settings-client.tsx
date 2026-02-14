@@ -26,6 +26,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface Team {
   id: string;
@@ -115,13 +116,16 @@ export default function TeamSettingsClient({
 
       if (result.error) {
         setError(result.error);
+        toast.error(result.error);
         return;
       }
 
       setSuccess('Team settings saved successfully');
+      toast.success('Team settings saved successfully');
       router.refresh();
     } catch (err) {
       setError('An unexpected error occurred');
+      toast.error('An unexpected error occurred');
     } finally {
       setIsSaving(false);
     }
@@ -149,13 +153,17 @@ export default function TeamSettingsClient({
 
       if (result.error) {
         setError(result.error);
+        toast.error(result.error);
         setShowDeleteDialog(false);
         return;
       }
 
-      router.push('/dashboard/teams');
+      toast.success(`${team.name} has been deleted`);
+      router.push(`/dashboard/leagues/${team.league_id}/teams`);
+      router.refresh();
     } catch (err) {
       setError('An unexpected error occurred');
+      toast.error('An unexpected error occurred');
       setShowDeleteDialog(false);
     } finally {
       setIsDeleting(false);

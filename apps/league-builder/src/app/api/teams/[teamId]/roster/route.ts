@@ -77,6 +77,13 @@ export async function POST(
 ) {
   const { teamId } = await params;
 
+  // Verify user is authenticated
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { playerId, seasonId, jerseyNumber, position, leadershipRole } = body;

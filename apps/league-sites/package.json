@@ -12,6 +12,7 @@
   "dependencies": {
     "@hockey-life/database": "workspace:*",
     "@hockey-life/ui": "workspace:*",
+    "@sentry/nextjs": "^10.38.0",
     "@stripe/react-stripe-js": "^3.2.0",
     "@stripe/stripe-js": "^8.7.0",
     "@supabase/ssr": "^0.8.0",

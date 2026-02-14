@@ -19,6 +19,7 @@ import { PenaltyEntryModal } from '@/components/scorekeeper/PenaltyEntryModal';
 import { SaveEntryModal } from '@/components/scorekeeper/SaveEntryModal';
 import { ShotEntryModal } from '@/components/scorekeeper/ShotEntryModal';
 import { GameSummaryModal } from '@/components/scorekeeper/GameSummaryModal';
+import { usePeriodTimer } from '@/components/scorekeeper/usePeriodTimer';
 
 type EntryMode = 'idle' | 'goal' | 'penalty' | 'save' | 'shot' | 'summary';
 type TeamSelection = 'home' | 'away' | null;
@@ -41,6 +42,25 @@ export default function ScorekeeperGamePage() {
   const [entryMode, setEntryMode] = useState<EntryMode>('idle');
   const [selectedTeam, setSelectedTeam] = useState<TeamSelection>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timerPeriodEnded, setTimerPeriodEnded] = useState(false);
+
+  // Period timer
+  const periodLengthMinutes = game?.periodLengthMinutes ?? 20;
+  const timer = usePeriodTimer({
+    periodLengthMinutes,
+    onPeriodEnd: () => {
+      setTimerPeriodEnded(true);
+    },
+  });
+
+  // Reset timer when game data loads and period length is determined
+  const [timerInitialized, setTimerInitialized] = useState(false);
+  useEffect(() => {
+    if (game && !timerInitialized) {
+      timer.reset();
+      setTimerInitialized(true);
+    }
+  }, [game, timerInitialized, timer]);
 
   // Load game data
   const loadGameData = useCallback(async () => {
@@ -356,12 +376,97 @@ export default function ScorekeeperGamePage() {
         </div>
       </div>
 
+      {/* Period Timer */}
+      <div className="bg-neutral-900 border-b border-neutral-800 px-4 py-4">
+        <div className="max-w-lg mx-auto">
+          {/* Timer Display */}
+          <div className="text-center mb-3">
+            <div
+              className={`text-5xl font-mono font-bold tracking-wider transition-colors duration-300
+                ${timer.isRunning ? 'animate-pulse' : ''}
+                ${timer.timerColorClass}
+              `}
+            >
+              {timer.displayTime}
+            </div>
+            <div className="text-xs text-neutral-500 mt-1 uppercase tracking-widest">
+              Period {currentPeriod}{timer.isRunning ? ' — Running' : ''}
+              {timerPeriodEnded ? ' — Ended' : ''}
+            </div>
+          </div>
+
+          {/* Timer Controls */}
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                timer.toggle();
+                setTimerPeriodEnded(false);
+              }}
+              disabled={timerPeriodEnded}
+              className={`flex-1 max-w-[140px] py-3 px-5 rounded-xl text-sm font-bold uppercase tracking-wider
+                touch-manipulation min-h-[48px] transition-all duration-200
+                ${timerPeriodEnded
+                  ? 'bg-neutral-800/60 text-neutral-500 cursor-not-allowed opacity-40'
+                  : timer.isRunning
+                    ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25'
+                    : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
+                }
+              `}
+            >
+              {timer.isRunning ? 'Stop' : 'Start'}
+            </button>
+
+            <button
+              onClick={() => {
+                timer.reset();
+                setTimerPeriodEnded(false);
+              }}
+              disabled={timer.isRunning}
+              className={`flex-1 max-w-[140px] py-3 px-5 rounded-xl text-sm font-bold uppercase tracking-wider
+                touch-manipulation min-h-[48px] transition-all duration-200
+                bg-neutral-800/60 text-neutral-300 border border-neutral-700/50
+                ${timer.isRunning
+                  ? 'opacity-40 cursor-not-allowed'
+                  : 'hover:bg-neutral-800 hover:text-white'
+                }
+              `}
+            >
+              Reset
+            </button>
+
+            <button
+              onClick={() => {
+                timer.stop();
+                if (currentPeriod < game.periodCount) {
+                  const nextPeriod = currentPeriod + 1;
+                  setCurrentPeriod(nextPeriod);
+                  timer.reset();
+                  setTimerPeriodEnded(false);
+                } else {
+                  setTimerPeriodEnded(true);
+                }
+              }}
+              className={`flex-1 max-w-[160px] py-3 px-5 rounded-xl text-sm font-bold uppercase tracking-wider
+                touch-manipulation min-h-[48px] transition-all duration-200
+                bg-rink-500/15 text-rink-400 border border-rink-500/30 hover:bg-rink-500/25
+              `}
+            >
+              {currentPeriod >= game.periodCount ? 'End Game' : 'End Period'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Period Tabs */}
       <div className="flex border-b border-neutral-800 sticky top-[57px] z-30 bg-neutral-950">
         {Array.from({ length: game.periodCount }, (_, i) => i + 1).map((period) => (
           <button
             key={period}
-            onClick={() => setCurrentPeriod(period)}
+            onClick={() => {
+              setCurrentPeriod(period);
+              timer.reset();
+              setTimerPeriodEnded(false);
+            }}
             className={`flex-1 py-4 text-base font-semibold transition-all duration-200 touch-manipulation min-h-[56px]
               ${currentPeriod === period
                 ? 'bg-rink-500/10 text-rink-400 border-b-2 border-rink-500'

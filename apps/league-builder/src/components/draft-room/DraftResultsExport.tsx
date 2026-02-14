@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
-import { Download, FileText, Table, Loader2 } from 'lucide-react';
+import { FileText, Table, Loader2 } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import type { DraftResults, DraftPick, DraftTeam } from './types';
 
@@ -22,16 +22,17 @@ const escapeCSV = (value: string | number | null | undefined): string => {
   return str;
 };
 
-export function DraftResultsExport({ draftId, supabase: supabaseProp }: DraftResultsExportProps) {
+export function DraftResultsExport({ draftId, picks, teams, supabase: supabaseProp }: DraftResultsExportProps) {
   const [fallbackClient] = useState(() => supabaseProp ? null : createClient());
   const supabase = supabaseProp ?? fallbackClient!;
   const [isExporting, setIsExporting] = useState<'csv' | 'pdf' | null>(null);
 
-  const exportToCSV = async () => {
-    setIsExporting('csv');
+  /**
+   * Attempt to fetch full results from the RPC. If it fails, fall back
+   * to the picks/teams props that are already loaded in memory.
+   */
+  const fetchResults = async (): Promise<DraftResults> => {
     try {
-      // Fetch full draft results
-      // Note: get_draft_results RPC is defined in migrations but not in generated types yet
       const { data, error } = await (supabase.rpc as any)('get_draft_results', {
         p_draft_id: draftId,
       });
@@ -39,7 +40,52 @@ export function DraftResultsExport({ draftId, supabase: supabaseProp }: DraftRes
       if (error) throw error;
 
       const results = data as DraftResults;
-      if (!results?.picks) throw new Error('Failed to get draft results');
+      if (!results?.picks) throw new Error('RPC returned no picks');
+
+      return results;
+    } catch {
+      // Fallback: build DraftResults from the picks/teams props
+      if (!picks || picks.length === 0) {
+        throw new Error('No draft results available to export');
+      }
+
+      const teamMap = new Map((teams ?? []).map((t) => [t.id, t.name]));
+
+      return {
+        draft: {
+          id: draftId,
+          name: 'Draft Results',
+          status: 'complete',
+          draft_type: 'snake',
+          total_rounds: Math.max(...picks.map((p) => p.round), 1),
+          started_at: null,
+          completed_at: picks[picks.length - 1]?.created_at ?? null,
+        },
+        picks: picks.map((p) => ({
+          pick_number: p.pick_number,
+          round: p.round,
+          team_name: p.team_name ?? teamMap.get(p.team_id) ?? 'Unknown Team',
+          player_name: p.player_name ?? 'Unknown',
+          position: null,
+          skill_level: null,
+          auto_picked: p.auto_picked ?? false,
+          pick_time_ms: p.pick_time_ms ?? null,
+        })),
+        teams: (teams ?? []).map((t) => ({
+          team_id: t.id,
+          team_name: t.name,
+          total_picks: picks.filter((p) => p.team_id === t.id).length,
+          roster_confirmed: false,
+        })),
+        trades: null,
+      };
+    }
+  };
+
+  const exportToCSV = async () => {
+    setIsExporting('csv');
+    try {
+      const results = await fetchResults();
 
       // Create CSV content
       const headers = [
@@ -75,7 +121,7 @@ export function DraftResultsExport({ draftId, supabase: supabaseProp }: DraftRes
         ...rows.map((row) => row.map(escapeCSV).join(',')),
       ].join('\n');
 
-      // Download
+      // Download via Blob + anchor click
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -88,6 +134,7 @@ export function DraftResultsExport({ draftId, supabase: supabaseProp }: DraftRes
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error exporting CSV:', err);
     } finally {
@@ -98,16 +145,7 @@ export function DraftResultsExport({ draftId, supabase: supabaseProp }: DraftRes
   const exportToPDF = async () => {
     setIsExporting('pdf');
     try {
-      // Fetch full draft results
-      // Note: get_draft_results RPC is defined in migrations but not in generated types yet
-      const { data, error } = await (supabase.rpc as any)('get_draft_results', {
-        p_draft_id: draftId,
-      });
-
-      if (error) throw error;
-
-      const results = data as DraftResults;
-      if (!results?.picks) throw new Error('Failed to get draft results');
+      const results = await fetchResults();
 
       // Create printable HTML content
       const htmlContent = `

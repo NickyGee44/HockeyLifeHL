@@ -63,13 +63,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// CORS preflight - restricted to same-origin only
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
-}
+// No OPTIONS/CORS handler - this endpoint is same-origin only.
+// Cross-origin requests will be blocked by the browser's same-origin policy.

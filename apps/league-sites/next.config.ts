@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
   // Enable experimental features for multi-tenant subdomain routing
@@ -34,4 +35,18 @@ const nextConfig: NextConfig = {
   // Others will be generated on-demand with 60s revalidation
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+
+  silent: !process.env.CI,
+
+  // Tunnel Sentry events through the app to avoid ad blockers
+  tunnelRoute: '/monitoring',
+
+  telemetry: false,
+});

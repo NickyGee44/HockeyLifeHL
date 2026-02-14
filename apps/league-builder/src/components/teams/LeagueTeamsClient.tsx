@@ -33,6 +33,7 @@ import {
 import { PendingTeamsTab } from './PendingTeamsTab';
 import { getPendingTeamRegistrationRequestsCount } from '@/lib/actions/team-registration-requests';
 import { deleteTeam } from '@/lib/actions/teams';
+import { toast } from 'sonner';
 
 interface Team {
   id: string;
@@ -297,12 +298,15 @@ export function LeagueTeamsClient({
                   const result = await deleteTeam(teamToDelete.id);
                   if ('error' in result && result.error) {
                     setDeleteError(result.error);
+                    toast.error(result.error);
                   } else {
+                    toast.success(`${teamToDelete.name} has been deleted`);
                     setTeamToDelete(null);
                     router.refresh();
                   }
                 } catch {
                   setDeleteError('An unexpected error occurred');
+                  toast.error('An unexpected error occurred');
                 } finally {
                   setIsDeleting(false);
                 }

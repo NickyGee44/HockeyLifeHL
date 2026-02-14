@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Trophy,
-  Download,
   X,
   Users,
   Clock,
   Zap,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { DraftResultsExport } from './DraftResultsExport';
 import type { DraftCompleteModalProps } from './types';
 
 // Confetti particle type
@@ -248,13 +248,11 @@ export function DraftCompleteModal({
             >
               {t('close')}
             </button>
-            <button
-              onClick={onClose}
-              className="flex items-center gap-2 rounded-lg bg-rink-500 px-6 py-2 font-semibold text-black transition-all hover:bg-rink-600 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]"
-            >
-              <Download className="h-4 w-4" />
-              {t('viewFullResults')}
-            </button>
+            <DraftResultsExport
+              draftId={draft.id}
+              picks={picks}
+              teams={teams}
+            />
           </div>
         </div>
       </div>

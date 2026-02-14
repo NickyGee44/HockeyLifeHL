@@ -454,12 +454,53 @@ export function DraftRoom({
 
   // Handle timeout (auto-pick)
   const handleTimeout = useCallback(async () => {
+    // Only the team whose turn it is should trigger auto-pick
     if (!isMyPick || !draft?.auto_pick_enabled) return;
 
-    // Auto-pick will be handled by the server/cron job
-    // Just refresh the state
-    fetchDraftData();
-  }, [isMyPick, draft?.auto_pick_enabled, fetchDraftData]);
+    // Guard against concurrent auto-pick attempts
+    if (isSubmitting) return;
+
+    // Find the best available player: prefer auto_pick_rank (lowest first), then first in list
+    const sortedPlayers = [...players].sort((a, b) => {
+      // Players with auto_pick_rank come first, sorted ascending
+      if (a.auto_pick_rank != null && b.auto_pick_rank != null) {
+        return a.auto_pick_rank - b.auto_pick_rank;
+      }
+      if (a.auto_pick_rank != null) return -1;
+      if (b.auto_pick_rank != null) return 1;
+      // Fallback: alphabetical by name
+      return a.player_name.localeCompare(b.player_name);
+    });
+
+    const bestPlayer = sortedPlayers[0];
+    if (!bestPlayer) {
+      // No players left; refresh state
+      fetchDraftData();
+      return;
+    }
+
+    const currentTeamName =
+      teams.find((tm) => tm.id === draft.current_team_id)?.name || 'Unknown Team';
+
+    try {
+      const { data, error: pickError } = await supabase.rpc('make_draft_pick', {
+        p_draft_id: draftId,
+        p_player_id: bestPlayer.player_id,
+      });
+
+      if (pickError) throw pickError;
+
+      const result = data as unknown as { success?: boolean; error?: string } | null;
+      if (!result?.success) throw new Error(result?.error || 'Auto-pick failed');
+
+      toast.info(`Auto-picked ${bestPlayer.player_name} for ${currentTeamName}`);
+    } catch (err) {
+      console.error('Auto-pick error:', err);
+      toast.error('Auto-pick failed. Refreshing draft state...');
+      // Fallback: refresh full state so the draft doesn't stall
+      fetchDraftData();
+    }
+  }, [isMyPick, draft?.auto_pick_enabled, draft?.current_team_id, players, teams, draftId, supabase, isSubmitting, fetchDraftData]);
 
   // Send chat message
   const handleSendMessage = async (message: string) => {
