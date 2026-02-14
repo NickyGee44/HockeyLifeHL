@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { loadConnectAndInitialize, StripeConnectInstance } from '@stripe/connect-js';
 import { createConnectAccountSession } from '@/lib/actions/stripe-connect-payments';
@@ -30,13 +30,16 @@ interface ConnectProviderProps {
 
 export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
   const t = useTranslations('stripe');
+  const tRef = useRef(t);
+  tRef.current = t;
+
   const [stripeConnectInstance, setStripeConnectInstance] = useState<StripeConnectInstance | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const initializeConnect = useCallback(async () => {
     if (!leagueId) {
-      setError(t('leagueIdRequired'));
+      setError(tRef.current('leagueIdRequired'));
       setIsLoading(false);
       return;
     }
@@ -56,7 +59,7 @@ export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
 
       const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
       if (!publishableKey) {
-        setError(t('publishableKeyNotConfigured'));
+        setError(tRef.current('publishableKeyNotConfigured'));
         setIsLoading(false);
         return;
       }
@@ -84,21 +87,26 @@ export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
       setIsLoading(false);
     } catch (err) {
       console.error('[ConnectProvider] Initialization error:', err);
-      setError(err instanceof Error ? err.message : t('failedInitialize'));
+      setError(err instanceof Error ? err.message : tRef.current('failedInitialize'));
       setIsLoading(false);
     }
-  }, [leagueId, t]);
+  }, [leagueId]);
 
   useEffect(() => {
-    initializeConnect(); // eslint-disable-line -- Stripe Connect initialization on mount
+    initializeConnect();
   }, [initializeConnect]);
 
   const refresh = useCallback(async () => {
     await initializeConnect();
   }, [initializeConnect]);
 
+  const contextValue = useMemo(
+    () => ({ stripeConnectInstance, isLoading, error, refresh }),
+    [stripeConnectInstance, isLoading, error, refresh]
+  );
+
   return (
-    <ConnectContext.Provider value={{ stripeConnectInstance, isLoading, error, refresh }}>
+    <ConnectContext.Provider value={contextValue}>
       {children}
     </ConnectContext.Provider>
   );

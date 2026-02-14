@@ -7,9 +7,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { DollarSign, CreditCard, Wallet, Settings, Percent, AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { DollarSign, CreditCard, Wallet, Percent, AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -84,7 +84,7 @@ export function EmbeddedBillingDashboard({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
 
     const accountResult = await getConnectAccountStatus(leagueId);
@@ -107,11 +107,11 @@ export function EmbeddedBillingDashboard({
     }
 
     setLoading(false);
-  }
+  }, [leagueId, t]);
 
   useEffect(() => {
-    loadData(); // eslint-disable-line -- data-fetching on mount and leagueId change
-  }, [leagueId]);
+    loadData();
+  }, [loadData]);
 
   const [creatingAccount, setCreatingAccount] = useState(false);
 
