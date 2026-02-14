@@ -343,7 +343,6 @@ interface GameSignatureVerificationProps {
  * Collects signatures from both team captains before final submission
  */
 export function GameSignatureVerification({
-  gameId,
   homeTeam,
   awayTeam,
   homeCaptain,

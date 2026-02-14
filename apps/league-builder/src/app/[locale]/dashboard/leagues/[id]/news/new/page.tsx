@@ -6,6 +6,8 @@ import { createNewsArticle } from '@/lib/actions/news';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Save } from 'lucide-react';
+import { LogoUploader } from '@/components/ui/logo-uploader';
+import { uploadNewsImage, deleteNewsImage } from '@/lib/actions/image-upload';
 
 export default function NewNewsArticlePage() {
   const router = useRouter();
@@ -153,18 +155,30 @@ export default function NewNewsArticlePage() {
               />
             </div>
 
-            {/* Image URL */}
+            {/* Featured Image */}
             <div>
-              <label htmlFor="imageUrl" className="block text-sm font-medium text-neutral-300 mb-2">
-                Image URL
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Featured Image
               </label>
-              <input
-                id="imageUrl"
-                type="url"
+              <LogoUploader
                 value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                className="w-full px-4 py-3 bg-neutral-900 border border-white/10 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-rink-500"
+                onChange={(url) => setImageUrl(url)}
+                onUpload={async (file) => {
+                  const result = await uploadNewsImage(leagueId, file);
+                  if (!result.success) throw new Error(result.error);
+                  return result.data;
+                }}
+                onRemove={async () => {
+                  if (imageUrl) {
+                    await deleteNewsImage(leagueId, imageUrl);
+                    setImageUrl('');
+                  }
+                }}
+                aspectRatio={16 / 9}
+                outputSize={1200}
+                maxSizeBytes={5 * 1024 * 1024}
+                placeholder="Upload Featured Image"
+                shape="square"
               />
             </div>
           </div>

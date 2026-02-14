@@ -1,6 +1,5 @@
 'use client';
 
-import type { UseGameTimerOptions } from '@/hooks/useGameTimer';
 import { useGameTimer } from '@/hooks/useGameTimer';
 import { syncTimerState } from '@/lib/actions/scorekeeper';
 import { useCallback } from 'react';

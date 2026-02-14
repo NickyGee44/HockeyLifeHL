@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, TeamLogo, Avatar, Badge, Card, LoadingScreen, SectionHeader, EmptyState } from '@hockey-life/ui-native';
+import { Text, TeamLogo, Avatar, Badge, LoadingScreen, SectionHeader, EmptyState } from '@hockey-life/ui-native';
 import { useTeam, useTeamRoster, useCurrentSeason } from '@hockey-life/data';
 import { supabase } from '../../../../../src/lib/supabase/client';
 import type { Player } from '@hockey-life/data';

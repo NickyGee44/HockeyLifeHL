@@ -8,7 +8,6 @@ import {
   TrendingUp,
   ChevronRight,
   ArrowRight,
-  Newspaper,
   CalendarDays,
   Camera,
   Award,
@@ -43,7 +42,6 @@ import { HeroSection } from '@/components/HeroSection';
 import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import { EventCard } from '@/components/events/EventCard';
 import { AwardsShowcase } from '@/components/awards/AwardsShowcase';
-import { FeaturedNewsBanner } from '@/components/news/FeaturedNewsBanner';
 import { NewsHeadlines } from '@/components/news/NewsHeadlines';
 import { LeadersShowcase } from '@/components/LeadersShowcase';
 import { SocialLinks } from '@/components/SocialLinks';

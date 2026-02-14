@@ -4,10 +4,9 @@ import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { CreditCard, Shield, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
-import { cn } from '@hockey-life/ui/lib/utils';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useRegistrationContext } from '../registration-wizard-container';
-import { createRegistrationPaymentIntent, confirmRegistrationPayment } from '@/lib/actions/player-registration';
+import { createRegistrationPaymentIntent} from '@/lib/actions/player-registration';
 import type { RegistrationFormData } from '@/lib/schemas/player-registration';
 import type { StripeCardElementChangeEvent } from '@stripe/stripe-js';
 
@@ -16,8 +15,7 @@ export function Step6Payment() {
   const {
     watch,
     setValue,
-    formState: { errors },
-  } = useFormContext<RegistrationFormData>();
+    formState: {} } = useFormContext<RegistrationFormData>();
 
   const stripe = useStripe();
   const elements = useElements();
@@ -33,14 +31,14 @@ export function Step6Payment() {
   // Format amount for display
   const formattedAmount = new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'CAD',
-  }).format(registrationFee / 100);
+    currency: 'CAD' }).format(registrationFee / 100);
 
   // Create PaymentIntent on component mount
   React.useEffect(() => {
     if (!clientSecret && registrationFee > 0) {
       createPaymentIntent();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: create payment intent once; re-creating on fee/secret changes would duplicate Stripe intents
   }, []);
 
   const createPaymentIntent = async () => {
@@ -57,7 +55,7 @@ export function Step6Payment() {
       }
 
       setClientSecret(result.data?.clientSecret || null);
-    } catch (error) {
+    } catch {
       setPaymentError('Failed to initialize payment. Please refresh the page.');
     }
   };
@@ -98,9 +96,7 @@ export function Step6Payment() {
       // Confirm the payment with Stripe
       const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: cardElement,
-        },
-      });
+          card: cardElement } });
 
       if (error) {
         setPaymentError(error.message || 'Payment failed. Please try again.');
@@ -117,7 +113,7 @@ export function Step6Payment() {
       } else {
         setPaymentError('Payment was not successful. Please try again.');
       }
-    } catch (error) {
+    } catch {
       console.error('Payment error:', error);
       setPaymentError('Payment processing failed. Please try again.');
     } finally {
@@ -213,16 +209,11 @@ export function Step6Payment() {
                     fontSize: '16px',
                     color: '#f3f4f6',
                     '::placeholder': {
-                      color: '#9ca3af',
-                    },
-                  },
+                      color: '#9ca3af' } },
                   invalid: {
                     color: '#ef4444',
-                    iconColor: '#ef4444',
-                  },
-                },
-                hidePostalCode: false,
-              }}
+                    iconColor: '#ef4444' } },
+                hidePostalCode: false }}
               onChange={handleCardChange}
             />
           </div>

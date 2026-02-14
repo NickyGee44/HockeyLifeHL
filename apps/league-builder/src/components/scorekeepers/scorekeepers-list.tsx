@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState} from 'react';
 import { useTranslations } from 'next-intl';
-import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import type { LeagueScorekeeper } from '@/lib/actions/scorekeeper-management';
 import { ScorekeeperCard } from './scorekeeper-card';
@@ -30,8 +29,7 @@ export function ScorekeepersList({
   onRemove,
   onAssignGames,
   onRefresh,
-  isLoading,
-}: ScorekeepersListProps) {
+  isLoading }: ScorekeepersListProps) {
   const t = useTranslations('scorekeepers.list');
   const [searchQuery, setSearchQuery] = useState('');
 

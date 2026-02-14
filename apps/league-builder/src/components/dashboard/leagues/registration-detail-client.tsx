@@ -5,18 +5,14 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   User,
-  Mail,
-  Phone,
   AlertTriangle,
   Trophy,
   Target,
-  Hash,
   FileCheck,
   CreditCard,
   Check,
   X,
   Clock,
-  Calendar,
   Loader2,
 } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
@@ -102,7 +98,6 @@ interface RegistrationDetailClientProps {
 
 export function RegistrationDetailClient({
   registration,
-  leagueId,
   teams,
 }: RegistrationDetailClientProps) {
   const router = useRouter();

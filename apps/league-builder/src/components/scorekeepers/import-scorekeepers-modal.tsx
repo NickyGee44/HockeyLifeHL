@@ -90,7 +90,7 @@ export function ImportScorekepersModal({
         } else {
           setParsedData(parsed);
         }
-      } catch (err) {
+      } catch {
         setError(t('failedToParse'));
       }
     };

@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Camera, Info } from 'lucide-react';
 import { PhotoUploader } from '@/components/ui/photo-uploader';
-import { cn } from '@hockey-life/ui/lib/utils';
 import { uploadPlayerPhoto, deletePlayerPhoto } from '@/lib/actions/player-registration';
 import type { RegistrationFormData } from '@/lib/schemas/player-registration';
 

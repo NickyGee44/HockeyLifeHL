@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { cn } from '@hockey-life/ui';
-import { Upload, X, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 
 interface LogoUploaderProps {
   currentLogo?: string | null;
@@ -19,8 +19,7 @@ export function LogoUploader({
   primaryColor = '#22D3EE',
   onUpload,
   onRemove,
-  className,
-}: LogoUploaderProps) {
+  className }: LogoUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +57,7 @@ export function LogoUploader({
     return null;
   };
 
-  const processFile = async (file: File) => {
+  const processFile = useCallback(async (file: File) => {
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
@@ -82,13 +81,13 @@ export function LogoUploader({
         setError(result.error);
         setPreview(currentLogo || null);
       }
-    } catch (err) {
+    } catch {
       setError('Upload failed. Please try again.');
       setPreview(currentLogo || null);
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [onUpload, currentLogo]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -101,7 +100,7 @@ export function LogoUploader({
         processFile(files[0]);
       }
     },
-    [onUpload, currentLogo]
+    [processFile]
   );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

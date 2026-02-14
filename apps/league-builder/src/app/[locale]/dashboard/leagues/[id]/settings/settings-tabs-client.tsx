@@ -43,8 +43,6 @@ interface SettingsTabsClientProps {
 }
 
 export function SettingsTabsClient({
-  locale,
-  leagueId,
   leagueSettings,
   orgSettings,
   initialTab,

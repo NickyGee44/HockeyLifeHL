@@ -13,6 +13,8 @@ import {
   Save,
   ExternalLink,
 } from 'lucide-react';
+import { LogoUploader } from '@/components/ui/logo-uploader';
+import { uploadSponsorLogo, deleteSponsorLogo } from '@/lib/actions/image-upload';
 
 interface Sponsor {
   id: string;
@@ -236,14 +238,23 @@ export function SponsorsClient({ leagueId, initialSponsors }: SponsorsClientProp
 
               <div>
                 <label className="block text-sm font-medium text-neutral-300 mb-1.5">
-                  Logo URL
+                  Sponsor Logo
                 </label>
-                <input
-                  type="url"
+                <LogoUploader
                   value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://example.com/logo.png"
-                  className="w-full px-4 py-2.5 bg-neutral-900 border border-white/10 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500/50"
+                  onChange={(url) => setLogoUrl(url)}
+                  onUpload={async (file) => {
+                    const result = await uploadSponsorLogo(leagueId, file);
+                    if (!result.success) throw new Error(result.error);
+                    return result.data;
+                  }}
+                  onRemove={async () => {
+                    if (logoUrl) {
+                      await deleteSponsorLogo(leagueId, logoUrl);
+                      setLogoUrl('');
+                    }
+                  }}
+                  placeholder="Upload Logo"
                 />
               </div>
 

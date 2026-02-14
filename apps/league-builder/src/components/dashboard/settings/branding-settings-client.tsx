@@ -13,8 +13,7 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  Trophy,
-} from 'lucide-react';
+  Trophy } from 'lucide-react';
 
 interface League {
   id: string;
@@ -28,11 +27,10 @@ interface League {
 }
 
 interface BrandingSettingsClientProps {
-  organizationId: string;
   leagues: League[];
 }
 
-export function BrandingSettingsClient({ organizationId, leagues }: BrandingSettingsClientProps) {
+export function BrandingSettingsClient({ leagues }: BrandingSettingsClientProps) {
   const router = useRouter();
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(
     leagues.length > 0 ? leagues[0].id : null
@@ -74,8 +72,7 @@ export function BrandingSettingsClient({ organizationId, leagues }: BrandingSett
         leagueId: selectedLeagueId,
         primaryColor,
         secondaryColor,
-        accentColor,
-      });
+        accentColor });
 
       if (result.error) {
         setError(result.error);

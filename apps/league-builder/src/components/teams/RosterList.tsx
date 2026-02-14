@@ -33,6 +33,7 @@ export function RosterList({ teamId, seasonId, onEditPlayer, onRemovePlayer }: R
 
   useEffect(() => {
     fetchRoster();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchRoster is a data-fetching function that depends on teamId and seasonId; defined below and also used as a callback
   }, [teamId, seasonId]);
 
   const fetchRoster = async () => {

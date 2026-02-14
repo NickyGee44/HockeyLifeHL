@@ -815,7 +815,6 @@ export async function autoAssignScorekepers(params: {
 
       for (const sk of sortedScorekeppers) {
         // Check for time conflict
-        const conflictKey = `${gameTime}-${sk.scorekeeper_id}`;
         if (timeslotAssignments.has(gameTime) && timeslotAssignments.get(gameTime) === sk.scorekeeper_id) {
           result.conflictsDetected++;
           continue;

@@ -11,7 +11,6 @@
 import { useTranslations } from 'next-intl';
 import { Check, Percent, Database, Globe } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@hockey-life/ui';
 
 interface SubscriptionPlansProps {
   processingFeePercent: number;
@@ -30,9 +29,7 @@ function formatCents(cents: number): string {
 
 export function SubscriptionPlans({
   processingFeePercent,
-  setupFeeCents,
   migrationFeeCents,
-  setupFeeLabel,
   migrationFeeLabel,
 }: SubscriptionPlansProps) {
   const t = useTranslations('subscription.plans');

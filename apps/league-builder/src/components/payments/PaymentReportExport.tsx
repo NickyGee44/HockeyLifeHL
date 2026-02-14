@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Download, FileSpreadsheet, FileText, Loader2, Filter, Calendar } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, Loader2, Filter } from 'lucide-react';
 import { exportPaymentReport } from '@/lib/payments/payment-actions';
 import type { PaymentReportRow, PlayerPaymentStatus } from '@/lib/payments/types';
 
@@ -140,7 +140,7 @@ export function PaymentReportExport({
         const jsonContent = JSON.stringify(data, null, 2);
         downloadFile(jsonContent, `${baseFilename}.json`, 'application/json');
       }
-    } catch (err) {
+    } catch {
       setError(t('exportFailed'));
     } finally {
       setLoading(false);

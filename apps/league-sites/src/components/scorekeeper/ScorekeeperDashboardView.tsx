@@ -13,7 +13,7 @@ interface ScorekeeperDashboardViewProps {
 
 export function ScorekeeperDashboardView({ data, leagueSlug }: ScorekeeperDashboardViewProps) {
   const [swapModalGameId, setSwapModalGameId] = useState<string | null>(null);
-  const [pendingSwaps, setPendingSwaps] = useState(data.pendingSwapRequests);
+  const [pendingSwaps] = useState(data.pendingSwapRequests);
   const [incomingSwaps, setIncomingSwaps] = useState(data.incomingSwapRequests);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 

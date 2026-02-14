@@ -46,7 +46,7 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
   const [category, setCategory] = useState('mvp');
   const [seasonId, setSeasonId] = useState('');
   const [teamId, setTeamId] = useState('');
-  const [playerName, setPlayerName] = useState('');
+  const [, setPlayerName] = useState('');
   const [description, setDescription] = useState('');
 
   function resetForm() {

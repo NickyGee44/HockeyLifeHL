@@ -73,7 +73,7 @@ export function PendingTeamsTab({
       if (divisionsResult.success && divisionsResult.data) {
         setDivisions(divisionsResult.data);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -135,7 +135,7 @@ export function PendingTeamsTab({
       } else {
         setError(result.error || 'Failed to approve request');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsProcessing(false);
@@ -189,7 +189,7 @@ export function PendingTeamsTab({
       } else {
         setError(result.error || 'Failed to deny request');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsProcessing(false);

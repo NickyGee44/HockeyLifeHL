@@ -13,7 +13,6 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
-  Mail,
   Sun,
   Moon,
   Sparkles,
@@ -83,9 +82,6 @@ export function Step5WebsitePages() {
   const isPublic = watch('isPublic') ?? true;
   const themePreset = watch('themePreset') || 'dark';
   const bannerUrl = watch('bannerUrl') || '';
-  const socialFacebook = watch('socialFacebook') || '';
-  const socialInstagram = watch('socialInstagram') || '';
-  const socialTwitter = watch('socialTwitter') || '';
   const visiblePages = watch('visiblePages') || {};
   const wantCustomDomain = watch('wantCustomDomain') ?? false;
   const ownsDomain = watch('ownsDomain') ?? false;

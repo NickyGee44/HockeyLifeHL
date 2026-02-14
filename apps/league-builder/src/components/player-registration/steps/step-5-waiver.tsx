@@ -9,13 +9,12 @@ import { useRegistrationContext } from '../registration-wizard-container';
 import type { RegistrationFormData } from '@/lib/schemas/player-registration';
 
 export function Step5Waiver() {
-  const { waiverContent, waiverVersion, waiverContentHash, leagueName } =
+  const { waiverContent, waiverVersion} =
     useRegistrationContext();
   const {
     watch,
     setValue,
-    formState: { errors },
-  } = useFormContext<RegistrationFormData>();
+    formState: { errors } } = useFormContext<RegistrationFormData>();
 
   const signatureData = watch('signature_data');
   const signedName = watch('signed_name');
@@ -134,8 +133,7 @@ export function Step5Waiver() {
           checked={!!consentDataProcessing}
           onChange={(checked) =>
             setValue('consent_data_processing', (checked ? true : undefined) as true, {
-              shouldValidate: true,
-            })
+              shouldValidate: true })
           }
           required
           error={errors.consent_data_processing?.message}
@@ -184,8 +182,7 @@ function ConsentCheckbox({
   onChange,
   required,
   error,
-  children,
-}: ConsentCheckboxProps) {
+  children }: ConsentCheckboxProps) {
   return (
     <div className="space-y-1">
       <label

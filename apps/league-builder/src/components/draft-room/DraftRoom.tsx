@@ -111,7 +111,6 @@ export function DraftRoom({
   // Reliability hook for connection monitoring and state drift detection
   const {
     connectionState,
-    localStateVersion,
     setLocalStateVersion,
     isPollingFallback,
     lastSyncTime,
@@ -120,7 +119,7 @@ export function DraftRoom({
   } = useDraftReliability({
     supabase,
     draftId,
-    onStateVersionMismatch: (serverVersion, localVersion) => {
+    onStateVersionMismatch: () => {
       fetchDraftData(); // Full refresh on drift
     },
     onConnectionChange: (state) => {
@@ -271,7 +270,7 @@ export function DraftRoom({
         setIsLoading(false);
       }
     }
-  }, [draftId, supabase]);
+  }, [draftId, supabase, setLocalStateVersion]);
 
   // Initial data fetch
   useEffect(() => {
@@ -423,6 +422,7 @@ export function DraftRoom({
     return () => {
       supabase.removeChannel(draftChannel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- real-time subscription: fetchDraftData, forceSync, processedEventIds, and setLocalStateVersion are stable or handled via refs; re-subscribing on their changes would cause channel thrashing
   }, [draftId, supabase]);
 
   // Make a pick

@@ -11,7 +11,6 @@
  */
 
 import { useState, useCallback } from 'react';
-import { cn } from '@hockey-life/ui/lib/utils';
 import { Plus, Trash2, MapPin, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import type { Team, Venue, VenueAvailability, VenueBlackoutDate } from '@/lib/schedule/types';
 
@@ -73,9 +72,9 @@ export function VenueConstraintsTab({
   };
 
   // Get blackouts for a specific venue
-  const getVenueBlackouts = (venueId: string) => {
-    return venueBlackouts.filter((b) => b.venueId === venueId);
-  };
+
+
+
 
   // Add availability slot
   const addAvailabilitySlot = useCallback(

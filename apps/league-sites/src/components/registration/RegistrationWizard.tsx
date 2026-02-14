@@ -28,7 +28,7 @@ interface RegistrationWizardProps {
   teams: { id: string; name: string }[];
   registrationFee: number; // cents
   waiverContent: string;
-  waiverVersion: string;
+  _waiverVersion: string;
   waiverContentHash: string;
   initialData: RegistrationDraftData | null;
 }
@@ -54,7 +54,7 @@ export function RegistrationWizard({
   teams,
   registrationFee,
   waiverContent,
-  waiverVersion,
+  waiverVersion: _waiverVersion,
   waiverContentHash,
   initialData,
 }: RegistrationWizardProps) {
@@ -175,7 +175,7 @@ export function RegistrationWizard({
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, formData, leagueId, seasonId, openLogin]);
+  }, [user, formData, leagueId, seasonId, openLogin, registrationFee]);
 
   // Not logged in
   if (!user) {

@@ -29,6 +29,7 @@ export function StaffList({ teamId, seasonId, onRemoveStaff }: StaffListProps) {
 
   useEffect(() => {
     fetchStaff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchStaff is a data-fetching function that depends on teamId and seasonId
   }, [teamId, seasonId]);
 
   const fetchStaff = async () => {

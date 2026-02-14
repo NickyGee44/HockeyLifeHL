@@ -249,7 +249,7 @@ export function TeamPriorityTab({
 
         {/* Team List */}
         <div className="space-y-2">
-          {sortedTeams.map((team, index) => {
+          {sortedTeams.map((team) => {
             const pref = getTeamPreference(team.id);
             const seniority = pref?.seniorityLevel ?? 5;
 

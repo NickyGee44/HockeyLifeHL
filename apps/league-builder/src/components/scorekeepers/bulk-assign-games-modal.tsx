@@ -94,8 +94,9 @@ export function BulkAssignGamesModal({
   // Load games when modal opens or filters change
   useEffect(() => {
     if (open) {
-      loadGames(); // eslint-disable-line -- data-fetching when modal opens or filters change
+      loadGames();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadGames is a data-fetching function that depends on leagueId and filters; only runs when modal is open
   }, [open, filters]);
 
   // Set default scorekeeper when provided

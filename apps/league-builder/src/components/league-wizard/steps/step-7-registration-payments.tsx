@@ -12,7 +12,6 @@ import {
   Gift,
   AlertTriangle,
   CheckCircle2,
-  ExternalLink,
   Loader2,
   Shield,
   ArrowRight,

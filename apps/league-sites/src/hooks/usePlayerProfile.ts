@@ -128,6 +128,7 @@ export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
     if (!userLoading) {
       fetchProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchProfile is a data-fetching function that depends on user; also exposed via refetch return value
   }, [user, userLoading]);
 
   // Get current team for this league

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
-import { Button } from '@/components/ui/button';
 import {
   Loader2,
   DollarSign,
@@ -19,7 +18,6 @@ import { getTeamInvoice } from '@/lib/actions/team-billing';
 interface CaptainTeamFeesProps {
   invoiceId: string;
   teamName: string;
-  leagueHasStripe: boolean;
 }
 
 interface InvoicePayment {
@@ -95,7 +93,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.Reac
   },
 };
 
-export function CaptainTeamFees({ invoiceId, teamName, leagueHasStripe }: CaptainTeamFeesProps) {
+export function CaptainTeamFees({ invoiceId, teamName }: CaptainTeamFeesProps) {
   const t = useTranslations('teamBilling');
   const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);

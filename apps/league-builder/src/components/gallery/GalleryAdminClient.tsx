@@ -8,6 +8,8 @@ import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
 import { Plus, Trash2, Eye, EyeOff, ImageIcon } from 'lucide-react';
 import { createAlbum, deleteAlbum, updateAlbum } from '@/lib/actions/gallery';
+import { LogoUploader } from '@/components/ui/logo-uploader';
+import { uploadGalleryCover, deleteGalleryCover } from '@/lib/actions/image-upload';
 
 interface Album {
   id: string;
@@ -112,12 +114,25 @@ export function GalleryAdminClient({ leagueId, locale, albums }: GalleryAdminCli
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-1">{t('coverPhoto')}</label>
-              <input
-                type="url"
+              <LogoUploader
                 value={coverPhotoUrl}
-                onChange={(e) => setCoverPhotoUrl(e.target.value)}
-                className="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-4 py-2 text-white placeholder-neutral-500 focus:ring-2 focus:ring-rink-500 focus:border-transparent"
-                placeholder="https://..."
+                onChange={(url) => setCoverPhotoUrl(url)}
+                onUpload={async (file) => {
+                  const result = await uploadGalleryCover(leagueId, file);
+                  if (!result.success) throw new Error(result.error);
+                  return result.data;
+                }}
+                onRemove={async () => {
+                  if (coverPhotoUrl) {
+                    await deleteGalleryCover(leagueId, coverPhotoUrl);
+                    setCoverPhotoUrl('');
+                  }
+                }}
+                aspectRatio={16 / 9}
+                outputSize={1200}
+                maxSizeBytes={5 * 1024 * 1024}
+                placeholder="Upload Cover Photo"
+                shape="square"
               />
             </div>
             <div className="flex gap-3">

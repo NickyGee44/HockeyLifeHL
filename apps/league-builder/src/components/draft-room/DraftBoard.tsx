@@ -18,7 +18,6 @@ interface DraftBoardProps {
 export function DraftBoard({
   teams,
   picks,
-  draftOrder,
   currentRound,
   currentPick,
   currentTeamId,
@@ -46,22 +45,6 @@ export function DraftBoard({
     return organized;
   }, [picks, teams, totalRounds]);
 
-  // Get pick order for each round
-  const roundOrders = useMemo(() => {
-    const orders: Record<number, DraftOrder[]> = {};
-    draftOrder.forEach((order) => {
-      const round = order.round ?? 1;
-      if (!orders[round]) {
-        orders[round] = [];
-      }
-      orders[round].push(order);
-    });
-    // Sort by pick position
-    Object.values(orders).forEach((roundOrder) => {
-      roundOrder.sort((a, b) => a.pick_position - b.pick_position);
-    });
-    return orders;
-  }, [draftOrder]);
 
   return (
     <div className="rounded-lg border bg-card">

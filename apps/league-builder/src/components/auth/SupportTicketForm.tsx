@@ -104,7 +104,7 @@ export function SupportTicketForm({
       } else {
         setError(result.error || t('failedToSubmit'));
       }
-    } catch (err) {
+    } catch {
       setError(t('unexpectedError'));
     } finally {
       setLoading(false);

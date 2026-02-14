@@ -14,12 +14,7 @@ import type {
   ScheduleTemplate,
   Team,
   Venue,
-  ScheduleGenerationResult,
-  VenueAvailability,
-  VenueBlackoutDate,
-  TeamSchedulePreference,
-  ScheduleConstraintConfig,
-} from '@/lib/schedule/types';
+  ScheduleGenerationResult } from '@/lib/schedule/types';
 import { ScheduleConfigStep } from './ScheduleConfigStep';
 import { EnhancedConstraintStep, type ConstraintData } from './EnhancedConstraintStep';
 import { PreviewStep } from './PreviewStep';
@@ -69,8 +64,7 @@ function getDefaultConfig(startDate: Date, endDate: Date): ScheduleConfig {
     defaultVenueId: null,
     rotateHomeVenue: true,
     playoffFormat: 'none',
-    playoffTeams: 8,
-  };
+    playoffTeams: 8 };
 }
 
 // ============================================================================
@@ -86,13 +80,10 @@ export function ScheduleWizard({
   startDate,
   endDate,
   onComplete,
-  onCancel,
-}: ScheduleWizardProps) {
+  onCancel }: ScheduleWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('config');
   const [config, setConfig] = useState<ScheduleConfig>(() => getDefaultConfig(startDate, endDate));
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [constraints, setConstraints] = useState<string[]>([]); // Constraint IDs
-  const [constraintData, setConstraintData] = useState<ConstraintData | null>(null);
   const [generationResult, setGenerationResult] = useState<ScheduleGenerationResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,8 +118,7 @@ export function ScheduleWizard({
       setConfig({
         ...template,
         startDate: config.startDate,
-        endDate: config.endDate,
-      });
+        endDate: config.endDate });
       setSelectedTemplateId(template.id);
     },
     [config.startDate, config.endDate]

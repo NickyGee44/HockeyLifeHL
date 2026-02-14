@@ -17,7 +17,7 @@ interface PlayerMatchupsProps {
   leagueSlug: string;
 }
 
-export function PlayerMatchups({ matchups, isGoalie, leagueSlug }: PlayerMatchupsProps) {
+export function PlayerMatchups({ matchups, isGoalie, leagueSlug: _leagueSlug }: PlayerMatchupsProps) {
   if (matchups.length === 0) return null;
 
   const title = isGoalie ? 'vs Skaters' : 'vs Goalies';

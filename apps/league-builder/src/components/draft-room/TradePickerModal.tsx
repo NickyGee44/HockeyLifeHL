@@ -5,7 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { X, ArrowRight, RefreshCcw, AlertCircle, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
-import type { TradePickerModalProps, DraftTeam } from './types';
+import type { TradePickerModalProps } from './types';
 
 export function TradePickerModal({
   isOpen,

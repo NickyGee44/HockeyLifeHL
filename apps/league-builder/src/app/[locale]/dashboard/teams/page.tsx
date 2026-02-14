@@ -2,16 +2,13 @@ import { getCurrentUser } from '@/lib/actions/auth';
 import { getUserTeams } from '@/lib/actions/teams';
 import { redirect } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
-import { cn } from '@hockey-life/ui';
-import { Plus, Users, ArrowLeft, Search, Filter } from 'lucide-react';
-import { TeamCard } from '@/components/teams';
+import { ArrowLeft} from 'lucide-react';
 import TeamsListClient from '@/components/dashboard/teams/teams-list-client';
 import { setRequestLocale } from 'next-intl/server';
 
 export const metadata = {
   title: 'Teams | Beer League Hockey',
-  description: 'Manage your hockey teams',
-};
+  description: 'Manage your hockey teams' };
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -69,7 +66,7 @@ export default async function TeamsPage({ params, searchParams }: Props) {
           </div>
         </div>
 
-        {/* Search and Filter Client Component */}
+        {/*andClient Component */}
         <TeamsListClient
           teams={teams}
           initialSearch={search || ''}

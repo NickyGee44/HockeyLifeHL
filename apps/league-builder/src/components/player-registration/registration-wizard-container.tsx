@@ -126,6 +126,7 @@ export function RegistrationWizardContainer({
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: form.watch sets up a subscription once; form and handleAutoSave are stable refs
   }, []);
 
   // Navigate to a specific step

@@ -26,13 +26,13 @@ config.resolver.nodeModulesPaths = [
 const nativeWindConfig = withNativeWind(config, { input: './global.css' });
 
 // Then add polyfills on top (SharedArrayBuffer for Hermes)
-const nwGetPolyfills = nativeWindConfig.serializer?.getPolyfills || ((ctx) => []);
+const nwGetPolyfills = nativeWindConfig.serializer?.getPolyfills || ((_ctx) => []);
 nativeWindConfig.serializer = {
   ...nativeWindConfig.serializer,
-  getPolyfills: (ctx) => {
+  getPolyfills: (_ctx) => {
     return [
       path.resolve(projectRoot, 'polyfills.js'),
-      ...nwGetPolyfills(ctx),
+      ...nwGetPolyfills(_ctx),
     ];
   },
 };

@@ -123,7 +123,7 @@ export default function TeamSettingsClient({
       setSuccess('Team settings saved successfully');
       toast.success('Team settings saved successfully');
       router.refresh();
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
       toast.error('An unexpected error occurred');
     } finally {
@@ -139,7 +139,7 @@ export default function TeamSettingsClient({
       }
       router.refresh();
       return { success: true, data: result.data };
-    } catch (err) {
+    } catch {
       return { error: 'Failed to upload logo' };
     }
   };
@@ -161,7 +161,7 @@ export default function TeamSettingsClient({
       toast.success(`${team.name} has been deleted`);
       router.push(`/dashboard/leagues/${team.league_id}/teams`);
       router.refresh();
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
       toast.error('An unexpected error occurred');
       setShowDeleteDialog(false);

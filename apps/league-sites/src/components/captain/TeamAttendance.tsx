@@ -30,7 +30,7 @@ interface CheckinEntry {
 interface TeamAttendanceProps {
   teamId: string;
   roster: RosterPlayer[];
-  leagueSlug: string;
+  _leagueSlug: string;
   onRequestSub?: (gameId: string) => void;
 }
 
@@ -39,7 +39,7 @@ const MIN_ROSTER_THRESHOLD = 8;
 export function TeamAttendance({
   teamId,
   roster,
-  leagueSlug,
+  leagueSlug: _leagueSlug,
   onRequestSub,
 }: TeamAttendanceProps) {
   const [games, setGames] = useState<UpcomingGame[]>([]);

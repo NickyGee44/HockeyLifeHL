@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
-import { Plus, Trash2, Save, Eye, EyeOff, ImageIcon, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, Eye, EyeOff, ImageIcon } from 'lucide-react';
 import { updateAlbum, addPhotos, updatePhoto, deletePhoto } from '@/lib/actions/gallery';
 
 interface Album {
@@ -31,7 +31,7 @@ interface AlbumDetailClientProps {
   photos: Photo[];
 }
 
-export function AlbumDetailClient({ leagueId, locale, album, photos }: AlbumDetailClientProps) {
+export function AlbumDetailClient({ leagueId: _leagueId, locale: _locale, album, photos }: AlbumDetailClientProps) {
   const t = useTranslations('gallery');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -55,8 +55,7 @@ export function AlbumDetailClient({ leagueId, locale, album, photos }: AlbumDeta
       await updateAlbum(album.id, {
         title: editTitle.trim(),
         description: editDescription.trim() || undefined,
-        coverPhotoUrl: editCoverUrl.trim() || undefined,
-      });
+        coverPhotoUrl: editCoverUrl.trim() || undefined });
       router.refresh();
     });
   }

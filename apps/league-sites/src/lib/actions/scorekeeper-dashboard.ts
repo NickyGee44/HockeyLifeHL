@@ -203,8 +203,6 @@ export async function getScorekeeperDashboard(): Promise<{
       awayScore: a.games.away_score || 0,
       venueName: a.games.venue?.name || null,
     }));
-
-    const now = new Date().toISOString();
     const upcomingGames = allGames
       .filter(g => g.status === 'scheduled' || g.status === 'in_progress')
       .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());

@@ -20,17 +20,14 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  AlertTriangle,
   Search,
   RefreshCw,
-  User,
-} from 'lucide-react';
+  User } from 'lucide-react';
 import {
   adminUnlockAccount,
   adminInitiatePasswordReset,
   adminGetRecoveryRequests,
-  adminUpdateRecoveryRequest,
-} from '@/lib/actions/password-reset';
+  adminUpdateRecoveryRequest } from '@/lib/actions/password-reset';
 
 interface UserAccount {
   id: string;
@@ -55,15 +52,13 @@ const STATUS_COLORS = {
   in_progress: 'bg-blue-500/20 text-blue-400',
   resolved: 'bg-green-500/20 text-green-400',
   rejected: 'bg-red-500/20 text-red-400',
-  expired: 'bg-neutral-500/20 text-neutral-400',
-};
+  expired: 'bg-neutral-500/20 text-neutral-400' };
 
 const TYPE_LABELS = {
   password_reset: "Can't Reset Password",
   account_unlock: 'Account Locked',
   email_change: 'Email Change',
-  account_access: 'Account Access',
-};
+  account_access: 'Account Access' };
 
 interface UserManagementProps {
   /** List of users in the organization */
@@ -119,8 +114,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
     setActionResult({
       userId,
       success: result.success,
-      message: result.success ? 'Account unlocked successfully' : result.error || 'Failed to unlock',
-    });
+      message: result.success ? 'Account unlocked successfully' : result.error || 'Failed to unlock' });
 
     if (result.success) {
       onRefresh?.();
@@ -144,8 +138,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
       success: result.success,
       message: result.success
         ? 'Password reset email sent'
-        : result.error || 'Failed to send reset',
-    });
+        : result.error || 'Failed to send reset' });
 
     setActionLoading(null);
 
@@ -366,8 +359,7 @@ export function UserManagement({ users, onRefresh }: UserManagementProps) {
                           month: 'short',
                           day: 'numeric',
                           hour: 'numeric',
-                          minute: '2-digit',
-                        })}
+                          minute: '2-digit' })}
                       </p>
                     </div>
 

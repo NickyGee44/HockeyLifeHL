@@ -10,17 +10,14 @@ import {
   Edit,
   UserMinus,
   Loader2,
-  AlertCircle,
-  ChevronDown,
-} from 'lucide-react';
+  AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
 interface RosterPlayer {
@@ -40,7 +37,6 @@ interface RosterPlayer {
 
 interface RosterTableProps {
   teamId: string;
-  captainId: string | null;
   seasonId?: string;
 }
 
@@ -57,7 +53,7 @@ const STATUSES = [
   { value: 'inactive', label: 'Inactive', color: 'text-neutral-500 bg-neutral-500/10' },
 ];
 
-export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
+export function RosterTable({ teamId, seasonId }: RosterTableProps) {
   const router = useRouter();
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +64,8 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchRoster(); // eslint-disable-line -- data-fetching when team or season changes
+    fetchRoster();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchRoster is a data-fetching function that depends on teamId and seasonId; also called after player edits
   }, [teamId, seasonId]);
 
   const fetchRoster = async () => {
@@ -102,8 +99,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/teams/${teamId}/roster/${removingPlayer.id}`, {
-        method: 'DELETE',
-      });
+        method: 'DELETE' });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -128,8 +124,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
       const response = await fetch(`/api/teams/${teamId}/roster/${editingPlayer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
+        body: JSON.stringify(updates) });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -160,8 +155,7 @@ export function RosterTable({ teamId, captainId, seasonId }: RosterTableProps) {
   const groupedRoster = {
     Goalie: sortedRoster.filter((p) => p.position === 'Goalie'),
     Defense: sortedRoster.filter((p) => p.position === 'Defense'),
-    Forward: sortedRoster.filter((p) => p.position === 'Forward'),
-  };
+    Forward: sortedRoster.filter((p) => p.position === 'Forward') };
 
   if (loading) {
     return (
@@ -392,8 +386,7 @@ function EditPlayerForm({
   player,
   onSubmit,
   onCancel,
-  isSubmitting,
-}: {
+  isSubmitting }: {
   player: RosterPlayer;
   onSubmit: (updates: Partial<RosterPlayer>) => void;
   onCancel: () => void;
@@ -410,8 +403,7 @@ function EditPlayerForm({
       jersey_number: parseInt(jerseyNumber),
       position,
       status,
-      leadership_role: leadershipRole || null,
-    });
+      leadership_role: leadershipRole || null });
   };
 
   return (

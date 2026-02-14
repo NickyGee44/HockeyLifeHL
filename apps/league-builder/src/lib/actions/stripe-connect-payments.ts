@@ -26,12 +26,10 @@ import {
   createPaymentIntent,
   createRefund,
   getPayoutInfo,
-  calculateApplicationFee,
   type ConnectAccountInfo,
   type PaymentIntentResult,
   type PayoutInfo,
-  type RefundResult,
-} from '@/lib/leagues/stripe-connect';
+  type RefundResult } from '@/lib/leagues/stripe-connect';
 import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 import { getStripeErrorMessage } from '@/lib/stripe/client';
 
@@ -52,10 +50,6 @@ interface League {
   payment_mode: string | null;
 }
 
-interface LeagueMembership {
-  role: string;
-  status: string;
-}
 
 interface ConnectPayment {
   id: string;
@@ -91,8 +85,7 @@ async function verifyLeagueAdminAccess(
   // Get current user
   const {
     data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+    error: userError } = await supabase.auth.getUser();
 
   if (userError || !user) {
     return { error: 'Authentication required. Please sign in.' };
@@ -161,8 +154,7 @@ async function logAuditEvent(
     event_type: eventType,
     stripe_event_id: stripeEventId || null,
     payload,
-    created_by: createdBy || null,
-  });
+    created_by: createdBy || null });
 
   if (error) {
     console.error('[Stripe Connect] Failed to log audit event:', error);
@@ -207,13 +199,11 @@ export async function startConnectOnboarding(
         .from('leagues')
         .update({
           stripe_account_id: accountId,
-          stripe_account_status: 'pending',
-        })
+          stripe_account_status: 'pending' })
         .eq('id', leagueId);
 
       await logAuditEvent(leagueId, 'connect_account_created', {
-        account_id: accountId,
-      }, userId);
+        account_id: accountId }, userId);
     }
 
     // Create onboarding link
@@ -221,8 +211,7 @@ export async function startConnectOnboarding(
 
     await logAuditEvent(leagueId, 'onboarding_link_created', {
       account_id: accountId,
-      expires_at: link.expiresAt.toISOString(),
-    }, userId);
+      expires_at: link.expiresAt.toISOString() }, userId);
 
     return { success: true, data: { url: link.url } };
   } catch (error) {
@@ -254,8 +243,7 @@ export async function getConnectAccountStatus(
         .from('leagues')
         .update({
           stripe_account_status: accountInfo.status,
-          payment_mode: accountInfo.chargesEnabled ? 'stripe' : 'manual',
-        })
+          payment_mode: accountInfo.chargesEnabled ? 'stripe' : 'manual' })
         .eq('id', leagueId);
     }
 
@@ -320,8 +308,7 @@ export async function createConnectPaymentIntent(
     if (!accountInfo.chargesEnabled) {
       return {
         success: false,
-        error: 'Your Stripe account cannot accept payments yet. Please complete onboarding.',
-      };
+        error: 'Your Stripe account cannot accept payments yet. Please complete onboarding.' };
     }
 
     // Create payment intent
@@ -331,8 +318,7 @@ export async function createConnectPaymentIntent(
       amountCents,
       description,
       customerEmail,
-      metadata,
-    });
+      metadata });
 
     // Record payment in database
     const serviceSupabase = createServiceRoleClient();
@@ -345,15 +331,13 @@ export async function createConnectPaymentIntent(
       status: 'pending',
       description,
       customer_email: customerEmail,
-      metadata: metadata || {},
-    });
+      metadata: metadata || {} });
 
     await logAuditEvent(leagueId, 'payment_intent_created', {
       payment_intent_id: paymentIntent.paymentIntentId,
       amount_cents: amountCents,
       application_fee_cents: paymentIntent.applicationFee,
-      platform_fee_percent: (await getPlatformFeeConfig()).processingFeePercent,
-    }, userId);
+      platform_fee_percent: (await getPlatformFeeConfig()).processingFeePercent }, userId);
 
     return { success: true, data: paymentIntent };
   } catch (error) {
@@ -402,9 +386,7 @@ export async function getLeaguePayments(
       success: true,
       data: {
         payments: (payments || []) as ConnectPayment[],
-        total: count || 0,
-      },
-    };
+        total: count || 0 } };
   } catch (error) {
     console.error('[Stripe Connect] Get payments error:', error);
     return { success: false, error: getStripeErrorMessage(error) };
@@ -504,8 +486,7 @@ export async function refundPayment(
       refund_id: refundResult.refundId,
       amount_refunded: refundResult.amount,
       application_fee_refunded: refundResult.applicationFeeRefunded,
-      reason,
-    }, userId);
+      reason }, userId);
 
     return { success: true, data: refundResult };
   } catch (error) {
@@ -578,13 +559,11 @@ export async function initializeConnectAccount(
       .from('leagues')
       .update({
         stripe_account_id: accountId,
-        stripe_account_status: 'pending',
-      })
+        stripe_account_status: 'pending' })
       .eq('id', leagueId);
 
     await logAuditEvent(leagueId, 'connect_account_created', {
-      account_id: accountId,
-    }, userId);
+      account_id: accountId }, userId);
 
     return { success: true, data: { accountId } };
   } catch (error) {
@@ -636,17 +615,13 @@ export async function createConnectAccountSession(
         // Balances
         balances: { enabled: true },
         // Notification banner
-        notification_banner: { enabled: true },
-      },
-    });
+        notification_banner: { enabled: true } } });
 
     return {
       success: true,
       data: {
         clientSecret: accountSession.client_secret,
-        expiresAt: accountSession.expires_at,
-      },
-    };
+        expiresAt: accountSession.expires_at } };
   } catch (error) {
     console.error('[Stripe Connect] Create account session error:', error);
     return { success: false, error: getStripeErrorMessage(error) };
@@ -714,8 +689,7 @@ export async function getPaymentStatistics(
         : 0,
       averagePayment: successfulPayments.length > 0
         ? totalRevenue / successfulPayments.length
-        : 0,
-    };
+        : 0 };
 
     return { success: true, data: stats };
   } catch (error) {

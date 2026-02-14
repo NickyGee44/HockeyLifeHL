@@ -28,8 +28,9 @@ export function NextGameCountdown({ game }: NextGameCountdownProps) {
   const [countdown, setCountdown] = useState(() => getCountdown(gameDate));
 
   useEffect(() => {
+    const date = new Date(game.scheduled_at);
     const interval = setInterval(() => {
-      setCountdown(getCountdown(gameDate));
+      setCountdown(getCountdown(date));
     }, 60_000); // Update every minute
     return () => clearInterval(interval);
   }, [game.scheduled_at]);

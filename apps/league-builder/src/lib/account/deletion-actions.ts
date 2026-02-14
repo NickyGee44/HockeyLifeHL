@@ -12,7 +12,6 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 
 const GRACE_PERIOD_DAYS = 30;

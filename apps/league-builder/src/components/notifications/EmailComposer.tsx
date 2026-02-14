@@ -131,7 +131,7 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
           message: response.error || 'Failed to send announcement',
         });
       }
-    } catch (error) {
+    } catch {
       setResult({
         success: false,
         message: 'An error occurred while sending',

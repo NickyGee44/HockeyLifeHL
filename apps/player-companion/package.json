@@ -6,7 +6,7 @@
     "dev": "next dev --port 3002",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --ignore-pattern 'public/sw.js' --ignore-pattern 'public/swe-worker-*.js' --ignore-pattern 'public/workbox-*.js'",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { Cloud, Loader2 } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 
 export interface RegistrationWizardProgressProps {
@@ -17,8 +17,7 @@ export function RegistrationWizardProgress({
   totalSteps,
   isSaving = false,
   leagueName,
-  className,
-}: RegistrationWizardProgressProps) {
+  className }: RegistrationWizardProgressProps) {
   return (
     <div className={cn('flex items-center justify-between', className)}>
       <div>

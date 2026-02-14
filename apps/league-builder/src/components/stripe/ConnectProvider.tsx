@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { loadConnectAndInitialize, StripeConnectInstance } from '@stripe/connect-js';
 import { createConnectAccountSession } from '@/lib/actions/stripe-connect-payments';
@@ -30,8 +30,6 @@ interface ConnectProviderProps {
 
 export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
   const t = useTranslations('stripe');
-  const tRef = useRef(t);
-  tRef.current = t;
 
   const [stripeConnectInstance, setStripeConnectInstance] = useState<StripeConnectInstance | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +37,7 @@ export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
 
   const initializeConnect = useCallback(async () => {
     if (!leagueId) {
-      setError(tRef.current('leagueIdRequired'));
+      setError(t('leagueIdRequired'));
       setIsLoading(false);
       return;
     }
@@ -59,7 +57,7 @@ export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
 
       const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
       if (!publishableKey) {
-        setError(tRef.current('publishableKeyNotConfigured'));
+        setError(t('publishableKeyNotConfigured'));
         setIsLoading(false);
         return;
       }
@@ -87,9 +85,10 @@ export function ConnectProvider({ leagueId, children }: ConnectProviderProps) {
       setIsLoading(false);
     } catch (err) {
       console.error('[ConnectProvider] Initialization error:', err);
-      setError(err instanceof Error ? err.message : tRef.current('failedInitialize'));
+      setError(err instanceof Error ? err.message : t('failedInitialize'));
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from next-intl, only re-init when leagueId changes
   }, [leagueId]);
 
   useEffect(() => {

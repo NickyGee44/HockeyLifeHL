@@ -53,7 +53,6 @@ interface EligibilityDashboardProps {
 
 export function EligibilityDashboard({
   seasonId,
-  seasonName,
   minGamesPct: initialMinPct,
   minGames: initialMinGames,
   eligibility,

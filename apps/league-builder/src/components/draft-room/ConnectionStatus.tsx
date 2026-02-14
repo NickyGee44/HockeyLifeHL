@@ -1,6 +1,6 @@
 'use client';
 
-import { Wifi, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui/lib/utils';
 

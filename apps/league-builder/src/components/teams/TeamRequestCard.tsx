@@ -5,18 +5,15 @@ import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
 import { formatDistanceToNow } from 'date-fns';
 import {
-  Users,
   Mail,
   Phone,
-  MapPin,
   Clock,
   MessageSquare,
   Check,
   X,
   ChevronDown,
   ChevronUp,
-  User,
-} from 'lucide-react';
+  User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { TeamRegistrationRequestWithDetails } from '@/lib/actions/team-registration-requests';
@@ -32,21 +29,18 @@ export function TeamRequestCard({
   request,
   onApprove,
   onDeny,
-  isProcessing = false,
-}: TeamRequestCardProps) {
+  isProcessing = false }: TeamRequestCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const statusColors: Record<string, string> = {
     pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
     approved: 'bg-green-500/10 text-green-500 border-green-500/30',
-    denied: 'bg-red-500/10 text-red-500 border-red-500/30',
-  };
+    denied: 'bg-red-500/10 text-red-500 border-red-500/30' };
 
   const statusLabels: Record<string, string> = {
     pending: 'Pending Review',
     approved: 'Approved',
-    denied: 'Denied',
-  };
+    denied: 'Denied' };
 
   const requester = request.requester as { id: string; full_name: string; email: string; avatar_url: string | null } | undefined;
   const requestedDivision = request.requested_division as { id: string; name: string } | null | undefined;
@@ -57,8 +51,7 @@ export function TeamRequestCard({
       <div
         className="h-2"
         style={{
-          background: `linear-gradient(to right, ${request.team_primary_color || '#22D3EE'}, ${request.team_secondary_color || '#070A0F'})`,
-        }}
+          background: `linear-gradient(to right, ${request.team_primary_color || '#22D3EE'}, ${request.team_secondary_color || '#070A0F'})` }}
       />
 
       <div className="p-5">

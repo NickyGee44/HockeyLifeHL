@@ -55,10 +55,11 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
 
   useEffect(() => {
     if (isConnected) {
-      loadPayoutInfo(); // eslint-disable-line -- data-fetching when connected
+      loadPayoutInfo();
     } else {
-      setLoading(false); // eslint-disable-line -- initialize loading state for disconnected
+      setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPayoutInfo is a data-fetching function that depends on leagueId; also called from handleRefresh
   }, [leagueId, isConnected]);
 
   async function handleRefresh() {

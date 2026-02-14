@@ -962,7 +962,7 @@ export async function saveTeamSchedulePreference(
 
   // If an id is provided, update; otherwise insert
   if (preference.id) {
-    const { created_by: _cb, ...updateData } = rowData;
+
     const { data, error } = await supabase
       .from('team_schedule_preferences')
       .update(updateData)
@@ -1142,7 +1142,7 @@ export async function saveScheduleConstraintConfig(
     .maybeSingle();
 
   if (existing) {
-    const { created_by: _cb, ...updateData } = rowData;
+
     const { data, error } = await supabase
       .from('schedule_constraint_configs')
       .update(updateData)

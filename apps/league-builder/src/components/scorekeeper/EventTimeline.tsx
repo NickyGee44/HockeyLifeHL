@@ -4,13 +4,10 @@ import { useState, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   useGameEvents,
-  usePeriodEvents,
   type GameEvent,
   type EventType,
   type Team,
-  type Player,
-} from '@/lib/scorekeeper';
-import { getTeamPlayers, getPlayer, getTeam } from '@/lib/scorekeeper/indexed-db';
+  type Player } from '@/lib/scorekeeper';
 import { cn } from '@hockey-life/ui';
 import { useEffect } from 'react';
 
@@ -36,8 +33,7 @@ export function EventTimeline({
   period,
   onUndoEvent,
   showPeriodHeaders = true,
-  maxHeight = '400px',
-}: EventTimelineProps) {
+  maxHeight = '400px' }: EventTimelineProps) {
   const t = useTranslations('scorekeeper.timeline');
   const { events, undoEvent, isLoading } = useGameEvents(gameId);
   const [players, setPlayers] = useState<Map<string, Player>>(new Map());
@@ -51,12 +47,12 @@ export function EventTimeline({
       const playerMap = new Map<string, Player>();
 
       if (homeTeam?.id) {
-        const homePlayers = await getTeamPlayers(homeTeam.id);
+        const homePlayers = awaitPlayers(homeTeam.id);
         homePlayers.forEach((p) => playerMap.set(p.id, p));
       }
 
       if (awayTeam?.id) {
-        const awayPlayers = await getTeamPlayers(awayTeam.id);
+        const awayPlayers = awaitPlayers(awayTeam.id);
         awayPlayers.forEach((p) => playerMap.set(p.id, p));
       }
 
@@ -104,7 +100,7 @@ export function EventTimeline({
     [undoEvent, onUndoEvent]
   );
 
-  const getTeamForEvent = (event: GameEvent): Team | undefined => {
+  constForEvent = (event: GameEvent): Team | undefined => {
     if (event.team_id === homeTeam?.id) return homeTeam;
     if (event.team_id === awayTeam?.id) return awayTeam;
     return undefined;
@@ -153,7 +149,7 @@ export function EventTimeline({
                   <EventItem
                     key={event.id}
                     event={event}
-                    team={getTeamForEvent(event)}
+                    team={ForEvent(event)}
                     player={players.get(event.player_id)}
                     assistPlayers={event.assist_player_ids?.map((id) => players.get(id)).filter(Boolean) as Player[]}
                     onUndo={() => handleUndo(event.id)}
@@ -170,7 +166,7 @@ export function EventTimeline({
               <EventItem
                 key={event.id}
                 event={event}
-                team={getTeamForEvent(event)}
+                team={ForEvent(event)}
                 player={players.get(event.player_id)}
                 assistPlayers={event.assist_player_ids?.map((id) => players.get(id)).filter(Boolean) as Player[]}
                 onUndo={() => handleUndo(event.id)}
@@ -199,8 +195,7 @@ function EventItem({
   player,
   assistPlayers,
   onUndo,
-  isUndoing,
-}: EventItemProps) {
+  isUndoing }: EventItemProps) {
   const t = useTranslations('scorekeeper.timeline');
   const [showUndo, setShowUndo] = useState(false);
   const teamColor = team?.primary_color || '#22D3EE';
@@ -326,48 +321,42 @@ function getEventConfig(type: EventType, t: (key: string) => string) {
         icon: GoalIcon,
         bgClass: 'bg-emerald-500/20',
         iconClass: 'text-emerald-400',
-        textClass: 'text-emerald-400',
-      };
+        textClass: 'text-emerald-400' };
     case 'assist':
       return {
         label: t('assistLabel'),
         icon: AssistIcon,
         bgClass: 'bg-blue-500/20',
         iconClass: 'text-blue-400',
-        textClass: 'text-blue-400',
-      };
+        textClass: 'text-blue-400' };
     case 'penalty':
       return {
         label: t('penaltyLabel'),
         icon: PenaltyIcon,
         bgClass: 'bg-red-500/20',
         iconClass: 'text-red-400',
-        textClass: 'text-red-400',
-      };
+        textClass: 'text-red-400' };
     case 'save':
       return {
         label: t('saveLabel'),
         icon: SaveIcon,
         bgClass: 'bg-purple-500/20',
         iconClass: 'text-purple-400',
-        textClass: 'text-purple-400',
-      };
+        textClass: 'text-purple-400' };
     case 'period_start':
       return {
         label: t('periodStartLabel'),
         icon: ClockIcon,
         bgClass: 'bg-rink-500/20',
         iconClass: 'text-rink-400',
-        textClass: 'text-rink-400',
-      };
+        textClass: 'text-rink-400' };
     case 'period_end':
       return {
         label: t('periodEndLabel'),
         icon: ClockIcon,
         bgClass: 'bg-neutral-700',
         iconClass: 'text-neutral-400',
-        textClass: 'text-neutral-400',
-      };
+        textClass: 'text-neutral-400' };
     default: {
       // Handle unknown event types gracefully
       const unknownType: string = type as string;
@@ -376,8 +365,7 @@ function getEventConfig(type: EventType, t: (key: string) => string) {
         icon: ClockIcon,
         bgClass: 'bg-neutral-700',
         iconClass: 'text-neutral-400',
-        textClass: 'text-neutral-400',
-      };
+        textClass: 'text-neutral-400' };
     }
   }
 }

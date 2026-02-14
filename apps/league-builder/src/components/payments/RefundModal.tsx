@@ -99,7 +99,7 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
       } else {
         setError(result.error);
       }
-    } catch (err) {
+    } catch {
       setError(t('unexpectedError'));
     } finally {
       setLoading(false);

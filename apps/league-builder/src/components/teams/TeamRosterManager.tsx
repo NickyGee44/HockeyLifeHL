@@ -76,7 +76,7 @@ export function TeamRosterManager({ teamId, seasonId }: TeamRosterManagerProps) 
             key={rosterKey}
             teamId={teamId}
             seasonId={seasonId}
-            onEditPlayer={(rosterId) => {
+            onEditPlayer={() => {
               // TODO: Implement edit player functionality
             }}
             onRemovePlayer={() => {

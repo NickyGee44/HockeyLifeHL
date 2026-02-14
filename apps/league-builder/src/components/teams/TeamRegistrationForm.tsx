@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
-import { Users, Palette, Mail, Phone, MessageSquare, Send, CheckCircle } from 'lucide-react';
+import { Users, Palette, Mail, MessageSquare, Send, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,14 +13,11 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  SelectValue } from '@/components/ui/select';
 import { ColorPicker } from './ColorPicker';
 import { submitTeamRegistrationRequest } from '@/lib/actions/team-registration-requests';
 import {
-  sendTeamRequestSubmittedEmail,
-  notifyLeagueAdminsOfNewTeamRequest,
-} from '@/lib/email/team-request-emails';
+  sendTeamRequestSubmittedEmail} from '@/lib/email/team-request-emails';
 import { createClient } from '@/lib/supabase/client';
 
 interface Division {
@@ -39,8 +36,7 @@ export function TeamRegistrationForm({
   leagueId,
   leagueName,
   divisions,
-  locale,
-}: TeamRegistrationFormProps) {
+  locale }: TeamRegistrationFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -90,8 +86,7 @@ export function TeamRegistrationForm({
         teamContactPhone: teamContactPhone.trim() || undefined,
         requestedDivisionId: requestedDivisionId || undefined,
         message: message.trim() || undefined,
-        preferredDivisionNotes: preferredDivisionNotes.trim() || undefined,
-      });
+        preferredDivisionNotes: preferredDivisionNotes.trim() || undefined });
 
       if (result.success && result.data) {
         // Get current user info for email
@@ -113,8 +108,7 @@ export function TeamRegistrationForm({
             teamShortName: teamShortName.trim(),
             requestedDivision: divisions.find((d) => d.id === requestedDivisionId)?.name,
             submittedAt: new Date(),
-            requestId: result.data.id,
-          });
+            requestId: result.data.id });
         }
 
         // TODO: Notify league admins (would need to fetch admin emails)
@@ -124,7 +118,7 @@ export function TeamRegistrationForm({
       } else {
         setError(result.error || 'Failed to submit request');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
@@ -283,11 +277,10 @@ export function TeamRegistrationForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="contactPhone" className="text-neutral-300">
-              Team Contact Phone
-            </Label>
+            <Label htmlFor="contact" className="text-neutral-300">
+              Team Contact</Label>
             <Input
-              id="contactPhone"
+              id="contact"
               type="tel"
               value={teamContactPhone}
               onChange={(e) => setTeamContactPhone(e.target.value)}

@@ -71,6 +71,28 @@ export function LogoUploader({
   const imgRef = useRef<HTMLImageElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const handleDirectUpload = useCallback(async (file: File) => {
+    if (!onUpload) {
+      setError('Upload handler not configured');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const result = await onUpload(file);
+      onChange?.(result.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
+    }
+  }, [onUpload, onChange]);
+
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -103,29 +125,7 @@ export function LogoUploader({
       setShowCropper(true);
     };
     reader.readAsDataURL(file);
-  }, [acceptedTypes, maxSizeBytes]);
-
-  const handleDirectUpload = async (file: File) => {
-    if (!onUpload) {
-      setError('Upload handler not configured');
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
-
-    try {
-      const result = await onUpload(file);
-      onChange?.(result.url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setIsUploading(false);
-      if (inputRef.current) {
-        inputRef.current.value = '';
-      }
-    }
-  };
+  }, [acceptedTypes, maxSizeBytes, handleDirectUpload]);
 
   const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;

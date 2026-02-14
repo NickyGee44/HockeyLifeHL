@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Loader2, Save, Check } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 
 export interface WizardProgressProps {

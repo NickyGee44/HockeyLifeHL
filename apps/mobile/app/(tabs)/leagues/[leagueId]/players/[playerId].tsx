@@ -25,7 +25,7 @@ export default function PlayerProfileScreen() {
   const { leagueId, playerId } = useLocalSearchParams<{ leagueId: string; playerId: string }>();
   const { data: player, isLoading } = usePlayerProfile(supabase, playerId);
   const { data: season } = useCurrentSeason(supabase, leagueId);
-  const { data: careerStats } = usePlayerCareerStats(supabase, playerId);
+  const { data: _careerStats } = usePlayerCareerStats(supabase, playerId);
   const { data: gameLog } = usePlayerGameLog(supabase, playerId, season?.id);
   const { data: badges } = usePlayerBadges(supabase, playerId);
 

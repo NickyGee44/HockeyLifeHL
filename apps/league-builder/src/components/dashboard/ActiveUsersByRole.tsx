@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@hockey-life/ui';
-import { UserRoleCounts, formatNumber, exportToCSV } from '@/lib/dashboard';
+import { formatNumber, exportToCSV } from '@/lib/dashboard';
 import { useUserRoleCounts } from '@/lib/dashboard/use-dashboard';
 import { DashboardCard, ExportButton } from './RevenueChart';
 

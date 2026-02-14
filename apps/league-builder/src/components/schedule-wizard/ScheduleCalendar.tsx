@@ -68,7 +68,6 @@ export function ScheduleCalendar({
   games,
   teams,
   onGameClick,
-  onReschedule,
 }: ScheduleCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGame, setSelectedGame] = useState<ScheduledGame | null>(null);

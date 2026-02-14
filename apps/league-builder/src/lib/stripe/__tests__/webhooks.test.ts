@@ -57,7 +57,6 @@ import {
 import { stripe } from '@/lib/stripe/client';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
-  sendPaymentConfirmationEmail,
   sendRefundProcessedEmail,
   sendChargebackAlertEmail,
   sendChargebackResolutionEmail,
@@ -72,9 +71,6 @@ const mockConstructEvent = stripe.webhooks.constructEvent as jest.MockedFunction
 >;
 const mockCreateServiceRoleClient = createServiceRoleClient as jest.MockedFunction<
   typeof createServiceRoleClient
->;
-const mockSendPaymentConfirmationEmail = sendPaymentConfirmationEmail as jest.MockedFunction<
-  typeof sendPaymentConfirmationEmail
 >;
 const mockSendRefundProcessedEmail = sendRefundProcessedEmail as jest.MockedFunction<
   typeof sendRefundProcessedEmail
@@ -128,6 +124,7 @@ function createMockSupabase() {
   // Build a chainable .eq() that returns terminal methods
   function chainableEq(result: MockQueryResult) {
     const t = terminalResult(result);
+
     const eqFn = jest.fn((_field: string, _value: unknown) => t);
     return Object.assign(eqFn, t);
   }
@@ -135,6 +132,7 @@ function createMockSupabase() {
   // Build a chainable .select() -> .eq() -> .single() chain
   function chainableSelect(result: MockQueryResult) {
     const eq = chainableEq(result);
+
     return jest.fn((_columns?: string) => ({
       eq: eq,
       single: jest.fn(() => Promise.resolve(result)),

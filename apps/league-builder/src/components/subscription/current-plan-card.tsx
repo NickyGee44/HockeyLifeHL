@@ -13,11 +13,9 @@ import {
   CreditCard,
   Calendar,
   AlertCircle,
-  CheckCircle2,
   Clock,
   TrendingUp,
-  X,
-} from 'lucide-react';
+  X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { OrganizationSubscription } from '@/lib/types/subscription';
 import { SUBSCRIPTION_TIERS, SUBSCRIPTION_STATUS_LABELS } from '@/lib/types/subscription';
@@ -28,8 +26,7 @@ import { toast } from 'sonner';
 import {
   createBillingPortalSession,
   cancelSubscription,
-  reactivateSubscription,
-} from '@/lib/actions/subscription';
+  reactivateSubscription } from '@/lib/actions/subscription';
 
 interface CurrentPlanCardProps {
   subscription: OrganizationSubscription;
@@ -40,8 +37,7 @@ interface CurrentPlanCardProps {
 export function CurrentPlanCard({
   subscription,
   onUpgradeClick,
-  onRefresh,
-}: CurrentPlanCardProps) {
+  onRefresh }: CurrentPlanCardProps) {
   const t = useTranslations('subscription');
   const [redirecting, setRedirecting] = useState(false);
   const [canceling, setCanceling] = useState(false);
@@ -66,8 +62,7 @@ export function CurrentPlanCard({
       window.location.href = result.data.url;
     } else {
       toast.error(t('failedOpenPortal'), {
-        description: result.error,
-      });
+        description: result.error });
       setRedirecting(false);
     }
   }
@@ -85,13 +80,11 @@ export function CurrentPlanCard({
 
     if (result.success) {
       toast.success(t('subscriptionCancelled'), {
-        description: t('subscriptionEndOn', { date: format(result.data.effectiveDate, 'MMMM d, yyyy') }),
-      });
+        description: t('subscriptionEndOn', { date: format(result.data.effectiveDate, 'MMMM d, yyyy') }) });
       onRefresh();
     } else {
       toast.error(t('failedCancelSubscription'), {
-        description: result.error,
-      });
+        description: result.error });
     }
 
     setCanceling(false);
@@ -104,13 +97,11 @@ export function CurrentPlanCard({
 
     if (result.success) {
       toast.success(t('subscriptionReactivated'), {
-        description: t('reactivatedDesc'),
-      });
+        description: t('reactivatedDesc') });
       onRefresh();
     } else {
       toast.error(t('failedReactivate'), {
-        description: result.error,
-      });
+        description: result.error });
     }
 
     setReactivating(false);

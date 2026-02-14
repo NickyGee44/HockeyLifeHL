@@ -7,7 +7,7 @@
  */
 
 import { cn } from '@hockey-life/ui/lib/utils';
-import { CheckCircle, AlertTriangle, Calendar, Users, Clock, TrendingUp, TrendingDown } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Users, Clock} from 'lucide-react';
 import type { ScheduleGenerationResult, Team } from '@/lib/schedule/types';
 
 // ============================================================================
@@ -24,7 +24,7 @@ interface ResultStepProps {
 // COMPONENT
 // ============================================================================
 
-export function ResultStep({ result, teams, onSave }: ResultStepProps) {
+export function ResultStep({ result, teams, onSave: _onSave }: ResultStepProps) {
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
 
   // Calculate home/away balance
@@ -33,8 +33,7 @@ export function ResultStep({ result, teams, onSave }: ResultStepProps) {
     home: result.homeGamesPerTeam[team.id] ?? 0,
     away: result.awayGamesPerTeam[team.id] ?? 0,
     total: result.gamesPerTeam[team.id] ?? 0,
-    balance: (result.homeGamesPerTeam[team.id] ?? 0) - (result.awayGamesPerTeam[team.id] ?? 0),
-  }));
+    balance: (result.homeGamesPerTeam[team.id] ?? 0) - (result.awayGamesPerTeam[team.id] ?? 0) }));
 
   // Get first and last game dates
   const sortedGames = [...result.games].sort(
@@ -112,8 +111,7 @@ export function ResultStep({ result, teams, onSave }: ResultStepProps) {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
-                  year: 'numeric',
-                })}
+                  year: 'numeric' })}
               </div>
             </div>
             <div className="text-neutral-600">→</div>
@@ -124,8 +122,7 @@ export function ResultStep({ result, teams, onSave }: ResultStepProps) {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
-                  year: 'numeric',
-                })}
+                  year: 'numeric' })}
               </div>
             </div>
           </div>
@@ -197,14 +194,12 @@ export function ResultStep({ result, teams, onSave }: ResultStepProps) {
                     {game.scheduledAt.toLocaleDateString('en-US', {
                       weekday: 'short',
                       month: 'short',
-                      day: 'numeric',
-                    })}
+                      day: 'numeric' })}
                   </div>
                   <div className="text-sm text-neutral-400">
                     {game.scheduledAt.toLocaleTimeString('en-US', {
                       hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                      minute: '2-digit' })}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm">

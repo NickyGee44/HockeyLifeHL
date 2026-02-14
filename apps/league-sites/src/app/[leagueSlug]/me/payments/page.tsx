@@ -64,7 +64,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing] = useState(false);
   const [paymentModal, setPaymentModal] = useState<{
     isOpen: boolean;
     registrationId: string;

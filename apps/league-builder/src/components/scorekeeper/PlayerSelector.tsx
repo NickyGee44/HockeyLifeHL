@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { usePlayerSearch, type Player, type Team } from '@/lib/scorekeeper';
 import { cn } from '@hockey-life/ui';
@@ -30,8 +30,7 @@ export function PlayerSelector({
   onCancel,
   excludePlayerIds = [],
   label,
-  placeholder,
-}: PlayerSelectorProps) {
+  placeholder }: PlayerSelectorProps) {
   const t = useTranslations('scorekeeper.playerSelector');
   const resolvedLabel = label ?? t('selectPlayer');
   const resolvedPlaceholder = placeholder ?? t('jerseyOrName');
@@ -220,8 +219,7 @@ export function PlayerChip({ player, team, onRemove, size = 'md' }: PlayerChipPr
   const sizeClasses = {
     sm: 'text-sm py-1 px-2',
     md: 'text-base py-2 px-3',
-    lg: 'text-lg py-3 px-4',
-  };
+    lg: 'text-lg py-3 px-4' };
 
   return (
     <div

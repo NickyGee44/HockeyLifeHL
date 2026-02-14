@@ -28,13 +28,9 @@ import {
   Users,
   TrendingUp,
   AlertCircle,
-  CheckCircle,
   FileText,
-  MoreHorizontal,
   CreditCard,
-  Send,
   XCircle,
-  Eye,
 } from 'lucide-react';
 import {
   getTeamInvoices,
@@ -121,7 +117,8 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
   }
 
   useEffect(() => {
-    loadData(); // eslint-disable-line -- data-fetching on mount and dependency change
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadData is a data-fetching function that depends on leagueId and seasonId; also called from event handlers
   }, [leagueId, seasonId]);
 
   function handleGenerateInvoices() {

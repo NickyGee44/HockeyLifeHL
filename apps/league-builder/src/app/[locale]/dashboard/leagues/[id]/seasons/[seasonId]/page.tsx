@@ -19,9 +19,7 @@ import {
   Settings,
   Play,
   UserPlus,
-  Edit,
-  DollarSign,
-} from 'lucide-react';
+  Edit } from 'lucide-react';
 import { SeasonFeeManager } from '@/components/payments/SeasonFeeManager';
 import { getSeasonFees } from '@/lib/payments/fee-actions';
 
@@ -39,8 +37,7 @@ export default async function SeasonDetailPage({ params }: Props) {
 
   // Get current user
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { user } } = await supabase.auth.getUser();
   if (!user) {
     nextRedirect(`/${locale}/login`);
   }
@@ -89,15 +86,12 @@ export default async function SeasonDetailPage({ params }: Props) {
   // Get season fees
   const feesResult = await getSeasonFees(leagueId, { seasonId });
   const seasonFees = feesResult.success ? feesResult.data : [];
-  const activeFees = seasonFees.filter((f) => f.is_active);
-  const feeCount = activeFees.length;
 
   const statusColors: Record<string, string> = {
     active: 'bg-green-500/10 text-green-500 border-green-500/30',
     draft: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
     completed: 'bg-neutral-800 text-neutral-400 border-neutral-700',
-    playoffs: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
-  };
+    playoffs: 'bg-purple-500/10 text-purple-500 border-purple-500/30' };
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -117,8 +111,7 @@ export default async function SeasonDetailPage({ params }: Props) {
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center"
                 style={{
-                  backgroundColor: season.league?.primary_color || '#22D3EE',
-                }}
+                  backgroundColor: season.league?.primary_color || '#22D3EE' }}
               >
                 <Calendar className="w-8 h-8 text-white" />
               </div>
@@ -131,16 +124,14 @@ export default async function SeasonDetailPage({ params }: Props) {
                     ? new Date(season.start_date).toLocaleDateString('en-US', {
                         month: 'long',
                         day: 'numeric',
-                        year: 'numeric',
-                      })
+                        year: 'numeric' })
                     : 'Start TBD'}{' '}
                   -{' '}
                   {season.end_date
                     ? new Date(season.end_date).toLocaleDateString('en-US', {
                         month: 'long',
                         day: 'numeric',
-                        year: 'numeric',
-                      })
+                        year: 'numeric' })
                     : 'End TBD'}
                 </p>
               </div>
@@ -315,8 +306,7 @@ function ActionCard({
   icon,
   title,
   description,
-  badge,
-}: {
+  badge }: {
   href: string;
   icon: React.ReactNode;
   title: string;
@@ -361,7 +351,6 @@ function formatRegistrationType(type: string | null): string {
   const types: Record<string, string> = {
     open_registration: 'Open Registration',
     draft: 'Draft',
-    captain_invite_only: 'Captain Invite Only',
-  };
+    captain_invite_only: 'Captain Invite Only' };
   return types[type || ''] || type || 'Not set';
 }

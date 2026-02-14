@@ -335,7 +335,6 @@ export function LeagueTeamsClient({
 
 function TeamCardInner({
   team,
-  leagueId,
   locale,
   onDelete,
 }: {

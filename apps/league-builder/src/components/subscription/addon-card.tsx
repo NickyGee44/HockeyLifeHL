@@ -12,7 +12,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Loader2, CheckCircle2, ExternalLink, TrendingUp, Zap } from 'lucide-react';
+import { Loader2, CheckCircle2, ExternalLink, TrendingUp} from 'lucide-react';
 import { createAddonCheckout, cancelAddon, type AddonType, type OrgAddon } from '@/lib/actions/addons';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -30,17 +30,13 @@ const ADDON_CONFIG: Record<
 > = {
   platform_subscription: {
     icon: <TrendingUp className="w-5 h-5" />,
-    configKey: 'platform_subscription',
-  },
+    configKey: 'platform_subscription' },
   advanced_stats: {
     icon: <span className="text-xl">📊</span>,
-    configKey: 'advanced_stats',
-  },
+    configKey: 'advanced_stats' },
   ai_news: {
     icon: <span className="text-xl">✍️</span>,
-    configKey: 'ai_news',
-  },
-};
+    configKey: 'ai_news' } };
 
 export function AddonCard({ addonType, addon, orgId, onRefresh }: AddonCardProps) {
   const t = useTranslations('subscription.addon');

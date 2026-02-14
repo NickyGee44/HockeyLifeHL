@@ -3,24 +3,8 @@ import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/actions/auth';
 import Link from 'next/link';
-import { cn } from '@hockey-life/ui';
 import {
-  ArrowLeft,
-  Settings,
-  Palette,
-  Globe,
-  Bell,
-  CreditCard,
-  Users,
-  Shield,
-  Trash2,
-  ClipboardCheck,
-  Eye,
-  Building2,
-  AlertTriangle,
-  Archive,
-  Receipt,
-} from 'lucide-react';
+  ArrowLeft } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import { SettingsTabsClient } from './settings-tabs-client';
 
@@ -51,7 +35,7 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
     .single();
 
   if (leagueError || !league) {
-    console.error('[Settings Page] Error fetching league:', leagueError?.message);
+    console.error('[Page] Error fetching league:', leagueError?.message);
     notFound();
   }
 
@@ -59,67 +43,57 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
     {
       title: 'General',
       description: 'Basic league information and settings',
-      icon: 'Settings',
-      href: `/${locale}/dashboard/leagues/${leagueId}/settings/general`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/general` },
     {
       title: 'Website Editor',
       description: 'Customize your league website with live preview',
-      icon: 'Eye',
+      icon: '',
       href: `/${locale}/website-editor`,
-      highlight: true,
-    },
+      highlight: true },
     {
       title: 'Billing',
       description: 'Payment collection and fee settings',
-      icon: 'CreditCard',
-      href: `/${locale}/dashboard/leagues/${leagueId}/billing`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/leagues/${leagueId}/billing` },
     {
       title: 'Scorekeepers',
       description: 'Manage scorekeepers and game assignments',
-      icon: 'ClipboardCheck',
-      href: `/${locale}/dashboard/leagues/${leagueId}/settings/scorekeepers`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/scorekeepers` },
   ];
 
   const orgSettings = [
     {
       title: 'Branding',
       description: 'Logo, colors, and visual identity',
-      icon: 'Palette',
-      href: `/${locale}/dashboard/settings/branding`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/settings/branding` },
     {
       title: 'Custom Domain',
       description: 'Set up your own domain for the league website',
-      icon: 'Globe',
-      href: `/${locale}/dashboard/settings/domains`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/settings/domains` },
     {
       title: 'Staff & Permissions',
       description: 'Manage league administrators and roles',
-      icon: 'Users',
-      href: `/${locale}/dashboard/settings/members`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/settings/members` },
     {
       title: 'Notifications',
       description: 'Email and push notification preferences',
-      icon: 'Bell',
-      href: `/${locale}/dashboard/settings/notifications`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/settings/notifications` },
     {
       title: 'Subscription',
       description: 'Premium add-ons and billing management',
-      icon: 'Receipt',
-      href: `/${locale}/dashboard/settings/subscription`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/settings/subscription` },
     {
       title: 'Privacy',
       description: 'Data privacy and visibility settings',
-      icon: 'Shield',
-      href: `/${locale}/dashboard/settings/privacy`,
-    },
+      icon: '',
+      href: `/${locale}/dashboard/settings/privacy` },
   ];
 
   return (
@@ -135,7 +109,7 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
             Back to {league.name}
           </Link>
 
-          <h1 className="text-3xl font-black text-white tracking-tight">Settings</h1>
+          <h1 className="text-3xl font-black text-white tracking-tight"></h1>
           <p className="text-neutral-400 mt-1">
             Configure {league.name} settings and preferences
           </p>
@@ -162,7 +136,7 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
           </div>
         </div>
 
-        {/* Tabbed Settings */}
+        {/* Tabbed*/}
         <SettingsTabsClient
           locale={locale}
           leagueId={leagueId}

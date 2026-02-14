@@ -171,7 +171,7 @@ export async function respondToSubInvite(
 }
 
 export async function getMySubInvitations(
-  leagueId: string
+  _leagueId: string
 ): Promise<{ success: boolean; data?: SubInvitation[]; error?: string }> {
   const supabase = await createClient();
 

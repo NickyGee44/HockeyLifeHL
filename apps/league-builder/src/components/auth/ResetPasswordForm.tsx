@@ -77,7 +77,7 @@ export function ResetPasswordForm({ error: initialError, onSuccess }: ResetPassw
       } else {
         setError(result.error || t('failedToUpdatePassword'));
       }
-    } catch (err) {
+    } catch {
       setError(t('unexpectedError'));
     } finally {
       setLoading(false);

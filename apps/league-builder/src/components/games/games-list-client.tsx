@@ -1,17 +1,16 @@
 'use client';
 
 import { useState, useCallback, useTransition, useMemo } from 'react';
-import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
-import type { Game, GameFilters as GameFiltersType, GameStatus } from '@/lib/actions/games';
-import { getGames, getTeamsForLeague, getSeasonsForLeague } from '@/lib/actions/games';
+import type { Game, GameFilters as GameFiltersType } from '@/lib/actions/games';
+import { getGames } from '@/lib/actions/games';
 import { GameCardCompact } from './game-card';
 import { GameFilters } from './game-filters';
 import { BulkActionsBar } from './bulk-actions-bar';
 import { GameEditModal } from './game-edit-modal';
 import { CancelGameModal } from './cancel-game-modal';
 import { AssignScorekeeperModal } from './assign-scorekeeper-modal';
-import { Loader2, RefreshCw, Calendar, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Calendar } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface GamesListClientProps {

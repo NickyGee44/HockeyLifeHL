@@ -4,7 +4,7 @@
  * Guided wizard for creating a new season with roster import from previous seasons.
  */
 
-import { setRequestLocale, getTranslations } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import { redirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import NewSeasonWizard from './wizard-client';
@@ -18,8 +18,6 @@ type Props = {
 export default async function NewSeasonPage({ params }: Props) {
   const { locale, id: leagueId } = await params;
   setRequestLocale(locale);
-
-  const t = await getTranslations();
 
   // Check authentication
   const supabase = await createClient();

@@ -159,7 +159,7 @@ export function TeamCreationWizard({
         // Redirect to the team detail page (exists at /dashboard/teams/[teamId])
         router.push(`/dashboard/teams/${result.data.id}`);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);

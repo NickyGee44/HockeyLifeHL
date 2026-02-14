@@ -12,7 +12,6 @@ import {
   Legend,
   TooltipProps,
 } from 'recharts';
-import { cn } from '@hockey-life/ui';
 import { DateRange, GameStatsDataPoint, formatPercent, exportToCSV } from '@/lib/dashboard';
 import { useGameStats } from '@/lib/dashboard/use-dashboard';
 import { DashboardCard, StatBox, ExportButton, ChartSkeleton } from './RevenueChart';

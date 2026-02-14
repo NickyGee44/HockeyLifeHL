@@ -150,7 +150,7 @@ export async function signUp(formData: FormData) {
       .replace(/^-|-$/g, '');
 
     // Free platform - no trial needed, all features included
-    const { data: orgData, error: orgError } = await serviceSupabase
+    const { error: orgError } = await serviceSupabase
       .from('organizations')
       .insert({
         name: organizationName,
@@ -161,6 +161,14 @@ export async function signUp(formData: FormData) {
       })
       .select()
       .single();
+
+
+
+
+
+
+
+
 
     if (orgError) {
       if (isDevelopment) {

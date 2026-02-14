@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { User, Phone, AlertTriangle, Heart } from 'lucide-react';
+import { User, AlertTriangle, Heart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,8 +16,7 @@ export function Step2PersonalInfo() {
     register,
     watch,
     setValue,
-    formState: { errors },
-  } = useFormContext<RegistrationFormData>();
+    formState: { errors } } = useFormContext<RegistrationFormData>();
 
   const relationship = watch('emergency_contact_relationship');
 
@@ -60,10 +59,9 @@ export function Step2PersonalInfo() {
             )}
           </div>
 
-          {/* Phone (Optional) */}
+          {/*(Optional) */}
           <div className="space-y-2">
-            <Label htmlFor="phone" className="text-white">
-              Phone Number <span className="text-neutral-500">(Optional)</span>
+            <Label htmlFor="phone" className="text-white">Number <span className="text-neutral-500">(Optional)</span>
             </Label>
             <Input
               id="phone"
@@ -116,10 +114,10 @@ export function Step2PersonalInfo() {
             )}
           </div>
 
-          {/* Emergency Contact Phone */}
+          {/* Emergency Contact*/}
           <div className="space-y-2">
             <Label htmlFor="emergency_contact_phone" className="text-white">
-              Contact Phone <span className="text-red-400">*</span>
+              Contact<span className="text-red-400">*</span>
             </Label>
             <Input
               id="emergency_contact_phone"
@@ -147,8 +145,7 @@ export function Step2PersonalInfo() {
               value={relationship || ''}
               onValueChange={(value) =>
                 setValue('emergency_contact_relationship', value as any, {
-                  shouldValidate: true,
-                })
+                  shouldValidate: true })
               }
             >
               <SelectTrigger

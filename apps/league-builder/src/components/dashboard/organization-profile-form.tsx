@@ -41,7 +41,7 @@ export function OrganizationProfileForm({ organization }: OrganizationProfileFor
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);

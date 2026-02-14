@@ -7,7 +7,6 @@ import {
   Users,
   Mail,
   Phone,
-  Hash,
   AlertCircle,
   Loader2,
   UserX,
@@ -71,7 +70,8 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
   };
 
   useEffect(() => {
-    loadRoster(); // eslint-disable-line -- data-fetching on mount and teamId change
+    loadRoster();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadRoster is a data-fetching function that depends on teamId; also called after player removal
   }, [teamId]);
 
   const handleRemovePlayer = async (playerId: string) => {

@@ -2,15 +2,14 @@
 
 import { useState } from 'react';
 import { cn } from '@hockey-life/ui';
-import { Check, X, MapPin, AlertTriangle } from 'lucide-react';
+import { Check, AlertTriangle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,8 +18,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  SelectValue } from '@/components/ui/select';
 import type { TeamRegistrationRequestWithDetails } from '@/lib/actions/team-registration-requests';
 
 interface Division {
@@ -43,8 +41,7 @@ export function TeamApprovalModal({
   isOpen,
   onClose,
   onApprove,
-  isProcessing = false,
-}: TeamApprovalModalProps) {
+  isProcessing = false }: TeamApprovalModalProps) {
   const [selectedDivision, setSelectedDivision] = useState<string>('');
   const [adminNotes, setAdminNotes] = useState('');
 
@@ -57,8 +54,7 @@ export function TeamApprovalModal({
     await onApprove({
       requestId: request.id,
       assignedDivisionId: selectedDivision || request.requested_division_id || undefined,
-      adminNotes: adminNotes.trim() || undefined,
-    });
+      adminNotes: adminNotes.trim() || undefined });
 
     // Reset state
     setSelectedDivision('');

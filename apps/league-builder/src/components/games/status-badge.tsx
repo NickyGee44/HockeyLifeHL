@@ -130,7 +130,6 @@ export function StatusDot({
   status: GameStatus;
   className?: string;
 }) {
-  const config = statusConfig[status];
 
   return (
     <span

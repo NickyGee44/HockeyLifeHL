@@ -8,8 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Search,
@@ -17,9 +16,7 @@ import {
   Mail,
   Loader2,
   AlertCircle,
-  Check,
-  User,
-} from 'lucide-react';
+  Check } from 'lucide-react';
 
 interface AddPlayerModalEnhancedProps {
   isOpen: boolean;
@@ -48,8 +45,7 @@ export function AddPlayerModalEnhanced({
   teamId,
   leagueId,
   seasonId,
-  onSuccess,
-}: AddPlayerModalEnhancedProps) {
+  onSuccess }: AddPlayerModalEnhancedProps) {
   const [step, setStep] = useState<'search' | 'details'>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Player[]>([]);
@@ -87,6 +83,7 @@ export function AddPlayerModalEnhanced({
     }, 300);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- searchPlayers depends on leagueId which is a stable prop; including it would defeat the debounce pattern
   }, [searchQuery]);
 
   const searchPlayers = async (query: string) => {
@@ -104,7 +101,7 @@ export function AddPlayerModalEnhanced({
 
       const data = await response.json();
       setSearchResults(data);
-    } catch (err) {
+    } catch {
       setError('Failed to search players');
       setSearchResults([]);
     } finally {
@@ -129,14 +126,12 @@ export function AddPlayerModalEnhanced({
         playerId: selectedPlayer.id,
         jerseyNumber: parseInt(jerseyNumber),
         position,
-        seasonId: seasonId || undefined,
-      };
+        seasonId: seasonId || undefined };
 
       const response = await fetch(`/api/teams/${teamId}/roster`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+        body: JSON.stringify(payload) });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -145,7 +140,7 @@ export function AddPlayerModalEnhanced({
 
       onSuccess?.();
       onClose();
-    } catch (err) {
+    } catch {
       setError(err instanceof Error ? err.message : 'Failed to add player');
     } finally {
       setIsSubmitting(false);

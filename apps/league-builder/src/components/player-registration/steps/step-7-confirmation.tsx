@@ -6,14 +6,10 @@ import {
   User,
   Users,
   Trophy,
-  Target,
   Camera,
   FileCheck,
   CreditCard,
-  Check,
-  Edit2,
-} from 'lucide-react';
-import { Button } from '@hockey-life/ui';
+  Check } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { useRegistrationContext } from '../registration-wizard-container';
 import type { RegistrationFormData } from '@/lib/schemas/player-registration';
@@ -21,8 +17,7 @@ import {
   formatRegistrationType,
   formatSkillLevel,
   formatPosition,
-  formatRelationship,
-} from '@/lib/schemas/player-registration';
+  formatRelationship } from '@/lib/schemas/player-registration';
 
 export function Step7Confirmation() {
   const { leagueName, teams, requiresPayment, registrationFee } =
@@ -38,8 +33,7 @@ export function Step7Confirmation() {
   const formattedAmount = requiresPayment
     ? new Intl.NumberFormat('en-CA', {
         style: 'currency',
-        currency: 'CAD',
-      }).format(registrationFee / 100)
+        currency: 'CAD' }).format(registrationFee / 100)
     : null;
 
   return (
@@ -84,7 +78,6 @@ export function Step7Confirmation() {
         <SummarySection
           icon={User}
           title="Personal Information"
-          onEdit={() => {}}
         >
           <SummaryItem label="Full Name" value={formData.full_name} />
           {formData.phone && (
@@ -115,7 +108,6 @@ export function Step7Confirmation() {
         <SummarySection
           icon={Trophy}
           title="Skill Assessment"
-          onEdit={() => {}}
         >
           <SummaryItem
             label="Skill Level"
@@ -147,7 +139,7 @@ export function Step7Confirmation() {
         </SummarySection>
 
         {/* Photo */}
-        <SummarySection icon={Camera} title="Profile Photo" onEdit={() => {}}>
+        <SummarySection icon={Camera} title="Profile Photo">
           {formData.photo_url ? (
             <div className="flex items-center gap-3">
               <img
@@ -166,7 +158,7 @@ export function Step7Confirmation() {
         </SummarySection>
 
         {/* Waiver */}
-        <SummarySection icon={FileCheck} title="Waiver & Agreements" onEdit={() => {}}>
+        <SummarySection icon={FileCheck} title="Waiver & Agreements">
           <div className="space-y-2">
             <StatusItem
               label="Liability Waiver"
@@ -248,11 +240,10 @@ export function Step7Confirmation() {
 interface SummarySectionProps {
   icon: React.ElementType;
   title: string;
-  onEdit: () => void;
   children: React.ReactNode;
 }
 
-function SummarySection({ icon: Icon, title, onEdit, children }: SummarySectionProps) {
+function SummarySection({ icon: Icon, title, children }: SummarySectionProps) {
   return (
     <div className="p-4 rounded-xl border border-neutral-700 bg-neutral-800/30">
       <div className="flex items-center justify-between mb-3">
@@ -265,10 +256,10 @@ function SummarySection({ icon: Icon, title, onEdit, children }: SummarySectionP
           type="button"
           variant="ghost"
           size="sm"
-          onClick={onEdit}
+          onClick={}
           className="text-neutral-400 hover:text-white"
         >
-          <Edit2 className="w-3 h-3" />
+          <className="w-3 h-3" />
         </Button> */}
       </div>
       <div className="space-y-1">{children}</div>

@@ -111,10 +111,10 @@ export function DivisionList({
     setShowDeleteModal(true);
   };
 
-  const handleAssignTeams = (division: DivisionWithTeamCount) => {
-    setSelectedDivision(division);
-    setShowAssignModal(true);
-  };
+
+
+
+
 
   const handleSuccess = () => {
     fetchDivisions();

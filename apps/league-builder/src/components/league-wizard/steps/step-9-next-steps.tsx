@@ -28,19 +28,6 @@ interface Step9NextStepsProps {
   isDraftLeague: boolean;
 }
 
-function formatDate(dateString: string): string {
-  if (!dateString) return '';
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateString;
-  }
-}
 
 interface ActionCardProps {
   icon: React.ReactNode;
@@ -81,8 +68,6 @@ export function Step9NextSteps({
   leagueSlug,
   leagueName,
   seasonName,
-  seasonStartDate,
-  seasonEndDate,
   location,
   teamCount,
   needsPaymentSetup,

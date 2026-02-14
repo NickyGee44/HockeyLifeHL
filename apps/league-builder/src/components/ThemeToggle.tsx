@@ -79,31 +79,26 @@ const sizeClasses = {
   sm: {
     button: 'p-1.5',
     icon: 'w-4 h-4',
-    label: 'text-xs',
-  },
+    label: 'text-xs' },
   md: {
     button: 'p-2',
     icon: 'w-5 h-5',
-    label: 'text-sm',
-  },
+    label: 'text-sm' },
   lg: {
     button: 'p-2.5',
     icon: 'w-6 h-6',
-    label: 'text-base',
-  },
-};
+    label: 'text-base' } };
 
 export function ThemeToggle({
   size = 'md',
   className = '',
   showLabel = false,
-  ariaLabel,
-}: ThemeToggleProps) {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  ariaLabel }: ThemeToggleProps) {
+  const { theme, toggleTheme } = useTheme();
   const mounted = useThemeMounted();
 
   const sizes = sizeClasses[size];
-  const isDark = resolvedTheme === 'dark';
+  const isDark = theme === 'dark';
 
   // Generate aria label
   const label = ariaLabel || `Switch to ${isDark ? 'light' : 'dark'} mode`;
@@ -195,7 +190,7 @@ interface ThemeDropdownProps {
 }
 
 export function ThemeDropdown({ size = 'md', className = '' }: ThemeDropdownProps) {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme} = useTheme();
   const mounted = useThemeMounted();
 
   const sizes = sizeClasses[size];
@@ -275,10 +270,10 @@ interface ThemeSwitchProps {
 }
 
 export function ThemeSwitch({ className = '', showIcons = true }: ThemeSwitchProps) {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const mounted = useThemeMounted();
 
-  const isDark = resolvedTheme === 'dark';
+  const isDark = theme === 'dark';
 
   if (!mounted) {
     return (

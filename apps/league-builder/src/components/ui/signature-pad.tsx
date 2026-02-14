@@ -78,6 +78,7 @@ export function SignaturePad({
     return () => {
       signaturePad.off();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- value is intentionally excluded: re-initializing the pad on value change would clear in-progress signatures
   }, [mode, penColor, backgroundColor]);
 
   // Handle resize

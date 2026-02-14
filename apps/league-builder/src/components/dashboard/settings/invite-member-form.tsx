@@ -38,7 +38,7 @@ export function InviteMemberForm({ organizationId }: InviteMemberFormProps) {
         setRole('member');
         setTimeout(() => setSuccess(false), 3000);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);

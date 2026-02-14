@@ -128,10 +128,7 @@ interface BadgeIconProps {
 export function BadgeIcon({ badge, size = 'sm' }: BadgeIconProps) {
   const config = BADGE_CONFIG[badge.badge_type];
   if (!config) return null;
-
-  const Icon = config.icon;
   const sizeClass = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
   const imgSize = size === 'sm' ? 24 : 32;
 
   const seasonName = badge.season?.name ?? '';

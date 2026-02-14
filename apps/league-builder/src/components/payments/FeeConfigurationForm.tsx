@@ -203,7 +203,7 @@ export function FeeConfigurationForm({
           setError(result.error);
         }
       }
-    } catch (err) {
+    } catch {
       setError(t('unexpectedError'));
     } finally {
       setLoading(false);

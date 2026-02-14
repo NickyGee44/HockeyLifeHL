@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
-import { Plus, Search, Filter, Users, X } from 'lucide-react';
+import { Plus, Search, Users, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { TeamCard } from '@/components/teams';
 
@@ -35,7 +34,6 @@ export default function TeamsListClient({
   initialSearch,
   initialStatus,
 }: TeamsListClientProps) {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
 

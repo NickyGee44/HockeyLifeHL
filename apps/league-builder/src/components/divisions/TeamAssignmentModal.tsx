@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
-import { Loader2, Users, Check, X, Search } from 'lucide-react';
+import { Loader2, Users, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -138,7 +138,7 @@ export function TeamAssignmentModal({
 
       onOpenChange(false);
       onSuccess?.();
-    } catch (err) {
+    } catch {
       setError(t('unexpectedError'));
       setIsSaving(false);
     }

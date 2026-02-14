@@ -32,6 +32,7 @@ export function AddOnsSection({ orgId, hasStripeCustomer }: AddOnsSectionProps) 
 
   useEffect(() => {
     loadAddons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadAddons is a data-fetching function that depends on orgId; including it would require useCallback and cause render churn
   }, [orgId]);
 
   function getAddonByType(type: AddonType): OrgAddon | null {

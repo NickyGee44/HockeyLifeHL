@@ -462,7 +462,7 @@ export async function approveJoinRequest(requestId: string, jerseyNumber?: numbe
 /**
  * Reject a join request
  */
-export async function rejectJoinRequest(requestId: string, reason?: string) {
+export async function rejectJoinRequest(requestId: string, _reason?: string) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();

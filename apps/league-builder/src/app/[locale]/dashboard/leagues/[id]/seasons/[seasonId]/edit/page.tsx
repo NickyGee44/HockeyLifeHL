@@ -8,8 +8,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { cn } from '@hockey-life/ui';
-import { ArrowLeft, Calendar, Edit } from 'lucide-react';
+import { ArrowLeft, Edit } from 'lucide-react';
 import { EditSeasonForm } from '@/components/dashboard/leagues/EditSeasonForm';
 
 type Props = {
@@ -26,8 +25,7 @@ export default async function EditSeasonPage({ params }: Props) {
 
   // Get current user
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { user } } = await supabase.auth.getUser();
   if (!user) {
     nextRedirect(`/${locale}/login`);
   }
@@ -95,8 +93,7 @@ export default async function EditSeasonPage({ params }: Props) {
             registration_type: season.registration_type,
             games_per_cycle: season.games_per_cycle,
             max_players_per_team: season.max_players_per_team,
-            allow_team_selection: season.allow_team_selection,
-          }}
+            allow_team_selection: season.allow_team_selection }}
         />
       </div>
     </div>

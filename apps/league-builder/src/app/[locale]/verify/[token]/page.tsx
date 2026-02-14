@@ -77,7 +77,7 @@ export default function CaptainVerificationPage() {
         if (summaryResult.success && summaryResult.summary) {
           setSummary(summaryResult.summary);
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load verification data');
       } finally {
         setIsLoading(false);

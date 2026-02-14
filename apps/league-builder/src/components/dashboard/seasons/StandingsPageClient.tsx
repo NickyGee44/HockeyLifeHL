@@ -42,7 +42,6 @@ export function StandingsPageClient({
   seasonId,
   leagueId,
   config,
-  divisions,
   hasDivisions,
 }: StandingsPageClientProps) {
   const router = useRouter();

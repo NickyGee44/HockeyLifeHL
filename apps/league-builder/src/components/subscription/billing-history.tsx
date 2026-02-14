@@ -47,7 +47,8 @@ export function BillingHistory() {
   }
 
   useEffect(() => {
-    loadInvoices(); // eslint-disable-line -- data-fetching on mount
+    loadInvoices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: loadInvoices uses t() for error messages but t is a stable ref from next-intl
   }, []);
 
   function getStatusBadge(status: Invoice['status']) {

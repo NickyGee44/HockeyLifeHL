@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
 import { Plus, Trash2, Pencil, X, UserCircle, Check, XCircle } from 'lucide-react';
 import { createStaffMember, updateStaffMember, deleteStaffMember } from '@/lib/actions/staff';
+import { LogoUploader } from '@/components/ui/logo-uploader';
+import { uploadStaffPhoto, deleteStaffPhoto } from '@/lib/actions/image-upload';
 
 interface StaffMember {
   id: string;
@@ -22,11 +24,10 @@ interface StaffMember {
 
 interface StaffAdminClientProps {
   leagueId: string;
-  locale: string;
   staff: StaffMember[];
 }
 
-export function StaffAdminClient({ leagueId, locale, staff }: StaffAdminClientProps) {
+export function StaffAdminClient({ leagueId, staff }: StaffAdminClientProps) {
   const t = useTranslations('staff');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -75,8 +76,7 @@ export function StaffAdminClient({ leagueId, locale, staff }: StaffAdminClientPr
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           photoUrl: photoUrl.trim() || undefined,
-          bio: bio.trim() || undefined,
-        });
+          bio: bio.trim() || undefined });
       } else {
         await createStaffMember({
           leagueId,
@@ -85,8 +85,7 @@ export function StaffAdminClient({ leagueId, locale, staff }: StaffAdminClientPr
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           photoUrl: photoUrl.trim() || undefined,
-          bio: bio.trim() || undefined,
-        });
+          bio: bio.trim() || undefined });
       }
       resetForm();
       router.refresh();
@@ -175,12 +174,23 @@ export function StaffAdminClient({ leagueId, locale, staff }: StaffAdminClientPr
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-neutral-300 mb-1">{t('photoUrl')}</label>
-                <input
-                  type="url"
+                <LogoUploader
                   value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                  className="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-4 py-2 text-white focus:ring-2 focus:ring-rink-500 focus:border-transparent"
-                  placeholder="https://..."
+                  onChange={(url) => setPhotoUrl(url)}
+                  onUpload={async (file) => {
+                    const result = await uploadStaffPhoto(leagueId, file);
+                    if (!result.success) throw new Error(result.error);
+                    return result.data;
+                  }}
+                  onRemove={async () => {
+                    if (photoUrl) {
+                      await deleteStaffPhoto(leagueId, photoUrl);
+                      setPhotoUrl('');
+                    }
+                  }}
+                  maxSizeBytes={2 * 1024 * 1024}
+                  placeholder="Upload Photo"
+                  shape="circle"
                 />
               </div>
               <div className="md:col-span-2">

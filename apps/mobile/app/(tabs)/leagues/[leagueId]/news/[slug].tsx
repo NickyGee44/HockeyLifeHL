@@ -4,7 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Image } from 'expo-image';
 import { format } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, Avatar, Card, LoadingScreen } from '@hockey-life/ui-native';
+import { Text, Avatar, LoadingScreen } from '@hockey-life/ui-native';
 import { useNewsArticle } from '@hockey-life/data';
 import { supabase } from '../../../../../src/lib/supabase/client';
 

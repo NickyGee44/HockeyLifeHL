@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
-import { Users, MapPin, Settings, MoreVertical, Crown, Shield } from 'lucide-react';
+import { Users, Settings, MoreVertical, Crown, Shield } from 'lucide-react';
 
 interface TeamCardProps {
   team: {
@@ -37,8 +37,7 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
       <div
         className="h-2"
         style={{
-          background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
-        }}
+          background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
       />
 
       <div className="p-5">
@@ -133,8 +132,7 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
               className="h-full rounded-full transition-all"
               style={{
                 width: `${Math.min(rosterPercent, 100)}%`,
-                backgroundColor: rosterPercent >= 90 ? '#ef4444' : primaryColor,
-              }}
+                backgroundColor: rosterPercent >= 90 ? '#ef4444' : primaryColor }}
             />
           </div>
         </div>

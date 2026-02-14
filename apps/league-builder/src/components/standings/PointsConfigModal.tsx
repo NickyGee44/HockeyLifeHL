@@ -7,7 +7,6 @@
  */
 
 import { useState } from 'react';
-import { cn } from '@hockey-life/ui/lib/utils';
 import { X, Save, RotateCcw } from 'lucide-react';
 import type { StandingsConfig } from '@/lib/standings/types';
 

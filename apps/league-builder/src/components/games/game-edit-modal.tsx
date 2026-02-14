@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,8 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import type { Game, GameStatus } from '@/lib/actions/games';
+import type { Game } from '@/lib/actions/games';
 import { updateGame, rescheduleGame } from '@/lib/actions/games';
 import { format } from 'date-fns';
 import { Calendar, MapPin, Edit, AlertTriangle, Loader2 } from 'lucide-react';

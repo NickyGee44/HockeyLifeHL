@@ -15,7 +15,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
 import { Text } from '@hockey-life/ui-native';
 import type { GalleryPhoto } from '@hockey-life/data';
@@ -29,7 +28,7 @@ interface PhotoViewerProps {
   onClose: () => void;
 }
 
-function ZoomableImage({ uri, caption }: { uri: string; caption: string | null }) {
+function ZoomableImage({ uri, _caption }: { uri: string; caption: string | null }) {
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);

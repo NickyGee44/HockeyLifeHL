@@ -112,7 +112,7 @@ export function DeleteDivisionModal({
 
       onOpenChange(false);
       onSuccess?.();
-    } catch (err) {
+    } catch {
       setError(t('unexpectedError'));
       setIsDeleting(false);
     }

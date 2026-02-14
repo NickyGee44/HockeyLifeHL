@@ -139,6 +139,7 @@ export function SeasonFeeManager({
   // Load fees on mount
   React.useEffect(() => {
     loadFees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadFees is a data-fetching function that depends on leagueId and seasonId; also called after CRUD operations
   }, [leagueId, seasonId]);
 
   const loadFees = async () => {

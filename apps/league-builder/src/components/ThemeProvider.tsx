@@ -150,6 +150,7 @@ export function ThemeProvider({
     setMounted(true); // eslint-disable-line -- mounted state pattern for SSR hydration safety
     // Apply theme immediately on mount without transition to prevent flash
     applyTheme(theme, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: apply initial theme without transition; subsequent changes handled by the theme change effect below
   }, []);
 
   // Update when theme changes

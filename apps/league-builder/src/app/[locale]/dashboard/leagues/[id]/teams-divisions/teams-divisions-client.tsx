@@ -22,7 +22,6 @@ interface TeamsDivisionsClientProps {
 export function TeamsDivisionsClient({
   leagueId,
   leagueName,
-  leaguePrimaryColor,
   locale,
   teams,
   divisions,

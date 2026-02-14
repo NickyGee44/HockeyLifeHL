@@ -75,7 +75,6 @@ export function AdminScorekeeperScheduleClient({
   games: initialGames,
   scorekeepers,
   swapRequests,
-  locale,
   translations: t,
 }: AdminScorekeeperScheduleClientProps) {
   const [games, setGames] = useState(initialGames);

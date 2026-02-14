@@ -12,7 +12,7 @@ import { revalidatePath } from 'next/cache';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { slug, secret, type = 'branding' } = body;
+    const { slug, secret, type: _type = 'branding' } = body;
 
     // Verify the revalidation secret (fail closed — require secret to be configured)
     const revalidationSecret = process.env.REVALIDATION_SECRET;

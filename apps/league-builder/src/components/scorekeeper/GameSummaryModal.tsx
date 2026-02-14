@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import {
   getGameSummary,
   submitGameForVerification,
@@ -24,11 +23,9 @@ interface GameSummaryModalProps {
 export function GameSummaryModal({
   gameId,
   game,
-  events,
   onClose,
 }: GameSummaryModalProps) {
   const t = useTranslations('scorekeeper.gameSummary');
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);

@@ -20,7 +20,6 @@ interface LeagueEvent {
 
 interface EventsAdminClientProps {
   leagueId: string;
-  locale: string;
   events: LeagueEvent[];
 }
 
@@ -32,10 +31,9 @@ const EVENT_TYPE_COLORS: Record<EventType, string> = {
   tournament: 'bg-purple-500/10 text-purple-400',
   social: 'bg-yellow-500/10 text-yellow-400',
   meeting: 'bg-orange-500/10 text-orange-400',
-  fundraiser: 'bg-pink-500/10 text-pink-400',
-};
+  fundraiser: 'bg-pink-500/10 text-pink-400' };
 
-export function EventsAdminClient({ leagueId, locale, events }: EventsAdminClientProps) {
+export function EventsAdminClient({ leagueId, locale: _locale, events }: EventsAdminClientProps) {
   const t = useTranslations('events');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -84,8 +82,7 @@ export function EventsAdminClient({ leagueId, locale, events }: EventsAdminClien
           eventType,
           location: location.trim() || undefined,
           startTime: new Date(startTime).toISOString(),
-          endTime: endTime ? new Date(endTime).toISOString() : undefined,
-        });
+          endTime: endTime ? new Date(endTime).toISOString() : undefined });
       } else {
         await createEvent({
           leagueId,
@@ -94,8 +91,7 @@ export function EventsAdminClient({ leagueId, locale, events }: EventsAdminClien
           eventType,
           location: location.trim() || undefined,
           startTime: new Date(startTime).toISOString(),
-          endTime: endTime ? new Date(endTime).toISOString() : undefined,
-        });
+          endTime: endTime ? new Date(endTime).toISOString() : undefined });
       }
       resetForm();
       router.refresh();
@@ -125,8 +121,7 @@ export function EventsAdminClient({ leagueId, locale, events }: EventsAdminClien
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
-      minute: '2-digit',
-    });
+      minute: '2-digit' });
   }
 
   return (

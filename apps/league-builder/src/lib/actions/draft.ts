@@ -43,7 +43,7 @@ export async function setupDraft(
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -90,7 +90,7 @@ export async function startDraft(draftId: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -124,7 +124,7 @@ export async function makeDraftPick(
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -177,7 +177,7 @@ export async function pauseDraft(draftId: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -207,7 +207,7 @@ export async function resumeDraft(draftId: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -237,7 +237,7 @@ export async function undoLastPick(draftId: string): Promise<ActionResult<{ rest
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -277,7 +277,7 @@ export async function tradeDraftPick(
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -319,7 +319,7 @@ export async function confirmDraftRoster(
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -385,7 +385,7 @@ export async function getDraftResults(draftId: string): Promise<ActionResult<{
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -461,7 +461,7 @@ export async function addPlayersToDraftPool(
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -504,7 +504,7 @@ export async function setDraftOrder(
   try {
     const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Unauthorized' };
     }

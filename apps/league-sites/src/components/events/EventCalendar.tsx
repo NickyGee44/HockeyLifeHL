@@ -18,10 +18,9 @@ export function EventCalendar({ events }: EventCalendarProps) {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  const now = new Date();
-
   // Split events into upcoming and past
   const { upcoming, past } = useMemo(() => {
+    const now = new Date();
     const upcoming: LeagueEvent[] = [];
     const past: LeagueEvent[] = [];
     events.forEach((e) => {

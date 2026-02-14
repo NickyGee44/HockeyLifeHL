@@ -23,7 +23,7 @@ interface ContactInboxClientProps {
   submissions: ContactSubmission[];
 }
 
-export function ContactInboxClient({ leagueId, locale, submissions }: ContactInboxClientProps) {
+export function ContactInboxClient({ submissions }: ContactInboxClientProps) {
   const t = useTranslations('contact');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();

@@ -11,7 +11,6 @@ import {
   Clock,
   CheckCircle2,
   DollarSign,
-  CreditCard,
   Globe,
   AlertTriangle,
   Rocket,
@@ -19,7 +18,6 @@ import {
   Check,
   ArrowRight,
   ClipboardList,
-  LayoutGrid,
   BarChart3,
   Newspaper,
 } from 'lucide-react';

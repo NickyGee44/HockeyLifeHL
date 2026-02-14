@@ -60,7 +60,7 @@ export function CheckoutButton({
       } else {
         setError(result.error);
       }
-    } catch (err) {
+    } catch {
       setError(t('checkoutFailed'));
     } finally {
       setLoading(false);

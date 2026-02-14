@@ -38,7 +38,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
       } else {
         setError(result.error || t('somethingWentWrong'));
       }
-    } catch (err) {
+    } catch {
       setError(t('unexpectedError'));
     } finally {
       setLoading(false);

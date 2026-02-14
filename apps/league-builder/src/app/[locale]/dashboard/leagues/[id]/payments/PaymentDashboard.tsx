@@ -93,7 +93,7 @@ export function PaymentDashboard({
   const [selectedPayment, setSelectedPayment] = useState<PlayerPaymentWithDetails | null>(null);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+  const [_sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false);
 
   const handleSeasonChange = (seasonId: string) => {

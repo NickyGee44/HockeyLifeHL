@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getDivisions } from '@/lib/actions/divisions';
 import Link from 'next/link';
-import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Trophy, Users, LayoutGrid } from 'lucide-react';
 import { DivisionList } from '@/components/divisions';
 

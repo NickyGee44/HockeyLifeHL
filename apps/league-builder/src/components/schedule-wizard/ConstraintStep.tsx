@@ -56,7 +56,6 @@ export function ConstraintStep({
   leagueId,
   teams,
   venues,
-  constraints,
   setConstraints,
 }: ConstraintStepProps) {
   const [existingConstraints, setExistingConstraints] = useState<ScheduleConstraint[]>([]);

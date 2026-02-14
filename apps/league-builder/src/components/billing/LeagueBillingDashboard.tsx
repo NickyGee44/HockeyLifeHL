@@ -76,7 +76,8 @@ export function LeagueBillingDashboard({
   }
 
   useEffect(() => {
-    loadData(); // eslint-disable-line -- data-fetching on mount and leagueId change
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadData is a data-fetching function that depends on leagueId; also called from handleStatusChange
   }, [leagueId]);
 
   function handleStatusChange() {

@@ -11,7 +11,6 @@
 
 import {
   Team,
-  Venue,
   GameMatchup,
   ScheduledGame,
   ScheduleConfig,
@@ -23,8 +22,7 @@ import {
   VenueAvailability,
   VenueBlackoutDate,
   TeamSchedulePreference,
-  ScheduleConstraintConfig,
-} from './types';
+  ScheduleConstraintConfig } from './types';
 
 // ============================================================================
 // ROUND ROBIN GENERATION
@@ -78,8 +76,7 @@ export function generateRoundRobinMatchups(
           homeTeamId: home.id,
           awayTeamId: away.id,
           homeTeam: home,
-          awayTeam: away,
-        });
+          awayTeam: away });
       }
     }
   }
@@ -91,8 +88,7 @@ export function generateRoundRobinMatchups(
       homeTeamId: m.awayTeamId,
       awayTeamId: m.homeTeamId,
       homeTeam: m.awayTeam,
-      awayTeam: m.homeTeam,
-    }));
+      awayTeam: m.homeTeam }));
     matchups.push(...reverseMatchups);
   }
 
@@ -108,8 +104,7 @@ export function generateRoundRobinMatchups(
  */
 function getAvailableTimeSlots(
   config: ScheduleConfig,
-  constraints: ScheduleConstraint[],
-  _venues: Venue[]
+  constraints: ScheduleConstraint[]
 ): Date[] {
   const slots: Date[] = [];
   const startDate = new Date(config.startDate);
@@ -155,8 +150,7 @@ function getBlackoutPeriods(constraints: ScheduleConstraint[]): BlackoutPeriod[]
       startDate: c.startDate ?? new Date(),
       endDate: c.endDate ?? new Date(),
       teamId: c.teamId ?? undefined,
-      venueId: c.venueId ?? undefined,
-    }));
+      venueId: c.venueId ?? undefined }));
 }
 
 /**
@@ -208,8 +202,7 @@ function isSlotBlackedOutForTeam(
  */
 function validateGameAgainstConstraints(
   game: ScheduledGame,
-  constraints: ScheduleConstraint[],
-  _existingGames: ScheduledGame[]
+  constraints: ScheduleConstraint[]
 ): ConstraintViolation[] {
   const violations: ConstraintViolation[] = [];
 
@@ -223,8 +216,7 @@ function validateGameAgainstConstraints(
               constraintType: constraint.constraintType,
               gameIndex: game.gameNumber,
               message: `Team is not available at this time`,
-              severity: constraint.isHardConstraint ? 'error' : 'warning',
-            });
+              severity: constraint.isHardConstraint ? 'error' : 'warning' });
           }
         }
         break;
@@ -238,8 +230,7 @@ function validateGameAgainstConstraints(
                 constraintType: constraint.constraintType,
                 gameIndex: game.gameNumber,
                 message: `Venue is not available at this time`,
-                severity: constraint.isHardConstraint ? 'error' : 'warning',
-              });
+                severity: constraint.isHardConstraint ? 'error' : 'warning' });
             }
           }
         }
@@ -256,8 +247,7 @@ function validateGameAgainstConstraints(
             constraintType: constraint.constraintType,
             gameIndex: game.gameNumber,
             message: constraint.notes ?? 'Matchup constraint violated',
-            severity: constraint.isHardConstraint ? 'error' : 'warning',
-          });
+            severity: constraint.isHardConstraint ? 'error' : 'warning' });
         }
         break;
     }
@@ -359,8 +349,7 @@ function assignMatchupsToSlots(
         scheduledAt: slot,
         location,
         venueId,
-        gameNumber,
-      };
+        gameNumber };
 
       // Validate against constraints
       const gameViolations = validateGameAgainstConstraints(game, constraints, games);
@@ -384,8 +373,7 @@ function assignMatchupsToSlots(
         constraintType: 'team_blackout',
         gameIndex: gameNumber,
         message: `Could not find valid slot for ${matchup.homeTeam?.name} vs ${matchup.awayTeam?.name}`,
-        severity: 'error',
-      });
+        severity: 'error' });
     }
   }
 
@@ -460,8 +448,7 @@ function optimizeHomeAwayBalance(games: ScheduledGame[], teams: Team[]): Schedul
         homeTeamId: game.awayTeamId,
         awayTeamId: game.homeTeamId,
         homeTeam: game.awayTeam,
-        awayTeam: game.homeTeam,
-      };
+        awayTeam: game.homeTeam };
     }
   }
 
@@ -495,8 +482,7 @@ export async function generateSchedule(
         constraintViolations: [],
         hardConstraintFailures: [],
         durationMs: Date.now() - startTime,
-        error: 'At least 4 teams are required to generate a schedule',
-      };
+        error: 'At least 4 teams are required to generate a schedule' };
     }
 
     if (teams.length > 16) {
@@ -510,8 +496,7 @@ export async function generateSchedule(
         constraintViolations: [],
         hardConstraintFailures: [],
         durationMs: Date.now() - startTime,
-        error: 'Maximum 16 teams supported for schedule generation',
-      };
+        error: 'Maximum 16 teams supported for schedule generation' };
     }
 
     // Generate matchups
@@ -532,8 +517,7 @@ export async function generateSchedule(
         constraintViolations: [],
         hardConstraintFailures: [],
         durationMs: Date.now() - startTime,
-        error: `Not enough time slots available. Need ${matchups.length} slots but only ${slots.length} available.`,
-      };
+        error: `Not enough time slots available. Need ${matchups.length} slots but only ${slots.length} available.` };
     }
 
     // Assign matchups to slots
@@ -574,8 +558,7 @@ export async function generateSchedule(
       awayGamesPerTeam: awayGames,
       constraintViolations: softViolations,
       hardConstraintFailures,
-      durationMs: Date.now() - startTime,
-    };
+      durationMs: Date.now() - startTime };
   } catch (error) {
     return {
       success: false,
@@ -588,8 +571,7 @@ export async function generateSchedule(
       hardConstraintFailures: [],
       durationMs: Date.now() - startTime,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
-      errorDetails: error instanceof Error ? { stack: error.stack } : undefined,
-    };
+      errorDetails: error instanceof Error ? { stack: error.stack } : undefined };
   }
 }
 
@@ -630,8 +612,7 @@ export function rescheduleGame(
         constraintType: 'team_blackout',
         gameIndex: game.gameNumber,
         message: 'Home team would have back-to-back games',
-        severity: 'error',
-      });
+        severity: 'error' });
     }
 
     if (hasBackToBackGame(game.awayTeamId, newSlot, existingGames, config.gameDurationMinutes)) {
@@ -640,8 +621,7 @@ export function rescheduleGame(
         constraintType: 'team_blackout',
         gameIndex: game.gameNumber,
         message: 'Away team would have back-to-back games',
-        severity: 'error',
-      });
+        severity: 'error' });
     }
   }
 
@@ -652,8 +632,7 @@ export function rescheduleGame(
       constraintType: 'team_blackout',
       gameIndex: game.gameNumber,
       message: 'Home team is not available at this time',
-      severity: 'error',
-    });
+      severity: 'error' });
   }
 
   if (isSlotBlackedOutForTeam(newSlot, game.awayTeamId, constraints)) {
@@ -662,8 +641,7 @@ export function rescheduleGame(
       constraintType: 'team_blackout',
       gameIndex: game.gameNumber,
       message: 'Away team is not available at this time',
-      severity: 'error',
-    });
+      severity: 'error' });
   }
 
   const hasErrors = violations.some((v) => v.severity === 'error');
@@ -671,8 +649,7 @@ export function rescheduleGame(
   return {
     success: !hasErrors && conflictingGames.length === 0,
     violations,
-    conflictingGames,
-  };
+    conflictingGames };
 }
 
 // ============================================================================
@@ -791,8 +768,7 @@ function isSlotPreferredForTeam(
   return {
     isPreferred: score > 0,
     isAvoided: score < 0,
-    score,
-  };
+    score };
 }
 
 /**
@@ -845,8 +821,7 @@ function assignMatchupsToSlotsEnhanced(
     constraintConfig,
     teamPreferences = [],
     venueAvailability = [],
-    venueBlackouts = [],
-  } = options;
+    venueBlackouts = [] } = options;
 
   const defaultVenue = venues.find((v) => v.id === config.defaultVenueId) ?? venues[0];
   const maxGamesPerVenuePerDay = constraintConfig?.maxGamesPerVenuePerDay ?? 4;
@@ -1022,8 +997,7 @@ function assignMatchupsToSlotsEnhanced(
         scheduledAt: slot,
         location,
         venueId,
-        gameNumber,
-      };
+        gameNumber };
 
       games.push(game);
       usedSlots.add(bestSlotIndex);
@@ -1035,8 +1009,7 @@ function assignMatchupsToSlotsEnhanced(
         constraintType: 'team_blackout',
         gameIndex: gameNumber,
         message: `Could not find valid slot for ${matchup.homeTeam?.name} vs ${matchup.awayTeam?.name}`,
-        severity: 'error',
-      });
+        severity: 'error' });
     }
   }
 
@@ -1066,8 +1039,7 @@ export async function generateScheduleEnhanced(
         constraintViolations: [],
         hardConstraintFailures: [],
         durationMs: Date.now() - startTime,
-        error: 'At least 4 teams are required to generate a schedule',
-      };
+        error: 'At least 4 teams are required to generate a schedule' };
     }
 
     if (teams.length > 16) {
@@ -1081,8 +1053,7 @@ export async function generateScheduleEnhanced(
         constraintViolations: [],
         hardConstraintFailures: [],
         durationMs: Date.now() - startTime,
-        error: 'Maximum 16 teams supported for schedule generation',
-      };
+        error: 'Maximum 16 teams supported for schedule generation' };
     }
 
     // Generate matchups
@@ -1103,8 +1074,7 @@ export async function generateScheduleEnhanced(
         constraintViolations: [],
         hardConstraintFailures: [],
         durationMs: Date.now() - startTime,
-        error: `Not enough time slots available. Need ${matchups.length} slots but only ${slots.length} available.`,
-      };
+        error: `Not enough time slots available. Need ${matchups.length} slots but only ${slots.length} available.` };
     }
 
     // Use enhanced slot assignment if constraint options provided
@@ -1151,8 +1121,7 @@ export async function generateScheduleEnhanced(
       awayGamesPerTeam: awayGames,
       constraintViolations: softViolations,
       hardConstraintFailures,
-      durationMs: Date.now() - startTime,
-    };
+      durationMs: Date.now() - startTime };
   } catch (error) {
     return {
       success: false,
@@ -1165,7 +1134,6 @@ export async function generateScheduleEnhanced(
       hardConstraintFailures: [],
       durationMs: Date.now() - startTime,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
-      errorDetails: error instanceof Error ? { stack: error.stack } : undefined,
-    };
+      errorDetails: error instanceof Error ? { stack: error.stack } : undefined };
   }
 }

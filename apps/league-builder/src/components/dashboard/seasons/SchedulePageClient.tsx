@@ -105,7 +105,6 @@ export function SchedulePageClient({
   const [showWizard, setShowWizard] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [games, setGames] = useState<ScheduledGame[]>(existingGames);
-  const [isSaving, setIsSaving] = useState(false);
   const [showReschedulePanel, setShowReschedulePanel] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const [selectedGame, setSelectedGame] = useState<ScheduledGame | null>(null);

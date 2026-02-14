@@ -24,7 +24,7 @@ interface PlayerDirectoryFiltersProps {
   selectedPosition?: string;
   selectedDivision?: string;
   searchQuery?: string;
-  leagueSlug: string;
+  _leagueSlug: string;
 }
 
 export function PlayerDirectoryFilters({
@@ -35,7 +35,7 @@ export function PlayerDirectoryFilters({
   selectedPosition,
   selectedDivision,
   searchQuery,
-  leagueSlug,
+  leagueSlug: _leagueSlug,
 }: PlayerDirectoryFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();

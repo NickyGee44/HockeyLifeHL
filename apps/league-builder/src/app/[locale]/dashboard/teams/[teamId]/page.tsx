@@ -7,15 +7,10 @@ import { cn } from '@hockey-life/ui';
 import {
   ArrowLeft,
   Settings,
-  Users,
-  Calendar,
-  BarChart3,
   Crown,
   MapPin,
   Phone,
-  Mail,
-  Edit,
-} from 'lucide-react';
+  Mail } from 'lucide-react';
 import TeamDetailClient from '@/components/dashboard/teams/team-detail-client';
 import { setRequestLocale } from 'next-intl/server';
 
@@ -32,8 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   }
   return {
     title: `${result.data.name} | Beer League Hockey`,
-    description: `Manage ${result.data.name} team`,
-  };
+    description: `Manage ${result.data.name} team` };
 }
 
 export default async function TeamDetailPage({ params, searchParams }: Props) {
@@ -76,8 +70,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             <div
               className="h-2"
               style={{
-                background: `linear-gradient(to right, ${team.primary_color || '#22D3EE'}, ${team.secondary_color || '#000000'})`,
-              }}
+                background: `linear-gradient(to right, ${team.primary_color || '#22D3EE'}, ${team.secondary_color || '#000000'})` }}
             />
 
             <div className="p-6">

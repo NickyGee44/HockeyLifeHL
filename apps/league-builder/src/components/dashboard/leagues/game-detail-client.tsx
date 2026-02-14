@@ -13,7 +13,7 @@ interface GameDetailClientProps {
   leagueId: string;
 }
 
-export function GameDetailClient({ game, leagueId }: GameDetailClientProps) {
+export function GameDetailClient({ game }: GameDetailClientProps) {
   const router = useRouter();
   const t = useTranslations('statCorrection');
   const [showEditModal, setShowEditModal] = useState(false);

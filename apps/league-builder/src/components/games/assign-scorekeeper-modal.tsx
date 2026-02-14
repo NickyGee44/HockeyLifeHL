@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Clipboard, Mail, MessageSquare, Loader2, CheckCircle, UserPlus, Copy, Check } from 'lucide-react';
+import { Mail, MessageSquare, Loader2, CheckCircle, UserPlus, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Game } from '@/lib/actions/games';
 import { assignScorekeeperToGame } from '@/lib/actions/scorekeeper-admin';

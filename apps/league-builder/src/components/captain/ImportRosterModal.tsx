@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import {
@@ -19,7 +19,6 @@ import {
   getTeamCurrentSeason,
   importPlayersFromPreviousSeason,
   type PreviousSeasonPlayer,
-  type RosterImportConflict,
 } from '@/lib/actions/captain';
 import { toast } from 'sonner';
 
@@ -78,8 +77,9 @@ export default function ImportRosterModal({
   // Load previous seasons when modal opens
   useEffect(() => {
     if (isOpen) {
-      loadData(); // eslint-disable-line -- data-fetching when modal opens
+      loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadData is a data-fetching function that depends on teamId; only runs when modal opens
   }, [isOpen, teamId]);
 
   const loadRoster = async (seasonId: string) => {
@@ -100,8 +100,9 @@ export default function ImportRosterModal({
   // Load roster when season is selected
   useEffect(() => {
     if (selectedSeasonId) {
-      loadRoster(selectedSeasonId); // eslint-disable-line -- data-fetching when season changes
+      loadRoster(selectedSeasonId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadRoster is a data-fetching function that depends on teamId; triggered when season selection changes
   }, [selectedSeasonId, teamId]);
 
   const togglePlayer = (playerId: string) => {

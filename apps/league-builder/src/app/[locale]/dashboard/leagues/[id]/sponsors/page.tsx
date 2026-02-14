@@ -3,8 +3,7 @@ import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/actions/auth';
 import Link from 'next/link';
-import { cn } from '@hockey-life/ui';
-import { ArrowLeft, Handshake } from 'lucide-react';
+import { ArrowLeft} from 'lucide-react';
 import { SponsorsClient } from './SponsorsClient';
 
 type Props = {

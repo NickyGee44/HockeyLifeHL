@@ -18,7 +18,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { stripe, getPriceIdByTier, getTierByPriceId, getStripeErrorMessage } from '@/lib/stripe/client';
+import { stripe, getPriceIdByTier, getStripeErrorMessage } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
 import type {
   OrganizationSubscription,
@@ -27,9 +27,7 @@ import type {
   ProrationPreview,
   Invoice,
   SubscriptionTier,
-  SubscriptionStatus,
-} from '@/lib/types/subscription';
-import type Stripe from 'stripe';
+  SubscriptionStatus } from '@/lib/types/subscription';
 
 // ============================================================================
 // Type Definitions
@@ -68,8 +66,7 @@ async function getUserOrganization(): Promise<Organization | null> {
 
   const {
     data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+    error: userError } = await supabase.auth.getUser();
 
   if (userError || !user) {
     return null;
@@ -90,8 +87,7 @@ async function getUserOrganization(): Promise<Organization | null> {
     console.error('[SECURITY] Organization ownership mismatch detected', {
       organizationId: org.id,
       claimedOwner: org.owner_user_id,
-      currentUser: user.id,
-    });
+      currentUser: user.id });
     return null;
   }
 
@@ -126,8 +122,7 @@ async function logSubscriptionEvent(params: {
     p_stripe_event_id: params.stripeEventId ?? undefined,
     p_amount_cents: params.amountCents ?? undefined,
     p_metadata: (params.metadata ?? {}) as Record<string, string | number | boolean>,
-    p_created_by: params.createdBy ?? undefined,
-  });
+    p_created_by: params.createdBy ?? undefined });
 
   if (error) {
     console.error('[Subscription] Failed to log event:', error);
@@ -147,13 +142,11 @@ async function checkTrialEligibility(
   // Check if customer already exists and has had a trial
   if (customerId) {
     try {
-      const customer = await stripe.customers.retrieve(customerId);
 
       // Check if customer has any completed subscriptions (had trial before)
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
-        limit: 100,
-      });
+        limit: 100 });
 
       const hadTrial = subscriptions.data.some(
         (sub) => sub.trial_end !== null || sub.status === 'active' || sub.status === 'canceled'
@@ -162,8 +155,7 @@ async function checkTrialEligibility(
       if (hadTrial) {
         return {
           eligible: false,
-          reason: 'Customer has already used a trial period',
-        };
+          reason: 'Customer has already used a trial period' };
       }
     } catch (error) {
       console.error('[Subscription] Error checking customer trial history:', error);
@@ -183,8 +175,7 @@ async function checkTrialEligibility(
     // Fail closed - deny trial if we can't verify
     return {
       eligible: false,
-      reason: 'Unable to verify trial eligibility',
-    };
+      reason: 'Unable to verify trial eligibility' };
   }
 
   if (otherOrgs && otherOrgs.length > 0) {
@@ -194,14 +185,12 @@ async function checkTrialEligibility(
         try {
           const subscriptions = await stripe.subscriptions.list({
             customer: otherOrg.stripe_customer_id,
-            limit: 1,
-          });
+            limit: 1 });
 
           if (subscriptions.data.length > 0) {
             return {
               eligible: false,
-              reason: 'User has already used a trial on another organization',
-            };
+              reason: 'User has already used a trial on another organization' };
           }
         } catch (error) {
           console.error('[Subscription] Error checking other org subscriptions:', error);
@@ -225,8 +214,7 @@ export async function getCurrentSubscription(): ActionResult<OrganizationSubscri
     if (!org) {
       return {
         success: false,
-        error: 'Organization not found. Please create an organization first.',
-      };
+        error: 'Organization not found. Please create an organization first.' };
     }
 
     const subscription: OrganizationSubscription = {
@@ -252,8 +240,7 @@ export async function getCurrentSubscription(): ActionResult<OrganizationSubscri
       cancelAtPeriodEnd: org.cancel_at_period_end,
       couponId: null,
       discountEndAt: null,
-      subscriptionMetadata: {},
-    };
+      subscriptionMetadata: {} };
 
     // If we have a Stripe subscription, fetch latest data from Stripe
     if (org.stripe_subscription_id) {
@@ -280,8 +267,7 @@ export async function getCurrentSubscription(): ActionResult<OrganizationSubscri
     console.error('[Subscription] Get current subscription error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -300,16 +286,14 @@ export async function createOrganizationSubscription(
     if (!org) {
       return {
         success: false,
-        error: 'Organization not found.',
-      };
+        error: 'Organization not found.' };
     }
 
     // Only enterprise tier is supported for now
     if (tier !== 'enterprise') {
       return {
         success: false,
-        error: 'Only enterprise tier subscriptions are currently supported.',
-      };
+        error: 'Only enterprise tier subscriptions are currently supported.' };
     }
 
     // Get price ID for tier
@@ -322,20 +306,16 @@ export async function createOrganizationSubscription(
       // SECURITY: Idempotency key for customer creation
       const customerIdempotencyKey = generateIdempotencyKey('create_customer', {
         organization_id: org.id,
-        owner_user_id: org.owner_user_id,
-      });
+        owner_user_id: org.owner_user_id });
 
       const customer = await stripe.customers.create(
         {
           name: org.name,
           metadata: {
             organization_id: org.id,
-            owner_user_id: org.owner_user_id,
-          },
-        },
+            owner_user_id: org.owner_user_id } },
         {
-          idempotencyKey: customerIdempotencyKey,
-        }
+          idempotencyKey: customerIdempotencyKey }
       );
 
       customerId = customer.id;
@@ -355,8 +335,7 @@ export async function createOrganizationSubscription(
     if (!trialCheck.eligible && trialDays > 0) {
       console.warn('[Subscription] Trial denied:', trialCheck.reason, {
         organizationId: org.id,
-        userId: org.owner_user_id,
-      });
+        userId: org.owner_user_id });
     }
 
     // Attach payment method if provided
@@ -365,36 +344,29 @@ export async function createOrganizationSubscription(
       const attachIdempotencyKey = generateIdempotencyKey('attach_payment_method', {
         payment_method_id: paymentMethodId,
         customer_id: customerId,
-        organization_id: org.id,
-      });
+        organization_id: org.id });
 
       await stripe.paymentMethods.attach(
         paymentMethodId,
         {
-          customer: customerId,
-        },
+          customer: customerId },
         {
-          idempotencyKey: attachIdempotencyKey,
-        }
+          idempotencyKey: attachIdempotencyKey }
       );
 
       // SECURITY: Idempotency key for customer update
       const updateCustomerIdempotencyKey = generateIdempotencyKey('update_customer_payment', {
         customer_id: customerId,
         payment_method_id: paymentMethodId,
-        organization_id: org.id,
-      });
+        organization_id: org.id });
 
       await stripe.customers.update(
         customerId,
         {
           invoice_settings: {
-            default_payment_method: paymentMethodId,
-          },
-        },
+            default_payment_method: paymentMethodId } },
         {
-          idempotencyKey: updateCustomerIdempotencyKey,
-        }
+          idempotencyKey: updateCustomerIdempotencyKey }
       );
     }
 
@@ -404,8 +376,7 @@ export async function createOrganizationSubscription(
       customer_id: customerId,
       price_id: priceId,
       organization_id: org.id,
-      trial_days: effectiveTrialDays,
-    });
+      trial_days: effectiveTrialDays });
 
     const subscription = await stripe.subscriptions.create(
       {
@@ -414,18 +385,14 @@ export async function createOrganizationSubscription(
         trial_period_days: effectiveTrialDays,
         payment_behavior: 'default_incomplete',
         payment_settings: {
-          save_default_payment_method: 'on_subscription',
-        },
+          save_default_payment_method: 'on_subscription' },
         expand: ['latest_invoice.payment_intent'],
         metadata: {
           organization_id: org.id,
           entity_type: 'organization',
-          trial_eligible: trialCheck.eligible.toString(),
-        },
-      },
+          trial_eligible: trialCheck.eligible.toString() } },
       {
-        idempotencyKey: subscriptionIdempotencyKey,
-      }
+        idempotencyKey: subscriptionIdempotencyKey }
     );
 
     // Calculate period dates from billing cycle anchor and trial info
@@ -451,8 +418,7 @@ export async function createOrganizationSubscription(
         trial_ends_at: subscription.trial_end
           ? new Date(subscription.trial_end * 1000).toISOString()
           : null,
-        subscription_created_at: new Date(subscription.created * 1000).toISOString(),
-      })
+        subscription_created_at: new Date(subscription.created * 1000).toISOString() })
       .eq('id', org.id);
 
     // Log event
@@ -465,9 +431,7 @@ export async function createOrganizationSubscription(
       metadata: {
         trial_days: effectiveTrialDays,
         trial_eligible: trialCheck.eligible,
-        trial_denial_reason: trialCheck.reason,
-      },
-    });
+        trial_denial_reason: trialCheck.reason } });
 
     // Extract client secret if payment requires action
     const latestInvoice = subscription.latest_invoice;
@@ -485,15 +449,12 @@ export async function createOrganizationSubscription(
       data: {
         subscriptionId: subscription.id,
         clientSecret: clientSecret ?? undefined,
-        requiresAction: !!clientSecret,
-      },
-    };
+        requiresAction: !!clientSecret } };
   } catch (error) {
     console.error('[Subscription] Create subscription error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -514,20 +475,17 @@ export async function upgradeSubscription(
     if (!org.stripe_subscription_id) {
       return {
         success: false,
-        error: 'No active subscription found. Please create a subscription first.',
-      };
+        error: 'No active subscription found. Please create a subscription first.' };
     }
 
     // Only enterprise tier is supported for now
     if (newTier !== 'enterprise') {
       return {
         success: false,
-        error: 'Only enterprise tier subscriptions are currently supported.',
-      };
+        error: 'Only enterprise tier subscriptions are currently supported.' };
     }
 
     // Get new price ID
-    const newPriceId = getPriceIdByTier(newTier);
 
     // Get current subscription
     const subscription = await stripe.subscriptions.retrieve(
@@ -540,8 +498,7 @@ export async function upgradeSubscription(
       subscription_id: org.stripe_subscription_id,
       organization_id: org.id,
       new_price_id: newPriceId,
-      version: currentVersion,
-    });
+      version: currentVersion });
 
     // Update subscription immediately with proration
     const updatedSubscription = await stripe.subscriptions.update(
@@ -550,14 +507,11 @@ export async function upgradeSubscription(
         items: [
           {
             id: subscription.items.data[0].id,
-            price: newPriceId,
-          },
+            price: newPriceId },
         ],
-        proration_behavior: 'always_invoice',
-      },
+        proration_behavior: 'always_invoice' },
       {
-        idempotencyKey: upgradeIdempotencyKey,
-      }
+        idempotencyKey: upgradeIdempotencyKey }
     );
 
     // SECURITY: Update organization with optimistic locking
@@ -567,8 +521,7 @@ export async function upgradeSubscription(
       .update({
         subscription_tier: newTier,
         subscription_status: updatedSubscription.status,
-        subscription_version: currentVersion + 1,
-      })
+        subscription_version: currentVersion + 1 })
       .eq('id', org.id)
       .eq('subscription_version', currentVersion)
       .select();
@@ -576,12 +529,10 @@ export async function upgradeSubscription(
     if (updateError || !updateResult || updateResult.length === 0) {
       console.error('[Subscription] Concurrent modification detected during upgrade', {
         organizationId: org.id,
-        expectedVersion: currentVersion,
-      });
+        expectedVersion: currentVersion });
       return {
         success: false,
-        error: 'Subscription was modified by another request. Please try again.',
-      };
+        error: 'Subscription was modified by another request. Please try again.' };
     }
 
     // Log upgrade event
@@ -590,16 +541,14 @@ export async function upgradeSubscription(
       eventType: 'upgraded',
       fromTier: org.subscription_tier,
       toTier: newTier,
-      createdBy: org.owner_user_id,
-    });
+      createdBy: org.owner_user_id });
 
     return { success: true, data: undefined };
   } catch (error) {
     console.error('[Subscription] Upgrade error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -625,12 +574,10 @@ export async function downgradeSubscription(
     if (newTier !== 'enterprise') {
       return {
         success: false,
-        error: 'Only enterprise tier subscriptions are currently supported.',
-      };
+        error: 'Only enterprise tier subscriptions are currently supported.' };
     }
 
     // Get new price ID
-    const newPriceId = getPriceIdByTier(newTier);
 
     // Get current subscription
     const subscription = await stripe.subscriptions.retrieve(
@@ -643,8 +590,7 @@ export async function downgradeSubscription(
       subscription_id: org.stripe_subscription_id,
       organization_id: org.id,
       new_price_id: newPriceId,
-      version: currentVersion,
-    });
+      version: currentVersion });
 
     // Schedule downgrade for end of billing period (no proration)
     await stripe.subscriptions.update(
@@ -653,14 +599,11 @@ export async function downgradeSubscription(
         items: [
           {
             id: subscription.items.data[0]?.id,
-            price: newPriceId,
-          },
+            price: newPriceId },
         ],
-        proration_behavior: 'none',
-      },
+        proration_behavior: 'none' },
       {
-        idempotencyKey: downgradeIdempotencyKey,
-      }
+        idempotencyKey: downgradeIdempotencyKey }
     );
 
     // Use the current period end from database (synced via webhook)
@@ -673,8 +616,7 @@ export async function downgradeSubscription(
     const { data: updateResult, error: updateError } = await supabase
       .from('organizations')
       .update({
-        subscription_version: currentVersion + 1,
-      })
+        subscription_version: currentVersion + 1 })
       .eq('id', org.id)
       .eq('subscription_version', currentVersion)
       .select();
@@ -682,12 +624,10 @@ export async function downgradeSubscription(
     if (updateError || !updateResult || updateResult.length === 0) {
       console.error('[Subscription] Concurrent modification detected during downgrade', {
         organizationId: org.id,
-        expectedVersion: currentVersion,
-      });
+        expectedVersion: currentVersion });
       return {
         success: false,
-        error: 'Subscription was modified by another request. Please try again.',
-      };
+        error: 'Subscription was modified by another request. Please try again.' };
     }
 
     // Log downgrade event
@@ -697,16 +637,14 @@ export async function downgradeSubscription(
       fromTier: org.subscription_tier,
       toTier: newTier,
       createdBy: org.owner_user_id,
-      metadata: { effective_date: effectiveDate.toISOString() },
-    });
+      metadata: { effective_date: effectiveDate.toISOString() } });
 
     return { success: true, data: { effectiveDate } };
   } catch (error) {
     console.error('[Subscription] Downgrade error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -738,16 +676,14 @@ export async function cancelSubscription(
       const cancelIdempotencyKey = generateIdempotencyKey('cancel_subscription_immediately', {
         subscription_id: org.stripe_subscription_id,
         organization_id: org.id,
-        version: currentVersion,
-      });
+        version: currentVersion });
 
       // Cancel immediately
-      const canceledSubscription = await stripe.subscriptions.cancel(
+      await stripe.subscriptions.cancel(
         org.stripe_subscription_id,
         undefined,
         {
-          idempotencyKey: cancelIdempotencyKey,
-        }
+          idempotencyKey: cancelIdempotencyKey }
       );
 
       effectiveDate = new Date();
@@ -760,8 +696,7 @@ export async function cancelSubscription(
           subscription_status: 'canceled',
           cancelled_at: effectiveDate.toISOString(),
           cancellation_reason: reason || null,
-          subscription_version: currentVersion + 1,
-        })
+          subscription_version: currentVersion + 1 })
         .eq('id', org.id)
         .eq('subscription_version', currentVersion)
         .select();
@@ -769,20 +704,17 @@ export async function cancelSubscription(
       if (updateError || !updateResult || updateResult.length === 0) {
         console.error('[Subscription] Concurrent modification detected during cancel', {
           organizationId: org.id,
-          expectedVersion: currentVersion,
-        });
+          expectedVersion: currentVersion });
         return {
           success: false,
-          error: 'Subscription was modified by another request. Please try again.',
-        };
+          error: 'Subscription was modified by another request. Please try again.' };
       }
     } else {
       // SECURITY: Idempotency key for cancel at period end
       const cancelIdempotencyKey = generateIdempotencyKey('cancel_subscription_at_period_end', {
         subscription_id: org.stripe_subscription_id,
         organization_id: org.id,
-        version: currentVersion,
-      });
+        version: currentVersion });
 
       // Cancel at period end
       await stripe.subscriptions.update(
@@ -790,15 +722,11 @@ export async function cancelSubscription(
         {
           cancel_at_period_end: true,
           cancellation_details: {
-            comment: feedback || undefined,
-          },
+            comment: feedback || undefined },
           metadata: {
-            cancellation_reason: reason || 'not_specified',
-          },
-        },
+            cancellation_reason: reason || 'not_specified' } },
         {
-          idempotencyKey: cancelIdempotencyKey,
-        }
+          idempotencyKey: cancelIdempotencyKey }
       );
 
       // Use the current period end from database (synced via webhook)
@@ -813,8 +741,7 @@ export async function cancelSubscription(
         .update({
           cancel_at_period_end: true,
           cancellation_reason: reason || null,
-          subscription_version: currentVersion + 1,
-        })
+          subscription_version: currentVersion + 1 })
         .eq('id', org.id)
         .eq('subscription_version', currentVersion)
         .select();
@@ -822,12 +749,10 @@ export async function cancelSubscription(
       if (updateError || !updateResult || updateResult.length === 0) {
         console.error('[Subscription] Concurrent modification detected during cancel', {
           organizationId: org.id,
-          expectedVersion: currentVersion,
-        });
+          expectedVersion: currentVersion });
         return {
           success: false,
-          error: 'Subscription was modified by another request. Please try again.',
-        };
+          error: 'Subscription was modified by another request. Please try again.' };
       }
     }
 
@@ -841,17 +766,14 @@ export async function cancelSubscription(
         cancel_immediately: cancelImmediately,
         reason,
         feedback,
-        effective_date: effectiveDate.toISOString(),
-      },
-    });
+        effective_date: effectiveDate.toISOString() } });
 
     return { success: true, data: { effectiveDate } };
   } catch (error) {
     console.error('[Subscription] Cancel error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -880,18 +802,15 @@ export async function reactivateSubscription(): ActionResult<void> {
     const reactivateIdempotencyKey = generateIdempotencyKey('reactivate_subscription', {
       subscription_id: org.stripe_subscription_id,
       organization_id: org.id,
-      version: currentVersion,
-    });
+      version: currentVersion });
 
     // Clear cancel_at_period_end
     await stripe.subscriptions.update(
       org.stripe_subscription_id,
       {
-        cancel_at_period_end: false,
-      },
+        cancel_at_period_end: false },
       {
-        idempotencyKey: reactivateIdempotencyKey,
-      }
+        idempotencyKey: reactivateIdempotencyKey }
     );
 
     // SECURITY: Update organization with optimistic locking
@@ -901,8 +820,7 @@ export async function reactivateSubscription(): ActionResult<void> {
       .update({
         cancel_at_period_end: false,
         cancellation_reason: null,
-        subscription_version: currentVersion + 1,
-      })
+        subscription_version: currentVersion + 1 })
       .eq('id', org.id)
       .eq('subscription_version', currentVersion)
       .select();
@@ -910,28 +828,24 @@ export async function reactivateSubscription(): ActionResult<void> {
     if (updateError || !updateResult || updateResult.length === 0) {
       console.error('[Subscription] Concurrent modification detected during reactivate', {
         organizationId: org.id,
-        expectedVersion: currentVersion,
-      });
+        expectedVersion: currentVersion });
       return {
         success: false,
-        error: 'Subscription was modified by another request. Please try again.',
-      };
+        error: 'Subscription was modified by another request. Please try again.' };
     }
 
     // Log reactivation event
     await logSubscriptionEvent({
       organizationId: org.id,
       eventType: 'reactivated',
-      createdBy: org.owner_user_id,
-    });
+      createdBy: org.owner_user_id });
 
     return { success: true, data: undefined };
   } catch (error) {
     console.error('[Subscription] Reactivate error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -962,19 +876,16 @@ export async function updatePaymentMethod(
         console.error('[SECURITY] Payment method belongs to different customer', {
           paymentMethodId,
           expectedCustomer: org.stripe_customer_id,
-          actualCustomer: paymentMethod.customer,
-        });
+          actualCustomer: paymentMethod.customer });
         return {
           success: false,
-          error: 'This payment method is already in use by another customer.',
-        };
+          error: 'This payment method is already in use by another customer.' };
       }
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'resource_missing') {
         return {
           success: false,
-          error: 'Payment method not found. Please provide a valid payment method.',
-        };
+          error: 'Payment method not found. Please provide a valid payment method.' };
       }
       throw error;
     }
@@ -983,38 +894,31 @@ export async function updatePaymentMethod(
     const attachIdempotencyKey = generateIdempotencyKey('attach_payment_method_update', {
       payment_method_id: paymentMethodId,
       customer_id: org.stripe_customer_id,
-      organization_id: org.id,
-    });
+      organization_id: org.id });
 
     // Attach payment method to customer
     await stripe.paymentMethods.attach(
       paymentMethodId,
       {
-        customer: org.stripe_customer_id,
-      },
+        customer: org.stripe_customer_id },
       {
-        idempotencyKey: attachIdempotencyKey,
-      }
+        idempotencyKey: attachIdempotencyKey }
     );
 
     // SECURITY: Idempotency key for customer update
     const updateIdempotencyKey = generateIdempotencyKey('update_customer_default_payment', {
       customer_id: org.stripe_customer_id,
       payment_method_id: paymentMethodId,
-      organization_id: org.id,
-    });
+      organization_id: org.id });
 
     // Set as default payment method
     await stripe.customers.update(
       org.stripe_customer_id,
       {
         invoice_settings: {
-          default_payment_method: paymentMethodId,
-        },
-      },
+          default_payment_method: paymentMethodId } },
       {
-        idempotencyKey: updateIdempotencyKey,
-      }
+        idempotencyKey: updateIdempotencyKey }
     );
 
     // Fetch payment method details
@@ -1027,8 +931,7 @@ export async function updatePaymentMethod(
       .update({
         default_payment_method_id: paymentMethodId,
         payment_method_last4: paymentMethod.card?.last4 || null,
-        payment_method_brand: paymentMethod.card?.brand || null,
-      })
+        payment_method_brand: paymentMethod.card?.brand || null })
       .eq('id', org.id);
 
     return { success: true, data: undefined };
@@ -1036,8 +939,7 @@ export async function updatePaymentMethod(
     console.error('[Subscription] Update payment method error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -1058,23 +960,20 @@ export async function createBillingPortalSession(
     if (!org.stripe_customer_id) {
       return {
         success: false,
-        error: 'No Stripe customer found. Please create a subscription first.',
-      };
+        error: 'No Stripe customer found. Please create a subscription first.' };
     }
 
     // Create billing portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: org.stripe_customer_id,
-      return_url: returnUrl,
-    });
+      return_url: returnUrl });
 
     return { success: true, data: { url: session.url } };
   } catch (error) {
     console.error('[Subscription] Create billing portal error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -1097,8 +996,7 @@ export async function getBillingHistory(): ActionResult<{ invoices: Invoice[] }>
     // Fetch invoices from Stripe
     const invoices = await stripe.invoices.list({
       customer: org.stripe_customer_id,
-      limit: 100,
-    });
+      limit: 100 });
 
     const formattedInvoices: Invoice[] = invoices.data.map((invoice) => ({
       id: invoice.id,
@@ -1111,16 +1009,14 @@ export async function getBillingHistory(): ActionResult<{ invoices: Invoice[] }>
       invoicePdf: invoice.invoice_pdf ?? null,
       invoiceUrl: invoice.hosted_invoice_url ?? null,
       description: invoice.description ?? null,
-      currency: invoice.currency,
-    }));
+      currency: invoice.currency }));
 
     return { success: true, data: { invoices: formattedInvoices } };
   } catch (error) {
     console.error('[Subscription] Get billing history error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }
 
@@ -1146,11 +1042,8 @@ export async function getProrationPreview(
     if (newTier !== 'enterprise') {
       return {
         success: false,
-        error: 'Only enterprise tier subscriptions are currently supported.',
-      };
+        error: 'Only enterprise tier subscriptions are currently supported.' };
     }
-
-    const newPriceId = getPriceIdByTier(newTier);
 
     // Get current subscription
     await stripe.subscriptions.retrieve(
@@ -1162,8 +1055,7 @@ export async function getProrationPreview(
     const upcomingInvoiceResponse = await stripe.invoices.list({
       customer: org.stripe_customer_id!,
       subscription: org.stripe_subscription_id,
-      limit: 1,
-    });
+      limit: 1 });
 
     const upcomingInvoice = upcomingInvoiceResponse.data[0];
 
@@ -1180,14 +1072,11 @@ export async function getProrationPreview(
         nextInvoiceDate: upcomingInvoice?.period_end
           ? new Date(upcomingInvoice.period_end * 1000)
           : new Date(),
-        prorationDate: new Date(),
-      },
-    };
+        prorationDate: new Date() } };
   } catch (error) {
     console.error('[Subscription] Proration preview error:', error);
     return {
       success: false,
-      error: getStripeErrorMessage(error),
-    };
+      error: getStripeErrorMessage(error) };
   }
 }

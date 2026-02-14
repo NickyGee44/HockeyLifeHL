@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, ScrollView, RefreshControl } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, StatCard, Card, SectionHeader, Avatar, Badge, LoadingScreen, EmptyState } from '@hockey-life/ui-native';
+import { Text, StatCard, Card, SectionHeader, Avatar, LoadingScreen, EmptyState } from '@hockey-life/ui-native';
 import { useCurrentPlayer, usePlayerCareerStats, usePlayerGameLog, usePlayerBadges, usePlayerLeagues, useCurrentSeason } from '@hockey-life/data';
 import { useAuth } from '../../../src/lib/auth/provider';
 import { supabase } from '../../../src/lib/supabase/client';

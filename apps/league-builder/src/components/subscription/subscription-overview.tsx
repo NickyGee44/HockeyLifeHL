@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { CreditCard, Calendar, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { CreditCard, Calendar, AlertCircle, Clock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getCurrentSubscription } from '@/lib/actions/subscription';
 import { createBillingPortalSession } from '@/lib/actions/subscription';
@@ -39,15 +39,15 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
       setSubscription(result.data);
     } else {
       toast.error(t('failedLoadSubscription'), {
-        description: result.error,
-      });
+        description: result.error });
     }
 
     setLoading(false);
   }
 
   useEffect(() => {
-    loadSubscription(); // eslint-disable-line -- data-fetching on mount
+    loadSubscription();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: loadSubscription uses t() for error messages but t is a stable ref from next-intl
   }, []);
 
   async function handleManageBilling() {
@@ -60,8 +60,7 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
       window.location.href = result.data.url;
     } else {
       toast.error(t('failedOpenPortal'), {
-        description: result.error,
-      });
+        description: result.error });
       setRedirecting(false);
     }
   }

@@ -31,7 +31,6 @@ import {
 import {
   createDivision,
   updateDivision,
-  type Division,
   type DivisionWithTeamCount,
 } from '@/lib/actions/divisions';
 
@@ -163,7 +162,7 @@ export function DivisionFormModal({
 
       onOpenChange(false);
       onSuccess?.();
-    } catch (err) {
+    } catch {
       setError(t('unexpectedError'));
     } finally {
       setIsSubmitting(false);

@@ -22,7 +22,7 @@ import { PremiumUpgradeCard } from './premium-upgrade-card';
 import { AddonCard } from './addon-card';
 import { PaymentProcessingCard } from './payment-processing-card';
 import { PremiumServicesCard } from './premium-services-card';
-import { Loader2, CheckCircle2, Sparkles, Crown } from 'lucide-react';
+import { CheckCircle2, Sparkles, Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface SubscriptionContentProps {
@@ -59,13 +59,11 @@ export function SubscriptionContent({
   platformFeePercent,
   initialAddons,
   checkoutStatus,
-  addonActivated,
-}: SubscriptionContentProps) {
+  addonActivated }: SubscriptionContentProps) {
   const router = useRouter();
   const t = useTranslations('subscription.content');
   const tAddonConfig = useTranslations('subscription.addon.config');
   const [addons, setAddons] = useState<OrgAddon[]>(initialAddons);
-  const [loading, setLoading] = useState(false);
 
   // Refresh add-ons data
   async function loadData() {
@@ -86,29 +84,27 @@ export function SubscriptionContent({
   useEffect(() => {
     if (checkoutStatus === 'success') {
       toast.success(t('subscriptionActivated'), {
-        description: t('subscriptionActivatedDesc'),
-      });
+        description: t('subscriptionActivatedDesc') });
       // Clean up URL
       router.replace('/dashboard/settings/subscription');
     } else if (checkoutStatus === 'cancelled') {
       toast.info(t('checkoutCancelled'), {
-        description: t('checkoutCancelledDesc'),
-      });
+        description: t('checkoutCancelledDesc') });
       router.replace('/dashboard/settings/subscription');
     }
-  }, [checkoutStatus, router]);
+  }, [checkoutStatus, router, t]);
 
   // Handle addon activation success
   useEffect(() => {
     if (addonActivated) {
       toast.success(t('addonActivated', { name: tAddonConfig(`${addonActivated}.name`) }), {
-        description: t('addonActivatedDesc'),
-      });
+        description: t('addonActivatedDesc') });
 
       router.replace('/dashboard/settings/subscription');
       loadData(); // Refresh data
     }
-  }, [addonActivated, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadData is intentionally excluded to avoid re-triggering; only run when addonActivated changes
+  }, [addonActivated, router, t, tAddonConfig]);
 
   function getAddonByType(type: AddonType): OrgAddon | null {
     return addons.find((a) => a.addon_type === type) || null;

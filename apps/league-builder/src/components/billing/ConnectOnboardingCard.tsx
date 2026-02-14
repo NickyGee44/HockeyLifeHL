@@ -72,7 +72,6 @@ const STATUS_CONFIG = {
 export function ConnectOnboardingCard({
   leagueId,
   accountInfo,
-  onStatusChange,
 }: ConnectOnboardingCardProps) {
   const t = useTranslations('billing.connect');
   const tStatus = useTranslations('billing.connect.status');
