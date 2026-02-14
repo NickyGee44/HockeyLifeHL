@@ -973,7 +973,9 @@
       "setupButton": "Configurer les paiements",
       "setupDescription": "Configurez votre compte Stripe pour accepter les paiements en ligne des joueurs et des equipes. Vous serez guide a travers le processus de verification.",
       "accountCreated": "Compte Stripe cree ! Completez les etapes d'inscription ci-dessous.",
-      "accountCreateFailed": "Echec de la creation du compte Stripe. Veuillez reessayer."
+      "accountCreateFailed": "Echec de la creation du compte Stripe. Veuillez reessayer.",
+      "finishOnboardingTitle": "Terminez la configuration de votre compte de paiement",
+      "finishOnboardingDesc": "Completez les etapes ci-dessous pour commencer a accepter les paiements. Vous ne pourrez pas acceder aux fonctionnalites de facturation tant que votre compte Stripe ne sera pas entierement verifie."
     },
     "league": {
       "title": "Facturation de la ligue",

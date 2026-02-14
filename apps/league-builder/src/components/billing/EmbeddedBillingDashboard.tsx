@@ -93,11 +93,6 @@ export function EmbeddedBillingDashboard({
     const accountResult = await getConnectAccountStatus(leagueId);
     if (accountResult.success) {
       setAccountInfo(accountResult.data);
-
-      // If not connected, default to onboarding tab
-      if (accountResult.data.status !== 'complete') {
-        setActiveTab('setup');
-      }
     } else {
       toast.error(t('failedLoadStatus'), {
         description: accountResult.error,
@@ -224,6 +219,61 @@ export function EmbeddedBillingDashboard({
     );
   }
 
+  // ── Onboarding gate: force users to finish Stripe setup before seeing dashboard ──
+  if (needsOnboarding) {
+    return (
+      <ConnectProvider leagueId={leagueId}>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
+              <p className="text-neutral-400">
+                {t('managePayments', { leagueName })}
+              </p>
+            </div>
+            <StatusBadge status={accountInfo.status} />
+          </div>
+
+          {/* Prominent onboarding alert */}
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-amber-400">{t('finishOnboardingTitle')}</p>
+              <p className="text-sm text-amber-400/70 mt-1">{t('finishOnboardingDesc')}</p>
+            </div>
+          </div>
+
+          {/* Full-width onboarding widget — no tabs, no distractions */}
+          <Card className="bg-neutral-900 border-neutral-800">
+            <CardHeader>
+              <CardTitle className="text-white">{t('connectStripe')}</CardTitle>
+              <CardDescription>{t('connectStripeDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <StripeErrorBoundary fallbackHeight={500}>
+                <EmbeddedOnboarding onComplete={handleOnboardingComplete} />
+              </StripeErrorBoundary>
+            </CardContent>
+          </Card>
+
+          {/* Platform Fee Notice */}
+          <Card className="bg-neutral-800/50 border-neutral-700">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <Percent className="h-5 w-5 text-neutral-400 mt-0.5" />
+                <div className="text-sm text-neutral-400">
+                  <p>{t('platformFeeNotice', { percent: platformFeePercent })}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </ConnectProvider>
+    );
+  }
+
+  // ── Fully connected dashboard ──
   return (
     <ConnectProvider leagueId={leagueId}>
       <div className="space-y-6">
@@ -238,11 +288,11 @@ export function EmbeddedBillingDashboard({
           {accountInfo && <StatusBadge status={accountInfo.status} />}
         </div>
 
-        {/* Notification Banner — only render for fully onboarded accounts */}
-        {isConnected && <EmbeddedNotificationBanner />}
+        {/* Notification Banner */}
+        <EmbeddedNotificationBanner />
 
-        {/* Quick Stats - Only show if connected */}
-        {isConnected && stats && (
+        {/* Quick Stats */}
+        {stats && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardContent className="pt-6">
@@ -308,57 +358,20 @@ export function EmbeddedBillingDashboard({
           </div>
         )}
 
-        {/* Tabs for different sections */}
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-neutral-900 border border-neutral-800">
-            {needsOnboarding && (
-              <TabsTrigger value="setup" className="data-[state=active]:bg-emerald-600">
-                {t('setup')}
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="overview" disabled={!isConnected}>
-              {t('balance')}
-            </TabsTrigger>
-            <TabsTrigger value="payments" disabled={!isConnected}>
-              {t('payments')}
-            </TabsTrigger>
-            <TabsTrigger value="payouts" disabled={!isConnected}>
-              {t('payouts')}
-            </TabsTrigger>
-            <TabsTrigger value="settings" disabled={!isConnected}>
-              {t('settings')}
-            </TabsTrigger>
+            <TabsTrigger value="overview">{t('balance')}</TabsTrigger>
+            <TabsTrigger value="payments">{t('payments')}</TabsTrigger>
+            <TabsTrigger value="payouts">{t('payouts')}</TabsTrigger>
+            <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
           </TabsList>
 
-          {/* Setup/Onboarding Tab */}
-          {needsOnboarding && (
-            <TabsContent value="setup">
-              <Card className="bg-neutral-900 border-neutral-800">
-                <CardHeader>
-                  <CardTitle className="text-white">{t('connectStripe')}</CardTitle>
-                  <CardDescription>
-                    {t('connectStripeDesc')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <StripeErrorBoundary fallbackHeight={500}>
-                    <EmbeddedOnboarding
-                      onComplete={handleOnboardingComplete}
-                    />
-                  </StripeErrorBoundary>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-
-          {/* Balance/Overview Tab */}
           <TabsContent value="overview">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader>
                 <CardTitle className="text-white">{t('accountBalance')}</CardTitle>
-                <CardDescription>
-                  {t('accountBalanceDesc')}
-                </CardDescription>
+                <CardDescription>{t('accountBalanceDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <StripeErrorBoundary fallbackHeight={200}>
@@ -368,14 +381,11 @@ export function EmbeddedBillingDashboard({
             </Card>
           </TabsContent>
 
-          {/* Payments Tab */}
           <TabsContent value="payments">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader>
                 <CardTitle className="text-white">{t('paymentsReceived')}</CardTitle>
-                <CardDescription>
-                  {t('paymentsReceivedDesc')}
-                </CardDescription>
+                <CardDescription>{t('paymentsReceivedDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <StripeErrorBoundary fallbackHeight={500}>
@@ -385,14 +395,11 @@ export function EmbeddedBillingDashboard({
             </Card>
           </TabsContent>
 
-          {/* Payouts Tab */}
           <TabsContent value="payouts">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader>
                 <CardTitle className="text-white">{t('payoutsTitle')}</CardTitle>
-                <CardDescription>
-                  {t('payoutsDesc')}
-                </CardDescription>
+                <CardDescription>{t('payoutsDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <StripeErrorBoundary fallbackHeight={400}>
@@ -402,14 +409,11 @@ export function EmbeddedBillingDashboard({
             </Card>
           </TabsContent>
 
-          {/* Settings Tab */}
           <TabsContent value="settings">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader>
                 <CardTitle className="text-white">{t('accountSettings')}</CardTitle>
-                <CardDescription>
-                  {t('accountSettingsDesc')}
-                </CardDescription>
+                <CardDescription>{t('accountSettingsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <StripeErrorBoundary fallbackHeight={400}>
@@ -426,9 +430,7 @@ export function EmbeddedBillingDashboard({
             <div className="flex items-start gap-3">
               <Percent className="h-5 w-5 text-neutral-400 mt-0.5" />
               <div className="text-sm text-neutral-400">
-                <p>
-                  {t('platformFeeNotice', { percent: platformFeePercent })}
-                </p>
+                <p>{t('platformFeeNotice', { percent: platformFeePercent })}</p>
               </div>
             </div>
           </CardContent>

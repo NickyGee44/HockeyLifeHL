@@ -973,7 +973,9 @@
       "setupButton": "Set Up Payments",
       "setupDescription": "Set up your Stripe account to accept online payments from players and teams. You'll be guided through the verification process.",
       "accountCreated": "Stripe account created! Complete the onboarding steps below.",
-      "accountCreateFailed": "Failed to create Stripe account. Please try again."
+      "accountCreateFailed": "Failed to create Stripe account. Please try again.",
+      "finishOnboardingTitle": "Finish setting up your payment account",
+      "finishOnboardingDesc": "Complete the steps below to start accepting payments. You won't be able to access billing features until your Stripe account is fully verified."
     },
     "league": {
       "title": "League Billing",
