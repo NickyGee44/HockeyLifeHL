@@ -107,7 +107,8 @@ export function EmbeddedBillingDashboard({
     }
 
     setLoading(false);
-  }, [leagueId, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is excluded to prevent infinite re-render loop
+  }, [leagueId]);
 
   useEffect(() => {
     loadData();

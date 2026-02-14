@@ -93,7 +93,8 @@ export function SubscriptionContent({
         description: t('checkoutCancelledDesc') });
       router.replace('/dashboard/settings/subscription');
     }
-  }, [checkoutStatus, router, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t excluded to prevent infinite re-render loop
+  }, [checkoutStatus, router]);
 
   // Handle addon activation success
   useEffect(() => {
@@ -104,8 +105,8 @@ export function SubscriptionContent({
       router.replace('/dashboard/settings/subscription');
       loadData(); // Refresh data
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadData is intentionally excluded to avoid re-triggering; only run when addonActivated changes
-  }, [addonActivated, router, t, tAddonConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t, tAddonConfig, loadData excluded to prevent infinite re-render loop
+  }, [addonActivated, router]);
 
   function getAddonByType(type: AddonType): OrgAddon | null {
     return addons.find((a) => a.addon_type === type) || null;
