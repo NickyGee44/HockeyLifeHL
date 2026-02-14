@@ -17,15 +17,13 @@ import { stripe } from '@/lib/stripe/client';
 import Stripe from 'stripe';
 import { sendPayoutFailureAlertEmail } from '@/lib/email/payment-emails';
 import {
-  sendStripeRequirementsDueEmail,
-  sendMerchantCapabilityActiveEmail,
-} from '@/lib/email/subscription-emails';
+  sendMerchantCapabilityActiveEmail } from '@/lib/email/subscription-emails';
 import {
   logConnectAccountEvent,
   logDuplicateEvent,
   logWebhookError,
-  logNotificationSent,
-} from '@/lib/logging/webhook-logger';
+  logNotificationSent } from '@/lib/logging/webhook-logger';
+import { capturePaymentError, withPaymentSpan } from '@/lib/sentry/payments';
 
 // ============================================================================
 // Webhook Configuration
@@ -45,9 +43,7 @@ function createServiceClient() {
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+      persistSession: false } });
 }
 
 // ============================================================================
@@ -62,14 +58,13 @@ async function logAuditEvent(
   payload: Record<string, any>
 ): Promise<boolean> {
   // Insert with ON CONFLICT DO NOTHING for idempotency
-  const { error, count } = await supabase
+  const { error } = await supabase
     .from('stripe_connect_audit_log')
     .insert({
       league_id: leagueId,
       event_type: eventType,
       stripe_event_id: stripeEventId,
-      payload,
-    });
+      payload });
 
   if (error) {
     // If it's a duplicate key error, that's expected (idempotency)
@@ -129,14 +124,12 @@ async function handleAccountUpdated(
     charges_enabled: account.charges_enabled,
     payouts_enabled: account.payouts_enabled,
     details_submitted: account.details_submitted,
-    requirements: account.requirements,
-  });
+    requirements: account.requirements });
 
   if (!isNew) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      league_id: league.id,
-    });
+      league_id: league.id });
     return; // Duplicate event
   }
 
@@ -163,8 +156,7 @@ async function handleAccountUpdated(
     .from('leagues')
     .update({
       stripe_account_status: status,
-      payment_mode: account.charges_enabled ? 'stripe' : 'manual',
-    })
+      payment_mode: account.charges_enabled ? 'stripe' : 'manual' })
     .eq('id', league.id);
 
   if (error) {
@@ -173,8 +165,7 @@ async function handleAccountUpdated(
       stripe_event_type: 'account.updated',
       league_id: league.id,
       action: 'update_league',
-      error_type: 'database_error',
-    });
+      error_type: 'database_error' });
     throw error;
   }
 
@@ -187,9 +178,7 @@ async function handleAccountUpdated(
     metadata: {
       status,
       charges_enabled: account.charges_enabled,
-      payouts_enabled: account.payouts_enabled,
-    },
-  });
+      payouts_enabled: account.payouts_enabled } });
 
   // Send notification if account is fully enabled (new capability)
   if (status === 'complete' && !account.capabilities?.card_payments) {
@@ -218,16 +207,14 @@ async function handleAccountUpdated(
           if (profile?.email) {
             const emailResult = await sendMerchantCapabilityActiveEmail({
               to: profile.email,
-              organizationName: league.name,
-            });
+              organizationName: league.name });
 
             logNotificationSent({
               stripe_event_id: eventId,
               league_id: league.id,
               notification_type: 'merchant_capability_active',
               recipient_email: profile.email,
-              success: emailResult.success,
-            });
+              success: emailResult.success });
           }
         }
       }
@@ -237,8 +224,7 @@ async function handleAccountUpdated(
         stripe_event_type: 'account.updated',
         league_id: league.id,
         action: 'send_capability_active_email',
-        error_type: 'notification_error',
-      });
+        error_type: 'notification_error' });
     }
   }
 }
@@ -263,14 +249,12 @@ async function handlePaymentIntentSucceeded(
     payment_intent_id: paymentIntent.id,
     amount: paymentIntent.amount,
     currency: paymentIntent.currency,
-    customer_email: paymentIntent.receipt_email,
-  });
+    customer_email: paymentIntent.receipt_email });
 
   if (!isNew) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      league_id: leagueId,
-    });
+      league_id: leagueId });
     return; // Duplicate event
   }
 
@@ -282,8 +266,7 @@ async function handlePaymentIntentSucceeded(
     .from('stripe_connect_payments')
     .update({
       status: 'succeeded',
-      stripe_charge_id: chargeId,
-    })
+      stripe_charge_id: chargeId })
     .eq('stripe_payment_intent_id', paymentIntent.id);
 
   if (error) {
@@ -299,9 +282,7 @@ async function handlePaymentIntentSucceeded(
     decision_path: 'payment_succeeded',
     metadata: {
       payment_intent_id: paymentIntent.id,
-      amount_cents: paymentIntent.amount,
-    },
-  });
+      amount_cents: paymentIntent.amount } });
 }
 
 /**
@@ -323,8 +304,7 @@ async function handlePaymentIntentFailed(
   const isNew = await logAuditEvent(supabase, leagueId, 'payment_failed', eventId, {
     payment_intent_id: paymentIntent.id,
     amount: paymentIntent.amount,
-    error: paymentIntent.last_payment_error?.message,
-  });
+    error: paymentIntent.last_payment_error?.message });
 
   if (!isNew) {
     return; // Duplicate event
@@ -337,9 +317,7 @@ async function handlePaymentIntentFailed(
       status: 'failed',
       metadata: {
         error_message: paymentIntent.last_payment_error?.message,
-        error_code: paymentIntent.last_payment_error?.code,
-      },
-    })
+        error_code: paymentIntent.last_payment_error?.code } })
     .eq('stripe_payment_intent_id', paymentIntent.id);
 
   if (error) {
@@ -355,9 +333,7 @@ async function handlePaymentIntentFailed(
     decision_path: 'payment_failed',
     metadata: {
       payment_intent_id: paymentIntent.id,
-      error_message: paymentIntent.last_payment_error?.message,
-    },
-  });
+      error_message: paymentIntent.last_payment_error?.message } });
 }
 
 /**
@@ -393,14 +369,12 @@ async function handleChargeRefunded(
     charge_id: charge.id,
     payment_intent_id: paymentIntentId,
     amount_refunded: charge.amount_refunded,
-    fully_refunded: charge.refunded,
-  });
+    fully_refunded: charge.refunded });
 
   if (!isNew) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      league_id: payment.league_id,
-    });
+      league_id: payment.league_id });
     return; // Duplicate event
   }
 
@@ -419,8 +393,7 @@ async function handleChargeRefunded(
       stripe_event_type: 'charge.refunded',
       league_id: payment.league_id,
       action: 'update_payment',
-      error_type: 'database_error',
-    });
+      error_type: 'database_error' });
     throw error;
   }
 
@@ -433,9 +406,7 @@ async function handleChargeRefunded(
     metadata: {
       charge_id: charge.id,
       amount_refunded_cents: charge.amount_refunded,
-      fully_refunded: charge.refunded,
-    },
-  });
+      fully_refunded: charge.refunded } });
 }
 
 /**
@@ -460,14 +431,12 @@ async function handlePayoutPaid(
     amount: payout.amount,
     currency: payout.currency,
     arrival_date: payout.arrival_date,
-    method: payout.method,
-  });
+    method: payout.method });
 
   if (!isNew) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      league_id: league.id,
-    });
+      league_id: league.id });
     return; // Duplicate event
   }
 
@@ -480,9 +449,7 @@ async function handlePayoutPaid(
     metadata: {
       payout_id: payout.id,
       amount_cents: payout.amount,
-      arrival_date: payout.arrival_date,
-    },
-  });
+      arrival_date: payout.arrival_date } });
 }
 
 /**
@@ -506,14 +473,12 @@ async function handlePayoutFailed(
     payout_id: payout.id,
     amount: payout.amount,
     failure_code: payout.failure_code,
-    failure_message: payout.failure_message,
-  });
+    failure_message: payout.failure_message });
 
   if (!isNew) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      league_id: league.id,
-    });
+      league_id: league.id });
     return; // Duplicate event
   }
 
@@ -527,9 +492,7 @@ async function handlePayoutFailed(
       payout_id: payout.id,
       amount_cents: payout.amount,
       failure_code: payout.failure_code,
-      failure_message: payout.failure_message,
-    },
-  });
+      failure_message: payout.failure_message } });
 
   // Send alert notification to league admin
   try {
@@ -563,16 +526,14 @@ async function handlePayoutFailed(
             currency: payout.currency,
             failureCode: payout.failure_code,
             failureMessage: payout.failure_message,
-            payoutId: payout.id,
-          });
+            payoutId: payout.id });
 
           logNotificationSent({
             stripe_event_id: eventId,
             league_id: league.id,
             notification_type: 'payout_failed',
             recipient_email: profile.email,
-            success: emailResult.success,
-          });
+            success: emailResult.success });
         }
       }
     }
@@ -582,8 +543,7 @@ async function handlePayoutFailed(
       stripe_event_type: 'payout.failed',
       league_id: league.id,
       action: 'send_payout_failure_email',
-      error_type: 'notification_error',
-    });
+      error_type: 'notification_error' });
   }
 }
 
@@ -637,58 +597,44 @@ export async function POST(request: NextRequest) {
     const accountId = event.account;
 
     // Route to appropriate handler based on event type
+    const spanContext = {
+      stripe_event_id: event.id,
+      stripe_event_type: event.type,
+      stripe_account_id: accountId || undefined,
+    };
+
     switch (event.type) {
       case 'account.updated':
-        await handleAccountUpdated(
-          supabase,
-          event.data.object as Stripe.Account,
-          event.id
-        );
+        await withPaymentSpan('connect.account_updated', spanContext, () =>
+          handleAccountUpdated(supabase, event.data.object as Stripe.Account, event.id));
         break;
 
       case 'payment_intent.succeeded':
-        await handlePaymentIntentSucceeded(
-          supabase,
-          event.data.object as Stripe.PaymentIntent,
-          event.id
-        );
+        await withPaymentSpan('connect.payment_succeeded', spanContext, () =>
+          handlePaymentIntentSucceeded(supabase, event.data.object as Stripe.PaymentIntent, event.id));
         break;
 
       case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(
-          supabase,
-          event.data.object as Stripe.PaymentIntent,
-          event.id
-        );
+        await withPaymentSpan('connect.payment_failed', spanContext, () =>
+          handlePaymentIntentFailed(supabase, event.data.object as Stripe.PaymentIntent, event.id));
         break;
 
       case 'charge.refunded':
-        await handleChargeRefunded(
-          supabase,
-          event.data.object as Stripe.Charge,
-          event.id
-        );
+        await withPaymentSpan('connect.charge_refunded', spanContext, () =>
+          handleChargeRefunded(supabase, event.data.object as Stripe.Charge, event.id));
         break;
 
       case 'payout.paid':
         if (accountId) {
-          await handlePayoutPaid(
-            supabase,
-            event.data.object as Stripe.Payout,
-            accountId,
-            event.id
-          );
+          await withPaymentSpan('connect.payout_paid', spanContext, () =>
+            handlePayoutPaid(supabase, event.data.object as Stripe.Payout, accountId, event.id));
         }
         break;
 
       case 'payout.failed':
         if (accountId) {
-          await handlePayoutFailed(
-            supabase,
-            event.data.object as Stripe.Payout,
-            accountId,
-            event.id
-          );
+          await withPaymentSpan('connect.payout_failed', spanContext, () =>
+            handlePayoutFailed(supabase, event.data.object as Stripe.Payout, accountId, event.id));
         }
         break;
 
@@ -699,6 +645,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('[Connect Webhook] Error processing webhook:', error);
+    capturePaymentError(error, {
+      action: 'connect_webhook_handler',
+      stripe_event_type: 'unknown',
+    });
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }

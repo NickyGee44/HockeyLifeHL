@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/server';
 import { stripe, getPriceIdByTier } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
 import type { SubscriptionTier } from '@/lib/types/subscription';
+import { capturePaymentError } from '@/lib/sentry/payments';
 
 interface CheckoutSessionRequest {
   tier: SubscriptionTier;
@@ -155,6 +156,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Stripe Checkout] Error creating session:', error);
+    capturePaymentError(error, {
+      action: 'create_checkout_session',
+    });
 
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to create checkout session';

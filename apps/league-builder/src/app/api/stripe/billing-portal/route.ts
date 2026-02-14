@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/client';
+import { capturePaymentError } from '@/lib/sentry/payments';
 
 interface BillingPortalRequest {
   returnUrl: string;
@@ -76,6 +77,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('[Stripe Billing Portal] Error creating session:', error);
+    capturePaymentError(error, {
+      action: 'create_billing_portal_session',
+    });
 
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to create billing portal session';

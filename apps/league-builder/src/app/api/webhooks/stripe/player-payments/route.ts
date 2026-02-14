@@ -10,6 +10,7 @@ import {
   verifyPlayerPaymentsWebhook,
   handlePlayerPaymentsWebhook,
 } from '@/lib/payments/webhook-handler';
+import { capturePaymentError } from '@/lib/sentry/payments';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,11 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       console.error('[Webhook] Event processing failed:', result.message);
+      capturePaymentError(new Error(result.message || 'Player payment webhook failed'), {
+        action: 'player_payments_webhook',
+        stripe_event_id: event.id,
+        stripe_event_type: event.type,
+      });
       return NextResponse.json(
         { error: result.message },
         { status: 500 }
@@ -57,6 +63,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Webhook] Unexpected error:', error);
+    capturePaymentError(error, {
+      action: 'player_payments_webhook',
+      stripe_event_type: 'unknown',
+    });
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }

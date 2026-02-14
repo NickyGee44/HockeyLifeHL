@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
 import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
+import { capturePaymentError } from '@/lib/sentry/payments';
 
 interface RegistrationCheckoutRequest {
   leagueId: string;
@@ -204,6 +205,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Registration Checkout] Error creating session:', error);
+    capturePaymentError(error, {
+      action: 'create_registration_checkout',
+    });
 
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to create checkout session';

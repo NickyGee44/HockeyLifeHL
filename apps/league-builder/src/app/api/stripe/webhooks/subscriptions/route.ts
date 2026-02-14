@@ -17,22 +17,20 @@ import { stripe, STRIPE_WEBHOOK_SECRET_ORGANIZATIONS, getTierByPriceId } from '@
 import Stripe from 'stripe';
 import {
   sendWelcomeEmail,
-  sendPaymentSuccessEmail,
   sendPaymentFailedEmail,
   sendSubscriptionUpgradedEmail,
   sendSubscriptionDowngradedEmail,
   sendSubscriptionCancelledEmail,
   sendPaymentRecoveredEmail,
-  sendRecurringPaymentReceiptEmail,
-} from '@/lib/email/subscription-emails';
+  sendRecurringPaymentReceiptEmail } from '@/lib/email/subscription-emails';
 import {
   logSubscriptionLifecycle,
   logPaymentEvent,
   logDuplicateEvent,
   logEventOrderingRejection,
   logWebhookError,
-  logNotificationSent,
-} from '@/lib/logging/webhook-logger';
+  logNotificationSent } from '@/lib/logging/webhook-logger';
+import { capturePaymentError, withPaymentSpan } from '@/lib/sentry/payments';
 
 // ============================================================================
 // Webhook Configuration
@@ -49,9 +47,7 @@ function createServiceClient() {
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+      persistSession: false } });
 }
 
 // ============================================================================
@@ -108,8 +104,7 @@ async function acquireOrganizationLock(
   // Use hashtext() to convert UUID to 32-bit integer for advisory lock
   // Advisory lock will block until any existing lock for this org is released
   const { error } = await supabase.rpc('acquire_webhook_lock', {
-    p_organization_id: organizationId,
-  });
+    p_organization_id: organizationId });
 
   if (error) {
     console.error('[Webhook] Failed to acquire advisory lock:', error);
@@ -143,8 +138,7 @@ async function verifyEventOrdering(
 
   return {
     valid: eventTimestamp >= lastTimestamp,
-    lastTimestamp,
-  };
+    lastTimestamp };
 }
 
 // ============================================================================
@@ -202,8 +196,7 @@ async function logSubscriptionEvent(
       p_stripe_event_id: params.stripeEventId ?? null,
       p_amount_cents: params.amountCents ?? null,
       p_metadata: params.metadata ?? {},
-      p_created_by: null,
-    });
+      p_created_by: null });
 
     if (error) {
       console.error('[Webhook] Failed to log event:', error);
@@ -253,8 +246,7 @@ async function handleSubscriptionCreated(
       stripe_event_id: eventId,
       organization_id: organizationId,
       event_timestamp: eventTimestamp,
-      last_timestamp: lastTimestamp,
-    });
+      last_timestamp: lastTimestamp });
     return;
   }
 
@@ -278,14 +270,12 @@ async function handleSubscriptionCreated(
     eventType: 'created',
     toTier: tier,
     toStatus: subscription.status,
-    stripeEventId: eventId,
-  });
+    stripeEventId: eventId });
 
   if (isDuplicate) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      organization_id: organizationId,
-    });
+      organization_id: organizationId });
     return;
   }
 
@@ -318,8 +308,7 @@ async function handleSubscriptionCreated(
         ? new Date(subscription.trial_end * 1000).toISOString()
         : null,
       subscription_created_at: new Date(subscription.created * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end || false,
-    })
+      cancel_at_period_end: subscription.cancel_at_period_end || false })
     .eq('id', organizationId);
 
   if (error) {
@@ -328,8 +317,7 @@ async function handleSubscriptionCreated(
       stripe_event_type: 'customer.subscription.created',
       organization_id: organizationId,
       action: 'update_organization',
-      error_type: 'database_error',
-    });
+      error_type: 'database_error' });
     throw error;
   }
 
@@ -354,8 +342,7 @@ async function handleSubscriptionCreated(
     action: 'created',
     to_tier: tier,
     to_status: subscription.status,
-    decision_path: subscription.trial_end ? 'with_trial' : 'no_trial',
-  });
+    decision_path: subscription.trial_end ? 'with_trial' : 'no_trial' });
 
   // Send welcome email notification (async, don't block webhook response)
   try {
@@ -372,16 +359,14 @@ async function handleSubscriptionCreated(
         tier: tier as any,
         trialEndsAt: subscription.trial_end
           ? new Date(subscription.trial_end * 1000)
-          : undefined,
-      });
+          : undefined });
 
       logNotificationSent({
         stripe_event_id: eventId,
         organization_id: organizationId,
         notification_type: 'subscription_created',
         recipient_email: profile.email,
-        success: emailResult.success,
-      });
+        success: emailResult.success });
     }
   } catch (emailError) {
     // Don't throw - email errors shouldn't block webhook processing
@@ -390,8 +375,7 @@ async function handleSubscriptionCreated(
       stripe_event_type: 'customer.subscription.created',
       organization_id: organizationId,
       action: 'send_welcome_email',
-      error_type: 'notification_error',
-    });
+      error_type: 'notification_error' });
   }
 }
 
@@ -425,8 +409,7 @@ async function handleSubscriptionUpdated(
       stripe_event_id: eventId,
       organization_id: organizationId,
       event_timestamp: eventTimestamp,
-      last_timestamp: lastTimestamp,
-    });
+      last_timestamp: lastTimestamp });
     return;
   }
 
@@ -443,8 +426,7 @@ async function handleSubscriptionUpdated(
       stripe_event_type: 'customer.subscription.updated',
       organization_id: organizationId,
       action: 'fetch_organization',
-      error_type: 'database_error',
-    });
+      error_type: 'database_error' });
     throw fetchError;
   }
 
@@ -480,14 +462,12 @@ async function handleSubscriptionUpdated(
     toTier: tier,
     fromStatus: org.subscription_status,
     toStatus: subscription.status,
-    stripeEventId: eventId,
-  });
+    stripeEventId: eventId });
 
   if (isDuplicate) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      organization_id: organizationId,
-    });
+      organization_id: organizationId });
     return;
   }
 
@@ -507,8 +487,7 @@ async function handleSubscriptionUpdated(
       cancel_at_period_end: subscription.cancel_at_period_end || false,
       cancelled_at: subscription.canceled_at
         ? new Date(subscription.canceled_at * 1000).toISOString()
-        : null,
-    })
+        : null })
     .eq('id', organizationId);
 
   if (error) {
@@ -517,8 +496,7 @@ async function handleSubscriptionUpdated(
       stripe_event_type: 'customer.subscription.updated',
       organization_id: organizationId,
       action: 'update_organization',
-      error_type: 'database_error',
-    });
+      error_type: 'database_error' });
     throw error;
   }
 
@@ -553,8 +531,7 @@ async function handleSubscriptionUpdated(
     to_tier: tier,
     from_status: org.subscription_status,
     to_status: subscription.status,
-    decision_path: decisionPath,
-  });
+    decision_path: decisionPath });
 
   // Send email notifications based on event type
   try {
@@ -572,8 +549,7 @@ async function handleSubscriptionUpdated(
           to: profile.email,
           organizationName: org.name,
           fromTier: org.subscription_tier as any,
-          toTier: tier as any,
-        });
+          toTier: tier as any });
       } else if (eventType === 'downgraded') {
         emailResult = await sendSubscriptionDowngradedEmail({
           to: profile.email,
@@ -582,8 +558,7 @@ async function handleSubscriptionUpdated(
           toTier: tier as any,
           effectiveDate: org.current_period_end
             ? new Date(org.current_period_end)
-            : new Date(),
-        });
+            : new Date() });
       }
 
       if (emailResult) {
@@ -592,8 +567,7 @@ async function handleSubscriptionUpdated(
           organization_id: organizationId,
           notification_type: `subscription_${eventType}`,
           recipient_email: profile.email,
-          success: emailResult.success,
-        });
+          success: emailResult.success });
       }
     }
   } catch (emailError) {
@@ -603,8 +577,7 @@ async function handleSubscriptionUpdated(
       stripe_event_type: 'customer.subscription.updated',
       organization_id: organizationId,
       action: `send_${eventType}_email`,
-      error_type: 'notification_error',
-    });
+      error_type: 'notification_error' });
   }
 }
 
@@ -638,8 +611,7 @@ async function handleSubscriptionDeleted(
       stripe_event_id: eventId,
       organization_id: organizationId,
       event_timestamp: eventTimestamp,
-      last_timestamp: lastTimestamp,
-    });
+      last_timestamp: lastTimestamp });
     return;
   }
 
@@ -648,14 +620,12 @@ async function handleSubscriptionDeleted(
     organizationId,
     eventType: 'cancelled',
     toStatus: 'canceled',
-    stripeEventId: eventId,
-  });
+    stripeEventId: eventId });
 
   if (isDuplicate) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      organization_id: organizationId,
-    });
+      organization_id: organizationId });
     return;
   }
 
@@ -677,8 +647,7 @@ async function handleSubscriptionDeleted(
       subscription_status: 'canceled',
       // Keep enterprise tier but mark as canceled - contact sales to reactivate
       stripe_subscription_id: null,
-      cancelled_at: new Date().toISOString(),
-    })
+      cancelled_at: new Date().toISOString() })
     .eq('id', organizationId);
 
   if (error) {
@@ -687,8 +656,7 @@ async function handleSubscriptionDeleted(
       stripe_event_type: 'customer.subscription.deleted',
       organization_id: organizationId,
       action: 'update_organization',
-      error_type: 'database_error',
-    });
+      error_type: 'database_error' });
     throw error;
   }
 
@@ -712,8 +680,7 @@ async function handleSubscriptionDeleted(
     organization_id: organizationId,
     action: 'cancelled',
     to_status: 'canceled',
-    decision_path: 'subscription_deleted',
-  });
+    decision_path: 'subscription_deleted' });
 
   // Send cancellation confirmation email
   try {
@@ -728,16 +695,14 @@ async function handleSubscriptionDeleted(
         to: profile.email,
         organizationName: org.name,
         effectiveDate: new Date(),
-        immediate: true,
-      });
+        immediate: true });
 
       logNotificationSent({
         stripe_event_id: eventId,
         organization_id: organizationId,
         notification_type: 'subscription_cancelled',
         recipient_email: profile.email,
-        success: emailResult.success,
-      });
+        success: emailResult.success });
     }
   } catch (emailError) {
     // Don't throw - email errors shouldn't block webhook processing
@@ -746,8 +711,7 @@ async function handleSubscriptionDeleted(
       stripe_event_type: 'customer.subscription.deleted',
       organization_id: organizationId,
       action: 'send_cancellation_email',
-      error_type: 'notification_error',
-    });
+      error_type: 'notification_error' });
   }
 }
 
@@ -803,8 +767,7 @@ async function handleInvoicePaid(
       stripe_event_id: eventId,
       organization_id: org.id,
       event_timestamp: eventTimestamp,
-      last_timestamp: lastTimestamp,
-    });
+      last_timestamp: lastTimestamp });
     return;
   }
 
@@ -813,14 +776,12 @@ async function handleInvoicePaid(
     organizationId: org.id,
     eventType: 'payment_succeeded',
     amountCents: invoice.amount_paid,
-    stripeEventId: eventId,
-  });
+    stripeEventId: eventId });
 
   if (isDuplicate) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      organization_id: org.id,
-    });
+      organization_id: org.id });
     return;
   }
 
@@ -839,8 +800,7 @@ async function handleInvoicePaid(
         stripe_event_type: 'invoice.paid',
         organization_id: org.id,
         action: 'restore_subscription',
-        error_type: 'database_error',
-      });
+        error_type: 'database_error' });
       throw error;
     }
   }
@@ -865,8 +825,7 @@ async function handleInvoicePaid(
     organization_id: org.id,
     action: wasPastDue ? 'payment_recovered' : 'payment_succeeded',
     amount_cents: invoice.amount_paid,
-    decision_path: wasPastDue ? 'payment_recovered_from_past_due' : 'recurring_payment',
-  });
+    decision_path: wasPastDue ? 'payment_recovered_from_past_due' : 'recurring_payment' });
 
   // Send email notification
   try {
@@ -884,8 +843,7 @@ async function handleInvoicePaid(
         emailResult = await sendPaymentRecoveredEmail({
           to: profile.email,
           organizationName: org.name,
-          amount: invoice.amount_paid,
-        });
+          amount: invoice.amount_paid });
       } else {
         // Recurring payment receipt
         emailResult = await sendRecurringPaymentReceiptEmail({
@@ -900,8 +858,7 @@ async function handleInvoicePaid(
           periodEnd: org.current_period_end
             ? new Date(org.current_period_end)
             : new Date(),
-          invoiceUrl: invoice.hosted_invoice_url || undefined,
-        });
+          invoiceUrl: invoice.hosted_invoice_url || undefined });
       }
 
       logNotificationSent({
@@ -909,8 +866,7 @@ async function handleInvoicePaid(
         organization_id: org.id,
         notification_type: wasPastDue ? 'payment_recovered' : 'recurring_payment',
         recipient_email: profile.email,
-        success: emailResult.success,
-      });
+        success: emailResult.success });
     }
   } catch (emailError) {
     // Don't throw - email errors shouldn't block webhook processing
@@ -919,8 +875,7 @@ async function handleInvoicePaid(
       stripe_event_type: 'invoice.paid',
       organization_id: org.id,
       action: 'send_payment_email',
-      error_type: 'notification_error',
-    });
+      error_type: 'notification_error' });
   }
 }
 
@@ -976,8 +931,7 @@ async function handleInvoicePaymentFailed(
       stripe_event_id: eventId,
       organization_id: org.id,
       event_timestamp: eventTimestamp,
-      last_timestamp: lastTimestamp,
-    });
+      last_timestamp: lastTimestamp });
     return;
   }
 
@@ -989,15 +943,12 @@ async function handleInvoicePaymentFailed(
     stripeEventId: eventId,
     metadata: {
       attempt_count: invoice.attempt_count,
-      next_payment_attempt: invoice.next_payment_attempt,
-    },
-  });
+      next_payment_attempt: invoice.next_payment_attempt } });
 
   if (isDuplicate) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      organization_id: org.id,
-    });
+      organization_id: org.id });
     return;
   }
 
@@ -1013,8 +964,7 @@ async function handleInvoicePaymentFailed(
       stripe_event_type: 'invoice.payment_failed',
       organization_id: org.id,
       action: 'update_organization_status',
-      error_type: 'database_error',
-    });
+      error_type: 'database_error' });
     throw error;
   }
 
@@ -1041,9 +991,7 @@ async function handleInvoicePaymentFailed(
     decision_path: `payment_failed_attempt_${invoice.attempt_count}`,
     metadata: {
       attempt_count: invoice.attempt_count,
-      next_payment_attempt: invoice.next_payment_attempt,
-    },
-  });
+      next_payment_attempt: invoice.next_payment_attempt } });
 
   // Send payment failure notification
   try {
@@ -1058,16 +1006,14 @@ async function handleInvoicePaymentFailed(
         to: profile.email,
         organizationName: org.name,
         amount: invoice.amount_due,
-        attemptCount: invoice.attempt_count || 1,
-      });
+        attemptCount: invoice.attempt_count || 1 });
 
       logNotificationSent({
         stripe_event_id: eventId,
         organization_id: org.id,
         notification_type: 'payment_failed',
         recipient_email: profile.email,
-        success: emailResult.success,
-      });
+        success: emailResult.success });
     }
   } catch (emailError) {
     // Don't throw - email errors shouldn't block webhook processing
@@ -1076,8 +1022,7 @@ async function handleInvoicePaymentFailed(
       stripe_event_type: 'invoice.payment_failed',
       organization_id: org.id,
       action: 'send_payment_failed_email',
-      error_type: 'notification_error',
-    });
+      error_type: 'notification_error' });
   }
 }
 
@@ -1123,8 +1068,7 @@ async function handlePaymentMethodAttached(
       stripe_event_id: eventId,
       organization_id: org.id,
       event_timestamp: eventTimestamp,
-      last_timestamp: lastTimestamp,
-    });
+      last_timestamp: lastTimestamp });
     return;
   }
 
@@ -1134,8 +1078,7 @@ async function handlePaymentMethodAttached(
   if (isDuplicate) {
     logDuplicateEvent({
       stripe_event_id: eventId,
-      organization_id: org.id,
-    });
+      organization_id: org.id });
     return;
   }
 
@@ -1145,8 +1088,7 @@ async function handlePaymentMethodAttached(
     .update({
       default_payment_method_id: paymentMethod.id,
       payment_method_last4: paymentMethod.card?.last4 || null,
-      payment_method_brand: paymentMethod.card?.brand || null,
-    })
+      payment_method_brand: paymentMethod.card?.brand || null })
     .eq('id', org.id);
 
   if (error) {
@@ -1230,59 +1172,40 @@ export async function POST(request: NextRequest) {
     const eventTimestamp = fullEvent.created;
 
     // Route to appropriate handler based on event type
+    const spanContext = {
+      stripe_event_id: event.id,
+      stripe_event_type: event.type,
+    };
+
     switch (event.type) {
       case 'customer.subscription.created':
-        await handleSubscriptionCreated(
-          supabase,
-          event.data.object as Stripe.Subscription,
-          event.id,
-          eventTimestamp
-        );
+        await withPaymentSpan('subscription.created', spanContext, () =>
+          handleSubscriptionCreated(supabase, event.data.object as Stripe.Subscription, event.id, eventTimestamp));
         break;
 
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(
-          supabase,
-          event.data.object as Stripe.Subscription,
-          event.id,
-          eventTimestamp
-        );
+        await withPaymentSpan('subscription.updated', spanContext, () =>
+          handleSubscriptionUpdated(supabase, event.data.object as Stripe.Subscription, event.id, eventTimestamp));
         break;
 
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(
-          supabase,
-          event.data.object as Stripe.Subscription,
-          event.id,
-          eventTimestamp
-        );
+        await withPaymentSpan('subscription.deleted', spanContext, () =>
+          handleSubscriptionDeleted(supabase, event.data.object as Stripe.Subscription, event.id, eventTimestamp));
         break;
 
       case 'invoice.paid':
-        await handleInvoicePaid(
-          supabase,
-          event.data.object as Stripe.Invoice,
-          event.id,
-          eventTimestamp
-        );
+        await withPaymentSpan('invoice.paid', spanContext, () =>
+          handleInvoicePaid(supabase, event.data.object as Stripe.Invoice, event.id, eventTimestamp));
         break;
 
       case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(
-          supabase,
-          event.data.object as Stripe.Invoice,
-          event.id,
-          eventTimestamp
-        );
+        await withPaymentSpan('invoice.payment_failed', spanContext, () =>
+          handleInvoicePaymentFailed(supabase, event.data.object as Stripe.Invoice, event.id, eventTimestamp));
         break;
 
       case 'payment_method.attached':
-        await handlePaymentMethodAttached(
-          supabase,
-          event.data.object as Stripe.PaymentMethod,
-          event.id,
-          eventTimestamp
-        );
+        await withPaymentSpan('payment_method.attached', spanContext, () =>
+          handlePaymentMethodAttached(supabase, event.data.object as Stripe.PaymentMethod, event.id, eventTimestamp));
         break;
 
       default:
@@ -1292,6 +1215,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('[Webhook] Error processing webhook:', error);
+    capturePaymentError(error, {
+      action: 'subscription_webhook_handler',
+      stripe_event_type: 'unknown',
+    });
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }
