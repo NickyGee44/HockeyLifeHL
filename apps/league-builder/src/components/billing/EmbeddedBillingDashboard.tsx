@@ -82,11 +82,13 @@ export function EmbeddedBillingDashboard({
   const t = useTranslations('billing.embedded');
   const [accountInfo, setAccountInfo] = useState<ConnectAccountInfo | null>(null);
   const [stats, setStats] = useState<PaymentStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (isInitial) {
+      setInitialLoading(true);
+    }
 
     const accountResult = await getConnectAccountStatus(leagueId);
     if (accountResult.success) {
@@ -107,12 +109,14 @@ export function EmbeddedBillingDashboard({
       setStats(statsResult.data);
     }
 
-    setLoading(false);
+    if (isInitial) {
+      setInitialLoading(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- t is excluded to prevent infinite re-render loop
   }, [leagueId]);
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, [loadData]);
 
   const handleOnboardingComplete = useCallback(() => {
@@ -143,8 +147,9 @@ export function EmbeddedBillingDashboard({
     }
   }
 
-  // Show loading skeleton
-  if (loading) {
+  // Show loading skeleton only on initial load (not on refresh)
+  // to avoid unmounting ConnectProvider and triggering full Stripe re-init
+  if (initialLoading) {
     return (
       <div className="space-y-6">
         <div className="h-8 w-48 bg-neutral-800 rounded animate-pulse" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Component, useEffect, useRef, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useStripeConnect } from './ConnectProvider';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -88,23 +88,25 @@ interface EmbeddedOnboardingProps {
 export function EmbeddedOnboarding({ onComplete, className }: EmbeddedOnboardingProps) {
   const { stripeConnectInstance, isLoading, error } = useStripeConnect();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const mountedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    if (!stripeConnectInstance || !containerRef.current || mounted) return;
+    if (!stripeConnectInstance || !containerRef.current || mountedRef.current) return;
 
     const component = stripeConnectInstance.create('account-onboarding');
     component.setOnExit(() => {
-      onComplete?.();
+      onCompleteRef.current?.();
     });
     containerRef.current.appendChild(component);
-    setMounted(true); // eslint-disable-line -- track Stripe component mount state
+    mountedRef.current = true;
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
-      setMounted(false);
+      mountedRef.current = false;
     };
-  }, [stripeConnectInstance, onComplete, mounted]);
+  }, [stripeConnectInstance]);
 
   if (isLoading) return <LoadingPlaceholder height={500} />;
   if (error) return <ErrorDisplay error={error} />;
@@ -123,20 +125,20 @@ interface EmbeddedAccountManagementProps {
 export function EmbeddedAccountManagement({ className }: EmbeddedAccountManagementProps) {
   const { stripeConnectInstance, isLoading, error } = useStripeConnect();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!stripeConnectInstance || !containerRef.current || mounted) return;
+    if (!stripeConnectInstance || !containerRef.current || mountedRef.current) return;
 
     const component = stripeConnectInstance.create('account-management');
     containerRef.current.appendChild(component);
-    setMounted(true); // eslint-disable-line -- track Stripe component mount state
+    mountedRef.current = true;
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
-      setMounted(false);
+      mountedRef.current = false;
     };
-  }, [stripeConnectInstance, mounted]);
+  }, [stripeConnectInstance]);
 
   if (isLoading) return <LoadingPlaceholder height={400} />;
   if (error) return <ErrorDisplay error={error} />;
@@ -155,20 +157,20 @@ interface EmbeddedPaymentsProps {
 export function EmbeddedPayments({ className }: EmbeddedPaymentsProps) {
   const { stripeConnectInstance, isLoading, error } = useStripeConnect();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!stripeConnectInstance || !containerRef.current || mounted) return;
+    if (!stripeConnectInstance || !containerRef.current || mountedRef.current) return;
 
     const component = stripeConnectInstance.create('payments');
     containerRef.current.appendChild(component);
-    setMounted(true); // eslint-disable-line -- track Stripe component mount state
+    mountedRef.current = true;
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
-      setMounted(false);
+      mountedRef.current = false;
     };
-  }, [stripeConnectInstance, mounted]);
+  }, [stripeConnectInstance]);
 
   if (isLoading) return <LoadingPlaceholder height={500} />;
   if (error) return <ErrorDisplay error={error} />;
@@ -187,20 +189,20 @@ interface EmbeddedPayoutsProps {
 export function EmbeddedPayouts({ className }: EmbeddedPayoutsProps) {
   const { stripeConnectInstance, isLoading, error } = useStripeConnect();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!stripeConnectInstance || !containerRef.current || mounted) return;
+    if (!stripeConnectInstance || !containerRef.current || mountedRef.current) return;
 
     const component = stripeConnectInstance.create('payouts');
     containerRef.current.appendChild(component);
-    setMounted(true); // eslint-disable-line -- track Stripe component mount state
+    mountedRef.current = true;
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
-      setMounted(false);
+      mountedRef.current = false;
     };
-  }, [stripeConnectInstance, mounted]);
+  }, [stripeConnectInstance]);
 
   if (isLoading) return <LoadingPlaceholder height={400} />;
   if (error) return <ErrorDisplay error={error} />;
@@ -219,20 +221,20 @@ interface EmbeddedBalancesProps {
 export function EmbeddedBalances({ className }: EmbeddedBalancesProps) {
   const { stripeConnectInstance, isLoading, error } = useStripeConnect();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!stripeConnectInstance || !containerRef.current || mounted) return;
+    if (!stripeConnectInstance || !containerRef.current || mountedRef.current) return;
 
     const component = stripeConnectInstance.create('balances');
     containerRef.current.appendChild(component);
-    setMounted(true); // eslint-disable-line -- track Stripe component mount state
+    mountedRef.current = true;
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
-      setMounted(false);
+      mountedRef.current = false;
     };
-  }, [stripeConnectInstance, mounted]);
+  }, [stripeConnectInstance]);
 
   if (isLoading) return <LoadingPlaceholder height={200} />;
   if (error) return <ErrorDisplay error={error} />;
@@ -251,20 +253,20 @@ interface EmbeddedNotificationBannerProps {
 export function EmbeddedNotificationBanner({ className }: EmbeddedNotificationBannerProps) {
   const { stripeConnectInstance, isLoading, error } = useStripeConnect();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!stripeConnectInstance || !containerRef.current || mounted) return;
+    if (!stripeConnectInstance || !containerRef.current || mountedRef.current) return;
 
     const component = stripeConnectInstance.create('notification-banner');
     containerRef.current.appendChild(component);
-    setMounted(true); // eslint-disable-line -- track Stripe component mount state
+    mountedRef.current = true;
 
     return () => {
       (component as unknown as { destroy?: () => void }).destroy?.();
-      setMounted(false);
+      mountedRef.current = false;
     };
-  }, [stripeConnectInstance, mounted]);
+  }, [stripeConnectInstance]);
 
   // Don't show loading for notification banner - it should be subtle
   if (isLoading || error) return null;
