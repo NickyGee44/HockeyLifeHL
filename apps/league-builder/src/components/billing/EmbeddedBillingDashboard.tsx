@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   ConnectProvider,
+  StripeErrorBoundary,
   EmbeddedOnboarding,
   EmbeddedPayments,
   EmbeddedPayouts,
@@ -112,6 +113,11 @@ export function EmbeddedBillingDashboard({
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  const handleOnboardingComplete = useCallback(() => {
+    loadData();
+    setActiveTab("overview");
   }, [loadData]);
 
   const [creatingAccount, setCreatingAccount] = useState(false);
@@ -330,12 +336,11 @@ export function EmbeddedBillingDashboard({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <EmbeddedOnboarding
-                    onComplete={() => {
-                      loadData();
-                      setActiveTab('overview');
-                    }}
-                  />
+                  <StripeErrorBoundary fallbackHeight={500}>
+                    <EmbeddedOnboarding
+                      onComplete={handleOnboardingComplete}
+                    />
+                  </StripeErrorBoundary>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -351,7 +356,9 @@ export function EmbeddedBillingDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <EmbeddedBalances />
+                <StripeErrorBoundary fallbackHeight={200}>
+                  <EmbeddedBalances />
+                </StripeErrorBoundary>
               </CardContent>
             </Card>
           </TabsContent>
@@ -366,7 +373,9 @@ export function EmbeddedBillingDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <EmbeddedPayments />
+                <StripeErrorBoundary fallbackHeight={500}>
+                  <EmbeddedPayments />
+                </StripeErrorBoundary>
               </CardContent>
             </Card>
           </TabsContent>
@@ -381,7 +390,9 @@ export function EmbeddedBillingDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <EmbeddedPayouts />
+                <StripeErrorBoundary fallbackHeight={400}>
+                  <EmbeddedPayouts />
+                </StripeErrorBoundary>
               </CardContent>
             </Card>
           </TabsContent>
@@ -396,7 +407,9 @@ export function EmbeddedBillingDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <EmbeddedAccountManagement />
+                <StripeErrorBoundary fallbackHeight={400}>
+                  <EmbeddedAccountManagement />
+                </StripeErrorBoundary>
               </CardContent>
             </Card>
           </TabsContent>
