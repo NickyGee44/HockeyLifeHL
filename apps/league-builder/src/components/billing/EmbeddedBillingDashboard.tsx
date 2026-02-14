@@ -238,8 +238,8 @@ export function EmbeddedBillingDashboard({
           {accountInfo && <StatusBadge status={accountInfo.status} />}
         </div>
 
-        {/* Notification Banner */}
-        <EmbeddedNotificationBanner />
+        {/* Notification Banner — only render for fully onboarded accounts */}
+        {isConnected && <EmbeddedNotificationBanner />}
 
         {/* Quick Stats - Only show if connected */}
         {isConnected && stats && (
