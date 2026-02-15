@@ -22,7 +22,6 @@ import {
   Users,
   UserX,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -257,37 +256,34 @@ export function EmbeddedBillingDashboard({
         </p>
       </div>
 
-      {/* ── Stripe Status Card ── */}
-      <div className={`rounded-2xl border p-6 ${stripeCardClass}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-xl ${stripeIconClass}`}>
-              <StripeIcon className="h-6 w-6" />
-            </div>
-            <div>
-              <p className={`text-lg font-semibold ${stripeLabelClass}`}>{stripeLabel}</p>
-              <p className="text-sm text-neutral-400 mt-0.5">{stripeDescription}</p>
-            </div>
+      {/* ── Stripe Status Card + Large CTA ── */}
+      <div className={`rounded-2xl border p-6 sm:p-8 ${stripeCardClass}`}>
+        <div className="flex items-center gap-4 mb-6">
+          <div className={`p-4 rounded-xl ${stripeIconClass}`}>
+            <StripeIcon className="h-8 w-8" />
           </div>
-          {!isDisabled && (
-            <Button
-              size="lg"
-              className={`font-semibold transition-all flex items-center gap-2 ${
-                isConnected
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  : needsOnboarding
-                    ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                    : 'bg-red-600 hover:bg-red-500 text-white'
-              }`}
-              onClick={handleStripeAction}
-              disabled={stripeActionLoading}
-            >
-              {stripeActionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {stripeBtnLabel}
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          )}
+          <div>
+            <p className={`text-xl font-bold ${stripeLabelClass}`}>{stripeLabel}</p>
+            <p className="text-sm text-neutral-400 mt-0.5">{stripeDescription}</p>
+          </div>
         </div>
+        {!isDisabled && (
+          <button
+            className={`w-full py-4 px-6 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-3 ${
+              isConnected
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30'
+                : needsOnboarding
+                  ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30'
+                  : 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            onClick={handleStripeAction}
+            disabled={stripeActionLoading}
+          >
+            {stripeActionLoading && <Loader2 className="h-5 w-5 animate-spin" />}
+            {stripeBtnLabel}
+            <ExternalLink className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* ── Quick Stats ── */}

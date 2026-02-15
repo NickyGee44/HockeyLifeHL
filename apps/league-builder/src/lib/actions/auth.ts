@@ -493,7 +493,10 @@ export async function getUserOrganizations() {
       const uniqueLeagueOrgIds = [...new Set(leagueOrgIds)];
 
       if (uniqueLeagueOrgIds.length > 0) {
-        const { data: leagueOrgs } = await supabase
+        // Use service role to bypass RLS — we've already verified the user owns
+        // leagues in these orgs via league_memberships above
+        const serviceClient = createServiceRoleClient();
+        const { data: leagueOrgs } = await serviceClient
           .from('organizations')
           .select('*')
           .in('id', uniqueLeagueOrgIds);
