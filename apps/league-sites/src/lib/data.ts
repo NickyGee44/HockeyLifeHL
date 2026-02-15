@@ -1197,11 +1197,69 @@ export async function getStatsLeaders(
   leagueId: string,
   statType: 'points' | 'goals' | 'assists' | 'saves' = 'points',
   limit = 10,
-  divisionId?: string
+  divisionId?: string,
+  seasonId?: string | null // null = all-time career stats
 ): Promise<PlayerStats[]> {
   const supabase = await createClient();
 
-  // Try to use stats RPC if available
+  // If seasonId is explicitly null, fetch all-time career stats
+  if (seasonId === null) {
+    // Query all seasons for this league and aggregate
+    const { data: stats, error } = await supabase
+      .from('player_season_stats')
+      .select('*')
+      .eq('league_id', leagueId);
+
+    if (error || !stats) return [];
+
+    // Aggregate stats by player_id
+    const playerMap = new Map<string, {
+      player_id: string;
+      player_name: string;
+      team_name: string;
+      team_id: string;
+      position: string | null;
+      games_played: number;
+      goals: number;
+      assists: number;
+      points: number;
+    }>();
+
+    for (const s of stats) {
+      const existing = playerMap.get(s.player_id);
+      if (existing) {
+        existing.games_played += Number(s.games_played) || 0;
+        existing.goals += Number(s.goals) || 0;
+        existing.assists += Number(s.assists) || 0;
+        existing.points += Number(s.points) || 0;
+      } else {
+        playerMap.set(s.player_id, {
+          player_id: s.player_id,
+          player_name: s.full_name || 'Unknown',
+          team_name: s.team_name || 'Unknown',
+          team_id: s.team_id || '',
+          position: s.position || null,
+          games_played: Number(s.games_played) || 0,
+          goals: Number(s.goals) || 0,
+          assists: Number(s.assists) || 0,
+          points: Number(s.points) || 0,
+        });
+      }
+    }
+
+    // Sort by stat type and return top N
+    const aggregated = Array.from(playerMap.values());
+    const orderBy = statType === 'saves' ? 'games_played' : statType;
+    aggregated.sort((a, b) => b[orderBy as keyof typeof a] as number - (a[orderBy as keyof typeof a] as number));
+
+    return aggregated.slice(0, limit).map(p => ({
+      ...p,
+      penalty_minutes: 0,
+      plus_minus: 0,
+    })) as PlayerStats[];
+  }
+
+  // Try to use stats RPC if available (single season)
   const { data: rpcData, error: rpcError } = await supabase.rpc(
     'get_stats_leaders',
     {
@@ -1216,8 +1274,8 @@ export async function getStatsLeaders(
     return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
   }
 
-  // Fallback: Query player_season_stats view (now includes division_id)
-  const season = await getCurrentSeason(leagueId);
+  // Fallback: Query player_season_stats view for specific or current season
+  const season = seasonId ? { id: seasonId } : await getCurrentSeason(leagueId);
   if (!season) return [];
 
   const orderColumn = statType === 'saves' ? 'games_played' : statType;
@@ -1895,12 +1953,109 @@ export async function getPlayerGameLog(
  */
 export async function getGoalieLeaders(
   leagueId: string,
-  seasonId?: string,
+  seasonId?: string | null, // null = all-time career stats
   sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts' = 'wins',
   limit = 20,
   divisionId?: string
 ): Promise<GoalieStats[]> {
   const supabase = await createClient();
+
+  // If seasonId is explicitly null, fetch all-time career stats
+  if (seasonId === null) {
+    // Query all seasons for this league and aggregate
+    const { data: stats, error } = await supabase
+      .from('goalie_season_stats')
+      .select('*')
+      .eq('league_id', leagueId);
+
+    if (error || !stats) return [];
+
+    // Aggregate stats by player_id
+    const goalieMap = new Map<string, {
+      player_id: string;
+      player_name: string;
+      team_name: string;
+      team_id: string;
+      games_played: number;
+      wins: number;
+      losses: number;
+      saves: number;
+      goals_against: number;
+      shutouts: number;
+      avatar_url: string | null;
+    }>();
+
+    for (const s of stats as any[]) {
+      const existing = goalieMap.get(s.player_id);
+      if (existing) {
+        existing.games_played += Number(s.games_played) || 0;
+        existing.wins += Number(s.wins) || 0;
+        existing.losses += Number(s.losses) || 0;
+        existing.saves += Number(s.saves) || 0;
+        existing.goals_against += Number(s.goals_against) || 0;
+        existing.shutouts += Number(s.shutouts) || 0;
+      } else {
+        goalieMap.set(s.player_id, {
+          player_id: s.player_id,
+          player_name: s.full_name || 'Unknown',
+          team_name: s.team_name || 'Unknown',
+          team_id: s.team_id || '',
+          games_played: Number(s.games_played) || 0,
+          wins: Number(s.wins) || 0,
+          losses: Number(s.losses) || 0,
+          saves: Number(s.saves) || 0,
+          goals_against: Number(s.goals_against) || 0,
+          shutouts: Number(s.shutouts) || 0,
+          avatar_url: null,
+        });
+      }
+    }
+
+    // Recalculate save% and GAA from aggregated totals
+    const results = Array.from(goalieMap.values()).map(g => ({
+      ...g,
+      save_percentage: g.saves + g.goals_against > 0
+        ? Math.round((g.saves / (g.saves + g.goals_against)) * 1000) / 10
+        : 0,
+      goals_against_average: g.games_played > 0
+        ? Math.round((g.goals_against / g.games_played) * 100) / 100
+        : 0,
+    }));
+
+    // Enrich with avatar URLs
+    const playerIds = results.map(r => r.player_id);
+    if (playerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, avatar_url')
+        .in('id', playerIds);
+
+      const avatarMap = new Map(
+        (profiles || []).map((p) => [p.id, p.avatar_url])
+      );
+
+      for (const result of results) {
+        result.avatar_url = avatarMap.get(result.player_id) || null;
+      }
+    }
+
+    // Sort by requested stat
+    results.sort((a, b) => {
+      switch (sortBy) {
+        case 'save_percentage':
+          return b.save_percentage - a.save_percentage;
+        case 'goals_against_average':
+          return a.goals_against_average - b.goals_against_average; // Lower is better
+        case 'shutouts':
+          return b.shutouts - a.shutouts;
+        case 'wins':
+        default:
+          return b.wins - a.wins;
+      }
+    });
+
+    return results.slice(0, limit) as GoalieStats[];
+  }
 
   // Use the actual RPC function name with correct parameters
   const { data, error } = await supabase.rpc('get_goalie_season_stats', {

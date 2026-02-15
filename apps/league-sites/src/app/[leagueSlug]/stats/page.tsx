@@ -7,10 +7,12 @@ import { StatsLeadersTabs } from '@/components/StatsLeadersTabs';
 import { SpecialTeamsTable } from '@/components/stats/SpecialTeamsTable';
 import { StatLeaders } from '@/components/stats/StatLeaders';
 import { StatsFilters } from '@/components/stats/StatsFilters';
+import { SeasonSelector } from '@/components/stats/SeasonSelector';
+import { createClient } from '@/lib/supabase/server';
 
 interface StatsPageProps {
   params: Promise<{ leagueSlug: string }>;
-  searchParams: Promise<{ division?: string }>;
+  searchParams: Promise<{ division?: string; view?: string; season?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -20,19 +22,34 @@ export const metadata: Metadata = {
 
 export default async function StatsPage({ params, searchParams }: StatsPageProps) {
   const { leagueSlug } = await params;
-  const { division: divisionFilter } = await searchParams;
+  const { division: divisionFilter, view, season: seasonParam } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) notFound();
 
-  const season = await getCurrentSeason(league.id);
+  const currentSeason = await getCurrentSeason(league.id);
 
-  // Fetch different stat categories in parallel, with division filter
+  // Fetch all seasons for selector
+  const supabase = await createClient();
+  const { data: seasons } = await supabase
+    .from('seasons')
+    .select('id, name, status')
+    .eq('league_id', league.id)
+    .order('start_date', { ascending: false });
+
+  // Determine which season to query
+  const isAllTime = view === 'all-time';
+  const selectedSeasonId = isAllTime ? null : (seasonParam || currentSeason?.id);
+
+  // Fetch different stat categories in parallel
+  // Note: Division filter disabled for all-time view
+  const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
+
   const [pointsLeaders, goalsLeaders, assistsLeaders, specialTeamsLeaders] = await Promise.all([
-    getStatsLeaders(league.id, 'points', 50, divisionFilter),
-    getStatsLeaders(league.id, 'goals', 50, divisionFilter),
-    getStatsLeaders(league.id, 'assists', 50, divisionFilter),
-    getSpecialTeamsLeaders(league.id, season?.id, divisionFilter),
+    getStatsLeaders(league.id, 'points', 50, effectiveDivisionFilter, selectedSeasonId),
+    getStatsLeaders(league.id, 'goals', 50, effectiveDivisionFilter, selectedSeasonId),
+    getStatsLeaders(league.id, 'assists', 50, effectiveDivisionFilter, selectedSeasonId),
+    getSpecialTeamsLeaders(league.id, selectedSeasonId || currentSeason?.id, effectiveDivisionFilter),
   ]);
 
   // Collect all player IDs for badge lookup
@@ -50,18 +67,26 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
 
   return (
     <div className="container mx-auto px-4 py-12 animate-fade-in">
-      {/* Division Filter */}
-      <StatsFilters leagueSlug={leagueSlug} />
+      {/* Season Selector and Filters */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <SeasonSelector seasons={seasons || []} currentSeasonId={currentSeason?.id} />
+        {!isAllTime && <StatsFilters leagueSlug={leagueSlug} />}
+      </div>
 
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-4">
           <BarChart3 className="w-8 h-8 text-[var(--league-primary)]" />
-          Stats Leaders
+          {isAllTime ? 'All-Time Stats Leaders' : 'Stats Leaders'}
         </h1>
-        {season && (
+        {!isAllTime && selectedSeasonId && (
           <p className="text-[var(--color-text-secondary)]">
-            {season.name} Season
+            {seasons?.find(s => s.id === selectedSeasonId)?.name || currentSeason?.name}
+          </p>
+        )}
+        {isAllTime && (
+          <p className="text-[var(--color-text-secondary)]">
+            Career statistics across all seasons
           </p>
         )}
       </div>
