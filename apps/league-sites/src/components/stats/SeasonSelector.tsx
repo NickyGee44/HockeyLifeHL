@@ -1,13 +1,6 @@
 'use client';
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@hockey-life/ui/components/select';
 
 interface Season {
   id: string;
@@ -34,11 +27,9 @@ export function SeasonSelector({ seasons, currentSeasonId }: SeasonSelectorProps
     const params = new URLSearchParams(searchParams);
 
     if (value === 'all-time') {
-      // Set view=all-time and remove season param
       params.set('view', 'all-time');
       params.delete('season');
     } else {
-      // Set season param and remove view param
       params.set('season', value);
       params.delete('view');
     }
@@ -48,22 +39,22 @@ export function SeasonSelector({ seasons, currentSeasonId }: SeasonSelectorProps
 
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="season-select" className="text-sm font-medium text-muted-foreground">
+      <label htmlFor="season-select" className="text-sm font-medium text-[var(--color-text-secondary)]">
         Season:
       </label>
-      <Select value={selectedValue} onValueChange={handleSeasonChange}>
-        <SelectTrigger id="season-select" className="w-[240px]">
-          <SelectValue placeholder="Select season" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all-time">🏆 All-Time Career Stats</SelectItem>
-          {seasons.map((s) => (
-            <SelectItem key={s.id} value={s.id}>
-              {s.name} {s.status === 'active' && '(Current)'}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <select
+        id="season-select"
+        value={selectedValue}
+        onChange={(e) => handleSeasonChange(e.target.value)}
+        className="w-[240px] appearance-none rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-medium text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 cursor-pointer"
+      >
+        <option value="all-time">All-Time Career Stats</option>
+        {seasons.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name} {s.status === 'active' ? '(Current)' : ''}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
