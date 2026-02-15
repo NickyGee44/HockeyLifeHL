@@ -78,7 +78,7 @@ export default async function LeagueBillingPage({ params, searchParams }: Props)
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
-      <EmbeddedBillingDashboard leagueId={leagueId} leagueName={league.name} platformFeePercent={feeConfig.processingFeePercent} />
+      <EmbeddedBillingDashboard leagueId={leagueId} leagueName={league.name} locale={locale} platformFeePercent={feeConfig.processingFeePercent} />
 
       {/* Handle onboarding return */}
       {resolvedSearchParams.onboarding === 'complete' && (

@@ -567,3 +567,185 @@ export async function getTeamBillingSummary(
     return { success: false, error: sanitizeError(error, 'getTeamBillingSummary') };
   }
 }
+
+// ==============================================================================
+// 7. GET PER-TEAM PAYMENT BREAKDOWN (from registration submissions)
+// ==============================================================================
+
+export interface TeamPaymentBreakdown {
+  team_id: string;
+  team_name: string;
+  total_players: number;
+  total_fee_cents: number;
+  total_collected_cents: number;
+  total_outstanding_cents: number;
+  players_paid: number;
+  players_unpaid: number;
+}
+
+export async function getPerTeamPaymentBreakdown(
+  leagueId: string,
+  seasonId: string
+): Promise<ActionResult<TeamPaymentBreakdown[]>> {
+  try {
+    if (!isValidUUID(leagueId) || !isValidUUID(seasonId)) {
+      return { success: false, error: 'Invalid ID format' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const supabase = await createClient();
+
+    const { data: submissions, error } = await supabase
+      .from('registration_submissions')
+      .select(`
+        id,
+        team_id,
+        fee_amount_cents,
+        amount_paid_cents,
+        payment_status,
+        teams!registration_submissions_team_id_fkey(id, name)
+      `)
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .in('status', ['submitted', 'approved']);
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'getPerTeamPaymentBreakdown') };
+    }
+
+    // Aggregate by team in JS
+    const teamMap = new Map<string, TeamPaymentBreakdown>();
+
+    for (const sub of submissions || []) {
+      const teamId = sub.team_id || 'unassigned';
+      const teamData = sub.teams as { id: string; name: string } | null;
+      const teamName = teamData?.name || 'Unassigned';
+      const fee = sub.fee_amount_cents || 0;
+      const paid = sub.amount_paid_cents || 0;
+      const isPaid = sub.payment_status === 'paid';
+
+      if (!teamMap.has(teamId)) {
+        teamMap.set(teamId, {
+          team_id: teamId,
+          team_name: teamName,
+          total_players: 0,
+          total_fee_cents: 0,
+          total_collected_cents: 0,
+          total_outstanding_cents: 0,
+          players_paid: 0,
+          players_unpaid: 0,
+        });
+      }
+
+      const team = teamMap.get(teamId)!;
+      team.total_players++;
+      team.total_fee_cents += fee;
+      team.total_collected_cents += paid;
+      team.total_outstanding_cents += Math.max(0, fee - paid);
+      if (isPaid) {
+        team.players_paid++;
+      } else {
+        team.players_unpaid++;
+      }
+    }
+
+    const result = Array.from(teamMap.values()).sort((a, b) =>
+      a.team_name.localeCompare(b.team_name)
+    );
+
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: sanitizeError(error, 'getPerTeamPaymentBreakdown') };
+  }
+}
+
+// ==============================================================================
+// 8. GET UNPAID PLAYERS
+// ==============================================================================
+
+export interface UnpaidPlayer {
+  id: string;
+  player_id: string;
+  player_name: string;
+  player_email: string;
+  team_id: string | null;
+  team_name: string;
+  fee_amount_cents: number;
+  amount_paid_cents: number;
+  outstanding_cents: number;
+  payment_status: string;
+}
+
+export async function getUnpaidPlayers(
+  leagueId: string,
+  seasonId: string
+): Promise<ActionResult<UnpaidPlayer[]>> {
+  try {
+    if (!isValidUUID(leagueId) || !isValidUUID(seasonId)) {
+      return { success: false, error: 'Invalid ID format' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const supabase = await createClient();
+
+    const { data: submissions, error } = await supabase
+      .from('registration_submissions')
+      .select(`
+        id,
+        player_id,
+        team_id,
+        fee_amount_cents,
+        amount_paid_cents,
+        payment_status,
+        profiles!registration_submissions_player_id_fkey(full_name, email),
+        teams!registration_submissions_team_id_fkey(name)
+      `)
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .in('status', ['submitted', 'approved'])
+      .neq('payment_status', 'paid')
+      .gt('fee_amount_cents', 0);
+
+    if (error) {
+      return { success: false, error: sanitizeError(error, 'getUnpaidPlayers') };
+    }
+
+    const players: UnpaidPlayer[] = (submissions || []).map((sub) => {
+      const profile = sub.profiles as { full_name: string; email: string } | null;
+      const team = sub.teams as { name: string } | null;
+      const fee = sub.fee_amount_cents || 0;
+      const paid = sub.amount_paid_cents || 0;
+
+      return {
+        id: sub.id,
+        player_id: sub.player_id,
+        player_name: profile?.full_name || 'Unknown Player',
+        player_email: profile?.email || '',
+        team_id: sub.team_id,
+        team_name: team?.name || 'Unassigned',
+        fee_amount_cents: fee,
+        amount_paid_cents: paid,
+        outstanding_cents: Math.max(0, fee - paid),
+        payment_status: sub.payment_status || 'pending',
+      };
+    });
+
+    // Sort by team name, then player name
+    players.sort((a, b) => {
+      const teamCmp = a.team_name.localeCompare(b.team_name);
+      return teamCmp !== 0 ? teamCmp : a.player_name.localeCompare(b.player_name);
+    });
+
+    return { success: true, data: players };
+  } catch (error) {
+    return { success: false, error: sanitizeError(error, 'getUnpaidPlayers') };
+  }
+}

@@ -1,38 +1,49 @@
 /**
- * Embedded Billing Dashboard Component
+ * Billing Dashboard Component
  *
- * Uses Stripe Connect embedded components for a fully integrated
- * payment management experience without leaving the app.
+ * Data-driven billing overview with Stripe status, per-team collection,
+ * and unpaid player tracking. Links out to Stripe dashboard for management.
  */
 
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { DollarSign, CreditCard, Wallet, Percent, AlertCircle, CheckCircle2, Clock, Loader2, ShieldCheck, Banknote } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DollarSign,
+  CreditCard,
+  Wallet,
+  Percent,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  ExternalLink,
+  Users,
+  UserX,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import {
-  ConnectProvider,
-  StripeErrorBoundary,
-  EmbeddedOnboarding,
-  EmbeddedPayments,
-  EmbeddedPayouts,
-  EmbeddedBalances,
-  EmbeddedAccountManagement,
-  EmbeddedNotificationBanner,
-} from '@/components/stripe';
+import { createClient } from '@/lib/supabase/client';
 import {
   getConnectAccountStatus,
   getPaymentStatistics,
   initializeConnectAccount,
+  startConnectOnboarding,
+  getStripeDashboardLink,
 } from '@/lib/actions/stripe-connect-payments';
+import {
+  getPerTeamPaymentBreakdown,
+  getUnpaidPlayers,
+  type TeamPaymentBreakdown,
+  type UnpaidPlayer,
+} from '@/lib/actions/team-billing';
 import type { ConnectAccountInfo } from '@/lib/leagues/stripe-connect';
 
 interface EmbeddedBillingDashboardProps {
   leagueId: string;
   leagueName: string;
+  locale: string;
   platformFeePercent: number;
 }
 
@@ -52,421 +63,430 @@ function formatCurrency(cents: number): string {
   }).format(cents / 100);
 }
 
-const STATUS_BADGE_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; labelKey: string }> = {
-  complete: { icon: CheckCircle2, color: 'text-green-500', labelKey: 'active' },
-  pending: { icon: Clock, color: 'text-amber-500', labelKey: 'pending' },
-  restricted: { icon: AlertCircle, color: 'text-amber-500', labelKey: 'actionRequired' },
-  not_created: { icon: AlertCircle, color: 'text-neutral-500', labelKey: 'notSetUp' },
-  disabled: { icon: AlertCircle, color: 'text-red-500', labelKey: 'disabled' },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const tStatus = useTranslations('billing.embedded.statusLabels');
-  const config = STATUS_BADGE_CONFIG[status] || STATUS_BADGE_CONFIG.not_created;
-  const Icon = config.icon;
-
-  return (
-    <div className={`flex items-center gap-1.5 ${config.color}`}>
-      <Icon className="w-4 h-4" />
-      <span className="text-sm font-medium">{tStatus(config.labelKey)}</span>
-    </div>
-  );
-}
-
-/** 3-step visual process indicator */
-function SetupSteps({ activeStep }: { activeStep: 0 | 1 | 2 }) {
-  const tSteps = useTranslations('billing.embedded.steps');
-
-  const steps = [
-    { icon: CreditCard, name: tSteps('createAccount'), desc: tSteps('createAccountDesc') },
-    { icon: ShieldCheck, name: tSteps('verifyIdentity'), desc: tSteps('verifyIdentityDesc') },
-    { icon: Banknote, name: tSteps('startAccepting'), desc: tSteps('startAcceptingDesc') },
-  ];
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl mx-auto">
-      {steps.map((step, i) => {
-        const StepIcon = step.icon;
-        const isActive = i === activeStep;
-        const isComplete = i < activeStep;
-
-        return (
-          <div
-            key={i}
-            className={`relative flex flex-col items-center text-center gap-2 p-4 rounded-xl border transition-all ${
-              isComplete
-                ? 'border-emerald-500/30 bg-emerald-500/5'
-                : isActive
-                  ? 'border-rink-500/30 bg-rink-500/5'
-                  : 'border-white/5 bg-white/[0.02]'
-            }`}
-          >
-            <div
-              className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                isComplete
-                  ? 'bg-emerald-500/20 text-emerald-400'
-                  : isActive
-                    ? 'bg-rink-500/20 text-rink-400'
-                    : 'bg-white/[0.06] text-neutral-500'
-              }`}
-            >
-              {isComplete ? (
-                <CheckCircle2 className="h-5 w-5" />
-              ) : (
-                <StepIcon className="h-5 w-5" />
-              )}
-            </div>
-            <p className={`text-sm font-medium ${isComplete ? 'text-emerald-400' : isActive ? 'text-white' : 'text-neutral-500'}`}>
-              {step.name}
-            </p>
-            <p className="text-xs text-neutral-500">{step.desc}</p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/** Platform fee info row */
-function PlatformFeeNotice({ platformFeePercent }: { platformFeePercent: number }) {
-  const t = useTranslations('billing.embedded');
-  return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4">
-      <div className="flex items-start gap-3">
-        <Percent className="h-4 w-4 text-neutral-500 mt-0.5 flex-shrink-0" />
-        <p className="text-sm text-neutral-500">
-          {t('platformFeeNotice', { percent: platformFeePercent })}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export function EmbeddedBillingDashboard({
   leagueId,
   leagueName,
+  locale,
   platformFeePercent,
 }: EmbeddedBillingDashboardProps) {
   const t = useTranslations('billing.embedded');
   const [accountInfo, setAccountInfo] = useState<ConnectAccountInfo | null>(null);
   const [stats, setStats] = useState<PaymentStats | null>(null);
+  const [teamBreakdown, setTeamBreakdown] = useState<TeamPaymentBreakdown[]>([]);
+  const [unpaidPlayers, setUnpaidPlayers] = useState<UnpaidPlayer[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [stripeActionLoading, setStripeActionLoading] = useState(false);
+  const [activeSeason, setActiveSeason] = useState<{ id: string; name: string } | null>(null);
 
-  const loadData = useCallback(async (isInitial = false) => {
-    if (isInitial) {
-      setInitialLoading(true);
-    }
+  const loadData = useCallback(async () => {
+    setInitialLoading(true);
 
-    const accountResult = await getConnectAccountStatus(leagueId);
+    // Load account status + stats in parallel
+    const [accountResult, statsResult] = await Promise.all([
+      getConnectAccountStatus(leagueId),
+      getPaymentStatistics(leagueId),
+    ]);
+
     if (accountResult.success) {
       setAccountInfo(accountResult.data);
-    } else {
-      toast.error(t('failedLoadStatus'), {
-        description: accountResult.error,
-      });
     }
-
-    const statsResult = await getPaymentStatistics(leagueId);
     if (statsResult.success) {
       setStats(statsResult.data);
     }
 
-    if (isInitial) {
-      setInitialLoading(false);
+    // Find active season
+    const supabase = createClient();
+    const { data: seasons } = await supabase
+      .from('seasons')
+      .select('id, name, status')
+      .eq('league_id', leagueId)
+      .in('status', ['active', 'draft'])
+      .order('start_date', { ascending: false })
+      .limit(1);
+
+    const season = seasons?.[0] || null;
+    setActiveSeason(season);
+
+    // Load team/player data if we have a season
+    if (season) {
+      const [teamResult, playerResult] = await Promise.all([
+        getPerTeamPaymentBreakdown(leagueId, season.id),
+        getUnpaidPlayers(leagueId, season.id),
+      ]);
+
+      if (teamResult.success) {
+        setTeamBreakdown(teamResult.data);
+      }
+      if (playerResult.success) {
+        setUnpaidPlayers(playerResult.data);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is excluded to prevent infinite re-render loop
+
+    setInitialLoading(false);
   }, [leagueId]);
 
   useEffect(() => {
-    loadData(true);
-  }, [loadData]);
-
-  const handleOnboardingComplete = useCallback(() => {
     loadData();
-    setActiveTab("overview");
   }, [loadData]);
 
-  const [creatingAccount, setCreatingAccount] = useState(false);
+  // ── Stripe action handlers ──
 
-  const accountNotCreated = !accountInfo || accountInfo.status === 'not_created';
-  const needsOnboarding = !accountNotCreated && (accountInfo.status === 'pending' || accountInfo.status === 'restricted');
-
-  async function handleSetupPayments() {
-    setCreatingAccount(true);
+  async function handleStripeAction() {
+    setStripeActionLoading(true);
     try {
-      const result = await initializeConnectAccount(leagueId);
-      if (result.success) {
-        toast.success(t('accountCreated'));
-        await loadData();
+      const accountNotCreated = !accountInfo || accountInfo.status === 'not_created';
+      const needsOnboarding = !accountNotCreated && (accountInfo.status === 'pending' || accountInfo.status === 'restricted');
+
+      if (accountNotCreated) {
+        // Create account then start onboarding
+        const createResult = await initializeConnectAccount(leagueId);
+        if (!createResult.success) {
+          toast.error(t('accountCreateFailed'), { description: createResult.error });
+          return;
+        }
+        const returnUrl = `${window.location.origin}/${locale}/dashboard/leagues/${leagueId}/billing?onboarding=complete`;
+        const refreshUrl = `${window.location.origin}/${locale}/dashboard/leagues/${leagueId}/billing?onboarding=refresh`;
+        const onboardResult = await startConnectOnboarding(leagueId, returnUrl, refreshUrl);
+        if (onboardResult.success) {
+          window.open(onboardResult.data.url, '_blank');
+          toast.success(t('accountCreated'));
+          await loadData();
+        } else {
+          toast.error(t('accountCreateFailed'), { description: onboardResult.error });
+        }
+      } else if (needsOnboarding) {
+        // Resume onboarding
+        const returnUrl = `${window.location.origin}/${locale}/dashboard/leagues/${leagueId}/billing?onboarding=complete`;
+        const refreshUrl = `${window.location.origin}/${locale}/dashboard/leagues/${leagueId}/billing?onboarding=refresh`;
+        const result = await startConnectOnboarding(leagueId, returnUrl, refreshUrl);
+        if (result.success) {
+          window.open(result.data.url, '_blank');
+        } else {
+          toast.error(result.error);
+        }
       } else {
-        toast.error(t('accountCreateFailed'), { description: result.error });
+        // Connected — open Stripe dashboard
+        const result = await getStripeDashboardLink(leagueId);
+        if (result.success) {
+          window.open(result.data.url, '_blank');
+        } else {
+          toast.error(result.error);
+        }
       }
     } catch {
       toast.error(t('accountCreateFailed'));
     } finally {
-      setCreatingAccount(false);
+      setStripeActionLoading(false);
     }
   }
 
-  // Loading skeleton
+  // ── Loading skeleton ──
   if (initialLoading) {
     return (
       <div className="space-y-6">
         <div className="h-8 w-48 bg-white/[0.06] rounded animate-pulse" />
         <div className="h-4 w-64 bg-white/[0.06] rounded animate-pulse" />
+        <div className="h-24 bg-white/[0.04] border border-white/10 rounded-2xl animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-24 bg-white/[0.04] border border-white/10 rounded-xl animate-pulse" />
           ))}
         </div>
-        <div className="h-96 bg-white/[0.04] border border-white/10 rounded-xl animate-pulse" />
+        <div className="h-64 bg-white/[0.04] border border-white/10 rounded-2xl animate-pulse" />
       </div>
     );
   }
 
-  // ── State A: No Stripe account — hero with 3-step process ──
-  if (accountNotCreated) {
-    return (
-      <div className="space-y-6">
-        {/* Header */}
+  const accountNotCreated = !accountInfo || accountInfo.status === 'not_created';
+  const needsOnboarding = !accountNotCreated && (accountInfo.status === 'pending' || accountInfo.status === 'restricted');
+  const isConnected = !accountNotCreated && !needsOnboarding && accountInfo.status === 'complete';
+  const isDisabled = accountInfo?.status === 'disabled';
+
+  // Determine stripe card styling
+  let stripeCardClass = '';
+  let stripeIconClass = '';
+  let stripeLabelClass = '';
+  let stripeStatusIcon = AlertCircle;
+  let stripeLabel = '';
+  let stripeDescription = '';
+  let stripeBtnLabel = '';
+
+  if (isConnected) {
+    stripeCardClass = 'border-emerald-500/30 bg-emerald-500/5';
+    stripeIconClass = 'bg-emerald-500/10 text-emerald-500';
+    stripeLabelClass = 'text-emerald-400';
+    stripeStatusIcon = CheckCircle2;
+    stripeLabel = t('stripeConnected');
+    stripeDescription = t('connectedDescription');
+    stripeBtnLabel = t('openDashboard');
+  } else if (isDisabled) {
+    stripeCardClass = 'border-red-500/30 bg-red-500/5';
+    stripeIconClass = 'bg-red-500/10 text-red-500';
+    stripeLabelClass = 'text-red-400';
+    stripeStatusIcon = AlertCircle;
+    stripeLabel = t('statusLabels.disabled');
+    stripeDescription = t('disabledDescription');
+    stripeBtnLabel = t('openDashboard');
+  } else if (needsOnboarding) {
+    stripeCardClass = 'border-amber-500/30 bg-amber-500/5';
+    stripeIconClass = 'bg-amber-500/10 text-amber-500';
+    stripeLabelClass = 'text-amber-400';
+    stripeStatusIcon = Clock;
+    stripeLabel = t('setupIncomplete');
+    stripeDescription = t('setupIncompleteDescription');
+    stripeBtnLabel = t('completeSetup');
+  } else {
+    stripeCardClass = 'border-red-500/30 bg-red-500/5';
+    stripeIconClass = 'bg-red-500/10 text-red-500';
+    stripeLabelClass = 'text-red-400';
+    stripeStatusIcon = AlertCircle;
+    stripeLabel = t('statusLabels.notSetUp');
+    stripeDescription = t('setupDescription');
+    stripeBtnLabel = t('setupButton');
+  }
+
+  const StripeIcon = stripeStatusIcon;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
+        <p className="text-neutral-400">
+          {t('managePayments', { leagueName })}
+        </p>
+      </div>
+
+      {/* ── Stripe Status Card ── */}
+      <div className={`rounded-2xl border p-6 ${stripeCardClass}`}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
-            <p className="text-neutral-400">
-              {t('managePayments', { leagueName })}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-xl ${stripeIconClass}`}>
+              <StripeIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className={`text-lg font-semibold ${stripeLabelClass}`}>{stripeLabel}</p>
+              <p className="text-sm text-neutral-400 mt-0.5">{stripeDescription}</p>
+            </div>
           </div>
-          <StatusBadge status="not_created" />
-        </div>
-
-        {/* Hero card */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-rink-500/10 via-arena-500/5 to-transparent p-8 sm:p-10">
-          {/* Subtle glow */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-rink-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-
-          <div className="relative flex flex-col items-center text-center gap-6">
-            <div className="p-4 rounded-full bg-emerald-500/10">
-              <CreditCard className="h-10 w-10 text-emerald-500" />
-            </div>
-
-            <div className="max-w-lg space-y-2">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">{t('heroTitle')}</h2>
-              <p className="text-neutral-400">{t('heroDescription')}</p>
-            </div>
-
-            {/* 3-step indicator */}
-            <SetupSteps activeStep={0} />
-
+          {!isDisabled && (
             <Button
               size="lg"
-              className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold hover:shadow-lg hover:shadow-rink-500/20 hover:scale-[1.02] transition-all"
-              onClick={handleSetupPayments}
-              disabled={creatingAccount}
+              className={`font-semibold transition-all flex items-center gap-2 ${
+                isConnected
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  : needsOnboarding
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                    : 'bg-red-600 hover:bg-red-500 text-white'
+              }`}
+              onClick={handleStripeAction}
+              disabled={stripeActionLoading}
             >
-              {creatingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('setupButton')}
+              {stripeActionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {stripeBtnLabel}
+              <ExternalLink className="h-4 w-4" />
             </Button>
-          </div>
+          )}
         </div>
-
-        <PlatformFeeNotice platformFeePercent={platformFeePercent} />
       </div>
-    );
-  }
 
-  // ── State B: Needs onboarding — progress + embedded Stripe ──
-  if (needsOnboarding) {
-    return (
-      <ConnectProvider leagueId={leagueId}>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
-              <p className="text-neutral-400">
-                {t('managePayments', { leagueName })}
-              </p>
-            </div>
-            <StatusBadge status={accountInfo.status} />
-          </div>
-
-          {/* Progress indicator */}
-          <SetupSteps activeStep={1} />
-
-          {/* Amber onboarding alert */}
-          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent p-4">
-            <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-medium text-amber-400">{t('finishOnboardingTitle')}</p>
-              <p className="text-sm text-amber-400/70 mt-1">{t('finishOnboardingDesc')}</p>
+      {/* ── Quick Stats ── */}
+      {stats && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <DollarSign className="h-5 w-5 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">{t('totalRevenue')}</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(stats.totalRevenue)}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Embedded onboarding in glassmorphism card */}
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
-            <div className="px-6 pt-6 pb-2">
-              <h3 className="text-lg font-semibold text-white">{t('connectStripe')}</h3>
-              <p className="text-sm text-neutral-400 mt-1">{t('connectStripeDesc')}</p>
-            </div>
-            <div className="p-6 pt-4">
-              <StripeErrorBoundary fallbackHeight={500}>
-                <EmbeddedOnboarding onComplete={handleOnboardingComplete} />
-              </StripeErrorBoundary>
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10">
+                <Wallet className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">{t('netEarnings')}</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(stats.netRevenue)}
+                </p>
+              </div>
             </div>
           </div>
 
-          <PlatformFeeNotice platformFeePercent={platformFeePercent} />
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <CreditCard className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">{t('transactions')}</p>
+                <p className="text-2xl font-bold text-white">{stats.paymentCount}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <Percent className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-sm text-neutral-400">{t('platformFees')}</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(stats.totalFeesPaid)}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      </ConnectProvider>
-    );
-  }
+      )}
 
-  // ── State C: Fully connected dashboard ──
-  return (
-    <ConnectProvider leagueId={leagueId}>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
-            <p className="text-neutral-400">
-              {t('managePayments', { leagueName })}
-            </p>
+      {/* ── Collection by Team ── */}
+      <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
+        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Users className="h-5 w-5 text-neutral-400" />
+            <h3 className="text-lg font-semibold text-white">{t('collectionByTeam')}</h3>
           </div>
-          {accountInfo && <StatusBadge status={accountInfo.status} />}
+          {activeSeason && (
+            <span className="text-sm text-neutral-500">{activeSeason.name}</span>
+          )}
         </div>
 
-        {/* Notification Banner */}
-        <EmbeddedNotificationBanner />
-
-        {/* Quick Stats */}
-        {stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <DollarSign className="h-5 w-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-400">{t('totalRevenue')}</p>
-                  <p className="text-2xl font-bold text-white">
-                    {formatCurrency(stats.totalRevenue)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <Wallet className="h-5 w-5 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-400">{t('netEarnings')}</p>
-                  <p className="text-2xl font-bold text-white">
-                    {formatCurrency(stats.netRevenue)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <CreditCard className="h-5 w-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-400">{t('transactions')}</p>
-                  <p className="text-2xl font-bold text-white">{stats.paymentCount}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <Percent className="h-5 w-5 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-400">{t('platformFees')}</p>
-                  <p className="text-2xl font-bold text-white">
-                    {formatCurrency(stats.totalFeesPaid)}
-                  </p>
-                </div>
-              </div>
-            </div>
+        {teamBreakdown.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <Users className="h-8 w-8 text-neutral-600 mx-auto mb-3" />
+            <p className="text-neutral-500">{t('noTeamData')}</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('teamName')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('players')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('totalOwed')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('collected')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('outstanding')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider w-32">{t('progress')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {teamBreakdown.map((team) => {
+                  const percent = team.total_fee_cents > 0
+                    ? Math.round((team.total_collected_cents / team.total_fee_cents) * 100)
+                    : 0;
+                  return (
+                    <tr key={team.team_id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-white">{team.team_name}</td>
+                      <td className="px-6 py-4 text-sm text-neutral-400 text-right">{team.total_players}</td>
+                      <td className="px-6 py-4 text-sm text-neutral-400 text-right">{formatCurrency(team.total_fee_cents)}</td>
+                      <td className="px-6 py-4 text-sm text-emerald-400 text-right">{formatCurrency(team.total_collected_cents)}</td>
+                      <td className="px-6 py-4 text-sm text-right">
+                        <span className={team.total_outstanding_cents > 0 ? 'text-amber-400' : 'text-neutral-500'}>
+                          {formatCurrency(team.total_outstanding_cents)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-20 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                percent >= 100 ? 'bg-emerald-500' : percent >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${Math.min(percent, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-neutral-500 w-8 text-right">{percent}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white/[0.04] border border-white/10">
-            <TabsTrigger value="overview">{t('balance')}</TabsTrigger>
-            <TabsTrigger value="payments">{t('payments')}</TabsTrigger>
-            <TabsTrigger value="payouts">{t('payouts')}</TabsTrigger>
-            <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
-              <div className="px-6 pt-6 pb-2">
-                <h3 className="text-lg font-semibold text-white">{t('accountBalance')}</h3>
-                <p className="text-sm text-neutral-400 mt-1">{t('accountBalanceDesc')}</p>
-              </div>
-              <div className="p-6 pt-4">
-                <StripeErrorBoundary fallbackHeight={200}>
-                  <EmbeddedBalances />
-                </StripeErrorBoundary>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="payments">
-            <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
-              <div className="px-6 pt-6 pb-2">
-                <h3 className="text-lg font-semibold text-white">{t('paymentsReceived')}</h3>
-                <p className="text-sm text-neutral-400 mt-1">{t('paymentsReceivedDesc')}</p>
-              </div>
-              <div>
-                <StripeErrorBoundary fallbackHeight={500}>
-                  <EmbeddedPayments />
-                </StripeErrorBoundary>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="payouts">
-            <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
-              <div className="px-6 pt-6 pb-2">
-                <h3 className="text-lg font-semibold text-white">{t('payoutsTitle')}</h3>
-                <p className="text-sm text-neutral-400 mt-1">{t('payoutsDesc')}</p>
-              </div>
-              <div>
-                <StripeErrorBoundary fallbackHeight={400}>
-                  <EmbeddedPayouts />
-                </StripeErrorBoundary>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
-              <div className="px-6 pt-6 pb-2">
-                <h3 className="text-lg font-semibold text-white">{t('accountSettings')}</h3>
-                <p className="text-sm text-neutral-400 mt-1">{t('accountSettingsDesc')}</p>
-              </div>
-              <div className="p-6 pt-4">
-                <StripeErrorBoundary fallbackHeight={400}>
-                  <EmbeddedAccountManagement />
-                </StripeErrorBoundary>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        <PlatformFeeNotice platformFeePercent={platformFeePercent} />
       </div>
-    </ConnectProvider>
+
+      {/* ── Unpaid Players ── */}
+      <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
+        <div className="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+          <UserX className="h-5 w-5 text-neutral-400" />
+          <h3 className="text-lg font-semibold text-white">{t('unpaidPlayersTitle')}</h3>
+          {unpaidPlayers.length > 0 && (
+            <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              {t('unpaidCount', { count: unpaidPlayers.length })}
+            </span>
+          )}
+        </div>
+
+        {unpaidPlayers.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500/50 mx-auto mb-3" />
+            <p className="text-emerald-400 font-medium">{t('allPaid')}</p>
+            <p className="text-sm text-neutral-500 mt-1">{t('allPaidDescription')}</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('playerName')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('team')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('amountOwed')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('amountPaid')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('outstanding')}</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('status')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {unpaidPlayers.map((player) => (
+                  <tr key={player.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-white">{player.player_name}</p>
+                      <p className="text-xs text-neutral-500">{player.player_email}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-neutral-400">{player.team_name}</td>
+                    <td className="px-6 py-4 text-sm text-neutral-400 text-right">{formatCurrency(player.fee_amount_cents)}</td>
+                    <td className="px-6 py-4 text-sm text-neutral-400 text-right">{formatCurrency(player.amount_paid_cents)}</td>
+                    <td className="px-6 py-4 text-sm text-amber-400 text-right">{formatCurrency(player.outstanding_cents)}</td>
+                    <td className="px-6 py-4 text-center">
+                      {player.payment_status === 'partial' ? (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          {t('partial')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          {t('pending')}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Platform Fee Notice ── */}
+      <div className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4">
+        <div className="flex items-start gap-3">
+          <Percent className="h-4 w-4 text-neutral-500 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-neutral-500">
+            {t('platformFeeNotice', { percent: platformFeePercent })}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
