@@ -476,6 +476,37 @@ export async function getUserOrganizations() {
     }
   }
 
+  // Fallback: If no organizations found via direct ownership or membership,
+  // find organizations through league ownership (handles cases where user owns leagues
+  // but their organization association is missing or RLS-restricted)
+  if (allOrgs.size === 0) {
+    const { data: ownedLeagues } = await supabase
+      .from('league_memberships')
+      .select('league:leagues(organization_id)')
+      .eq('user_id', user.id)
+      .in('role', ['owner', 'admin']);
+
+    if (ownedLeagues && ownedLeagues.length > 0) {
+      const leagueOrgIds = ownedLeagues
+        .map((m: any) => m.league?.organization_id)
+        .filter((id: any): id is string => !!id);
+      const uniqueLeagueOrgIds = [...new Set(leagueOrgIds)];
+
+      if (uniqueLeagueOrgIds.length > 0) {
+        const { data: leagueOrgs } = await supabase
+          .from('organizations')
+          .select('*')
+          .in('id', uniqueLeagueOrgIds);
+
+        if (leagueOrgs) {
+          for (const org of leagueOrgs) {
+            allOrgs.set(org.id, org);
+          }
+        }
+      }
+    }
+  }
+
   // DEV ONLY: If no organizations found, check if this is a test user and auto-associate
   if (isDevelopment && allOrgs.size === 0 && user.email) {
     const testEmails = ['admin@test.com', 'organizer@test.com', 'captain@test.com', 'player@test.com', 'scorekeeper@test.com'];

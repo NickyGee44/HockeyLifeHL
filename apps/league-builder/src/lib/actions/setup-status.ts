@@ -67,11 +67,13 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
       continue; // Draft leagues won't have teams/seasons yet, skip other checks
     }
 
-    // 2. Paid registration enabled but no Stripe connected
+    // 2. Stripe billing not fully connected
     const feesEnabled = settings?.fees?.enablePaidRegistration === true;
     const paymentSkipped = settings?.payment?.skipPaymentSetup === true;
     const stripeConnected =
       league.stripe_account_id && league.stripe_account_status === 'complete';
+    const stripeStartedButIncomplete =
+      league.stripe_account_id && league.stripe_account_status !== 'complete';
 
     if (feesEnabled && !paymentSkipped && !stripeConnected) {
       issues.push({
@@ -80,8 +82,19 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
         leagueName: league.name,
         message:
           'Payment registration is enabled but Stripe is not connected. Players cannot pay until billing is set up.',
-        actionUrl: `/dashboard/leagues/${league.id}?tab=billing`,
+        actionUrl: `/dashboard/leagues/${league.id}/billing`,
         actionLabel: 'Set Up Billing',
+      });
+    } else if (stripeStartedButIncomplete) {
+      // User started Stripe onboarding but didn't finish (regardless of fees setting)
+      issues.push({
+        type: 'billing_incomplete',
+        leagueId: league.id,
+        leagueName: league.name,
+        message:
+          'Stripe account setup is incomplete. Finish onboarding to start accepting payments.',
+        actionUrl: `/dashboard/leagues/${league.id}/billing`,
+        actionLabel: 'Finish Setup',
       });
     }
 

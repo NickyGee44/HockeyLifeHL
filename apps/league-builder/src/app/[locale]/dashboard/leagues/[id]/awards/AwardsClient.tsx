@@ -11,6 +11,14 @@ import {
   Edit,
   X,
   Save,
+  Star,
+  Target,
+  Shield,
+  Zap,
+  Heart,
+  Award,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface AwardsClientProps {
@@ -29,6 +37,58 @@ const CATEGORY_OPTIONS = [
   { value: 'custom', label: 'Custom Award' },
 ];
 
+/** Default awards that every league can start with */
+const DEFAULT_AWARDS = [
+  {
+    name: 'Most Valuable Player',
+    category: 'mvp',
+    description: 'Awarded to the player who demonstrates exceptional skill, leadership, and impact on the league.',
+    icon: Star,
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
+  },
+  {
+    name: 'Top Scorer',
+    category: 'top_scorer',
+    description: 'Given to the player with the most points (goals + assists) during the season.',
+    icon: Target,
+    color: 'text-rink-500',
+    bg: 'bg-rink-500/10',
+  },
+  {
+    name: 'Best Goalie',
+    category: 'best_goalie',
+    description: 'Awarded to the goaltender with the best save percentage and overall performance.',
+    icon: Shield,
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
+  },
+  {
+    name: 'Rookie of the Year',
+    category: 'rookie',
+    description: 'Recognizes the top first-year player in the league.',
+    icon: Zap,
+    color: 'text-green-500',
+    bg: 'bg-green-500/10',
+  },
+  {
+    name: 'Sportsmanship Award',
+    category: 'sportsmanship',
+    description: 'Honors the player who best exemplifies fair play, respect, and positive attitude.',
+    icon: Heart,
+    color: 'text-pink-500',
+    bg: 'bg-pink-500/10',
+  },
+  {
+    name: 'Best Defenseman',
+    category: 'custom',
+    description: 'Awarded to the defenseman who excels in both defensive play and offensive contribution.',
+    icon: Award,
+    color: 'text-purple-500',
+    bg: 'bg-purple-500/10',
+  },
+];
+
 function getCategoryLabel(value: string) {
   return CATEGORY_OPTIONS.find(c => c.value === value)?.label || value;
 }
@@ -40,6 +100,12 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addingDefaults, setAddingDefaults] = useState(false);
+  const [addedDefaults, setAddedDefaults] = useState<Set<string>>(
+    // Pre-mark defaults that already exist (by category match)
+    new Set(initialAwards.map(a => a.category))
+  );
+  const [addingCategory, setAddingCategory] = useState<string | null>(null);
 
   // Form state
   const [awardName, setAwardName] = useState('');
@@ -138,6 +204,54 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
     }
   }
 
+  async function handleAddDefaultAward(defaultAward: typeof DEFAULT_AWARDS[0]) {
+    setAddingCategory(defaultAward.category);
+
+    try {
+      const result = await createAward({
+        leagueId,
+        awardName: defaultAward.name,
+        category: defaultAward.category,
+        description: defaultAward.description,
+      });
+
+      if (result.success) {
+        setAddedDefaults(prev => new Set([...prev, defaultAward.category]));
+        router.refresh();
+      }
+    } catch {
+      // Silently fail — user can retry
+    } finally {
+      setAddingCategory(null);
+    }
+  }
+
+  async function handleAddAllDefaults() {
+    setAddingDefaults(true);
+
+    const toAdd = DEFAULT_AWARDS.filter(d => !addedDefaults.has(d.category));
+
+    for (const defaultAward of toAdd) {
+      try {
+        const result = await createAward({
+          leagueId,
+          awardName: defaultAward.name,
+          category: defaultAward.category,
+          description: defaultAward.description,
+        });
+
+        if (result.success) {
+          setAddedDefaults(prev => new Set([...prev, defaultAward.category]));
+        }
+      } catch {
+        // Continue with remaining
+      }
+    }
+
+    setAddingDefaults(false);
+    router.refresh();
+  }
+
   // Group awards by season
   const groupedAwards = new Map<string, LeagueAwardWithDetails[]>();
   awards.forEach(award => {
@@ -148,11 +262,13 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
     groupedAwards.get(key)!.push(award);
   });
 
+  const hasUnadded = DEFAULT_AWARDS.some(d => !addedDefaults.has(d.category));
+
   return (
     <div>
       {/* Add Award Button */}
       {!showForm && (
-        <div className="mb-6">
+        <div className="mb-6 flex items-center gap-3">
           <button
             onClick={openNewForm}
             className={cn(
@@ -291,6 +407,96 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
         </div>
       )}
 
+      {/* Default Awards Section — always show when there are unadded defaults */}
+      {hasUnadded && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-arena-400" />
+                Default Awards
+              </h2>
+              <p className="text-sm text-neutral-500 mt-1">
+                Standard awards included with every league. Add them individually or all at once.
+              </p>
+            </div>
+            <button
+              onClick={handleAddAllDefaults}
+              disabled={addingDefaults}
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm',
+                'border border-white/10 text-neutral-300 hover:text-white hover:bg-white/[0.06]',
+                'transition-all disabled:opacity-50'
+              )}
+            >
+              {addingDefaults ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              {addingDefaults ? 'Adding...' : 'Add All'}
+            </button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {DEFAULT_AWARDS.map((defaultAward) => {
+              const isAdded = addedDefaults.has(defaultAward.category);
+              const isAdding = addingCategory === defaultAward.category;
+              const Icon = defaultAward.icon;
+
+              return (
+                <div
+                  key={defaultAward.category}
+                  className={cn(
+                    'relative rounded-xl border p-5 transition-all',
+                    isAdded
+                      ? 'bg-emerald-500/5 border-emerald-500/20'
+                      : 'bg-white/[0.02] border-white/[0.06] hover:border-white/15'
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn('p-2.5 rounded-lg', defaultAward.bg)}>
+                      <Icon className={cn('w-5 h-5', defaultAward.color)} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-white text-sm">{defaultAward.name}</h3>
+                      <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
+                        {defaultAward.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    {isAdded ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Added
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleAddDefaultAward(defaultAward)}
+                        disabled={isAdding || addingDefaults}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg',
+                          'text-rink-400 hover:text-rink-300 bg-rink-500/10 hover:bg-rink-500/15',
+                          'transition-colors disabled:opacity-50'
+                        )}
+                      >
+                        {isAdding ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="w-3.5 h-3.5" />
+                        )}
+                        Add to League
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Awards List - Grouped by Season */}
       {awards.length > 0 ? (
         <div className="space-y-8">
@@ -348,7 +554,7 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
           ))}
         </div>
       ) : (
-        !showForm && (
+        !showForm && !hasUnadded && (
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
             <Trophy className="w-12 h-12 text-rink-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">No Awards Yet</h3>

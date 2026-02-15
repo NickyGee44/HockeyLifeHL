@@ -975,7 +975,18 @@
       "accountCreated": "Compte Stripe cree ! Completez les etapes d'inscription ci-dessous.",
       "accountCreateFailed": "Echec de la creation du compte Stripe. Veuillez reessayer.",
       "finishOnboardingTitle": "Terminez la configuration de votre compte de paiement",
-      "finishOnboardingDesc": "Completez les etapes ci-dessous pour commencer a accepter les paiements. Vous ne pourrez pas acceder aux fonctionnalites de facturation tant que votre compte Stripe ne sera pas entierement verifie."
+      "finishOnboardingDesc": "Completez les etapes ci-dessous pour commencer a accepter les paiements. Vous ne pourrez pas acceder aux fonctionnalites de facturation tant que votre compte Stripe ne sera pas entierement verifie.",
+      "steps": {
+        "createAccount": "Creer un compte",
+        "createAccountDesc": "Configurez votre compte de paiement Stripe en quelques secondes",
+        "verifyIdentity": "Verifier l'identite",
+        "verifyIdentityDesc": "Completez le processus de verification de Stripe",
+        "startAccepting": "Commencer a accepter les paiements",
+        "startAcceptingDesc": "Vous etes pret a percevoir les frais des joueurs"
+      },
+      "heroTitle": "Acceptez les paiements des joueurs",
+      "heroDescription": "Configurez Stripe pour percevoir les frais d'inscription, les cotisations d'equipe et plus encore — directement via votre plateforme de ligue.",
+      "onboardingProgress": "Etape {current} sur {total} : {stepName}"
     },
     "league": {
       "title": "Facturation de la ligue",

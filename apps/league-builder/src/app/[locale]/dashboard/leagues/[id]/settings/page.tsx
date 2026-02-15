@@ -43,23 +43,23 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
     {
       title: 'General',
       description: 'Basic league information and settings',
-      icon: '',
+      icon: 'Settings',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/general` },
     {
       title: 'Website Editor',
       description: 'Customize your league website with live preview',
-      icon: '',
-      href: `/${locale}/website-editor`,
+      icon: 'Palette',
+      href: `/${locale}/website-editor?league=${leagueId}`,
       highlight: true },
     {
       title: 'Billing',
       description: 'Payment collection and fee settings',
-      icon: '',
+      icon: 'CreditCard',
       href: `/${locale}/dashboard/leagues/${leagueId}/billing` },
     {
       title: 'Scorekeepers',
       description: 'Manage scorekeepers and game assignments',
-      icon: '',
+      icon: 'ClipboardCheck',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/scorekeepers` },
   ];
 
@@ -67,32 +67,32 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
     {
       title: 'Branding',
       description: 'Logo, colors, and visual identity',
-      icon: '',
+      icon: 'Palette',
       href: `/${locale}/dashboard/settings/branding` },
     {
       title: 'Custom Domain',
       description: 'Set up your own domain for the league website',
-      icon: '',
+      icon: 'Globe',
       href: `/${locale}/dashboard/settings/domains` },
     {
       title: 'Staff & Permissions',
       description: 'Manage league administrators and roles',
-      icon: '',
+      icon: 'Users',
       href: `/${locale}/dashboard/settings/members` },
     {
       title: 'Notifications',
       description: 'Email and push notification preferences',
-      icon: '',
+      icon: 'Bell',
       href: `/${locale}/dashboard/settings/notifications` },
     {
       title: 'Subscription',
       description: 'Premium add-ons and billing management',
-      icon: '',
+      icon: 'Receipt',
       href: `/${locale}/dashboard/settings/subscription` },
     {
       title: 'Privacy',
       description: 'Data privacy and visibility settings',
-      icon: '',
+      icon: 'Shield',
       href: `/${locale}/dashboard/settings/privacy` },
   ];
 

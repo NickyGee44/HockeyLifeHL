@@ -9,8 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { DollarSign, CreditCard, Wallet, Percent, AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DollarSign, CreditCard, Wallet, Percent, AlertCircle, CheckCircle2, Clock, Loader2, ShieldCheck, Banknote } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -74,6 +73,75 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+/** 3-step visual process indicator */
+function SetupSteps({ activeStep }: { activeStep: 0 | 1 | 2 }) {
+  const tSteps = useTranslations('billing.embedded.steps');
+
+  const steps = [
+    { icon: CreditCard, name: tSteps('createAccount'), desc: tSteps('createAccountDesc') },
+    { icon: ShieldCheck, name: tSteps('verifyIdentity'), desc: tSteps('verifyIdentityDesc') },
+    { icon: Banknote, name: tSteps('startAccepting'), desc: tSteps('startAcceptingDesc') },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl mx-auto">
+      {steps.map((step, i) => {
+        const StepIcon = step.icon;
+        const isActive = i === activeStep;
+        const isComplete = i < activeStep;
+
+        return (
+          <div
+            key={i}
+            className={`relative flex flex-col items-center text-center gap-2 p-4 rounded-xl border transition-all ${
+              isComplete
+                ? 'border-emerald-500/30 bg-emerald-500/5'
+                : isActive
+                  ? 'border-rink-500/30 bg-rink-500/5'
+                  : 'border-white/5 bg-white/[0.02]'
+            }`}
+          >
+            <div
+              className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                isComplete
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : isActive
+                    ? 'bg-rink-500/20 text-rink-400'
+                    : 'bg-white/[0.06] text-neutral-500'
+              }`}
+            >
+              {isComplete ? (
+                <CheckCircle2 className="h-5 w-5" />
+              ) : (
+                <StepIcon className="h-5 w-5" />
+              )}
+            </div>
+            <p className={`text-sm font-medium ${isComplete ? 'text-emerald-400' : isActive ? 'text-white' : 'text-neutral-500'}`}>
+              {step.name}
+            </p>
+            <p className="text-xs text-neutral-500">{step.desc}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Platform fee info row */
+function PlatformFeeNotice({ platformFeePercent }: { platformFeePercent: number }) {
+  const t = useTranslations('billing.embedded');
+  return (
+    <div className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4">
+      <div className="flex items-start gap-3">
+        <Percent className="h-4 w-4 text-neutral-500 mt-0.5 flex-shrink-0" />
+        <p className="text-sm text-neutral-500">
+          {t('platformFeeNotice', { percent: platformFeePercent })}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function EmbeddedBillingDashboard({
   leagueId,
   leagueName,
@@ -121,7 +189,6 @@ export function EmbeddedBillingDashboard({
 
   const [creatingAccount, setCreatingAccount] = useState(false);
 
-  const isConnected = accountInfo?.status === 'complete';
   const accountNotCreated = !accountInfo || accountInfo.status === 'not_created';
   const needsOnboarding = !accountNotCreated && (accountInfo.status === 'pending' || accountInfo.status === 'restricted');
 
@@ -142,24 +209,23 @@ export function EmbeddedBillingDashboard({
     }
   }
 
-  // Show loading skeleton only on initial load (not on refresh)
-  // to avoid unmounting ConnectProvider and triggering full Stripe re-init
+  // Loading skeleton
   if (initialLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 bg-neutral-800 rounded animate-pulse" />
-        <div className="h-4 w-64 bg-neutral-800 rounded animate-pulse" />
+        <div className="h-8 w-48 bg-white/[0.06] rounded animate-pulse" />
+        <div className="h-4 w-64 bg-white/[0.06] rounded animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 bg-neutral-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-24 bg-white/[0.04] border border-white/10 rounded-xl animate-pulse" />
           ))}
         </div>
-        <div className="h-96 bg-neutral-800 rounded-xl animate-pulse" />
+        <div className="h-96 bg-white/[0.04] border border-white/10 rounded-xl animate-pulse" />
       </div>
     );
   }
 
-  // No Stripe account yet — show setup CTA (don't mount ConnectProvider)
+  // ── State A: No Stripe account — hero with 3-step process ──
   if (accountNotCreated) {
     return (
       <div className="space-y-6">
@@ -174,52 +240,42 @@ export function EmbeddedBillingDashboard({
           <StatusBadge status="not_created" />
         </div>
 
-        <Card className="bg-neutral-900 border-neutral-800">
-          <CardHeader>
-            <CardTitle className="text-white">{t('connectStripe')}</CardTitle>
-            <CardDescription>
-              {t('connectStripeDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center text-center py-8 space-y-4">
-              <div className="p-4 rounded-full bg-emerald-500/10">
-                <CreditCard className="h-10 w-10 text-emerald-500" />
-              </div>
-              <div className="max-w-md space-y-2">
-                <p className="text-neutral-300">{t('setupDescription')}</p>
-              </div>
-              <Button
-                size="lg"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={handleSetupPayments}
-                disabled={creatingAccount}
-              >
-                {creatingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('setupButton')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Hero card */}
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-rink-500/10 via-arena-500/5 to-transparent p-8 sm:p-10">
+          {/* Subtle glow */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-rink-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
 
-        {/* Platform Fee Notice */}
-        <Card className="bg-neutral-800/50 border-neutral-700">
-          <CardContent className="py-4">
-            <div className="flex items-start gap-3">
-              <Percent className="h-5 w-5 text-neutral-400 mt-0.5" />
-              <div className="text-sm text-neutral-400">
-                <p>
-                  {t('platformFeeNotice', { percent: platformFeePercent })}
-                </p>
-              </div>
+          <div className="relative flex flex-col items-center text-center gap-6">
+            <div className="p-4 rounded-full bg-emerald-500/10">
+              <CreditCard className="h-10 w-10 text-emerald-500" />
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="max-w-lg space-y-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">{t('heroTitle')}</h2>
+              <p className="text-neutral-400">{t('heroDescription')}</p>
+            </div>
+
+            {/* 3-step indicator */}
+            <SetupSteps activeStep={0} />
+
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold hover:shadow-lg hover:shadow-rink-500/20 hover:scale-[1.02] transition-all"
+              onClick={handleSetupPayments}
+              disabled={creatingAccount}
+            >
+              {creatingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t('setupButton')}
+            </Button>
+          </div>
+        </div>
+
+        <PlatformFeeNotice platformFeePercent={platformFeePercent} />
       </div>
     );
   }
 
-  // ── Onboarding gate: force users to finish Stripe setup before seeing dashboard ──
+  // ── State B: Needs onboarding — progress + embedded Stripe ──
   if (needsOnboarding) {
     return (
       <ConnectProvider leagueId={leagueId}>
@@ -235,8 +291,11 @@ export function EmbeddedBillingDashboard({
             <StatusBadge status={accountInfo.status} />
           </div>
 
-          {/* Prominent onboarding alert */}
-          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          {/* Progress indicator */}
+          <SetupSteps activeStep={1} />
+
+          {/* Amber onboarding alert */}
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent p-4">
             <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <div>
               <p className="font-medium text-amber-400">{t('finishOnboardingTitle')}</p>
@@ -244,36 +303,26 @@ export function EmbeddedBillingDashboard({
             </div>
           </div>
 
-          {/* Full-width onboarding widget — no tabs, no distractions */}
-          <Card className="bg-neutral-900 border-neutral-800">
-            <CardHeader>
-              <CardTitle className="text-white">{t('connectStripe')}</CardTitle>
-              <CardDescription>{t('connectStripeDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent>
+          {/* Embedded onboarding in glassmorphism card */}
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
+            <div className="px-6 pt-6 pb-2">
+              <h3 className="text-lg font-semibold text-white">{t('connectStripe')}</h3>
+              <p className="text-sm text-neutral-400 mt-1">{t('connectStripeDesc')}</p>
+            </div>
+            <div className="p-6 pt-4">
               <StripeErrorBoundary fallbackHeight={500}>
                 <EmbeddedOnboarding onComplete={handleOnboardingComplete} />
               </StripeErrorBoundary>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Platform Fee Notice */}
-          <Card className="bg-neutral-800/50 border-neutral-700">
-            <CardContent className="py-4">
-              <div className="flex items-start gap-3">
-                <Percent className="h-5 w-5 text-neutral-400 mt-0.5" />
-                <div className="text-sm text-neutral-400">
-                  <p>{t('platformFeeNotice', { percent: platformFeePercent })}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <PlatformFeeNotice platformFeePercent={platformFeePercent} />
         </div>
       </ConnectProvider>
     );
   }
 
-  // ── Fully connected dashboard ──
+  // ── State C: Fully connected dashboard ──
   return (
     <ConnectProvider leagueId={leagueId}>
       <div className="space-y-6">
@@ -294,73 +343,65 @@ export function EmbeddedBillingDashboard({
         {/* Quick Stats */}
         {stats && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/10">
-                    <DollarSign className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-neutral-400">{t('totalRevenue')}</p>
-                    <p className="text-2xl font-bold text-white">
-                      {formatCurrency(stats.totalRevenue)}
-                    </p>
-                  </div>
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <DollarSign className="h-5 w-5 text-green-500" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <p className="text-sm text-neutral-400">{t('totalRevenue')}</p>
+                  <p className="text-2xl font-bold text-white">
+                    {formatCurrency(stats.totalRevenue)}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10">
-                    <Wallet className="h-5 w-5 text-emerald-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-neutral-400">{t('netEarnings')}</p>
-                    <p className="text-2xl font-bold text-white">
-                      {formatCurrency(stats.netRevenue)}
-                    </p>
-                  </div>
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/10">
+                  <Wallet className="h-5 w-5 text-emerald-500" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <p className="text-sm text-neutral-400">{t('netEarnings')}</p>
+                  <p className="text-2xl font-bold text-white">
+                    {formatCurrency(stats.netRevenue)}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <CreditCard className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-neutral-400">{t('transactions')}</p>
-                    <p className="text-2xl font-bold text-white">{stats.paymentCount}</p>
-                  </div>
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <CreditCard className="h-5 w-5 text-blue-500" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <p className="text-sm text-neutral-400">{t('transactions')}</p>
+                  <p className="text-2xl font-bold text-white">{stats.paymentCount}</p>
+                </div>
+              </div>
+            </div>
 
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-amber-500/10">
-                    <Percent className="h-5 w-5 text-amber-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-neutral-400">{t('platformFees')}</p>
-                    <p className="text-2xl font-bold text-white">
-                      {formatCurrency(stats.totalFeesPaid)}
-                    </p>
-                  </div>
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Percent className="h-5 w-5 text-amber-500" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <p className="text-sm text-neutral-400">{t('platformFees')}</p>
+                  <p className="text-2xl font-bold text-white">
+                    {formatCurrency(stats.totalFeesPaid)}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-neutral-900 border border-neutral-800">
+          <TabsList className="bg-white/[0.04] border border-white/10">
             <TabsTrigger value="overview">{t('balance')}</TabsTrigger>
             <TabsTrigger value="payments">{t('payments')}</TabsTrigger>
             <TabsTrigger value="payouts">{t('payouts')}</TabsTrigger>
@@ -368,73 +409,63 @@ export function EmbeddedBillingDashboard({
           </TabsList>
 
           <TabsContent value="overview">
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardHeader>
-                <CardTitle className="text-white">{t('accountBalance')}</CardTitle>
-                <CardDescription>{t('accountBalanceDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
+              <div className="px-6 pt-6 pb-2">
+                <h3 className="text-lg font-semibold text-white">{t('accountBalance')}</h3>
+                <p className="text-sm text-neutral-400 mt-1">{t('accountBalanceDesc')}</p>
+              </div>
+              <div className="p-6 pt-4">
                 <StripeErrorBoundary fallbackHeight={200}>
                   <EmbeddedBalances />
                 </StripeErrorBoundary>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="payments">
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardHeader>
-                <CardTitle className="text-white">{t('paymentsReceived')}</CardTitle>
-                <CardDescription>{t('paymentsReceivedDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
+              <div className="px-6 pt-6 pb-2">
+                <h3 className="text-lg font-semibold text-white">{t('paymentsReceived')}</h3>
+                <p className="text-sm text-neutral-400 mt-1">{t('paymentsReceivedDesc')}</p>
+              </div>
+              <div>
                 <StripeErrorBoundary fallbackHeight={500}>
                   <EmbeddedPayments />
                 </StripeErrorBoundary>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="payouts">
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardHeader>
-                <CardTitle className="text-white">{t('payoutsTitle')}</CardTitle>
-                <CardDescription>{t('payoutsDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
+              <div className="px-6 pt-6 pb-2">
+                <h3 className="text-lg font-semibold text-white">{t('payoutsTitle')}</h3>
+                <p className="text-sm text-neutral-400 mt-1">{t('payoutsDesc')}</p>
+              </div>
+              <div>
                 <StripeErrorBoundary fallbackHeight={400}>
                   <EmbeddedPayouts />
                 </StripeErrorBoundary>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="settings">
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardHeader>
-                <CardTitle className="text-white">{t('accountSettings')}</CardTitle>
-                <CardDescription>{t('accountSettingsDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
+              <div className="px-6 pt-6 pb-2">
+                <h3 className="text-lg font-semibold text-white">{t('accountSettings')}</h3>
+                <p className="text-sm text-neutral-400 mt-1">{t('accountSettingsDesc')}</p>
+              </div>
+              <div className="p-6 pt-4">
                 <StripeErrorBoundary fallbackHeight={400}>
                   <EmbeddedAccountManagement />
                 </StripeErrorBoundary>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
-        {/* Platform Fee Notice */}
-        <Card className="bg-neutral-800/50 border-neutral-700">
-          <CardContent className="py-4">
-            <div className="flex items-start gap-3">
-              <Percent className="h-5 w-5 text-neutral-400 mt-0.5" />
-              <div className="text-sm text-neutral-400">
-                <p>{t('platformFeeNotice', { percent: platformFeePercent })}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <PlatformFeeNotice platformFeePercent={platformFeePercent} />
       </div>
     </ConnectProvider>
   );
