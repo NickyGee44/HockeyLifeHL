@@ -23,6 +23,7 @@ import {
   Star,
   ChevronRight,
 } from 'lucide-react';
+import { ExpandableLeaderBoard, ExpandableGoalieLeaderBoard } from '@/components/history/ExpandableLeaderBoard';
 import type { Metadata } from 'next';
 
 interface HistoryPageProps {
@@ -64,10 +65,10 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     leagueStats,
   ] = await Promise.all([
     getSeasons(league.id),
-    getStatsLeaders(league.id, 'points', 5),
-    getStatsLeaders(league.id, 'goals', 5),
-    getStatsLeaders(league.id, 'assists', 5),
-    getGoalieLeaders(league.id, undefined, 'wins', 5),
+    getStatsLeaders(league.id, 'points', 25),
+    getStatsLeaders(league.id, 'goals', 25),
+    getStatsLeaders(league.id, 'assists', 25),
+    getGoalieLeaders(league.id, undefined, 'wins', 25),
     getLeagueAwards(league.id),
     getLeagueStats(league.id),
   ]);
@@ -294,9 +295,9 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
           <section>
             <SectionHeader icon={<Star className="w-5 h-5 text-amber-400" />} title="All-Time Leaders" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <LeaderBoard title="Points Leaders" icon={<Target className="w-4 h-4 text-[var(--league-primary)]" />} leaders={pointsLeaders.map((p) => ({ name: p.player_name, value: p.points, team: p.team_name }))} />
-              <LeaderBoard title="Goals Leaders" icon={<Target className="w-4 h-4 text-red-400" />} leaders={goalsLeaders.map((p) => ({ name: p.player_name, value: p.goals, team: p.team_name }))} />
-              <LeaderBoard title="Assists Leaders" icon={<Target className="w-4 h-4 text-blue-400" />} leaders={assistsLeaders.map((p) => ({ name: p.player_name, value: p.assists, team: p.team_name }))} />
+              <ExpandableLeaderBoard title="Points Leaders" icon={<Target className="w-4 h-4 text-[var(--league-primary)]" />} leaders={pointsLeaders.map((p) => ({ name: p.player_name, value: p.points, team: p.team_name }))} />
+              <ExpandableLeaderBoard title="Goals Leaders" icon={<Target className="w-4 h-4 text-red-400" />} leaders={goalsLeaders.map((p) => ({ name: p.player_name, value: p.goals, team: p.team_name }))} />
+              <ExpandableLeaderBoard title="Assists Leaders" icon={<Target className="w-4 h-4 text-blue-400" />} leaders={assistsLeaders.map((p) => ({ name: p.player_name, value: p.assists, team: p.team_name }))} />
             </div>
           </section>
         )}
@@ -305,54 +306,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
         {goalieLeaders.length > 0 && (
           <section>
             <SectionHeader icon={<Shield className="w-5 h-5 text-blue-400" />} title="Goalie Legends" />
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-[var(--color-border)] text-[var(--color-text-secondary)]">
-                      <th className="text-left px-4 py-3 font-semibold">#</th>
-                      <th className="text-left px-4 py-3 font-semibold">Name</th>
-                      <th className="text-right px-4 py-3 font-semibold">W</th>
-                      <th className="text-right px-4 py-3 font-semibold">SV%</th>
-                      <th className="text-right px-4 py-3 font-semibold">GAA</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {goalieLeaders.map((goalie, index) => (
-                      <tr
-                        key={goalie.player_id}
-                        className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-hover)] transition-colors"
-                      >
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${index < 3 ? 'bg-blue-500/20 text-blue-400' : 'text-[var(--color-text-muted)]'}`}>
-                            {index + 1}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-[var(--color-text-primary)]">{goalie.player_name}</p>
-                          {goalie.team_name && (
-                            <p className="text-xs text-[var(--color-text-muted)]">{goalie.team_name}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-[var(--color-text-primary)]">{goalie.wins}</td>
-                        <td className="px-4 py-3 text-right text-[var(--color-text-secondary)]">
-                          {typeof goalie.save_percentage === 'number'
-                            ? goalie.save_percentage > 1
-                              ? `${goalie.save_percentage.toFixed(1)}%`
-                              : `${(goalie.save_percentage * 100).toFixed(1)}%`
-                            : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-right text-[var(--color-text-secondary)]">
-                          {typeof goalie.goals_against_average === 'number'
-                            ? goalie.goals_against_average.toFixed(2)
-                            : '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <ExpandableGoalieLeaderBoard leaders={goalieLeaders} />
           </section>
         )}
 
@@ -450,40 +404,6 @@ function StatCard({
   );
 }
 
-function LeaderBoard({
-  title,
-  icon,
-  leaders,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  leaders: { name: string; value: number; team: string }[];
-}) {
-  if (leaders.length === 0) return null;
-
-  return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center gap-2">
-        {icon}
-        <h3 className="font-semibold text-sm text-[var(--color-text-primary)]">{title}</h3>
-      </div>
-      <div className="divide-y divide-[var(--color-border)]">
-        {leaders.map((leader, index) => (
-          <div key={`${leader.name}-${index}`} className="flex items-center gap-3 px-4 py-2.5">
-            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 ${index < 3 ? 'bg-amber-500/20 text-amber-400' : 'text-[var(--color-text-muted)]'}`}>
-              {index + 1}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-[var(--color-text-primary)] truncate">{leader.name}</p>
-              <p className="text-xs text-[var(--color-text-muted)] truncate">{leader.team}</p>
-            </div>
-            <span className="text-sm font-bold text-[var(--color-text-primary)] tabular-nums">{leader.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function ChampionDetails({
   roster,

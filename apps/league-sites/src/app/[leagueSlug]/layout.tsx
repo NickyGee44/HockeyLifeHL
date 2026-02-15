@@ -38,12 +38,25 @@ export async function generateMetadata({
     };
   }
 
+  const iconUrl = (league as any).favicon_url || league.logo_url;
+
   return {
     title: {
       default: league.name,
       template: `%s | ${league.name}`,
     },
     description: league.description || `${league.name} - Powered by Beer League Hockey`,
+    ...(iconUrl && {
+      icons: {
+        icon: [
+          { url: iconUrl, sizes: '32x32' },
+          { url: iconUrl, sizes: '16x16' },
+        ],
+        apple: iconUrl,
+        shortcut: iconUrl,
+      },
+    }),
+    manifest: `/${leagueSlug}/manifest.webmanifest`,
     openGraph: {
       title: league.name,
       description: league.description || `${league.name} - Powered by Beer League Hockey`,

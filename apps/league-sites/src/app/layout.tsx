@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
     shortcut: '/favicon.ico',
   },
-  manifest: '/site.webmanifest',
+  // manifest is set per-league in [leagueSlug]/layout.tsx
 };
 
 export default function RootLayout({
