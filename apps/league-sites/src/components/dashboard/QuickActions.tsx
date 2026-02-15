@@ -10,6 +10,7 @@ import {
   Users,
   Settings,
   Shield,
+  ClipboardCheck,
   Loader2,
 } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
@@ -34,6 +35,13 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
 
   const actions: QuickAction[] = [
+    {
+      label: 'Game Check-In',
+      href: `/${leagueSlug}/checkin`,
+      icon: ClipboardCheck,
+      description: 'RSVP for upcoming games',
+      variant: 'primary',
+    },
     {
       label: 'View Schedule',
       href: `/${leagueSlug}/schedule`,

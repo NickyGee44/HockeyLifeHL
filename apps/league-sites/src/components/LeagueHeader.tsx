@@ -136,15 +136,18 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
             <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
           </div>
 
-          <button
-            type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--header-border)] text-[var(--header-text)] lg:hidden"
-            onClick={() => setIsMobileMenuOpen((open) => !open)}
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-            data-testid="mobile-menu-toggle"
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <div className="flex items-center gap-2 lg:hidden ml-auto">
+            <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--header-border)] text-[var(--header-text)]"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              data-testid="mobile-menu-toggle"
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Division Filter - persistent strip below header on all screen sizes */}
@@ -170,8 +173,8 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
         )}
 
         {isMobileMenuOpen && (
-          <nav className="border-t border-[var(--header-border)] pb-4 pt-3 lg:hidden max-h-[calc(100dvh-80px)] overflow-y-auto" data-testid="mobile-nav">
-            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+          <nav className="border-t border-[var(--header-border)] pb-4 pt-3 lg:hidden max-h-[calc(100dvh-80px)] overflow-y-auto overflow-x-visible" data-testid="mobile-nav">
+            <div className="grid grid-cols-2 gap-1">
               {filteredNavItems.map((item) => {
                 const active = isItemActive(item.href);
                 return (
@@ -201,8 +204,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 Register Now
               </Link>
             )}
-            <div className="mt-3 flex items-center justify-between border-t border-[var(--header-border)] pt-3">
-              <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
+            <div className="mt-3 flex items-center justify-end border-t border-[var(--header-border)] pt-3">
               <ThemeToggle />
             </div>
           </nav>

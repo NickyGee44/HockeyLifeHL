@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, LogOut, ChevronDown, CreditCard, FileText, LayoutDashboard, Shield } from 'lucide-react';
+import { User, LogOut, ChevronDown, CreditCard, FileText, LayoutDashboard, Shield, ClipboardCheck } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { signOut } from '@/lib/supabase/auth';
@@ -99,7 +99,7 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 bottom-full mb-2 sm:bottom-auto sm:mb-0 sm:mt-2 w-64 max-h-[calc(100dvh-120px)] overflow-y-auto bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl z-50">
+        <div className="absolute right-0 mt-2 w-64 max-h-[calc(100dvh-120px)] overflow-y-auto bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl z-50">
           {/* User Info Header */}
           <div className="p-4 border-b border-[var(--color-border)]">
             <div className="flex items-center gap-3">
@@ -163,6 +163,12 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
               href={`/${leagueSlug}/me`}
               icon={<LayoutDashboard className="w-4 h-4" />}
               label="My Dashboard"
+              onClick={() => setIsOpen(false)}
+            />
+            <MenuItem
+              href={`/${leagueSlug}/checkin`}
+              icon={<ClipboardCheck className="w-4 h-4" />}
+              label="Game Check-In"
               onClick={() => setIsOpen(false)}
             />
             {(currentTeam?.is_captain || currentTeam?.is_alternate) && (
