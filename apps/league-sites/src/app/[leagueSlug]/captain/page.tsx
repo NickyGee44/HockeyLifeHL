@@ -277,6 +277,19 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         </Link>
 
         <Link
+          href={`/${leagueSlug}/captain/player-payments`}
+          className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+            <Users className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <p className="font-medium text-[var(--color-text-primary)]">Player Payments</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">Track player fee collection</p>
+          </div>
+        </Link>
+
+        <Link
           href={`/${leagueSlug}/schedule?team=${currentTeam.team_id}`}
           className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
         >

@@ -3232,5 +3232,39 @@
     "remainingBalance": "Solde restant",
     "noPaymentsYet": "Aucun paiement enregistré",
     "contactLeagueAdmin": "Contactez l'administrateur de votre ligue pour les options de paiement"
+  },
+  "captainPayments": {
+    "title": "État des paiements des joueurs",
+    "summary": {
+      "totalPlayers": "Joueurs totaux",
+      "paidInFull": "Payé en totalité",
+      "pending": "En attente",
+      "overdue": "En retard",
+      "collected": "Collecté"
+    },
+    "table": {
+      "player": "Joueur",
+      "email": "Courriel",
+      "amount": "Montant",
+      "paid": "Payé",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "status": {
+      "paid": "Payé",
+      "pending": "En attente",
+      "partiallyPaid": "Partiellement payé",
+      "overdue": "En retard",
+      "refunded": "Remboursé"
+    },
+    "actions": {
+      "sendReminder": "Envoyer un rappel",
+      "reminderSent": "Rappel envoyé",
+      "recentlyReminded": "Rappel envoyé récemment"
+    },
+    "empty": {
+      "title": "Aucune donnée de paiement",
+      "description": "Les données de paiement des joueurs apparaîtront ici une fois les frais d'inscription configurés."
+    }
   }
 }

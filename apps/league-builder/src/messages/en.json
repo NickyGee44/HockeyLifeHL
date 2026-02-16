@@ -3232,5 +3232,39 @@
     "remainingBalance": "Remaining balance",
     "noPaymentsYet": "No payments recorded yet",
     "contactLeagueAdmin": "Contact your league administrator for payment options"
+  },
+  "captainPayments": {
+    "title": "Player Payment Status",
+    "summary": {
+      "totalPlayers": "Total Players",
+      "paidInFull": "Paid in Full",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "collected": "Collected"
+    },
+    "table": {
+      "player": "Player",
+      "email": "Email",
+      "amount": "Amount",
+      "paid": "Paid",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "partiallyPaid": "Partially Paid",
+      "overdue": "Overdue",
+      "refunded": "Refunded"
+    },
+    "actions": {
+      "sendReminder": "Send Reminder",
+      "reminderSent": "Reminder Sent",
+      "recentlyReminded": "Recently Reminded"
+    },
+    "empty": {
+      "title": "No Payment Data",
+      "description": "Player payment records will appear here once registration fees are configured."
+    }
   }
 }
