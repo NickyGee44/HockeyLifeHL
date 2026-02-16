@@ -8,11 +8,12 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle } from 'lucide-react';
+import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { ScheduleWizard } from '@/components/schedule-wizard';
 import { ScheduleCalendar } from '@/components/schedule-wizard/ScheduleCalendar';
 import { GameReschedulePanel } from '@/components/dashboard/seasons/GameReschedulePanel';
+import { BulkPostponeDateWizard } from '@/components/dashboard/seasons/BulkPostponeDateWizard';
 import { GameDetailSheet } from '@/components/dashboard/seasons/GameDetailSheet';
 import { saveScheduleGames } from '@/lib/schedule/actions';
 import {
@@ -106,6 +107,7 @@ export function SchedulePageClient({
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [games, setGames] = useState<ScheduledGame[]>(existingGames);
   const [showReschedulePanel, setShowReschedulePanel] = useState(false);
+  const [showBulkPostponeDate, setShowBulkPostponeDate] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const [selectedGame, setSelectedGame] = useState<ScheduledGame | null>(null);
   const [showGameDetail, setShowGameDetail] = useState(false);
@@ -213,6 +215,17 @@ export function SchedulePageClient({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Weather Cancellation (by date) */}
+          {hasExistingSchedule && (
+            <button
+              onClick={() => setShowBulkPostponeDate(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-300 bg-blue-500/10 border border-blue-500/30 rounded-lg hover:bg-blue-500/20 transition-colors"
+            >
+              <Snowflake className="w-4 h-4" />
+              Weather Cancellation
+            </button>
+          )}
+
           {/* Manage Cancellations */}
           {hasExistingSchedule && (
             <button
@@ -394,6 +407,14 @@ export function SchedulePageClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Postpone by Date Wizard */}
+      <BulkPostponeDateWizard
+        open={showBulkPostponeDate}
+        onOpenChange={setShowBulkPostponeDate}
+        leagueId={leagueId}
+        onGamesPostponed={() => router.refresh()}
+      />
 
       {/* Game Reschedule Panel */}
       <GameReschedulePanel

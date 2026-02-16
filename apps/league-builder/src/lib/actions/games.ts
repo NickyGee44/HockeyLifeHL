@@ -1034,3 +1034,254 @@ export async function getGameAuditLog(
     };
   }
 }
+
+// ==============================================================================
+// BULK POSTPONE BY DATE
+// ==============================================================================
+
+export async function bulkPostponeByDate(
+  leagueId: string,
+  date: string,
+  reason: string,
+  sendNotifications: boolean = true
+): Promise<ActionResult<{ postponed: number; failed: string[]; notified: number }>> {
+  try {
+    if (!isValidUUID(leagueId)) {
+      return { success: false, error: 'Invalid league ID format' };
+    }
+
+    if (!reason.trim()) {
+      return { success: false, error: 'Postponement reason is required' };
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return { success: false, error: 'Invalid date format. Use YYYY-MM-DD.' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // Fetch all scheduled games on this date for this league
+    const dayStart = `${date}T00:00:00.000Z`;
+    const dayEnd = `${date}T23:59:59.999Z`;
+
+    const { data: games, error: fetchError } = await serviceClient
+      .from('games')
+      .select(`
+        id,
+        scheduled_at,
+        location,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name)
+      `)
+      .eq('league_id', leagueId)
+      .eq('status', 'scheduled')
+      .gte('scheduled_at', dayStart)
+      .lte('scheduled_at', dayEnd);
+
+    if (fetchError) {
+      return { success: false, error: 'Failed to fetch games for this date.' };
+    }
+
+    if (!games || games.length === 0) {
+      return { success: false, error: 'No scheduled games found on this date.' };
+    }
+
+    if (games.length > MAX_BULK_OPERATIONS) {
+      return {
+        success: false,
+        error: `Too many games (${games.length}). Maximum ${MAX_BULK_OPERATIONS} per operation.`,
+      };
+    }
+
+    // Postpone all games
+    const gameIds = games.map((g) => g.id);
+    const result = await bulkPostponeGames(gameIds, reason.trim());
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    // Send notifications to affected players
+    let notified = 0;
+    if (sendNotifications && result.data.postponed > 0) {
+      notified = await sendPostponementNotifications(
+        leagueId,
+        games,
+        reason.trim(),
+        date
+      );
+    }
+
+    return {
+      success: true,
+      data: {
+        postponed: result.data.postponed,
+        failed: result.data.failed,
+        notified,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'bulkPostponeByDate'),
+    };
+  }
+}
+
+// ==============================================================================
+// SEND POSTPONEMENT NOTIFICATIONS
+// ==============================================================================
+
+async function sendPostponementNotifications(
+  leagueId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  games: any[],
+  reason: string,
+  date: string
+): Promise<number> {
+  try {
+    const { sendEmail } = await import('@/lib/notifications/email-service');
+    const { getScheduleChangeEmail } = await import(
+      '@/lib/notifications/templates/schedule-change'
+    );
+
+    const serviceClient = await createServiceRoleClient();
+
+    // Get league name
+    const { data: league } = await serviceClient
+      .from('leagues')
+      .select('name')
+      .eq('id', leagueId)
+      .single();
+
+    const leagueName = league?.name || 'Your League';
+
+    // Collect all team IDs from affected games
+    const teamIds = new Set<string>();
+    for (const game of games) {
+      const homeTeam = game.home_team as { id: string } | null;
+      const awayTeam = game.away_team as { id: string } | null;
+      if (homeTeam?.id) teamIds.add(homeTeam.id);
+      if (awayTeam?.id) teamIds.add(awayTeam.id);
+    }
+
+    // Fetch players on those teams with email addresses
+    const { data: rosters } = await serviceClient
+      .from('team_rosters')
+      .select(`
+        team_id,
+        player:player_id (
+          id,
+          full_name,
+          email
+        )
+      `)
+      .in('team_id', Array.from(teamIds));
+
+    if (!rosters || rosters.length === 0) return 0;
+
+    // Check notification preferences
+    const playerIds = rosters
+      .map((r) => (r.player as { id: string } | null)?.id)
+      .filter(Boolean) as string[];
+
+    const { data: prefs } = await serviceClient
+      .from('user_notification_preferences')
+      .select('user_id, email_game_updates')
+      .in('user_id', playerIds);
+
+    const optedOut = new Set(
+      (prefs || [])
+        .filter((p) => p.email_game_updates === false)
+        .map((p) => p.user_id)
+    );
+
+    // Build a map: teamId → list of games for that team
+    const teamGames = new Map<string, typeof games>();
+    for (const game of games) {
+      const homeId = (game.home_team as { id: string } | null)?.id;
+      const awayId = (game.away_team as { id: string } | null)?.id;
+      if (homeId) {
+        if (!teamGames.has(homeId)) teamGames.set(homeId, []);
+        teamGames.get(homeId)!.push(game);
+      }
+      if (awayId) {
+        if (!teamGames.has(awayId)) teamGames.set(awayId, []);
+        teamGames.get(awayId)!.push(game);
+      }
+    }
+
+    let sentCount = 0;
+    const sentEmails = new Set<string>(); // Deduplicate
+
+    for (const roster of rosters) {
+      const player = roster.player as { id: string; full_name: string; email: string } | null;
+      if (!player?.email || optedOut.has(player.id) || sentEmails.has(player.email)) continue;
+
+      const playerTeamGames = teamGames.get(roster.team_id) || [];
+      if (playerTeamGames.length === 0) continue;
+
+      // Send one email per player for the first affected game (with note about others)
+      const firstGame = playerTeamGames[0];
+      const homeTeam = firstGame.home_team as { name: string; short_name: string | null } | null;
+      const awayTeam = firstGame.away_team as { name: string; short_name: string | null } | null;
+
+      const gameDate = new Date(firstGame.scheduled_at);
+      const formattedDate = gameDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const formattedTime = gameDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const multiGameNote =
+        playerTeamGames.length > 1
+          ? ` (and ${playerTeamGames.length - 1} other game${playerTeamGames.length > 2 ? 's' : ''} on ${date})`
+          : '';
+
+      const html = getScheduleChangeEmail({
+        recipientName: player.full_name || 'Player',
+        teamName: homeTeam?.name || 'Team',
+        opponentName: awayTeam?.name || 'Opponent',
+        changeType: 'cancelled',
+        originalDate: formattedDate,
+        originalTime: formattedTime,
+        venueName: firstGame.location || 'TBD',
+        reason: reason + multiGameNote,
+        willReschedule: true,
+        dashboardUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca'}/schedule`,
+        leagueName,
+      });
+
+      const emailResult = await sendEmail({
+        to: player.email,
+        subject: `Game Postponed: ${formattedDate}${multiGameNote} - ${leagueName}`,
+        html,
+        tags: [
+          { name: 'type', value: 'schedule_change' },
+          { name: 'league_id', value: leagueId },
+        ],
+      });
+
+      if (emailResult.success) {
+        sentCount++;
+        sentEmails.add(player.email);
+      }
+    }
+
+    return sentCount;
+  } catch (error) {
+    console.error('[sendPostponementNotifications] Error:', error);
+    return 0;
+  }
+}
