@@ -750,8 +750,8 @@ export async function getStandings(
   );
 
   if (!rpcError && rpcData && Array.isArray(rpcData)) {
-    // Enrich RPC data with team names and logos
-    return rpcData.map((s: any) => {
+    // Enrich RPC data with team names and logos, filtering out teams with 0 games
+    return rpcData.filter((s: any) => Number(s.games_played) > 0).map((s: any) => {
       const teamInfo = teamInfoMap.get(s.team_id);
       return {
         team_id: s.team_id,
@@ -2828,6 +2828,24 @@ export async function getChampionshipGame(
     awayScore: data.away_score ?? 0,
     date: data.scheduled_at,
   };
+}
+
+// ========== LEGACY CHAMPION PHOTOS ==========
+
+const LEGACY_CHAMPIONS: Record<string, { year: string; photo: string; teamName?: string }[]> = {
+  woha: [
+    { year: '1986-87', photo: '/leagues/woha/history/86_87.jpg' },
+    { year: '1988-92', photo: '/leagues/woha/history/88_92.jpg' },
+    { year: '1994-95', photo: '/leagues/woha/history/94_95.jpg' },
+    { year: '1996-97', photo: '/leagues/woha/history/96_97.jpg' },
+    { year: '1999-00', photo: '/leagues/woha/history/99_00.jpg' },
+    { year: '2016-17', photo: '/leagues/woha/history/16_17.jpg' },
+    { year: '2024-25', photo: '/leagues/woha/history/2025_champs_universal.jpg', teamName: 'Universal' },
+  ],
+};
+
+export function getLegacyChampions(leagueSlug: string) {
+  return LEGACY_CHAMPIONS[leagueSlug] || [];
 }
 
 export async function getGoaliePlayerMatchups(
