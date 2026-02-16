@@ -65,5 +65,9 @@ tools/orchestrator/dist/
 e2e/**/.auth/
 **/playwright-report/
 
+# Installed skills (local only)
+.agents/
+.claude/skills/
+
 # Supabase temp
 supabase/.temp/
