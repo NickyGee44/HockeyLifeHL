@@ -1,14 +1,15 @@
 import { Metadata } from 'next';
 import { Trophy } from 'lucide-react';
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason, getSeasons } from '@/lib/data';
 import { StandingsWithSearch } from '@/components/StandingsWithSearch';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
+import { SeasonSelector } from '@/components/SeasonSelector';
 import type { TeamStanding, Division } from '@/lib/types';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
-  searchParams: Promise<{ division?: string }>;
+  searchParams: Promise<{ division?: string; season?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -18,16 +19,24 @@ export const metadata: Metadata = {
 
 export default async function StandingsPage({ params, searchParams }: StandingsPageProps) {
   const { leagueSlug } = await params;
-  await searchParams; // Accept division param for URL sharing
+  const { season: seasonParam } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) notFound();
 
-  const season = await getCurrentSeason(league.id);
+  const [seasons, defaultSeason] = await Promise.all([
+    getSeasons(league.id),
+    getCurrentSeason(league.id),
+  ]);
+
+  const selectedSeasonId = seasonParam || defaultSeason?.id || null;
+
   const [standings, divisions] = await Promise.all([
-    getStandings(league.id, season?.id),
+    getStandings(league.id, selectedSeasonId || undefined),
     getDivisions(league.id),
   ]);
+
+  const selectedSeason = seasons.find(s => s.id === selectedSeasonId) || defaultSeason;
 
   // Group standings by division
   const standingsByDivision = groupByDivision(standings, divisions);
@@ -36,13 +45,21 @@ export default async function StandingsPage({ params, searchParams }: StandingsP
     <div className="container mx-auto px-4 py-12 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-4">
-          <Trophy className="w-8 h-8 text-[var(--league-primary)]" />
-          Standings
-        </h1>
-        {season && (
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
+            <Trophy className="w-8 h-8 text-[var(--league-primary)]" />
+            Standings
+          </h1>
+          <SeasonSelector
+            seasons={seasons}
+            currentSeasonId={selectedSeasonId}
+            leagueSlug={leagueSlug}
+            basePath="standings"
+          />
+        </div>
+        {selectedSeason && (
           <p className="text-[var(--color-text-secondary)]">
-            {season.name} Season
+            {selectedSeason.name} Season
           </p>
         )}
       </div>

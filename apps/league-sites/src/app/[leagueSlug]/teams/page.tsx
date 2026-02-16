@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getTeams, getDivisions, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getTeams, getDivisions, getCurrentSeason, getSeasons } from '@/lib/data';
 import { TeamsGrid } from './TeamsGrid';
 import { buildTeamsJsonLd } from '@/lib/jsonld';
 
 interface TeamsPageProps {
   params: Promise<{ leagueSlug: string }>;
+  searchParams: Promise<{ season?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -13,18 +14,27 @@ export const metadata: Metadata = {
   description: 'View all teams in the league',
 };
 
-export default async function TeamsPage({ params }: TeamsPageProps) {
+export default async function TeamsPage({ params, searchParams }: TeamsPageProps) {
   const { leagueSlug } = await params;
+  const { season: seasonParam } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) notFound();
 
-  const currentSeason = await getCurrentSeason(league.id);
+  const [seasons, defaultSeason] = await Promise.all([
+    getSeasons(league.id),
+    getCurrentSeason(league.id),
+  ]);
+
+  // Use URL param season if provided, otherwise fall back to current season
+  const selectedSeasonId = seasonParam || defaultSeason?.id || null;
 
   const [teams, divisions] = await Promise.all([
-    getTeams(league.id, currentSeason?.id),
+    getTeams(league.id, selectedSeasonId || undefined),
     getDivisions(league.id),
   ]);
+
+  const selectedSeason = seasons.find(s => s.id === selectedSeasonId) || defaultSeason;
 
   const teamsJsonLd = buildTeamsJsonLd(teams, league, leagueSlug);
 
@@ -42,6 +52,9 @@ export default async function TeamsPage({ params }: TeamsPageProps) {
         teams={teams}
         divisions={divisions}
         leagueSlug={leagueSlug}
+        seasons={seasons}
+        currentSeasonId={selectedSeasonId}
+        seasonName={selectedSeason?.name}
       />
     </>
   );

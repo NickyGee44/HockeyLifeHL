@@ -140,24 +140,38 @@ export function getLeagueTheme(league: League): LeagueTheme {
 
 /**
  * Fetch current season for a league
+ *
+ * Falls back through statuses: active → upcoming → draft → most recent.
+ * This ensures a season is always selected when seasons exist, even if
+ * no season has been marked active yet.
  */
 export async function getCurrentSeason(leagueId: string): Promise<Season | null> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  // Try statuses in priority order (Season status: upcoming | active | completed)
+  for (const status of ['active', 'upcoming', 'completed'] as const) {
+    const { data } = await supabase
+      .from('seasons')
+      .select('*')
+      .eq('league_id', leagueId)
+      .eq('status', status)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data) return data as Season;
+  }
+
+  // Final fallback: most recent season regardless of status
+  const { data } = await supabase
     .from('seasons')
     .select('*')
     .eq('league_id', leagueId)
-    .eq('status', 'active')
     .order('start_date', { ascending: false })
     .limit(1)
     .single();
 
-  if (error || !data) {
-    return null;
-  }
-
-  return data as Season;
+  return (data as Season) || null;
 }
 
 /**

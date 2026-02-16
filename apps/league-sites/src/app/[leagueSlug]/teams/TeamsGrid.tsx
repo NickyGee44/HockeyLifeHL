@@ -4,15 +4,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Users, ChevronRight } from 'lucide-react';
 import { useDivisionFilter } from '@/components/DivisionFilterProvider';
-import type { Team, Division } from '@/lib/types';
+import { SeasonSelector } from '@/components/SeasonSelector';
+import type { Team, Division, Season } from '@/lib/types';
 
 interface TeamsGridProps {
   teams: Team[];
   divisions: Division[];
   leagueSlug: string;
+  seasons?: Season[];
+  currentSeasonId?: string | null;
+  seasonName?: string;
 }
 
-export function TeamsGrid({ teams, divisions, leagueSlug }: TeamsGridProps) {
+export function TeamsGrid({ teams, divisions, leagueSlug, seasons = [], currentSeasonId, seasonName }: TeamsGridProps) {
   const { selectedDivisionId, selectedDivision, setDivision } = useDivisionFilter();
 
   // Apply global division filter
@@ -27,13 +31,22 @@ export function TeamsGrid({ teams, divisions, leagueSlug }: TeamsGridProps) {
     <div className="container mx-auto px-4 py-12 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-2">
-          <Users className="w-8 h-8 text-[var(--league-primary)]" />
-          Teams
-        </h1>
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
+            <Users className="w-8 h-8 text-[var(--league-primary)]" />
+            Teams
+          </h1>
+          <SeasonSelector
+            seasons={seasons}
+            currentSeasonId={currentSeasonId || null}
+            leagueSlug={leagueSlug}
+            basePath="teams"
+          />
+        </div>
         <p className="text-[var(--color-text-secondary)]">
           {filteredTeams.length} team{filteredTeams.length !== 1 ? 's' : ''}
-          {selectedDivision ? ` in ${selectedDivision.name}` : ' in the league'}
+          {selectedDivision ? ` in ${selectedDivision.name}` : ''}
+          {seasonName ? ` — ${seasonName}` : ''}
         </p>
       </div>
 
