@@ -4,6 +4,17 @@ import { Eye, FileText, Clock } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { Game, ScheduleGame } from '@/lib/types';
 
+// Helper to format time in Toronto timezone
+function formatTimeInToronto(date: Date): string {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Toronto',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return formatter.format(date);
+}
+
 // Union type to accept both Game and ScheduleGame
 type ScheduleGameData = Game | ScheduleGame;
 
@@ -212,7 +223,7 @@ function ScheduleTableRow({
           </span>
         ) : (
           <span className="text-sm font-medium text-[var(--color-text-primary)]">
-            {format(gameDate, 'h:mm a')}
+            {formatTimeInToronto(gameDate)}
           </span>
         )}
       </td>
@@ -304,7 +315,7 @@ function ScheduleCard({
             </span>
           ) : (
             <span className="text-sm font-semibold text-[var(--league-primary)]">
-              {format(gameDate, 'h:mm a')}
+              {formatTimeInToronto(gameDate)}
             </span>
           )}
         </div>
