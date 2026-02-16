@@ -1064,6 +1064,166 @@ export async function toggleGoaliePull(
 }
 
 /**
+ * Batch add events from score sheet photo analysis.
+ * Maps jersey numbers to player IDs and inserts goals/penalties.
+ */
+export async function batchAddEvents(
+  gameId: string,
+  events: Array<{
+    type: 'goal' | 'penalty';
+    teamType: 'home' | 'away';
+    period: number;
+    gameTimeSeconds: number;
+    scorerJersey?: number;
+    assist1Jersey?: number | null;
+    assist2Jersey?: number | null;
+    penaltyType?: string;
+    penaltyMinutes?: number;
+    playerJersey?: number;
+  }>
+): Promise<{ success: boolean; addedCount: number; errors: string[] }> {
+  const errors: string[] = [];
+  let addedCount = 0;
+
+  try {
+    const sessionId = await verifyActiveSession(gameId);
+    const supabase = createServiceRoleClient();
+
+    // Load game to get team IDs and league_id
+    const { data: game } = await supabase
+      .from('games')
+      .select('league_id, home_team_id, away_team_id')
+      .eq('id', gameId)
+      .single();
+
+    if (!game) return { success: false, addedCount: 0, errors: ['Game not found'] };
+
+    // Load rosters for both teams to build jersey→playerId map
+    const [homeRosterResult, awayRosterResult] = await Promise.all([
+      (supabase as any)
+        .from('team_rosters')
+        .select('player_id, jersey_number')
+        .eq('team_id', game.home_team_id)
+        .eq('status', 'active'),
+      (supabase as any)
+        .from('team_rosters')
+        .select('player_id, jersey_number')
+        .eq('team_id', game.away_team_id)
+        .eq('status', 'active'),
+    ]);
+
+    const homeJerseyMap = new Map<number, string>();
+    (homeRosterResult.data || []).forEach((r: { player_id: string; jersey_number: number }) => {
+      homeJerseyMap.set(r.jersey_number, r.player_id);
+    });
+
+    const awayJerseyMap = new Map<number, string>();
+    (awayRosterResult.data || []).forEach((r: { player_id: string; jersey_number: number }) => {
+      awayJerseyMap.set(r.jersey_number, r.player_id);
+    });
+
+    const getPlayerId = (teamType: 'home' | 'away', jersey: number | undefined | null): string | null => {
+      if (jersey == null) return null;
+      const map = teamType === 'home' ? homeJerseyMap : awayJerseyMap;
+      return map.get(jersey) || null;
+    };
+
+    const getTeamId = (teamType: 'home' | 'away'): string => {
+      return teamType === 'home' ? game.home_team_id : game.away_team_id;
+    };
+
+    for (let i = 0; i < events.length; i++) {
+      const evt = events[i];
+      const clientEventId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
+
+      if (evt.type === 'goal') {
+        const scorerId = getPlayerId(evt.teamType, evt.scorerJersey);
+        if (!scorerId) {
+          errors.push(`Goal #${i + 1}: Could not find player with jersey #${evt.scorerJersey} on ${evt.teamType} team`);
+          continue;
+        }
+
+        const assist1Id = getPlayerId(evt.teamType, evt.assist1Jersey);
+        const assist2Id = getPlayerId(evt.teamType, evt.assist2Jersey);
+
+        const { error } = await supabase
+          .from('game_events')
+          .insert({
+            client_event_id: clientEventId,
+            event_version: 1,
+            sync_status: 'synced',
+            created_offline: false,
+            game_id: gameId,
+            league_id: game.league_id,
+            team_id: getTeamId(evt.teamType),
+            team_type: evt.teamType,
+            player_id: scorerId,
+            event_type: 'goal',
+            period: evt.period,
+            game_time_seconds: evt.gameTimeSeconds || null,
+            assist1_player_id: assist1Id,
+            assist2_player_id: assist2Id,
+            entered_by: sessionId,
+            entered_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          errors.push(`Goal #${i + 1}: Database insert failed`);
+          continue;
+        }
+
+        // Update game score
+        await supabase.rpc('increment_game_score', {
+          p_game_id: gameId,
+          p_team_type: evt.teamType,
+        });
+
+        addedCount++;
+      } else if (evt.type === 'penalty') {
+        const playerId = getPlayerId(evt.teamType, evt.playerJersey);
+        if (!playerId) {
+          errors.push(`Penalty #${i + 1}: Could not find player with jersey #${evt.playerJersey} on ${evt.teamType} team`);
+          continue;
+        }
+
+        const { error } = await supabase
+          .from('game_events')
+          .insert({
+            client_event_id: clientEventId,
+            event_version: 1,
+            sync_status: 'synced',
+            created_offline: false,
+            game_id: gameId,
+            league_id: game.league_id,
+            team_id: getTeamId(evt.teamType),
+            team_type: evt.teamType,
+            player_id: playerId,
+            event_type: 'penalty',
+            period: evt.period,
+            game_time_seconds: evt.gameTimeSeconds || null,
+            penalty_type: evt.penaltyType || 'Minor',
+            penalty_minutes: evt.penaltyMinutes || 2,
+            entered_by: sessionId,
+            entered_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          errors.push(`Penalty #${i + 1}: Database insert failed`);
+          continue;
+        }
+
+        addedCount++;
+      }
+    }
+
+    return { success: true, addedCount, errors };
+  } catch (error) {
+    console.error('Batch add events error:', error);
+    return { success: false, addedCount, errors: [...errors, 'Failed to batch add events'] };
+  }
+}
+
+/**
  * Update game status (e.g., to 'in_progress' when starting)
  */
 export async function updateGameStatus(
@@ -1088,5 +1248,139 @@ export async function updateGameStatus(
   } catch (error) {
     console.error('Update game status error:', error);
     return { success: false, error: 'Failed to update game status' };
+  }
+}
+
+// =============================================================================
+// Pre-game check-in actions
+// =============================================================================
+
+export interface CheckinPlayer {
+  id: string;
+  fullName: string;
+  jerseyNumber: number;
+  position: string;
+  checkinStatus: 'confirmed' | 'tentative' | 'out' | null;
+}
+
+/**
+ * Get check-in data for both teams in a game (scorekeeper view)
+ */
+export async function getScorekeeperCheckins(gameId: string): Promise<{
+  success: boolean;
+  checkins?: { homeTeam: CheckinPlayer[]; awayTeam: CheckinPlayer[] };
+  error?: string;
+}> {
+  try {
+    await verifyActiveSession(gameId);
+
+    const supabase = createServiceRoleClient();
+
+    // Get game to find team IDs
+    const { data: game, error: gameError } = await (supabase as any)
+      .from('games')
+      .select('home_team_id, away_team_id')
+      .eq('id', gameId)
+      .single();
+
+    if (gameError || !game) {
+      return { success: false, error: 'Game not found' };
+    }
+
+    // Fetch rosters and existing checkins in parallel
+    const [homeRosterResult, awayRosterResult, checkinsResult] = await Promise.all([
+      (supabase as any)
+        .from('team_rosters')
+        .select(`
+          player_id, jersey_number, position,
+          profiles!team_rosters_player_id_fkey(id, full_name)
+        `)
+        .eq('team_id', game.home_team_id)
+        .eq('status', 'active'),
+      (supabase as any)
+        .from('team_rosters')
+        .select(`
+          player_id, jersey_number, position,
+          profiles!team_rosters_player_id_fkey(id, full_name)
+        `)
+        .eq('team_id', game.away_team_id)
+        .eq('status', 'active'),
+      (supabase as any)
+        .from('game_checkins')
+        .select('player_id, status')
+        .eq('game_id', gameId),
+    ]);
+
+    // Build checkin status map
+    const checkinMap = new Map<string, string>();
+    for (const row of checkinsResult.data || []) {
+      checkinMap.set(row.player_id, row.status);
+    }
+
+    const formatCheckinRoster = (roster: any[] | null): CheckinPlayer[] => {
+      if (!roster) return [];
+      return roster
+        .filter((r: any) => r.profiles)
+        .map((r: any) => ({
+          id: r.player_id,
+          fullName: r.profiles.full_name,
+          jerseyNumber: r.jersey_number,
+          position: r.position as string,
+          checkinStatus: (checkinMap.get(r.player_id) as CheckinPlayer['checkinStatus']) || null,
+        }))
+        .sort((a: CheckinPlayer, b: CheckinPlayer) => a.jerseyNumber - b.jerseyNumber);
+    };
+
+    return {
+      success: true,
+      checkins: {
+        homeTeam: formatCheckinRoster(homeRosterResult.data),
+        awayTeam: formatCheckinRoster(awayRosterResult.data),
+      },
+    };
+  } catch (error) {
+    console.error('Get scorekeeper checkins error:', error);
+    return { success: false, error: 'Failed to load check-in data' };
+  }
+}
+
+/**
+ * Update a player's check-in status (scorekeeper action)
+ */
+export async function updateScorekeeperCheckin(
+  gameId: string,
+  playerId: string,
+  teamId: string,
+  status: 'confirmed' | 'out'
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await verifyActiveSession(gameId);
+
+    const supabase = createServiceRoleClient();
+
+    const { error } = await (supabase as any)
+      .from('game_checkins')
+      .upsert(
+        {
+          game_id: gameId,
+          player_id: playerId,
+          team_id: teamId,
+          status,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'game_id,player_id',
+        }
+      );
+
+    if (error) {
+      console.error('Update scorekeeper checkin error:', error);
+      return { success: false, error: 'Failed to update check-in' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Update scorekeeper checkin error:', error);
+    return { success: false, error: 'Failed to update check-in' };
   }
 }

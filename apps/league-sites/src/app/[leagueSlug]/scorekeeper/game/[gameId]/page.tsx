@@ -1,4 +1,4 @@
-import { getScorekeeperSession, getScorekeeperGameData, getGameEvents } from '@/lib/actions/scorekeeper';
+import { getScorekeeperSession, getScorekeeperGameData, getGameEvents, getScorekeeperCheckins } from '@/lib/actions/scorekeeper';
 import { ScoringInterface } from '@/components/scorekeeper/ScoringInterface';
 import { redirect } from 'next/navigation';
 
@@ -15,7 +15,7 @@ export default async function GameScoringPage({ params }: GameScoringPageProps) 
     redirect(`/${leagueSlug}/scorekeeper`);
   }
 
-  // Load game data
+  // Load game data and events in parallel
   const [gameResult, eventsResult] = await Promise.all([
     getScorekeeperGameData(gameId),
     getGameEvents(gameId),
@@ -25,12 +25,18 @@ export default async function GameScoringPage({ params }: GameScoringPageProps) 
     redirect(`/${leagueSlug}/scorekeeper`);
   }
 
+  // Load checkins only for scheduled games (pre-game check-in screen)
+  const checkinsResult = gameResult.game.status === 'scheduled'
+    ? await getScorekeeperCheckins(gameId)
+    : null;
+
   return (
     <ScoringInterface
       game={gameResult.game}
       events={eventsResult.events || []}
       leagueSlug={leagueSlug}
       sessionType={sessionResult.session.sessionType}
+      checkins={checkinsResult?.checkins}
     />
   );
 }
