@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Trophy, Calendar, Users } from 'lucide-react';
 
@@ -26,25 +26,76 @@ interface ChampionsTimelineProps {
 
 export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const [selectedId, setSelectedId] = useState<string>(champions[0]?.id || '');
 
-  const updateScrollButtons = useCallback(() => {
-    if (!scrollRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-    setCanScrollLeft(scrollLeft > 5);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5);
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 2);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
   }, []);
 
-  const scroll = useCallback((direction: 'left' | 'right') => {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({
-      left: direction === 'left' ? -320 : 320,
-      behavior: 'smooth',
-    });
-    setTimeout(updateScrollButtons, 350);
-  }, [updateScrollButtons]);
+  // Initialize scroll state on mount and when champions change
+  useEffect(() => {
+    updateScrollState();
+    // Also check after images may have loaded and changed layout
+    const timer = setTimeout(updateScrollState, 100);
+    return () => clearTimeout(timer);
+  }, [updateScrollState, champions]);
+
+  // Observe container resize to update scroll state
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [updateScrollState]);
+
+  const scrollToItem = useCallback((direction: 'left' | 'right') => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const items = Array.from(container.children) as HTMLElement[];
+    const containerRect = container.getBoundingClientRect();
+
+    if (direction === 'right') {
+      // Find the first item that's partially or fully off-screen to the right
+      const nextItem = items.find((item) => {
+        const rect = item.getBoundingClientRect();
+        return rect.right > containerRect.right + 2;
+      });
+      if (nextItem) {
+        nextItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      }
+    } else {
+      // Find the last item that's partially or fully off-screen to the left
+      const prevItems = items.filter((item) => {
+        const rect = item.getBoundingClientRect();
+        return rect.left < containerRect.left - 2;
+      });
+      const prevItem = prevItems[prevItems.length - 1];
+      if (prevItem) {
+        prevItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'end' });
+      }
+    }
+
+    setTimeout(updateScrollState, 400);
+  }, [updateScrollState]);
+
+  const handleSelect = useCallback((id: string) => {
+    setSelectedId(id);
+    // Scroll the selected card into view
+    const el = itemRefs.current.get(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      setTimeout(updateScrollState, 400);
+    }
+  }, [updateScrollState]);
 
   if (champions.length === 0) {
     return (
@@ -60,33 +111,42 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
   return (
     <div className="space-y-4">
       {/* Horizontal scrolling timeline strip */}
-      <div className="relative">
-        {/* Left Arrow */}
-        {canScrollLeft && (
-          <button
-            onClick={() => scroll('left')}
-            className="absolute left-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 bg-gradient-to-r from-[var(--color-background)] via-[var(--color-background)]/80 to-transparent"
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
-          </button>
-        )}
+      <div className="relative group/scroller">
+        {/* Left gradient overlay */}
+        <div
+          className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-16 transition-opacity duration-300"
+          style={{
+            background: 'linear-gradient(to right, var(--color-background), transparent)',
+            opacity: canScrollLeft ? 1 : 0,
+          }}
+        />
+
+        {/* Right gradient overlay */}
+        <div
+          className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-16 transition-opacity duration-300"
+          style={{
+            background: 'linear-gradient(to left, var(--color-background), transparent)',
+            opacity: canScrollRight ? 1 : 0,
+          }}
+        />
 
         {/* Scrollable container */}
         <div
           ref={scrollRef}
-          onScroll={updateScrollButtons}
-          className="flex gap-3 px-2 py-2 overflow-x-auto"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          onScroll={updateScrollState}
+          className="flex gap-3 px-1 py-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
-          <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
           {champions.map((champ) => (
             <button
               key={champ.id}
-              onClick={() => setSelectedId(champ.id)}
+              ref={(el) => {
+                if (el) itemRefs.current.set(champ.id, el);
+                else itemRefs.current.delete(champ.id);
+              }}
+              onClick={() => handleSelect(champ.id)}
               className={`group relative flex-shrink-0 w-[200px] rounded-xl border overflow-hidden transition-all duration-200 text-left ${
                 selected.id === champ.id
-                  ? 'border-amber-500/60 ring-2 ring-amber-500/20 bg-amber-500/5'
+                  ? 'border-amber-500/60 ring-2 ring-amber-500/20 bg-amber-500/5 scale-[1.02]'
                   : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-amber-500/30 hover:bg-amber-500/5'
               }`}
             >
@@ -141,15 +201,26 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
           ))}
         </div>
 
-        {/* Right Arrow */}
-        {canScrollRight && (
-          <button
-            onClick={() => scroll('right')}
-            className="absolute right-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 bg-gradient-to-l from-[var(--color-background)] via-[var(--color-background)]/80 to-transparent"
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="w-5 h-5 text-[var(--color-text-secondary)]" />
-          </button>
+        {/* Scroll buttons — below the strip, right-aligned */}
+        {(canScrollLeft || canScrollRight) && (
+          <div className="flex items-center justify-end gap-1.5 mt-2 pr-1">
+            <button
+              onClick={() => scrollToItem('left')}
+              disabled={!canScrollLeft}
+              className="flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-4 h-4 text-[var(--color-text-secondary)]" />
+            </button>
+            <button
+              onClick={() => scrollToItem('right')}
+              disabled={!canScrollRight}
+              className="flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-4 h-4 text-[var(--color-text-secondary)]" />
+            </button>
+          </div>
         )}
       </div>
 
