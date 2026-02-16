@@ -42,13 +42,28 @@ export async function generateMetadata({
 /**
  * Group games by their scheduled date (YYYY-MM-DD key).
  * Returns a Map with date keys in chronological order.
- * Uses date-fns format() to get the local date, avoiding UTC shifts
- * (e.g. a 9 PM EST game becoming the next day in UTC).
+ * Converts UTC times to America/Toronto timezone to avoid day-shift issues
+ * (e.g. a 9 PM EST Thursday game stored as Friday 1am UTC should show as Thursday).
  */
 function groupGamesByDate(games: ScheduleGame[]): Map<string, ScheduleGame[]> {
   const grouped = new Map<string, ScheduleGame[]>();
+  const timeZone = 'America/Toronto'; // WOHA is in Toronto
+
   for (const game of games) {
-    const dateKey = format(new Date(game.scheduled_at), 'yyyy-MM-dd');
+    // Convert UTC time to Toronto timezone
+    const date = new Date(game.scheduled_at);
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(date);
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    const dateKey = `${year}-${month}-${day}`;
+
     if (!grouped.has(dateKey)) grouped.set(dateKey, []);
     grouped.get(dateKey)!.push(game);
   }

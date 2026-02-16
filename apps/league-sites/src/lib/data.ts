@@ -1107,10 +1107,24 @@ export async function getWeekGameCounts(
       return homeTeam?.id === filters.teamId || awayTeam?.id === filters.teamId;
     });
 
-  // Count games per day
+  // Count games per day (convert UTC to Toronto timezone)
   const counts: Record<string, number> = {};
+  const timeZone = 'America/Toronto';
+
   filteredGames.forEach((game: { scheduled_at: string }) => {
-    const dateStr = game.scheduled_at.split('T')[0];
+    const date = new Date(game.scheduled_at);
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(date);
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    const dateStr = `${year}-${month}-${day}`;
+
     counts[dateStr] = (counts[dateStr] || 0) + 1;
   });
 
