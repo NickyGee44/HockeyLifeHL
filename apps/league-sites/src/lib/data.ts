@@ -990,9 +990,37 @@ export async function getWeekGames(
 
   // Apply optional filters
   if (filters?.day) {
-    // Parse with T00:00:00 local time to avoid UTC midnight shifting to previous day
-    const dayStart = new Date(filters.day + 'T00:00:00');
-    const dayEnd = new Date(filters.day + 'T23:59:59.999');
+    // Convert the day filter (in Toronto timezone) to UTC range
+    // E.g., "2026-02-19" in Toronto is 2026-02-19 00:00 EST to 2026-02-19 23:59 EST
+    // which is 2026-02-19 05:00 UTC to 2026-02-20 04:59 UTC (EST = UTC-5)
+    const timeZone = 'America/Toronto';
+
+    // Create Date objects for start and end of day in Toronto timezone
+    // We'll use the offset to convert to UTC
+    const testDate = new Date(filters.day + 'T12:00:00Z');
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZoneName: 'short'
+    });
+
+    // Calculate UTC offset for Toronto timezone on this date (handles DST)
+    const parts = formatter.formatToParts(testDate);
+    const tzName = parts.find(p => p.type === 'timeZoneName')?.value || 'EST';
+    const offset = tzName === 'EDT' ? -4 : -5; // EDT = UTC-4, EST = UTC-5
+
+    // Create day boundaries in UTC
+    const dayStart = new Date(`${filters.day}T00:00:00`);
+    dayStart.setHours(dayStart.getHours() - offset); // Convert to UTC
+    const dayEnd = new Date(`${filters.day}T23:59:59.999`);
+    dayEnd.setHours(dayEnd.getHours() - offset); // Convert to UTC
+
     query = query.gte('scheduled_at', dayStart.toISOString()).lte('scheduled_at', dayEnd.toISOString());
   }
 
