@@ -1285,3 +1285,150 @@ async function sendPostponementNotifications(
     return 0;
   }
 }
+
+// ==============================================================================
+// BULK MOVE VENUE
+// ==============================================================================
+
+export async function bulkMoveVenue(
+  leagueId: string,
+  seasonId: string,
+  fromLocation: string,
+  toLocation: string
+): Promise<ActionResult<{ moved: number; failed: string[] }>> {
+  try {
+    if (!isValidUUID(leagueId)) {
+      return { success: false, error: 'Invalid league ID format' };
+    }
+
+    if (!isValidUUID(seasonId)) {
+      return { success: false, error: 'Invalid season ID format' };
+    }
+
+    if (!fromLocation.trim() || !toLocation.trim()) {
+      return { success: false, error: 'Both venue locations are required' };
+    }
+
+    if (fromLocation === toLocation) {
+      return { success: false, error: 'Source and destination venues must be different' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // Find all scheduled/postponed games at the source location
+    const { data: games, error: fetchError } = await serviceClient
+      .from('games')
+      .select('id, location, status, scheduled_at')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('location', fromLocation)
+      .in('status', ['scheduled', 'postponed']);
+
+    if (fetchError) {
+      return { success: false, error: 'Failed to fetch games at this venue.' };
+    }
+
+    if (!games || games.length === 0) {
+      return { success: false, error: `No upcoming games found at "${fromLocation}".` };
+    }
+
+    if (games.length > MAX_BULK_OPERATIONS) {
+      return {
+        success: false,
+        error: `Too many games (${games.length}). Maximum ${MAX_BULK_OPERATIONS} per operation.`,
+      };
+    }
+
+    const moved: string[] = [];
+    const failed: string[] = [];
+
+    for (const game of games) {
+      const { error: updateError } = await serviceClient
+        .from('games')
+        .update({
+          location: toLocation.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', game.id);
+
+      if (updateError) {
+        failed.push(game.id);
+      } else {
+        moved.push(game.id);
+
+        // Log audit for each game
+        await logGameAudit(
+          game.id,
+          leagueId,
+          'update',
+          auth.userId,
+          { location: fromLocation },
+          { location: toLocation.trim() },
+          `Bulk venue move: ${fromLocation} → ${toLocation.trim()}`
+        );
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        moved: moved.length,
+        failed,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'bulkMoveVenue'),
+    };
+  }
+}
+
+// ==============================================================================
+// GET DISTINCT LOCATIONS
+// ==============================================================================
+
+export async function getDistinctLocations(
+  leagueId: string,
+  seasonId: string
+): Promise<ActionResult<string[]>> {
+  try {
+    if (!isValidUUID(leagueId) || !isValidUUID(seasonId)) {
+      return { success: false, error: 'Invalid ID format' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    const { data, error } = await serviceClient
+      .from('games')
+      .select('location')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .in('status', ['scheduled', 'postponed'])
+      .not('location', 'is', null);
+
+    if (error) {
+      return { success: false, error: 'Failed to fetch locations.' };
+    }
+
+    const locations = [...new Set((data || []).map((g) => g.location).filter(Boolean))] as string[];
+    locations.sort();
+
+    return { success: true, data: locations };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'getDistinctLocations'),
+    };
+  }
+}

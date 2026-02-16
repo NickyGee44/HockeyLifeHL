@@ -8,12 +8,13 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake } from 'lucide-react';
+import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { ScheduleWizard } from '@/components/schedule-wizard';
 import { ScheduleCalendar } from '@/components/schedule-wizard/ScheduleCalendar';
 import { GameReschedulePanel } from '@/components/dashboard/seasons/GameReschedulePanel';
 import { BulkPostponeDateWizard } from '@/components/dashboard/seasons/BulkPostponeDateWizard';
+import { BulkMoveVenueWizard } from '@/components/dashboard/seasons/BulkMoveVenueWizard';
 import { GameDetailSheet } from '@/components/dashboard/seasons/GameDetailSheet';
 import { saveScheduleGames } from '@/lib/schedule/actions';
 import {
@@ -108,6 +109,7 @@ export function SchedulePageClient({
   const [games, setGames] = useState<ScheduledGame[]>(existingGames);
   const [showReschedulePanel, setShowReschedulePanel] = useState(false);
   const [showBulkPostponeDate, setShowBulkPostponeDate] = useState(false);
+  const [showBulkMoveVenue, setShowBulkMoveVenue] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const [selectedGame, setSelectedGame] = useState<ScheduledGame | null>(null);
   const [showGameDetail, setShowGameDetail] = useState(false);
@@ -117,6 +119,17 @@ export function SchedulePageClient({
 
   const postponedCount = useMemo(
     () => games.filter((g) => g.status === 'postponed').length,
+    [games]
+  );
+
+  const distinctLocations = useMemo(
+    () => [
+      ...new Set(
+        games
+          .filter((g) => g.location && ['scheduled', 'postponed'].includes(g.status ?? ''))
+          .map((g) => g.location!)
+      ),
+    ].sort(),
     [games]
   );
 
@@ -223,6 +236,17 @@ export function SchedulePageClient({
             >
               <Snowflake className="w-4 h-4" />
               Weather Cancellation
+            </button>
+          )}
+
+          {/* Move Venue */}
+          {hasExistingSchedule && distinctLocations.length > 0 && (
+            <button
+              onClick={() => setShowBulkMoveVenue(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-300 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors"
+            >
+              <MapPin className="w-4 h-4" />
+              Move Venue
             </button>
           )}
 
@@ -414,6 +438,16 @@ export function SchedulePageClient({
         onOpenChange={setShowBulkPostponeDate}
         leagueId={leagueId}
         onGamesPostponed={() => router.refresh()}
+      />
+
+      {/* Bulk Move Venue Wizard */}
+      <BulkMoveVenueWizard
+        open={showBulkMoveVenue}
+        onOpenChange={setShowBulkMoveVenue}
+        leagueId={leagueId}
+        seasonId={seasonId}
+        locations={distinctLocations}
+        onGamesMoved={() => router.refresh()}
       />
 
       {/* Game Reschedule Panel */}
