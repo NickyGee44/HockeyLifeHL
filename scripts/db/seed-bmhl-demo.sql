@@ -5,6 +5,12 @@
 --
 -- Prerequisites: Run setup_bmhl_league_WORKING.sql first (league + divisions + teams)
 --
+-- NOTE: Production BMHL uses different UUIDs:
+--   League: b0000000-0000-0000-0000-000000000002
+--   Season: b0000000-0000-0000-0000-000000000003
+-- This script uses bbbbbbbb-... / cccccccc-... for the setup_bmhl_league_WORKING.sql IDs.
+-- For production, the game stats and payments were seeded directly (see session logs).
+--
 -- Focus divisions for demo: Division A (3 teams) and Division B (3 teams)
 -- =============================================================================
 
@@ -579,11 +585,17 @@ BEGIN
   );
 
   -- Create player_payments for all 90 players (6 teams x 15 players)
-  -- Mix: ~40% paid, ~35% pending (overdue since deadline passed), ~15% partially_paid, ~10% processing
+  -- Mix: ~40% paid, ~30% overdue, ~20% partially_paid, ~10% pending
+  -- NOTE: total_amount_cents is a GENERATED column (base - discount + late + installment)
+  -- NOTE: amount_paid_cents must be <= total_amount_cents (check constraint)
   DECLARE
     v_payment_player RECORD;
     v_payment_status TEXT;
+    v_payment_plan TEXT;
     v_amount_paid INT;
+    v_discount INT;
+    v_late_fee INT;
+    v_inst_fee INT;
     v_paid_at TIMESTAMPTZ;
     v_counter INT := 0;
   BEGIN
@@ -594,33 +606,40 @@ BEGIN
       ORDER BY tr.team_id, tr.jersey_number
     LOOP
       v_counter := v_counter + 1;
+      v_discount := 0; v_late_fee := 0; v_inst_fee := 0;
 
-      -- Distribute payment statuses realistically
       IF v_counter % 10 <= 3 THEN
         -- 40% paid
-        v_payment_status := 'paid';
-        v_amount_paid := 35000;
+        v_payment_status := 'paid'; v_payment_plan := 'full';
+        IF v_counter % 4 = 0 THEN
+          v_discount := 5000;
+          v_amount_paid := 35000 - 5000; -- total after early bird discount
+        ELSE
+          v_amount_paid := 35000;
+        END IF;
         v_paid_at := '2026-01-20'::TIMESTAMPTZ + (v_counter * INTERVAL '2 hours');
       ELSIF v_counter % 10 <= 6 THEN
-        -- 30% overdue (pending past deadline)
-        v_payment_status := 'overdue';
+        -- 30% overdue
+        v_payment_status := 'overdue'; v_payment_plan := 'full';
+        v_late_fee := 2500;
         v_amount_paid := 0;
         v_paid_at := NULL;
       ELSIF v_counter % 10 <= 8 THEN
         -- 20% partially paid (first installment of 2-pay)
-        v_payment_status := 'partially_paid';
-        v_amount_paid := 17750; -- half of $355 ($350 + $5 installment fee)
+        v_payment_status := 'partially_paid'; v_payment_plan := 'two_pay';
+        v_inst_fee := 500;
+        v_amount_paid := 17750; -- half of total
         v_paid_at := NULL;
       ELSE
-        -- 10% pending (recently registered)
-        v_payment_status := 'pending';
+        -- 10% pending
+        v_payment_status := 'pending'; v_payment_plan := 'full';
         v_amount_paid := 0;
         v_paid_at := NULL;
       END IF;
 
       INSERT INTO player_payments (
         league_id, season_id, season_fee_id, player_id, team_id,
-        base_amount_cents, total_amount_cents, amount_paid_cents,
+        base_amount_cents, amount_paid_cents,
         discount_cents, late_fee_cents, installment_fee_cents,
         payment_plan, status, paid_at,
         reminder_sent_count,
@@ -629,17 +648,9 @@ BEGIN
       ) VALUES (
         v_league_id, v_season_id, v_fee_id,
         v_payment_player.player_id, v_payment_player.team_id,
-        35000, -- base amount
-        CASE v_payment_status
-          WHEN 'overdue' THEN 37500     -- $350 + $25 late fee
-          WHEN 'partially_paid' THEN 35500 -- $350 + $5 installment
-          ELSE 35000
-        END,
-        v_amount_paid,
-        CASE WHEN v_payment_status = 'paid' AND v_counter % 3 = 0 THEN 5000 ELSE 0 END,  -- some got early bird
-        CASE WHEN v_payment_status = 'overdue' THEN 2500 ELSE 0 END,
-        CASE WHEN v_payment_status = 'partially_paid' THEN 500 ELSE 0 END,
-        CASE WHEN v_payment_status = 'partially_paid' THEN 'two_pay' ELSE 'full' END,
+        35000, v_amount_paid,
+        v_discount, v_late_fee, v_inst_fee,
+        v_payment_plan::payment_plan_type,
         v_payment_status::player_payment_status,
         v_paid_at,
         CASE WHEN v_payment_status = 'overdue' THEN 2 ELSE 0 END,
