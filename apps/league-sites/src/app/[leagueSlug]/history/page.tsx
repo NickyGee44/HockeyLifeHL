@@ -146,12 +146,12 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     finalGame: null,
   }));
 
-  // Merge and sort: newest first
+  // Merge and sort: oldest first (left) → newest (right)
   const allTimelineChampions = [...dbTimelineEntries, ...legacyTimelineEntries]
     .sort((a, b) => {
       const yearA = parseInt(a.year.split('-')[0]);
       const yearB = parseInt(b.year.split('-')[0]);
-      return yearB - yearA;
+      return yearA - yearB;
     });
 
   // Dynasty tracker: count titles per team

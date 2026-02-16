@@ -29,7 +29,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [selectedId, setSelectedId] = useState<string>(champions[0]?.id || '');
+  const [selectedId, setSelectedId] = useState<string>(champions[champions.length - 1]?.id || '');
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -39,10 +39,13 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
     setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
   }, []);
 
-  // Initialize scroll state on mount and when champions change
+  // On mount, scroll to the end (most recent champion) and update state
   useEffect(() => {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollLeft = el.scrollWidth;
+    }
     updateScrollState();
-    // Also check after images may have loaded and changed layout
     const timer = setTimeout(updateScrollState, 100);
     return () => clearTimeout(timer);
   }, [updateScrollState, champions]);
