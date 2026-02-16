@@ -49,7 +49,7 @@ const ALL_PENALTIES = [
   { type: 'Match Penalty', minutes: 5 },
 ];
 
-type Step = 'player' | 'penalty' | 'confirm';
+type Step = 'player' | 'penalty';
 
 export function PenaltyEntry({
   gameId,
@@ -65,8 +65,6 @@ export function PenaltyEntry({
 }: PenaltyEntryProps) {
   const [step, setStep] = useState<Step>('player');
   const [player, setPlayer] = useState<PlayerData | null>(null);
-  const [penaltyType, setPenaltyType] = useState<string | null>(null);
-  const [penaltyMinutes, setPenaltyMinutes] = useState<number>(2);
   const [showAllPenalties, setShowAllPenalties] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -76,14 +74,9 @@ export function PenaltyEntry({
   }
 
   function handlePenaltySelect(type: string, minutes: number) {
-    setPenaltyType(type);
-    setPenaltyMinutes(minutes);
-    setStep('confirm');
-  }
+    if (!player) return;
 
-  function submitPenalty() {
-    if (!player || !penaltyType) return;
-
+    // Auto-save immediately — no confirm step
     startTransition(async () => {
       const result = await addPenaltyEvent({
         gameId,
@@ -92,8 +85,8 @@ export function PenaltyEntry({
         playerId: player.id,
         period,
         gameTimeSeconds,
-        penaltyType,
-        penaltyMinutes,
+        penaltyType: type,
+        penaltyMinutes: minutes,
       });
 
       if (result.success) {
@@ -115,112 +108,67 @@ export function PenaltyEntry({
     );
   }
 
-  if (step === 'penalty') {
-    const penalties = showAllPenalties ? ALL_PENALTIES : COMMON_PENALTIES;
+  // Penalty type selection — auto-saves on tap
+  const penalties = showAllPenalties ? ALL_PENALTIES : COMMON_PENALTIES;
 
-    return (
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-        <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-[var(--color-background)] rounded-2xl border border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
-          {/* Header */}
-          <div className="px-4 py-3 border-b border-[var(--color-border)]">
-            <h3 className="font-semibold text-[var(--color-text-primary)]">
-              #{player?.jerseyNumber} {player?.fullName}
-            </h3>
-            <p className="text-xs text-[var(--color-text-secondary)]">Select penalty type</p>
-          </div>
-
-          {/* Penalty List */}
-          <div className="max-h-[50vh] overflow-y-auto p-2">
-            <div className="space-y-1">
-              {penalties.map(p => (
-                <button
-                  key={p.type}
-                  onClick={() => handlePenaltySelect(p.type, p.minutes)}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-[var(--color-surface)] transition-colors text-left active:scale-[0.98]"
-                >
-                  <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                    {p.type}
-                  </span>
-                  <span className={`
-                    text-xs font-bold px-2 py-0.5 rounded-full
-                    ${p.minutes >= 5
-                      ? 'bg-red-500/10 text-red-400'
-                      : p.minutes === 4
-                        ? 'bg-orange-500/10 text-orange-400'
-                        : 'bg-yellow-500/10 text-yellow-400'
-                    }
-                  `}>
-                    {p.minutes} min
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {!showAllPenalties && (
-              <button
-                onClick={() => setShowAllPenalties(true)}
-                className="w-full py-3 mt-2 text-sm text-[var(--league-primary,#d4af37)] font-medium hover:underline"
-              >
-                Show all penalties
-              </button>
-            )}
-          </div>
-
-          {/* Cancel */}
-          <div className="px-4 py-3 border-t border-[var(--color-border)]">
-            <button
-              onClick={onCancel}
-              className="w-full py-2.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] text-sm font-medium hover:bg-[var(--color-surface)] transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Confirm
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-[var(--color-background)] rounded-2xl border border-[var(--color-border)] p-6 animate-in slide-in-from-bottom duration-200">
-        <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">
-          Confirm Penalty
-        </h3>
-
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-[var(--color-text-secondary)] w-16">PLAYER</span>
-            <span className="font-semibold text-[var(--color-text-primary)]">
-              #{player?.jerseyNumber} {player?.fullName}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-[var(--color-text-secondary)] w-16">TYPE</span>
-            <span className="text-[var(--color-text-primary)]">{penaltyType}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-[var(--color-text-secondary)] w-16">TIME</span>
-            <span className="text-[var(--color-text-primary)]">{penaltyMinutes} minutes</span>
-          </div>
+      <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-[var(--color-background)] rounded-2xl border border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-[var(--color-border)]">
+          <h3 className="font-semibold text-[var(--color-text-primary)]">
+            #{player?.jerseyNumber} {player?.fullName}
+          </h3>
+          <p className="text-xs text-[var(--color-text-secondary)]">Select penalty type</p>
         </div>
 
-        <div className="flex gap-3">
+        {/* Penalty List */}
+        <div className="max-h-[50vh] overflow-y-auto p-2">
+          <div className="space-y-1">
+            {penalties.map(p => (
+              <button
+                key={p.type}
+                onClick={() => handlePenaltySelect(p.type, p.minutes)}
+                disabled={isPending}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-[var(--color-surface)] transition-colors text-left active:scale-[0.98] disabled:opacity-50"
+              >
+                <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {p.type}
+                </span>
+                <span className={`
+                  text-xs font-bold px-2 py-0.5 rounded-full
+                  ${p.minutes >= 5
+                    ? 'bg-red-500/10 text-red-400'
+                    : p.minutes === 4
+                      ? 'bg-orange-500/10 text-orange-400'
+                      : 'bg-yellow-500/10 text-yellow-400'
+                  }
+                `}>
+                  {p.minutes} min
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {!showAllPenalties && (
+            <button
+              onClick={() => setShowAllPenalties(true)}
+              className="w-full py-3 mt-2 text-sm text-[var(--league-primary,#d4af37)] font-medium hover:underline"
+            >
+              Show all penalties
+            </button>
+          )}
+        </div>
+
+        {/* Cancel */}
+        <div className="px-4 py-3 border-t border-[var(--color-border)]">
           <button
             onClick={onCancel}
-            className="flex-1 py-3 rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] font-medium hover:bg-[var(--color-surface)] transition-colors"
             disabled={isPending}
+            className="w-full py-2.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] text-sm font-medium hover:bg-[var(--color-surface)] transition-colors disabled:opacity-50"
           >
-            Cancel
-          </button>
-          <button
-            onClick={submitPenalty}
-            disabled={isPending}
-            className="flex-1 py-3 rounded-xl bg-yellow-600 text-white font-semibold hover:bg-yellow-500 transition-colors active:scale-95 disabled:opacity-50"
-          >
-            {isPending ? 'Saving...' : 'Confirm Penalty'}
+            {isPending ? 'Saving...' : 'Cancel'}
           </button>
         </div>
       </div>

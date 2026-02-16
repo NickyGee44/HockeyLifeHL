@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 import type { PlayerData } from '@/lib/actions/scorekeeper';
 
 interface PlayerPickerProps {
@@ -13,6 +13,12 @@ interface PlayerPickerProps {
   goaliesOnly?: boolean;
   /** Title override */
   title?: string;
+  /** Show a skip/no-selection button */
+  allowSkip?: boolean;
+  /** Label for the skip button (e.g., "Unassisted Goal") */
+  skipLabel?: string;
+  /** Callback when skip is tapped */
+  onSkip?: () => void;
 }
 
 export function PlayerPicker({
@@ -23,30 +29,17 @@ export function PlayerPicker({
   onClose,
   goaliesOnly = false,
   title,
+  allowSkip = false,
+  skipLabel = 'Skip',
+  onSkip,
 }: PlayerPickerProps) {
-  const [search, setSearch] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const filteredPlayers = useMemo(() => {
-    let list = goaliesOnly
+  const sortedPlayers = useMemo(() => {
+    const list = goaliesOnly
       ? players.filter(p => p.position === 'Goalie')
       : players;
 
-    if (search.trim()) {
-      const query = search.toLowerCase().trim();
-      list = list.filter(
-        p =>
-          p.fullName.toLowerCase().includes(query) ||
-          p.jerseyNumber.toString().includes(query)
-      );
-    }
-
-    return list;
-  }, [players, search, goaliesOnly]);
+    return [...list].sort((a, b) => a.jerseyNumber - b.jerseyNumber);
+  }, [players, goaliesOnly]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col">
@@ -57,7 +50,7 @@ export function PlayerPicker({
       />
 
       {/* Panel - slides up from bottom */}
-      <div className="relative mt-auto max-h-[80vh] flex flex-col bg-[var(--color-background)] rounded-t-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+      <div className="relative mt-auto max-h-[85vh] flex flex-col bg-[var(--color-background)] rounded-t-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
           <div>
@@ -76,53 +69,59 @@ export function PlayerPicker({
           </button>
         </div>
 
-        {/* Search */}
-        <div className="px-4 py-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or number..."
-            className="w-full px-3 py-2.5 text-sm rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary,#d4af37)] focus:border-transparent"
-          />
-        </div>
+        {/* Skip button - shown at top when allowed */}
+        {allowSkip && onSkip && (
+          <div className="px-3 pt-2">
+            <button
+              onClick={onSkip}
+              className="w-full py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] font-medium active:scale-95 transition-all"
+            >
+              {skipLabel}
+            </button>
+          </div>
+        )}
 
-        {/* Player List */}
+        {/* Player Grid */}
         <div className="flex-1 overflow-y-auto px-2 pb-safe">
-          {filteredPlayers.length === 0 ? (
+          {sortedPlayers.length === 0 ? (
             <div className="py-8 text-center text-sm text-[var(--color-text-secondary)]">
               No players found
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2">
-              {filteredPlayers.map(player => (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-2">
+              {sortedPlayers.map(player => (
                 <button
                   key={player.id}
                   onClick={() => onSelect(player)}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-surface-hover,var(--color-surface))] transition-all duration-150 active:scale-95 text-left"
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-surface-hover,var(--color-surface))] transition-all duration-150 active:scale-95 min-h-[80px] justify-center"
                 >
-                  {/* Jersey Number */}
+                  {/* Jersey Number — large */}
                   <div
-                    className="flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm flex-shrink-0"
+                    className="flex items-center justify-center w-12 h-12 rounded-lg font-bold text-lg"
                     style={{
                       backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
                       color: teamColor || 'var(--color-text-primary)',
                     }}
                   >
-                    #{player.jerseyNumber}
+                    {player.jerseyNumber}
                   </div>
 
-                  {/* Name & Position */}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-[var(--color-text-primary)] truncate">
-                      {player.fullName}
-                    </div>
-                    <div className="text-xs text-[var(--color-text-secondary)]">
-                      {player.position}
-                      {player.isCaptain && ' (C)'}
-                      {player.isAssistantCaptain && ' (A)'}
-                    </div>
+                  {/* Last name */}
+                  <div className="text-xs font-medium text-[var(--color-text-primary)] truncate w-full text-center">
+                    {player.fullName.split(' ').pop()}
+                  </div>
+
+                  {/* Position + Captain badges */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-[var(--color-text-secondary)]">
+                      {player.position === 'Goalie' ? 'G' : player.position === 'Defense' ? 'D' : 'F'}
+                    </span>
+                    {player.isCaptain && (
+                      <span className="text-[10px] font-bold text-yellow-500">C</span>
+                    )}
+                    {player.isAssistantCaptain && (
+                      <span className="text-[10px] font-bold text-yellow-500/70">A</span>
+                    )}
                   </div>
                 </button>
               ))}

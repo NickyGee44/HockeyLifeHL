@@ -106,29 +106,20 @@ export function ShotEntry({
     );
   }
 
-  // Shooter selection (optional)
+  // Shooter selection (optional) — uses skip button inside PlayerPicker
   const skaters = shootingRoster.filter(p => p.position !== 'Goalie');
 
   return (
-    <>
-      <PlayerPicker
-        players={skaters}
-        teamName={shootingTeamName}
-        teamColor={shootingTeamColor}
-        onSelect={handleShooterSelect}
-        onClose={handleQuickSave}
-        title="Shot by (optional)"
-      />
-      {/* Quick save button */}
-      <div className="fixed bottom-0 left-0 right-0 z-[60] px-4 pb-safe">
-        <button
-          onClick={handleQuickSave}
-          disabled={isPending}
-          className="w-full py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] font-medium mb-2 active:scale-95 transition-all disabled:opacity-50"
-        >
-          {isPending ? 'Saving...' : 'Save without shooter'}
-        </button>
-      </div>
-    </>
+    <PlayerPicker
+      players={skaters}
+      teamName={shootingTeamName}
+      teamColor={shootingTeamColor}
+      onSelect={handleShooterSelect}
+      onClose={handleQuickSave}
+      title="Shot by (optional)"
+      allowSkip
+      skipLabel={isPending ? 'Saving...' : 'Unknown Shooter'}
+      onSkip={handleQuickSave}
+    />
   );
 }
