@@ -611,7 +611,7 @@ export async function getPerTeamPaymentBreakdown(
       `)
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
-      .in('status', ['submitted', 'approved']);
+      .in('status', ['pending', 'approved']);
 
     if (error) {
       return { success: false, error: sanitizeError(error, 'getPerTeamPaymentBreakdown') };
@@ -710,7 +710,7 @@ export async function getUnpaidPlayers(
       `)
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
-      .in('status', ['submitted', 'approved'])
+      .in('status', ['pending', 'approved'])
       .neq('payment_status', 'paid')
       .gt('fee_amount_cents', 0);
 

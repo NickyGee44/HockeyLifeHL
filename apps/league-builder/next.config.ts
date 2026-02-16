@@ -30,10 +30,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '5mb',
     },
   },
-  // TODO: Remove after regenerating Supabase database types
-  // Database types are out of sync with schema - many tables/RPCs not in generated types
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // Security headers
   async headers() {
