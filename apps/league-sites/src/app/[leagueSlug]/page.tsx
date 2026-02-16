@@ -64,6 +64,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     notFound();
   }
 
+  // Fetch currentSeason first so we can filter standings by season
+  const currentSeason = await getCurrentSeason(league.id);
+
   const [
     stats,
     upcomingGames,
@@ -76,14 +79,13 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     awards,
     albums,
     scoringLeaders,
-    currentSeason,
     seasons,
     latestAnnouncement,
   ] = await Promise.all([
     getLeagueStats(league.id),
     getUpcomingGames(league.id, 5, divisionFilter),
     getRecentGames(league.id, 5, divisionFilter),
-    getStandings(league.id),
+    getStandings(league.id, currentSeason?.id),
     getDivisions(league.id),
     getAllArticles(league.id, 3),
     getLeagueSponsors(league.id),
@@ -91,7 +93,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getLeagueAwards(league.id),
     getGalleryAlbums(league.id),
     getStatsLeadersWithAvatars(league.id, 'points', 5, divisionFilter),
-    getCurrentSeason(league.id),
     getSeasons(league.id),
     getLatestAnnouncement(league.id),
   ]);

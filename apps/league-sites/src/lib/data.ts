@@ -201,8 +201,32 @@ export async function getSeasons(leagueId: string): Promise<Season[]> {
 /**
  * Fetch all teams for a league
  */
-export async function getTeams(leagueId: string): Promise<Team[]> {
+export async function getTeams(leagueId: string, seasonId?: string): Promise<Team[]> {
   const supabase = await createClient();
+
+  // If seasonId provided, filter to only teams with active rosters in that season
+  if (seasonId) {
+    const { data: rosterTeams } = await supabase
+      .from('team_rosters')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active');
+
+    if (!rosterTeams || rosterTeams.length === 0) return [];
+
+    const teamIds = [...new Set(rosterTeams.map(r => r.team_id))];
+
+    const { data, error } = await supabase
+      .from('teams')
+      .select(`*, division:divisions(*)`)
+      .eq('league_id', leagueId)
+      .in('id', teamIds)
+      .order('name', { ascending: true });
+
+    if (error || !data) return [];
+    return data as Team[];
+  }
 
   const { data, error } = await supabase
     .from('teams')
@@ -668,10 +692,27 @@ export async function getStandings(
   const supabase = await createClient();
 
   // Get teams with names, logos, and divisions for enrichment
-  const { data: teams } = await supabase
+  // If seasonId provided, filter to only teams participating in that season
+  let teamsQuery = supabase
     .from('teams')
     .select('id, name, logo_url, division_id, divisions(id, name)')
     .eq('league_id', leagueId);
+
+  if (seasonId) {
+    const { data: rosterTeams } = await supabase
+      .from('team_rosters')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active');
+
+    if (rosterTeams && rosterTeams.length > 0) {
+      const teamIds = [...new Set(rosterTeams.map(r => r.team_id))];
+      teamsQuery = teamsQuery.in('id', teamIds);
+    }
+  }
+
+  const { data: teams } = await teamsQuery;
 
   const teamInfoMap = new Map(
     teams?.map((t) => {

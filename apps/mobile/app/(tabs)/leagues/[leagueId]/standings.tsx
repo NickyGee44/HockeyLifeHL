@@ -3,20 +3,24 @@ import { View, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, TeamLogo, LoadingScreen, EmptyState } from '@hockey-life/ui-native';
-import { useStandings, useCurrentSeason, useDivisions } from '@hockey-life/data';
+import { useStandings, useCurrentSeason, useSeasons, useDivisions } from '@hockey-life/data';
 import { supabase } from '../../../../src/lib/supabase/client';
 import type { TeamStanding } from '@hockey-life/data';
 
 export default function StandingsScreen() {
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
-  const { data: season } = useCurrentSeason(supabase, leagueId);
+  const { data: currentSeason } = useCurrentSeason(supabase, leagueId);
+  const { data: seasons } = useSeasons(supabase, leagueId);
   const { data: divisions } = useDivisions(supabase, leagueId);
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | undefined>();
   const [selectedDivision, setSelectedDivision] = useState<string | undefined>();
+
+  const activeSeasonId = selectedSeasonId || currentSeason?.id;
 
   const { data: standings, isLoading } = useStandings(
     supabase,
     leagueId,
-    season?.id,
+    activeSeasonId,
     selectedDivision,
   );
 
@@ -29,6 +33,29 @@ export default function StandingsScreen() {
         </Pressable>
         <Text variant="h1" className="ml-4">Standings</Text>
       </View>
+
+      {/* Season selector */}
+      {seasons && seasons.length > 1 && (
+        <View className="px-5 mb-3">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {seasons.map((season: any) => (
+              <Pressable
+                key={season.id}
+                onPress={() => setSelectedSeasonId(season.id === currentSeason?.id ? undefined : season.id)}
+                className={`px-4 py-2 rounded-full mr-2 ${
+                  (activeSeasonId === season.id) ? 'bg-gold-500' : 'bg-neutral-800'
+                }`}
+              >
+                <Text className={`text-sm font-medium ${
+                  (activeSeasonId === season.id) ? 'text-neutral-950' : 'text-neutral-300'
+                }`}>
+                  {season.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Division filter */}
       {divisions && divisions.length > 1 && (

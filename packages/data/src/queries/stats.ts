@@ -15,7 +15,7 @@ export async function getStatsLeaders(
       penalty_minutes,
       plus_minus,
       team_id,
-      teams(name),
+      teams(name, division_id),
       profiles(full_name, avatar_url)
     `)
     .eq('league_id', leagueId);
@@ -38,6 +38,7 @@ export async function getStatsLeaders(
         avatar_url: profile?.avatar_url || null,
         team_name: team?.name || '',
         team_id: row.team_id,
+        division_id: team?.division_id || null,
         position: null,
         games_played: 0,
         goals: 0,
@@ -56,7 +57,13 @@ export async function getStatsLeaders(
     p.plus_minus += row.plus_minus || 0;
   }
 
-  const results = Array.from(playerMap.values());
+  let results = Array.from(playerMap.values());
+
+  // Apply division filter if provided
+  if (options?.divisionId) {
+    results = results.filter(p => p.division_id === options.divisionId);
+  }
+
   results.sort((a, b) => b.points - a.points || b.goals - a.goals);
 
   return results.slice(0, options?.limit ?? 50) as PlayerStatsWithAvatar[];

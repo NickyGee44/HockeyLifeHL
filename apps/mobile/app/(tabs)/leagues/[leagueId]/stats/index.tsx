@@ -3,15 +3,28 @@ import { View, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, Avatar, LoadingScreen, EmptyState } from '@hockey-life/ui-native';
-import { useStatsLeaders, useCurrentSeason } from '@hockey-life/data';
+import { useStatsLeaders, useCurrentSeason, useSeasons, useDivisions } from '@hockey-life/data';
 import { supabase } from '../../../../../src/lib/supabase/client';
 import type { PlayerStatsWithAvatar } from '@hockey-life/data';
 
 export default function LeagueStatsScreen() {
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
-  const { data: season } = useCurrentSeason(supabase, leagueId);
-  const { data: leaders, isLoading } = useStatsLeaders(supabase, leagueId, season?.id, { limit: 30 });
+  const { data: currentSeason } = useCurrentSeason(supabase, leagueId);
+  const { data: seasons } = useSeasons(supabase, leagueId);
+  const { data: divisions } = useDivisions(supabase, leagueId);
+
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | undefined>();
+  const [selectedDivision, setSelectedDivision] = useState<string | undefined>();
   const [tab, setTab] = useState<'skaters' | 'goalies'>('skaters');
+
+  const activeSeasonId = selectedSeasonId || currentSeason?.id;
+
+  const { data: leaders, isLoading } = useStatsLeaders(
+    supabase,
+    leagueId,
+    activeSeasonId,
+    { limit: 30, divisionId: selectedDivision },
+  );
 
   return (
     <View className="flex-1 bg-neutral-950">
@@ -21,6 +34,54 @@ export default function LeagueStatsScreen() {
         </Pressable>
         <Text variant="h1" className="ml-4">Stats</Text>
       </View>
+
+      {/* Season selector */}
+      {seasons && seasons.length > 1 && (
+        <View className="px-5 mb-3">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {seasons.map((season: any) => (
+              <Pressable
+                key={season.id}
+                onPress={() => setSelectedSeasonId(season.id === currentSeason?.id ? undefined : season.id)}
+                className={`px-4 py-2 rounded-full mr-2 ${
+                  (activeSeasonId === season.id) ? 'bg-gold-500' : 'bg-neutral-800'
+                }`}
+              >
+                <Text className={`text-sm font-medium ${
+                  (activeSeasonId === season.id) ? 'text-neutral-950' : 'text-neutral-300'
+                }`}>
+                  {season.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Division filter */}
+      {divisions && divisions.length > 1 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-5 mb-4">
+          <Pressable
+            onPress={() => setSelectedDivision(undefined)}
+            className={`px-4 py-2 rounded-full mr-2 ${!selectedDivision ? 'bg-gold-500' : 'bg-neutral-800'}`}
+          >
+            <Text className={`text-sm font-medium ${!selectedDivision ? 'text-neutral-950' : 'text-neutral-300'}`}>
+              All
+            </Text>
+          </Pressable>
+          {divisions.map((div: any) => (
+            <Pressable
+              key={div.id}
+              onPress={() => setSelectedDivision(div.id)}
+              className={`px-4 py-2 rounded-full mr-2 ${selectedDivision === div.id ? 'bg-gold-500' : 'bg-neutral-800'}`}
+            >
+              <Text className={`text-sm font-medium ${selectedDivision === div.id ? 'text-neutral-950' : 'text-neutral-300'}`}>
+                {div.name}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
 
       {/* Tab toggle */}
       <View className="flex-row mx-5 mb-4 bg-neutral-900 rounded-xl p-1">

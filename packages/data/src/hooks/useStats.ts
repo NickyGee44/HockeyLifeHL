@@ -6,10 +6,10 @@ export function useStatsLeaders(
   supabase: SupabaseClientArg,
   leagueId: string | undefined,
   seasonId?: string,
-  options?: { limit?: number },
+  options?: { limit?: number; divisionId?: string },
 ) {
   return useQuery({
-    queryKey: ['stats-leaders', leagueId, seasonId],
+    queryKey: ['stats-leaders', leagueId, seasonId, options?.divisionId],
     queryFn: () => queries.getStatsLeaders(supabase, leagueId!, seasonId, options),
     enabled: !!leagueId,
   });

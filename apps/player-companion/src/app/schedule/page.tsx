@@ -24,6 +24,8 @@ export default function SchedulePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [teamName, setTeamName] = useState('My Team');
+  const [seasons, setSeasons] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>('');
 
   const loadGames = useCallback(async (forceRefresh = false) => {
     try {
@@ -75,12 +77,34 @@ export default function SchedulePage() {
         const team = rosterData.teams as any;
         setTeamName(team.name);
 
-        // Fetch all games for this team (past and future)
-        const { data: gamesData } = await supabase
+        // Fetch available seasons for this league
+        const { data: seasonsData } = await supabase
+          .from('seasons')
+          .select('id, name')
+          .eq('league_id', team.league_id)
+          .in('status', ['active', 'completed', 'archived'])
+          .order('start_date', { ascending: false });
+
+        if (seasonsData && seasonsData.length > 0) {
+          setSeasons(seasonsData);
+          if (!selectedSeasonId) {
+            setSelectedSeasonId(seasonsData[0].id);
+          }
+        }
+
+        // Fetch games for this team, filtered by season
+        let gamesQuery = supabase
           .from('games')
           .select('*')
           .or(`home_team_id.eq.${team.id},away_team_id.eq.${team.id}`)
           .order('scheduled_at', { ascending: true });
+
+        const activeSeasonId = selectedSeasonId || seasonsData?.[0]?.id;
+        if (activeSeasonId) {
+          gamesQuery = gamesQuery.eq('season_id', activeSeasonId);
+        }
+
+        const { data: gamesData } = await gamesQuery;
 
         if (gamesData && gamesData.length > 0) {
           // Get team names
@@ -122,11 +146,16 @@ export default function SchedulePage() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [selectedSeasonId]);
 
   useEffect(() => {
     loadGames();
   }, [loadGames]);
+
+  const handleSeasonChange = (seasonId: string) => {
+    setSelectedSeasonId(seasonId);
+    setIsLoading(true);
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -170,6 +199,21 @@ export default function SchedulePage() {
       <header className="sticky top-0 z-40 flex items-center justify-between py-4 bg-neutral-950/95 backdrop-blur-lg -mx-4 px-4 border-b border-gold-500/20">
         <h1 className="text-xl font-bold text-white">Schedule</h1>
         <div className="flex items-center gap-2">
+          {seasons.length > 0 && (
+            <select
+              value={selectedSeasonId}
+              onChange={(e) => handleSeasonChange(e.target.value)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm font-medium',
+                'bg-neutral-850 border border-gold-500/20 text-white',
+                'focus:outline-none focus:ring-2 focus:ring-gold-500/50'
+              )}
+            >
+              {seasons.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={handleExportCalendar}
             disabled={games.length === 0}

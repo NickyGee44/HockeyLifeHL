@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getTeams, getDivisions } from '@/lib/data';
+import { getLeagueBySlug, getTeams, getDivisions, getCurrentSeason } from '@/lib/data';
 import { TeamsGrid } from './TeamsGrid';
 import { buildTeamsJsonLd } from '@/lib/jsonld';
 
@@ -19,8 +19,10 @@ export default async function TeamsPage({ params }: TeamsPageProps) {
 
   if (!league) notFound();
 
+  const currentSeason = await getCurrentSeason(league.id);
+
   const [teams, divisions] = await Promise.all([
-    getTeams(league.id),
+    getTeams(league.id, currentSeason?.id),
     getDivisions(league.id),
   ]);
 

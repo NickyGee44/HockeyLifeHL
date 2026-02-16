@@ -41,8 +41,18 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
     notFound();
   }
 
-  // Get teams with division info
-  const { data: teams, error: teamsError } = await supabase
+  // Get current season to filter teams
+  const { data: currentSeason } = await supabase
+    .from('seasons')
+    .select('id')
+    .eq('league_id', leagueId)
+    .eq('status', 'active')
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Get teams with division info, filtered by current season roster if available
+  let teamsQuery = supabase
     .from('teams')
     .select(`
       id,
@@ -61,6 +71,22 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
     .eq('league_id', leagueId)
     .neq('status', 'inactive')
     .order('name');
+
+  if (currentSeason?.id) {
+    const { data: rosterTeams } = await supabase
+      .from('team_rosters')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', currentSeason.id)
+      .eq('status', 'active');
+
+    if (rosterTeams && rosterTeams.length > 0) {
+      const teamIds = [...new Set(rosterTeams.map(r => r.team_id))];
+      teamsQuery = teamsQuery.in('id', teamIds);
+    }
+  }
+
+  const { data: teams, error: teamsError } = await teamsQuery;
 
   if (teamsError) {
     console.error('[Teams Page] Error fetching teams:', teamsError.message);
