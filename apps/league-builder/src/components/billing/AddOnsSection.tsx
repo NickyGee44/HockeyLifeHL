@@ -23,11 +23,16 @@ export function AddOnsSection({ orgId, hasStripeCustomer }: AddOnsSectionProps) 
 
   async function loadAddons() {
     setLoading(true);
-    const result = await getOrgAddons(orgId);
-    if (result.success) {
-      setAddons(result.data);
+    try {
+      const result = await getOrgAddons(orgId);
+      if (result.success) {
+        setAddons(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load add-ons:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => {

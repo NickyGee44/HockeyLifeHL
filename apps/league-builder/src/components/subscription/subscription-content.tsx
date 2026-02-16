@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -66,6 +66,10 @@ export function SubscriptionContent({
   const [addons, setAddons] = useState<OrgAddon[]>(initialAddons);
   const [loading, setLoading] = useState(false);
 
+  // Guards to prevent effects from firing multiple times during navigation
+  const checkoutHandled = useRef(false);
+  const addonHandled = useRef(false);
+
   // Refresh add-ons data
   async function loadData() {
     setLoading(true);
@@ -81,14 +85,16 @@ export function SubscriptionContent({
     }
   }
 
-  // Handle checkout status query params
+  // Handle checkout status query params (one-shot)
   useEffect(() => {
+    if (checkoutHandled.current) return;
     if (checkoutStatus === 'success') {
+      checkoutHandled.current = true;
       toast.success(t('subscriptionActivated'), {
         description: t('subscriptionActivatedDesc') });
-      // Clean up URL
       router.replace('/dashboard/settings/subscription');
     } else if (checkoutStatus === 'cancelled') {
+      checkoutHandled.current = true;
       toast.info(t('checkoutCancelled'), {
         description: t('checkoutCancelledDesc') });
       router.replace('/dashboard/settings/subscription');
@@ -96,14 +102,15 @@ export function SubscriptionContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- t excluded to prevent infinite re-render loop
   }, [checkoutStatus, router]);
 
-  // Handle addon activation success
+  // Handle addon activation success (one-shot)
   useEffect(() => {
+    if (addonHandled.current) return;
     if (addonActivated) {
+      addonHandled.current = true;
       toast.success(t('addonActivated', { name: tAddonConfig(`${addonActivated}.name`) }), {
         description: t('addonActivatedDesc') });
-
       router.replace('/dashboard/settings/subscription');
-      loadData(); // Refresh data
+      loadData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- t, tAddonConfig, loadData excluded to prevent infinite re-render loop
   }, [addonActivated, router]);

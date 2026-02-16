@@ -84,8 +84,10 @@ export function ConnectOnboardingCard({
   async function handleStartOnboarding() {
     setLoading(true);
 
-    const returnUrl = `${window.location.origin}/dashboard/leagues/${leagueId}/billing?onboarding=complete`;
-    const refreshUrl = `${window.location.origin}/dashboard/leagues/${leagueId}/billing?onboarding=refresh`;
+    // Use current pathname to preserve locale prefix
+    const basePath = window.location.pathname.replace(/\?.*$/, '');
+    const returnUrl = `${window.location.origin}${basePath}?onboarding=complete`;
+    const refreshUrl = `${window.location.origin}${basePath}?onboarding=refresh`;
 
     const result = await startConnectOnboarding(leagueId, returnUrl, refreshUrl);
 

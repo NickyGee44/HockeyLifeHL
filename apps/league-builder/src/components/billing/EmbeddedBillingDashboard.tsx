@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   DollarSign,
@@ -77,51 +77,61 @@ export function EmbeddedBillingDashboard({
   const [stripeActionLoading, setStripeActionLoading] = useState(false);
   const [activeSeason, setActiveSeason] = useState<{ id: string; name: string } | null>(null);
 
+  const loadingRef = useRef(false);
+
   const loadData = useCallback(async () => {
+    // Prevent concurrent loads that could cause cascading re-renders
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setInitialLoading(true);
 
-    // Load account status + stats in parallel
-    const [accountResult, statsResult] = await Promise.all([
-      getConnectAccountStatus(leagueId),
-      getPaymentStatistics(leagueId),
-    ]);
-
-    if (accountResult.success) {
-      setAccountInfo(accountResult.data);
-    }
-    if (statsResult.success) {
-      setStats(statsResult.data);
-    }
-
-    // Find active season
-    const supabase = createClient();
-    const { data: seasons } = await supabase
-      .from('seasons')
-      .select('id, name, status')
-      .eq('league_id', leagueId)
-      .in('status', ['active', 'draft'])
-      .order('start_date', { ascending: false })
-      .limit(1);
-
-    const season = seasons?.[0] || null;
-    setActiveSeason(season);
-
-    // Load team/player data if we have a season
-    if (season) {
-      const [teamResult, playerResult] = await Promise.all([
-        getPerTeamPaymentBreakdown(leagueId, season.id),
-        getUnpaidPlayers(leagueId, season.id),
+    try {
+      // Load account status + stats in parallel
+      const [accountResult, statsResult] = await Promise.all([
+        getConnectAccountStatus(leagueId),
+        getPaymentStatistics(leagueId),
       ]);
 
-      if (teamResult.success) {
-        setTeamBreakdown(teamResult.data);
+      if (accountResult.success) {
+        setAccountInfo(accountResult.data);
       }
-      if (playerResult.success) {
-        setUnpaidPlayers(playerResult.data);
+      if (statsResult.success) {
+        setStats(statsResult.data);
       }
-    }
 
-    setInitialLoading(false);
+      // Find active season
+      const supabase = createClient();
+      const { data: seasons } = await supabase
+        .from('seasons')
+        .select('id, name, status')
+        .eq('league_id', leagueId)
+        .in('status', ['active', 'draft'])
+        .order('start_date', { ascending: false })
+        .limit(1);
+
+      const season = seasons?.[0] || null;
+      setActiveSeason(season);
+
+      // Load team/player data if we have a season
+      if (season) {
+        const [teamResult, playerResult] = await Promise.all([
+          getPerTeamPaymentBreakdown(leagueId, season.id),
+          getUnpaidPlayers(leagueId, season.id),
+        ]);
+
+        if (teamResult.success) {
+          setTeamBreakdown(teamResult.data);
+        }
+        if (playerResult.success) {
+          setUnpaidPlayers(playerResult.data);
+        }
+      }
+    } catch (error) {
+      console.error('[Billing] Failed to load dashboard data:', error);
+    } finally {
+      setInitialLoading(false);
+      loadingRef.current = false;
+    }
   }, [leagueId]);
 
   useEffect(() => {

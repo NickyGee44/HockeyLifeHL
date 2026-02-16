@@ -44,13 +44,16 @@ export function PayoutInfoCard({ leagueId, isConnected }: PayoutInfoCardProps) {
   const [refreshing, setRefreshing] = useState(false);
 
   async function loadPayoutInfo() {
-    const result = await getLeaguePayoutInfo(leagueId);
-
-    if (result.success) {
-      setPayoutInfo(result.data);
+    try {
+      const result = await getLeaguePayoutInfo(leagueId);
+      if (result.success) {
+        setPayoutInfo(result.data);
+      }
+    } catch (error) {
+      console.error('[Billing] Failed to load payout info:', error);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   useEffect(() => {

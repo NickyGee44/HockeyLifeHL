@@ -36,18 +36,25 @@ function SubscriptionSuccessContent() {
   const tierInfo = SUBSCRIPTION_TIERS[tier];
 
   useEffect(() => {
+    let navigated = false;
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push('/dashboard/settings/billing');
+          if (!navigated) {
+            navigated = true;
+            router.push('/dashboard/settings/billing');
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      navigated = true;
+      clearInterval(timer);
+    };
   }, [router]);
 
   function handleGoToBilling() {

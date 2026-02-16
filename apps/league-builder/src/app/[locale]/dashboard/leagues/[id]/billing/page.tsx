@@ -80,24 +80,15 @@ export default async function LeagueBillingPage({ params, searchParams }: Props)
     <div className="container mx-auto py-6 px-4 max-w-7xl">
       <EmbeddedBillingDashboard leagueId={leagueId} leagueName={league.name} locale={locale} platformFeePercent={feeConfig.processingFeePercent} />
 
-      {/* Handle onboarding return */}
-      {resolvedSearchParams.onboarding === 'complete' && (
+      {/* Handle onboarding return - clean URL params without reload to prevent loops */}
+      {(resolvedSearchParams.onboarding === 'complete' || resolvedSearchParams.onboarding === 'refresh') && (
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              window.history.replaceState({}, '', window.location.pathname);
-              window.dispatchEvent(new CustomEvent('stripe-onboarding-complete'));
-            `,
-          }}
-        />
-      )}
-
-      {resolvedSearchParams.onboarding === 'refresh' && (
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.history.replaceState({}, '', window.location.pathname);
-              window.location.reload();
+              if (!window.__onboardingHandled) {
+                window.__onboardingHandled = true;
+                window.history.replaceState({}, '', window.location.pathname);
+              }
             `,
           }}
         />

@@ -55,24 +55,27 @@ export function LeagueBillingDashboard({
 
   async function loadData() {
     setLoading(true);
+    try {
+      // Load account status
+      const accountResult = await getConnectAccountStatus(leagueId);
+      if (accountResult.success) {
+        setAccountInfo(accountResult.data);
+      } else {
+        toast.error('Failed to load account status', {
+          description: accountResult.error,
+        });
+      }
 
-    // Load account status
-    const accountResult = await getConnectAccountStatus(leagueId);
-    if (accountResult.success) {
-      setAccountInfo(accountResult.data);
-    } else {
-      toast.error('Failed to load account status', {
-        description: accountResult.error,
-      });
+      // Load payment statistics
+      const statsResult = await getPaymentStatistics(leagueId);
+      if (statsResult.success) {
+        setStats(statsResult.data);
+      }
+    } catch (error) {
+      console.error('[Billing] Failed to load data:', error);
+    } finally {
+      setLoading(false);
     }
-
-    // Load payment statistics
-    const statsResult = await getPaymentStatistics(leagueId);
-    if (statsResult.success) {
-      setStats(statsResult.data);
-    }
-
-    setLoading(false);
   }
 
   useEffect(() => {
