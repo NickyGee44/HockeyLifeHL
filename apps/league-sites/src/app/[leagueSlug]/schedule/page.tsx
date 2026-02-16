@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getVenues, getTeams } from '@/lib/data';
+import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getCurrentSeason, getVenues, getTeams } from '@/lib/data';
 import { WeekPicker } from '@/components/schedule/WeekPicker';
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
 import { ScheduleTable } from '@/components/schedule/ScheduleTable';
@@ -90,14 +90,22 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   // Use parseDateString to avoid UTC midnight → local time day shift
   const weekStart = week ? parseDateString(week) : getStartOfWeek(new Date());
 
-  // Fetch all data in parallel
-  const [seasons, venues, teams, games, gameCounts] = await Promise.all([
+  // Fetch seasons + current season first to resolve default
+  const [seasons, defaultSeason, venues, teams] = await Promise.all([
     getSeasons(league.id),
+    getCurrentSeason(league.id),
     getVenues(league.id),
     getTeams(league.id),
+  ]);
+
+  // Default to current season when no season filter is specified
+  const selectedSeasonId = seasonFilter || defaultSeason?.id || null;
+
+  // Fetch games with resolved season filter
+  const [games, gameCounts] = await Promise.all([
     getWeekGames(league.id, weekStart, {
       day,
-      seasonId: seasonFilter,
+      seasonId: selectedSeasonId || undefined,
       divisionId: divisionFilter,
       teamId: teamFilter,
       type: typeFilter,
@@ -105,7 +113,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       status: statusFilter,
     }),
     getWeekGameCounts(league.id, weekStart, {
-      seasonId: seasonFilter,
+      seasonId: selectedSeasonId || undefined,
       divisionId: divisionFilter,
       teamId: teamFilter,
       type: typeFilter,
@@ -156,7 +164,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
             seasons={seasons}
             venues={venues}
             teams={teams}
-            currentFilters={{ season: seasonFilter, division: divisionFilter, team: teamFilter, type: typeFilter, venue: venueFilter, status: statusFilter }}
+            currentFilters={{ season: selectedSeasonId || undefined, division: divisionFilter, team: teamFilter, type: typeFilter, venue: venueFilter, status: statusFilter }}
             leagueSlug={leagueSlug}
             weekStart={weekStart}
           />
