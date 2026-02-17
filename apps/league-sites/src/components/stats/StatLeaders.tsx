@@ -10,7 +10,7 @@ interface StatLeadersProps {
 interface LeaderCardProps {
   title: string;
   icon: React.ReactNode;
-  players: { name: string; value: number; playerId: string }[];
+  players: { name: string; value: number; playerId: string; avatarUrl?: string | null }[];
   leagueSlug: string;
   suffix?: string;
 }
@@ -41,6 +41,11 @@ function LeaderCard({ title, icon, players, leagueSlug, suffix }: LeaderCardProp
               >
                 {index + 1}
               </span>
+              <img
+                src={player.avatarUrl || '/blank_player.png'}
+                alt={player.name}
+                className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-[var(--color-border)]"
+              />
               <Link
                 href={`/${leagueSlug}/players/${player.playerId}`}
                 className="text-sm truncate hover:text-[var(--league-primary)] transition-colors"
@@ -72,21 +77,21 @@ export function StatLeaders({ leaders, leagueSlug }: StatLeadersProps) {
   const ppLeaders = [...leaders]
     .sort((a, b) => b.pp_points - a.pp_points)
     .slice(0, 5)
-    .map((p) => ({ name: p.full_name, value: p.pp_points, playerId: p.player_id }));
+    .map((p) => ({ name: p.full_name, value: p.pp_points, playerId: p.player_id, avatarUrl: p.avatar_url }));
 
   // Short-Handed Goals leaders (top 5)
   const shLeaders = [...leaders]
     .sort((a, b) => b.sh_goals - a.sh_goals)
     .slice(0, 5)
     .filter((p) => p.sh_goals > 0)
-    .map((p) => ({ name: p.full_name, value: p.sh_goals, playerId: p.player_id }));
+    .map((p) => ({ name: p.full_name, value: p.sh_goals, playerId: p.player_id, avatarUrl: p.avatar_url }));
 
   // Game-Winning Goals leaders (top 5)
   const gwgLeaders = [...leaders]
     .sort((a, b) => b.gwg - a.gwg)
     .slice(0, 5)
     .filter((p) => p.gwg > 0)
-    .map((p) => ({ name: p.full_name, value: p.gwg, playerId: p.player_id }));
+    .map((p) => ({ name: p.full_name, value: p.gwg, playerId: p.player_id, avatarUrl: p.avatar_url }));
 
   const hasData = ppLeaders.length > 0 || shLeaders.length > 0 || gwgLeaders.length > 0;
 

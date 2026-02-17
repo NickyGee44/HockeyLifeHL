@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Trophy, Target, Shield, Search, X } from 'lucide-react';
-import type { PlayerStats, PlayerBadge } from '@/lib/types';
+import type { PlayerStatsWithAvatar, PlayerBadge } from '@/lib/types';
 import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
 
 interface StatsLeadersTabsProps {
-  pointsLeaders: PlayerStats[];
-  goalsLeaders: PlayerStats[];
-  assistsLeaders: PlayerStats[];
+  pointsLeaders: PlayerStatsWithAvatar[];
+  goalsLeaders: PlayerStatsWithAvatar[];
+  assistsLeaders: PlayerStatsWithAvatar[];
   leagueSlug: string;
   badges?: Record<string, PlayerBadge[]>;
 }
@@ -148,23 +148,30 @@ export function StatsLeadersTabs({
                       </span>
                     </td>
                     <td>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={player.avatar_url || '/blank_player.png'}
+                          alt={player.player_name}
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[var(--color-border)]"
+                        />
                         <div>
-                          <Link
-                            href={`/${leagueSlug}/players/${player.player_id}`}
-                            className={`font-medium hover:text-[var(--league-primary)] transition-colors ${isHighlighted ? 'text-[var(--league-primary)]' : ''}`}
-                          >
-                            {player.player_name}
-                          </Link>
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/${leagueSlug}/players/${player.player_id}`}
+                              className={`font-medium hover:text-[var(--league-primary)] transition-colors ${isHighlighted ? 'text-[var(--league-primary)]' : ''}`}
+                            >
+                              {player.player_name}
+                            </Link>
+                            {badges?.[player.player_id] && badges[player.player_id].length > 0 && (
+                              <PlayerBadgeGroup badges={badges[player.player_id]} maxVisible={3} size="sm" />
+                            )}
+                          </div>
                           {player.position && (
                             <div className="text-xs text-[var(--color-text-muted)]">
                               {player.position}
                             </div>
                           )}
                         </div>
-                        {badges?.[player.player_id] && badges[player.player_id].length > 0 && (
-                          <PlayerBadgeGroup badges={badges[player.player_id]} maxVisible={3} size="sm" />
-                        )}
                       </div>
                     </td>
                     <td className="text-[var(--color-text-secondary)]">

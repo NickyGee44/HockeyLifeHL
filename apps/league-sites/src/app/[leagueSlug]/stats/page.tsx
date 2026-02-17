@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart3, Trophy, Target, Shield, ChevronRight, Zap } from 'lucide-react';
-import { getLeagueBySlug, getStatsLeaders, getCurrentSeason, getSpecialTeamsLeaders, getPlayerBadgesByIds } from '@/lib/data';
+import { getLeagueBySlug, getStatsLeadersWithAvatars, getCurrentSeason, getSpecialTeamsLeaders, getPlayerBadgesByIds } from '@/lib/data';
 import { StatsLeadersTabs } from '@/components/StatsLeadersTabs';
 import { SpecialTeamsTable } from '@/components/stats/SpecialTeamsTable';
 import { StatLeaders } from '@/components/stats/StatLeaders';
@@ -46,11 +46,27 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
   const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
 
   const [pointsLeaders, goalsLeaders, assistsLeaders, specialTeamsLeaders] = await Promise.all([
-    getStatsLeaders(league.id, 'points', 50, effectiveDivisionFilter, selectedSeasonId),
-    getStatsLeaders(league.id, 'goals', 50, effectiveDivisionFilter, selectedSeasonId),
-    getStatsLeaders(league.id, 'assists', 50, effectiveDivisionFilter, selectedSeasonId),
+    getStatsLeadersWithAvatars(league.id, 'points', 50, effectiveDivisionFilter, selectedSeasonId),
+    getStatsLeadersWithAvatars(league.id, 'goals', 50, effectiveDivisionFilter, selectedSeasonId),
+    getStatsLeadersWithAvatars(league.id, 'assists', 50, effectiveDivisionFilter, selectedSeasonId),
     getSpecialTeamsLeaders(league.id, selectedSeasonId || currentSeason?.id, effectiveDivisionFilter),
   ]);
+
+  // Enrich special teams leaders with avatar URLs
+  if (specialTeamsLeaders.length > 0) {
+    const stPlayerIds = specialTeamsLeaders.map(p => p.player_id);
+    const stSupabase = await createClient();
+    const { data: stProfiles } = await stSupabase
+      .from('profiles')
+      .select('id, avatar_url')
+      .in('id', stPlayerIds);
+    const stAvatarMap = new Map(
+      (stProfiles || []).map((p) => [p.id, p.avatar_url])
+    );
+    for (const leader of specialTeamsLeaders) {
+      leader.avatar_url = stAvatarMap.get(leader.player_id) || null;
+    }
+  }
 
   // Collect all player IDs for badge lookup
   const allPlayerIds = [...new Set([

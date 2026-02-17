@@ -1418,9 +1418,10 @@ export async function getStatsLeadersWithAvatars(
   leagueId: string,
   statType: 'points' | 'goals' | 'assists' = 'points',
   limit = 5,
-  divisionId?: string
+  divisionId?: string,
+  seasonId?: string | null
 ): Promise<PlayerStatsWithAvatar[]> {
-  const leaders = await getStatsLeaders(leagueId, statType, limit, divisionId);
+  const leaders = await getStatsLeaders(leagueId, statType, limit, divisionId, seasonId);
   if (leaders.length === 0) return [];
 
   const supabase = await createClient();

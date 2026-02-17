@@ -148,7 +148,7 @@ function PlayerStatRow({ player, maxValue, color, align }: PlayerStatRowProps) {
         <img
           src={player.avatar_url || '/blank_player.png'}
           alt={player.player_name}
-          className="w-10 h-10 rounded-full object-cover border-2 flex-shrink-0"
+          className="w-12 h-12 rounded-full object-cover border-2 flex-shrink-0"
           style={{ borderColor: color }}
         />
         <span className="font-medium text-sm truncate max-w-[100px]">

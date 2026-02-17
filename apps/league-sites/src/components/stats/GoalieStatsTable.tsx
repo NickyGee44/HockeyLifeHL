@@ -83,19 +83,26 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: G
                 <RankBadge rank={index + 1} />
               </td>
               <td className="py-3.5 px-3">
-                <div className="flex items-center gap-1.5">
-                  <Link
-                    href={`/${leagueSlug}/players/${goalie.player_id}`}
-                    className="flex items-center gap-2 hover:text-[var(--league-primary)] transition-colors"
-                  >
-                    {goalie.jersey_number && (
-                      <span className="text-xs text-[var(--color-text-muted)]">#{goalie.jersey_number}</span>
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src={goalie.avatar_url || '/blank_player.png'}
+                    alt={goalie.player_name}
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[var(--color-border)]"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    <Link
+                      href={`/${leagueSlug}/players/${goalie.player_id}`}
+                      className="flex items-center gap-2 hover:text-[var(--league-primary)] transition-colors"
+                    >
+                      {goalie.jersey_number && (
+                        <span className="text-xs text-[var(--color-text-muted)]">#{goalie.jersey_number}</span>
+                      )}
+                      <span className="font-medium">{goalie.player_name}</span>
+                    </Link>
+                    {badges?.[goalie.player_id] && badges[goalie.player_id].length > 0 && (
+                      <PlayerBadgeGroup badges={badges[goalie.player_id]} maxVisible={3} size="sm" />
                     )}
-                    <span className="font-medium">{goalie.player_name}</span>
-                  </Link>
-                  {badges?.[goalie.player_id] && badges[goalie.player_id].length > 0 && (
-                    <PlayerBadgeGroup badges={badges[goalie.player_id]} maxVisible={3} size="sm" />
-                  )}
+                  </div>
                 </div>
               </td>
               <td className="py-3.5 px-3">
@@ -104,8 +111,8 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: G
                     <Image
                       src={goalie.team_logo}
                       alt={goalie.team_name || ''}
-                      width={28}
-                      height={28}
+                      width={36}
+                      height={36}
                       className="rounded"
                     />
                   )}

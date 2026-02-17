@@ -27,9 +27,9 @@ export interface TeamLogoProps {
 
 const sizeMap = {
   xs: 24,
-  sm: 32,
-  md: 48,
-  lg: 64,
+  sm: 40,
+  md: 56,
+  lg: 80,
   xl: 96,
   '2xl': 128,
   '3xl': 160,

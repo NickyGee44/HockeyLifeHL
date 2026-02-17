@@ -23,7 +23,7 @@ function PlayerAvatar({ name, avatarUrl, rank }: { name: string; avatarUrl: stri
       <img
         src={avatarUrl || '/blank_player.png'}
         alt={name}
-        className="h-20 w-20 md:h-24 md:w-24 rounded-full object-cover border-[3px] border-[var(--color-border)]"
+        className="h-24 w-24 md:h-28 md:w-28 rounded-full object-cover border-[3px] border-[var(--color-border)]"
       />
       <span
         className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"

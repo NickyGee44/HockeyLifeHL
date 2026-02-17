@@ -116,8 +116,8 @@ export function StandingsWidget({
                       <Image
                         src={team.team_logo || '/blank_team.png'}
                         alt={team.team_name}
-                        width={24}
-                        height={24}
+                        width={32}
+                        height={32}
                         className="rounded"
                       />
                       {/* Subtle shine on hover */}
@@ -174,7 +174,7 @@ export function StandingsWidgetSkeleton({ rows = 5 }: { rows?: number }) {
               </td>
               <td>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded shimmer-effect" />
+                  <div className="w-8 h-8 rounded shimmer-effect" />
                   <div className="h-4 w-24 rounded shimmer-effect" />
                 </div>
               </td>

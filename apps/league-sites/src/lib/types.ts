@@ -488,6 +488,7 @@ export interface SpecialTeamsLeader {
   player_id: string;
   team_id: string;
   full_name: string;
+  avatar_url?: string | null;
   pp_goals: number;
   pp_assists: number;
   pp_points: number;

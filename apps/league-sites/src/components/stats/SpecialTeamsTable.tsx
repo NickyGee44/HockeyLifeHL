@@ -146,12 +146,19 @@ export function SpecialTeamsTable({ leaders, leagueSlug }: SpecialTeamsTableProp
                 <RankBadge rank={index + 1} />
               </td>
               <td className="py-3 px-2">
-                <Link
-                  href={`/${leagueSlug}/players/${player.player_id}`}
-                  className="font-medium hover:text-[var(--league-primary)] transition-colors"
-                >
-                  {player.full_name}
-                </Link>
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src={player.avatar_url || '/blank_player.png'}
+                    alt={player.full_name}
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[var(--color-border)]"
+                  />
+                  <Link
+                    href={`/${leagueSlug}/players/${player.player_id}`}
+                    className="font-medium hover:text-[var(--league-primary)] transition-colors"
+                  >
+                    {player.full_name}
+                  </Link>
+                </div>
               </td>
               <td className="py-3 px-2 text-center">
                 <CellValue value={player.pp_goals} highlight={sortKey === 'pp_goals'} />

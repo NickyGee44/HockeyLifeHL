@@ -110,8 +110,8 @@ function PlayerCard({
                 <Image
                   src={player.team.logo}
                   alt={player.team.name}
-                  width={24}
-                  height={24}
+                  width={32}
+                  height={32}
                   className="rounded"
                 />
               )}

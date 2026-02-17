@@ -147,7 +147,7 @@ function GoalieCard({ goalie, color, align }: GoalieCardProps) {
         <img
           src={goalie.avatar_url || '/blank_player.png'}
           alt={goalie.player_name}
-          className="w-14 h-14 rounded-full object-cover border-2 flex-shrink-0"
+          className="w-16 h-16 rounded-full object-cover border-2 flex-shrink-0"
           style={{ borderColor: color }}
         />
         <div className={`${isLeft ? '' : 'text-right'}`}>
