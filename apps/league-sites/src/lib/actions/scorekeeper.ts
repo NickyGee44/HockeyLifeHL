@@ -412,7 +412,9 @@ export async function validateScorekeeperToken(token: string): Promise<{
 }
 
 /**
- * Get current scorekeeper session from cookie
+ * Get current scorekeeper session from cookie.
+ * Uses lookupSessionByToken directly (NOT validateScorekeeperToken) because
+ * this is called from server component renders where cookies().set() is forbidden.
  */
 export async function getScorekeeperSession(): Promise<{
   success: boolean;
@@ -425,7 +427,27 @@ export async function getScorekeeperSession(): Promise<{
     if (!token) {
       return { success: false, error: 'No session found' };
     }
-    return validateScorekeeperToken(token);
+
+    const session = await lookupSessionByToken(token);
+    if (!session || !session.isValid) {
+      return { success: false, error: 'Session expired or invalid' };
+    }
+
+    return {
+      success: true,
+      session: {
+        sessionId: session.sessionId,
+        gameId: session.gameId,
+        leagueId: session.leagueId,
+        isValid: session.isValid,
+        expiresAt: session.expiresAt,
+        gameStatus: session.gameStatus,
+        homeTeamName: session.homeTeamName,
+        awayTeamName: session.awayTeamName,
+        scheduledAt: session.scheduledAt,
+        sessionType: session.sessionType,
+      },
+    };
   } catch (error) {
     console.error('Get session error:', error);
     return { success: false, error: 'Failed to get session' };
