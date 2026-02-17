@@ -81,7 +81,8 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
       />
 
       <div className="mx-auto max-w-[1400px] px-6">
-        <div className="flex h-[64px] items-center gap-4">
+        <div className="flex h-[64px] items-center gap-3">
+          {/* Logo — fixed left */}
           <Link href={`/${leagueSlug}`} className="group relative z-10 flex shrink-0 items-center gap-3 -my-2 md:-my-7">
             {logoUrl ? (
               <Image
@@ -96,32 +97,40 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 {initials.slice(0, 3)}
               </div>
             )}
-            <span className="hidden truncate text-base font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)] sm:block">
+            <span className="hidden truncate text-base font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)] sm:block lg:hidden xl:block">
               {displayName}
             </span>
           </Link>
 
-          <nav className="hidden flex-1 items-center justify-center gap-0.5 lg:flex" data-testid="desktop-nav">
-            {filteredNavItems.map((item) => {
-              const active = isItemActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={`/${leagueSlug}${item.href}`}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors ${
-                    active
-                      ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
-                      : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
-                  }`}
-                >
-                  <item.icon className={`h-3.5 w-3.5 ${active ? 'text-[var(--league-primary)]' : 'text-[var(--league-primary)]/80'}`} />
-                  {item.label}
-                </Link>
-              );
-            })}
+          {/* Nav — centered, scrollable overflow, icons hidden on desktop for density */}
+          <div className="hidden flex-1 min-w-0 lg:block" data-testid="desktop-nav">
+            <nav
+              className="flex items-center justify-center gap-0.5 overflow-x-auto"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {filteredNavItems.map((item) => {
+                const active = isItemActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={`/${leagueSlug}${item.href}`}
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${
+                      active
+                        ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                        : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
+                    }`}
+                  >
+                    <item.icon className={`h-3.5 w-3.5 hidden xl:block ${active ? 'text-[var(--league-primary)]' : 'text-[var(--league-primary)]/80'}`} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            {/* Hide webkit scrollbar */}
+            <style jsx>{`nav::-webkit-scrollbar { display: none; }`}</style>
+          </div>
 
-          </nav>
-
+          {/* Auth — anchored right */}
           <div className="hidden shrink-0 items-center gap-2 lg:flex">
             {registrationOpen && (
               <Link
@@ -136,6 +145,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
             <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
           </div>
 
+          {/* Mobile controls — anchored right */}
           <div className="flex items-center gap-2 lg:hidden ml-auto">
             <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
             <button
