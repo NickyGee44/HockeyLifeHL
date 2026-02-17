@@ -228,7 +228,7 @@ export function StandingsTable({
       case 'pts':
         return isAdmin
           ? <span className="font-bold text-rink-500">{team.points}</span>
-          : <span className="font-bold" style={{ color: 'var(--league-primary)' }}>{team.points}</span>;
+          : <span className="font-bold">{team.points}</span>;
       case 'gf': return team.goalsFor;
       case 'ga': return team.goalsAgainst;
       case 'diff': {
