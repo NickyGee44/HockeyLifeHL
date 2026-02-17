@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getCachedDashboardData } from '@/lib/actions/dashboard';
+import { getStaffDashboardData } from '@/lib/actions/staff-dashboard';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import { LeagueLogo } from '@/components/ui/league-logo';
+import StaffDashboardPanel from '@/components/staff/StaffDashboardPanel';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -35,7 +37,10 @@ export default async function DashboardPage({ params }: Props) {
   }
 
   const { user, profile } = userData;
-  const dashboardData = await getCachedDashboardData();
+  const [dashboardData, staffData] = await Promise.all([
+    getCachedDashboardData(),
+    getStaffDashboardData(),
+  ]);
 
   if (!dashboardData) {
     redirect(`/${locale}/login`);
@@ -94,6 +99,13 @@ export default async function DashboardPage({ params }: Props) {
             trend={null}
           />
         </div>
+
+        {/* Staff Assignments Panel */}
+        {staffData.isStaff && (
+          <div className="mb-8">
+            <StaffDashboardPanel data={staffData} />
+          </div>
+        )}
 
         {/* New League CTA - prominent for owners with no leagues */}
         {totals.total_leagues === 0 && (

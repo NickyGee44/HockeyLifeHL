@@ -8,10 +8,10 @@
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 2 | Schedule Generation Overhaul | IN PROGRESS |
-| 3 | Playoff & Division Management | PENDING |
-| 4 | Staff Roles & Game Officials | PENDING |
-| 5 | News & AI Articles | PENDING |
+| 2 | Schedule Generation Overhaul | COMPLETED |
+| 3 | Playoff & Division Management | COMPLETED |
+| 4 | Staff Roles & Game Officials | COMPLETED |
+| 5 | News & AI Articles | IN PROGRESS |
 | 6 | Awards & Suspensions | PENDING |
 | 7 | Billing & Pricing Restructure | PENDING |
 | 8 | Navigation & Hierarchy Cleanup | PENDING |
@@ -41,10 +41,10 @@
 
 | ID | Task | Agent | Status | Notes |
 |----|------|-------|--------|-------|
-| 4A | Expand Staff Roles | TBD | PENDING | New enum + user_id FK |
-| 4B | Referee System | TBD | PENDING | New tables + assignment |
-| 4C | Scorekeeper & Referee Dashboard | TBD | PENDING | Role-based views |
-| 4D | Staff Addition from Multiple Contexts | TBD | PENDING | Quick-add modal |
+| 4A | Expand Staff Roles | staff-roles | COMPLETED | 8 standard roles with color badges, role dropdown, filter, hydration-safe Select |
+| 4B | Referee System | referee-sys | COMPLETED | referee-management.ts actions + 5 referee components (card, list, assign modal, management client) using game_officials table |
+| 4C | Scorekeeper & Referee Dashboard | staff-dash | COMPLETED | StaffDashboardPanel with mini calendar, assignment list, stats — integrated on dashboard page |
+| 4D | Staff Addition from Multiple Contexts | quick-staff | COMPLETED | QuickAddStaffModal with defaultRole prop, available from staff page + schedule |
 
 ## Phase 5: News & AI Articles
 
@@ -84,5 +84,17 @@
 - All 5 Phase 1 items done (commit 65a394f)
 - Pushed to main + production
 
-### 2026-02-17 — Phase 2 Started
-- Team created, agents being spawned
+### 2026-02-17 — Phase 2 Complete
+- All 6 tasks done (commit 1f9bd0f)
+- Division-aware scheduling, bye weeks, venue moves, ice time, blackouts
+- Pushed to main + production
+
+### 2026-02-17 — Phase 3 Complete
+- All 3 tasks done (commit 7cd26d7)
+- Playoff % support, division shuffle tool, schedule adjustment
+- Pushed to main + production
+
+### 2026-02-17 — Phase 4 Complete
+- All 4 tasks done
+- Staff roles expansion, referee system, staff dashboard, quick-add modal
+- Session crashed mid-phase but all code was written; recovered and committed
