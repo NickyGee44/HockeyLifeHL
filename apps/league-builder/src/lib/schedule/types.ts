@@ -173,6 +173,8 @@ export interface ScheduleConfig {
   // Playoff settings
   playoffFormat: PlayoffFormat;
   playoffTeams: number; // Number of teams that make playoffs (4, 6, 8, etc.)
+  playoffQualificationMode: 'count' | 'percentage'; // How playoff spots are determined
+  playoffPercentage: number; // Top X% of each division qualifies (10-100, step 5)
 }
 
 export interface ScheduleTemplate extends ScheduleConfig {

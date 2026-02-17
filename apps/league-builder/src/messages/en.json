@@ -1894,6 +1894,48 @@
       "assignButton": "Assign {count, plural, one {# Team} other {# Teams}}",
       "assigning": "Assigning...",
       "unexpectedError": "An unexpected error occurred"
+    },
+    "health": {
+      "teams": "Teams",
+      "avgPoints": "Avg PTS",
+      "avgGF": "Avg GF",
+      "avgGA": "Avg GA",
+      "avgDiff": "Avg GD",
+      "spread": "Spread",
+      "considerMoveUp": "Consider moving up",
+      "considerMoveDown": "Consider moving down"
+    },
+    "shuffle": {
+      "suggestedSwaps": "Suggested Swaps",
+      "applySwap": "Apply",
+      "teamCount": "{count, plural, one {# team} other {# teams}}",
+      "avgDiff": "Avg GD",
+      "noTeams": "No teams",
+      "moveTo": "Move to…",
+      "undoMove": "Undo move",
+      "pendingMoves": "{count, plural, one {# Pending Move} other {# Pending Moves}}",
+      "clearAll": "Clear All",
+      "checking": "Checking…",
+      "reviewMoves": "Review & Apply",
+      "confirmTitle": "Confirm Division Moves",
+      "confirmDescription": "The following teams will be moved between divisions.",
+      "affectedGames": "{count, plural, one {# scheduled game} other {# scheduled games}} will become cross-division after these moves.",
+      "cancel": "Cancel",
+      "confirmMoves": "Confirm Moves",
+      "executing": "Moving…",
+      "scheduleAction": "Future games action",
+      "scheduleKeep": "Keep games as-is",
+      "scheduleKeepDesc": "Existing games stay scheduled (may now be cross-division)",
+      "scheduleUpdate": "Update game divisions",
+      "scheduleUpdateDesc": "Move affected games to the new division assignment",
+      "scheduleCancel": "Cancel affected games",
+      "scheduleCancelDesc": "Cancel future games for moved teams (regenerate schedule later)"
+    },
+    "balance": {
+      "retry": "Retry",
+      "needMoreDivisions": "You need at least 2 divisions to use the balance tool.",
+      "healthOverview": "Health Overview",
+      "shuffleTeams": "Shuffle Teams"
     }
   },
   "leagues": {

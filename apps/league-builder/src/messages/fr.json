@@ -1894,6 +1894,48 @@
       "assignButton": "Assigner {count, plural, one {# equipe} other {# equipes}}",
       "assigning": "Assignation...",
       "unexpectedError": "Une erreur inattendue s'est produite"
+    },
+    "health": {
+      "teams": "Equipes",
+      "avgPoints": "PTS moy.",
+      "avgGF": "BM moy.",
+      "avgGA": "BE moy.",
+      "avgDiff": "Diff moy.",
+      "spread": "Ecart",
+      "considerMoveUp": "Envisager de monter",
+      "considerMoveDown": "Envisager de descendre"
+    },
+    "shuffle": {
+      "suggestedSwaps": "Echanges suggeres",
+      "applySwap": "Appliquer",
+      "teamCount": "{count, plural, one {# equipe} other {# equipes}}",
+      "avgDiff": "Diff moy.",
+      "noTeams": "Aucune equipe",
+      "moveTo": "Deplacer vers…",
+      "undoMove": "Annuler le deplacement",
+      "pendingMoves": "{count, plural, one {# deplacement en attente} other {# deplacements en attente}}",
+      "clearAll": "Tout effacer",
+      "checking": "Verification…",
+      "reviewMoves": "Verifier et appliquer",
+      "confirmTitle": "Confirmer les deplacements",
+      "confirmDescription": "Les equipes suivantes seront deplacees entre les divisions.",
+      "affectedGames": "{count, plural, one {# match programme} other {# matchs programmes}} deviendront inter-divisions apres ces deplacements.",
+      "cancel": "Annuler",
+      "confirmMoves": "Confirmer",
+      "executing": "Deplacement…",
+      "scheduleAction": "Action sur les matchs futurs",
+      "scheduleKeep": "Garder les matchs tels quels",
+      "scheduleKeepDesc": "Les matchs existants restent programmes (peuvent devenir inter-divisions)",
+      "scheduleUpdate": "Mettre a jour les divisions des matchs",
+      "scheduleUpdateDesc": "Deplacer les matchs concernes vers la nouvelle division",
+      "scheduleCancel": "Annuler les matchs concernes",
+      "scheduleCancelDesc": "Annuler les matchs futurs des equipes deplacees (regenerer le calendrier plus tard)"
+    },
+    "balance": {
+      "retry": "Reessayer",
+      "needMoreDivisions": "Vous avez besoin d'au moins 2 divisions pour utiliser l'outil d'equilibre.",
+      "healthOverview": "Apercu de sante",
+      "shuffleTeams": "Redistribuer les equipes"
     }
   },
   "leagues": {

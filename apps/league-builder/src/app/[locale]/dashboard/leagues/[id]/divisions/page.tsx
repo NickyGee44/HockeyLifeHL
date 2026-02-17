@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getDivisions } from '@/lib/actions/divisions';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Users, LayoutGrid } from 'lucide-react';
-import { DivisionList } from '@/components/divisions';
+import { ArrowLeft, Trophy, Users, LayoutGrid, Activity } from 'lucide-react';
+import { DivisionList, DivisionBalancePanel } from '@/components/divisions';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -38,6 +38,15 @@ export default async function LeagueDivisionsPage({ params }: Props) {
   // Get divisions
   const divisionsResult = await getDivisions(leagueId);
   const divisions = divisionsResult.success ? divisionsResult.data : [];
+
+  // Get most recent season for this league (for division health stats)
+  const { data: latestSeason } = await supabase
+    .from('seasons')
+    .select('id')
+    .eq('league_id', leagueId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
 
   // Get team counts
   const { count: totalTeams } = await supabase
@@ -113,6 +122,20 @@ export default async function LeagueDivisionsPage({ params }: Props) {
             </p>
           </div>
         </div>
+
+        {/* Division Balance Tool */}
+        {latestSeason && divisions.length >= 2 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-rink-500" />
+              Division Balance
+            </h2>
+            <DivisionBalancePanel
+              leagueId={leagueId}
+              seasonId={latestSeason.id}
+            />
+          </div>
+        )}
 
         {/* Divisions List */}
         <DivisionList

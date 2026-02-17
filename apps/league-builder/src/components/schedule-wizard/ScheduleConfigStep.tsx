@@ -8,7 +8,7 @@
  */
 
 import { cn } from '@hockey-life/ui/lib/utils';
-import { Calendar, CalendarOff, Clock, MapPin, Users, Repeat, Trophy, Info, GitBranch } from 'lucide-react';
+import { Calendar, CalendarOff, Clock, MapPin, Users, Repeat, Trophy, Info, GitBranch, Percent, Hash } from 'lucide-react';
 import type { ScheduleConfig, ScheduleTemplate, Team, Venue } from '@/lib/schedule/types';
 
 // ============================================================================
@@ -235,29 +235,134 @@ export function ScheduleConfigStep({
 
         {/* Playoff Teams Selection */}
         {config.playoffFormat && config.playoffFormat !== 'none' && (
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
-              Number of Playoff Teams
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {[4, 6, 8, 10, 12, 16].filter(n => n <= teamCount).map((num) => (
-                <button
-                  key={num}
-                  onClick={() => setConfig((prev) => ({ ...prev, playoffTeams: num }))}
-                  className={cn(
-                    'px-4 py-2 rounded-lg border text-sm transition-colors',
-                    config.playoffTeams === num
-                      ? 'border-rink-500 bg-rink-500/10 text-rink-500'
-                      : 'border-neutral-700 text-neutral-400 hover:border-rink-500/50'
-                  )}
-                >
-                  Top {num}
-                </button>
-              ))}
-            </div>
+          <div className="mt-4 space-y-4">
+            {/* Qualification Mode Toggle (only show when divisions exist) */}
+            {hasDivisions && (
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  Qualification Mode
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setConfig((prev) => ({ ...prev, playoffQualificationMode: 'count' }))}
+                    className={cn(
+                      'p-3 rounded-lg border text-left transition-colors',
+                      config.playoffQualificationMode === 'count'
+                        ? 'border-rink-500 bg-rink-500/10'
+                        : 'border-neutral-700 hover:border-rink-500/50'
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Hash className="w-4 h-4 text-rink-500" />
+                      <span className="font-medium text-white">Top N Teams</span>
+                    </div>
+                    <p className="text-xs text-neutral-400 mt-1">Fixed number of teams qualify overall</p>
+                  </button>
+                  <button
+                    onClick={() => setConfig((prev) => ({ ...prev, playoffQualificationMode: 'percentage' }))}
+                    className={cn(
+                      'p-3 rounded-lg border text-left transition-colors',
+                      config.playoffQualificationMode === 'percentage'
+                        ? 'border-rink-500 bg-rink-500/10'
+                        : 'border-neutral-700 hover:border-rink-500/50'
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Percent className="w-4 h-4 text-rink-500" />
+                      <span className="font-medium text-white">Top X% of Division</span>
+                    </div>
+                    <p className="text-xs text-neutral-400 mt-1">Proportional qualification per division</p>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Count mode: existing "Top N" buttons */}
+            {config.playoffQualificationMode === 'count' && (
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  Number of Playoff Teams
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[4, 6, 8, 10, 12, 16].filter(n => n <= teamCount).map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setConfig((prev) => ({ ...prev, playoffTeams: num }))}
+                      className={cn(
+                        'px-4 py-2 rounded-lg border text-sm transition-colors',
+                        config.playoffTeams === num
+                          ? 'border-rink-500 bg-rink-500/10 text-rink-500'
+                          : 'border-neutral-700 text-neutral-400 hover:border-rink-500/50'
+                      )}
+                    >
+                      Top {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Percentage mode: slider + per-division preview */}
+            {config.playoffQualificationMode === 'percentage' && (
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-neutral-300">
+                  Playoff Qualification Percentage
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    step={5}
+                    value={config.playoffPercentage}
+                    onChange={(e) => setConfig((prev) => ({ ...prev, playoffPercentage: parseInt(e.target.value) }))}
+                    className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-rink-500"
+                  />
+                  <span className="text-lg font-semibold text-rink-500 w-14 text-right">
+                    {config.playoffPercentage}%
+                  </span>
+                </div>
+
+                {/* Per-division preview */}
+                {hasDivisions && (() => {
+                  const divisionTeams = new Map<string, Team[]>();
+                  for (const team of teams) {
+                    if (team.divisionId) {
+                      const existing = divisionTeams.get(team.divisionId) ?? [];
+                      existing.push(team);
+                      divisionTeams.set(team.divisionId, existing);
+                    }
+                  }
+                  let totalQualifying = 0;
+                  const divisionPreviews = Array.from(divisionTeams.entries()).map(([divId, divTeams]) => {
+                    const qualifying = Math.max(2, Math.ceil(divTeams.length * config.playoffPercentage / 100));
+                    totalQualifying += qualifying;
+                    return { divId, teamCount: divTeams.length, qualifying };
+                  });
+
+                  return (
+                    <div className="p-3 bg-neutral-800/50 border border-neutral-700 rounded-lg space-y-2">
+                      <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Division Breakdown</p>
+                      {divisionPreviews.map((dp) => (
+                        <div key={dp.divId} className="flex items-center justify-between text-sm">
+                          <span className="text-neutral-300">Division ({dp.teamCount} teams)</span>
+                          <span className="text-rink-400 font-medium">
+                            Top {dp.qualifying} qualify ({Math.round(dp.qualifying / dp.teamCount * 100)}%)
+                          </span>
+                        </div>
+                      ))}
+                      <div className="border-t border-neutral-700 pt-2 flex items-center justify-between text-sm">
+                        <span className="text-neutral-300 font-medium">Total playoff teams</span>
+                        <span className="text-rink-500 font-semibold">{totalQualifying}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Playoff Info */}
-            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <div className="flex items-start gap-2">
                 <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-blue-300">
@@ -272,6 +377,11 @@ export function ScheduleConfigStep({
                       <>Best of 5 series: Up to {(config.playoffTeams || 8) / 2 * 5} playoff games</>
                     )}
                   </p>
+                  {config.playoffQualificationMode === 'percentage' && (
+                    <p className="mt-1 text-blue-400/80">
+                      Minimum 2 teams per division will always qualify regardless of percentage.
+                    </p>
+                  )}
                   <p className="mt-1 text-blue-400/80">
                     Playoffs will be automatically scheduled after regular season ends.
                   </p>

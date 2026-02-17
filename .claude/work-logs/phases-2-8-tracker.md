@@ -33,9 +33,9 @@
 
 | ID | Task | Agent | Status | Notes |
 |----|------|-------|--------|-------|
-| 3A | Playoff Generator — % Support | TBD | PENDING | percentage mode |
-| 3B | Division Shuffle Tool | TBD | PENDING | Health dashboard + swap UI |
-| 3C | Schedule Adjustment After Shuffle | TBD | PENDING | Update future games |
+| 3A | Playoff Generator — % Support | playoff-pct | COMPLETED | count/percentage toggle, per-division preview, min 2 teams |
+| 3B | Division Shuffle Tool | div-shuffle | COMPLETED | Health dashboard, outlier detection, swap suggestions, move confirmation with affected games |
+| 3C | Schedule Adjustment After Shuffle | div-shuffle | COMPLETED | 3 options: keep as-is, update division_id, cancel affected games; i18n for radio labels |
 
 ## Phase 4: Staff Roles & Game Officials
 

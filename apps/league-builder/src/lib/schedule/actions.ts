@@ -70,6 +70,8 @@ export async function getScheduleTemplates(leagueId: string): Promise<ScheduleTe
     rotateHomeVenue: t.rotate_home_venue ?? true,
     playoffFormat: 'none' as const, // Default - playoffs not configured yet
     playoffTeams: 8, // Default playoff teams
+    playoffQualificationMode: 'count' as const,
+    playoffPercentage: 50,
     isDefault: t.is_default ?? false,
     createdAt: new Date(t.created_at ?? Date.now()),
     updatedAt: new Date(t.updated_at ?? Date.now()),
@@ -142,6 +144,8 @@ export async function createScheduleTemplate(
       rotateHomeVenue: data.rotate_home_venue ?? true,
       playoffFormat: 'none' as const,
       playoffTeams: 8,
+      playoffQualificationMode: 'count' as const,
+      playoffPercentage: 50,
       allowByeWeeks: false,
       byeWeeksPerTeam: 1,
       isDefault: data.is_default ?? false,

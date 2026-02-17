@@ -68,7 +68,9 @@ function getDefaultConfig(startDate: Date, endDate: Date): ScheduleConfig {
     defaultVenueId: null,
     rotateHomeVenue: true,
     playoffFormat: 'none',
-    playoffTeams: 8 };
+    playoffTeams: 8,
+    playoffQualificationMode: 'count',
+    playoffPercentage: 50 };
 }
 
 // ============================================================================
