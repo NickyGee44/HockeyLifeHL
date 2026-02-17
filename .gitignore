@@ -69,5 +69,8 @@ e2e/**/.auth/
 .agents/
 .claude/skills/
 
+# Subdir .claude shims (symlinks for hook cwd compatibility)
+apps/**/.claude/
+
 # Supabase temp
 supabase/.temp/
