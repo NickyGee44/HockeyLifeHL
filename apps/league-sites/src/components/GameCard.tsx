@@ -137,33 +137,17 @@ interface TeamInitialProps {
 }
 
 function TeamInitial({ name, logo }: TeamInitialProps) {
-  if (logo) {
-    return (
-      <div className="relative overflow-hidden rounded-lg transition-transform duration-300 group-hover:scale-105">
-        <Image
-          src={logo}
-          alt={name}
-          width={48}
-          height={48}
-          className="rounded-lg transition-all duration-300"
-        />
-        {/* Subtle shine effect on hover */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="w-12 h-12 rounded-lg flex items-center justify-center text-lg font-bold relative overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg"
-      style={{
-        backgroundColor: 'var(--league-primary)',
-        color: 'var(--color-accent-text)',
-      }}
-    >
-      <span className="relative z-10">{name.charAt(0)}</span>
+    <div className="relative overflow-hidden rounded-lg transition-transform duration-300 group-hover:scale-105">
+      <Image
+        src={logo || '/blank_team.png'}
+        alt={name}
+        width={48}
+        height={48}
+        className="rounded-lg transition-all duration-300"
+      />
       {/* Subtle shine effect on hover */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
     </div>
   );
 }

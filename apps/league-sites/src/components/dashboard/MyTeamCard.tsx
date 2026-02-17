@@ -140,19 +140,13 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
           href={`/${leagueSlug}/teams/${team.team.slug}`}
           className="flex items-center gap-4 group"
         >
-          {team.team.logo ? (
-            <Image
-              src={team.team.logo}
-              alt={team.team.name}
-              width={80}
-              height={80}
-              className="rounded-lg group-hover:scale-105 transition-transform"
-            />
-          ) : (
-            <div className="w-20 h-20 bg-[var(--league-primary)] rounded-lg flex items-center justify-center text-3xl font-bold text-[var(--color-accent-text)]">
-              {team.team.name.charAt(0)}
-            </div>
-          )}
+          <Image
+            src={team.team.logo || '/blank_team.png'}
+            alt={team.team.name}
+            width={80}
+            height={80}
+            className="rounded-lg group-hover:scale-105 transition-transform"
+          />
           <div>
             <h3 className="text-lg font-bold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">
               {team.team.name}

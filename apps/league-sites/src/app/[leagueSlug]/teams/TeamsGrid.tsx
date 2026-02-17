@@ -127,25 +127,13 @@ function TeamCard({ team, leagueSlug }: { team: Team; leagueSlug: string }) {
     >
       <div className="p-6 text-center">
         <div className="mb-4 flex justify-center">
-          {logoSrc ? (
-            <Image
-              src={logoSrc}
-              alt={team.name}
-              width={80}
-              height={80}
-              className="rounded-xl group-hover:scale-105 transition-transform"
-            />
-          ) : (
-            <div
-              className="w-20 h-20 rounded-xl flex items-center justify-center text-2xl font-bold group-hover:scale-105 transition-transform"
-              style={{
-                backgroundColor: teamColor || 'var(--league-primary)',
-                color: 'var(--color-accent-text)',
-              }}
-            >
-              {team.name.charAt(0)}
-            </div>
-          )}
+          <Image
+            src={logoSrc || '/blank_team.png'}
+            alt={team.name}
+            width={80}
+            height={80}
+            className="rounded-xl group-hover:scale-105 transition-transform"
+          />
         </div>
 
         <h3 className="font-bold text-lg mb-1">{team.name}</h3>

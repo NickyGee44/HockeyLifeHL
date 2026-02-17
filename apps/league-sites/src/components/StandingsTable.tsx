@@ -30,18 +30,15 @@ function toStandingsTeam(team: TeamStanding, index: number): StandingsTeam {
 }
 
 function TeamLogo({ team }: { team: StandingsTeam }) {
-  if (team.logoUrl) {
-    return (
-      <Image
-        src={team.logoUrl}
-        alt={team.name}
-        width={40}
-        height={40}
-        className="rounded"
-      />
-    );
-  }
-  return null;
+  return (
+    <Image
+      src={team.logoUrl || '/blank_team.png'}
+      alt={team.name}
+      width={40}
+      height={40}
+      className="rounded"
+    />
+  );
 }
 
 export function StandingsTable({ standings, searchTerm = '' }: StandingsTableProps) {

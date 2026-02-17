@@ -112,29 +112,17 @@ export function StandingsWidget({
                 </td>
                 <td>
                   <div className="flex items-center gap-2 group/team">
-                    {team.team_logo ? (
-                      <div className="relative overflow-hidden rounded transition-transform duration-300 group-hover/team:scale-110">
-                        <Image
-                          src={team.team_logo}
-                          alt={team.team_name}
-                          width={24}
-                          height={24}
-                          className="rounded"
-                        />
-                        {/* Subtle shine on hover */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover/team:opacity-100 transition-opacity duration-300" />
-                      </div>
-                    ) : (
-                      <div
-                        className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-all duration-300 group-hover/team:scale-110"
-                        style={{
-                          backgroundColor: 'var(--league-primary)',
-                          color: 'var(--color-accent-text)',
-                        }}
-                      >
-                        {(team.team_name || 'T').charAt(0)}
-                      </div>
-                    )}
+                    <div className="relative overflow-hidden rounded transition-transform duration-300 group-hover/team:scale-110">
+                      <Image
+                        src={team.team_logo || '/blank_team.png'}
+                        alt={team.team_name}
+                        width={24}
+                        height={24}
+                        className="rounded"
+                      />
+                      {/* Subtle shine on hover */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover/team:opacity-100 transition-opacity duration-300" />
+                    </div>
                     <span className="font-medium truncate max-w-[120px] transition-colors duration-300 group-hover/team:text-[var(--league-primary)]">
                       {team.team_name || 'Unknown Team'}
                     </span>

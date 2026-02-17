@@ -142,28 +142,14 @@ export function ScoreCard({ game, leagueSlug }: ScoreCardProps) {
 }
 
 function TeamLogo({ name, logo }: { name: string; logo?: string }) {
-  if (logo) {
-    return (
-      <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
-        <Image
-          src={logo}
-          alt={name}
-          fill
-          className="object-cover"
-        />
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 transition-all duration-300 group-hover:scale-105"
-      style={{
-        backgroundColor: 'var(--league-primary)',
-        color: 'var(--color-accent-text)',
-      }}
-    >
-      {name.charAt(0)}
+    <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+      <Image
+        src={logo || '/blank_team.png'}
+        alt={name}
+        fill
+        className="object-cover"
+      />
     </div>
   );
 }

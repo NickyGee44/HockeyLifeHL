@@ -290,19 +290,13 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
                         >
                           <div className="flex items-center gap-4">
                             {/* Opponent Logo */}
-                            {opponent?.logo ? (
-                              <Image
-                                src={opponent.logo}
-                                alt={opponent.name}
-                                width={40}
-                                height={40}
-                                className="rounded-lg"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 bg-[var(--color-surface-hover)] rounded-lg flex items-center justify-center text-lg font-bold text-[var(--color-text-secondary)]">
-                                {opponent?.name?.charAt(0) || '?'}
-                              </div>
-                            )}
+                            <Image
+                              src={opponent?.logo || '/blank_team.png'}
+                              alt={opponent?.name || 'Team'}
+                              width={40}
+                              height={40}
+                              className="rounded-lg"
+                            />
 
                             {/* Game Info */}
                             <div className="flex-1 min-w-0">

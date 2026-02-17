@@ -171,19 +171,13 @@ export function MyRecentResults({ teamId, leagueSlug }: MyRecentResultsProps) {
 
                 {/* Opponent */}
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {opponent?.logo ? (
-                    <Image
-                      src={opponent.logo}
-                      alt={opponent.name}
-                      width={24}
-                      height={24}
-                      className="rounded"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 bg-[var(--color-surface-hover)] rounded flex items-center justify-center text-xs font-bold text-[var(--color-text-secondary)]">
-                      {opponent?.name?.charAt(0) || '?'}
-                    </div>
-                  )}
+                  <Image
+                    src={opponent?.logo || '/blank_team.png'}
+                    alt={opponent?.name || 'Team'}
+                    width={24}
+                    height={24}
+                    className="rounded"
+                  />
                   <span className="text-sm text-[var(--color-text-secondary)]">
                     {isHome ? 'vs' : '@'}
                   </span>
