@@ -20,17 +20,11 @@ function PlayerAvatar({ name, avatarUrl, rank }: { name: string; avatarUrl: stri
 
   return (
     <div className="relative">
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={name}
-          className="h-20 w-20 md:h-24 md:w-24 rounded-full object-cover border-[3px] border-[var(--color-border)]"
-        />
-      ) : (
-        <div className="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full border-[3px] border-[var(--color-border)] bg-[var(--color-surface-hover)] text-lg md:text-xl font-bold text-[var(--color-text-secondary)]">
-          {initials}
-        </div>
-      )}
+      <img
+        src={avatarUrl || '/blank_player.png'}
+        alt={name}
+        className="h-20 w-20 md:h-24 md:w-24 rounded-full object-cover border-[3px] border-[var(--color-border)]"
+      />
       <span
         className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
         style={{

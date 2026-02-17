@@ -150,19 +150,13 @@ export function SuspensionsClient({
                 >
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2">
-                      {suspension.player?.avatar_url ? (
-                        <Image
-                          src={suspension.player.avatar_url}
-                          alt={suspension.player.full_name || ''}
-                          width={28}
-                          height={28}
-                          className="rounded-full"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-xs font-medium text-[var(--color-text-muted)]">
-                          {suspension.player?.full_name?.charAt(0) || '?'}
-                        </div>
-                      )}
+                      <Image
+                        src={suspension.player?.avatar_url || '/blank_player.png'}
+                        alt={suspension.player?.full_name || ''}
+                        width={28}
+                        height={28}
+                        className="rounded-full object-cover"
+                      />
                       <Link
                         href={`/${leagueSlug}/players/${suspension.player_id}`}
                         className="font-medium hover:text-[var(--league-primary)] transition-colors"

@@ -48,26 +48,13 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
       <div className="relative flex flex-col sm:flex-row items-center gap-6 p-6 md:p-8">
         {/* Player Avatar */}
         <div className="relative shrink-0">
-          {player.profile?.avatar_url ? (
-            <Image
-              src={player.profile.avatar_url}
-              alt={playerName}
-              width={240}
-              height={240}
-              className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl border-2 border-[var(--color-border)] shadow-lg object-cover"
-            />
-          ) : (
-            <div
-              className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl flex items-center justify-center text-6xl md:text-7xl font-black border-2 shadow-lg"
-              style={{
-                backgroundColor: `color-mix(in srgb, ${teamColor} 20%, var(--color-surface))`,
-                borderColor: `color-mix(in srgb, ${teamColor} 40%, var(--color-border))`,
-                color: teamColor,
-              }}
-            >
-              {playerName.charAt(0)}
-            </div>
-          )}
+          <Image
+            src={player.profile?.avatar_url || '/blank_player.png'}
+            alt={playerName}
+            width={240}
+            height={240}
+            className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl border-2 border-[var(--color-border)] shadow-lg object-cover"
+          />
 
           {/* Jersey number badge */}
           {player.jersey_number && (

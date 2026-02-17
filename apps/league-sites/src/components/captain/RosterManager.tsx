@@ -389,19 +389,13 @@ function EditableRosterRow({
         {/* Player name */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
-            {player.profile?.avatar_url ? (
-              <Image
-                src={player.profile.avatar_url}
-                alt={name}
-                width={36}
-                height={36}
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center">
-                <User className="w-4 h-4 text-[var(--color-text-muted)]" />
-              </div>
-            )}
+            <Image
+              src={player.profile?.avatar_url || '/blank_player.png'}
+              alt={name}
+              width={36}
+              height={36}
+              className="rounded-full object-cover"
+            />
             <span className="font-medium text-[var(--color-text-primary)]">{name}</span>
           </div>
         </td>

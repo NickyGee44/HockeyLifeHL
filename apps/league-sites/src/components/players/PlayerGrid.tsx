@@ -69,20 +69,12 @@ function PlayerCard({
     >
       {/* Avatar */}
       <div className="aspect-square relative bg-[var(--color-surface-hover)]">
-        {player.profile?.avatar_url ? (
-          <Image
-            src={player.profile.avatar_url}
-            alt={name}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-3xl font-bold text-[var(--color-text-muted)]">
-              {initials}
-            </span>
-          </div>
-        )}
+        <Image
+          src={player.profile?.avatar_url || '/blank_player.png'}
+          alt={name}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
+        />
 
         {/* Jersey Number Badge */}
         {player.jersey_number && (

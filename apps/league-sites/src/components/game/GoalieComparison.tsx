@@ -144,21 +144,12 @@ function GoalieCard({ goalie, color, align }: GoalieCardProps) {
         className={`flex items-center gap-3 mb-2 ${isLeft ? '' : 'flex-row-reverse'}`}
       >
         {/* Avatar */}
-        {goalie.avatar_url ? (
-          <img
-            src={goalie.avatar_url}
-            alt={goalie.player_name}
-            className="w-14 h-14 rounded-full object-cover border-2 flex-shrink-0"
-            style={{ borderColor: color }}
-          />
-        ) : (
-          <div
-            className="w-14 h-14 rounded-full flex items-center justify-center text-base font-bold text-white flex-shrink-0"
-            style={{ backgroundColor: color }}
-          >
-            {goalie.player_name.charAt(0)}
-          </div>
-        )}
+        <img
+          src={goalie.avatar_url || '/blank_player.png'}
+          alt={goalie.player_name}
+          className="w-14 h-14 rounded-full object-cover border-2 flex-shrink-0"
+          style={{ borderColor: color }}
+        />
         <div className={`${isLeft ? '' : 'text-right'}`}>
           <div className="flex items-center gap-2">
             {!isLeft && goalie.jersey_number && (
