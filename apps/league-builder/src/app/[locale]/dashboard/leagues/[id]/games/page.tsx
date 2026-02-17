@@ -1,33 +1,39 @@
 /**
- * League Games Page
+ * Completed Games Page
  *
- * Displays all games for a league with filtering, bulk actions, and management.
+ * Hub for managing completed games, penalties, suspensions, and referee notes.
+ * Replaces the old "Standings" nav item with a more comprehensive view.
  * Requires owner or admin role on the league.
  */
 
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getGames, getTeamsForLeague, getSeasonsForLeague } from '@/lib/actions/games';
-import { GamesListClient } from '@/components/games';
+import { CompletedGamesTabs } from '@/components/games';
 import { cn } from '@hockey-life/ui';
-import { ArrowLeft, Calendar, Plus } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Plus } from 'lucide-react';
 
-export const metadata = {
-  title: 'Games | Beer League Hockey',
-  description: 'Manage games for your league',
-};
+export async function generateMetadata({ params }: Props) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'completedGames' });
+  return {
+    title: `${t('pageTitle')} | Beer League Hockey`,
+    description: t('pageDescription'),
+  };
+}
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
   searchParams?: Promise<{ [key: string]: string }>;
 };
 
-export default async function LeagueGamesPage({ params }: Props) {
+export default async function CompletedGamesPage({ params }: Props) {
   const awaited = await params;
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'completedGames' });
 
   // Check authentication
   const supabase = await createClient();
@@ -74,16 +80,115 @@ export default async function LeagueGamesPage({ params }: Props) {
     nextRedirect(`/${locale}/dashboard?error=unauthorized`);
   }
 
-  // Fetch initial data
-  const [gamesResult, teamsResult, seasonsResult] = await Promise.all([
-    getGames(leagueId),
-    getTeamsForLeague(leagueId),
-    getSeasonsForLeague(leagueId),
-  ]);
+  // Fetch all data in parallel
+  const [gamesResult, teamsResult, seasonsResult, suspensionsResult, penaltiesResult, refereeNotesResult] =
+    await Promise.all([
+      getGames(leagueId),
+      getTeamsForLeague(leagueId),
+      getSeasonsForLeague(leagueId),
+      // Suspensions for this league
+      supabase
+        .from('suspensions')
+        .select(`
+          id,
+          reason,
+          games_remaining,
+          start_date,
+          end_date,
+          status,
+          player:profiles!suspensions_player_id_fkey(full_name),
+          team:teams!suspensions_team_id_fkey(name)
+        `)
+        .eq('league_id', leagueId)
+        .order('start_date', { ascending: false })
+        .limit(100),
+      // Penalties from game_events where event_type = 'penalty'
+      supabase
+        .from('game_events')
+        .select(`
+          id,
+          penalty_type,
+          penalty_severity,
+          penalty_minutes,
+          period,
+          player:profiles!game_events_player_id_fkey(full_name),
+          team:teams!game_events_team_id_fkey(name),
+          game:games!game_events_game_id_fkey(
+            scheduled_at,
+            home_team:teams!games_home_team_id_fkey(short_name),
+            away_team:teams!games_away_team_id_fkey(short_name)
+          )
+        `)
+        .eq('league_id', leagueId)
+        .eq('event_type', 'penalty')
+        .is('deleted_at', null)
+        .order('entered_at', { ascending: false })
+        .limit(100),
+      // Referee/scorekeeper notes from completed games
+      supabase
+        .from('games')
+        .select(`
+          id,
+          scheduled_at,
+          scorekeeper_notes,
+          home_team:teams!games_home_team_id_fkey(short_name),
+          away_team:teams!games_away_team_id_fkey(short_name)
+        `)
+        .eq('league_id', leagueId)
+        .eq('status', 'completed')
+        .not('scorekeeper_notes', 'is', null)
+        .neq('scorekeeper_notes', '')
+        .order('scheduled_at', { ascending: false })
+        .limit(50),
+    ]);
 
   const games = gamesResult.success ? gamesResult.data.games : [];
   const teams = teamsResult.success ? teamsResult.data : [];
   const seasons = seasonsResult.success ? seasonsResult.data : [];
+
+  // Transform suspensions
+  const suspensions = (suspensionsResult.data || []).map((s) => ({
+    id: s.id,
+    player_name: (s.player as { full_name: string } | null)?.full_name || 'Unknown Player',
+    team_name: (s.team as { name: string } | null)?.name || 'Unknown Team',
+    reason: s.reason,
+    games_remaining: s.games_remaining,
+    start_date: s.start_date,
+    end_date: s.end_date,
+    status: s.status,
+  }));
+
+  // Transform penalties
+  const penalties = (penaltiesResult.data || []).map((p) => {
+    const game = p.game as { scheduled_at: string; home_team: { short_name: string | null } | null; away_team: { short_name: string | null } | null } | null;
+    return {
+      id: p.id,
+      player_name: (p.player as { full_name: string } | null)?.full_name || 'Unknown Player',
+      team_name: (p.team as { name: string } | null)?.name || 'Unknown Team',
+      penalty_type: p.penalty_type || 'Unknown',
+      penalty_severity: p.penalty_severity,
+      penalty_minutes: p.penalty_minutes || 0,
+      period: p.period,
+      game_date: game?.scheduled_at
+        ? new Date(game.scheduled_at).toLocaleDateString()
+        : '',
+      game_label: game
+        ? `${game.home_team?.short_name || '?'} vs ${game.away_team?.short_name || '?'}`
+        : 'Unknown Game',
+    };
+  });
+
+  // Transform referee notes
+  const refereeNotes = (refereeNotesResult.data || []).map((g) => ({
+    game_id: g.id,
+    game_label: `${(g.home_team as { short_name: string | null } | null)?.short_name || '?'} vs ${(g.away_team as { short_name: string | null } | null)?.short_name || '?'}`,
+    game_date: new Date(g.scheduled_at).toLocaleDateString(),
+    scorekeeper_notes: g.scorekeeper_notes!,
+  }));
+
+  const completedCount = games.filter((g) => g.status === 'completed').length;
+  const scheduledCount = games.filter((g) => g.status === 'scheduled').length;
+  const cancelledCount = games.filter((g) => g.status === 'cancelled' || g.status === 'postponed').length;
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -95,7 +200,7 @@ export default async function LeagueGamesPage({ params }: Props) {
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to {league.name}
+            {t('backToLeague', { leagueName: league.name })}
           </Link>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -104,10 +209,12 @@ export default async function LeagueGamesPage({ params }: Props) {
                 className="w-12 h-12 rounded-xl flex items-center justify-center"
                 style={{ backgroundColor: league.primary_color || '#22D3EE' }}
               >
-                <Calendar className="w-6 h-6 text-white" />
+                <CheckCircle2 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-white tracking-tight">Games</h1>
+                <h1 className="text-2xl font-black text-white tracking-tight">
+                  {t('pageTitle')}
+                </h1>
                 <p className="text-neutral-400">{league.name}</p>
               </div>
             </div>
@@ -121,41 +228,28 @@ export default async function LeagueGamesPage({ params }: Props) {
               )}
             >
               <Plus className="w-4 h-4" />
-              Schedule Games
+              {t('scheduleGames')}
             </Link>
           </div>
         </div>
 
         {/* Stats Summary */}
         <div className="grid gap-4 md:grid-cols-4 mb-8">
-          <StatCard
-            label="Total Games"
-            value={games.length}
-            color="gold"
-          />
-          <StatCard
-            label="Scheduled"
-            value={games.filter((g) => g.status === 'scheduled').length}
-            color="blue"
-          />
-          <StatCard
-            label="Completed"
-            value={games.filter((g) => g.status === 'completed').length}
-            color="green"
-          />
-          <StatCard
-            label="Cancelled/Postponed"
-            value={games.filter((g) => g.status === 'cancelled' || g.status === 'postponed').length}
-            color="red"
-          />
+          <StatCard label={t('stats.totalGames')} value={games.length} color="gold" />
+          <StatCard label={t('stats.scheduled')} value={scheduledCount} color="blue" />
+          <StatCard label={t('stats.completed')} value={completedCount} color="green" />
+          <StatCard label={t('stats.cancelledPostponed')} value={cancelledCount} color="red" />
         </div>
 
-        {/* Games List */}
-        <GamesListClient
+        {/* Tabbed Content */}
+        <CompletedGamesTabs
           leagueId={leagueId}
           initialGames={games}
           initialTeams={teams}
           initialSeasons={seasons}
+          suspensions={suspensions}
+          penalties={penalties}
+          refereeNotes={refereeNotes}
         />
       </div>
     </div>

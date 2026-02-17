@@ -368,6 +368,17 @@ export function ScheduleConfigStep({
         </select>
       </div>
 
+      {/* Constraints Hint */}
+      <div className="flex items-start gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+        <div className="text-sm text-blue-300">
+          <p className="font-medium text-blue-200">Venue availability &amp; constraints</p>
+          <p className="mt-1">
+            Venue availability windows, blackout dates, time restrictions, and team priority rules can be configured in the next step.
+          </p>
+        </div>
+      </div>
+
       {/* Advanced Options */}
       <div className="space-y-4">
         <h3 className="text-sm font-medium text-neutral-300">Advanced Options</h3>

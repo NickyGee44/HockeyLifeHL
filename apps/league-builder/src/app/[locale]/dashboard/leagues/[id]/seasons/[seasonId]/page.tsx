@@ -218,10 +218,10 @@ export default async function SeasonDetailPage({ params }: Props) {
             }
           />
           <ActionCard
-            href={`/${locale}/dashboard/seasons/${seasonId}/standings`}
+            href={`/${locale}/dashboard/leagues/${leagueId}/games`}
             icon={<Trophy className="w-6 h-6" />}
-            title="Standings"
-            description="View team standings and statistics"
+            title="Completed Games"
+            description="View completed games, penalties, suspensions, and referee notes"
           />
           <ActionCard
             href={`/${locale}/dashboard/leagues/${leagueId}/registrations`}

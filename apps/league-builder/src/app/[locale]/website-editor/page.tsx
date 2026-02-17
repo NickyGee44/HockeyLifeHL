@@ -1,5 +1,5 @@
 import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
-import { getOrganizationLeagues } from '@/lib/actions/organization';
+import { getOrganizationLeagues, getUserLeaguesViaMembership } from '@/lib/actions/organization';
 import { redirect } from '@/i18n/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { WebsiteEditorClient } from '@/components/website-editor/WebsiteEditorClient';
@@ -14,10 +14,12 @@ export const metadata = {
 
 type Props = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ league?: string }>;
 };
 
-export default async function WebsiteEditorPage({ params }: Props) {
+export default async function WebsiteEditorPage({ params, searchParams }: Props) {
   const { locale } = await params;
+  const { league: leagueIdParam } = await searchParams;
   setRequestLocale(locale);
 
   const userData = await getCurrentUser();
@@ -30,28 +32,38 @@ export default async function WebsiteEditorPage({ params }: Props) {
   const organizations = await getUserOrganizations();
   const organization = organizations[0];
 
-  if (!organization) {
-    redirect({ href: '/dashboard', locale });
-    return null;
+  let leagues: LeagueEditorData[] = [];
+
+  if (organization) {
+    const leaguesResult = await getOrganizationLeagues(organization.id);
+    leagues = (leaguesResult.success ? (leaguesResult.data || []) : []) as LeagueEditorData[];
   }
 
-  // Get leagues for this organization (cast to LeagueEditorData for the editor)
-  const leaguesResult = await getOrganizationLeagues(organization.id);
-  const leagues = (leaguesResult.success ? leaguesResult.data : []) as LeagueEditorData[];
+  // Fallback: fetch via league_memberships if no org-linked leagues
+  if (leagues.length === 0) {
+    const membershipResult = await getUserLeaguesViaMembership();
+    leagues = (membershipResult.success ? (membershipResult.data || []) : []) as LeagueEditorData[];
+  }
 
-  if (!leagues || leagues.length === 0) {
+  if (leagues.length === 0) {
     redirect({ href: '/dashboard/leagues/new', locale });
     return null;
   }
+
+  // Respect the ?league= query param from sidebar navigation
+  const initialLeagueId = leagueIdParam && leagues.some((l) => l.id === leagueIdParam)
+    ? leagueIdParam
+    : leagues[0].id;
 
   // Get the platform 2 base URL for preview
   const previewBaseUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL || 'http://localhost:3001';
 
   return (
     <WebsiteEditorClient
-      organizationId={organization.id}
+      organizationId={organization?.id ?? ''}
       leagues={leagues}
       previewBaseUrl={previewBaseUrl}
+      initialLeagueId={initialLeagueId}
     />
   );
 }

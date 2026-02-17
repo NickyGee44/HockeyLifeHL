@@ -137,10 +137,12 @@ interface EditorProviderProps {
   organizationId: string;
   leagues: LeagueEditorData[];
   previewBaseUrl: string;
+  initialLeagueId?: string;
 }
 
-export function EditorProvider({ children, organizationId, leagues, previewBaseUrl }: EditorProviderProps) {
-  const initial = leagueToState(leagues[0], leagues);
+export function EditorProvider({ children, organizationId, leagues, previewBaseUrl, initialLeagueId }: EditorProviderProps) {
+  const initialLeague = (initialLeagueId && leagues.find((l) => l.id === initialLeagueId)) || leagues[0];
+  const initial = leagueToState(initialLeague, leagues);
   const [state, dispatch] = useReducer(editorReducer, initial);
   const snapshot = useRef<EditorState | null>(initial);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);

@@ -18,6 +18,7 @@ import {
   Image,
   Palette,
   Trophy,
+  CheckCircle2,
   ClipboardCheck,
   Dices,
   Settings,
@@ -57,7 +58,7 @@ export function MobileBottomNav() {
 
   const moreItems = [
     ...(hasLeague ? [
-      { label: t('standings'), href: `${leagueBase}/games`, icon: Trophy },
+      { label: t('completedGames'), href: `${leagueBase}/games`, icon: CheckCircle2 },
       { label: t('registration'), href: `${leagueBase}/registrations`, icon: ClipboardCheck },
       { label: t('staff'), href: `${leagueBase}/staff`, icon: User },
       { label: t('draftRoom'), href: `${leagueBase}/draft`, icon: Dices },

@@ -24,6 +24,7 @@ interface WebsiteEditorClientProps {
   organizationId: string;
   leagues: LeagueEditorData[];
   previewBaseUrl: string;
+  initialLeagueId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,12 +78,14 @@ export function WebsiteEditorClient({
   organizationId,
   leagues,
   previewBaseUrl,
+  initialLeagueId,
 }: WebsiteEditorClientProps) {
   return (
     <EditorProvider
       organizationId={organizationId}
       leagues={leagues}
       previewBaseUrl={previewBaseUrl}
+      initialLeagueId={initialLeagueId}
     >
       <EditorShell />
     </EditorProvider>

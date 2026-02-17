@@ -8,3 +8,4 @@ export { GameFilters } from './game-filters';
 export { BulkActionsBar } from './bulk-actions-bar';
 export { GamesListClient } from './games-list-client';
 export { StatCorrectionModal } from './stat-correction-modal';
+export { CompletedGamesTabs } from './completed-games-tabs';

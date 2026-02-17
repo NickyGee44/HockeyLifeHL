@@ -25,6 +25,7 @@ import {
   Star,
   Award,
   Image,
+  CheckCircle2,
 } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { signOut } from '@/lib/actions/auth';
@@ -150,8 +151,8 @@ export default function HierarchicalSidebar({
             />
             <NavLink
               href={`${leagueBase}/games`}
-              icon={Trophy}
-              label={t('standings')}
+              icon={CheckCircle2}
+              label={t('completedGames')}
               isActive={isPathActive(`${leagueBase}/games`) || pathname.includes('/standings')}
               collapsed={sidebarCollapsed}
             />

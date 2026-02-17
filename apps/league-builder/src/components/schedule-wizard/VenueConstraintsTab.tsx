@@ -175,9 +175,12 @@ export function VenueConstraintsTab({
 
       {/* Max Games Per Venue */}
       <div className="bg-neutral-800/50 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-white mb-3">Maximum Games Per Venue Per Day</h4>
+        <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-rink-500" />
+          Maximum Games Per Venue Per Day
+        </h4>
         <p className="text-sm text-neutral-400 mb-3">
-          Limit how many games can be scheduled at a single venue on the same day.
+          Maximum number of games that can be scheduled at a single venue on the same day. This applies across all time slots.
         </p>
         <div className="flex items-center gap-3">
           <input
@@ -260,8 +263,12 @@ export function VenueConstraintsTab({
                         />
 
                         <div className="flex items-center gap-2 ml-auto">
-                          <label className="flex items-center gap-1 text-sm text-neutral-400">
-                            <span>Max:</span>
+                          <label
+                            className="flex items-center gap-1 text-sm text-neutral-400"
+                            title="Maximum number of games allowed in this time slot"
+                          >
+                            <span className="hidden sm:inline">Max games:</span>
+                            <span className="sm:hidden">Max:</span>
                             <input
                               type="number"
                               min={1}

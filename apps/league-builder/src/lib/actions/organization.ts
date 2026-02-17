@@ -377,12 +377,11 @@ export async function getOrganizationLeagues(organizationId: string) {
       return { error: 'Not authorized' };
     }
 
-    // Get leagues for this organization
+    // Get leagues for this organization (include all statuses — callers need drafts too)
     const { data: leagues, error: leaguesError } = await supabase
       .from('leagues')
       .select('id, name, slug, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings')
       .eq('organization_id', organizationId)
-      .neq('status', 'draft')
       .order('name');
 
     if (leaguesError) {
@@ -396,6 +395,45 @@ export async function getOrganizationLeagues(organizationId: string) {
   } catch (error) {
     if (isDevelopment) {
       console.error('Error in getOrganizationLeagues:', error);
+    }
+    return { error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Fetch leagues the user owns/admins via league_memberships.
+ * Used as a fallback when no leagues are linked via organization_id.
+ */
+export async function getUserLeaguesViaMembership() {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    const { data: memberships, error: membershipError } = await supabase
+      .from('league_memberships')
+      .select('league:leagues(id, name, slug, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings)')
+      .eq('user_id', user.id)
+      .in('role', ['owner', 'admin']);
+
+    if (membershipError) {
+      if (isDevelopment) {
+        console.error('Error fetching leagues via membership:', membershipError);
+      }
+      return { error: 'Failed to fetch leagues' };
+    }
+
+    const leagues = (memberships || [])
+      .map((m: any) => m.league)
+      .filter((l: any): l is NonNullable<typeof l> => l != null);
+
+    return { success: true, data: leagues };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Error in getUserLeaguesViaMembership:', error);
     }
     return { error: 'An unexpected error occurred' };
   }
