@@ -10,7 +10,6 @@ import {
   Palette,
   Shield,
   Bell,
-  Sparkles,
   Globe,
 } from 'lucide-react';
 
@@ -34,15 +33,9 @@ const settingsNav = [
     icon: Globe,
   },
   {
-    name: 'Subscription',
-    href: '/dashboard/settings/subscription',
-    description: 'Plan, usage, and upgrades',
-    icon: Sparkles,
-  },
-  {
-    name: 'Billing',
+    name: 'Billing & Subscriptions',
     href: '/dashboard/settings/billing',
-    description: 'Payment methods and invoices',
+    description: 'Plan, add-ons, and payment processing',
     icon: CreditCard,
   },
   {

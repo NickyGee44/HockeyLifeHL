@@ -49,8 +49,8 @@ export function PremiumUpgradeCard({
   async function handleUpgrade() {
     setLoading(true);
     try {
-      const successUrl = `${window.location.origin}/dashboard/settings/subscription?addon_activated=platform_subscription`;
-      const cancelUrl = `${window.location.origin}/dashboard/settings/subscription?checkout=cancelled`;
+      const successUrl = `${window.location.origin}/dashboard/settings/billing?addon_activated=platform_subscription`;
+      const cancelUrl = `${window.location.origin}/dashboard/settings/billing?checkout=cancelled`;
 
       const result = await createAddonCheckout(orgId, 'platform_subscription', successUrl, cancelUrl);
       if (result.success) {

@@ -90,10 +90,10 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       icon: 'Bell',
       href: `/${locale}/dashboard/settings/notifications` },
     {
-      title: 'Subscription',
-      description: 'Premium add-ons and billing management',
+      title: 'Billing & Subscriptions',
+      description: 'Plan, add-ons, and payment processing',
       icon: 'Receipt',
-      href: `/${locale}/dashboard/settings/subscription` },
+      href: `/${locale}/dashboard/settings/billing` },
     {
       title: 'Privacy',
       description: 'Data privacy and visibility settings',

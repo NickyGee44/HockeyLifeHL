@@ -195,7 +195,11 @@
     "createLeague": "Creer une ligue",
     "searchPlaceholder": "Rechercher...",
     "close": "Fermer",
-    "menu": "Menu"
+    "menu": "Menu",
+    "sectionLeague": "Gestion de la ligue",
+    "sectionContent": "Contenu",
+    "sectionSettings": "Parametres et compte",
+    "myTeams": "Mes equipes"
   },
   "commandPalette": {
     "searchPlaceholder": "Rechercher des pages et actions...",

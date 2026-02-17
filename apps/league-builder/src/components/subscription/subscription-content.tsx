@@ -92,12 +92,12 @@ export function SubscriptionContent({
       checkoutHandled.current = true;
       toast.success(t('subscriptionActivated'), {
         description: t('subscriptionActivatedDesc') });
-      router.replace('/dashboard/settings/subscription');
+      router.replace('/dashboard/settings/billing');
     } else if (checkoutStatus === 'cancelled') {
       checkoutHandled.current = true;
       toast.info(t('checkoutCancelled'), {
         description: t('checkoutCancelledDesc') });
-      router.replace('/dashboard/settings/subscription');
+      router.replace('/dashboard/settings/billing');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- t excluded to prevent infinite re-render loop
   }, [checkoutStatus, router]);
@@ -109,7 +109,7 @@ export function SubscriptionContent({
       addonHandled.current = true;
       toast.success(t('addonActivated', { name: tAddonConfig(`${addonActivated}.name`) }), {
         description: t('addonActivatedDesc') });
-      router.replace('/dashboard/settings/subscription');
+      router.replace('/dashboard/settings/billing');
       loadData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- t, tAddonConfig, loadData excluded to prevent infinite re-render loop

@@ -53,7 +53,7 @@ export function SubscriptionOverview({ platformFeePercent = 2.99 }: Subscription
   async function handleManageBilling() {
     setRedirecting(true);
 
-    const returnUrl = `${window.location.origin}/dashboard/settings/subscription`;
+    const returnUrl = `${window.location.origin}/dashboard/settings/billing`;
     const result = await createBillingPortalSession(returnUrl);
 
     if (result.success) {

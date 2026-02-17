@@ -132,9 +132,10 @@ export default function HierarchicalSidebar({
           collapsed={sidebarCollapsed}
         />
 
-        {/* League-scoped nav — only show when a league is selected */}
+        {/* League Management — core league operations */}
         {selected.leagueId && (
           <>
+            <SectionLabel label={t('sectionLeague')} collapsed={sidebarCollapsed} />
             <NavLink
               href={`${leagueBase}/schedule`}
               icon={Calendar}
@@ -170,11 +171,6 @@ export default function HierarchicalSidebar({
               isActive={isPathActive(`${leagueBase}/staff`)}
               collapsed={sidebarCollapsed}
             />
-
-            {/* Divider */}
-            <div className="my-4 border-t border-white/[0.06]" />
-
-            {/* Secondary nav */}
             {hasDraft && (
               <NavLink
                 href={`${leagueBase}/draft`}
@@ -184,6 +180,9 @@ export default function HierarchicalSidebar({
                 collapsed={sidebarCollapsed}
               />
             )}
+
+            {/* Content — news, media, and presentation */}
+            <SectionLabel label={t('sectionContent')} collapsed={sidebarCollapsed} />
             <NavLink
               href={`${leagueBase}/news`}
               icon={Newspaper}
@@ -230,7 +229,7 @@ export default function HierarchicalSidebar({
             {!sidebarCollapsed && (
               <div className="px-3 mb-2">
                 <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  My Teams
+                  {t('myTeams')}
                 </span>
               </div>
             )}
@@ -285,10 +284,8 @@ export default function HierarchicalSidebar({
           </>
         )}
 
-        {/* Divider */}
-        <div className="my-4 border-t border-white/[0.06]" />
-
-        {/* Settings & Actions */}
+        {/* Settings & Account */}
+        <SectionLabel label={t('sectionSettings')} collapsed={sidebarCollapsed} />
         <NavLink
           href="/dashboard/settings"
           icon={Settings}
@@ -343,6 +340,20 @@ export default function HierarchicalSidebar({
         </form>
       </div>
     </aside>
+  );
+}
+
+// Section label for grouping nav items
+function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  if (collapsed) {
+    return <div className="my-3 mx-3 border-t border-white/[0.06]" />;
+  }
+  return (
+    <div className="mt-5 mb-2 px-3">
+      <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+        {label}
+      </span>
+    </div>
   );
 }
 

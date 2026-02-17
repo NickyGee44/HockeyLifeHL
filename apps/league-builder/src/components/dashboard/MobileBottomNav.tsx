@@ -56,18 +56,23 @@ export function MobileBottomNav() {
     { label: t('profile'), href: '/dashboard/settings', icon: User },
   ];
 
-  const moreItems = [
-    ...(hasLeague ? [
-      { label: t('completedGames'), href: `${leagueBase}/games`, icon: CheckCircle2 },
-      { label: t('registration'), href: `${leagueBase}/registrations`, icon: ClipboardCheck },
-      { label: t('staff'), href: `${leagueBase}/staff`, icon: User },
-      { label: t('draftRoom'), href: `${leagueBase}/draft`, icon: Dices },
-      { label: t('news'), href: `${leagueBase}/news`, icon: Newspaper },
-      { label: t('sponsors'), href: `${leagueBase}/sponsors`, icon: Star },
-      { label: t('awards'), href: `${leagueBase}/awards`, icon: Award },
-      { label: t('gallery'), href: `${leagueBase}/gallery`, icon: Image },
-      { label: t('websiteEditor'), href: `/website-editor?league=${selected.leagueId}`, icon: Palette },
-    ] : []),
+  // Grouped items for "More" drawer
+  const moreLeagueItems = hasLeague ? [
+    { label: t('completedGames'), href: `${leagueBase}/games`, icon: CheckCircle2 },
+    { label: t('registration'), href: `${leagueBase}/registrations`, icon: ClipboardCheck },
+    { label: t('staff'), href: `${leagueBase}/staff`, icon: User },
+    { label: t('draftRoom'), href: `${leagueBase}/draft`, icon: Dices },
+  ] : [];
+
+  const moreContentItems = hasLeague ? [
+    { label: t('news'), href: `${leagueBase}/news`, icon: Newspaper },
+    { label: t('sponsors'), href: `${leagueBase}/sponsors`, icon: Star },
+    { label: t('awards'), href: `${leagueBase}/awards`, icon: Award },
+    { label: t('gallery'), href: `${leagueBase}/gallery`, icon: Image },
+    { label: t('websiteEditor'), href: `/website-editor?league=${selected.leagueId}`, icon: Palette },
+  ] : [];
+
+  const moreSettingsItems = [
     { label: t('settings'), href: '/dashboard/settings', icon: Settings },
     { label: t('billing'), href: '/dashboard/settings/billing', icon: CreditCard },
   ];
@@ -100,26 +105,89 @@ export function MobileBottomNav() {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <nav className="grid grid-cols-3 gap-1 p-3 max-h-[60vh] overflow-y-auto">
-          {moreItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={toggleMobileMore}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors',
-                  active
-                    ? 'bg-rink-500/10 text-rink-500'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="p-3 max-h-[60vh] overflow-y-auto space-y-3">
+          {moreLeagueItems.length > 0 && (
+            <div>
+              <p className="px-2 pb-1.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                {t('sectionLeague')}
+              </p>
+              <div className="grid grid-cols-3 gap-1">
+                {moreLeagueItems.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={toggleMobileMore}
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors',
+                        active
+                          ? 'bg-rink-500/10 text-rink-500'
+                          : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                      )}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {moreContentItems.length > 0 && (
+            <div>
+              <p className="px-2 pb-1.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                {t('sectionContent')}
+              </p>
+              <div className="grid grid-cols-3 gap-1">
+                {moreContentItems.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={toggleMobileMore}
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors',
+                        active
+                          ? 'bg-rink-500/10 text-rink-500'
+                          : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                      )}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div>
+            <p className="px-2 pb-1.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+              {t('sectionSettings')}
+            </p>
+            <div className="grid grid-cols-3 gap-1">
+              {moreSettingsItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={toggleMobileMore}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors',
+                      active
+                        ? 'bg-rink-500/10 text-rink-500'
+                        : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                    )}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </nav>
       </div>
 

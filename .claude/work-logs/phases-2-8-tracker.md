@@ -11,10 +11,10 @@
 | 2 | Schedule Generation Overhaul | COMPLETED |
 | 3 | Playoff & Division Management | COMPLETED |
 | 4 | Staff Roles & Game Officials | COMPLETED |
-| 5 | News & AI Articles | IN PROGRESS |
-| 6 | Awards & Suspensions | PENDING |
-| 7 | Billing & Pricing Restructure | PENDING |
-| 8 | Navigation & Hierarchy Cleanup | PENDING |
+| 5 | News & AI Articles | COMPLETED |
+| 6 | Awards & Suspensions | COMPLETED |
+| 7 | Billing & Pricing Restructure | IN PROGRESS |
+| 8 | Navigation & Hierarchy Cleanup | IN PROGRESS |
 
 ---
 
@@ -42,39 +42,39 @@
 | ID | Task | Agent | Status | Notes |
 |----|------|-------|--------|-------|
 | 4A | Expand Staff Roles | staff-roles | COMPLETED | 8 standard roles with color badges, role dropdown, filter, hydration-safe Select |
-| 4B | Referee System | referee-sys | COMPLETED | referee-management.ts actions + 5 referee components (card, list, assign modal, management client) using game_officials table |
-| 4C | Scorekeeper & Referee Dashboard | staff-dash | COMPLETED | StaffDashboardPanel with mini calendar, assignment list, stats — integrated on dashboard page |
-| 4D | Staff Addition from Multiple Contexts | quick-staff | COMPLETED | QuickAddStaffModal with defaultRole prop, available from staff page + schedule |
+| 4B | Referee System | referee-sys | COMPLETED | referee-management.ts actions + 5 referee components using game_officials table |
+| 4C | Scorekeeper & Referee Dashboard | staff-dash | COMPLETED | StaffDashboardPanel with mini calendar, assignment list, stats |
+| 4D | Staff Addition from Multiple Contexts | quick-staff | COMPLETED | QuickAddStaffModal with defaultRole prop |
 
 ## Phase 5: News & AI Articles
 
 | ID | Task | Agent | Status | Notes |
 |----|------|-------|--------|-------|
-| 5A | AI Article Generation | TBD | PENDING | Claude API integration |
-| 5B | Smart Entity Linking | TBD | PENDING | Auto-link teams/players |
+| 5A | AI Article Generation | ai-article | COMPLETED | /api/ai/generate-article route, Claude API integration, prompt UI on new article page |
+| 5B | Smart Entity Linking | lead | COMPLETED | entity-linker.ts utility + entity-linking.ts server action, team/player markdown links |
 
 ## Phase 6: Awards & Suspensions
 
 | ID | Task | Agent | Status | Notes |
 |----|------|-------|--------|-------|
-| 6A | Awards — Player Voting | TBD | PENDING | Voting system |
-| 6B | Awards — Profile Persistence | TBD | PENDING | Player profile display |
-| 6C | Suspension Notifications | TBD | PENDING | Email + in-app |
+| 6A | Awards — Player Voting | awards-agent | COMPLETED | Winner selection UI, category styling, past winners tab, getLeaguePlayersForSeason |
+| 6B | Awards — Profile Persistence | awards-agent | COMPLETED | AwardBadges component (compact + full modes), getPlayerAwards action |
+| 6C | Suspension Notifications | suspension-agent | COMPLETED | suspension-issued email template, sendSuspensionNotification, fire-and-forget integration |
 
 ## Phase 7: Billing & Pricing Restructure
 
 | ID | Task | Agent | Status | Notes |
 |----|------|-------|--------|-------|
-| 7A | New Pricing Tiers ($199/$299) | TBD | PENDING | Define later |
-| 7B | Merge Subscription + Billing Tabs | TBD | PENDING | UI consolidation |
-| 7C | Remove Redundant Team Members | TBD | PENDING | Evaluate and merge |
+| 7A | New Pricing Tiers ($199/$299) | — | SKIPPED | User said "Define later" |
+| 7B | Merge Subscription + Billing Tabs | billing-agent | IN PROGRESS | Consolidating into single /settings/billing |
+| 7C | Remove Redundant Team Members | billing-agent | IN PROGRESS | Evaluating /settings/members |
 
 ## Phase 8: Navigation & Hierarchy Cleanup
 
 | ID | Task | Agent | Status | Notes |
 |----|------|-------|--------|-------|
-| 8A | Consistent Terminology | TBD | PENDING | Org → League → Season |
-| 8B | League Builder Structure Review | TBD | PENDING | IA audit + consolidation |
+| 8A | Consistent Terminology | nav-agent | IN PROGRESS | Org → League → Season audit |
+| 8B | League Builder Structure Review | nav-agent | IN PROGRESS | Sidebar grouping + consolidation |
 
 ---
 
@@ -95,6 +95,14 @@
 - Pushed to main + production
 
 ### 2026-02-17 — Phase 4 Complete
-- All 4 tasks done
+- All 4 tasks done (commit 58295d8)
 - Staff roles expansion, referee system, staff dashboard, quick-add modal
-- Session crashed mid-phase but all code was written; recovered and committed
+- Pushed to main + production
+
+### 2026-02-17 — Phase 5+6 Complete
+- All 5 tasks done (commit 769a5d9)
+- AI article generation, entity linking, awards voting, award badges, suspension notifications
+- Pushed to main + production
+
+### 2026-02-17 — Phase 7+8 In Progress
+- Billing merge + nav cleanup agents running

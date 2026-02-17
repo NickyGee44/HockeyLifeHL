@@ -131,7 +131,7 @@ function getEmailLayout(content: string): string {
     </div>
     <div class="footer">
       <p>© ${new Date().getFullYear()} Beer League Hockey. All rights reserved.</p>
-      <p><a href="${SITE_URL}/settings/subscription">Manage Subscription</a> | <a href="${SITE_URL}/support">Contact Support</a></p>
+      <p><a href="${SITE_URL}/settings/billing">Manage Subscription</a> | <a href="${SITE_URL}/support">Contact Support</a></p>
     </div>
   </div>
 </body>
@@ -213,7 +213,7 @@ export async function sendTrialEndingEmail(params: {
     <h2>Make sure your payment method is ready</h2>
     <p>To continue enjoying Beer League Hockey without interruption, please ensure you have a valid payment method on file.</p>
 
-    <a href="${SITE_URL}/dashboard/settings/subscription" class="button">Manage Subscription</a>
+    <a href="${SITE_URL}/dashboard/settings/billing" class="button">Manage Subscription</a>
 
     <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
@@ -297,7 +297,7 @@ export async function sendPaymentFailedEmail(params: {
         : ''
     }
 
-    <a href="${SITE_URL}/dashboard/settings/subscription" class="button">Update Payment Method</a>
+    <a href="${SITE_URL}/dashboard/settings/billing" class="button">Update Payment Method</a>
 
     <p>If you believe this is an error, please contact your bank or our support team.</p>
     <p>Best regards,<br>The Beer League Hockey Team</p>
@@ -382,7 +382,7 @@ export async function sendSubscriptionDowngradedEmail(params: {
 
     <p><strong>Change your mind?</strong> You can cancel this downgrade anytime before ${effectiveDate.toLocaleDateString()}.</p>
 
-    <a href="${SITE_URL}/dashboard/settings/subscription" class="button">Manage Subscription</a>
+    <a href="${SITE_URL}/dashboard/settings/billing" class="button">Manage Subscription</a>
 
     <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
@@ -430,7 +430,7 @@ export async function sendSubscriptionCancelledEmail(params: {
         : ''
     }
 
-    <a href="${SITE_URL}/dashboard/settings/subscription" class="button">Manage Subscription</a>
+    <a href="${SITE_URL}/dashboard/settings/billing" class="button">Manage Subscription</a>
 
     <p>Best regards,<br>The Beer League Hockey Team</p>
   `;
