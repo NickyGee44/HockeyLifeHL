@@ -374,6 +374,7 @@ export function ScoringInterface({
         onPenalty={() => handleAction('penalty')}
         onShot={() => handleAction('shot')}
         disabled={!selectedTeam || game.status === 'completed'}
+        selectedTeamName={selectedTeam ? (selectedTeam === 'home' ? homeTeam.shortName || homeTeam.name : awayTeam.shortName || awayTeam.name) : null}
       />
 
       {/* Entry Modals */}

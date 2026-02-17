@@ -5,6 +5,7 @@ interface QuickActionBarProps {
   onPenalty: () => void;
   onShot: () => void;
   disabled?: boolean;
+  selectedTeamName?: string | null;
 }
 
 export function QuickActionBar({
@@ -12,9 +13,26 @@ export function QuickActionBar({
   onPenalty,
   onShot,
   disabled = false,
+  selectedTeamName,
 }: QuickActionBarProps) {
+  const noTeamSelected = disabled && !selectedTeamName;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-lg pb-safe">
+      {/* Prompt when no team selected */}
+      {noTeamSelected && (
+        <div className="text-center py-1.5 text-xs font-medium text-[var(--league-primary,#d4af37)] bg-[var(--league-primary,#d4af37)]/5 border-b border-[var(--color-border)] animate-pulse">
+          Tap a team above to start scoring
+        </div>
+      )}
+
+      {/* Selected team indicator */}
+      {selectedTeamName && (
+        <div className="text-center py-1 text-[11px] font-semibold text-[var(--league-primary,#d4af37)] bg-[var(--league-primary,#d4af37)]/5 border-b border-[var(--color-border)]">
+          Scoring for: {selectedTeamName}
+        </div>
+      )}
+
       <div className="flex items-stretch max-w-lg mx-auto">
         {/* Goal */}
         <button
