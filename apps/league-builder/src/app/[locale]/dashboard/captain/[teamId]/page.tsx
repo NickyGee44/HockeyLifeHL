@@ -166,6 +166,7 @@ export default async function CaptainDashboardPage({ params, searchParams }: Pro
           pendingRequestsCount={pending_requests_count}
           upcomingGames={upcoming_games}
           initialTab={currentTab}
+          seasonId={current_season?.id}
         />
       </div>
     </div>

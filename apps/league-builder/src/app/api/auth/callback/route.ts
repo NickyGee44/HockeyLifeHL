@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 /**
  * Auth Callback Route
@@ -88,6 +89,25 @@ export async function GET(request: NextRequest) {
           return NextResponse.redirect(new URL('/en/setup-organization', request.url));
         }
       }
+    }
+
+    // Check for legacy profile matches requiring disambiguation
+    try {
+      const serviceSupabase = createServiceRoleClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data: profile } = await serviceSupabase
+          .from('profiles')
+          .select('pending_legacy_match_ids')
+          .eq('id', authUser.id)
+          .single();
+        const matchIds = (profile as any)?.pending_legacy_match_ids as string[] | null;
+        if (Array.isArray(matchIds) && matchIds.length > 1) {
+          return NextResponse.redirect(new URL('/en/claim-history', request.url));
+        }
+      }
+    } catch {
+      // Non-blocking — proceed with normal redirect
     }
 
     return NextResponse.redirect(new URL(next, request.url));

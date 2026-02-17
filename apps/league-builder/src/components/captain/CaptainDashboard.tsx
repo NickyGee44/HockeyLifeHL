@@ -63,6 +63,7 @@ interface CaptainDashboardProps {
   pendingRequestsCount: number;
   upcomingGames: Game[];
   initialTab: string;
+  seasonId?: string;
 }
 
 export default function CaptainDashboard({
@@ -72,6 +73,7 @@ export default function CaptainDashboard({
   pendingRequestsCount,
   upcomingGames,
   initialTab,
+  seasonId,
 }: CaptainDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -244,7 +246,7 @@ export default function CaptainDashboard({
         );
 
       case 'roster':
-        return <CaptainRosterManager teamId={teamId} captainId={team.captain_id} />;
+        return <CaptainRosterManager teamId={teamId} captainId={team.captain_id} seasonId={seasonId} />;
 
       case 'requests':
         return <JoinRequestsManager teamId={teamId} />;

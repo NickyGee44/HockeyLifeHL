@@ -5,6 +5,7 @@ import { redirect } from '@/i18n/navigation';
 import { redirect as nextRedirect } from 'next/navigation';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { getLocale } from 'next-intl/server';
+import { checkLegacyMergeStatus } from './legacy-merge';
 
 // Password validation function
 function validatePassword(password: string): { valid: boolean; error?: string } {
@@ -195,8 +196,19 @@ export async function signUp(formData: FormData) {
       return { error: 'Account created but automatic sign-in failed. Please use the login page.' };
     }
 
-    // Redirect from server action to ensure cookies are set
+    // Check for legacy profile matches (trigger may have flagged pending matches)
     const locale = await getLocale();
+    try {
+      const legacyStatus = await checkLegacyMergeStatus();
+      if (legacyStatus.hasPendingMatches && legacyStatus.matchCount > 1) {
+        redirect({ href: '/claim-history', locale });
+      }
+    } catch (legacyError) {
+      if (isRedirectError(legacyError)) throw legacyError;
+      if (isDevelopment) console.error('[auth] Legacy merge check error:', legacyError);
+    }
+
+    // Redirect from server action to ensure cookies are set
     redirect({ href: '/dashboard', locale });
   } catch (error) {
     if (isRedirectError(error)) {
@@ -378,7 +390,18 @@ export async function completeOAuthSetup(formData: FormData) {
       return { error: 'Failed to create organization. Please try again.' };
     }
 
+    // Check for legacy profile matches
     const locale = await getLocale();
+    try {
+      const legacyStatus = await checkLegacyMergeStatus();
+      if (legacyStatus.hasPendingMatches && legacyStatus.matchCount > 1) {
+        redirect({ href: '/claim-history', locale });
+      }
+    } catch (legacyError) {
+      if (isRedirectError(legacyError)) throw legacyError;
+      if (isDevelopment) console.error('[auth] Legacy merge check error:', legacyError);
+    }
+
     redirect({ href: '/dashboard', locale });
   } catch (error) {
     if (isRedirectError(error)) {

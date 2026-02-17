@@ -12,6 +12,7 @@ import {
   UserX,
   Shield,
   Download,
+  UserPlus,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { getCaptainTeamRoster, removePlayerFromRoster } from '@/lib/actions/captain';
 import ImportRosterModal from './ImportRosterModal';
+import { InvitePlayerModal } from './InvitePlayerModal';
 
 interface Player {
   id: string;
@@ -45,9 +47,10 @@ interface RosterEntry {
 interface CaptainRosterManagerProps {
   teamId: string;
   captainId: string | null;
+  seasonId?: string;
 }
 
-export default function CaptainRosterManager({ teamId, captainId }: CaptainRosterManagerProps) {
+export default function CaptainRosterManager({ teamId, captainId, seasonId }: CaptainRosterManagerProps) {
   const t = useTranslations('captain.roster');
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +58,7 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [playerToRemove, setPlayerToRemove] = useState<string | null>(null);
 
   const loadRoster = async () => {
@@ -117,6 +121,19 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {seasonId && (
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium',
+                'bg-gradient-to-r from-rink-500 to-rink-600 text-black',
+                'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
+              )}
+            >
+              <UserPlus className="w-4 h-4" />
+              Invite Player
+            </button>
+          )}
           <button
             onClick={() => setImportModalOpen(true)}
             className={cn(
@@ -286,6 +303,17 @@ export default function CaptainRosterManager({ teamId, captainId }: CaptainRoste
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Invite Player Modal */}
+      {seasonId && (
+        <InvitePlayerModal
+          teamId={teamId}
+          seasonId={seasonId}
+          open={showInviteModal}
+          onOpenChange={setShowInviteModal}
+          onSuccess={loadRoster}
+        />
       )}
 
       {/* Import Roster Modal */}
