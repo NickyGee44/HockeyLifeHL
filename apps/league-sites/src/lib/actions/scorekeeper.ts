@@ -1775,6 +1775,254 @@ export async function verifyCaptainStats(token: string): Promise<{
 }
 
 /**
+ * Get game data for captain verification (no scorekeeper session required).
+ * Validates the verification token matches the game before returning data.
+ */
+export async function getGameDataForVerification(
+  gameId: string,
+  verificationToken: string
+): Promise<{
+  success: boolean;
+  game?: GameData;
+  error?: string;
+}> {
+  try {
+    const supabase = createServiceRoleClient();
+
+    // Verify the token matches this game
+    const safeToken = verificationToken.replace(/[,.()"\\]/g, '');
+    const { data: tokenCheck } = await supabase
+      .from('games')
+      .select('id')
+      .eq('id', gameId)
+      .or(`home_verification_token.eq.${safeToken},away_verification_token.eq.${safeToken}`)
+      .maybeSingle();
+
+    if (!tokenCheck) {
+      return { success: false, error: 'Invalid verification token for this game' };
+    }
+
+    // Same data fetching as getScorekeeperGameData but without session check
+    const { data: game, error: gameError } = await (supabase as any)
+      .from('games')
+      .select(`
+        id, scheduled_at, status, period_count, period_length_minutes,
+        home_score, away_score, current_period,
+        home_verified_at, away_verified_at, stats_locked_at,
+        timer_running, timer_started_at, timer_elapsed_seconds,
+        home_goalie_pulled, away_goalie_pulled,
+        home_team:teams!games_home_team_id_fkey(
+          id, name, short_name, logo_url, primary_color, secondary_color, captain_id
+        ),
+        away_team:teams!games_away_team_id_fkey(
+          id, name, short_name, logo_url, primary_color, secondary_color, captain_id
+        )
+      `)
+      .eq('id', gameId)
+      .single();
+
+    if (gameError || !game) {
+      return { success: false, error: 'Game not found' };
+    }
+
+    const [homeRosterResult, awayRosterResult] = await Promise.all([
+      (supabase as any)
+        .from('team_rosters')
+        .select(`
+          player_id, jersey_number, position, leadership_role,
+          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+        `)
+        .eq('team_id', (game.home_team as { id: string }).id)
+        .eq('status', 'active'),
+      (supabase as any)
+        .from('team_rosters')
+        .select(`
+          player_id, jersey_number, position, leadership_role,
+          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+        `)
+        .eq('team_id', (game.away_team as { id: string }).id)
+        .eq('status', 'active'),
+    ]);
+
+    const formatRoster = (roster: any[] | null): PlayerData[] => {
+      if (!roster) return [];
+      return roster
+        .filter(r => r.profiles)
+        .map(r => ({
+          id: r.player_id,
+          fullName: r.profiles.full_name,
+          avatarUrl: r.profiles.avatar_url || null,
+          jerseyNumber: r.jersey_number,
+          position: r.position as 'Forward' | 'Defense' | 'Goalie',
+          isCaptain: r.leadership_role === 'captain',
+          isAssistantCaptain: r.leadership_role === 'alternate_captain',
+        }))
+        .sort((a, b) => a.jerseyNumber - b.jerseyNumber);
+    };
+
+    const homeRoster = formatRoster(homeRosterResult.data);
+    const awayRoster = formatRoster(awayRosterResult.data);
+    const homeCaptain = homeRoster.find(p => p.isCaptain);
+    const awayCaptain = awayRoster.find(p => p.isCaptain);
+    const homeTeam = game.home_team as any;
+    const awayTeam = game.away_team as any;
+
+    return {
+      success: true,
+      game: {
+        id: game.id,
+        homeTeam: {
+          id: homeTeam.id, name: homeTeam.name, shortName: homeTeam.short_name,
+          logoUrl: homeTeam.logo_url, primaryColor: homeTeam.primary_color,
+          secondaryColor: homeTeam.secondary_color, roster: homeRoster,
+          captainId: homeCaptain?.id || null, captainName: homeCaptain?.fullName || null,
+        },
+        awayTeam: {
+          id: awayTeam.id, name: awayTeam.name, shortName: awayTeam.short_name,
+          logoUrl: awayTeam.logo_url, primaryColor: awayTeam.primary_color,
+          secondaryColor: awayTeam.secondary_color, roster: awayRoster,
+          captainId: awayCaptain?.id || null, captainName: awayCaptain?.fullName || null,
+        },
+        scheduledAt: game.scheduled_at,
+        status: game.status || 'scheduled',
+        periodCount: game.period_count || 3,
+        periodLengthMinutes: game.period_length_minutes || 20,
+        homeScore: game.home_score || 0,
+        awayScore: game.away_score || 0,
+        currentPeriod: game.current_period || 1,
+        homeVerifiedAt: game.home_verified_at,
+        awayVerifiedAt: game.away_verified_at,
+        statsLockedAt: game.stats_locked_at,
+        timerRunning: game.timer_running || false,
+        timerStartedAt: game.timer_started_at || null,
+        timerElapsedSeconds: game.timer_elapsed_seconds || 0,
+        homeGoaliePulled: game.home_goalie_pulled || false,
+        awayGoaliePulled: game.away_goalie_pulled || false,
+      },
+    };
+  } catch (error) {
+    console.error('Get game data for verification error:', error);
+    return { success: false, error: 'Failed to load game data' };
+  }
+}
+
+/**
+ * Get game summary for captain verification (no scorekeeper session required).
+ * Validates the verification token matches the game before returning data.
+ */
+export async function getGameSummaryForVerification(
+  gameId: string,
+  verificationToken: string
+): Promise<{
+  success: boolean;
+  summary?: {
+    homeGoals: number;
+    awayGoals: number;
+    homePenaltyMinutes: number;
+    awayPenaltyMinutes: number;
+    periods: Array<{ period: number; homeGoals: number; awayGoals: number }>;
+    scorers: Array<{
+      playerId: string;
+      playerName: string;
+      teamType: 'home' | 'away';
+      goals: number;
+      assists: number;
+    }>;
+  };
+  error?: string;
+}> {
+  try {
+    const supabase = createServiceRoleClient();
+
+    const safeToken = verificationToken.replace(/[,.()"\\]/g, '');
+    const { data: tokenCheck } = await supabase
+      .from('games')
+      .select('id')
+      .eq('id', gameId)
+      .or(`home_verification_token.eq.${safeToken},away_verification_token.eq.${safeToken}`)
+      .maybeSingle();
+
+    if (!tokenCheck) {
+      return { success: false, error: 'Invalid verification token for this game' };
+    }
+
+    const { data: events, error } = await supabase
+      .from('game_events')
+      .select(`
+        event_type, team_type, player_id,
+        assist1_player_id, assist2_player_id,
+        period, penalty_minutes,
+        player:profiles!game_events_player_id_fkey(full_name)
+      `)
+      .eq('game_id', gameId)
+      .is('deleted_at', null);
+
+    if (error) {
+      return { success: false, error: 'Failed to load events' };
+    }
+
+    const allEvents = (events || []) as any[];
+    const goals = allEvents.filter(e => e.event_type === 'goal');
+    const penalties = allEvents.filter(e => e.event_type === 'penalty');
+
+    const periods = [1, 2, 3].map(period => ({
+      period,
+      homeGoals: goals.filter(g => g.period === period && g.team_type === 'home').length,
+      awayGoals: goals.filter(g => g.period === period && g.team_type === 'away').length,
+    }));
+
+    const scorerMap = new Map<string, {
+      playerId: string; playerName: string; teamType: 'home' | 'away';
+      goals: number; assists: number;
+    }>();
+
+    goals.forEach(g => {
+      const existing = scorerMap.get(g.player_id);
+      if (existing) {
+        existing.goals += 1;
+      } else {
+        scorerMap.set(g.player_id, {
+          playerId: g.player_id,
+          playerName: (g.player as { full_name: string })?.full_name || 'Unknown',
+          teamType: g.team_type as 'home' | 'away',
+          goals: 1, assists: 0,
+        });
+      }
+
+      [g.assist1_player_id, g.assist2_player_id].forEach((assistId: string | null) => {
+        if (assistId) {
+          const a = scorerMap.get(assistId);
+          if (a) {
+            a.assists += 1;
+          } else {
+            scorerMap.set(assistId, {
+              playerId: assistId, playerName: 'Unknown',
+              teamType: g.team_type as 'home' | 'away',
+              goals: 0, assists: 1,
+            });
+          }
+        }
+      });
+    });
+
+    return {
+      success: true,
+      summary: {
+        homeGoals: goals.filter(g => g.team_type === 'home').length,
+        awayGoals: goals.filter(g => g.team_type === 'away').length,
+        homePenaltyMinutes: penalties.filter(p => p.team_type === 'home').reduce((sum: number, p: any) => sum + (p.penalty_minutes || 0), 0),
+        awayPenaltyMinutes: penalties.filter(p => p.team_type === 'away').reduce((sum: number, p: any) => sum + (p.penalty_minutes || 0), 0),
+        periods,
+        scorers: Array.from(scorerMap.values()).sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists)),
+      },
+    };
+  } catch (error) {
+    console.error('Get game summary for verification error:', error);
+    return { success: false, error: 'Failed to load summary' };
+  }
+}
+
+/**
  * Finalize game stats — roll up to player_stats/standings and mark complete
  */
 export async function finalizeGameStats(gameId: string): Promise<{

@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import {
-  getGameSummary,
   verifyCaptainStats,
-  getScorekeeperGameData,
   lookupCaptainVerificationToken,
+  getGameDataForVerification,
+  getGameSummaryForVerification,
   type GameData,
 } from '@/lib/actions/scorekeeper';
 
@@ -55,8 +55,8 @@ export default function CaptainVerificationPage() {
         setTeamType(detectedTeamType);
 
         const [gameResult, summaryResult] = await Promise.all([
-          getScorekeeperGameData(gameId),
-          getGameSummary(gameId),
+          getGameDataForVerification(gameId, token),
+          getGameSummaryForVerification(gameId, token),
         ]);
 
         if (gameResult.success && gameResult.game) {
