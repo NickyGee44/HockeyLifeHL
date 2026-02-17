@@ -31,8 +31,41 @@ import type {
 import {
   executeDivisionMoves,
   getAffectedFutureGames,
-  suggestSwaps,
 } from '@/lib/actions/division-shuffle';
+
+/**
+ * Pure client-side function to suggest team swaps based on division health outliers.
+ * Moved out of the 'use server' module since sync functions can't be exported as server actions.
+ */
+function suggestSwaps(divisions: DivisionHealth[]): SwapSuggestion[] {
+  const suggestions: SwapSuggestion[] = [];
+  const divsWithOutliers = divisions.filter((d) => d.outliers.length > 0);
+
+  for (let i = 0; i < divsWithOutliers.length; i++) {
+    for (let j = i + 1; j < divsWithOutliers.length; j++) {
+      const divA = divsWithOutliers[i];
+      const divB = divsWithOutliers[j];
+
+      const strongDiv = divA.avgGoalDiff > divB.avgGoalDiff ? divA : divB;
+      const weakDiv = divA.avgGoalDiff > divB.avgGoalDiff ? divB : divA;
+
+      const moveDown = strongDiv.outliers.find((o) => o.suggestion === 'move_down');
+      const moveUp = weakDiv.outliers.find((o) => o.suggestion === 'move_up');
+
+      if (moveDown && moveUp) {
+        suggestions.push({
+          teamA: moveDown.team,
+          teamB: moveUp.team,
+          divisionA: { id: strongDiv.divisionId, name: strongDiv.divisionName },
+          divisionB: { id: weakDiv.divisionId, name: weakDiv.divisionName },
+          reason: `${moveUp.team.teamName} (GD: ${moveUp.team.goalDiff > 0 ? '+' : ''}${moveUp.team.goalDiff}) is dominant in ${weakDiv.divisionName}, while ${moveDown.team.teamName} (GD: ${moveDown.team.goalDiff > 0 ? '+' : ''}${moveDown.team.goalDiff}) is struggling in ${strongDiv.divisionName}`,
+        });
+      }
+    }
+  }
+
+  return suggestions;
+}
 
 // ==============================================================================
 // TYPES
