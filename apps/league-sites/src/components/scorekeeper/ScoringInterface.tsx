@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { GameData, GameEventData, CheckinPlayer } from '@/lib/actions/scorekeeper';
@@ -41,6 +41,15 @@ export function ScoringInterface({
   const [game, setGame] = useState(initialGame);
   const [events, setEvents] = useState(initialEvents);
   const [activeEntry, setActiveEntry] = useState<ActiveEntry>(null);
+
+  // Sync local state when server data arrives (after router.refresh())
+  useEffect(() => {
+    setGame(initialGame);
+  }, [initialGame]);
+
+  useEffect(() => {
+    setEvents(initialEvents);
+  }, [initialEvents]);
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'away' | null>(null);
   const [activePeriodTab, setActivePeriodTab] = useState<number | 'all'>('all');
   const [showScoreSheetUpload, setShowScoreSheetUpload] = useState(false);
