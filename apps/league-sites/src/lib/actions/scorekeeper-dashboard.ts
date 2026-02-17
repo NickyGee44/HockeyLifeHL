@@ -185,9 +185,9 @@ export async function getScorekeeperDashboard(): Promise<{
           status,
           home_score,
           away_score,
+          location,
           home_team:teams!games_home_team_id_fkey(name),
-          away_team:teams!games_away_team_id_fkey(name),
-          venue:venues(name)
+          away_team:teams!games_away_team_id_fkey(name)
         )
       `)
       .eq('scorekeeper_id', scorekeeperId)
@@ -201,7 +201,7 @@ export async function getScorekeeperDashboard(): Promise<{
       awayTeamName: a.games.away_team?.name || 'Away',
       homeScore: a.games.home_score || 0,
       awayScore: a.games.away_score || 0,
-      venueName: a.games.venue?.name || null,
+      venueName: a.games.location || null,
     }));
     const upcomingGames = allGames
       .filter(g => g.status === 'scheduled' || g.status === 'in_progress')
@@ -331,14 +331,13 @@ export async function getScorekeeperSchedule(): Promise<{
           status,
           home_score,
           away_score,
+          location,
           home_team:teams!games_home_team_id_fkey(name),
-          away_team:teams!games_away_team_id_fkey(name),
-          venue:venues(name)
+          away_team:teams!games_away_team_id_fkey(name)
         )
       `)
       .eq('scorekeeper_id', sk.scorekeeper_id)
-      .eq('league_id', leagueId)
-      .order('games(scheduled_at)', { ascending: true });
+      .eq('league_id', leagueId);
 
     if (error) {
       console.error('getScorekeeperSchedule error:', error);
@@ -370,7 +369,7 @@ export async function getScorekeeperSchedule(): Promise<{
         awayTeamName: a.games.away_team?.name || 'Away',
         homeScore: a.games.home_score || 0,
         awayScore: a.games.away_score || 0,
-        venueName: a.games.venue?.name || null,
+        venueName: a.games.location || null,
         weekNumber,
         dayOfWeek: days[scheduledDate.getDay()],
         hasSwapRequest: swapGameIds.has(a.games.id),
