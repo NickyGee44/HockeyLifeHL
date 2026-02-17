@@ -8,8 +8,8 @@
  */
 
 import { cn } from '@hockey-life/ui/lib/utils';
-import { Calendar, Clock, MapPin, Users, Repeat, Trophy, Info } from 'lucide-react';
-import type { ScheduleConfig, ScheduleTemplate, Venue } from '@/lib/schedule/types';
+import { Calendar, CalendarOff, Clock, MapPin, Users, Repeat, Trophy, Info, GitBranch } from 'lucide-react';
+import type { ScheduleConfig, ScheduleTemplate, Team, Venue } from '@/lib/schedule/types';
 
 // ============================================================================
 // TYPES
@@ -22,6 +22,7 @@ interface ScheduleConfigStepProps {
   selectedTemplateId: string | null;
   onApplyTemplate: (template: ScheduleTemplate) => void;
   venues: Venue[];
+  teams: Team[];
   teamCount: number;
 }
 
@@ -75,8 +76,12 @@ export function ScheduleConfigStep({
   selectedTemplateId,
   onApplyTemplate,
   venues,
+  teams,
   teamCount,
 }: ScheduleConfigStepProps) {
+  // Detect divisions from team data
+  const divisionIds = new Set(teams.filter((t) => t.divisionId).map((t) => t.divisionId!));
+  const hasDivisions = divisionIds.size > 1;
   // Calculate expected games
   const gamesPerRound = Math.floor(teamCount / 2);
   const rounds = teamCount % 2 === 0 ? teamCount - 1 : teamCount;
@@ -377,6 +382,126 @@ export function ScheduleConfigStep({
             Venue availability windows, blackout dates, time restrictions, and team priority rules can be configured in the next step.
           </p>
         </div>
+      </div>
+
+      {/* Division-Aware Scheduling */}
+      {hasDivisions && (
+        <div className="border-t border-neutral-800 pt-6 space-y-4">
+          <label className="block text-sm font-medium text-neutral-300">
+            <GitBranch className="w-4 h-4 inline mr-2" />
+            Division-Aware Scheduling
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={config.divisionAware}
+              onChange={(e) => setConfig((prev) => ({ ...prev, divisionAware: e.target.checked }))}
+              className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
+            />
+            <span className="text-sm text-neutral-300">Schedule games by division</span>
+          </label>
+
+          {config.divisionAware && (
+            <>
+              <div>
+                <label className="block text-sm text-neutral-400 mb-2">
+                  Cross-division games per team
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="number"
+                    min={0}
+                    max={10}
+                    value={config.crossDivisionGamesPerTeam}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 0;
+                      setConfig((prev) => ({
+                        ...prev,
+                        crossDivisionGamesPerTeam: Math.max(0, Math.min(10, value)),
+                      }));
+                    }}
+                    className="w-24 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-rink-500"
+                  />
+                  <span className="text-sm text-neutral-400">
+                    games against other divisions
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-blue-300">
+                    Teams will primarily play within their division ({divisionIds.size} divisions detected),
+                    with {config.crossDivisionGamesPerTeam} game{config.crossDivisionGamesPerTeam !== 1 ? 's' : ''} against
+                    teams from other divisions.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Bye Weeks */}
+      <div className="border-t border-neutral-800 pt-6 space-y-4">
+        <label className="block text-sm font-medium text-neutral-300">
+          <CalendarOff className="w-4 h-4 inline mr-2" />
+          Bye Weeks (Rest Weeks)
+        </label>
+
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={config.allowByeWeeks}
+            onChange={(e) => setConfig((prev) => ({ ...prev, allowByeWeeks: e.target.checked }))}
+            className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
+          />
+          <span className="text-sm text-neutral-300">Allow bye weeks</span>
+        </label>
+
+        {config.allowByeWeeks && (
+          <>
+            <div>
+              <label className="block text-sm text-neutral-400 mb-2">
+                Bye weeks per team
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="number"
+                  min={1}
+                  max={4}
+                  value={config.byeWeeksPerTeam}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1;
+                    setConfig((prev) => ({
+                      ...prev,
+                      byeWeeksPerTeam: Math.max(1, Math.min(4, value)),
+                    }));
+                  }}
+                  className="w-24 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-rink-500"
+                />
+                <span className="text-sm text-neutral-400">
+                  rest week{config.byeWeeksPerTeam !== 1 ? 's' : ''} per team
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-blue-300">
+                  {teamCount % 2 === 1
+                    ? `With ${teamCount} teams (odd), each team naturally gets 1 bye per cycle. `
+                    : ''}
+                  Bye weeks will be distributed evenly throughout the season. No team will have
+                  consecutive bye weeks.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Advanced Options */}

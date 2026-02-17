@@ -9,7 +9,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Calendar, Clock, Users, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import type { ScheduleConfig, ScheduleGenerationResult, Team } from '@/lib/schedule/types';
+import type { ScheduleConfig, ScheduleGenerationResult, Team, AdditionalIceSlot } from '@/lib/schedule/types';
 import { generateSeasonSchedule } from '@/lib/schedule/actions';
 
 // ============================================================================
@@ -22,6 +22,7 @@ interface PreviewStepProps {
   config: ScheduleConfig;
   teams: Team[];
   templateId: string | null;
+  additionalIceSlots: AdditionalIceSlot[];
   isGenerating: boolean;
   setIsGenerating: (value: boolean) => void;
   onResult: (result: ScheduleGenerationResult) => void;
@@ -43,6 +44,7 @@ export function PreviewStep({
   config,
   teams,
   templateId,
+  additionalIceSlots,
   isGenerating,
   setIsGenerating,
   onResult,
@@ -75,7 +77,8 @@ export function PreviewStep({
         seasonId,
         leagueId,
         config,
-        templateId ?? undefined
+        templateId ?? undefined,
+        additionalIceSlots.length > 0 ? additionalIceSlots : undefined
       );
       setPreviewResult(result);
       onResult(result);
@@ -83,7 +86,7 @@ export function PreviewStep({
       setError(err instanceof Error ? err.message : 'Failed to generate schedule');
       setIsGenerating(false);
     }
-  }, [seasonId, leagueId, config, templateId, setIsGenerating, onResult]);
+  }, [seasonId, leagueId, config, templateId, additionalIceSlots, setIsGenerating, onResult]);
 
   // Auto-generate when isGenerating becomes true
   useEffect(() => {

@@ -21,6 +21,7 @@ import type {
   VenueBlackoutDate,
   TeamSchedulePreference,
   ScheduleConstraintConfig,
+  AdditionalIceSlot,
 } from '@/lib/schedule/types';
 import {
   getScheduleConstraints,
@@ -53,6 +54,7 @@ export interface ConstraintData {
   teamPreferences: TeamSchedulePreference[];
   constraintConfig: Partial<ScheduleConstraintConfig>;
   teamHomeVenues: Record<string, string | null>;
+  additionalIceSlots: AdditionalIceSlot[];
 }
 
 type TabId = 'venue' | 'time' | 'priority' | 'basic';
@@ -105,6 +107,7 @@ export function EnhancedConstraintStep({
     DEFAULT_CONSTRAINT_CONFIG
   );
   const [teamHomeVenues, setTeamHomeVenues] = useState<Record<string, string | null>>({});
+  const [additionalIceSlots, setAdditionalIceSlots] = useState<AdditionalIceSlot[]>([]);
 
   // Load existing data
   useEffect(() => {
@@ -160,6 +163,7 @@ export function EnhancedConstraintStep({
         teamPreferences,
         constraintConfig,
         teamHomeVenues,
+        additionalIceSlots,
       });
     }
   }, [
@@ -169,6 +173,7 @@ export function EnhancedConstraintStep({
     teamPreferences,
     constraintConfig,
     teamHomeVenues,
+    additionalIceSlots,
     isLoading,
     onConstraintsChange,
   ]);
@@ -233,10 +238,12 @@ export function EnhancedConstraintStep({
             venueAvailability={venueAvailability}
             venueBlackouts={venueBlackouts}
             maxGamesPerVenuePerDay={constraintConfig.maxGamesPerVenuePerDay ?? 4}
+            additionalIceSlots={additionalIceSlots}
             onVenueAvailabilityChange={setVenueAvailability}
             onVenueBlackoutsChange={setVenueBlackouts}
             onMaxGamesChange={(max) => handleConstraintConfigChange({ maxGamesPerVenuePerDay: max })}
             onTeamHomeVenueChange={handleTeamHomeVenueChange}
+            onAdditionalIceSlotsChange={setAdditionalIceSlots}
           />
         )}
 
@@ -293,7 +300,7 @@ export function EnhancedConstraintStep({
       {/* Constraint Summary */}
       <div className="mt-6 p-4 bg-neutral-800/30 rounded-lg">
         <h4 className="text-sm font-medium text-white mb-3">Constraint Summary</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
           <div>
             <div className="text-neutral-400">Venue Slots</div>
             <div className="text-white font-medium">{venueAvailability.length}</div>
@@ -301,6 +308,10 @@ export function EnhancedConstraintStep({
           <div>
             <div className="text-neutral-400">Blackout Dates</div>
             <div className="text-white font-medium">{venueBlackouts.length}</div>
+          </div>
+          <div>
+            <div className="text-neutral-400">Extra Ice Times</div>
+            <div className="text-white font-medium">{additionalIceSlots.length}</div>
           </div>
           <div>
             <div className="text-neutral-400">Team Preferences</div>

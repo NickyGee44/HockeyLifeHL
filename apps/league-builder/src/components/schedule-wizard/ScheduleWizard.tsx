@@ -56,11 +56,15 @@ function getDefaultConfig(startDate: Date, endDate: Date): ScheduleConfig {
     allowBackToBack: false,
     homeAwayBalance: true,
     divisionGamesRatio: 0.6,
+    divisionAware: true, // Default on — falls back gracefully when no divisions
+    crossDivisionGamesPerTeam: 2,
     gameDays: [1, 3], // Monday, Wednesday
     gameTimes: ['19:00', '20:30', '22:00'],
     gameDurationMinutes: 60,
     startDate,
     endDate,
+    allowByeWeeks: false,
+    byeWeeksPerTeam: 1,
     defaultVenueId: null,
     rotateHomeVenue: true,
     playoffFormat: 'none',
@@ -222,6 +226,7 @@ export function ScheduleWizard({
             selectedTemplateId={selectedTemplateId}
             onApplyTemplate={applyTemplate}
             venues={venues}
+            teams={teams}
             teamCount={teams.length}
           />
         )}
@@ -243,6 +248,7 @@ export function ScheduleWizard({
             config={config}
             teams={teams}
             templateId={selectedTemplateId}
+            additionalIceSlots={constraintData?.additionalIceSlots ?? []}
             isGenerating={isGenerating}
             setIsGenerating={setIsGenerating}
             onResult={handleGenerationResult}

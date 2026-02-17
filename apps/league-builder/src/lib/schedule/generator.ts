@@ -6,6 +6,7 @@
  * - Home/away balancing
  * - Back-to-back game prevention
  * - Division-aware scheduling
+ * - Bye week support
  * - Venue and team constraints
  */
 
@@ -23,7 +24,8 @@ import {
   VenueAvailability,
   VenueBlackoutDate,
   TeamSchedulePreference,
-  ScheduleConstraintConfig } from './types';
+  ScheduleConstraintConfig,
+  AdditionalIceSlot } from './types';
 
 // ============================================================================
 // ROUND ROBIN GENERATION
@@ -97,6 +99,382 @@ export function generateRoundRobinMatchups(
 }
 
 // ============================================================================
+// BYE WEEK SUPPORT
+// ============================================================================
+
+/**
+ * Apply bye weeks to a set of matchups by removing games at regular intervals.
+ *
+ * Strategy: For each team, identify rounds where they play and remove games
+ * at evenly-spaced intervals to create rest weeks. Ensures:
+ * - No team has consecutive bye weeks
+ * - All teams get approximately the same number of byes
+ * - Bye weeks are spread across the season (not clustered)
+ *
+ * For odd team counts, natural byes from the circle method already exist.
+ * This function adds additional byes on top (or handles even-team byes).
+ */
+export function applyByeWeeks(
+  matchups: GameMatchup[],
+  teams: Team[],
+  byeWeeksPerTeam: number
+): GameMatchup[] {
+  if (byeWeeksPerTeam <= 0 || teams.length < 4) return matchups;
+
+  const teamCount = teams.length;
+  const isOdd = teamCount % 2 === 1;
+
+  // For odd teams, each team already has 1 natural bye per round-robin cycle.
+  // Only add extra byes if requested beyond the natural count.
+  const naturalByes = isOdd ? 1 : 0;
+  const additionalByesNeeded = Math.max(0, byeWeeksPerTeam - naturalByes);
+
+  if (additionalByesNeeded === 0) return matchups;
+
+  // Build a map: roundNumber -> list of matchup indices in that round
+  const roundMap = new Map<number, number[]>();
+  for (let i = 0; i < matchups.length; i++) {
+    const round = matchups[i].roundNumber;
+    const indices = roundMap.get(round) ?? [];
+    indices.push(i);
+    roundMap.set(round, indices);
+  }
+
+  const rounds = Array.from(roundMap.keys()).sort((a, b) => a - b);
+  const totalRounds = rounds.length;
+
+  if (totalRounds < 2) return matchups;
+
+  // Track byes per team and which rounds each team has a bye
+  const byeCount = new Map<string, number>();
+  const teamByeRounds = new Map<string, Set<number>>();
+  for (const team of teams) {
+    byeCount.set(team.id, 0);
+    teamByeRounds.set(team.id, new Set());
+  }
+
+  // Indices of matchups to remove
+  const removeSet = new Set<number>();
+
+  // For each bye "wave", pick a round and remove one game per round
+  // distributing across teams that need byes most
+  for (let byeWave = 0; byeWave < additionalByesNeeded; byeWave++) {
+    // Space bye waves evenly across the season
+    const waveSpacing = Math.floor(totalRounds / (additionalByesNeeded + 1));
+
+    for (let roundIdx = 0; roundIdx < totalRounds; roundIdx++) {
+      const round = rounds[roundIdx];
+      const matchupIndices = roundMap.get(round);
+      if (!matchupIndices) continue;
+
+      // Only apply byes at spaced intervals (offset by wave)
+      const offset = waveSpacing * (byeWave + 1);
+      if (roundIdx % totalRounds !== (offset + roundIdx) % totalRounds) {
+        // Use a simpler approach: for each team, find rounds evenly spaced
+        // and remove their game in that round
+        continue;
+      }
+    }
+
+    // Simpler approach: for each team, find the best round for this bye wave
+    for (const team of teams) {
+      const currentByes = byeCount.get(team.id) ?? 0;
+      if (currentByes >= additionalByesNeeded) continue;
+
+      const existingByeRounds = teamByeRounds.get(team.id)!;
+
+      // Find the ideal round index for this bye (evenly spaced)
+      const idealRoundIdx = Math.floor(
+        ((byeWave + 1) * totalRounds) / (additionalByesNeeded + 1)
+      );
+
+      // Search outward from ideal position for a round where:
+      // 1. The team has a game
+      // 2. It's not adjacent to an existing bye
+      let bestMatchupIdx: number | null = null;
+
+      for (let delta = 0; delta < totalRounds; delta++) {
+        for (const sign of [0, 1, -1]) {
+          const tryIdx = idealRoundIdx + delta * (sign || 1);
+          if (tryIdx < 0 || tryIdx >= totalRounds) continue;
+
+          const round = rounds[tryIdx];
+
+          // Check no adjacent bye
+          const prevRound = tryIdx > 0 ? rounds[tryIdx - 1] : -999;
+          const nextRound = tryIdx < totalRounds - 1 ? rounds[tryIdx + 1] : -999;
+          if (existingByeRounds.has(prevRound) || existingByeRounds.has(nextRound)) {
+            continue;
+          }
+          if (existingByeRounds.has(round)) continue;
+
+          // Find a matchup in this round involving this team
+          const indices = roundMap.get(round) ?? [];
+          for (const idx of indices) {
+            if (removeSet.has(idx)) continue;
+            const m = matchups[idx];
+            if (m.homeTeamId === team.id || m.awayTeamId === team.id) {
+              bestMatchupIdx = idx;
+              break;
+            }
+          }
+
+          if (bestMatchupIdx !== null) break;
+        }
+        if (bestMatchupIdx !== null) break;
+      }
+
+      if (bestMatchupIdx !== null) {
+        const m = matchups[bestMatchupIdx];
+        removeSet.add(bestMatchupIdx);
+        byeCount.set(team.id, (byeCount.get(team.id) ?? 0) + 1);
+        existingByeRounds.add(m.roundNumber);
+
+        // Note: the opponent of this removed game may also benefit from the
+        // rest, but we don't count it as their bye since they get their own.
+      }
+    }
+  }
+
+  // Return matchups with removed games filtered out
+  return matchups.filter((_, idx) => !removeSet.has(idx));
+}
+
+// ============================================================================
+// DIVISION-AWARE MATCHUP GENERATION
+// ============================================================================
+
+/**
+ * Group teams by their division ID.
+ * Teams with no division are placed in a "__none__" bucket.
+ */
+function groupTeamsByDivision(teams: Team[]): Map<string, Team[]> {
+  const groups = new Map<string, Team[]>();
+  for (const team of teams) {
+    const key = team.divisionId ?? '__none__';
+    const group = groups.get(key) ?? [];
+    group.push(team);
+    groups.set(key, group);
+  }
+  return groups;
+}
+
+/**
+ * Generate division-aware matchups.
+ *
+ * 1. Intra-division: full round-robin within each division (optionally doubled).
+ * 2. Cross-division: each team plays `crossDivisionGamesPerTeam` games against
+ *    teams from other divisions, distributed as evenly as possible.
+ *
+ * Falls back to regular round-robin when:
+ * - Only one division exists
+ * - All teams lack a divisionId
+ */
+export function generateDivisionAwareMatchups(
+  teams: Team[],
+  config: ScheduleConfig
+): GameMatchup[] {
+  const divisionMap = groupTeamsByDivision(teams);
+  const divisionIds = Array.from(divisionMap.keys());
+
+  // Fall back to regular round-robin if single division or no divisions
+  if (divisionIds.length <= 1) {
+    return generateRoundRobinMatchups(teams, config.scheduleType === 'double_round_robin');
+  }
+
+  const isDouble = config.scheduleType === 'double_round_robin';
+  const allMatchups: GameMatchup[] = [];
+  let roundOffset = 0;
+
+  // --- Intra-division round-robins ---
+  for (const divId of divisionIds) {
+    const divTeams = divisionMap.get(divId)!;
+    if (divTeams.length < 2) continue;
+
+    const divMatchups = generateRoundRobinMatchups(divTeams, isDouble);
+    // Offset round numbers so they don't collide between divisions
+    for (const m of divMatchups) {
+      allMatchups.push({ ...m, roundNumber: m.roundNumber + roundOffset });
+    }
+    const maxRound = divMatchups.reduce((max, m) => Math.max(max, m.roundNumber), 0);
+    roundOffset += maxRound;
+  }
+
+  // --- Cross-division matchups ---
+  const crossGamesPerTeam = config.crossDivisionGamesPerTeam;
+  if (crossGamesPerTeam > 0) {
+    const crossMatchups = generateCrossDivisionMatchups(
+      teams,
+      divisionMap,
+      crossGamesPerTeam,
+      roundOffset
+    );
+    allMatchups.push(...crossMatchups);
+  }
+
+  return allMatchups;
+}
+
+/**
+ * Generate cross-division matchups, distributing opponents evenly.
+ * Each team gets up to `gamesPerTeam` cross-division games.
+ */
+function generateCrossDivisionMatchups(
+  teams: Team[],
+  divisionMap: Map<string, Team[]>,
+  gamesPerTeam: number,
+  roundOffset: number
+): GameMatchup[] {
+  const matchups: GameMatchup[] = [];
+  const crossCount = new Map<string, number>();
+  for (const team of teams) {
+    crossCount.set(team.id, 0);
+  }
+
+  let roundNumber = roundOffset + 1;
+  const paired = new Set<string>();
+
+  for (const team of teams) {
+    const teamDivision = team.divisionId ?? '__none__';
+    const currentCount = crossCount.get(team.id) ?? 0;
+    if (currentCount >= gamesPerTeam) continue;
+
+    // Collect potential opponents from other divisions
+    const opponents: Team[] = [];
+    for (const [divId, divTeams] of divisionMap) {
+      if (divId === teamDivision) continue;
+      for (const opp of divTeams) {
+        const oppCount = crossCount.get(opp.id) ?? 0;
+        if (oppCount < gamesPerTeam) {
+          opponents.push(opp);
+        }
+      }
+    }
+
+    // Prefer less-scheduled opponents for balance
+    opponents.sort((a, b) => (crossCount.get(a.id) ?? 0) - (crossCount.get(b.id) ?? 0));
+
+    const needed = gamesPerTeam - currentCount;
+    for (let i = 0; i < Math.min(needed, opponents.length); i++) {
+      const opp = opponents[i];
+      const pairKey = [team.id, opp.id].sort().join('-');
+      if (paired.has(pairKey)) continue;
+
+      paired.add(pairKey);
+
+      const isHome = roundNumber % 2 === 0;
+      matchups.push({
+        roundNumber,
+        homeTeamId: isHome ? team.id : opp.id,
+        awayTeamId: isHome ? opp.id : team.id,
+        homeTeam: isHome ? team : opp,
+        awayTeam: isHome ? opp : team,
+      });
+
+      crossCount.set(team.id, (crossCount.get(team.id) ?? 0) + 1);
+      crossCount.set(opp.id, (crossCount.get(opp.id) ?? 0) + 1);
+      roundNumber++;
+    }
+  }
+
+  return matchups;
+}
+
+// ============================================================================
+// BYE WEEK COMPUTATION
+// ============================================================================
+
+/**
+ * Get the ISO week number for a date.
+ */
+function getISOWeekNumber(date: Date): number {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+}
+
+/**
+ * Compute a unique week key for a date (year + week number).
+ */
+function getWeekKey(date: Date): string {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const year = d.getFullYear();
+  return `${year}-W${getISOWeekNumber(date).toString().padStart(2, '0')}`;
+}
+
+/**
+ * Compute bye weeks for each team, distributed evenly across the season.
+ *
+ * Returns a Map where the key is teamId and the value is a Set of week keys
+ * during which the team should not play.
+ */
+function computeByeWeeks(
+  teams: Team[],
+  slots: Date[],
+  byeWeeksPerTeam: number
+): Map<string, Set<string>> {
+  const byeMap = new Map<string, Set<string>>();
+
+  if (byeWeeksPerTeam <= 0 || slots.length === 0) {
+    return byeMap;
+  }
+
+  // Collect distinct week keys from available slots
+  const weekKeys: string[] = [];
+  const seenWeeks = new Set<string>();
+  for (const slot of slots) {
+    const wk = getWeekKey(slot);
+    if (!seenWeeks.has(wk)) {
+      seenWeeks.add(wk);
+      weekKeys.push(wk);
+    }
+  }
+
+  const totalWeeks = weekKeys.length;
+  if (totalWeeks <= byeWeeksPerTeam) {
+    // Not enough weeks for byes — skip
+    return byeMap;
+  }
+
+  // For each team, assign bye weeks spread evenly across the season.
+  // Offset each team's byes so they don't all have the same bye week.
+  for (let teamIdx = 0; teamIdx < teams.length; teamIdx++) {
+    const team = teams[teamIdx];
+    const teamByes = new Set<string>();
+
+    // Distribute byes evenly across the season, staggered by team index
+    const spacing = totalWeeks / byeWeeksPerTeam;
+    const offset = (teamIdx * spacing) / teams.length;
+
+    for (let b = 0; b < byeWeeksPerTeam; b++) {
+      const weekIndex = Math.floor(offset + b * spacing) % totalWeeks;
+      teamByes.add(weekKeys[weekIndex]);
+    }
+
+    byeMap.set(team.id, teamByes);
+  }
+
+  return byeMap;
+}
+
+/**
+ * Check if a slot falls on a bye week for a team.
+ */
+function isTeamOnBye(
+  teamId: string,
+  slot: Date,
+  byeWeekMap: Map<string, Set<string>>
+): boolean {
+  const teamByes = byeWeekMap.get(teamId);
+  if (!teamByes || teamByes.size === 0) return false;
+  return teamByes.has(getWeekKey(slot));
+}
+
+// ============================================================================
 // TIME SLOT ASSIGNMENT
 // ============================================================================
 
@@ -106,7 +484,8 @@ export function generateRoundRobinMatchups(
 function getAvailableTimeSlots(
   config: ScheduleConfig,
   constraints: ScheduleConstraint[],
-  _venues?: Venue[]
+  _venues?: Venue[],
+  additionalIceSlots?: AdditionalIceSlot[]
 ): Date[] {
   const slots: Date[] = [];
   const startDate = new Date(config.startDate);
@@ -137,6 +516,23 @@ function getAvailableTimeSlots(
 
     // Move to next day
     currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // Merge in additional (one-off) ice time slots
+  if (additionalIceSlots && additionalIceSlots.length > 0) {
+    for (const iceSlot of additionalIceSlots) {
+      const [hours, minutes] = iceSlot.startTime.split(':').map(Number);
+      const slotDate = new Date(iceSlot.date + 'T00:00:00');
+      slotDate.setHours(hours, minutes, 0, 0);
+
+      // Only add if within the season date range and not blacked out
+      if (slotDate >= startDate && slotDate <= endDate && !isSlotBlackedOut(slotDate, blackouts)) {
+        slots.push(slotDate);
+      }
+    }
+
+    // Re-sort chronologically after merging
+    slots.sort((a, b) => a.getTime() - b.getTime());
   }
 
   return slots;
@@ -302,8 +698,13 @@ function assignMatchupsToSlots(
   const violations: ConstraintViolation[] = [];
   const usedSlots = new Set<number>();
 
-  const { config, constraints, venues } = options;
+  const { config, constraints, venues, teams } = options;
   const defaultVenue = venues.find((v) => v.id === config.defaultVenueId) ?? venues[0];
+
+  // Compute bye weeks if enabled
+  const byeWeekMap = config.allowByeWeeks
+    ? computeByeWeeks(teams, slots, config.byeWeeksPerTeam)
+    : new Map<string, Set<string>>();
 
   let gameNumber = 1;
 
@@ -314,6 +715,16 @@ function assignMatchupsToSlots(
       if (usedSlots.has(slotIndex)) continue;
 
       const slot = slots[slotIndex];
+
+      // Check bye weeks
+      if (byeWeekMap.size > 0) {
+        if (
+          isTeamOnBye(matchup.homeTeamId, slot, byeWeekMap) ||
+          isTeamOnBye(matchup.awayTeamId, slot, byeWeekMap)
+        ) {
+          continue;
+        }
+      }
 
       // Check back-to-back constraint
       if (!config.allowBackToBack) {
@@ -502,12 +913,20 @@ export async function generateSchedule(
         error: 'Maximum 16 teams supported for schedule generation' };
     }
 
-    // Generate matchups
+    // Generate matchups — use division-aware algorithm when enabled
+    const useDivisionAware = config.divisionAware &&
+      teams.some((t) => t.divisionId != null);
     const isDoubleRoundRobin = config.scheduleType === 'double_round_robin';
-    const matchups = generateRoundRobinMatchups(teams, isDoubleRoundRobin);
+    const matchups = useDivisionAware
+      ? generateDivisionAwareMatchups(teams, config)
+      : generateRoundRobinMatchups(teams, isDoubleRoundRobin);
+
+    // Note: bye weeks are enforced at the slot-assignment level via
+    // computeByeWeeks/isTeamOnBye — matchups stay intact so total
+    // games per team are preserved; teams just skip certain weeks.
 
     // Get available time slots
-    const slots = getAvailableTimeSlots(config, constraints, venues);
+    const slots = getAvailableTimeSlots(config, constraints, venues, options.additionalIceSlots);
 
     if (slots.length < matchups.length) {
       return {
@@ -523,7 +942,7 @@ export async function generateSchedule(
         error: `Not enough time slots available. Need ${matchups.length} slots but only ${slots.length} available.` };
     }
 
-    // Assign matchups to slots
+    // Assign matchups to slots (bye weeks applied inside)
     const result = assignMatchupsToSlots(matchups, slots, options);
     let games = result.games;
     const violations = result.violations;
@@ -695,7 +1114,7 @@ function isSlotOnVenueBlackout(
   const timeStr = `${slot.getHours().toString().padStart(2, '0')}:${slot.getMinutes().toString().padStart(2, '0')}`;
 
   return blackouts.some((b) => {
-    if (b.venueId !== venueId) return false;
+    if (b.venueId !== 'all' && b.venueId !== venueId) return false;
 
     const blackoutDateStr = new Date(b.blackoutDate).toISOString().split('T')[0];
     if (blackoutDateStr !== dateStr) return false;
@@ -821,6 +1240,7 @@ function assignMatchupsToSlotsEnhanced(
     config,
     constraints,
     venues,
+    teams,
     constraintConfig,
     teamPreferences = [],
     venueAvailability = [],
@@ -830,6 +1250,11 @@ function assignMatchupsToSlotsEnhanced(
   const maxGamesPerVenuePerDay = constraintConfig?.maxGamesPerVenuePerDay ?? 4;
   const enforceSeniority = constraintConfig?.enforceSeniorityPreferences ?? false;
   const seniorityWeight = constraintConfig?.seniorityWeight ?? 0.5;
+
+  // Compute bye weeks if enabled
+  const byeWeekMap = config.allowByeWeeks
+    ? computeByeWeeks(teams, slots, config.byeWeeksPerTeam)
+    : new Map<string, Set<string>>();
 
   // Sort matchups by team seniority if enabled
   const sortedMatchups = [...matchups];
@@ -860,6 +1285,16 @@ function assignMatchupsToSlotsEnhanced(
       const slot = slots[slotIndex];
       let slotScore = 0;
       const isValid = true;
+
+      // Check bye weeks
+      if (byeWeekMap.size > 0) {
+        if (
+          isTeamOnBye(matchup.homeTeamId, slot, byeWeekMap) ||
+          isTeamOnBye(matchup.awayTeamId, slot, byeWeekMap)
+        ) {
+          continue;
+        }
+      }
 
       // Check back-to-back constraint
       if (!config.allowBackToBack) {
@@ -1059,12 +1494,20 @@ export async function generateScheduleEnhanced(
         error: 'Maximum 16 teams supported for schedule generation' };
     }
 
-    // Generate matchups
+    // Generate matchups — use division-aware algorithm when enabled
+    const useDivisionAware = config.divisionAware &&
+      teams.some((t) => t.divisionId != null);
     const isDoubleRoundRobin = config.scheduleType === 'double_round_robin';
-    const matchups = generateRoundRobinMatchups(teams, isDoubleRoundRobin);
+    const matchups = useDivisionAware
+      ? generateDivisionAwareMatchups(teams, config)
+      : generateRoundRobinMatchups(teams, isDoubleRoundRobin);
+
+    // Note: bye weeks are enforced at the slot-assignment level via
+    // computeByeWeeks/isTeamOnBye — matchups stay intact so total
+    // games per team are preserved; teams just skip certain weeks.
 
     // Get available time slots
-    const slots = getAvailableTimeSlots(config, constraints, venues);
+    const slots = getAvailableTimeSlots(config, constraints, venues, options.additionalIceSlots);
 
     if (slots.length < matchups.length) {
       return {

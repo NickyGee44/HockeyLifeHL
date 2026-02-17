@@ -149,6 +149,10 @@ export interface ScheduleConfig {
   homeAwayBalance: boolean;
   divisionGamesRatio: number; // 0-1, ratio of intra-division games
 
+  // Division-aware scheduling
+  divisionAware: boolean; // Generate separate intra-division round-robins
+  crossDivisionGamesPerTeam: number; // Number of cross-division games per team (0-10)
+
   // Time slots
   gameDays: number[]; // 0-6 (Sunday-Saturday)
   gameTimes: string[]; // HH:mm format
@@ -157,6 +161,10 @@ export interface ScheduleConfig {
   // Date range
   startDate: Date;
   endDate: Date;
+
+  // Bye week settings
+  allowByeWeeks: boolean;
+  byeWeeksPerTeam: number; // 1-4 rest weeks distributed evenly across the season
 
   // Venue settings
   defaultVenueId: string | null;
@@ -289,6 +297,18 @@ export interface GenerationLog {
 }
 
 // ============================================================================
+// ADDITIONAL ICE TIME SLOTS
+// ============================================================================
+
+export interface AdditionalIceSlot {
+  id: string;
+  venueId: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+}
+
+// ============================================================================
 // ALGORITHM OPTIONS
 // ============================================================================
 
@@ -305,6 +325,7 @@ export interface ScheduleGenerationOptions {
   teamPreferences?: TeamSchedulePreference[];
   venueAvailability?: VenueAvailability[];
   venueBlackouts?: VenueBlackoutDate[];
+  additionalIceSlots?: AdditionalIceSlot[];
 
   // Generation options
   maxIterations?: number;

@@ -1390,6 +1390,175 @@ export async function bulkMoveVenue(
 }
 
 // ==============================================================================
+// GET GAMES AT VENUE IN DATE RANGE
+// ==============================================================================
+
+export interface VenueGame {
+  id: string;
+  scheduled_at: string;
+  location: string;
+  status: string;
+  home_team: { id: string; name: string; short_name: string | null } | null;
+  away_team: { id: string; name: string; short_name: string | null } | null;
+}
+
+export async function getGamesAtVenueInRange(
+  leagueId: string,
+  seasonId: string,
+  location: string,
+  dateFrom: string,
+  dateTo: string
+): Promise<ActionResult<VenueGame[]>> {
+  try {
+    if (!isValidUUID(leagueId) || !isValidUUID(seasonId)) {
+      return { success: false, error: 'Invalid ID format' };
+    }
+
+    if (!location.trim()) {
+      return { success: false, error: 'Location is required' };
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateFrom) || !/^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+      return { success: false, error: 'Invalid date format. Use YYYY-MM-DD.' };
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    const { data, error } = await serviceClient
+      .from('games')
+      .select(`
+        id,
+        scheduled_at,
+        location,
+        status,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name)
+      `)
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('location', location)
+      .in('status', ['scheduled', 'postponed'])
+      .gte('scheduled_at', `${dateFrom}T00:00:00.000Z`)
+      .lte('scheduled_at', `${dateTo}T23:59:59.999Z`)
+      .order('scheduled_at', { ascending: true });
+
+    if (error) {
+      return { success: false, error: 'Failed to fetch games.' };
+    }
+
+    return { success: true, data: (data || []) as VenueGame[] };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'getGamesAtVenueInRange'),
+    };
+  }
+}
+
+// ==============================================================================
+// BULK MOVE SELECTED GAMES TO VENUE
+// ==============================================================================
+
+export async function bulkMoveSelectedGamesToVenue(
+  leagueId: string,
+  gameIds: string[],
+  toLocation: string
+): Promise<ActionResult<{ moved: number; failed: string[] }>> {
+  try {
+    if (!isValidUUID(leagueId)) {
+      return { success: false, error: 'Invalid league ID format' };
+    }
+
+    if (!toLocation.trim()) {
+      return { success: false, error: 'Destination venue is required' };
+    }
+
+    if (gameIds.length === 0) {
+      return { success: false, error: 'No games selected' };
+    }
+
+    if (gameIds.length > MAX_BULK_OPERATIONS) {
+      return {
+        success: false,
+        error: `Cannot move more than ${MAX_BULK_OPERATIONS} games at once`,
+      };
+    }
+
+    for (const id of gameIds) {
+      if (!isValidUUID(id)) {
+        return { success: false, error: 'Invalid game ID format in selection' };
+      }
+    }
+
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+    const moved: string[] = [];
+    const failed: string[] = [];
+
+    for (const gameId of gameIds) {
+      const { data: game, error: fetchError } = await serviceClient
+        .from('games')
+        .select('id, location, league_id')
+        .eq('id', gameId)
+        .eq('league_id', leagueId)
+        .single();
+
+      if (fetchError || !game) {
+        failed.push(gameId);
+        continue;
+      }
+
+      const previousLocation = game.location;
+
+      const { error: updateError } = await serviceClient
+        .from('games')
+        .update({
+          location: toLocation.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', gameId);
+
+      if (updateError) {
+        failed.push(gameId);
+      } else {
+        moved.push(gameId);
+
+        await logGameAudit(
+          gameId,
+          leagueId,
+          'update',
+          auth.userId,
+          { location: previousLocation },
+          { location: toLocation.trim() },
+          `Venue move: ${previousLocation} → ${toLocation.trim()}`
+        );
+      }
+    }
+
+    revalidatePath('/dashboard');
+
+    return {
+      success: true,
+      data: { moved: moved.length, failed },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error, 'bulkMoveSelectedGamesToVenue'),
+    };
+  }
+}
+
+// ==============================================================================
 // GET DISTINCT LOCATIONS
 // ==============================================================================
 

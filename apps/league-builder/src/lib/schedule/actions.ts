@@ -22,6 +22,7 @@ import type {
   VenueBlackoutDate,
   TeamSchedulePreference,
   ScheduleConstraintConfig,
+  AdditionalIceSlot,
 } from './types';
 
 // ============================================================================
@@ -56,11 +57,15 @@ export async function getScheduleTemplates(leagueId: string): Promise<ScheduleTe
     allowBackToBack: t.allow_back_to_back,
     homeAwayBalance: t.home_away_balance,
     divisionGamesRatio: t.division_games_ratio ?? 0.6,
+    divisionAware: true,
+    crossDivisionGamesPerTeam: 2,
     gameDays: (t.default_game_days as number[]) ?? [1, 3], // Mon, Wed
     gameTimes: (t.default_game_times as string[]) ?? ['19:00', '20:30', '22:00'],
     gameDurationMinutes: t.default_game_duration_minutes ?? 60,
     startDate: new Date(),
     endDate: new Date(),
+    allowByeWeeks: false,
+    byeWeeksPerTeam: 1,
     defaultVenueId: t.default_venue_id,
     rotateHomeVenue: t.rotate_home_venue ?? true,
     playoffFormat: 'none' as const, // Default - playoffs not configured yet
@@ -126,6 +131,8 @@ export async function createScheduleTemplate(
       allowBackToBack: data.allow_back_to_back,
       homeAwayBalance: data.home_away_balance,
       divisionGamesRatio: data.division_games_ratio ?? 0.6,
+      divisionAware: true,
+      crossDivisionGamesPerTeam: 2,
       gameDays: (data.default_game_days as number[]) ?? [1, 3],
       gameTimes: (data.default_game_times as string[]) ?? ['19:00', '20:30', '22:00'],
       gameDurationMinutes: data.default_game_duration_minutes ?? 60,
@@ -135,6 +142,8 @@ export async function createScheduleTemplate(
       rotateHomeVenue: data.rotate_home_venue ?? true,
       playoffFormat: 'none' as const,
       playoffTeams: 8,
+      allowByeWeeks: false,
+      byeWeeksPerTeam: 1,
       isDefault: data.is_default ?? false,
       createdAt: new Date(data.created_at ?? Date.now()),
       updatedAt: new Date(data.updated_at ?? Date.now()),
@@ -289,7 +298,8 @@ export async function generateSeasonSchedule(
   seasonId: string,
   leagueId: string,
   config: ScheduleConfig,
-  templateId?: string
+  templateId?: string,
+  additionalIceSlots?: AdditionalIceSlot[]
 ): Promise<ScheduleGenerationResult & { logId?: string }> {
   const supabase = await createClient();
   const startTime = Date.now();
@@ -405,6 +415,9 @@ export async function generateSeasonSchedule(
       venueBlackouts: venueBlackoutsList,
       teamPreferences: teamPrefs,
       constraintConfig: constraintCfg ?? undefined,
+    }),
+    ...(additionalIceSlots && additionalIceSlots.length > 0 && {
+      additionalIceSlots,
     }),
   };
 
