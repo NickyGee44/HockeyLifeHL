@@ -175,14 +175,14 @@ export function AutoAssignModal({
               <div className="space-y-2">
                 <Label>{t('season')}</Label>
                 <Select
-                  value={options.seasonId}
-                  onValueChange={(value) => setOptions(prev => ({ ...prev, seasonId: value }))}
+                  value={options.seasonId || 'all'}
+                  onValueChange={(value) => setOptions(prev => ({ ...prev, seasonId: value === 'all' ? '' : value }))}
                 >
                   <SelectTrigger className="bg-neutral-800 border-white/10 text-white">
                     <SelectValue placeholder={t('allSeasons')} />
                   </SelectTrigger>
                   <SelectContent className="bg-neutral-900 border-white/10">
-                    <SelectItem value="" className="text-white">{t('allSeasons')}</SelectItem>
+                    <SelectItem value="all" className="text-white">{t('allSeasons')}</SelectItem>
                     {seasons.map((season) => (
                       <SelectItem key={season.id} value={season.id} className="text-white">
                         {season.name}

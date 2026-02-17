@@ -218,14 +218,14 @@ export function BulkAssignGamesModal({
           <div className="flex flex-wrap gap-3">
             <div className="flex-1 min-w-[140px]">
               <Select
-                value={filters.seasonId}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, seasonId: value }))}
+                value={filters.seasonId || 'all'}
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, seasonId: value === 'all' ? '' : value }))}
               >
                 <SelectTrigger className="bg-neutral-800 border-white/10 text-white h-9 text-sm">
                   <SelectValue placeholder={t('allSeasons')} />
                 </SelectTrigger>
                 <SelectContent className="bg-neutral-900 border-white/10">
-                  <SelectItem value="" className="text-white">{t('allSeasons')}</SelectItem>
+                  <SelectItem value="all" className="text-white">{t('allSeasons')}</SelectItem>
                   {seasons.map((season) => (
                     <SelectItem key={season.id} value={season.id} className="text-white">
                       {season.name}

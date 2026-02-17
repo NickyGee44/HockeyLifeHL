@@ -96,46 +96,50 @@ export function ScorekeeperCard({
         </div>
 
         {/* Actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <div className="flex items-center gap-2">
+          {onAssignGames && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="text-neutral-400 hover:text-white"
+              onClick={onAssignGames}
+              className="border-rink-500/30 text-rink-500 hover:bg-rink-500/10 text-xs"
             >
-              <MoreVertical className="w-4 h-4" />
+              <Calendar className="w-3.5 h-3.5 mr-1.5" />
+              {t('assignToGames')}
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-neutral-900 border-white/10">
-            {onAssignGames && (
-              <DropdownMenuItem
-                onClick={onAssignGames}
-                className="text-white hover:bg-neutral-800 cursor-pointer"
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-neutral-400 hover:text-white"
               >
-                <Calendar className="w-4 h-4 mr-2" />
-                {t('assignToGames')}
-              </DropdownMenuItem>
-            )}
-            {onEdit && (
-              <DropdownMenuItem
-                onClick={onEdit}
-                className="text-white hover:bg-neutral-800 cursor-pointer"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                {t('edit')}
-              </DropdownMenuItem>
-            )}
-            {onRemove && (
-              <DropdownMenuItem
-                onClick={onRemove}
-                className="text-red-500 hover:bg-neutral-800 cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                {t('remove')}
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-neutral-900 border-white/10">
+              {onEdit && (
+                <DropdownMenuItem
+                  onClick={onEdit}
+                  className="text-white hover:bg-neutral-800 cursor-pointer"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  {t('edit')}
+                </DropdownMenuItem>
+              )}
+              {onRemove && (
+                <DropdownMenuItem
+                  onClick={onRemove}
+                  className="text-red-500 hover:bg-neutral-800 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {t('remove')}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );
