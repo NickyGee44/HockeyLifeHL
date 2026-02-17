@@ -62,21 +62,21 @@ export function ScheduleTable({
                 background: 'color-mix(in srgb, var(--color-surface) 60%, transparent)',
               }}
             >
-              <th className="text-left py-2 px-4 text-[10px] font-semibold uppercase tracking-wider">
+              <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider">
                 Match Up
               </th>
-              <th className="text-center py-2 px-3 text-[10px] font-semibold uppercase tracking-wider w-[90px]">
+              <th className="text-center py-2 px-3 text-xs font-semibold uppercase tracking-wider w-[90px]">
                 Time
               </th>
-              <th className="text-left py-2 px-3 text-[10px] font-semibold uppercase tracking-wider w-[130px]">
+              <th className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wider w-[130px]">
                 Rink
               </th>
               {showDivision && (
-                <th className="text-center py-2 px-3 text-[10px] font-semibold uppercase tracking-wider w-[80px]">
+                <th className="text-center py-2 px-3 text-xs font-semibold uppercase tracking-wider w-[80px]">
                   Div
                 </th>
               )}
-              <th className="text-center py-2 px-3 text-[10px] font-semibold uppercase tracking-wider w-[80px]">
+              <th className="text-center py-2 px-3 text-xs font-semibold uppercase tracking-wider w-[80px]">
                 Details
               </th>
             </tr>
@@ -184,7 +184,7 @@ function ScheduleTableRow({
             </span>
           )}
 
-          <span className="text-[10px] text-[var(--color-text-muted)] font-bold mx-0.5">vs</span>
+          <span className="text-xs text-[var(--color-text-muted)] font-bold mx-0.5">vs</span>
 
           {(isCompleted || isLive) && (
             <span className={`text-sm font-bold tabular-nums ${
@@ -214,11 +214,11 @@ function ScheduleTableRow({
       {/* Time / Score Column */}
       <td className="py-3 px-3 text-center w-[90px]">
         {isLive ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/15 text-red-400 rounded-full text-[10px] font-bold uppercase animate-pulse">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/15 text-red-400 rounded-full text-xs font-bold uppercase animate-pulse">
             LIVE
           </span>
         ) : isCompleted ? (
-          <span className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase">
+          <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase">
             Final
           </span>
         ) : (
@@ -230,7 +230,7 @@ function ScheduleTableRow({
 
       {/* Rink/Venue Column */}
       <td className="py-3 px-3 w-[130px]">
-        <span className="text-xs text-[var(--color-text-secondary)] truncate block max-w-[130px]">
+        <span className="text-sm text-[var(--color-text-secondary)] truncate block max-w-[130px]">
           {game.venue || 'TBD'}
         </span>
       </td>
@@ -239,7 +239,7 @@ function ScheduleTableRow({
       {showDivision && (
         <td className="py-3 px-3 text-center w-[80px]">
           <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded"
+            className="text-xs font-bold px-2 py-0.5 rounded"
             style={{
               background: 'color-mix(in srgb, var(--league-primary) 12%, transparent)',
               color: 'var(--league-primary)',
@@ -306,11 +306,11 @@ function ScheduleCard({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {isLive ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/15 text-red-400 rounded-full text-[10px] font-bold uppercase animate-pulse">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/15 text-red-400 rounded-full text-xs font-bold uppercase animate-pulse">
               LIVE
             </span>
           ) : isCompleted ? (
-            <span className="text-[10px] text-[var(--color-text-muted)] font-semibold uppercase">
+            <span className="text-xs text-[var(--color-text-muted)] font-semibold uppercase">
               Final
             </span>
           ) : (
@@ -322,7 +322,7 @@ function ScheduleCard({
         <div className="flex items-center gap-2">
           {showDivision && divisionName && (
             <span
-              className="text-[9px] font-bold px-2 py-0.5 rounded"
+              className="text-[11px] font-bold px-2 py-0.5 rounded"
               style={{
                 background: 'color-mix(in srgb, var(--league-primary) 12%, transparent)',
                 color: 'var(--league-primary)',
@@ -345,14 +345,14 @@ function ScheduleCard({
               teamColor={game.away_team?.colors}
               size="sm"
             />
-            <span className={`text-sm ${
+            <span className={`text-base ${
               isCompleted && winner === 'away' ? 'font-bold text-[var(--league-primary)]' : 'font-medium text-[var(--color-text-primary)]'
             }`}>
               {game.away_team?.name || 'TBD'}
             </span>
           </div>
           {(isCompleted || isLive) && (
-            <span className={`text-base font-bold tabular-nums ${
+            <span className={`text-lg font-bold tabular-nums ${
               isLive ? 'text-red-400' : winner === 'away' ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}>
               {isLive ? (game.away_score ?? 0) : game.away_score}
@@ -369,14 +369,14 @@ function ScheduleCard({
               teamColor={game.home_team?.colors}
               size="sm"
             />
-            <span className={`text-sm ${
+            <span className={`text-base ${
               isCompleted && winner === 'home' ? 'font-bold text-[var(--league-primary)]' : 'font-medium text-[var(--color-text-primary)]'
             }`}>
               {game.home_team?.name || 'TBD'}
             </span>
           </div>
           {(isCompleted || isLive) && (
-            <span className={`text-base font-bold tabular-nums ${
+            <span className={`text-lg font-bold tabular-nums ${
               isLive ? 'text-red-400' : winner === 'home' ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}>
               {isLive ? (game.home_score ?? 0) : game.home_score}
@@ -387,7 +387,7 @@ function ScheduleCard({
 
       {/* Venue */}
       {game.venue && (
-        <div className="mt-2 text-[11px] text-[var(--color-text-muted)]">
+        <div className="mt-2 text-xs text-[var(--color-text-muted)]">
           {game.venue}
         </div>
       )}

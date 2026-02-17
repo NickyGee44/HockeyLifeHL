@@ -75,23 +75,23 @@ function buildColumns(opts: {
   showOtl: boolean;
 }): ColumnDef[] {
   const cols: ColumnDef[] = [
-    { key: 'rank', label: 'Rank', shortLabel: '#', sortable: false, align: 'center', width: '50px' },
+    { key: 'rank', label: 'Rank', shortLabel: '#', sortable: false, align: 'center', width: '56px' },
     { key: 'team', label: 'Team', shortLabel: 'Team', sortable: true, align: 'left' },
-    { key: 'gp', label: 'Games Played', shortLabel: 'GP', sortable: true, align: 'center', width: '60px' },
-    { key: 'w', label: 'Wins', shortLabel: 'W', sortable: true, align: 'center', width: '50px' },
-    { key: 'l', label: 'Losses', shortLabel: 'L', sortable: true, align: 'center', width: '50px' },
-    { key: 't', label: 'Ties', shortLabel: 'T', sortable: true, align: 'center', width: '50px' },
+    { key: 'gp', label: 'Games Played', shortLabel: 'GP', sortable: true, align: 'center', width: '64px' },
+    { key: 'w', label: 'Wins', shortLabel: 'W', sortable: true, align: 'center', width: '56px' },
+    { key: 'l', label: 'Losses', shortLabel: 'L', sortable: true, align: 'center', width: '56px' },
+    { key: 't', label: 'Ties', shortLabel: 'T', sortable: true, align: 'center', width: '56px' },
   ];
 
   if (opts.showOtl) {
-    cols.push({ key: 'otl', label: 'OT Losses', shortLabel: 'OTL', sortable: true, align: 'center', width: '50px' });
+    cols.push({ key: 'otl', label: 'OT Losses', shortLabel: 'OTL', sortable: true, align: 'center', width: '56px' });
   }
 
   cols.push(
-    { key: 'pts', label: 'Points', shortLabel: 'PTS', sortable: true, align: 'center', width: '60px' },
-    { key: 'gf', label: 'Goals For', shortLabel: 'GF', sortable: true, align: 'center', width: '60px', hiddenOnMobile: true },
-    { key: 'ga', label: 'Goals Against', shortLabel: 'GA', sortable: true, align: 'center', width: '60px', hiddenOnMobile: true },
-    { key: 'diff', label: 'Goal Diff', shortLabel: 'DIFF', sortable: true, align: 'center', width: '60px', hiddenOnMobile: true },
+    { key: 'pts', label: 'Points', shortLabel: 'PTS', sortable: true, align: 'center', width: '64px' },
+    { key: 'gf', label: 'Goals For', shortLabel: 'GF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: true },
+    { key: 'ga', label: 'Goals Against', shortLabel: 'GA', sortable: true, align: 'center', width: '64px', hiddenOnMobile: true },
+    { key: 'diff', label: 'Goal Diff', shortLabel: 'DIFF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: true },
   );
 
   if (opts.showHomeAway) {
@@ -198,11 +198,11 @@ export function StandingsTable({
         const logo = renderLogo
           ? renderLogo(team)
           : team.logoUrl
-            ? <img src={team.logoUrl} alt="" className="w-6 h-6 rounded" />
+            ? <img src={team.logoUrl} alt="" className="w-8 h-8 rounded" />
             : isPublic
               ? (
                 <div
-                  className="w-8 h-8 rounded flex items-center justify-center text-sm font-bold"
+                  className="w-10 h-10 rounded flex items-center justify-center text-sm font-bold"
                   style={{
                     backgroundColor: 'var(--league-primary)',
                     color: 'var(--color-accent-text)',
@@ -214,7 +214,7 @@ export function StandingsTable({
               : null;
 
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {logo}
             <span className="font-medium">{team.name}</span>
           </div>
