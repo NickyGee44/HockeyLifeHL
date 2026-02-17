@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import type { PlayerData } from '@/lib/actions/scorekeeper';
 import { addGoalEvent } from '@/lib/actions/scorekeeper';
 import { PlayerPicker } from './PlayerPicker';
@@ -41,13 +41,15 @@ export function GoalEntry({
   const [step, setStep] = useState<Step>('scorer');
   const [scorer, setScorer] = useState<PlayerData | null>(null);
   const [assist1, setAssist1] = useState<PlayerData | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   const skaters = roster.filter(p => p.position !== 'Goalie');
 
-  function submitGoal(scorerPlayer: PlayerData, a1?: PlayerData | null, a2?: PlayerData | null) {
-    startTransition(async () => {
-      const result = await addGoalEvent({
+  async function submitGoal(scorerPlayer: PlayerData, a1?: PlayerData | null, a2?: PlayerData | null) {
+    if (isPending) return;
+    setIsPending(true);
+    try {
+      await addGoalEvent({
         gameId,
         teamId,
         teamType,
@@ -60,12 +62,10 @@ export function GoalEntry({
         isShortHanded,
         isEmptyNet,
       });
-
-      if (!result.success) {
-        console.error('Failed to save goal:', result.error);
-      }
-      onComplete();
-    });
+    } catch (err) {
+      console.error('Failed to save goal:', err);
+    }
+    onComplete();
   }
 
   function handleScorerSelect(player: PlayerData) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import type { PlayerData } from '@/lib/actions/scorekeeper';
 import { addShotEvent } from '@/lib/actions/scorekeeper';
 import { PlayerPicker } from './PlayerPicker';
@@ -40,7 +40,7 @@ export function ShotEntry({
     // Auto-select if only one goalie
     goalies.length === 1 ? goalies[0] : null
   );
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   // If only one goalie, skip to shooter selection
   if (step === 'goalie' && goalies.length === 1 && !goalie) {
@@ -53,11 +53,11 @@ export function ShotEntry({
     setStep('shooter');
   }
 
-  function handleShooterSelect(shooter: PlayerData) {
-    if (!goalie) return;
-
-    startTransition(async () => {
-      const result = await addShotEvent({
+  async function handleShooterSelect(shooter: PlayerData) {
+    if (!goalie || isPending) return;
+    setIsPending(true);
+    try {
+      await addShotEvent({
         gameId,
         teamId: defendingTeamId,
         teamType: defendingTeamType,
@@ -66,20 +66,18 @@ export function ShotEntry({
         period,
         gameTimeSeconds,
       });
-
-      if (!result.success) {
-        console.error('Failed to save shot:', result.error);
-      }
-      onComplete();
-    });
+    } catch (err) {
+      console.error('Failed to save shot:', err);
+    }
+    onComplete();
   }
 
-  function handleQuickSave() {
+  async function handleQuickSave() {
     // Record save without specifying shooter
-    if (!goalie) return;
-
-    startTransition(async () => {
-      const result = await addShotEvent({
+    if (!goalie || isPending) return;
+    setIsPending(true);
+    try {
+      await addShotEvent({
         gameId,
         teamId: defendingTeamId,
         teamType: defendingTeamType,
@@ -87,12 +85,10 @@ export function ShotEntry({
         period,
         gameTimeSeconds,
       });
-
-      if (!result.success) {
-        console.error('Failed to save shot:', result.error);
-      }
-      onComplete();
-    });
+    } catch (err) {
+      console.error('Failed to save shot:', err);
+    }
+    onComplete();
   }
 
   if (step === 'goalie' && goalies.length > 1) {

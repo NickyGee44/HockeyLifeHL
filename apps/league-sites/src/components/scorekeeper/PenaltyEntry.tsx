@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import type { PlayerData } from '@/lib/actions/scorekeeper';
 import { addPenaltyEvent } from '@/lib/actions/scorekeeper';
 import { PlayerPicker } from './PlayerPicker';
@@ -66,19 +66,18 @@ export function PenaltyEntry({
   const [step, setStep] = useState<Step>('player');
   const [player, setPlayer] = useState<PlayerData | null>(null);
   const [showAllPenalties, setShowAllPenalties] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   function handlePlayerSelect(p: PlayerData) {
     setPlayer(p);
     setStep('penalty');
   }
 
-  function handlePenaltySelect(type: string, minutes: number) {
-    if (!player) return;
-
-    // Auto-save immediately — no confirm step
-    startTransition(async () => {
-      const result = await addPenaltyEvent({
+  async function handlePenaltySelect(type: string, minutes: number) {
+    if (!player || isPending) return;
+    setIsPending(true);
+    try {
+      await addPenaltyEvent({
         gameId,
         teamId,
         teamType,
@@ -88,12 +87,10 @@ export function PenaltyEntry({
         penaltyType: type,
         penaltyMinutes: minutes,
       });
-
-      if (!result.success) {
-        console.error('Failed to save penalty:', result.error);
-      }
-      onComplete();
-    });
+    } catch (err) {
+      console.error('Failed to save penalty:', err);
+    }
+    onComplete();
   }
 
   if (step === 'player') {
