@@ -149,14 +149,10 @@ export const step5Schema = z.object({
     message: 'You must agree to the waiver to continue',
   }),
 
-  // Signature
-  signature_data: z
-    .string()
-    .min(100, 'Please provide your signature'),
-  signature_type: z.enum(['drawn', 'typed']).default('drawn'),
-  signed_name: z
-    .string()
-    .min(2, 'Please enter your full legal name'),
+  // Signature (optional for checkbox-only flow)
+  signature_data: z.string().optional(),
+  signature_type: z.enum(['drawn', 'typed', 'checkbox']).default('checkbox'),
+  signed_name: z.string().optional(),
 
   // Required Consents
   consent_terms: z.literal(true, {
@@ -252,11 +248,11 @@ export const registrationSchema = z.object({
   // Step 4: Photo
   photo_url: z.string().url().optional().or(z.literal('')),
 
-  // Step 5: Waiver
+  // Step 5: Waiver (signature optional for checkbox-only flow)
   waiver_agreed: z.literal(true),
-  signature_data: z.string().min(100),
-  signature_type: z.enum(['drawn', 'typed']),
-  signed_name: z.string().min(2),
+  signature_data: z.string().optional(),
+  signature_type: z.enum(['drawn', 'typed', 'checkbox']),
+  signed_name: z.string().optional(),
   consent_terms: z.literal(true),
   consent_privacy: z.literal(true),
   consent_data_processing: z.literal(true),
@@ -337,7 +333,7 @@ export const registrationDraftSchema = z.object({
 
   waiver_agreed: z.boolean().optional(),
   signature_data: z.string().optional(),
-  signature_type: z.enum(['drawn', 'typed']).optional(),
+  signature_type: z.enum(['drawn', 'typed', 'checkbox']).optional(),
   signed_name: z.string().optional(),
   consent_terms: z.boolean().optional(),
   consent_privacy: z.boolean().optional(),
@@ -365,7 +361,7 @@ export const defaultRegistrationValues: Partial<RegistrationFormData> = {
   preferred_jersey_number: null,
   secondary_position: null,
   photo_url: '',
-  signature_type: 'drawn',
+  signature_type: 'checkbox',
   consent_marketing: false,
   payment_status: 'not_required',
   amount_cents: 0,

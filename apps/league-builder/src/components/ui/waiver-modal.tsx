@@ -22,6 +22,10 @@ export interface WaiverModalProps {
   contentHash: string;
   leagueName?: string;
   className?: string;
+  /** When true, hides signature panel and shows a simple "I agree" button */
+  simplified?: boolean;
+  /** Called when user accepts in simplified mode */
+  onAccept?: (data: { waiverContentHash: string }) => void;
 }
 
 export function WaiverModal({
@@ -34,6 +38,8 @@ export function WaiverModal({
   contentHash,
   leagueName,
   className,
+  simplified,
+  onAccept,
 }: WaiverModalProps) {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [signatureData, setSignatureData] = useState('');
@@ -167,75 +173,92 @@ export function WaiverModal({
                 </button>
               </div>
             )}
+
+            {/* Simplified mode: Accept button at bottom of waiver text */}
+            {simplified && hasScrolledToBottom && (
+              <div className="px-6 py-4 border-t border-neutral-700 bg-neutral-800/50">
+                <Button
+                  type="button"
+                  onClick={() => onAccept?.({ waiverContentHash: contentHash })}
+                  className="w-full"
+                  size="lg"
+                >
+                  <Check className="mr-2 h-5 w-5" />
+                  I Have Read and Agree
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Signature Panel */}
-          <div className="w-full md:w-[450px] border-t md:border-t-0 md:border-l border-neutral-700 bg-neutral-800/30 p-6 overflow-y-auto">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  Your Signature
-                </h3>
-                <p className="text-sm text-neutral-400 mb-4">
-                  {hasScrolledToBottom
-                    ? 'Please sign below to acknowledge that you have read and agree to this waiver.'
-                    : 'Please scroll down and read the entire waiver before signing.'}
-                </p>
-              </div>
+          {/* Signature Panel — hidden in simplified mode */}
+          {!simplified && (
+            <div className="w-full md:w-[450px] border-t md:border-t-0 md:border-l border-neutral-700 bg-neutral-800/30 p-6 overflow-y-auto">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    Your Signature
+                  </h3>
+                  <p className="text-sm text-neutral-400 mb-4">
+                    {hasScrolledToBottom
+                      ? 'Please sign below to acknowledge that you have read and agree to this waiver.'
+                      : 'Please scroll down and read the entire waiver before signing.'}
+                  </p>
+                </div>
 
-              <div className={cn(
-                'transition-opacity duration-300',
-                !hasScrolledToBottom && 'opacity-50 pointer-events-none'
-              )}>
-                <SignaturePad
-                  value={signatureData}
-                  onChange={handleSignatureChange}
-                  signedName={signedName}
-                  onSignedNameChange={setSignedName}
-                  width={380}
-                  height={150}
-                  disabled={!hasScrolledToBottom}
-                />
-              </div>
+                <div className={cn(
+                  'transition-opacity duration-300',
+                  !hasScrolledToBottom && 'opacity-50 pointer-events-none'
+                )}>
+                  <SignaturePad
+                    value={signatureData}
+                    onChange={handleSignatureChange}
+                    signedName={signedName}
+                    onSignedNameChange={setSignedName}
+                    width={380}
+                    height={150}
+                    disabled={!hasScrolledToBottom}
+                  />
+                </div>
 
-              {/* Agreement Checkbox */}
-              <div className={cn(
-                'flex items-start gap-3 p-4 rounded-lg border transition-colors',
-                canSign
-                  ? 'border-rink-500/50 bg-rink-500/10'
-                  : 'border-neutral-700 bg-neutral-800/50'
-              )}>
-                {canSign ? (
-                  <Check className="h-5 w-5 text-rink-500 mt-0.5 flex-shrink-0" />
-                ) : (
-                  <div className="h-5 w-5 rounded border border-neutral-600 mt-0.5 flex-shrink-0" />
-                )}
-                <p className="text-sm text-neutral-300">
-                  I have read this waiver, understand its contents, and voluntarily
-                  agree to its terms. I understand that by signing, I am giving up
-                  certain legal rights.
-                </p>
-              </div>
+                {/* Agreement Checkbox */}
+                <div className={cn(
+                  'flex items-start gap-3 p-4 rounded-lg border transition-colors',
+                  canSign
+                    ? 'border-rink-500/50 bg-rink-500/10'
+                    : 'border-neutral-700 bg-neutral-800/50'
+                )}>
+                  {canSign ? (
+                    <Check className="h-5 w-5 text-rink-500 mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <div className="h-5 w-5 rounded border border-neutral-600 mt-0.5 flex-shrink-0" />
+                  )}
+                  <p className="text-sm text-neutral-300">
+                    I have read this waiver, understand its contents, and voluntarily
+                    agree to its terms. I understand that by signing, I am giving up
+                    certain legal rights.
+                  </p>
+                </div>
 
-              {/* Submit Button */}
-              <Button
-                type="button"
-                onClick={handleSign}
-                disabled={!canSign}
-                className="w-full"
-                size="lg"
-              >
-                {canSign ? (
-                  <>
-                    <Check className="mr-2 h-5 w-5" />
-                    Sign & Accept Waiver
-                  </>
-                ) : (
-                  'Complete steps above to sign'
-                )}
-              </Button>
+                {/* Submit Button */}
+                <Button
+                  type="button"
+                  onClick={handleSign}
+                  disabled={!canSign}
+                  className="w-full"
+                  size="lg"
+                >
+                  {canSign ? (
+                    <>
+                      <Check className="mr-2 h-5 w-5" />
+                      Sign & Accept Waiver
+                    </>
+                  ) : (
+                    'Complete steps above to sign'
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

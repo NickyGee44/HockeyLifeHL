@@ -66,6 +66,11 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       description: 'Manage referees and game officiating assignments',
       icon: 'Shield',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/referees` },
+    {
+      title: 'Waiver',
+      description: 'Manage liability waiver and view signed agreements',
+      icon: 'ScrollText',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/waiver` },
   ];
 
   const orgSettings = [

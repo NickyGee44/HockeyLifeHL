@@ -813,7 +813,24 @@
     "saveChanges": "Save Changes",
     "saving": "Saving...",
     "generalSettings": "General Settings",
-    "updateInfo": "Update basic information for {name}"
+    "updateInfo": "Update basic information for {name}",
+    "waiver": {
+      "title": "Waiver Settings",
+      "description": "Manage liability waiver and view signed agreements",
+      "templateTitle": "Waiver Template",
+      "waiverTitle": "Waiver Title",
+      "waiverContent": "Waiver Content",
+      "saveWaiver": "Save Waiver",
+      "saving": "Saving...",
+      "saved": "Waiver template saved successfully",
+      "signedWaivers": "Signed Waivers",
+      "playerName": "Player",
+      "dateAgreed": "Date Agreed",
+      "season": "Season",
+      "version": "Version",
+      "noWaivers": "No signed waivers yet",
+      "searchPlaceholder": "Search by name..."
+    }
   },
   "company": {
     "profile": "Company Profile",

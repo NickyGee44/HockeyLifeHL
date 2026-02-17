@@ -18,12 +18,13 @@ import {
   Building2,
   AlertTriangle,
   Receipt,
+  ScrollText,
   ArrowLeft,
 } from 'lucide-react';
 
 const iconMap: Record<string, any> = {
   Settings, Palette, Globe, Bell, CreditCard, Users, Shield,
-  Trash2, ClipboardCheck, Eye, Building2, AlertTriangle, Receipt,
+  Trash2, ClipboardCheck, Eye, Building2, AlertTriangle, Receipt, ScrollText,
 };
 
 interface SettingItem {

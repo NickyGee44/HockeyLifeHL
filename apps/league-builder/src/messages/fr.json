@@ -813,7 +813,24 @@
     "saveChanges": "Enregistrer",
     "saving": "Enregistrement...",
     "generalSettings": "Parametres generaux",
-    "updateInfo": "Modifier les informations de base pour {name}"
+    "updateInfo": "Modifier les informations de base pour {name}",
+    "waiver": {
+      "title": "Paramètres de décharge",
+      "description": "Gérer la décharge de responsabilité et voir les accords signés",
+      "templateTitle": "Modèle de décharge",
+      "waiverTitle": "Titre de la décharge",
+      "waiverContent": "Contenu de la décharge",
+      "saveWaiver": "Enregistrer la décharge",
+      "saving": "Enregistrement...",
+      "saved": "Modèle de décharge enregistré avec succès",
+      "signedWaivers": "Décharges signées",
+      "playerName": "Joueur",
+      "dateAgreed": "Date d'accord",
+      "season": "Saison",
+      "version": "Version",
+      "noWaivers": "Aucune décharge signée pour l'instant",
+      "searchPlaceholder": "Rechercher par nom..."
+    }
   },
   "company": {
     "profile": "Profil de l'entreprise",

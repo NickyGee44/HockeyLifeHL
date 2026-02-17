@@ -448,7 +448,7 @@ export async function submitSignedWaiver(
   leagueId: string,
   seasonId: string,
   signatureData: string,
-  signatureType: 'drawn' | 'typed',
+  signatureType: 'drawn' | 'typed' | 'checkbox',
   signedName: string,
   waiverContentHash: string
 ): ActionResult<{ waiverId: string }> {
@@ -475,7 +475,7 @@ export async function submitSignedWaiver(
         league_id: leagueId,
         season_id: seasonId,
         signature_data: signatureData,
-        signature_type: signatureType,
+        signature_type: signatureType as any, // 'checkbox' added via migration, types not yet regenerated
         signed_name: signedName,
         waiver_version: template?.version || 'v1',
         waiver_content_hash: waiverContentHash,
@@ -711,7 +711,7 @@ export async function submitPlayerRegistration(
 
     // 1. First, save the waiver if not already saved
     let waiverId = null;
-    if (data.signature_data && data.signed_name) {
+    if (data.waiver_agreed) {
       const { data: existingWaiver } = await serviceSupabase
         .from('player_waivers')
         .select('id')
@@ -723,7 +723,7 @@ export async function submitPlayerRegistration(
       if (existingWaiver) {
         waiverId = existingWaiver.id;
       } else {
-        // Get waiver template hash
+        // Get waiver template hash and player name for checkbox flow
         const { data: template } = await serviceSupabase
           .from('league_waiver_templates')
           .select('version, content_hash')
@@ -731,15 +731,20 @@ export async function submitPlayerRegistration(
           .eq('is_active', true)
           .single();
 
+        // For checkbox flow, use player's full name as signed_name
+        const signedName = data.signed_name || data.full_name;
+        const signatureData = data.signature_data || 'checkbox_agreed';
+        const signatureType = data.signature_type || 'checkbox';
+
         const { data: newWaiver, error: waiverError } = await serviceSupabase
           .from('player_waivers')
           .insert({
             player_id: user.id,
             league_id: data.league_id,
             season_id: data.season_id,
-            signature_data: data.signature_data,
-            signature_type: data.signature_type || 'drawn',
-            signed_name: data.signed_name,
+            signature_data: signatureData,
+            signature_type: signatureType as any,
+            signed_name: signedName,
             waiver_version: template?.version || 'v1',
             waiver_content_hash: template?.content_hash || '',
           })
