@@ -53,14 +53,13 @@ export function GameTimer({
 
       {/* Timer Display */}
       <div className="flex-1 text-center">
-        <div
-          className={`
-            text-4xl font-mono font-bold tabular-nums tracking-wider
-            text-[var(--color-text-primary)]
-            ${timer.isRunning ? 'animate-pulse' : ''}
-          `}
-        >
-          {timer.formattedTime}
+        <div className="flex items-center justify-center gap-2">
+          {timer.isRunning && (
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+          )}
+          <span className="text-4xl font-mono font-bold tabular-nums tracking-wider text-[var(--color-text-primary)]">
+            {timer.formattedTime}
+          </span>
         </div>
       </div>
 

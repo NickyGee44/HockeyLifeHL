@@ -89,9 +89,10 @@ export function PenaltyEntry({
         penaltyMinutes: minutes,
       });
 
-      if (result.success) {
-        onComplete();
+      if (!result.success) {
+        console.error('Failed to save penalty:', result.error);
       }
+      onComplete();
     });
   }
 

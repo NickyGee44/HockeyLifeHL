@@ -61,9 +61,10 @@ export function GoalEntry({
         isEmptyNet,
       });
 
-      if (result.success) {
-        onComplete();
+      if (!result.success) {
+        console.error('Failed to save goal:', result.error);
       }
+      onComplete();
     });
   }
 

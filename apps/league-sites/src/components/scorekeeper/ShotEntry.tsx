@@ -67,9 +67,10 @@ export function ShotEntry({
         gameTimeSeconds,
       });
 
-      if (result.success) {
-        onComplete();
+      if (!result.success) {
+        console.error('Failed to save shot:', result.error);
       }
+      onComplete();
     });
   }
 
@@ -87,9 +88,10 @@ export function ShotEntry({
         gameTimeSeconds,
       });
 
-      if (result.success) {
-        onComplete();
+      if (!result.success) {
+        console.error('Failed to save shot:', result.error);
       }
+      onComplete();
     });
   }
 

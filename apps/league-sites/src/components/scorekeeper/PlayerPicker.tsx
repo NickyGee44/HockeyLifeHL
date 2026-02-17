@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Image from 'next/image';
 import type { PlayerData } from '@/lib/actions/scorekeeper';
 
 interface PlayerPickerProps {
@@ -51,12 +52,28 @@ export function PlayerPicker({
 
       {/* Panel - slides up from bottom */}
       <div className="relative mt-auto max-h-[85vh] flex flex-col bg-[var(--color-background)] rounded-t-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+        {/* Team color accent bar */}
+        <div
+          className="h-1 rounded-t-2xl"
+          style={{ backgroundColor: teamColor || 'var(--league-primary, #d4af37)' }}
+        />
+
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-          <div>
+          <div className="flex items-center gap-2">
             <h3 className="font-semibold text-[var(--color-text-primary)]">
-              {title || `Select Player - ${teamName}`}
+              {title || 'Select Player'}
             </h3>
+            {/* Team name badge */}
+            <span
+              className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+              style={{
+                backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
+                color: teamColor || 'var(--color-text-secondary)',
+              }}
+            >
+              {teamName}
+            </span>
           </div>
           <button
             onClick={onClose}
@@ -93,17 +110,41 @@ export function PlayerPicker({
                 <button
                   key={player.id}
                   onClick={() => onSelect(player)}
-                  className="flex flex-col items-center gap-1 p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-surface-hover,var(--color-surface))] transition-all duration-150 active:scale-95 min-h-[80px] justify-center"
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-surface-hover,var(--color-surface))] transition-all duration-150 active:scale-95 min-h-[90px] justify-center"
                 >
-                  {/* Jersey Number — large */}
-                  <div
-                    className="flex items-center justify-center w-12 h-12 rounded-lg font-bold text-lg"
-                    style={{
-                      backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
-                      color: teamColor || 'var(--color-text-primary)',
-                    }}
-                  >
-                    {player.jerseyNumber}
+                  {/* Avatar or Jersey Number */}
+                  <div className="relative">
+                    {player.avatarUrl ? (
+                      <>
+                        <Image
+                          src={player.avatarUrl}
+                          alt={player.fullName}
+                          width={44}
+                          height={44}
+                          className="w-11 h-11 rounded-full object-cover border-2"
+                          style={{ borderColor: teamColor || 'var(--color-border)' }}
+                        />
+                        <div
+                          className="absolute -bottom-1 -right-1 flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold border-2 border-[var(--color-background)]"
+                          style={{
+                            backgroundColor: teamColor || 'var(--league-primary, #d4af37)',
+                            color: '#fff',
+                          }}
+                        >
+                          {player.jerseyNumber}
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        className="flex items-center justify-center w-11 h-11 rounded-full font-bold text-lg"
+                        style={{
+                          backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
+                          color: teamColor || 'var(--color-text-primary)',
+                        }}
+                      >
+                        {player.jerseyNumber}
+                      </div>
+                    )}
                   </div>
 
                   {/* Last name */}

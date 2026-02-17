@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import type { GameData, CheckinPlayer } from '@/lib/actions/scorekeeper';
 import { updateScorekeeperCheckin, updateGameStatus } from '@/lib/actions/scorekeeper';
 
@@ -19,8 +20,12 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
   const homeTeam = game.homeTeam;
   const awayTeam = game.awayTeam;
 
+  const homeColor = homeTeam.primaryColor || 'var(--league-primary, #d4af37)';
+  const awayColor = awayTeam.primaryColor || 'var(--league-primary, #d4af37)';
+
   const currentRoster = activeTab === 'home' ? checkins.homeTeam : checkins.awayTeam;
   const currentTeam = activeTab === 'home' ? homeTeam : awayTeam;
+  const currentColor = activeTab === 'home' ? homeColor : awayColor;
   const confirmedCount = currentRoster.filter(p => p.checkinStatus === 'confirmed').length;
 
   const handleToggle = useCallback(async (player: CheckinPlayer) => {
@@ -96,26 +101,58 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
           onClick={() => setActiveTab('home')}
           className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
             activeTab === 'home'
-              ? 'text-[var(--league-primary,#d4af37)] border-b-2 border-[var(--league-primary,#d4af37)]'
+              ? 'border-b-2'
               : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
           }`}
+          style={
+            activeTab === 'home'
+              ? { borderBottomColor: homeColor, color: homeColor }
+              : undefined
+          }
         >
-          {homeTeam.shortName || homeTeam.name}
-          <span className="ml-2 text-xs opacity-70">
-            {checkins.homeTeam.filter(p => p.checkinStatus === 'confirmed').length}/{checkins.homeTeam.length}
+          <span className="flex items-center justify-center gap-2">
+            {homeTeam.logoUrl && (
+              <Image
+                src={homeTeam.logoUrl}
+                alt=""
+                width={20}
+                height={20}
+                className="w-5 h-5 rounded object-contain"
+              />
+            )}
+            {homeTeam.shortName || homeTeam.name}
+            <span className="text-xs opacity-70">
+              {checkins.homeTeam.filter(p => p.checkinStatus === 'confirmed').length}/{checkins.homeTeam.length}
+            </span>
           </span>
         </button>
         <button
           onClick={() => setActiveTab('away')}
           className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
             activeTab === 'away'
-              ? 'text-[var(--league-primary,#d4af37)] border-b-2 border-[var(--league-primary,#d4af37)]'
+              ? 'border-b-2'
               : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
           }`}
+          style={
+            activeTab === 'away'
+              ? { borderBottomColor: awayColor, color: awayColor }
+              : undefined
+          }
         >
-          {awayTeam.shortName || awayTeam.name}
-          <span className="ml-2 text-xs opacity-70">
-            {checkins.awayTeam.filter(p => p.checkinStatus === 'confirmed').length}/{checkins.awayTeam.length}
+          <span className="flex items-center justify-center gap-2">
+            {awayTeam.logoUrl && (
+              <Image
+                src={awayTeam.logoUrl}
+                alt=""
+                width={20}
+                height={20}
+                className="w-5 h-5 rounded object-contain"
+              />
+            )}
+            {awayTeam.shortName || awayTeam.name}
+            <span className="text-xs opacity-70">
+              {checkins.awayTeam.filter(p => p.checkinStatus === 'confirmed').length}/{checkins.awayTeam.length}
+            </span>
           </span>
         </button>
       </div>
@@ -147,17 +184,41 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
                   disabled={isLoading}
                   className="flex items-center w-full px-4 py-3 min-h-[48px] text-left transition-colors hover:bg-[var(--color-surface)] active:bg-[var(--color-surface)] disabled:opacity-50"
                 >
-                  {/* Jersey Number Badge */}
-                  <div
-                    className="flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold flex-shrink-0"
-                    style={{
-                      backgroundColor: currentTeam.primaryColor
-                        ? `${currentTeam.primaryColor}20`
-                        : 'var(--color-surface)',
-                      color: currentTeam.primaryColor || 'var(--color-text-primary)',
-                    }}
-                  >
-                    {player.jerseyNumber}
+                  {/* Avatar + Jersey */}
+                  <div className="relative flex-shrink-0">
+                    {player.avatarUrl ? (
+                      <>
+                        <Image
+                          src={player.avatarUrl}
+                          alt={player.fullName}
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-full object-cover border-2"
+                          style={{ borderColor: currentTeam.primaryColor || 'var(--color-border)' }}
+                        />
+                        <div
+                          className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold border border-[var(--color-background)]"
+                          style={{
+                            backgroundColor: currentColor,
+                            color: '#fff',
+                          }}
+                        >
+                          {player.jerseyNumber}
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        className="flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold"
+                        style={{
+                          backgroundColor: currentTeam.primaryColor
+                            ? `${currentTeam.primaryColor}20`
+                            : 'var(--color-surface)',
+                          color: currentTeam.primaryColor || 'var(--color-text-primary)',
+                        }}
+                      >
+                        {player.jerseyNumber}
+                      </div>
+                    )}
                   </div>
 
                   {/* Name + Position */}

@@ -124,6 +124,13 @@ export interface ScorekeeperSession {
   sessionType: 'single' | 'multi';
 }
 
+export interface GameOfficial {
+  id: string;
+  name: string;
+  role: string;
+  jerseyNumber: string | null;
+}
+
 export interface GameData {
   id: string;
   homeTeam: TeamData;
@@ -143,6 +150,8 @@ export interface GameData {
   timerElapsedSeconds: number;
   homeGoaliePulled: boolean;
   awayGoaliePulled: boolean;
+  officials: GameOfficial[];
+  scorekeeperNotes: string | null;
 }
 
 export interface TeamData {
@@ -637,6 +646,11 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
     const homeTeam = game.home_team as any;
     const awayTeam = game.away_team as any;
 
+    const { data: officialsData } = await (supabase as any)
+      .from('game_officials')
+      .select('id, name, role, jersey_number')
+      .eq('game_id', gameId);
+
     return {
       success: true,
       game: {
@@ -678,11 +692,43 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
         timerElapsedSeconds: game.timer_elapsed_seconds || 0,
         homeGoaliePulled: game.home_goalie_pulled || false,
         awayGoaliePulled: game.away_goalie_pulled || false,
+        officials: (officialsData || []).map((o: any) => ({
+          id: o.id,
+          name: o.name,
+          role: o.role,
+          jerseyNumber: o.jersey_number,
+        })),
+        scorekeeperNotes: game.scorekeeper_notes || null,
       },
     };
   } catch (error) {
     console.error('Get game data error:', error);
     return { success: false, error: 'Failed to load game data' };
+  }
+}
+
+/**
+ * Save scorekeeper notes for a game
+ */
+export async function saveScorekeeperNotes(
+  gameId: string,
+  notes: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await verifyActiveSession(gameId);
+    const supabase = createServiceRoleClient();
+
+    const { error } = await (supabase as any)
+      .from('games')
+      .update({ scorekeeper_notes: notes })
+      .eq('id', gameId);
+
+    if (error) {
+      return { success: false, error: 'Failed to save notes' };
+    }
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to save notes' };
   }
 }
 
@@ -1281,6 +1327,7 @@ export async function updateGameStatus(
 export interface CheckinPlayer {
   id: string;
   fullName: string;
+  avatarUrl: string | null;
   jerseyNumber: number;
   position: string;
   checkinStatus: 'confirmed' | 'tentative' | 'out' | null;
@@ -1316,7 +1363,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
         .from('team_rosters')
         .select(`
           player_id, jersey_number, position,
-          profiles!team_rosters_player_id_fkey(id, full_name)
+          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
         `)
         .eq('team_id', game.home_team_id)
         .eq('status', 'active'),
@@ -1324,7 +1371,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
         .from('team_rosters')
         .select(`
           player_id, jersey_number, position,
-          profiles!team_rosters_player_id_fkey(id, full_name)
+          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
         `)
         .eq('team_id', game.away_team_id)
         .eq('status', 'active'),
@@ -1347,6 +1394,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
         .map((r: any) => ({
           id: r.player_id,
           fullName: r.profiles.full_name,
+          avatarUrl: r.profiles.avatar_url ?? null,
           jerseyNumber: r.jersey_number,
           position: r.position as string,
           checkinStatus: (checkinMap.get(r.player_id) as CheckinPlayer['checkinStatus']) || null,
@@ -1832,7 +1880,7 @@ export async function getGameDataForVerification(
         home_score, away_score, current_period,
         home_verified_at, away_verified_at, stats_locked_at,
         timer_running, timer_started_at, timer_elapsed_seconds,
-        home_goalie_pulled, away_goalie_pulled,
+        home_goalie_pulled, away_goalie_pulled, scorekeeper_notes,
         home_team:teams!games_home_team_id_fkey(
           id, name, short_name, logo_url, primary_color, secondary_color, captain_id
         ),
@@ -1889,6 +1937,11 @@ export async function getGameDataForVerification(
     const homeTeam = game.home_team as any;
     const awayTeam = game.away_team as any;
 
+    const { data: officials } = await (supabase as any)
+      .from('game_officials')
+      .select('id, name, role, jersey_number')
+      .eq('game_id', gameId);
+
     return {
       success: true,
       game: {
@@ -1920,6 +1973,13 @@ export async function getGameDataForVerification(
         timerElapsedSeconds: game.timer_elapsed_seconds || 0,
         homeGoaliePulled: game.home_goalie_pulled || false,
         awayGoaliePulled: game.away_goalie_pulled || false,
+        officials: (officials || []).map((o: any) => ({
+          id: o.id,
+          name: o.name,
+          role: o.role,
+          jerseyNumber: o.jersey_number,
+        })),
+        scorekeeperNotes: game.scorekeeper_notes || null,
       },
     };
   } catch (error) {

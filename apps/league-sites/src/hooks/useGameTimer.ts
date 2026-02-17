@@ -202,6 +202,16 @@ export function useGameTimer(options: UseGameTimerOptions): UseGameTimerReturn {
     return completedPeriods + Math.floor(elapsedInPeriod);
   }, [currentPeriod, periodLengthSeconds, elapsedInPeriod]);
 
+  // Boot: if initialRunning is true, start the rAF loop on mount
+  useEffect(() => {
+    if (initialRunning && !rafIdRef.current) {
+      startTimeRef.current = performance.now();
+      elapsedAtStartRef.current = initialElapsedSeconds;
+      scheduleNextTick();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-only
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {

@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import type { GameData, GameEventData, CheckinPlayer } from '@/lib/actions/scorekeeper';
-import { undoEvent, toggleGoaliePull, updateGameStatus } from '@/lib/actions/scorekeeper';
+import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes } from '@/lib/actions/scorekeeper';
 import { PreGameCheckin } from './PreGameCheckin';
 import { PenaltyTracker } from '@/lib/scorekeeper/penalty-tracker';
 import { EmptyNetTracker } from '@/lib/scorekeeper/empty-net-tracker';
@@ -44,6 +45,9 @@ export function ScoringInterface({
   const [activePeriodTab, setActivePeriodTab] = useState<number | 'all'>('all');
   const [showScoreSheetUpload, setShowScoreSheetUpload] = useState(false);
   const [showGameSummary, setShowGameSummary] = useState(false);
+  const [notes, setNotes] = useState(initialGame.scorekeeperNotes || '');
+  const [showNotes, setShowNotes] = useState(false);
+  const [noteSaving, setNoteSaving] = useState(false);
 
   // Initialize auto-detection trackers
   const penaltyTracker = useMemo(() => {
@@ -192,6 +196,21 @@ export function ScoringInterface({
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
             </svg>
           </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowNotes(true)}
+              className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
+              aria-label="Game notes"
+              title="Game notes"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+              {notes && (
+                <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-[var(--league-primary,#d4af37)]" />
+              )}
+            </button>
+          </div>
           <button
             onClick={() => setShowScoreSheetUpload(true)}
             className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
@@ -212,21 +231,47 @@ export function ScoringInterface({
           {/* Home Team */}
           <button
             onClick={() => handleTeamSelect('home')}
-            className={`
-              flex-1 text-center p-3 rounded-xl transition-all duration-200
-              ${selectedTeam === 'home'
-                ? 'bg-[var(--color-surface)] ring-2 ring-[var(--league-primary,#d4af37)]'
+            className={`flex-1 text-center p-3 rounded-xl transition-all duration-200 ${
+              selectedTeam === 'home'
+                ? 'ring-2 shadow-lg'
                 : 'hover:bg-[var(--color-surface)]/50'
-              }
-            `}
+            }`}
+            style={{
+              backgroundColor: selectedTeam === 'home'
+                ? `${homeTeam.primaryColor || 'var(--league-primary)'}15`
+                : undefined,
+              ...(selectedTeam === 'home' ? { '--tw-ring-color': homeTeam.primaryColor || 'var(--league-primary, #d4af37)' } as any : {}),
+            }}
           >
-            <div className="text-xs font-medium text-[var(--color-text-secondary)] mb-1 uppercase tracking-wide">
+            {homeTeam.logoUrl ? (
+              <Image
+                src={homeTeam.logoUrl}
+                alt={homeTeam.name}
+                width={40}
+                height={40}
+                className="w-10 h-10 mx-auto rounded-lg object-contain mb-1"
+              />
+            ) : (
+              <div
+                className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-xs font-bold mb-1"
+                style={{
+                  backgroundColor: homeTeam.primaryColor ? `${homeTeam.primaryColor}20` : 'var(--color-surface)',
+                  color: homeTeam.primaryColor || 'var(--color-text-secondary)',
+                }}
+              >
+                {(homeTeam.shortName || homeTeam.name).slice(0, 3).toUpperCase()}
+              </div>
+            )}
+            <div className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wide">
               Home
             </div>
             <div className="text-sm font-bold text-[var(--color-text-primary)] truncate">
               {homeTeam.shortName || homeTeam.name}
             </div>
-            <div className="text-3xl font-bold tabular-nums text-[var(--color-text-primary)] mt-1">
+            <div
+              className="text-3xl font-bold tabular-nums mt-1"
+              style={{ color: homeTeam.primaryColor || 'var(--color-text-primary)' }}
+            >
               {homeScore}
             </div>
             {game.homeGoaliePulled && (
@@ -244,21 +289,47 @@ export function ScoringInterface({
           {/* Away Team */}
           <button
             onClick={() => handleTeamSelect('away')}
-            className={`
-              flex-1 text-center p-3 rounded-xl transition-all duration-200
-              ${selectedTeam === 'away'
-                ? 'bg-[var(--color-surface)] ring-2 ring-[var(--league-primary,#d4af37)]'
+            className={`flex-1 text-center p-3 rounded-xl transition-all duration-200 ${
+              selectedTeam === 'away'
+                ? 'ring-2 shadow-lg'
                 : 'hover:bg-[var(--color-surface)]/50'
-              }
-            `}
+            }`}
+            style={{
+              backgroundColor: selectedTeam === 'away'
+                ? `${awayTeam.primaryColor || 'var(--league-primary)'}15`
+                : undefined,
+              ...(selectedTeam === 'away' ? { '--tw-ring-color': awayTeam.primaryColor || 'var(--league-primary, #d4af37)' } as any : {}),
+            }}
           >
-            <div className="text-xs font-medium text-[var(--color-text-secondary)] mb-1 uppercase tracking-wide">
+            {awayTeam.logoUrl ? (
+              <Image
+                src={awayTeam.logoUrl}
+                alt={awayTeam.name}
+                width={40}
+                height={40}
+                className="w-10 h-10 mx-auto rounded-lg object-contain mb-1"
+              />
+            ) : (
+              <div
+                className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-xs font-bold mb-1"
+                style={{
+                  backgroundColor: awayTeam.primaryColor ? `${awayTeam.primaryColor}20` : 'var(--color-surface)',
+                  color: awayTeam.primaryColor || 'var(--color-text-secondary)',
+                }}
+              >
+                {(awayTeam.shortName || awayTeam.name).slice(0, 3).toUpperCase()}
+              </div>
+            )}
+            <div className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wide">
               Away
             </div>
             <div className="text-sm font-bold text-[var(--color-text-primary)] truncate">
               {awayTeam.shortName || awayTeam.name}
             </div>
-            <div className="text-3xl font-bold tabular-nums text-[var(--color-text-primary)] mt-1">
+            <div
+              className="text-3xl font-bold tabular-nums mt-1"
+              style={{ color: awayTeam.primaryColor || 'var(--color-text-primary)' }}
+            >
               {awayScore}
             </div>
             {game.awayGoaliePulled && (
@@ -293,6 +364,21 @@ export function ScoringInterface({
           </button>
         </div>
       </div>
+
+      {/* Officials Strip */}
+      {game.officials && game.officials.length > 0 && (
+        <div className="px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50">
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+            </svg>
+            <span className="font-medium">Officials:</span>
+            <span className="truncate">
+              {game.officials.map(o => `${o.name}${o.jerseyNumber ? ` #${o.jerseyNumber}` : ''} (${o.role})`).join(' · ')}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Timer Bar */}
       <div className="px-4 py-3 border-b border-[var(--color-border)]">
@@ -360,6 +446,8 @@ export function ScoringInterface({
                   event={event}
                   homeTeamName={homeTeam.shortName || homeTeam.name}
                   awayTeamName={awayTeam.shortName || awayTeam.name}
+                  homeTeamColor={homeTeam.primaryColor}
+                  awayTeamColor={awayTeam.primaryColor}
                   onUndo={() => handleUndo(event.id)}
                 />
               ))}
@@ -448,6 +536,47 @@ export function ScoringInterface({
           onClose={() => setShowGameSummary(false)}
         />
       )}
+
+      {/* Notes Modal */}
+      {showNotes && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowNotes(false)} />
+          <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-[var(--color-background)] rounded-2xl border border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+            <div className="px-4 py-3 border-b border-[var(--color-border)]">
+              <h3 className="font-semibold text-[var(--color-text-primary)]">Game Notes</h3>
+              <p className="text-xs text-[var(--color-text-secondary)]">Notes are saved to the game record</p>
+            </div>
+            <div className="p-4">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add notes about the game (injuries, disputes, ice conditions, etc.)..."
+                className="w-full h-32 px-3 py-2 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--league-primary,#d4af37)]/50"
+              />
+            </div>
+            <div className="flex gap-2 px-4 py-3 border-t border-[var(--color-border)]">
+              <button
+                onClick={() => setShowNotes(false)}
+                className="flex-1 py-2.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] text-sm font-medium hover:bg-[var(--color-surface)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setNoteSaving(true);
+                  await saveScorekeeperNotes(game.id, notes);
+                  setNoteSaving(false);
+                  setShowNotes(false);
+                }}
+                disabled={noteSaving}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {noteSaving ? 'Saving...' : 'Save Notes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -460,11 +589,15 @@ function EventRow({
   event,
   homeTeamName,
   awayTeamName,
+  homeTeamColor,
+  awayTeamColor,
   onUndo,
 }: {
   event: GameEventData;
   homeTeamName: string;
   awayTeamName: string;
+  homeTeamColor?: string | null;
+  awayTeamColor?: string | null;
   onUndo: () => void;
 }) {
   const teamName = event.teamType === 'home' ? homeTeamName : awayTeamName;
@@ -516,8 +649,13 @@ function EventRow({
       label = event.eventType;
   }
 
+  const teamColor = event.teamType === 'home' ? homeTeamColor : awayTeamColor;
+
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-[var(--color-surface)] group transition-colors">
+    <div
+      className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-[var(--color-surface)] group transition-colors border-l-2"
+      style={{ borderLeftColor: teamColor || 'transparent' }}
+    >
       {/* Icon */}
       <div className={`flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 ${bgColor}`}>
         {icon}
