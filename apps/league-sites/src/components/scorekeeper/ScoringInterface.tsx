@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { GameData, GameEventData, CheckinPlayer } from '@/lib/actions/scorekeeper';
-import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes } from '@/lib/actions/scorekeeper';
+import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes, getGameEvents, getScorekeeperGameData } from '@/lib/actions/scorekeeper';
 import { PreGameCheckin } from './PreGameCheckin';
 import { PenaltyTracker } from '@/lib/scorekeeper/penalty-tracker';
 import { EmptyNetTracker } from '@/lib/scorekeeper/empty-net-tracker';
@@ -42,14 +42,23 @@ export function ScoringInterface({
   const [events, setEvents] = useState(initialEvents);
   const [activeEntry, setActiveEntry] = useState<ActiveEntry>(null);
 
-  // Sync local state when server data arrives (after router.refresh())
-  useEffect(() => {
-    setGame(initialGame);
-  }, [initialGame]);
-
-  useEffect(() => {
-    setEvents(initialEvents);
-  }, [initialEvents]);
+  // Refetch game data and events from server
+  const refreshData = useCallback(async () => {
+    try {
+      const [gameResult, eventsResult] = await Promise.all([
+        getScorekeeperGameData(game.id),
+        getGameEvents(game.id),
+      ]);
+      if (gameResult.success && gameResult.game) {
+        setGame(gameResult.game);
+      }
+      if (eventsResult.success && eventsResult.events) {
+        setEvents(eventsResult.events);
+      }
+    } catch (err) {
+      console.error('Failed to refresh game data:', err);
+    }
+  }, [game.id]);
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'away' | null>(null);
   const [activePeriodTab, setActivePeriodTab] = useState<number | 'all'>('all');
   const [showScoreSheetUpload, setShowScoreSheetUpload] = useState(false);
@@ -114,15 +123,18 @@ export function ScoringInterface({
   const handleEntryComplete = useCallback(() => {
     setActiveEntry(null);
     setSelectedTeam(null);
-    router.refresh();
-  }, [router]);
+    refreshData();
+  }, [refreshData]);
 
   async function handleUndo(eventId: string) {
     const result = await undoEvent(eventId);
     if (result.success) {
+      // Optimistic update for immediate feedback
       setEvents(prev => prev.map(e =>
         e.id === eventId ? { ...e, deletedAt: new Date().toISOString() } : e
       ));
+      // Refetch to get accurate scores
+      refreshData();
     }
   }
 
@@ -531,7 +543,7 @@ export function ScoringInterface({
           game={game}
           onComplete={() => {
             setShowScoreSheetUpload(false);
-            router.refresh();
+            refreshData();
           }}
           onClose={() => setShowScoreSheetUpload(false)}
         />
