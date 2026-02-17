@@ -13,6 +13,8 @@ import { GoalEntry } from './GoalEntry';
 import { PenaltyEntry } from './PenaltyEntry';
 import { ShotEntry } from './ShotEntry';
 import { ScoreSheetUpload } from './ScoreSheetUpload';
+import { GameSummaryModal } from './GameSummaryModal';
+import { SyncStatusBanner } from './SyncStatusBanner';
 
 interface ScoringInterfaceProps {
   game: GameData;
@@ -41,6 +43,7 @@ export function ScoringInterface({
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'away' | null>(null);
   const [activePeriodTab, setActivePeriodTab] = useState<number | 'all'>('all');
   const [showScoreSheetUpload, setShowScoreSheetUpload] = useState(false);
+  const [showGameSummary, setShowGameSummary] = useState(false);
 
   // Initialize auto-detection trackers
   const penaltyTracker = useMemo(() => {
@@ -155,6 +158,11 @@ export function ScoringInterface({
 
   return (
     <div className="flex flex-col min-h-screen pb-20">
+      {/* Sync Status */}
+      <div className="px-4 pt-2">
+        <SyncStatusBanner />
+      </div>
+
       {/* Top Bar: Back + Multi-game nav */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)]">
         {sessionType === 'multi' ? (
@@ -174,6 +182,16 @@ export function ScoringInterface({
           <span className="text-xs text-[var(--color-text-secondary)]">
             {game.status === 'in_progress' ? 'LIVE' : game.status.toUpperCase()}
           </span>
+          <button
+            onClick={() => setShowGameSummary(true)}
+            className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
+            aria-label="Game summary"
+            title="View game summary"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+            </svg>
+          </button>
           <button
             onClick={() => setShowScoreSheetUpload(true)}
             className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
@@ -418,6 +436,15 @@ export function ScoringInterface({
             router.refresh();
           }}
           onClose={() => setShowScoreSheetUpload(false)}
+        />
+      )}
+
+      {/* Game Summary Modal */}
+      {showGameSummary && (
+        <GameSummaryModal
+          gameId={game.id}
+          game={game}
+          onClose={() => setShowGameSummary(false)}
         />
       )}
     </div>

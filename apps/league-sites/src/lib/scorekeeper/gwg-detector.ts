@@ -30,7 +30,7 @@ export function detectGWG(goals: GoalEvent[]): string | null {
   // If tied, no GWG yet
   if (homeTotal === awayTotal) return null;
 
-  const winningTeam = homeTotal > homeTotal ? 'home' : (homeTotal > awayTotal ? 'home' : 'away');
+  const winningTeam = homeTotal > awayTotal ? 'home' : 'away';
   const losingTeamTotal = winningTeam === 'home' ? awayTotal : homeTotal;
 
   // GWG is the (losingTeamTotal + 1)th goal by the winning team

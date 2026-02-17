@@ -1,23 +1,42 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { useSyncState } from '@/lib/scorekeeper';
 import { cn } from '@hockey-life/ui';
+
+// TODO: Wire to useSyncState once offline infrastructure is integrated
+// For now, provides a static online indicator that can be extended
+
+interface SyncState {
+  isOnline: boolean;
+  isSyncing: boolean;
+  pendingCount: number;
+  lastError: string | null;
+  lastSyncAt: string | null;
+}
+
+interface SyncStatusBannerProps {
+  syncState?: SyncState;
+}
 
 /**
  * SyncStatusBanner - Shows sync status (online/offline/syncing)
- * Displays at top of scorekeeper UI with gold accents
+ * Displays at top of scorekeeper UI
  * iPad-optimized with large touch targets
  */
-export function SyncStatusBanner() {
-  const t = useTranslations('scorekeeper.sync');
-  const syncState = useSyncState();
+export function SyncStatusBanner({ syncState }: SyncStatusBannerProps) {
+  // Default to online if no sync state provided
+  const state: SyncState = syncState ?? {
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    isSyncing: false,
+    pendingCount: 0,
+    lastError: null,
+    lastSyncAt: null,
+  };
 
   const getStatusConfig = () => {
-    if (!syncState.isOnline) {
+    if (!state.isOnline) {
       return {
-        label: t('offlineMode'),
-        description: t('offlineDescription'),
+        label: 'Offline Mode',
+        description: 'Changes will sync when you reconnect',
         icon: OfflineIcon,
         bgClass: 'bg-amber-500/10 border-amber-500/30',
         textClass: 'text-amber-400',
@@ -25,32 +44,32 @@ export function SyncStatusBanner() {
       };
     }
 
-    if (syncState.isSyncing) {
+    if (state.isSyncing) {
       return {
-        label: t('syncing'),
-        description: t('eventsPending', { count: syncState.pendingCount }),
+        label: 'Syncing...',
+        description: `${state.pendingCount} event${state.pendingCount !== 1 ? 's' : ''} pending`,
         icon: SyncingIcon,
-        bgClass: 'bg-rink-500/10 border-rink-500/30',
-        textClass: 'text-rink-400',
+        bgClass: 'bg-cyan-500/10 border-cyan-500/30',
+        textClass: 'text-cyan-400',
         pulseClass: 'animate-pulse',
       };
     }
 
-    if (syncState.pendingCount > 0) {
+    if (state.pendingCount > 0) {
       return {
-        label: t('pendingSync'),
-        description: t('eventsWaiting', { count: syncState.pendingCount }),
+        label: 'Pending Sync',
+        description: `${state.pendingCount} event${state.pendingCount !== 1 ? 's' : ''} waiting`,
         icon: PendingIcon,
-        bgClass: 'bg-rink-500/10 border-rink-500/30',
-        textClass: 'text-rink-500',
+        bgClass: 'bg-cyan-500/10 border-cyan-500/30',
+        textClass: 'text-cyan-500',
         pulseClass: '',
       };
     }
 
-    if (syncState.lastError) {
+    if (state.lastError) {
       return {
-        label: t('syncError'),
-        description: syncState.lastError,
+        label: 'Sync Error',
+        description: state.lastError,
         icon: ErrorIcon,
         bgClass: 'bg-red-500/10 border-red-500/30',
         textClass: 'text-red-400',
@@ -59,10 +78,10 @@ export function SyncStatusBanner() {
     }
 
     return {
-      label: t('online'),
-      description: syncState.lastSyncAt
-        ? t('lastSynced', { time: formatTimeAgo(syncState.lastSyncAt) })
-        : t('connectedToServer'),
+      label: 'Online',
+      description: state.lastSyncAt
+        ? `Last synced ${formatTimeAgo(state.lastSyncAt)}`
+        : 'Connected to server',
       icon: OnlineIcon,
       bgClass: 'bg-emerald-500/10 border-emerald-500/30',
       textClass: 'text-emerald-400',
@@ -88,9 +107,9 @@ export function SyncStatusBanner() {
         </p>
         <p className="text-xs text-neutral-400 truncate">{config.description}</p>
       </div>
-      {syncState.pendingCount > 0 && (
-        <div className="flex-shrink-0 bg-rink-500/20 text-rink-400 text-xs font-bold px-2 py-0.5 rounded-full">
-          {syncState.pendingCount}
+      {state.pendingCount > 0 && (
+        <div className="flex-shrink-0 bg-cyan-500/20 text-cyan-400 text-xs font-bold px-2 py-0.5 rounded-full">
+          {state.pendingCount}
         </div>
       )}
     </div>
