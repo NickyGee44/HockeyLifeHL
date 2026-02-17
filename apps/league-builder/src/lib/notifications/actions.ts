@@ -187,6 +187,26 @@ export async function unsubscribeWithToken(
 }
 
 // =============================================================================
+// Helper: Resolve league custom sender email
+// =============================================================================
+
+async function resolveLeagueFromEmail(leagueId: string): Promise<string | undefined> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('leagues')
+    .select('*')
+    .eq('id', leagueId)
+    .single();
+
+  const league = data as any;
+  if (league?.email_sending_domain && league?.email_sending_domain_verified) {
+    const fromName = league.email_from_name || league.name || 'Beer League Hockey';
+    return `${fromName} <noreply@${league.email_sending_domain}>`;
+  }
+  return undefined; // fall back to platform default in sendEmail()
+}
+
+// =============================================================================
 // Helper: Check user preferences before sending
 // =============================================================================
 
@@ -536,6 +556,9 @@ export async function sendLeagueAnnouncement(params: {
     return { success: true, sent: 0 };
   }
 
+  // Resolve custom sender domain (if configured and verified)
+  const customFrom = await resolveLeagueFromEmail(params.leagueId);
+
   // Send batch
   const result = await sendBatchEmails(
     recipients,
@@ -556,6 +579,7 @@ export async function sendLeagueAnnouncement(params: {
       leagueName: league.name,
     }),
     {
+      from: customFrom,
       tags: [
         { name: 'type', value: 'announcement' },
         { name: 'league_id', value: params.leagueId },
@@ -841,6 +865,259 @@ export async function sendSuspensionNotification(params: {
       error: error instanceof Error ? error.message : 'Unknown error sending suspension notification',
     };
   }
+}
+
+// =============================================================================
+// Announcement Drafts
+// =============================================================================
+
+export interface AnnouncementDraft {
+  id: string;
+  subject: string;
+  content: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  recipientFilter: 'all' | 'captains' | 'players' | 'admins';
+  actionButtonText?: string;
+  actionButtonUrl?: string;
+  scheduledAt?: string;
+  status: 'draft' | 'pending_approval' | 'scheduled' | 'sent';
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Save or update an announcement draft.
+ * Drafts are stored in the notifications table with status='draft'.
+ */
+export async function saveAnnouncementDraft(params: {
+  leagueId: string;
+  draftId?: string;
+  subject: string;
+  content: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  recipientFilter: 'all' | 'captains' | 'players' | 'admins';
+  actionButtonText?: string;
+  actionButtonUrl?: string;
+  scheduledAt?: string;
+}): Promise<{ success: boolean; draftId?: string; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const templateData = {
+    recipientFilter: params.recipientFilter,
+    priority: params.priority,
+    actionButtonText: params.actionButtonText,
+    actionButtonUrl: params.actionButtonUrl,
+    scheduledAt: params.scheduledAt,
+  };
+
+  if (params.draftId) {
+    // Update existing draft
+    const { error } = await supabase
+      .from('notifications')
+      .update({
+        subject: params.subject,
+        body: params.content,
+        template_data: templateData as any,
+        scheduled_at: params.scheduledAt || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.draftId)
+      .eq('status', 'draft');
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, draftId: params.draftId };
+  }
+
+  // Create new draft
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert({
+      league_id: params.leagueId,
+      user_id: user.id,
+      type: 'league_announcement_draft',
+      channel: 'email',
+      subject: params.subject,
+      body: params.content,
+      status: 'draft',
+      template_data: templateData as any,
+      scheduled_at: params.scheduledAt || null,
+      created_by: user.id,
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  return { success: true, draftId: data.id };
+}
+
+/**
+ * Get all announcement drafts for a league.
+ */
+export async function getAnnouncementDrafts(leagueId: string): Promise<{
+  data: AnnouncementDraft[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { data: [], error: 'Not authenticated' };
+  }
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('id, subject, body, status, template_data, scheduled_at, created_at, updated_at')
+    .eq('league_id', leagueId)
+    .eq('type', 'league_announcement_draft')
+    .in('status', ['draft', 'pending_approval', 'scheduled'])
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  const drafts: AnnouncementDraft[] = (data || []).map((row: any) => ({
+    id: row.id,
+    subject: row.subject || '',
+    content: row.body || '',
+    priority: row.template_data?.priority || 'normal',
+    recipientFilter: row.template_data?.recipientFilter || 'all',
+    actionButtonText: row.template_data?.actionButtonText,
+    actionButtonUrl: row.template_data?.actionButtonUrl,
+    scheduledAt: row.scheduled_at || row.template_data?.scheduledAt,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at || row.created_at,
+  }));
+
+  return { data: drafts };
+}
+
+/**
+ * Delete an announcement draft.
+ */
+export async function deleteAnnouncementDraft(draftId: string): Promise<NotificationResult> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('id', draftId)
+    .in('status', ['draft', 'pending_approval']);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
+/**
+ * Render an email preview for an announcement.
+ * Returns the rendered HTML string for display in an iframe.
+ */
+export async function renderAnnouncementPreview(params: {
+  leagueId: string;
+  subject: string;
+  content: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  actionButtonText?: string;
+  actionButtonUrl?: string;
+}): Promise<{ html: string; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { html: '', error: 'Not authenticated' };
+  }
+
+  const { data: sender } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single();
+
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('name')
+    .eq('id', params.leagueId)
+    .single();
+
+  const sanitizedContent = sanitizeAnnouncementContent(params.content);
+
+  const html = getLeagueAnnouncementEmail({
+    recipientName: 'Preview Member',
+    subject: params.subject,
+    content: sanitizedContent,
+    priority: params.priority,
+    senderName: sender?.full_name || 'League Administrator',
+    senderRole: 'League Administrator',
+    actionButtonText: params.actionButtonText,
+    actionButtonUrl: params.actionButtonUrl,
+    dashboardUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca',
+    leagueName: league?.name || 'Your League',
+  });
+
+  return { html };
+}
+
+/**
+ * Send an existing draft immediately.
+ * Loads draft data, then delegates to sendLeagueAnnouncement().
+ */
+export async function sendAnnouncementDraft(draftId: string): Promise<NotificationResult> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  // Fetch the draft
+  const { data: draft, error: fetchError } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('id', draftId)
+    .in('status', ['draft', 'scheduled'])
+    .single();
+
+  if (fetchError || !draft) {
+    return { success: false, error: 'Draft not found or already sent' };
+  }
+
+  const templateData = draft.template_data as any;
+
+  // Mark draft as sent (so it can't be sent again)
+  await supabase
+    .from('notifications')
+    .update({ status: 'sent', sent_at: new Date().toISOString() })
+    .eq('id', draftId);
+
+  // Send the announcement
+  const result = await sendLeagueAnnouncement({
+    leagueId: draft.league_id,
+    subject: draft.subject || '',
+    content: draft.body || '',
+    priority: templateData?.priority || 'normal',
+    recipientFilter: templateData?.recipientFilter || 'all',
+    actionButtonText: templateData?.actionButtonText,
+    actionButtonUrl: templateData?.actionButtonUrl,
+  });
+
+  return result;
 }
 
 // =============================================================================

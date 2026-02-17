@@ -92,7 +92,7 @@ function wrapEmailHtml(
     ? `
       <tr>
         <td style="padding: 16px 32px; text-align: center;">
-          <a href="https://hockeylifehl.com/unsubscribe/${options.unsubscribeToken}"
+          <a href="https://beerleaguehockey.ca/unsubscribe/${options.unsubscribeToken}"
              style="color: ${BRAND.textMuted}; font-size: 12px; text-decoration: underline;">
             Unsubscribe from these emails
           </a>
@@ -108,7 +108,7 @@ function wrapEmailHtml(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>HockeyLifeHL</title>
+  <title>Beer League Hockey</title>
   ${options.preheader ? `<span style="display:none;max-height:0;overflow:hidden;">${options.preheader}</span>` : ""}
   <style>
     body { margin: 0; padding: 0; background-color: ${BRAND.bgDark}; }
@@ -134,7 +134,7 @@ function wrapEmailHtml(
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <span style="font-size: 24px; color: #000000; font-weight: 700;">HockeyLifeHL</span>
+                    <span style="font-size: 24px; color: #000000; font-weight: 700;">Beer League Hockey</span>
                   </td>
                 </tr>
               </table>
@@ -152,9 +152,9 @@ function wrapEmailHtml(
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="text-align: center; color: ${BRAND.textMuted}; font-size: 12px;">
-                    <p style="margin: 0 0 8px 0;">&copy; ${new Date().getFullYear()} HockeyLifeHL. All rights reserved.</p>
+                    <p style="margin: 0 0 8px 0;">&copy; ${new Date().getFullYear()} Beer League Hockey. All rights reserved.</p>
                     <p style="margin: 0;">
-                      <a href="https://hockeylifehl.com" style="color: ${BRAND.gold};">hockeylifehl.com</a>
+                      <a href="https://beerleaguehockey.ca" style="color: ${BRAND.gold};">beerleaguehockey.ca</a>
                     </p>
                   </td>
                 </tr>
@@ -332,7 +332,7 @@ function renderRegistrationConfirmedEmail(
       <li>Get ready to play!</li>
     </ol>
 
-    ${renderButton("View Your Dashboard", "https://hockeylifehl.com/dashboard")}
+    ${renderButton("View Your Dashboard", "https://beerleaguehockey.ca/dashboard")}
 
     <p style="margin: 24px 0 0 0; color: ${BRAND.gold}; font-size: 14px;">
       See you on the ice!<br>
@@ -374,7 +374,7 @@ function renderDraftPickEmail(
       Your team captain will reach out with more information about practice schedules and game times.
     </p>
 
-    ${renderButton("View Your Team", "https://hockeylifehl.com/dashboard/team")}
+    ${renderButton("View Your Team", "https://beerleaguehockey.ca/dashboard/team")}
 
     <p style="margin: 24px 0 0 0; color: ${BRAND.gold}; font-size: 14px; text-align: center;">
       Good luck this season!<br>
@@ -544,7 +544,7 @@ function renderScoreVerificationEmail(
 function renderGenericEmail(
   data: Record<string, unknown>
 ): { subject: string; html: string } {
-  const subject = String(data.subject || "Notification from HockeyLifeHL");
+  const subject = String(data.subject || "Notification from Beer League Hockey");
 
   const content = `
     <h1 style="margin: 0 0 16px 0; font-size: 24px; color: ${BRAND.textPrimary};">${data.title || "Notification"}</h1>
@@ -554,7 +554,7 @@ function renderGenericEmail(
 
     <p style="margin: 24px 0 0 0; color: ${BRAND.gold}; font-size: 14px;">
       Thanks,<br>
-      <strong>HockeyLifeHL</strong>
+      <strong>Beer League Hockey</strong>
     </p>
   `;
 
@@ -573,7 +573,7 @@ Deno.serve(async (req: Request) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Cron-Secret",
       },
     });
   }
@@ -581,6 +581,19 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Verify authorization (cron secret or service role token)
+  const authHeader = req.headers.get("Authorization");
+  const cronSecret = req.headers.get("X-Cron-Secret");
+  const isValidCron = cronSecret === Deno.env.get("CRON_SECRET");
+  const isValidServiceRole = authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+
+  if (!isValidCron && !isValidServiceRole) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -599,6 +612,21 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { action, batch_size = 10 } = await req.json();
+
+    // Queue invoice reminders action — calls DB function, no email sending
+    if (action === "queue_invoice_reminders") {
+      const { data, error } = await supabase.rpc("queue_invoice_due_reminders");
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: `Failed to queue invoice reminders: ${error.message}` }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ message: "Invoice reminders queued", queued: data }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     let processedCount = 0;
     let failedCount = 0;
@@ -619,7 +647,7 @@ Deno.serve(async (req: Request) => {
       notificationIds = data || [];
     } else {
       return new Response(
-        JSON.stringify({ error: "Invalid action. Use 'process_pending' or 'process_retry'" }),
+        JSON.stringify({ error: "Invalid action. Use 'process_pending', 'process_retry', or 'queue_invoice_reminders'" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -707,7 +735,7 @@ Deno.serve(async (req: Request) => {
               unsubscribeToken: prefs?.unsubscribe_token,
             })
           : {
-              subject: notification.subject || "Notification from HockeyLifeHL",
+              subject: notification.subject || "Notification from Beer League Hockey",
               html: wrapEmailHtml(`<div>${notification.body}</div>`),
             };
 
@@ -720,7 +748,7 @@ Deno.serve(async (req: Request) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "HockeyLifeHL <noreply@hockeylifehl.com>",
+            from: "Beer League Hockey <noreply@beerleaguehockey.ca>",
             to: [profile.email],
             subject,
             html,

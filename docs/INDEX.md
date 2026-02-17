@@ -33,6 +33,7 @@
 | [DEPLOYMENT_RUNBOOK](DEPLOYMENT_RUNBOOK.md) | Operational runbook: rollback, monitoring, incidents |
 | [PRODUCTION_SUBDOMAIN_SETUP](PRODUCTION_SUBDOMAIN_SETUP.md) | Custom subdomain configuration for leagues |
 | [SUBDOMAIN_SETUP](SUBDOMAIN_SETUP.md) | DNS and subdomain routing setup |
+| [NOTIFICATION_INFRASTRUCTURE](NOTIFICATION_INFRASTRUCTURE.md) | Email/notification architecture, queue worker, template mapping |
 
 ## Features
 

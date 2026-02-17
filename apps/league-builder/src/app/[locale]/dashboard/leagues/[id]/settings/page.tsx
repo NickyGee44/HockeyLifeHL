@@ -71,6 +71,11 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       description: 'Manage liability waiver and view signed agreements',
       icon: 'ScrollText',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/waiver` },
+    {
+      title: 'Email Sending Domain',
+      description: 'Send league emails from your own domain',
+      icon: 'Mail',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/email-domain` },
   ];
 
   const orgSettings = [

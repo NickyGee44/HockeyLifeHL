@@ -1,9 +1,10 @@
-﻿'use client';
+'use client';
 
 /**
  * EmailComposer Component
  *
- * Rich text editor for composing league announcements
+ * Multi-step email composer for league announcements:
+ * Compose → Preview → Send Options → Send
  */
 
 import { useState } from 'react';
@@ -19,16 +20,29 @@ import {
   List,
   Link2,
   Eye,
+  Save,
+  ArrowLeft,
+  Clock,
+  FileText,
 } from 'lucide-react';
-import { sendLeagueAnnouncement } from '@/lib/notifications/actions';
+import {
+  sendLeagueAnnouncement,
+  saveAnnouncementDraft,
+  renderAnnouncementPreview,
+  sendAnnouncementDraft,
+} from '@/lib/notifications/actions';
+import type { AnnouncementDraft } from '@/lib/notifications/actions';
 
 type Priority = 'low' | 'normal' | 'high' | 'urgent';
 type RecipientFilter = 'all' | 'captains' | 'players' | 'admins';
+type ComposerStep = 'compose' | 'preview' | 'send-options';
 
 interface EmailComposerProps {
   leagueId: string;
   leagueName: string;
   onSuccess?: () => void;
+  /** Load an existing draft for editing */
+  editDraft?: AnnouncementDraft;
 }
 
 const PRIORITY_OPTIONS: Array<{
@@ -54,16 +68,22 @@ const RECIPIENT_OPTIONS: Array<{
   { value: 'admins', label: 'Admins Only', description: 'Owners and administrators' },
 ];
 
-export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposerProps) {
-  const [subject, setSubject] = useState('');
-  const [content, setContent] = useState('');
-  const [priority, setPriority] = useState<Priority>('normal');
-  const [recipientFilter, setRecipientFilter] = useState<RecipientFilter>('all');
-  const [actionButtonText, setActionButtonText] = useState('');
-  const [actionButtonUrl, setActionButtonUrl] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
+export function EmailComposer({ leagueId, leagueName, onSuccess, editDraft }: EmailComposerProps) {
+  const [subject, setSubject] = useState(editDraft?.subject || '');
+  const [content, setContent] = useState(editDraft?.content || '');
+  const [priority, setPriority] = useState<Priority>(editDraft?.priority || 'normal');
+  const [recipientFilter, setRecipientFilter] = useState<RecipientFilter>(editDraft?.recipientFilter || 'all');
+  const [actionButtonText, setActionButtonText] = useState(editDraft?.actionButtonText || '');
+  const [actionButtonUrl, setActionButtonUrl] = useState(editDraft?.actionButtonUrl || '');
+  const [scheduledAt, setScheduledAt] = useState(editDraft?.scheduledAt || '');
+  const [showInlinePreview, setShowInlinePreview] = useState(false);
   const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(editDraft?.id || null);
+  const [step, setStep] = useState<ComposerStep>('compose');
+  const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Text formatting helpers
   const insertFormatting = (before: string, after: string = before) => {
@@ -82,7 +102,6 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
 
     setContent(newText);
 
-    // Restore cursor position
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(
@@ -92,26 +111,96 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
     }, 0);
   };
 
-  // Handle send
-  const handleSend = async () => {
+  // Save draft
+  const handleSaveDraft = async () => {
     if (!subject.trim() || !content.trim()) {
       setResult({ success: false, message: 'Please fill in subject and message' });
       return;
     }
 
-    setSending(true);
+    setSaving(true);
     setResult(null);
 
     try {
-      const response = await sendLeagueAnnouncement({
+      const response = await saveAnnouncementDraft({
         leagueId,
+        draftId: draftId || undefined,
         subject,
         content,
         priority,
         recipientFilter,
         actionButtonText: actionButtonText || undefined,
         actionButtonUrl: actionButtonUrl || undefined,
+        scheduledAt: scheduledAt || undefined,
       });
+
+      if (response.success) {
+        setDraftId(response.draftId || null);
+        setResult({ success: true, message: 'Draft saved' });
+      } else {
+        setResult({ success: false, message: response.error || 'Failed to save draft' });
+      }
+    } catch {
+      setResult({ success: false, message: 'An error occurred while saving' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Show email preview
+  const handleShowPreview = async () => {
+    if (!subject.trim() || !content.trim()) {
+      setResult({ success: false, message: 'Please fill in subject and message' });
+      return;
+    }
+
+    setPreviewLoading(true);
+    setResult(null);
+
+    try {
+      const response = await renderAnnouncementPreview({
+        leagueId,
+        subject,
+        content,
+        priority,
+        actionButtonText: actionButtonText || undefined,
+        actionButtonUrl: actionButtonUrl || undefined,
+      });
+
+      if (response.error) {
+        setResult({ success: false, message: response.error });
+      } else {
+        setPreviewHtml(response.html);
+        setStep('preview');
+      }
+    } catch {
+      setResult({ success: false, message: 'Failed to generate preview' });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // Send immediately
+  const handleSend = async () => {
+    setSending(true);
+    setResult(null);
+
+    try {
+      let response;
+
+      if (draftId) {
+        response = await sendAnnouncementDraft(draftId);
+      } else {
+        response = await sendLeagueAnnouncement({
+          leagueId,
+          subject,
+          content,
+          priority,
+          recipientFilter,
+          actionButtonText: actionButtonText || undefined,
+          actionButtonUrl: actionButtonUrl || undefined,
+        });
+      }
 
       if (response.success) {
         setResult({
@@ -124,6 +213,9 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
         setPriority('normal');
         setActionButtonText('');
         setActionButtonUrl('');
+        setScheduledAt('');
+        setDraftId(null);
+        setStep('compose');
         onSuccess?.();
       } else {
         setResult({
@@ -132,17 +224,59 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
         });
       }
     } catch {
-      setResult({
-        success: false,
-        message: 'An error occurred while sending',
-      });
+      setResult({ success: false, message: 'An error occurred while sending' });
     } finally {
       setSending(false);
     }
   };
 
-  // Convert markdown preview (sanitize HTML entities first to prevent XSS)
-  const previewContent = content
+  // Schedule for later
+  const handleSchedule = async () => {
+    if (!scheduledAt) {
+      setResult({ success: false, message: 'Please select a send date and time' });
+      return;
+    }
+
+    setSaving(true);
+    setResult(null);
+
+    try {
+      // Save as draft first if not saved, then update status to scheduled
+      const response = await saveAnnouncementDraft({
+        leagueId,
+        draftId: draftId || undefined,
+        subject,
+        content,
+        priority,
+        recipientFilter,
+        actionButtonText: actionButtonText || undefined,
+        actionButtonUrl: actionButtonUrl || undefined,
+        scheduledAt,
+      });
+
+      if (response.success) {
+        setResult({ success: true, message: `Announcement scheduled for ${new Date(scheduledAt).toLocaleString()}` });
+        setSubject('');
+        setContent('');
+        setPriority('normal');
+        setActionButtonText('');
+        setActionButtonUrl('');
+        setScheduledAt('');
+        setDraftId(null);
+        setStep('compose');
+        onSuccess?.();
+      } else {
+        setResult({ success: false, message: response.error || 'Failed to schedule' });
+      }
+    } catch {
+      setResult({ success: false, message: 'An error occurred' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Inline markdown preview
+  const inlinePreviewContent = content
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -151,8 +285,165 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/\n/g, '<br>');
 
+  // =========================================================================
+  // Preview Step
+  // =========================================================================
+  if (step === 'preview') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setStep('compose')}
+            className="flex items-center gap-2 text-sm text-[#a3a3a3] hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Editor
+          </button>
+          <span className="text-sm text-[#525252]">Email Preview</span>
+        </div>
+
+        <div className="rounded-lg overflow-hidden border border-[rgba(34,211,238,0.3)]" style={{ height: '500px' }}>
+          <iframe
+            srcDoc={previewHtml}
+            title="Email Preview"
+            className="w-full h-full bg-white"
+            sandbox="allow-same-origin"
+          />
+        </div>
+
+        <p className="text-xs text-[#525252]">
+          This is exactly how recipients will see the email
+        </p>
+
+        {result && (
+          <div
+            className={`p-4 rounded-lg ${
+              result.success
+                ? 'bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] text-[#22c55e]'
+                : 'bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] text-[#ef4444]'
+            }`}
+          >
+            {result.message}
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 pt-4 border-t border-[rgba(255,255,255,0.1)]">
+          <button
+            onClick={() => setStep('send-options')}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#22D3EE] to-[#0891b2] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all"
+          >
+            <Send className="h-4 w-4" />
+            Send Options
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={sending}
+            className="flex items-center gap-2 px-6 py-3 bg-[#1a1a1a] border border-[rgba(255,255,255,0.1)] text-white font-medium rounded-lg hover:border-[rgba(34,211,238,0.3)] transition-all disabled:opacity-50"
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Send Now
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // Send Options Step
+  // =========================================================================
+  if (step === 'send-options') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setStep('preview')}
+            className="flex items-center gap-2 text-sm text-[#a3a3a3] hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Preview
+          </button>
+          <span className="text-sm text-[#525252]">Send Options</span>
+        </div>
+
+        {/* Summary */}
+        <div className="p-4 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#1a1a1a]">
+          <h3 className="font-medium text-white mb-2">{subject}</h3>
+          <p className="text-sm text-[#a3a3a3]">
+            To: {recipientFilter === 'all' ? 'All members' : recipientFilter} of {leagueName}
+          </p>
+          <p className="text-sm text-[#525252]">
+            Priority: {priority}
+          </p>
+        </div>
+
+        {/* Schedule */}
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">
+            <Clock className="h-4 w-4 inline-block mr-2" />
+            Schedule for Later <span className="text-[#525252]">(optional)</span>
+          </label>
+          <input
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+            min={new Date().toISOString().slice(0, 16)}
+            className="w-full bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg px-4 py-3 text-white focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/20"
+          />
+          <p className="text-xs text-[#525252] mt-1">
+            Leave empty to send immediately
+          </p>
+        </div>
+
+        {result && (
+          <div
+            className={`p-4 rounded-lg ${
+              result.success
+                ? 'bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] text-[#22c55e]'
+                : 'bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] text-[#ef4444]'
+            }`}
+          >
+            {result.message}
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 pt-4 border-t border-[rgba(255,255,255,0.1)]">
+          {scheduledAt ? (
+            <button
+              onClick={handleSchedule}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#22D3EE] to-[#0891b2] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+              Schedule Send
+            </button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={sending}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#22D3EE] to-[#0891b2] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all disabled:opacity-50"
+            >
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Send Now
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // Compose Step (default)
+  // =========================================================================
   return (
     <div className="space-y-6">
+      {/* Draft indicator */}
+      {draftId && (
+        <div className="flex items-center gap-2 text-xs text-[#525252]">
+          <FileText className="h-3 w-3" />
+          Draft saved
+        </div>
+      )}
+
       {/* Recipients */}
       <div>
         <label className="block text-sm font-medium text-white mb-2">
@@ -244,9 +535,9 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
             </button>
             <div className="w-px h-4 bg-[rgba(255,255,255,0.1)] mx-1" />
             <button
-              onClick={() => setShowPreview(!showPreview)}
+              onClick={() => setShowInlinePreview(!showInlinePreview)}
               className={`p-1.5 rounded hover:bg-[rgba(255,255,255,0.1)] ${
-                showPreview ? 'text-[#22D3EE]' : 'text-[#a3a3a3] hover:text-white'
+                showInlinePreview ? 'text-[#22D3EE]' : 'text-[#a3a3a3] hover:text-white'
               }`}
               title="Preview"
             >
@@ -255,9 +546,9 @@ export function EmailComposer({ leagueId, leagueName, onSuccess }: EmailComposer
           </div>
         </div>
 
-        {showPreview ? (
+        {showInlinePreview ? (
           <div className="min-h-[200px] bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg p-4 text-[#a3a3a3]">
-            <div dangerouslySetInnerHTML={{ __html: previewContent || '<em>Nothing to preview</em>' }} />
+            <div dangerouslySetInnerHTML={{ __html: inlinePreviewContent || '<em>Nothing to preview</em>' }} />
           </div>
         ) : (
           <textarea
@@ -318,28 +609,46 @@ You can use **bold** and *italic* formatting."
         </div>
       )}
 
-      {/* Send button */}
+      {/* Action buttons */}
       <div className="flex items-center justify-between pt-4 border-t border-[rgba(255,255,255,0.1)]">
         <p className="text-sm text-[#525252]">
           Sending to {recipientFilter === 'all' ? 'all members' : recipientFilter} of {leagueName}
         </p>
-        <button
-          onClick={handleSend}
-          disabled={sending || !subject.trim() || !content.trim()}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#22D3EE] to-[#0891b2] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {sending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Sending...
-            </>
-          ) : (
-            <>
-              <Send className="h-4 w-4" />
-              Send Announcement
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSaveDraft}
+            disabled={saving || !subject.trim() || !content.trim()}
+            className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1a] border border-[rgba(255,255,255,0.1)] text-white font-medium rounded-lg hover:border-[rgba(34,211,238,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Draft
+          </button>
+          <button
+            onClick={handleShowPreview}
+            disabled={previewLoading || !subject.trim() || !content.trim()}
+            className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1a] border border-[rgba(255,255,255,0.1)] text-white font-medium rounded-lg hover:border-[rgba(34,211,238,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+            Preview Email
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={sending || !subject.trim() || !content.trim()}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#22D3EE] to-[#0891b2] text-black font-semibold rounded-lg hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {sending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                Send Now
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

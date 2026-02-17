@@ -1117,6 +1117,43 @@
       "invoiceDue": "Invoice Due",
       "newPlayer": "New Player Joined",
       "teamUpdate": "Team Update"
+    },
+    "announcements": {
+      "saveDraft": "Save Draft",
+      "previewEmail": "Preview Email",
+      "sendNow": "Send Now",
+      "scheduleForLater": "Schedule for Later",
+      "scheduledAt": "Send at",
+      "drafts": "Saved Drafts",
+      "noDrafts": "No saved drafts",
+      "draftSaved": "Draft saved",
+      "previewTitle": "Email Preview",
+      "previewNote": "This is exactly how recipients will see the email",
+      "sendOptions": "Send Options",
+      "backToEditor": "Back to Editor",
+      "backToPreview": "Back to Preview",
+      "scheduleSend": "Schedule Send",
+      "updated": "Updated"
+    },
+    "emailDomain": {
+      "title": "Email Sending Domain",
+      "description": "Send league emails from your own domain",
+      "addDomain": "Add Domain",
+      "verifyDomain": "Verify Domain",
+      "removeDomain": "Remove Domain",
+      "domainName": "Domain Name",
+      "fromName": "From Name",
+      "verified": "Verified",
+      "pending": "Pending",
+      "failed": "Failed",
+      "dnsRecords": "Required DNS Records",
+      "dnsDescription": "Add these records to your DNS provider",
+      "nameHost": "Name / Host",
+      "value": "Value",
+      "faq": "Email Domain FAQ",
+      "whySetup": "Why set up a custom email domain?",
+      "whatRecords": "What DNS records are needed?",
+      "howLong": "How long does verification take?"
     }
   },
   "validation": {

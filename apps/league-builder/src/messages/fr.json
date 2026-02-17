@@ -1117,6 +1117,43 @@
       "invoiceDue": "Facture a payer",
       "newPlayer": "Nouveau joueur inscrit",
       "teamUpdate": "Mise a jour de l'equipe"
+    },
+    "announcements": {
+      "saveDraft": "Enregistrer le brouillon",
+      "previewEmail": "Apercu de l'email",
+      "sendNow": "Envoyer maintenant",
+      "scheduleForLater": "Planifier l'envoi",
+      "scheduledAt": "Envoyer a",
+      "drafts": "Brouillons enregistres",
+      "noDrafts": "Aucun brouillon",
+      "draftSaved": "Brouillon enregistre",
+      "previewTitle": "Apercu de l'email",
+      "previewNote": "Voici exactement ce que les destinataires verront",
+      "sendOptions": "Options d'envoi",
+      "backToEditor": "Retour a l'editeur",
+      "backToPreview": "Retour a l'apercu",
+      "scheduleSend": "Planifier l'envoi",
+      "updated": "Mis a jour"
+    },
+    "emailDomain": {
+      "title": "Domaine d'envoi d'emails",
+      "description": "Envoyer les emails de la ligue depuis votre propre domaine",
+      "addDomain": "Ajouter le domaine",
+      "verifyDomain": "Verifier le domaine",
+      "removeDomain": "Supprimer le domaine",
+      "domainName": "Nom de domaine",
+      "fromName": "Nom de l'expediteur",
+      "verified": "Verifie",
+      "pending": "En attente",
+      "failed": "Echoue",
+      "dnsRecords": "Enregistrements DNS requis",
+      "dnsDescription": "Ajoutez ces enregistrements chez votre fournisseur DNS",
+      "nameHost": "Nom / Hote",
+      "value": "Valeur",
+      "faq": "FAQ domaine email",
+      "whySetup": "Pourquoi configurer un domaine email personnalise?",
+      "whatRecords": "Quels enregistrements DNS sont necessaires?",
+      "howLong": "Combien de temps prend la verification?"
     }
   },
   "validation": {
