@@ -13,6 +13,8 @@ import {
   getRosterChangeEmail,
   getLeagueAnnouncementEmail,
   sanitizeAnnouncementContent,
+  getSuspensionIssuedPlayerEmail,
+  getSuspensionIssuedCaptainEmail,
 } from './templates';
 
 // =============================================================================
@@ -682,6 +684,163 @@ export async function resendNotification(notificationId: string): Promise<Notifi
     failed: result.success ? 0 : 1,
     error: result.error,
   };
+}
+
+// =============================================================================
+// Send Suspension Notification
+// =============================================================================
+
+export async function sendSuspensionNotification(params: {
+  leagueId: string;
+  playerId: string;
+  teamId: string;
+  reason: string;
+  startDate: string;
+  endDate?: string;
+  gamesRemaining: number;
+}): Promise<NotificationResult> {
+  const supabase = await createClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
+
+  try {
+    // Look up player, team, league, and captain in parallel
+    const [playerResult, teamResult, leagueResult, captainResult] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('id', params.playerId)
+        .single(),
+      supabase
+        .from('teams')
+        .select('id, name')
+        .eq('id', params.teamId)
+        .single(),
+      supabase
+        .from('leagues')
+        .select('name')
+        .eq('id', params.leagueId)
+        .single(),
+      // Find the team captain via team_rosters
+      supabase
+        .from('team_rosters')
+        .select('player_id, profiles:profiles!player_id(id, email, full_name)')
+        .eq('team_id', params.teamId)
+        .eq('leadership_role', 'captain' as any)
+        .eq('status', 'active')
+        .limit(1),
+    ]);
+
+    const player = playerResult.data;
+    const team = teamResult.data;
+    const league = leagueResult.data;
+    const captainRoster = captainResult.data?.[0];
+    const captain = captainRoster?.profiles as any;
+
+    if (!player?.email || !team) {
+      return { success: false, error: 'Player or team not found' };
+    }
+
+    const leagueName = league?.name || 'Beer League Hockey';
+    const teamName = team.name;
+    const playerName = player.full_name || 'Player';
+    const dashboardUrl = `${siteUrl}/dashboard`;
+
+    let sent = 0;
+    let failed = 0;
+
+    // --- Send email to suspended player ---
+    const playerPref = await shouldSendEmail(player.id, 'game_updates');
+    if (playerPref.canSend) {
+      const playerEmailHtml = getSuspensionIssuedPlayerEmail({
+        playerName,
+        teamName,
+        leagueName,
+        reason: params.reason,
+        startDate: params.startDate,
+        endDate: params.endDate,
+        gamesRemaining: params.gamesRemaining,
+        dashboardUrl,
+        unsubscribeUrl: playerPref.unsubscribeToken
+          ? getUnsubscribeUrl(playerPref.unsubscribeToken, 'game_updates')
+          : undefined,
+      });
+
+      const playerSubject = `Suspension Notice: ${params.gamesRemaining} game${params.gamesRemaining !== 1 ? 's' : ''} - ${leagueName}`;
+
+      const playerResult = await sendEmail({
+        to: player.email,
+        subject: playerSubject,
+        html: playerEmailHtml,
+      });
+
+      await logNotification({
+        leagueId: params.leagueId,
+        userId: player.id,
+        type: 'suspension_issued',
+        channel: 'email',
+        subject: playerSubject,
+        relatedEntityType: 'suspension',
+        status: playerResult.success ? 'sent' : 'failed',
+        providerMessageId: playerResult.messageId,
+        failureReason: playerResult.error,
+      });
+
+      if (playerResult.success) sent++;
+      else failed++;
+    }
+
+    // --- Send email to team captain (if found and different from player) ---
+    if (captain?.email && captain.id !== player.id) {
+      const captainPref = await shouldSendEmail(captain.id, 'game_updates');
+      if (captainPref.canSend) {
+        const captainEmailHtml = getSuspensionIssuedCaptainEmail({
+          captainName: captain.full_name || 'Captain',
+          playerName,
+          teamName,
+          leagueName,
+          reason: params.reason,
+          startDate: params.startDate,
+          endDate: params.endDate,
+          gamesRemaining: params.gamesRemaining,
+          dashboardUrl,
+          unsubscribeUrl: captainPref.unsubscribeToken
+            ? getUnsubscribeUrl(captainPref.unsubscribeToken, 'game_updates')
+            : undefined,
+        });
+
+        const captainSubject = `Team Suspension Alert: ${playerName} - ${teamName}`;
+
+        const captainSendResult = await sendEmail({
+          to: captain.email,
+          subject: captainSubject,
+          html: captainEmailHtml,
+        });
+
+        await logNotification({
+          leagueId: params.leagueId,
+          userId: captain.id,
+          type: 'suspension_issued',
+          channel: 'email',
+          subject: captainSubject,
+          relatedEntityType: 'suspension',
+          status: captainSendResult.success ? 'sent' : 'failed',
+          providerMessageId: captainSendResult.messageId,
+          failureReason: captainSendResult.error,
+        });
+
+        if (captainSendResult.success) sent++;
+        else failed++;
+      }
+    }
+
+    return { success: true, sent, failed };
+  } catch (error) {
+    console.error('[Notifications] Suspension notification error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error sending suspension notification',
+    };
+  }
 }
 
 // =============================================================================

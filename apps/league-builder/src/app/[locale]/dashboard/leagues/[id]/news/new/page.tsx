@@ -5,9 +5,11 @@ import { useRouter, useParams } from 'next/navigation';
 import { createNewsArticle } from '@/lib/actions/news';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { LogoUploader } from '@/components/ui/logo-uploader';
 import { uploadNewsImage, deleteNewsImage } from '@/lib/actions/image-upload';
+
+type ArticleType = 'news' | 'game_recap' | 'weekly_wrap';
 
 export default function NewNewsArticlePage() {
   const router = useRouter();
@@ -23,6 +25,13 @@ export default function NewNewsArticlePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // AI generation state
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiArticleType, setAiArticleType] = useState<ArticleType>('news');
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   function generateSlug(value: string) {
     return value
       .toLowerCase()
@@ -35,6 +44,54 @@ export default function NewNewsArticlePage() {
     setTitle(value);
     if (!slug || slug === generateSlug(title)) {
       setSlug(generateSlug(value));
+    }
+  }
+
+  async function handleAiGenerate() {
+    if (!aiPrompt.trim()) {
+      setAiError('Please describe what you want to write about.');
+      return;
+    }
+
+    setAiGenerating(true);
+    setAiError(null);
+
+    try {
+      const response = await fetch('/api/ai/generate-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leagueId,
+          prompt: aiPrompt.trim(),
+          articleType: aiArticleType,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAiError(data.error || 'Failed to generate article.');
+        return;
+      }
+
+      // Populate the form fields with generated content
+      if (data.title) {
+        setTitle(data.title);
+        setSlug(generateSlug(data.title));
+      }
+      if (data.content) {
+        setContent(data.content);
+      }
+      if (data.excerpt) {
+        setExcerpt(data.excerpt);
+      }
+
+      // Collapse the AI panel after successful generation
+      setAiOpen(false);
+    } catch {
+      setAiError('Network error. Please check your connection and try again.');
+    } finally {
+      setAiGenerating(false);
     }
   }
 
@@ -80,6 +137,113 @@ export default function NewNewsArticlePage() {
 
           <h1 className="text-3xl font-black text-white tracking-tight">New Article</h1>
           <p className="text-neutral-400 mt-1">Create a new news article</p>
+        </div>
+
+        {/* AI Generate Section */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setAiOpen(!aiOpen)}
+            className={cn(
+              'w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl font-semibold text-sm transition-all',
+              'bg-gradient-to-r from-purple-500/10 to-rink-500/10',
+              'border border-purple-500/20 hover:border-purple-500/40',
+              'text-purple-300 hover:text-purple-200'
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Generate with AI
+            </span>
+            {aiOpen ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+
+          {aiOpen && (
+            <div className="mt-3 bg-white/[0.04] border border-purple-500/20 backdrop-blur-xl rounded-2xl p-6 space-y-4">
+              <p className="text-sm text-neutral-400">
+                Describe what you want to write about in a few sentences. The AI will generate a title, content, and excerpt that you can edit before saving.
+              </p>
+
+              {aiError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
+                  {aiError}
+                </div>
+              )}
+
+              {/* Article Type Select */}
+              <div>
+                <label htmlFor="ai-type" className="block text-sm font-medium text-neutral-300 mb-2">
+                  Article Type
+                </label>
+                <select
+                  id="ai-type"
+                  value={aiArticleType}
+                  onChange={(e) => setAiArticleType(e.target.value as ArticleType)}
+                  disabled={aiGenerating}
+                  className="w-full px-4 py-3 bg-neutral-900 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 appearance-none"
+                >
+                  <option value="news">General News</option>
+                  <option value="game_recap">Game Recap</option>
+                  <option value="weekly_wrap">Weekly Wrap-Up</option>
+                </select>
+              </div>
+
+              {/* Prompt */}
+              <div>
+                <label htmlFor="ai-prompt" className="block text-sm font-medium text-neutral-300 mb-2">
+                  What should the article be about?
+                </label>
+                <textarea
+                  id="ai-prompt"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder={
+                    aiArticleType === 'game_recap'
+                      ? 'e.g., The Wolves beat the Bears 5-3 in a back-and-forth game. Jake scored a hat trick and the goalie made 30 saves...'
+                      : aiArticleType === 'weekly_wrap'
+                        ? 'e.g., This week saw some exciting matchups. The top team lost their first game of the season...'
+                        : 'e.g., Registration for the spring season opens next Monday. We have 3 new teams joining...'
+                  }
+                  rows={4}
+                  maxLength={2000}
+                  disabled={aiGenerating}
+                  className="w-full px-4 py-3 bg-neutral-900 border border-white/10 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 resize-y"
+                />
+                <p className="text-xs text-neutral-500 mt-1">
+                  {aiPrompt.length}/2000 characters
+                </p>
+              </div>
+
+              {/* Generate Button */}
+              <button
+                type="button"
+                onClick={handleAiGenerate}
+                disabled={aiGenerating || !aiPrompt.trim()}
+                className={cn(
+                  'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
+                  'bg-gradient-to-r from-purple-500 to-rink-500 text-white',
+                  'hover:shadow-lg hover:shadow-purple-500/20 transition-all',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                {aiGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Generate Article
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Form */}

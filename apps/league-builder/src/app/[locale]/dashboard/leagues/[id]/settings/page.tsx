@@ -61,6 +61,11 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       description: 'Manage scorekeepers and game assignments',
       icon: 'ClipboardCheck',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/scorekeepers` },
+    {
+      title: 'Referees',
+      description: 'Manage referees and game officiating assignments',
+      icon: 'Shield',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/referees` },
   ];
 
   const orgSettings = [

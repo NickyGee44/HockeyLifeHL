@@ -10,9 +10,11 @@ import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getGame, getGameAuditLog } from '@/lib/actions/games';
+import { getLeagueReferees } from '@/lib/actions/referee-management';
 import { cn } from '@hockey-life/ui';
 import { StatusBadge } from '@/components/games';
 import { GameDetailClient } from '@/components/dashboard/leagues/game-detail-client';
+import { GameOfficialsPanel } from '@/components/referees';
 import {
   ArrowLeft,
   Calendar,
@@ -90,9 +92,15 @@ export default async function GameDetailPage({ params }: Props) {
     notFound();
   }
 
-  // Get audit log
-  const auditResult = await getGameAuditLog(gameId);
+  // Get audit log and available referees
+  const [auditResult, refereesResult] = await Promise.all([
+    getGameAuditLog(gameId),
+    getLeagueReferees(leagueId),
+  ]);
   const auditLog = auditResult.success ? auditResult.data : [];
+  const availableReferees = (refereesResult.success && refereesResult.data)
+    ? refereesResult.data.referees.filter((r) => r.is_active).map((r) => ({ id: r.id, name: r.name }))
+    : [];
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -206,6 +214,15 @@ export default async function GameDetailPage({ params }: Props) {
               {game.location || 'TBD'}
             </p>
           </div>
+        </div>
+
+        {/* Game Officials */}
+        <div className="mb-8">
+          <GameOfficialsPanel
+            gameId={gameId}
+            leagueId={leagueId}
+            availableReferees={availableReferees}
+          />
         </div>
 
         {/* Cancellation/Postponement Info */}
