@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo [$(date '+%Y-%m-%d %H:%M:%S')] Session started >> .claude/orchestration.log"
+            "command": "echo [$(date '+%Y-%m-%d %H:%M:%S')] Session started >> /home/b3/HockeyLeague/.claude/orchestration.log"
           }
         ]
       }
@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo [$(date '+%Y-%m-%d %H:%M:%S')] Subagent completed >> .claude/orchestration.log"
+            "command": "echo [$(date '+%Y-%m-%d %H:%M:%S')] Subagent completed >> /home/b3/HockeyLeague/.claude/orchestration.log"
           }
         ]
       }
