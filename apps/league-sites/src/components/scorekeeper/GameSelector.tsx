@@ -1,7 +1,16 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { SessionGameInfo } from '@/lib/actions/scorekeeper';
+
+function ClientTime({ iso }: { iso: string }) {
+  const [text, setText] = useState('');
+  useEffect(() => {
+    setText(new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+  }, [iso]);
+  return <>{text}</>;
+}
 
 interface GameSelectorProps {
   games: SessionGameInfo[];
@@ -64,10 +73,7 @@ export function GameSelector({ games, leagueSlug }: GameSelectorProps) {
 
                     {/* Time */}
                     <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                      {new Date(game.scheduledAt).toLocaleTimeString([], {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
+                      <ClientTime iso={game.scheduledAt} />
                     </div>
                   </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { cn } from '@hockey-life/ui';
 
 // TODO: Wire to useSyncState once offline infrastructure is integrated
@@ -23,9 +24,23 @@ interface SyncStatusBannerProps {
  * iPad-optimized with large touch targets
  */
 export function SyncStatusBanner({ syncState }: SyncStatusBannerProps) {
+  // Hydration-safe: always render "online" on server, check navigator on client
+  const [isOnline, setIsOnline] = useState(true);
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
+
   // Default to online if no sync state provided
   const state: SyncState = syncState ?? {
-    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    isOnline,
     isSyncing: false,
     pendingCount: 0,
     lastError: null,
@@ -125,7 +140,7 @@ function formatTimeAgo(dateString: string): string {
   if (seconds < 60) return 'just now';
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return date.toLocaleDateString();
+  return `${Math.floor(seconds / 86400)}d ago`;
 }
 
 // Icon components

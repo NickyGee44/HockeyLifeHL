@@ -1,8 +1,22 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import type { ScheduleGame } from '@/lib/actions/scorekeeper-dashboard';
+
+// Hydration-safe date formatting
+function ClientDate({ iso, className }: { iso: string; className?: string }) {
+  const [text, setText] = useState('');
+  useEffect(() => {
+    const d = new Date(iso);
+    setText(
+      d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+      ' ' +
+      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    );
+  }, [iso]);
+  return <span className={className}>{text}</span>;
+}
 
 interface ScorekeeperScheduleViewProps {
   games: ScheduleGame[];
@@ -106,7 +120,6 @@ export function ScorekeeperScheduleView({ games, leagueSlug }: ScorekeeperSchedu
 }
 
 function ScheduleGameCard({ game, leagueSlug }: { game: ScheduleGame; leagueSlug: string }) {
-  const date = new Date(game.scheduledAt);
   const isLive = game.status === 'in_progress';
   const isCompleted = game.status === 'completed' || game.status === 'final';
 
@@ -134,11 +147,7 @@ function ScheduleGameCard({ game, leagueSlug }: { game: ScheduleGame; leagueSlug
                 DONE
               </span>
             )}
-            <span className="text-xs text-[var(--color-text-secondary)]">
-              {game.dayOfWeek} {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              {' '}
-              {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-            </span>
+            <ClientDate iso={game.scheduledAt} className="text-xs text-[var(--color-text-secondary)]" />
           </div>
 
           <p className="font-medium text-[var(--color-text-primary)] truncate">

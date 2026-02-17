@@ -1,6 +1,14 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+
+function SignedAtLabel({ isoDate }: { isoDate: string }) {
+  const [text, setText] = useState('');
+  useEffect(() => {
+    setText(new Date(isoDate).toLocaleString());
+  }, [isoDate]);
+  return <p className="text-xs text-neutral-500 text-center">Signed {text}</p>;
+}
 import Image from 'next/image';
 import type { TeamData, PlayerData } from '@/lib/actions/scorekeeper';
 import type { GameSubmission } from '@/lib/scorekeeper/types';
@@ -268,9 +276,7 @@ export function CaptainSignature({
             </div>
           )}
           {signedAt && (
-            <p className="text-xs text-neutral-500 text-center">
-              Signed {new Date(signedAt).toLocaleString()}
-            </p>
+            <SignedAtLabel isoDate={signedAt} />
           )}
         </div>
       ) : (

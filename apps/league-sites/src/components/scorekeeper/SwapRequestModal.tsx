@@ -4,6 +4,22 @@ import { useState, useTransition, useEffect, useRef } from 'react';
 import { requestSwap } from '@/lib/actions/scorekeeper-swaps';
 import type { DashboardGame } from '@/lib/actions/scorekeeper-dashboard';
 
+function useClientDate(iso: string | null, options: Intl.DateTimeFormatOptions): string {
+  const [text, setText] = useState('');
+  useEffect(() => {
+    if (iso) setText(new Date(iso).toLocaleDateString('en-US', options));
+  }, [iso]);
+  return text;
+}
+
+function useClientTime(iso: string | null, options: Intl.DateTimeFormatOptions): string {
+  const [text, setText] = useState('');
+  useEffect(() => {
+    if (iso) setText(new Date(iso).toLocaleTimeString('en-US', options));
+  }, [iso]);
+  return text;
+}
+
 interface SwapRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -70,7 +86,8 @@ export function SwapRequestModal({ isOpen, onClose, gameId, game }: SwapRequestM
 
   if (!isOpen) return null;
 
-  const gameDate = game ? new Date(game.scheduledAt) : null;
+  const gameDateStr = useClientDate(game?.scheduledAt ?? null, { weekday: 'long', month: 'long', day: 'numeric' });
+  const gameTimeStr = useClientTime(game?.scheduledAt ?? null, { hour: 'numeric', minute: '2-digit' });
 
   return (
     <div
@@ -98,15 +115,14 @@ export function SwapRequestModal({ isOpen, onClose, gameId, game }: SwapRequestM
           </div>
 
           {/* Game Info */}
-          {game && gameDate && (
+          {game && (
             <div className="mt-3 p-3 bg-[var(--color-surface-hover)] rounded-xl">
               <p className="text-sm font-medium text-[var(--color-text-primary)]">
                 {game.homeTeamName} vs {game.awayTeamName}
               </p>
               <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-                {gameDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                {' at '}
-                {gameDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {gameDateStr}
+                {gameTimeStr && ` at ${gameTimeStr}`}
               </p>
               {game.venueName && (
                 <p className="text-xs text-[var(--color-text-secondary)]">{game.venueName}</p>

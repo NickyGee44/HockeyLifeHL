@@ -1,10 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { ScorekeeperDashboardData, DashboardGame, SwapRequestData } from '@/lib/actions/scorekeeper-dashboard';
 import { SwapRequestModal } from './SwapRequestModal';
 import { acceptSwap, declineSwap } from '@/lib/actions/scorekeeper-swaps';
+
+// Hydration-safe date formatting — renders placeholder on server, locale string on client
+function useFormattedDate(isoString: string, options: Intl.DateTimeFormatOptions): string {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    setFormatted(new Date(isoString).toLocaleDateString('en-US', options));
+  }, [isoString]);
+  return formatted;
+}
+
+function useFormattedTime(isoString: string, options: Intl.DateTimeFormatOptions): string {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    setFormatted(new Date(isoString).toLocaleTimeString('en-US', options));
+  }, [isoString]);
+  return formatted;
+}
+
+function FormattedDateTime({ iso, className }: { iso: string; className?: string }) {
+  const date = useFormattedDate(iso, { weekday: 'short', month: 'short', day: 'numeric' });
+  const time = useFormattedTime(iso, { hour: 'numeric', minute: '2-digit' });
+  return <span className={className}>{date} {time}</span>;
+}
 
 interface ScorekeeperDashboardViewProps {
   data: ScorekeeperDashboardData;
@@ -213,7 +236,6 @@ function GameCard({
   showSwapButton?: boolean;
   onRequestSwap?: () => void;
 }) {
-  const date = new Date(game.scheduledAt);
   const isLive = game.status === 'in_progress';
   const isCompleted = game.status === 'completed' || game.status === 'final';
 
@@ -232,11 +254,7 @@ function GameCard({
               FINAL
             </span>
           )}
-          <span className="text-xs text-[var(--color-text-secondary)]">
-            {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-            {' '}
-            {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </span>
+          <FormattedDateTime iso={game.scheduledAt} className="text-xs text-[var(--color-text-secondary)]" />
         </div>
         {game.venueName && (
           <span className="text-xs text-[var(--color-text-secondary)]">{game.venueName}</span>
@@ -291,16 +309,10 @@ function SwapRequestCard({
   onAccept?: () => void;
   onDecline?: () => void;
 }) {
-  const date = new Date(swap.game.scheduledAt);
-
   return (
     <div className="bg-[var(--color-surface)] border border-amber-400/20 rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-[var(--color-text-secondary)]">
-          {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-          {' '}
-          {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-        </span>
+        <FormattedDateTime iso={swap.game.scheduledAt} className="text-xs text-[var(--color-text-secondary)]" />
         <span className="px-2 py-0.5 text-xs font-medium bg-amber-400/10 text-amber-400 rounded-full">
           Pending
         </span>
