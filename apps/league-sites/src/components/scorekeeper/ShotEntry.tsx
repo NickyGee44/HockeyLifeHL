@@ -118,7 +118,7 @@ export function ShotEntry({
       onClose={handleQuickSave}
       title="Shot by (optional)"
       allowSkip
-      skipLabel={isPending ? 'Saving...' : 'Unknown Shooter'}
+      skipLabel={isPending ? 'Saving...' : 'Save Without Shooter'}
       onSkip={handleQuickSave}
     />
   );
