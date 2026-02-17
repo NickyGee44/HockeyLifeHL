@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { League } from '@/lib/types';
 import { SocialLinks } from './SocialLinks';
@@ -10,7 +11,9 @@ interface LeagueFooterProps {
 }
 
 export function LeagueFooter({ league, leagueSlug }: LeagueFooterProps) {
-  const currentYear = new Date().getFullYear();
+  // Hydration-safe: use empty string on server, set year after mount
+  const [currentYear, setCurrentYear] = useState('');
+  useEffect(() => { setCurrentYear(String(new Date().getFullYear())); }, []);
 
   return (
     <footer className="relative border-t border-[var(--color-border)] bg-[var(--color-background)] overflow-hidden">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { format, isToday, isTomorrow, isYesterday, differenceInMinutes } from 'date-fns';
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
@@ -46,6 +46,9 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const updateScrollButtons = useCallback(() => {
     if (!scrollRef.current) return;
@@ -64,16 +67,28 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
     setTimeout(updateScrollButtons, 350);
   }, [updateScrollButtons]);
 
+  // Stable ordering: on server & first render use status-based sort (no time-dependent isGameLive).
+  // After mount, apply live detection for proper ordering.
+  const orderedGames = useMemo(() => {
+    if (!games || games.length === 0) return [];
+    if (!mounted) {
+      // Server-safe: in_progress first, then scheduled, then completed — deterministic
+      const inProgress = games.filter((g) => g.status === 'in_progress');
+      const scheduled = games.filter((g) => g.status === 'scheduled');
+      const completed = games.filter((g) => g.status === 'completed');
+      return [...inProgress, ...scheduled, ...completed];
+    }
+    // Client: use smart live detection
+    const liveGames = games.filter((g) => isGameLive(g));
+    const upcomingGames = games.filter((g) => g.status === 'scheduled' && !isGameLive(g));
+    const completedGames = games.filter((g) => g.status === 'completed');
+    return [...liveGames, ...upcomingGames, ...completedGames];
+  }, [games, mounted]);
+
   // Don't render if no games (check after all hooks to satisfy rules of hooks)
-  if (!games || games.length === 0) {
+  if (orderedGames.length === 0) {
     return null;
   }
-
-  // Order: Live first (including games within 1 hour of start), then upcoming, then completed
-  const liveGames = games.filter((g) => isGameLive(g));
-  const upcomingGames = games.filter((g) => g.status === 'scheduled' && !isGameLive(g));
-  const completedGames = games.filter((g) => g.status === 'completed');
-  const orderedGames = [...liveGames, ...upcomingGames, ...completedGames];
 
   return (
     <div
@@ -151,8 +166,11 @@ interface GameTileProps {
 
 function GameTile({ game, leagueSlug }: GameTileProps) {
   const isCompleted = game.status === 'completed';
-  const isLive = isGameLive(game); // Use smart live detection (within 1 hour of start)
+  const isLive = isGameLive(game);
   const gameDate = new Date(game.scheduled_at);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Parse team color
   const getTeamColor = (colors: string | null): string | null => {
@@ -175,8 +193,9 @@ function GameTile({ game, leagueSlug }: GameTileProps) {
   const awayWinning = awayScore > homeScore;
   const homeWinning = homeScore > awayScore;
 
-  // Smart date formatting
+  // Hydration-safe date formatting — timezone-dependent calls only after mount
   const formatGameDate = () => {
+    if (!mounted) return '\u00A0'; // non-breaking space placeholder
     if (isToday(gameDate)) return 'Today';
     if (isTomorrow(gameDate)) return 'Tomorrow';
     if (isYesterday(gameDate)) return 'Yesterday';
@@ -325,9 +344,11 @@ interface StatusBadgeProps {
 function StatusBadge({ game, gameDate }: StatusBadgeProps) {
   const { status } = game;
   const isLive = isGameLive(game);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // Show live badge if game is in progress OR within 1 hour of start time
-  if (isLive && status !== 'completed') {
+  if (mounted && isLive && status !== 'completed') {
     return (
       <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/15">
         <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -360,12 +381,12 @@ function StatusBadge({ game, gameDate }: StatusBadgeProps) {
       );
     }
 
-  // Scheduled - show time
+  // Scheduled - show time (hydration-safe: only format after mount)
   return (
     <span
       className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[var(--league-primary)] bg-[color-mix(in_srgb,var(--league-primary)_12%,transparent)]"
     >
-      {format(gameDate, 'h:mm a')}
+      {mounted ? format(gameDate, 'h:mm a') : '\u00A0'}
     </span>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { LeagueSponsor } from '@/lib/types';
 import { DEFAULT_BLH_SPONSOR } from '@/lib/constants';
 
@@ -33,13 +33,16 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 export function SponsorFooterStrip({ sponsors }: SponsorFooterStripProps) {
-  const displaySponsors = useMemo(() => {
+  // Hydration-safe: render in stable order on server, shuffle only after mount
+  const stableSponsors = useMemo(() => {
     const withLogos = sponsors.filter((s) => s.logo_url);
-    if (withLogos.length === 0) {
-      return [DEFAULT_BLH_SPONSOR];
-    }
-    return shuffleArray(withLogos);
+    return withLogos.length === 0 ? [DEFAULT_BLH_SPONSOR] : withLogos;
   }, [sponsors]);
+
+  const [displaySponsors, setDisplaySponsors] = useState(stableSponsors);
+  useEffect(() => {
+    setDisplaySponsors(shuffleArray(stableSponsors));
+  }, [stableSponsors]);
 
   const isDefaultOnly = displaySponsors.length === 1 && displaySponsors[0].id === 'blh-default';
 
