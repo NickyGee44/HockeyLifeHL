@@ -95,25 +95,13 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
         <div className="flex flex-col lg:flex-row items-start gap-6">
           {/* Team Logo */}
           <div className="flex-shrink-0">
-            {(team.logo_url || team.logo) ? (
-              <Image
-                src={team.logo_url || team.logo!}
-                alt={team.name}
-                width={120}
-                height={120}
-                className="rounded-2xl"
-              />
-            ) : (
-              <div
-                className="w-28 h-28 rounded-2xl flex items-center justify-center text-4xl font-bold"
-                style={{
-                  backgroundColor: team.primary_color || team.colors || 'var(--league-primary)',
-                  color: 'var(--color-background)',
-                }}
-              >
-                {team.name.charAt(0)}
-              </div>
-            )}
+            <Image
+              src={team.logo_url || team.logo || '/blank_team.png'}
+              alt={team.name}
+              width={120}
+              height={120}
+              className="rounded-2xl object-cover"
+            />
           </div>
 
           {/* Team Info */}

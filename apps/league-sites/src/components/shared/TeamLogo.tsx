@@ -3,10 +3,11 @@ import { TeamLogo as BaseTeamLogo, type TeamLogoProps as BaseProps } from '@hock
 
 type TeamLogoProps = Omit<BaseProps, 'renderImage'>;
 
-export function TeamLogo(props: TeamLogoProps) {
+export function TeamLogo({ logoUrl, ...props }: TeamLogoProps) {
   return (
     <BaseTeamLogo
       {...props}
+      logoUrl={logoUrl || '/blank_team.png'}
       renderImage={({ src, alt, width, height, className }) => (
         <Image
           src={src}

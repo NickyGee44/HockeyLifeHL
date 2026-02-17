@@ -328,19 +328,13 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      {game.opponent?.logo_url ? (
-                        <Image
-                          src={game.opponent.logo_url}
-                          alt={game.opponent.name}
-                          width={36}
-                          height={36}
-                          className="rounded"
-                        />
-                      ) : (
-                        <div className="w-9 h-9 bg-[var(--color-surface-hover)] rounded flex items-center justify-center text-sm font-bold">
-                          {game.opponent?.name?.charAt(0) || '?'}
-                        </div>
-                      )}
+                      <Image
+                        src={game.opponent?.logo_url || '/blank_team.png'}
+                        alt={game.opponent?.name || 'Team'}
+                        width={36}
+                        height={36}
+                        className="rounded object-cover"
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-[var(--color-text-primary)] truncate">
                           {game.isHome ? 'vs' : '@'} {game.opponent?.name || 'TBD'}

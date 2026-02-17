@@ -367,19 +367,13 @@ function JoinTeamView({
             <div className="divide-y divide-[var(--color-border)]">
               {requests.map((request) => (
                 <div key={request.id} className="p-4 flex items-center gap-4">
-                  {request.team?.logo_url ? (
-                    <Image
-                      src={request.team.logo_url}
-                      alt={request.team.name}
-                      width={48}
-                      height={48}
-                      className="rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 bg-[var(--color-surface-hover)] rounded-lg flex items-center justify-center text-lg font-bold text-[var(--color-text-secondary)]">
-                      {request.team?.name?.charAt(0) || '?'}
-                    </div>
-                  )}
+                  <Image
+                    src={request.team?.logo_url || '/blank_team.png'}
+                    alt={request.team?.name || 'Team'}
+                    width={48}
+                    height={48}
+                    className="rounded-lg object-cover"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-[var(--color-text-primary)]">
                       {request.team?.name || 'Unknown Team'}

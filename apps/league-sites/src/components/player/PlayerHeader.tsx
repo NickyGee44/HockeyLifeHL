@@ -89,15 +89,13 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
               className="inline-flex items-center gap-2 text-base font-medium hover:opacity-80 transition-opacity mb-3"
               style={{ color: teamColor }}
             >
-              {team.logo_url && (
-                <Image
-                  src={team.logo_url}
-                  alt={team.name}
-                  width={48}
-                  height={48}
-                  className="w-8 h-8 md:w-12 md:h-12 rounded object-contain"
-                />
-              )}
+              <Image
+                src={team.logo_url || '/blank_team.png'}
+                alt={team.name}
+                width={48}
+                height={48}
+                className="w-8 h-8 md:w-12 md:h-12 rounded object-contain"
+              />
               {team.name}
             </Link>
           )}

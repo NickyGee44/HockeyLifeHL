@@ -167,15 +167,13 @@ export function SuspensionsClient({
                   </td>
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2">
-                      {suspension.team?.logo_url && (
-                        <Image
-                          src={suspension.team.logo_url}
-                          alt={suspension.team.name || ''}
-                          width={20}
-                          height={20}
-                          className="rounded"
-                        />
-                      )}
+                      <Image
+                        src={suspension.team?.logo_url || '/blank_team.png'}
+                        alt={suspension.team?.name || ''}
+                        width={20}
+                        height={20}
+                        className="rounded object-cover"
+                      />
                       <span className="text-[var(--color-text-secondary)]">
                         {suspension.team?.name || '-'}
                       </span>
