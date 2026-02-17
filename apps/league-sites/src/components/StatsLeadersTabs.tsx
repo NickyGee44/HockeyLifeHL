@@ -173,7 +173,7 @@ export function StatsLeadersTabs({
                     <td className="text-center">{player.games_played}</td>
                     <td className="text-center">{player.goals}</td>
                     <td className="text-center">{player.assists}</td>
-                    <td className="text-center font-bold text-[var(--league-primary)]">
+                    <td className="text-center font-bold text-[var(--color-text-primary)]">
                       {player.points}
                     </td>
                     <td className="text-center hidden md:table-cell">
