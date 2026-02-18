@@ -171,6 +171,49 @@ export class PenaltyTracker {
   }
 
   /**
+   * Get all penalties for display in penalty box, including not-yet-started
+   * second halves of double minors. Unlike getActivePenalties, this includes
+   * penalties whose start time is in the future (for countdown display).
+   */
+  getPenaltiesForDisplay(
+    teamType: 'home' | 'away',
+    currentTimeSeconds: number,
+    period: number
+  ): ActivePenalty[] {
+    const currentAbsolute = this.toAbsoluteSeconds(period, currentTimeSeconds);
+
+    return this.penalties.filter(p => {
+      if (p.teamType !== teamType || p.served) return false;
+
+      const startAbsolute = this.toAbsoluteSeconds(p.period, p.startTimeSeconds);
+      const durationSeconds = p.penaltyMinutes * 60;
+      const endAbsolute = startAbsolute + durationSeconds;
+
+      // For first halves and non-split penalties: must have started and not expired
+      if (!p.parentEventId || p.halfIndex === 0) {
+        return currentAbsolute >= startAbsolute && currentAbsolute < endAbsolute;
+      }
+
+      // For second halves: include if parent (first half) is still active OR
+      // the second half itself is still active
+      const parent = this.penalties.find(
+        pp => pp.eventId === p.parentEventId && pp.halfIndex === 0
+      );
+      if (parent && !parent.served) {
+        const parentStart = this.toAbsoluteSeconds(parent.period, parent.startTimeSeconds);
+        const parentEnd = parentStart + parent.penaltyMinutes * 60;
+        // Include second half if parent is active or second half is active
+        if (currentAbsolute >= parentStart && currentAbsolute < endAbsolute) {
+          return true;
+        }
+      }
+
+      // Also include if the second half itself is currently active
+      return currentAbsolute >= startAbsolute && currentAbsolute < endAbsolute;
+    });
+  }
+
+  /**
    * Get effective team strength (5v5, 5v4, 5v3, 4v4, 4v3, 3v3)
    * Returns number of skaters (not counting goalie).
    * Misconduct (10 min) penalties do NOT reduce team strength.

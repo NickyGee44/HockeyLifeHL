@@ -61,10 +61,12 @@ function groupPenalties(
 
     if (p.parentEventId && p.halfIndex === 1) {
       // Second half of double-minor — attach to first half
+      // Use second half's remaining as the total (it ends last)
       const existing = grouped.get(p.parentEventId);
       if (existing) {
         existing.secondHalf = p;
-        existing.remainingSeconds += remaining;
+        // Total remaining = time until second half expires (not sum of both)
+        existing.remainingSeconds = remaining;
         continue;
       }
     }
@@ -93,8 +95,8 @@ export function PenaltyBox({
   homeTeamColor,
   awayTeamColor,
 }: PenaltyBoxProps) {
-  const homePenalties = penaltyTracker.getActivePenalties('home', timeRemaining, currentPeriod);
-  const awayPenalties = penaltyTracker.getActivePenalties('away', timeRemaining, currentPeriod);
+  const homePenalties = penaltyTracker.getPenaltiesForDisplay('home', timeRemaining, currentPeriod);
+  const awayPenalties = penaltyTracker.getPenaltiesForDisplay('away', timeRemaining, currentPeriod);
 
   if (homePenalties.length === 0 && awayPenalties.length === 0) return null;
 
