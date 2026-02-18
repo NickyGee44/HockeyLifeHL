@@ -733,6 +733,96 @@ export async function saveScorekeeperNotes(
 }
 
 /**
+ * Lightweight refetch of game events — no session verification.
+ * Used by the scoring interface to refresh after recording events.
+ */
+export async function refreshGameEvents(gameId: string): Promise<{
+  success: boolean;
+  events?: GameEventData[];
+  homeScore?: number;
+  awayScore?: number;
+  error?: string;
+}> {
+  try {
+    const supabase = createServiceRoleClient();
+
+    const { data: events, error } = await supabase
+      .from('game_events')
+      .select(`
+        id, client_event_id, event_type, period, game_time_seconds,
+        team_id, team_type, player_id,
+        assist1_player_id, assist2_player_id,
+        penalty_type, penalty_minutes,
+        is_power_play, is_short_handed, is_empty_net,
+        created_at, deleted_at,
+        player:profiles!game_events_player_id_fkey(full_name),
+        assist1:profiles!game_events_assist1_player_id_fkey(full_name),
+        assist2:profiles!game_events_assist2_player_id_fkey(full_name)
+      `)
+      .eq('game_id', gameId)
+      .order('period', { ascending: true })
+      .order('game_time_seconds', { ascending: false });
+
+    if (error) {
+      console.error('refreshGameEvents query error:', error);
+      return { success: false, error: 'Failed to load events' };
+    }
+
+    const { data: game } = await supabase
+      .from('games')
+      .select('home_team_id, away_team_id, home_score, away_score')
+      .eq('id', gameId)
+      .single();
+
+    if (!game) return { success: false, error: 'Game not found' };
+
+    const { data: rosters } = await supabase
+      .from('team_rosters')
+      .select('player_id, jersey_number')
+      .in('team_id', [game.home_team_id, game.away_team_id]);
+
+    const jerseyMap = new Map(rosters?.map((r: { player_id: string; jersey_number: number | null }) => [r.player_id, r.jersey_number]) || []);
+
+    const formattedEvents: GameEventData[] = (events || []).map((e: any) => ({
+      id: e.id,
+      clientEventId: e.client_event_id,
+      eventType: e.event_type,
+      period: e.period,
+      gameTimeSeconds: e.game_time_seconds,
+      teamId: e.team_id,
+      teamType: e.team_type as 'home' | 'away',
+      playerId: e.player_id,
+      playerName: (e.player as { full_name: string })?.full_name || 'Unknown',
+      playerNumber: jerseyMap.get(e.player_id) || 0,
+      assist1PlayerId: e.assist1_player_id,
+      assist1Name: (e.assist1 as { full_name: string } | null)?.full_name || null,
+      assist1Number: e.assist1_player_id ? jerseyMap.get(e.assist1_player_id) || null : null,
+      assist2PlayerId: e.assist2_player_id,
+      assist2Name: (e.assist2 as { full_name: string } | null)?.full_name || null,
+      assist2Number: e.assist2_player_id ? jerseyMap.get(e.assist2_player_id) || null : null,
+      penaltyType: e.penalty_type,
+      penaltyMinutes: e.penalty_minutes,
+      isPowerPlay: e.is_power_play || false,
+      isShortHanded: e.is_short_handed || false,
+      isEmptyNet: e.is_empty_net || false,
+      isGWG: e.is_gwg || false,
+      createdAt: (e.created_at ?? new Date().toISOString()) as string,
+      deletedAt: e.deleted_at,
+    }));
+
+    return {
+      success: true,
+      events: formattedEvents,
+      homeScore: game.home_score || 0,
+      awayScore: game.away_score || 0,
+    };
+  } catch (error) {
+    console.error('refreshGameEvents error:', error);
+    return { success: false, error: 'Failed to refresh events' };
+  }
+}
+
+/**
  * Get all events for a game
  */
 export async function getGameEvents(gameId: string): Promise<{

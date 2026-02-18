@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { GameData, GameEventData, CheckinPlayer } from '@/lib/actions/scorekeeper';
-import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes, getGameEvents, getScorekeeperGameData } from '@/lib/actions/scorekeeper';
+import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes, refreshGameEvents } from '@/lib/actions/scorekeeper';
 import { PreGameCheckin } from './PreGameCheckin';
 import { PenaltyTracker } from '@/lib/scorekeeper/penalty-tracker';
 import { EmptyNetTracker } from '@/lib/scorekeeper/empty-net-tracker';
@@ -42,18 +42,23 @@ export function ScoringInterface({
   const [events, setEvents] = useState(initialEvents);
   const [activeEntry, setActiveEntry] = useState<ActiveEntry>(null);
 
-  // Refetch game data and events from server
+  // Refetch events and score from server (no session check — lightweight)
   const refreshData = useCallback(async () => {
     try {
-      const [gameResult, eventsResult] = await Promise.all([
-        getScorekeeperGameData(game.id),
-        getGameEvents(game.id),
-      ]);
-      if (gameResult.success && gameResult.game) {
-        setGame(gameResult.game);
-      }
-      if (eventsResult.success && eventsResult.events) {
-        setEvents(eventsResult.events);
+      const result = await refreshGameEvents(game.id);
+      if (result.success) {
+        if (result.events) {
+          setEvents(result.events);
+        }
+        if (result.homeScore !== undefined || result.awayScore !== undefined) {
+          setGame(prev => ({
+            ...prev,
+            homeScore: result.homeScore ?? prev.homeScore,
+            awayScore: result.awayScore ?? prev.awayScore,
+          }));
+        }
+      } else {
+        console.error('refreshData failed:', result.error);
       }
     } catch (err) {
       console.error('Failed to refresh game data:', err);
