@@ -287,7 +287,8 @@ export async function getTeamRegistrationRequests(leagueId: string, options?: { 
   }
 
   try {
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
       .from('team_registration_requests')
       .select(`
         *,

@@ -202,7 +202,8 @@ export async function getGames(
 
     const supabase = await createServiceRoleClient();
 
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
       .from('games')
       .select(`
         *,

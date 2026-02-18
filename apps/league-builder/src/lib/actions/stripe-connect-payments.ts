@@ -364,7 +364,8 @@ export async function getLeaguePayments(
     const supabase = await createClient();
 
     // Build query
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
       .from('stripe_connect_payments')
       .select('*', { count: 'exact' })
       .eq('league_id', leagueId)
@@ -655,7 +656,8 @@ export async function getPaymentStatistics(
     const supabase = await createClient();
 
     // Build query
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
       .from('stripe_connect_payments')
       .select('amount_cents, application_fee_cents, status')
       .eq('league_id', leagueId);

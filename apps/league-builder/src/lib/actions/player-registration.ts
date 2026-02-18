@@ -1045,7 +1045,8 @@ export async function getPendingRegistrations(
     const supabase = await createClient();
     const { status, type, seasonId, search, limit = 20, offset = 0 } = options;
 
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
       .from('registration_submissions')
       .select(
         `

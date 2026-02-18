@@ -577,7 +577,8 @@ export async function getUserTeams(options?: { status?: TeamStatus; search?: str
     const leagueMap = new Map(leagues.map(l => [l.id, l.name]));
 
     // Get teams without FK joins
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
       .from('teams')
       .select(`
         *,

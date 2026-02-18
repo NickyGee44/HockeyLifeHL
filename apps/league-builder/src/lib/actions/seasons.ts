@@ -45,7 +45,8 @@ export async function getLeagueSeasons(leagueId: string, options?: { status?: Se
   const supabase = await createClient();
 
   try {
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
       .from('seasons')
       .select('*')
       .eq('league_id', leagueId)

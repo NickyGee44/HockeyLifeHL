@@ -153,7 +153,8 @@ export async function getTeamInvoices(
 
     const supabase = await createClient();
 
-    let query = supabase
+    // Build base query — avoid let reassignment to prevent TS "type instantiation excessively deep" error
+    const baseQuery = supabase
       .from('team_invoices')
       .select(`
         *,
@@ -162,11 +163,8 @@ export async function getTeamInvoices(
       .eq('league_id', leagueId)
       .order('created_at', { ascending: false });
 
-    if (seasonId) {
-      query = query.eq('season_id', seasonId);
-    }
-
-    const { data, error } = await query;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (seasonId ? (baseQuery as any).eq('season_id', seasonId) : baseQuery);
 
     if (error) {
       return { success: false, error: sanitizeError(error, 'getTeamInvoices') };

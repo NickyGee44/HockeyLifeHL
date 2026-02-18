@@ -69,7 +69,8 @@ export async function getLeagueAwards(
   const supabase = await createClient();
 
   try {
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase
       .from('league_awards')
       .select('*')
       .eq('league_id', leagueId)
