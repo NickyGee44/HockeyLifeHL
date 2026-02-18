@@ -25,7 +25,7 @@ export interface TimerSyncState {
   currentPeriod: number;
 }
 
-interface UseGameTimerReturn {
+export interface UseGameTimerReturn {
   /** Time remaining in current period in seconds */
   timeRemaining: number;
   /** Formatted time string (MM:SS) */

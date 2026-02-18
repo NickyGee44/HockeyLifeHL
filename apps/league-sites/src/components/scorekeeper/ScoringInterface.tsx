@@ -4,11 +4,14 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { GameData, GameEventData, CheckinPlayer } from '@/lib/actions/scorekeeper';
-import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes, refreshGameEvents } from '@/lib/actions/scorekeeper';
+import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes, refreshGameEvents, syncTimerState } from '@/lib/actions/scorekeeper';
+import { useGameTimer } from '@/hooks/useGameTimer';
+import type { TimerSyncState } from '@/hooks/useGameTimer';
 import { PreGameCheckin } from './PreGameCheckin';
 import { PenaltyTracker } from '@/lib/scorekeeper/penalty-tracker';
 import { EmptyNetTracker } from '@/lib/scorekeeper/empty-net-tracker';
 import { GameTimer } from './GameTimer';
+import { PenaltyBox } from './PenaltyBox';
 import { QuickActionBar } from './QuickActionBar';
 import { GoalEntry } from './GoalEntry';
 import { PenaltyEntry } from './PenaltyEntry';
@@ -71,13 +74,34 @@ export function ScoringInterface({
   const [notes, setNotes] = useState(initialGame.scorekeeperNotes || '');
   const [showNotes, setShowNotes] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
+  const [expiredPenaltyIds, setExpiredPenaltyIds] = useState<Set<string>>(new Set());
+
+  // Lift game timer into ScoringInterface for live time values
+  const handleTimerSync = useCallback(
+    (state: TimerSyncState) => {
+      syncTimerState(game.id, state).catch(console.error);
+    },
+    [game.id]
+  );
+
+  const timer = useGameTimer({
+    periodLengthMinutes: game.periodLengthMinutes,
+    periodCount: game.periodCount,
+    initialPeriod: game.currentPeriod,
+    initialElapsedSeconds: game.timerElapsedSeconds,
+    initialRunning: game.timerRunning,
+    onSync: handleTimerSync,
+    syncIntervalMs: 30000,
+  });
+
+  const periodLengthSeconds = game.periodLengthMinutes * 60;
 
   // Initialize auto-detection trackers
   const penaltyTracker = useMemo(() => {
     const tracker = new PenaltyTracker(game.periodLengthMinutes);
-    // Load existing penalties
+    // Load existing penalties (skip client-side expired ones)
     events
-      .filter(e => e.eventType === 'penalty' && !e.deletedAt)
+      .filter(e => e.eventType === 'penalty' && !e.deletedAt && !expiredPenaltyIds.has(e.id))
       .forEach(e => {
         tracker.addPenalty({
           eventId: e.id,
@@ -86,10 +110,11 @@ export function ScoringInterface({
           penaltyMinutes: e.penaltyMinutes || 2,
           gameTimeSeconds: e.gameTimeSeconds || 0,
           period: e.period,
+          penaltyType: e.penaltyType || undefined,
         });
       });
     return tracker;
-  }, [events, game.periodLengthMinutes]);
+  }, [events, game.periodLengthMinutes, expiredPenaltyIds]);
 
   const emptyNetTracker = useMemo(() => {
     const tracker = new EmptyNetTracker();
@@ -112,10 +137,6 @@ export function ScoringInterface({
     return active.filter(e => e.period === activePeriodTab);
   }, [events, activePeriodTab]);
 
-  // Current timer values for auto-detection
-  const currentPeriod = game.currentPeriod;
-  const periodLengthSeconds = game.periodLengthMinutes * 60;
-
   function handleTeamSelect(teamType: 'home' | 'away') {
     setSelectedTeam(teamType);
   }
@@ -130,6 +151,43 @@ export function ScoringInterface({
     setSelectedTeam(null);
     refreshData();
   }, [refreshData]);
+
+  // Goal completion: auto-expire earliest minor on PP goal
+  const handleGoalComplete = useCallback(() => {
+    if (selectedTeam) {
+      const isPPNow = penaltyTracker.isPowerPlay(selectedTeam, timer.timeRemaining, timer.currentPeriod);
+      if (isPPNow) {
+        const penalizedTeam = selectedTeam === 'home' ? 'away' : 'home';
+        const activePenalties = penaltyTracker.getActivePenalties(penalizedTeam, timer.timeRemaining, timer.currentPeriod);
+        const minors = activePenalties
+          .filter(p => p.penaltyMinutes === 2)
+          .sort((a, b) => {
+            const aAbs = penaltyTracker.toAbsoluteSeconds(a.period, a.startTimeSeconds);
+            const bAbs = penaltyTracker.toAbsoluteSeconds(b.period, b.startTimeSeconds);
+            return aAbs - bAbs;
+          });
+        if (minors.length > 0) {
+          const expiredId = minors[0].parentEventId || minors[0].eventId;
+          // Only expire one half if double-minor
+          if (minors[0].parentEventId && minors[0].halfIndex === 0) {
+            // Expire first half only — second half continues
+            setExpiredPenaltyIds(prev => {
+              const next = new Set(prev);
+              next.add(minors[0].eventId);
+              return next;
+            });
+          } else {
+            setExpiredPenaltyIds(prev => {
+              const next = new Set(prev);
+              next.add(expiredId);
+              return next;
+            });
+          }
+        }
+      }
+    }
+    handleEntryComplete();
+  }, [selectedTeam, penaltyTracker, timer.timeRemaining, timer.currentPeriod, handleEntryComplete]);
 
   async function handleUndo(eventId: string) {
     const result = await undoEvent(eventId);
@@ -159,12 +217,12 @@ export function ScoringInterface({
     setGame(prev => ({ ...prev, status: 'in_progress' }));
   }
 
-  // Determine auto-flags for current goal entry
+  // Determine auto-flags for current goal entry (live timer values)
   const isPP = selectedTeam
-    ? penaltyTracker.isPowerPlay(selectedTeam, periodLengthSeconds - (game.timerElapsedSeconds % periodLengthSeconds), currentPeriod)
+    ? penaltyTracker.isPowerPlay(selectedTeam, timer.timeRemaining, timer.currentPeriod)
     : false;
   const isSH = selectedTeam
-    ? penaltyTracker.isShortHanded(selectedTeam, periodLengthSeconds - (game.timerElapsedSeconds % periodLengthSeconds), currentPeriod)
+    ? penaltyTracker.isShortHanded(selectedTeam, timer.timeRemaining, timer.currentPeriod)
     : false;
   const isEN = selectedTeam
     ? emptyNetTracker.isEmptyNetGoal(selectedTeam)
@@ -406,6 +464,17 @@ export function ScoringInterface({
         </div>
       )}
 
+      {/* Penalty Box - live timers between scoreboard and timer */}
+      <PenaltyBox
+        penaltyTracker={penaltyTracker}
+        timeRemaining={timer.timeRemaining}
+        currentPeriod={timer.currentPeriod}
+        homeRoster={homeTeam.roster}
+        awayRoster={awayTeam.roster}
+        homeTeamColor={homeTeam.primaryColor}
+        awayTeamColor={awayTeam.primaryColor}
+      />
+
       {/* Timer Bar */}
       <div className="px-4 py-3 border-b border-[var(--color-border)]">
         {game.status === 'scheduled' ? (
@@ -419,12 +488,8 @@ export function ScoringInterface({
           </div>
         ) : (
           <GameTimer
-            gameId={game.id}
-            periodLengthMinutes={game.periodLengthMinutes}
+            timer={timer}
             periodCount={game.periodCount}
-            initialPeriod={game.currentPeriod}
-            initialElapsedSeconds={game.timerElapsedSeconds}
-            initialRunning={game.timerRunning}
           />
         )}
       </div>
@@ -500,12 +565,12 @@ export function ScoringInterface({
           teamName={activeTeam.name}
           teamColor={activeTeam.primaryColor}
           roster={activeTeam.roster}
-          period={currentPeriod}
-          gameTimeSeconds={periodLengthSeconds - (game.timerElapsedSeconds % periodLengthSeconds)}
+          period={timer.currentPeriod}
+          gameTimeSeconds={timer.timeRemaining}
           isPowerPlay={isPP}
           isShortHanded={isSH}
           isEmptyNet={isEN}
-          onComplete={handleEntryComplete}
+          onComplete={handleGoalComplete}
           onCancel={() => setActiveEntry(null)}
         />
       )}
@@ -518,8 +583,8 @@ export function ScoringInterface({
           teamName={activeTeam.name}
           teamColor={activeTeam.primaryColor}
           roster={activeTeam.roster}
-          period={currentPeriod}
-          gameTimeSeconds={periodLengthSeconds - (game.timerElapsedSeconds % periodLengthSeconds)}
+          period={timer.currentPeriod}
+          gameTimeSeconds={timer.timeRemaining}
           onComplete={handleEntryComplete}
           onCancel={() => setActiveEntry(null)}
         />
@@ -534,8 +599,8 @@ export function ScoringInterface({
           shootingRoster={activeTeam!.roster}
           shootingTeamName={activeTeam!.name}
           shootingTeamColor={activeTeam!.primaryColor}
-          period={currentPeriod}
-          gameTimeSeconds={periodLengthSeconds - (game.timerElapsedSeconds % periodLengthSeconds)}
+          period={timer.currentPeriod}
+          gameTimeSeconds={timer.timeRemaining}
           onComplete={handleEntryComplete}
           onCancel={() => setActiveEntry(null)}
         />

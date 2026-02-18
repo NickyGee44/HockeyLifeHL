@@ -1,43 +1,13 @@
 'use client';
 
-import { useGameTimer } from '@/hooks/useGameTimer';
-import { syncTimerState } from '@/lib/actions/scorekeeper';
-import { useCallback } from 'react';
+import type { UseGameTimerReturn } from '@/hooks/useGameTimer';
 
 interface GameTimerProps {
-  gameId: string;
-  periodLengthMinutes: number;
+  timer: UseGameTimerReturn;
   periodCount: number;
-  initialPeriod: number;
-  initialElapsedSeconds: number;
-  initialRunning: boolean;
 }
 
-export function GameTimer({
-  gameId,
-  periodLengthMinutes,
-  periodCount,
-  initialPeriod,
-  initialElapsedSeconds,
-  initialRunning,
-}: GameTimerProps) {
-  const handleSync = useCallback(
-    (state: { timerRunning: boolean; timerElapsedSeconds: number; currentPeriod: number }) => {
-      syncTimerState(gameId, state).catch(console.error);
-    },
-    [gameId]
-  );
-
-  const timer = useGameTimer({
-    periodLengthMinutes,
-    periodCount,
-    initialPeriod,
-    initialElapsedSeconds,
-    initialRunning,
-    onSync: handleSync,
-    syncIntervalMs: 30000,
-  });
-
+export function GameTimer({ timer, periodCount }: GameTimerProps) {
   const periodLabel = timer.isOvertime
     ? 'OT'
     : `P${timer.currentPeriod}`;
