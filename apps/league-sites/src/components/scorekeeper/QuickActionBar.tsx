@@ -3,9 +3,10 @@
 interface QuickActionBarProps {
   onGoal: () => void;
   onPenalty: () => void;
-  onShot: () => void;
+  onShot?: () => void;
   disabled?: boolean;
   selectedTeamName?: string | null;
+  shotMode?: 'simple' | 'advanced';
 }
 
 export function QuickActionBar({
@@ -14,6 +15,7 @@ export function QuickActionBar({
   onShot,
   disabled = false,
   selectedTeamName,
+  shotMode = 'simple',
 }: QuickActionBarProps) {
   const noTeamSelected = disabled && !selectedTeamName;
 
@@ -58,17 +60,19 @@ export function QuickActionBar({
           <span className="text-xs font-semibold">Penalty</span>
         </button>
 
-        {/* Shot/Save */}
-        <button
-          onClick={onShot}
-          disabled={disabled}
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 px-2 text-blue-400 hover:bg-blue-500/5 active:bg-blue-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-xs font-semibold">Shot</span>
-        </button>
+        {/* Shot/Save - only shown in advanced mode */}
+        {shotMode === 'advanced' && onShot && (
+          <button
+            onClick={onShot}
+            disabled={disabled}
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-3 px-2 text-blue-400 hover:bg-blue-500/5 active:bg-blue-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs font-semibold">Shot</span>
+          </button>
+        )}
       </div>
     </div>
   );

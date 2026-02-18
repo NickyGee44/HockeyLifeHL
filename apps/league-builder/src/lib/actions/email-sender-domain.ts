@@ -50,7 +50,7 @@ export async function getLeagueEmailDomain(leagueId: string): Promise<{
 
   const { data: leagueData, error } = await supabase
     .from('leagues')
-    .select('*')
+    .select('email_sending_domain, email_sending_domain_verified, email_sending_domain_resend_id, email_from_name')
     .eq('id', leagueId)
     .single();
 
@@ -151,7 +151,7 @@ export async function verifyLeagueEmailDomain(leagueId: string): Promise<EmailDo
 
   const { data: leagueData } = await supabase
     .from('leagues')
-    .select('*')
+    .select('email_sending_domain_resend_id')
     .eq('id', leagueId)
     .single();
 

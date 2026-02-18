@@ -2,8 +2,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { getGameRecapSystemPrompt, getGameRecapUserPrompt, getWeeklyWrapSystemPrompt, getWeeklyWrapUserPrompt } from './prompts.ts';
 import { gatherGameRecapData, gatherWeeklyWrapData, checkAddonActive } from './data-gathering.ts';
 
+const ALLOWED_ORIGINS = ['https://beerleaguehockey.ca', 'https://www.beerleaguehockey.ca', 'http://localhost:3000'];
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://beerleaguehockey.ca',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -321,9 +322,21 @@ async function handleWeeklyWrapAll(supabase: any) {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight with dynamic origin
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    const origin = req.headers.get('Origin') || '';
+    const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    return new Response('ok', { headers: { ...corsHeaders, 'Access-Control-Allow-Origin': allowOrigin } });
+  }
+
+  // Verify caller is authenticated with service role key
+  const authHeader = req.headers.get('Authorization');
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {

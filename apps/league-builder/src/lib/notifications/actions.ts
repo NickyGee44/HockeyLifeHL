@@ -194,7 +194,7 @@ async function resolveLeagueFromEmail(leagueId: string): Promise<string | undefi
   const supabase = await createClient();
   const { data } = await supabase
     .from('leagues')
-    .select('*')
+    .select('email_sending_domain, email_sending_domain_verified, email_from_name, name')
     .eq('id', leagueId)
     .single();
 

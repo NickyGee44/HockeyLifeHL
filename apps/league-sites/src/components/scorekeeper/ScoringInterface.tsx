@@ -12,7 +12,6 @@ import { PenaltyTracker } from '@/lib/scorekeeper/penalty-tracker';
 import { EmptyNetTracker } from '@/lib/scorekeeper/empty-net-tracker';
 import { GameTimer } from './GameTimer';
 import { PenaltyBox } from './PenaltyBox';
-import { QuickActionBar } from './QuickActionBar';
 import { GoalEntry } from './GoalEntry';
 import { PenaltyEntry } from './PenaltyEntry';
 import { ShotEntry } from './ShotEntry';
@@ -75,6 +74,8 @@ export function ScoringInterface({
   const [showNotes, setShowNotes] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
   const [expiredPenaltyIds, setExpiredPenaltyIds] = useState<Set<string>>(new Set());
+  const [shotMode, setShotMode] = useState<'simple' | 'advanced'>('simple');
+  const [eventsCollapsed, setEventsCollapsed] = useState(false);
 
   // Lift game timer into ScoringInterface for live time values
   const handleTimerSync = useCallback(
@@ -136,15 +137,6 @@ export function ScoringInterface({
     if (activePeriodTab === 'all') return active;
     return active.filter(e => e.period === activePeriodTab);
   }, [events, activePeriodTab]);
-
-  function handleTeamSelect(teamType: 'home' | 'away') {
-    setSelectedTeam(teamType);
-  }
-
-  function handleAction(type: 'goal' | 'penalty' | 'shot') {
-    if (!selectedTeam) return;
-    setActiveEntry({ type, teamType: selectedTeam });
-  }
 
   const handleEntryComplete = useCallback(() => {
     setActiveEntry(null);
@@ -228,6 +220,28 @@ export function ScoringInterface({
     ? emptyNetTracker.isEmptyNetGoal(selectedTeam)
     : false;
 
+  // Quick save handler for simple shot mode (tap goalie = save)
+  const handleQuickSave = useCallback(async (
+    defendingTeamId: string,
+    defendingTeamType: 'home' | 'away',
+    goalieId: string
+  ) => {
+    try {
+      const { addShotEvent } = await import('@/lib/actions/scorekeeper');
+      await addShotEvent({
+        gameId: game.id,
+        teamId: defendingTeamId,
+        teamType: defendingTeamType,
+        goalieId,
+        period: timer.currentPeriod,
+        gameTimeSeconds: timer.timeRemaining,
+      });
+      refreshData();
+    } catch (err) {
+      console.error('Quick save failed:', err);
+    }
+  }, [game.id, timer.currentPeriod, timer.timeRemaining, refreshData]);
+
   const homeTeam = game.homeTeam;
   const awayTeam = game.awayTeam;
   const activeTeam = selectedTeam === 'home' ? homeTeam : awayTeam;
@@ -245,7 +259,7 @@ export function ScoringInterface({
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-20">
+    <div className="flex flex-col min-h-screen">
       {/* Sync Status */}
       <div className="px-4 pt-2">
         <SyncStatusBanner />
@@ -309,143 +323,53 @@ export function ScoringInterface({
         </div>
       </div>
 
-      {/* Scoreboard */}
-      <div className="px-4 py-3 border-b border-[var(--color-border)]">
-        <div className="flex items-center justify-between max-w-lg mx-auto">
-          {/* Home Team */}
-          <button
-            onClick={() => handleTeamSelect('home')}
-            className={`flex-1 text-center p-3 rounded-xl transition-all duration-200 ${
-              selectedTeam === 'home'
-                ? 'ring-2 shadow-lg'
-                : 'hover:bg-[var(--color-surface)]/50'
-            }`}
-            style={{
-              backgroundColor: selectedTeam === 'home'
-                ? `${homeTeam.primaryColor || 'var(--league-primary)'}15`
-                : undefined,
-              ...(selectedTeam === 'home' ? { '--tw-ring-color': homeTeam.primaryColor || 'var(--league-primary, #d4af37)' } as any : {}),
-            }}
-          >
-            {homeTeam.logoUrl ? (
-              <Image
-                src={homeTeam.logoUrl}
-                alt={homeTeam.name}
-                width={40}
-                height={40}
-                className="w-10 h-10 mx-auto rounded-lg object-contain mb-1"
-              />
-            ) : (
-              <div
-                className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-xs font-bold mb-1"
-                style={{
-                  backgroundColor: homeTeam.primaryColor ? `${homeTeam.primaryColor}20` : 'var(--color-surface)',
-                  color: homeTeam.primaryColor || 'var(--color-text-secondary)',
-                }}
-              >
-                {(homeTeam.shortName || homeTeam.name).slice(0, 3).toUpperCase()}
-              </div>
-            )}
-            <div className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wide">
-              Home
-            </div>
-            <div className="text-sm font-bold text-[var(--color-text-primary)] truncate">
-              {homeTeam.shortName || homeTeam.name}
-            </div>
-            <div
-              className="text-3xl font-bold tabular-nums mt-1"
-              style={{ color: homeTeam.primaryColor || 'var(--color-text-primary)' }}
-            >
-              {homeScore}
-            </div>
-            {game.homeGoaliePulled && (
-              <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] font-bold rounded bg-purple-500/10 text-purple-400">
-                EN
-              </span>
-            )}
-          </button>
+      {/* Scoreboard + Action Buttons — Full-width scoring panel */}
+      <div className="px-3 py-4 border-b border-[var(--color-border)]">
+        <div className="flex items-stretch gap-2 max-w-lg mx-auto">
+          {/* ===== HOME SIDE ===== */}
+          <TeamPanel
+            team={homeTeam}
+            teamType="home"
+            score={homeScore}
+            goaliePulled={game.homeGoaliePulled}
+            shotMode={shotMode}
+            saves={events.filter(e => e.eventType === 'save' && e.teamType === 'home' && !e.deletedAt).length}
+            disabled={game.status === 'completed'}
+            onGoal={() => { setSelectedTeam('home'); setActiveEntry({ type: 'goal', teamType: 'home' }); }}
+            onPenalty={() => { setSelectedTeam('home'); setActiveEntry({ type: 'penalty', teamType: 'home' }); }}
+            onShot={shotMode === 'advanced' ? () => { setSelectedTeam('home'); setActiveEntry({ type: 'shot', teamType: 'home' }); } : undefined}
+            onQuickSave={(goalieId) => handleQuickSave(homeTeam.id, 'home', goalieId)}
+            onGoaliePull={() => handleGoaliePull('home')}
+          />
 
-          {/* VS Divider */}
-          <div className="px-3 text-sm font-medium text-[var(--color-text-secondary)]">
-            vs
+          {/* ===== CENTER: Score + Timer ===== */}
+          <div className="flex flex-col items-center justify-center gap-1 px-1 min-w-[60px]">
+            <div className="text-xs font-medium text-[var(--color-text-secondary)] uppercase">vs</div>
+            {/* Shot Mode Toggle */}
+            <button
+              onClick={() => setShotMode(prev => prev === 'simple' ? 'advanced' : 'simple')}
+              className="text-[9px] font-medium px-1.5 py-0.5 rounded transition-colors text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border)]"
+              title={shotMode === 'simple' ? 'Simple: Tap goalie for saves' : 'Advanced: Select shooter for shots'}
+            >
+              {shotMode === 'simple' ? 'Simple' : 'Adv'}
+            </button>
           </div>
 
-          {/* Away Team */}
-          <button
-            onClick={() => handleTeamSelect('away')}
-            className={`flex-1 text-center p-3 rounded-xl transition-all duration-200 ${
-              selectedTeam === 'away'
-                ? 'ring-2 shadow-lg'
-                : 'hover:bg-[var(--color-surface)]/50'
-            }`}
-            style={{
-              backgroundColor: selectedTeam === 'away'
-                ? `${awayTeam.primaryColor || 'var(--league-primary)'}15`
-                : undefined,
-              ...(selectedTeam === 'away' ? { '--tw-ring-color': awayTeam.primaryColor || 'var(--league-primary, #d4af37)' } as any : {}),
-            }}
-          >
-            {awayTeam.logoUrl ? (
-              <Image
-                src={awayTeam.logoUrl}
-                alt={awayTeam.name}
-                width={40}
-                height={40}
-                className="w-10 h-10 mx-auto rounded-lg object-contain mb-1"
-              />
-            ) : (
-              <div
-                className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-xs font-bold mb-1"
-                style={{
-                  backgroundColor: awayTeam.primaryColor ? `${awayTeam.primaryColor}20` : 'var(--color-surface)',
-                  color: awayTeam.primaryColor || 'var(--color-text-secondary)',
-                }}
-              >
-                {(awayTeam.shortName || awayTeam.name).slice(0, 3).toUpperCase()}
-              </div>
-            )}
-            <div className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wide">
-              Away
-            </div>
-            <div className="text-sm font-bold text-[var(--color-text-primary)] truncate">
-              {awayTeam.shortName || awayTeam.name}
-            </div>
-            <div
-              className="text-3xl font-bold tabular-nums mt-1"
-              style={{ color: awayTeam.primaryColor || 'var(--color-text-primary)' }}
-            >
-              {awayScore}
-            </div>
-            {game.awayGoaliePulled && (
-              <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] font-bold rounded bg-purple-500/10 text-purple-400">
-                EN
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Goalie Pull Toggles */}
-        <div className="flex justify-center gap-6 mt-2">
-          <button
-            onClick={() => handleGoaliePull('home')}
-            className={`text-xs font-medium px-2 py-1 rounded transition-colors ${
-              game.homeGoaliePulled
-                ? 'bg-purple-500/20 text-purple-400'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-            }`}
-          >
-            {game.homeGoaliePulled ? 'Return Goalie' : 'Pull Goalie'} (H)
-          </button>
-          <button
-            onClick={() => handleGoaliePull('away')}
-            className={`text-xs font-medium px-2 py-1 rounded transition-colors ${
-              game.awayGoaliePulled
-                ? 'bg-purple-500/20 text-purple-400'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-            }`}
-          >
-            {game.awayGoaliePulled ? 'Return Goalie' : 'Pull Goalie'} (A)
-          </button>
+          {/* ===== AWAY SIDE ===== */}
+          <TeamPanel
+            team={awayTeam}
+            teamType="away"
+            score={awayScore}
+            goaliePulled={game.awayGoaliePulled}
+            shotMode={shotMode}
+            saves={events.filter(e => e.eventType === 'save' && e.teamType === 'away' && !e.deletedAt).length}
+            disabled={game.status === 'completed'}
+            onGoal={() => { setSelectedTeam('away'); setActiveEntry({ type: 'goal', teamType: 'away' }); }}
+            onPenalty={() => { setSelectedTeam('away'); setActiveEntry({ type: 'penalty', teamType: 'away' }); }}
+            onShot={shotMode === 'advanced' ? () => { setSelectedTeam('away'); setActiveEntry({ type: 'shot', teamType: 'away' }); } : undefined}
+            onQuickSave={(goalieId) => handleQuickSave(awayTeam.id, 'away', goalieId)}
+            onGoaliePull={() => handleGoaliePull('away')}
+          />
         </div>
       </div>
 
@@ -494,67 +418,84 @@ export function ScoringInterface({
         )}
       </div>
 
-      {/* Event Timeline */}
+      {/* Event Timeline — Collapsible */}
       <div className="flex-1 overflow-y-auto">
-        {/* Period Tabs */}
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-[var(--color-border)] overflow-x-auto">
-          <button
-            onClick={() => setActivePeriodTab('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
-              activePeriodTab === 'all'
-                ? 'bg-[var(--league-primary,#d4af37)]/10 text-[var(--league-primary,#d4af37)]'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-            }`}
-          >
-            All
-          </button>
-          {Array.from({ length: game.periodCount }, (_, i) => i + 1).map(p => (
-            <button
-              key={p}
-              onClick={() => setActivePeriodTab(p)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
-                activePeriodTab === p
-                  ? 'bg-[var(--league-primary,#d4af37)]/10 text-[var(--league-primary,#d4af37)]'
-                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-              }`}
+        {/* Collapsible Header */}
+        <button
+          onClick={() => setEventsCollapsed(prev => !prev)}
+          className="flex items-center justify-between w-full px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50 hover:bg-[var(--color-surface)] transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[var(--color-text-primary)] uppercase tracking-wide">
+              Events
+            </span>
+            <span className="text-[10px] text-[var(--color-text-secondary)] tabular-nums">
+              ({filteredEvents.length})
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Period Tabs inline */}
+            {!eventsCollapsed && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setActivePeriodTab('all'); }}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                    activePeriodTab === 'all'
+                      ? 'bg-[var(--league-primary,#d4af37)]/10 text-[var(--league-primary,#d4af37)]'
+                      : 'text-[var(--color-text-secondary)]'
+                  }`}
+                >
+                  All
+                </button>
+                {Array.from({ length: game.periodCount }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={(e) => { e.stopPropagation(); setActivePeriodTab(p); }}
+                    className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                      activePeriodTab === p
+                        ? 'bg-[var(--league-primary,#d4af37)]/10 text-[var(--league-primary,#d4af37)]'
+                        : 'text-[var(--color-text-secondary)]'
+                    }`}
+                  >
+                    P{p}
+                  </button>
+                ))}
+              </div>
+            )}
+            <svg
+              className={`w-4 h-4 text-[var(--color-text-secondary)] transition-transform ${eventsCollapsed ? '' : 'rotate-180'}`}
+              fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
             >
-              P{p}
-            </button>
-          ))}
-        </div>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </div>
+        </button>
 
         {/* Events List */}
-        <div className="px-4 py-2">
-          {filteredEvents.length === 0 ? (
-            <div className="py-12 text-center text-sm text-[var(--color-text-secondary)]">
-              No events recorded yet. Select a team and tap an action below.
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {filteredEvents.map(event => (
-                <EventRow
-                  key={event.id}
-                  event={event}
-                  homeTeamName={homeTeam.shortName || homeTeam.name}
-                  awayTeamName={awayTeam.shortName || awayTeam.name}
-                  homeTeamColor={homeTeam.primaryColor}
-                  awayTeamColor={awayTeam.primaryColor}
-                  onUndo={() => handleUndo(event.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        {!eventsCollapsed && (
+          <div className="px-4 py-2">
+            {filteredEvents.length === 0 ? (
+              <div className="py-8 text-center text-sm text-[var(--color-text-secondary)]">
+                No events recorded yet
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {filteredEvents.map(event => (
+                  <EventRow
+                    key={event.id}
+                    event={event}
+                    homeTeamName={homeTeam.shortName || homeTeam.name}
+                    awayTeamName={awayTeam.shortName || awayTeam.name}
+                    homeTeamColor={homeTeam.primaryColor}
+                    awayTeamColor={awayTeam.primaryColor}
+                    onUndo={() => handleUndo(event.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Quick Action Bar */}
-      <QuickActionBar
-        onGoal={() => handleAction('goal')}
-        onPenalty={() => handleAction('penalty')}
-        onShot={() => handleAction('shot')}
-        disabled={!selectedTeam || game.status === 'completed'}
-        selectedTeamName={selectedTeam ? (selectedTeam === 'home' ? homeTeam.shortName || homeTeam.name : awayTeam.shortName || awayTeam.name) : null}
-      />
 
       {/* Entry Modals */}
       {activeEntry?.type === 'goal' && activeTeam && selectedTeam && (
@@ -789,6 +730,239 @@ function EventRow({
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
         </svg>
+      </button>
+    </div>
+  );
+}
+
+// =============================================================================
+// GoalieAvatar sub-component — tappable goalie display for quick saves
+// =============================================================================
+
+import type { PlayerData as GoaliePlayerData } from '@/lib/actions/scorekeeper';
+
+function GoalieAvatar({
+  goalies,
+  teamColor,
+  pulled,
+  shotMode,
+  onQuickSave,
+  saves,
+}: {
+  goalies: GoaliePlayerData[];
+  teamColor?: string | null;
+  pulled: boolean;
+  shotMode: 'simple' | 'advanced';
+  onQuickSave: (goalieId: string) => void;
+  saves: number;
+}) {
+  // Use first goalie as starter (most common in beer league)
+  const starter = goalies[0];
+  if (!starter) {
+    return (
+      <div className="flex flex-col items-center gap-0.5">
+        <div className="w-10 h-10 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center text-[10px] text-[var(--color-text-secondary)]">
+          G
+        </div>
+        <span className="text-[10px] text-[var(--color-text-secondary)]">No goalie</span>
+      </div>
+    );
+  }
+
+  const isTappable = shotMode === 'simple' && !pulled;
+
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <button
+        onClick={() => isTappable && onQuickSave(starter.id)}
+        disabled={!isTappable}
+        className={`relative transition-all duration-150 ${
+          isTappable
+            ? 'active:scale-90 hover:ring-2 hover:ring-blue-400/50 cursor-pointer'
+            : 'cursor-default'
+        } ${pulled ? 'opacity-40' : ''}`}
+        aria-label={isTappable ? `Save by #${starter.jerseyNumber} ${starter.fullName}` : undefined}
+        title={isTappable ? `Tap to record save` : starter.fullName}
+      >
+        {starter.avatarUrl ? (
+          <Image
+            src={starter.avatarUrl}
+            alt={starter.fullName}
+            width={40}
+            height={40}
+            className="w-10 h-10 rounded-full object-cover border-2"
+            style={{ borderColor: teamColor || 'var(--color-border)' }}
+          />
+        ) : (
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2"
+            style={{
+              backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
+              color: teamColor || 'var(--color-text-primary)',
+              borderColor: teamColor || 'var(--color-border)',
+            }}
+          >
+            {starter.jerseyNumber}
+          </div>
+        )}
+        {/* Jersey number badge */}
+        {starter.avatarUrl && (
+          <div
+            className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold border border-[var(--color-background)]"
+            style={{
+              backgroundColor: teamColor || 'var(--league-primary, #d4af37)',
+              color: '#fff',
+            }}
+          >
+            {starter.jerseyNumber}
+          </div>
+        )}
+        {/* Save indicator pulse for simple mode */}
+        {isTappable && (
+          <div className="absolute -top-0.5 -left-0.5 w-3 h-3 rounded-full bg-blue-400/40 animate-pulse" />
+        )}
+      </button>
+      {/* Save count */}
+      <span className="text-[10px] font-mono font-bold tabular-nums text-blue-400">
+        {saves} SVS
+      </span>
+      {pulled && (
+        <span className="text-[9px] font-bold text-purple-400">EN</span>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// TeamPanel — team logo, score, action buttons, and goalie in one panel
+// =============================================================================
+
+import type { TeamData } from '@/lib/actions/scorekeeper';
+
+function TeamPanel({
+  team,
+  teamType,
+  score,
+  goaliePulled,
+  shotMode,
+  saves,
+  disabled,
+  onGoal,
+  onPenalty,
+  onShot,
+  onQuickSave,
+  onGoaliePull,
+}: {
+  team: TeamData;
+  teamType: 'home' | 'away';
+  score: number;
+  goaliePulled: boolean;
+  shotMode: 'simple' | 'advanced';
+  saves: number;
+  disabled: boolean;
+  onGoal: () => void;
+  onPenalty: () => void;
+  onShot?: () => void;
+  onQuickSave: (goalieId: string) => void;
+  onGoaliePull: () => void;
+}) {
+  const color = team.primaryColor || 'var(--league-primary, #d4af37)';
+  const goalies = team.roster.filter(p => p.position === 'Goalie');
+
+  return (
+    <div
+      className="flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all"
+      style={{
+        backgroundColor: `${color}08`,
+        borderColor: `${color}30`,
+      }}
+    >
+      {/* Team Logo + Name */}
+      <div className="flex items-center gap-2">
+        {team.logoUrl ? (
+          <Image
+            src={team.logoUrl}
+            alt={team.name}
+            width={36}
+            height={36}
+            className="w-9 h-9 rounded-lg object-contain"
+          />
+        ) : (
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold"
+            style={{
+              backgroundColor: `${color}20`,
+              color: color,
+            }}
+          >
+            {(team.shortName || team.name).slice(0, 3).toUpperCase()}
+          </div>
+        )}
+        <div className="text-left min-w-0">
+          <div className="text-[10px] font-medium text-[var(--color-text-secondary)] uppercase">
+            {teamType === 'home' ? 'Home' : 'Away'}
+          </div>
+          <div className="text-xs font-bold text-[var(--color-text-primary)] truncate max-w-[80px]">
+            {team.shortName || team.name}
+          </div>
+        </div>
+      </div>
+
+      {/* Score — big and prominent */}
+      <div
+        className="text-5xl font-bold tabular-nums leading-none"
+        style={{ color }}
+      >
+        {score}
+      </div>
+
+      {/* Goalie Avatar (tappable in simple mode) */}
+      <GoalieAvatar
+        goalies={goalies}
+        teamColor={team.primaryColor}
+        pulled={goaliePulled}
+        shotMode={shotMode}
+        onQuickSave={onQuickSave}
+        saves={saves}
+      />
+
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-1.5 w-full mt-1">
+        <button
+          onClick={onGoal}
+          disabled={disabled}
+          className="w-full py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-30 bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/20"
+        >
+          + Goal
+        </button>
+        <button
+          onClick={onPenalty}
+          disabled={disabled}
+          className="w-full py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-30 bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25 border border-yellow-500/20"
+        >
+          + Penalty
+        </button>
+        {shotMode === 'advanced' && onShot && (
+          <button
+            onClick={onShot}
+            disabled={disabled}
+            className="w-full py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-30 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/20"
+          >
+            + Shot
+          </button>
+        )}
+      </div>
+
+      {/* Goalie Pull */}
+      <button
+        onClick={onGoaliePull}
+        className={`text-[10px] font-medium px-2 py-1 rounded transition-colors ${
+          goaliePulled
+            ? 'bg-purple-500/20 text-purple-400'
+            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+        }`}
+      >
+        {goaliePulled ? 'Return Goalie' : 'Pull Goalie'}
       </button>
     </div>
   );

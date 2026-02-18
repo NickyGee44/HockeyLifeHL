@@ -18,6 +18,8 @@ interface ProgressReport {
   sessionDuration?: string;
 }
 
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
 Deno.serve(async (req: Request) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -33,6 +35,15 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Verify caller is authenticated with service role key
+  const authHeader = req.headers.get("Authorization");
+  if (!SUPABASE_SERVICE_ROLE_KEY || authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
