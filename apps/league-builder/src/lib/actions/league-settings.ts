@@ -62,3 +62,69 @@ export async function updateLeagueSettings(
 
   return { success: true };
 }
+
+// =============================================================================
+// Game Rules — Penalty configuration
+// =============================================================================
+
+export interface PenaltyRuleConfig {
+  type: string;
+  minutes: number;
+}
+
+export async function updatePenaltyRules(
+  leagueId: string,
+  rules: PenaltyRuleConfig[]
+): Promise<{ success: boolean; error?: string }> {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  // Validate rules
+  for (const rule of rules) {
+    if (!rule.type || rule.type.trim().length === 0) {
+      return { success: false, error: 'All penalties must have a name' };
+    }
+    if (!rule.minutes || rule.minutes < 1 || rule.minutes > 60) {
+      return { success: false, error: `Invalid duration for "${rule.type}": must be 1–60 minutes` };
+    }
+  }
+
+  if (rules.length > 50) {
+    return { success: false, error: 'Maximum 50 penalty types allowed' };
+  }
+
+  const supabase = await createClient();
+
+  // Fetch current settings, merge penalty_rules into it
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('settings')
+    .eq('id', leagueId)
+    .single();
+
+  const currentSettings = (league?.settings as Record<string, unknown>) || {};
+  const newSettings = {
+    ...currentSettings,
+    penalty_rules: rules.map(r => ({ type: r.type.trim(), minutes: r.minutes })),
+  };
+
+  const { error } = await supabase
+    .from('leagues')
+    .update({
+      settings: newSettings as any,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', leagueId);
+
+  if (error) {
+    console.error('[updatePenaltyRules] Error:', error.message);
+    return { success: false, error: 'Failed to save penalty rules' };
+  }
+
+  revalidatePath(`/dashboard/leagues/${leagueId}/settings`);
+  revalidatePath(`/dashboard/leagues/${leagueId}/settings/game-rules`);
+
+  return { success: true };
+}

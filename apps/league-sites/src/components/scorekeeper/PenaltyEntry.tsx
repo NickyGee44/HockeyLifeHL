@@ -5,6 +5,11 @@ import type { PlayerData } from '@/lib/actions/scorekeeper';
 import { addPenaltyEvent } from '@/lib/actions/scorekeeper';
 import { PlayerPicker } from './PlayerPicker';
 
+export interface PenaltyRule {
+  type: string;
+  minutes: number;
+}
+
 interface PenaltyEntryProps {
   gameId: string;
   teamId: string;
@@ -14,19 +19,15 @@ interface PenaltyEntryProps {
   roster: PlayerData[];
   period: number;
   gameTimeSeconds: number;
+  /** Custom penalty rules from league settings (optional) */
+  penaltyRules?: PenaltyRule[];
   onComplete: () => void;
   onCancel: () => void;
 }
 
-const COMMON_PENALTIES = [
-  { type: 'Tripping', minutes: 2 },
-  { type: 'Hooking', minutes: 2 },
-  { type: 'Holding', minutes: 2 },
-  { type: 'Slashing', minutes: 2 },
-  { type: 'Interference', minutes: 2 },
-];
-
-const ALL_PENALTIES = [
+/** Default NHL-style penalties used when no league config is set */
+const DEFAULT_PENALTIES: PenaltyRule[] = [
+  // Minors (2 min)
   { type: 'Tripping', minutes: 2 },
   { type: 'Hooking', minutes: 2 },
   { type: 'Holding', minutes: 2 },
@@ -41,15 +42,32 @@ const ALL_PENALTIES = [
   { type: 'Delay of Game', minutes: 2 },
   { type: 'Too Many Men', minutes: 2 },
   { type: 'Unsportsmanlike Conduct', minutes: 2 },
+  // Double minor (4 min)
   { type: 'High Sticking (Double)', minutes: 4 },
+  // Majors (5 min)
   { type: 'Spearing', minutes: 5 },
   { type: 'Fighting', minutes: 5 },
   { type: 'Checking from Behind', minutes: 5 },
-  { type: 'Game Misconduct', minutes: 10 },
   { type: 'Match Penalty', minutes: 5 },
+  // Misconduct (10 min)
+  { type: 'Game Misconduct', minutes: 10 },
 ];
 
 type Step = 'player' | 'penalty';
+
+const SEVERITY_ORDER = [2, 4, 5, 10];
+const SEVERITY_LABELS: Record<number, string> = {
+  2: 'Minor',
+  4: 'Double Minor',
+  5: 'Major',
+  10: 'Misconduct',
+};
+const SEVERITY_COLORS: Record<number, { bg: string; text: string; badge: string }> = {
+  2: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', badge: 'bg-yellow-500/10 text-yellow-400' },
+  4: { bg: 'bg-orange-500/10', text: 'text-orange-400', badge: 'bg-orange-500/10 text-orange-400' },
+  5: { bg: 'bg-red-500/10', text: 'text-red-400', badge: 'bg-red-500/10 text-red-400' },
+  10: { bg: 'bg-gray-500/10', text: 'text-gray-400', badge: 'bg-gray-500/10 text-gray-400' },
+};
 
 export function PenaltyEntry({
   gameId,
@@ -60,13 +78,25 @@ export function PenaltyEntry({
   roster,
   period,
   gameTimeSeconds,
+  penaltyRules,
   onComplete,
   onCancel,
 }: PenaltyEntryProps) {
   const [step, setStep] = useState<Step>('player');
   const [player, setPlayer] = useState<PlayerData | null>(null);
-  const [showAllPenalties, setShowAllPenalties] = useState(false);
   const [isPending, setIsPending] = useState(false);
+
+  const penalties = penaltyRules && penaltyRules.length > 0 ? penaltyRules : DEFAULT_PENALTIES;
+
+  // Group by minutes
+  const grouped = SEVERITY_ORDER
+    .map(mins => ({
+      minutes: mins,
+      label: SEVERITY_LABELS[mins] || `${mins} min`,
+      colors: SEVERITY_COLORS[mins] || SEVERITY_COLORS[2],
+      items: penalties.filter(p => p.minutes === mins),
+    }))
+    .filter(g => g.items.length > 0);
 
   function handlePlayerSelect(p: PlayerData) {
     setPlayer(p);
@@ -101,73 +131,77 @@ export function PenaltyEntry({
         teamColor={teamColor}
         onSelect={handlePlayerSelect}
         onClose={onCancel}
-        title={`Penalty - Select Player`}
+        title="Penalty - Select Player"
       />
     );
   }
 
-  // Penalty type selection — auto-saves on tap
-  const penalties = showAllPenalties ? ALL_PENALTIES : COMMON_PENALTIES;
-
+  // Penalty type selection — full-height bottom sheet with severity groups
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex flex-col">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-[var(--color-background)] rounded-2xl border border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+      <div className="relative mt-auto max-h-[85vh] flex flex-col bg-[var(--color-background)] rounded-t-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+        {/* Team color accent bar */}
+        <div
+          className="h-1 rounded-t-2xl flex-shrink-0"
+          style={{ backgroundColor: teamColor || 'var(--league-primary, #d4af37)' }}
+        />
+
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[var(--color-border)]">
-          <h3 className="font-semibold text-[var(--color-text-primary)]">
-            #{player?.jerseyNumber} {player?.fullName}
-          </h3>
-          <p className="text-xs text-[var(--color-text-secondary)]">Select penalty type</p>
-        </div>
-
-        {/* Penalty List */}
-        <div className="max-h-[50vh] overflow-y-auto p-2">
-          <div className="space-y-1">
-            {penalties.map(p => (
-              <button
-                key={p.type}
-                onClick={() => handlePenaltySelect(p.type, p.minutes)}
-                disabled={isPending}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-[var(--color-surface)] transition-colors text-left active:scale-[0.98] disabled:opacity-50"
-              >
-                <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {p.type}
-                </span>
-                <span className={`
-                  text-xs font-bold px-2 py-0.5 rounded-full
-                  ${p.minutes >= 5
-                    ? 'bg-red-500/10 text-red-400'
-                    : p.minutes === 4
-                      ? 'bg-orange-500/10 text-orange-400'
-                      : 'bg-yellow-500/10 text-yellow-400'
-                  }
-                `}>
-                  {p.minutes} min
-                </span>
-              </button>
-            ))}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] flex-shrink-0">
+          <div>
+            <h3 className="font-semibold text-[var(--color-text-primary)]">
+              #{player?.jerseyNumber} {player?.fullName}
+            </h3>
+            <p className="text-xs text-[var(--color-text-secondary)]">Select penalty type</p>
           </div>
-
-          {!showAllPenalties && (
-            <button
-              onClick={() => setShowAllPenalties(true)}
-              className="w-full py-3 mt-2 text-sm text-[var(--league-primary,#d4af37)] font-medium hover:underline"
-            >
-              Show all penalties
-            </button>
-          )}
-        </div>
-
-        {/* Cancel */}
-        <div className="px-4 py-3 border-t border-[var(--color-border)]">
           <button
             onClick={onCancel}
-            disabled={isPending}
-            className="w-full py-2.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] text-sm font-medium hover:bg-[var(--color-surface)] transition-colors disabled:opacity-50"
+            className="p-2 rounded-lg hover:bg-[var(--color-surface)] transition-colors"
+            aria-label="Close"
           >
-            {isPending ? 'Saving...' : 'Cancel'}
+            <svg className="w-5 h-5 text-[var(--color-text-secondary)]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
+        </div>
+
+        {/* Penalty List — grouped by severity */}
+        <div className="flex-1 overflow-y-auto pb-safe">
+          {grouped.map(group => (
+            <div key={group.minutes}>
+              {/* Group Header */}
+              <div className="sticky top-0 z-10 px-4 py-2 bg-[var(--color-background)]/95 backdrop-blur-sm border-b border-[var(--color-border)]">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-bold uppercase tracking-wider ${group.colors.text}`}>
+                    {group.label}
+                  </span>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${group.colors.badge}`}>
+                    {group.minutes} min
+                  </span>
+                </div>
+              </div>
+
+              {/* Penalty Items */}
+              <div className="px-2 py-1">
+                {group.items.map(p => (
+                  <button
+                    key={p.type}
+                    onClick={() => handlePenaltySelect(p.type, p.minutes)}
+                    disabled={isPending}
+                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-colors text-left active:scale-[0.98] disabled:opacity-50 ${group.colors.bg} hover:opacity-80 mb-1`}
+                  >
+                    <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {p.type}
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${group.colors.badge}`}>
+                      {p.minutes} min
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

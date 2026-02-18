@@ -131,6 +131,11 @@ export interface GameOfficial {
   jerseyNumber: string | null;
 }
 
+export interface PenaltyRule {
+  type: string;
+  minutes: number;
+}
+
 export interface GameData {
   id: string;
   homeTeam: TeamData;
@@ -152,6 +157,8 @@ export interface GameData {
   awayGoaliePulled: boolean;
   officials: GameOfficial[];
   scorekeeperNotes: string | null;
+  /** Custom penalty rules from league settings */
+  penaltyRules?: PenaltyRule[];
 }
 
 export interface TeamData {
@@ -592,6 +599,8 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
         timer_elapsed_seconds,
         home_goalie_pulled,
         away_goalie_pulled,
+        league_id,
+        scorekeeper_notes,
         home_team:teams!games_home_team_id_fkey(
           id, name, short_name, logo_url, primary_color, secondary_color, captain_id
         ),
@@ -604,6 +613,20 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
 
     if (gameError || !game) {
       return { success: false, error: 'Game not found' };
+    }
+
+    // Fetch league settings for custom penalty rules
+    let penaltyRules: PenaltyRule[] | undefined;
+    if (game.league_id) {
+      const { data: leagueData } = await (supabase as any)
+        .from('leagues')
+        .select('settings')
+        .eq('id', game.league_id)
+        .single();
+
+      if (leagueData?.settings?.penalty_rules && Array.isArray(leagueData.settings.penalty_rules)) {
+        penaltyRules = leagueData.settings.penalty_rules as PenaltyRule[];
+      }
     }
 
     // Get rosters for both teams
@@ -703,6 +726,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           jerseyNumber: o.jersey_number,
         })),
         scorekeeperNotes: game.scorekeeper_notes || null,
+        penaltyRules,
       },
     };
   } catch (error) {

@@ -57,6 +57,11 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       icon: 'CreditCard',
       href: `/${locale}/dashboard/leagues/${leagueId}/billing` },
     {
+      title: 'Game Rules',
+      description: 'Penalty types, durations, and game rule overrides',
+      icon: 'Gavel',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/game-rules` },
+    {
       title: 'Scorekeepers',
       description: 'Manage scorekeepers and game assignments',
       icon: 'ClipboardCheck',

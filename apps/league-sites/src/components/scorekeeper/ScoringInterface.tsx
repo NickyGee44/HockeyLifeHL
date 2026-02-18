@@ -526,6 +526,7 @@ export function ScoringInterface({
           roster={activeTeam.roster}
           period={timer.currentPeriod}
           gameTimeSeconds={timer.timeRemaining}
+          penaltyRules={game.penaltyRules}
           onComplete={handleEntryComplete}
           onCancel={() => setActiveEntry(null)}
         />
