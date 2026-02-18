@@ -198,10 +198,9 @@ async function resolveLeagueFromEmail(leagueId: string): Promise<string | undefi
     .eq('id', leagueId)
     .single();
 
-  const league = data as any;
-  if (league?.email_sending_domain && league?.email_sending_domain_verified) {
-    const fromName = league.email_from_name || league.name || 'Beer League Hockey';
-    return `${fromName} <noreply@${league.email_sending_domain}>`;
+  if (data?.email_sending_domain && data?.email_sending_domain_verified) {
+    const fromName = data.email_from_name || data.name || 'Beer League Hockey';
+    return `${fromName} <noreply@${data.email_sending_domain}>`;
   }
   return undefined; // fall back to platform default in sendEmail()
 }
@@ -410,7 +409,6 @@ export async function sendRosterChangeNotification(
   // Get player and team details
   const [playerResult, teamResult, changedByResult] = await Promise.all([
     supabase.from('profiles').select('id, email, full_name').eq('id', playerId).single(),
-    // @ts-expect-error - Supabase nested join types cause TS2589 recursion depth
     supabase.from('teams').select('id, name, league_id, leagues:league_id(name), seasons:season_id(name)').eq('id', teamId).single(),
     changedByUserId ? supabase.from('profiles').select('full_name').eq('id', changedByUserId).single() : null,
   ]);

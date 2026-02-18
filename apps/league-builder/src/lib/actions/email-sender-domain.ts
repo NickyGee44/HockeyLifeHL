@@ -58,15 +58,12 @@ export async function getLeagueEmailDomain(leagueId: string): Promise<{
     return { error: 'League not found' };
   }
 
-  // Cast to access columns not yet in generated types
-  const league = leagueData as any;
-
   // If there's a Resend domain ID, fetch current DNS record status
   let records: ResendDomainRecord[] | undefined;
   let status: string | undefined;
 
-  if (league.email_sending_domain_resend_id) {
-    const resendResult = await getResendDomain(league.email_sending_domain_resend_id);
+  if (leagueData.email_sending_domain_resend_id) {
+    const resendResult = await getResendDomain(leagueData.email_sending_domain_resend_id);
     if (!resendResult.error) {
       records = resendResult.records;
       status = resendResult.status;
@@ -74,9 +71,9 @@ export async function getLeagueEmailDomain(leagueId: string): Promise<{
   }
 
   return {
-    domain: league.email_sending_domain,
-    verified: league.email_sending_domain_verified,
-    fromName: league.email_from_name,
+    domain: leagueData.email_sending_domain,
+    verified: leagueData.email_sending_domain_verified,
+    fromName: leagueData.email_from_name,
     records,
     status,
   };
@@ -124,7 +121,7 @@ export async function addLeagueEmailDomain(
       email_sending_domain_verified: false,
       email_sending_domain_resend_id: resendResult.id,
       email_from_name: fromName || league?.name || 'Beer League Hockey',
-    } as any)
+    })
     .eq('id', leagueId);
 
   if (updateError) {
@@ -162,7 +159,7 @@ export async function verifyLeagueEmailDomain(leagueId: string): Promise<EmailDo
     return { error: 'League not found' };
   }
 
-  const resendId = (leagueData as any).email_sending_domain_resend_id;
+  const resendId = leagueData.email_sending_domain_resend_id;
   if (!resendId) {
     return { error: 'No email domain configured' };
   }
@@ -180,7 +177,7 @@ export async function verifyLeagueEmailDomain(leagueId: string): Promise<EmailDo
     .from('leagues')
     .update({
       email_sending_domain_verified: isVerified,
-    } as any)
+    })
     .eq('id', leagueId);
 
   revalidatePath(`/dashboard/leagues/${leagueId}/settings`);
@@ -217,7 +214,7 @@ export async function removeLeagueEmailDomain(leagueId: string): Promise<EmailDo
     return { error: 'League not found' };
   }
 
-  const resendId = (leagueData as any).email_sending_domain_resend_id;
+  const resendId = leagueData.email_sending_domain_resend_id;
 
   // Delete from Resend if ID exists
   if (resendId) {
@@ -236,7 +233,7 @@ export async function removeLeagueEmailDomain(leagueId: string): Promise<EmailDo
       email_sending_domain_verified: false,
       email_sending_domain_resend_id: null,
       email_from_name: null,
-    } as any)
+    })
     .eq('id', leagueId);
 
   if (updateError) {

@@ -4356,6 +4356,10 @@ export type Database = {
           custom_domain_verified: boolean | null
           description: string | null
           domain_verification_token: string | null
+          email_from_name: string | null
+          email_sending_domain: string | null
+          email_sending_domain_resend_id: string | null
+          email_sending_domain_verified: boolean | null
           favicon_url: string | null
           font_family: string | null
           id: string
@@ -4410,6 +4414,10 @@ export type Database = {
           custom_domain_verified?: boolean | null
           description?: string | null
           domain_verification_token?: string | null
+          email_from_name?: string | null
+          email_sending_domain?: string | null
+          email_sending_domain_resend_id?: string | null
+          email_sending_domain_verified?: boolean | null
           favicon_url?: string | null
           font_family?: string | null
           id?: string
@@ -4464,6 +4472,10 @@ export type Database = {
           custom_domain_verified?: boolean | null
           description?: string | null
           domain_verification_token?: string | null
+          email_from_name?: string | null
+          email_sending_domain?: string | null
+          email_sending_domain_resend_id?: string | null
+          email_sending_domain_verified?: boolean | null
           favicon_url?: string | null
           font_family?: string | null
           id?: string
@@ -6757,9 +6769,11 @@ export type Database = {
           failed_login_attempts: number | null
           full_name: string | null
           id: string
+          is_legacy_import: boolean | null
           is_platform_admin: boolean
           jersey_number: number | null
           last_failed_login_at: string | null
+          legacy_player_id: string | null
           locked_until: string | null
           medical_notes: string | null
           password_changed_at: string | null
@@ -6795,9 +6809,11 @@ export type Database = {
           failed_login_attempts?: number | null
           full_name?: string | null
           id: string
+          is_legacy_import?: boolean | null
           is_platform_admin?: boolean
           jersey_number?: number | null
           last_failed_login_at?: string | null
+          legacy_player_id?: string | null
           locked_until?: string | null
           medical_notes?: string | null
           password_changed_at?: string | null
@@ -6833,9 +6849,11 @@ export type Database = {
           failed_login_attempts?: number | null
           full_name?: string | null
           id?: string
+          is_legacy_import?: boolean | null
           is_platform_admin?: boolean
           jersey_number?: number | null
           last_failed_login_at?: string | null
+          legacy_player_id?: string | null
           locked_until?: string | null
           medical_notes?: string | null
           password_changed_at?: string | null
@@ -6851,7 +6869,15 @@ export type Database = {
           stripe_customer_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_legacy_player_id_fkey"
+            columns: ["legacy_player_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_players"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       registration_submissions: {
         Row: {
@@ -8170,7 +8196,6 @@ export type Database = {
           default_location: string | null
           draft_scheduled_at: string | null
           end_date: string | null
-          fee_collection_model: Database["public"]["Enums"]["fee_collection_model"]
           game_days: Json | null
           game_duration_minutes: number | null
           game_times: Json | null
@@ -8207,7 +8232,6 @@ export type Database = {
           default_location?: string | null
           draft_scheduled_at?: string | null
           end_date?: string | null
-          fee_collection_model?: Database["public"]["Enums"]["fee_collection_model"]
           game_days?: Json | null
           game_duration_minutes?: number | null
           game_times?: Json | null
@@ -8244,7 +8268,6 @@ export type Database = {
           default_location?: string | null
           draft_scheduled_at?: string | null
           end_date?: string | null
-          fee_collection_model?: Database["public"]["Enums"]["fee_collection_model"]
           game_days?: Json | null
           game_duration_minutes?: number | null
           game_times?: Json | null
@@ -9445,135 +9468,6 @@ export type Database = {
             columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      team_invoice_payments: {
-        Row: {
-          id: string
-          team_invoice_id: string
-          amount_cents: number
-          payment_method: string
-          stripe_payment_intent_id: string | null
-          reference_number: string | null
-          recorded_by: string | null
-          notes: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          team_invoice_id: string
-          amount_cents: number
-          payment_method?: string
-          stripe_payment_intent_id?: string | null
-          reference_number?: string | null
-          recorded_by?: string | null
-          notes?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          team_invoice_id?: string
-          amount_cents?: number
-          payment_method?: string
-          stripe_payment_intent_id?: string | null
-          reference_number?: string | null
-          recorded_by?: string | null
-          notes?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_invoice_payments_team_invoice_id_fkey"
-            columns: ["team_invoice_id"]
-            isOneToOne: false
-            referencedRelation: "team_invoices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      team_invoices: {
-        Row: {
-          id: string
-          team_id: string
-          season_id: string
-          league_id: string
-          total_players: number
-          fee_per_player_cents: number
-          total_amount_cents: number
-          amount_paid_cents: number
-          currency: string
-          status: string
-          payment_deadline: string | null
-          stripe_invoice_id: string | null
-          stripe_payment_intent_id: string | null
-          paid_by: string | null
-          paid_at: string | null
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          team_id: string
-          season_id: string
-          league_id: string
-          total_players?: number
-          fee_per_player_cents?: number
-          total_amount_cents?: number
-          amount_paid_cents?: number
-          currency?: string
-          status?: string
-          payment_deadline?: string | null
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
-          paid_by?: string | null
-          paid_at?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          team_id?: string
-          season_id?: string
-          league_id?: string
-          total_players?: number
-          fee_per_player_cents?: number
-          total_amount_cents?: number
-          amount_paid_cents?: number
-          currency?: string
-          status?: string
-          payment_deadline?: string | null
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
-          paid_by?: string | null
-          paid_at?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_invoices_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_invoices_season_id_fkey"
-            columns: ["season_id"]
-            isOneToOne: false
-            referencedRelation: "seasons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_invoices_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
             referencedColumns: ["id"]
           },
         ]
@@ -11731,33 +11625,31 @@ export type Database = {
           team_type: string
         }[]
       }
-      get_goalie_season_stats:
-        | {
-            Args: { check_league_id: string; check_season_id: string }
-            Returns: {
-              games_played: number
-              player_id: string
-              save_percentage: number
-              shutouts: number
-              total_goals_against: number
-              total_saves: number
-            }[]
-          }
-        | {
-            Args: {
-              check_division_id?: string
-              check_league_id: string
-              check_season_id: string
-            }
-            Returns: {
-              games_played: number
-              player_id: string
-              save_percentage: number
-              shutouts: number
-              total_goals_against: number
-              total_saves: number
-            }[]
-          }
+      get_goalie_season_stats: {
+        Args: {
+          check_division_id?: string
+          check_league_id: string
+          check_season_id?: string
+        }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          games_played: number
+          goals_against_average: number
+          jersey_number: number
+          losses: number
+          player_id: string
+          save_percentage: number
+          shutouts: number
+          team_id: string
+          team_logo: string
+          team_name: string
+          ties: number
+          total_goals_against: number
+          total_saves: number
+          wins: number
+        }[]
+      }
       get_league_billing_settings: {
         Args: { p_league_id: string }
         Returns: {
@@ -12735,7 +12627,6 @@ export type Database = {
         | "completed"
         | "active"
         | "paused"
-      fee_collection_model: "individual" | "team" | "hybrid"
       emergency_contact_relationship_enum:
         | "parent"
         | "spouse"
