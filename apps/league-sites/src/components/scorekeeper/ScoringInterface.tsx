@@ -736,100 +736,106 @@ function EventRow({
 }
 
 // =============================================================================
-// GoalieAvatar sub-component — tappable goalie display for quick saves
+// SaveButton — clearly labeled save/shot button with goalie info
 // =============================================================================
 
 import type { PlayerData as GoaliePlayerData } from '@/lib/actions/scorekeeper';
 
-function GoalieAvatar({
+function SaveButton({
   goalies,
   teamColor,
   pulled,
   shotMode,
-  onQuickSave,
   saves,
+  disabled,
+  onQuickSave,
+  onAdvancedShot,
 }: {
   goalies: GoaliePlayerData[];
   teamColor?: string | null;
   pulled: boolean;
   shotMode: 'simple' | 'advanced';
-  onQuickSave: (goalieId: string) => void;
   saves: number;
+  disabled: boolean;
+  onQuickSave: (goalieId: string) => void;
+  onAdvancedShot?: () => void;
 }) {
-  // Use first goalie as starter (most common in beer league)
   const starter = goalies[0];
+
+  if (shotMode === 'advanced' && onAdvancedShot) {
+    return (
+      <button
+        onClick={onAdvancedShot}
+        disabled={disabled}
+        className="w-full py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-30 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/20"
+      >
+        + Shot ({saves})
+      </button>
+    );
+  }
+
+  // Simple mode: big tappable save button with goalie identity
   if (!starter) {
     return (
-      <div className="flex flex-col items-center gap-0.5">
-        <div className="w-10 h-10 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center text-[10px] text-[var(--color-text-secondary)]">
-          G
-        </div>
-        <span className="text-[10px] text-[var(--color-text-secondary)]">No goalie</span>
+      <div className="w-full py-2.5 rounded-xl text-xs font-bold text-center bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] opacity-50">
+        No Goalie
       </div>
     );
   }
 
-  const isTappable = shotMode === 'simple' && !pulled;
-
   return (
-    <div className="flex flex-col items-center gap-0.5">
-      <button
-        onClick={() => isTappable && onQuickSave(starter.id)}
-        disabled={!isTappable}
-        className={`relative transition-all duration-150 ${
-          isTappable
-            ? 'active:scale-90 hover:ring-2 hover:ring-blue-400/50 cursor-pointer'
-            : 'cursor-default'
-        } ${pulled ? 'opacity-40' : ''}`}
-        aria-label={isTappable ? `Save by #${starter.jerseyNumber} ${starter.fullName}` : undefined}
-        title={isTappable ? `Tap to record save` : starter.fullName}
-      >
-        {starter.avatarUrl ? (
-          <Image
-            src={starter.avatarUrl}
-            alt={starter.fullName}
-            width={40}
-            height={40}
-            className="w-10 h-10 rounded-full object-cover border-2"
-            style={{ borderColor: teamColor || 'var(--color-border)' }}
-          />
-        ) : (
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2"
-            style={{
-              backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
-              color: teamColor || 'var(--color-text-primary)',
-              borderColor: teamColor || 'var(--color-border)',
-            }}
-          >
-            {starter.jerseyNumber}
+    <button
+      onClick={() => !pulled && onQuickSave(starter.id)}
+      disabled={disabled || pulled}
+      className={`w-full rounded-xl transition-all active:scale-95 disabled:opacity-30 border overflow-hidden ${
+        pulled
+          ? 'bg-purple-500/10 border-purple-500/20 opacity-50'
+          : 'bg-blue-500/15 border-blue-500/20 hover:bg-blue-500/25'
+      }`}
+    >
+      <div className="flex items-center gap-2 px-3 py-2">
+        {/* Goalie avatar */}
+        <div className="relative flex-shrink-0">
+          {starter.avatarUrl ? (
+            <Image
+              src={starter.avatarUrl}
+              alt={starter.fullName}
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-full object-cover border-2 border-blue-400/40"
+            />
+          ) : (
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 border-blue-400/40"
+              style={{
+                backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
+                color: teamColor || 'var(--color-text-primary)',
+              }}
+            >
+              {starter.jerseyNumber}
+            </div>
+          )}
+        </div>
+
+        {/* Label */}
+        <div className="flex-1 text-left min-w-0">
+          <div className="text-xs font-bold text-blue-400">
+            {pulled ? 'Empty Net' : '+ Save'}
           </div>
-        )}
-        {/* Jersey number badge */}
-        {starter.avatarUrl && (
-          <div
-            className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold border border-[var(--color-background)]"
-            style={{
-              backgroundColor: teamColor || 'var(--league-primary, #d4af37)',
-              color: '#fff',
-            }}
-          >
-            {starter.jerseyNumber}
+          <div className="text-[10px] text-blue-400/60 truncate">
+            #{starter.jerseyNumber} {starter.fullName.split(' ').pop()}
           </div>
-        )}
-        {/* Save indicator pulse for simple mode */}
-        {isTappable && (
-          <div className="absolute -top-0.5 -left-0.5 w-3 h-3 rounded-full bg-blue-400/40 animate-pulse" />
-        )}
-      </button>
-      {/* Save count */}
-      <span className="text-[10px] font-mono font-bold tabular-nums text-blue-400">
-        {saves} SVS
-      </span>
-      {pulled && (
-        <span className="text-[9px] font-bold text-purple-400">EN</span>
-      )}
-    </div>
+        </div>
+
+        {/* Save count */}
+        <div className="flex-shrink-0 text-right">
+          <div className="text-sm font-mono font-bold tabular-nums text-blue-400">
+            {saves}
+          </div>
+          <div className="text-[9px] text-blue-400/60 uppercase">SVS</div>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -916,16 +922,6 @@ function TeamPanel({
         {score}
       </div>
 
-      {/* Goalie Avatar (tappable in simple mode) */}
-      <GoalieAvatar
-        goalies={goalies}
-        teamColor={team.primaryColor}
-        pulled={goaliePulled}
-        shotMode={shotMode}
-        onQuickSave={onQuickSave}
-        saves={saves}
-      />
-
       {/* Action Buttons */}
       <div className="flex flex-col gap-1.5 w-full mt-1">
         <button
@@ -942,15 +938,18 @@ function TeamPanel({
         >
           + Penalty
         </button>
-        {shotMode === 'advanced' && onShot && (
-          <button
-            onClick={onShot}
-            disabled={disabled}
-            className="w-full py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-30 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/20"
-          >
-            + Shot
-          </button>
-        )}
+
+        {/* Save Button — clear goalie-labeled button */}
+        <SaveButton
+          goalies={goalies}
+          teamColor={team.primaryColor}
+          pulled={goaliePulled}
+          shotMode={shotMode}
+          saves={saves}
+          disabled={disabled}
+          onQuickSave={onQuickSave}
+          onAdvancedShot={onShot}
+        />
       </div>
 
       {/* Goalie Pull */}
