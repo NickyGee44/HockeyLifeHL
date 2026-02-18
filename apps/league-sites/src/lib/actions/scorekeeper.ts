@@ -222,6 +222,7 @@ export interface SessionGameInfo {
 
 type SessionLookupResult = {
   sessionId: string;
+  createdBy: string;
   gameId: string;
   leagueId: string;
   expiresAt: string;
@@ -246,6 +247,7 @@ async function lookupSessionByToken(
     .from('scorekeeper_sessions')
     .select(`
       id,
+      created_by,
       game_id,
       league_id,
       expires_at,
@@ -289,6 +291,7 @@ async function lookupSessionByToken(
 
   return {
     sessionId: data.id,
+    createdBy: data.created_by as string,
     gameId: data.game_id,
     leagueId: data.league_id,
     expiresAt: data.expires_at,
@@ -305,6 +308,7 @@ async function lookupSessionByToken(
 /**
  * Verify active scorekeeper session for a given game.
  * Supports both single-game and multi-game sessions.
+ * Returns the scorekeeper's profile ID (created_by) for use as entered_by in game_events.
  */
 async function verifyActiveSession(gameId: string): Promise<string> {
   const cookieStore = await cookies();
@@ -325,7 +329,7 @@ async function verifyActiveSession(gameId: string): Promise<string> {
     if (session.gameId !== gameId) {
       throw new Error('Session mismatch: This session is not for this game.');
     }
-    return session.sessionId;
+    return session.createdBy;
   }
 
   // For multi-game sessions, check if gameId is in session_games
@@ -341,7 +345,7 @@ async function verifyActiveSession(gameId: string): Promise<string> {
     throw new Error('This game is not part of your scorekeeper session.');
   }
 
-  return session.sessionId;
+  return session.createdBy;
 }
 
 // =============================================================================
@@ -924,7 +928,7 @@ export async function addGoalEvent(data: {
   goalieInNetId?: string;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
-    const sessionId = await verifyActiveSession(data.gameId);
+    const enteredByProfileId = await verifyActiveSession(data.gameId);
     const supabase = createServiceRoleClient();
 
     const { data: game } = await supabase
@@ -958,7 +962,7 @@ export async function addGoalEvent(data: {
         is_short_handed: data.isShortHanded || false,
         is_empty_net: data.isEmptyNet || false,
         goalie_in_net_id: data.goalieInNetId || null,
-        entered_by: sessionId,
+        entered_by: enteredByProfileId,
         entered_at: new Date().toISOString(),
       })
       .select('id')
@@ -996,7 +1000,7 @@ export async function addPenaltyEvent(data: {
   penaltyMinutes: number;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
-    const sessionId = await verifyActiveSession(data.gameId);
+    const enteredByProfileId = await verifyActiveSession(data.gameId);
     const supabase = createServiceRoleClient();
 
     const { data: game } = await supabase
@@ -1026,7 +1030,7 @@ export async function addPenaltyEvent(data: {
         game_time_seconds: data.gameTimeSeconds || null,
         penalty_type: data.penaltyType,
         penalty_minutes: data.penaltyMinutes,
-        entered_by: sessionId,
+        entered_by: enteredByProfileId,
         entered_at: new Date().toISOString(),
       })
       .select('id')
@@ -1057,7 +1061,7 @@ export async function addShotEvent(data: {
   gameTimeSeconds?: number;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
-    const sessionId = await verifyActiveSession(data.gameId);
+    const enteredByProfileId = await verifyActiveSession(data.gameId);
     const supabase = createServiceRoleClient();
 
     const { data: game } = await supabase
@@ -1086,7 +1090,7 @@ export async function addShotEvent(data: {
         event_type: 'save',
         period: data.period,
         game_time_seconds: data.gameTimeSeconds || null,
-        entered_by: sessionId,
+        entered_by: enteredByProfileId,
         entered_at: new Date().toISOString(),
       })
       .select('id')
@@ -1122,13 +1126,13 @@ export async function undoEvent(eventId: string): Promise<{
 
     if (!event) return { success: false, error: 'Event not found' };
 
-    const sessionId = await verifyActiveSession(event.game_id);
+    const enteredByProfileId = await verifyActiveSession(event.game_id);
 
     const { error } = await supabase
       .from('game_events')
       .update({
         deleted_at: new Date().toISOString(),
-        deleted_by: sessionId,
+        deleted_by: enteredByProfileId,
       })
       .eq('id', eventId);
 
@@ -1245,7 +1249,7 @@ export async function batchAddEvents(
   let addedCount = 0;
 
   try {
-    const sessionId = await verifyActiveSession(gameId);
+    const enteredByProfileId = await verifyActiveSession(gameId);
     const supabase = createServiceRoleClient();
 
     // Load game to get team IDs and league_id
@@ -1322,7 +1326,7 @@ export async function batchAddEvents(
             game_time_seconds: evt.gameTimeSeconds || null,
             assist1_player_id: assist1Id,
             assist2_player_id: assist2Id,
-            entered_by: sessionId,
+            entered_by: enteredByProfileId,
             entered_at: new Date().toISOString(),
           });
 
@@ -1362,7 +1366,7 @@ export async function batchAddEvents(
             game_time_seconds: evt.gameTimeSeconds || null,
             penalty_type: evt.penaltyType || 'Minor',
             penalty_minutes: evt.penaltyMinutes || 2,
-            entered_by: sessionId,
+            entered_by: enteredByProfileId,
             entered_at: new Date().toISOString(),
           });
 
