@@ -1636,6 +1636,28 @@ export async function getGameSummary(gameId: string): Promise<{
     const penalties = allEvents.filter(e => e.event_type === 'penalty');
     const saves = allEvents.filter(e => e.event_type === 'save');
 
+    // Collect ALL unique player IDs (scorers, assists, goalies) for bulk name lookup
+    const allPlayerIds = new Set<string>();
+    allEvents.forEach(e => {
+      if (e.player_id) allPlayerIds.add(e.player_id);
+      if (e.assist1_player_id) allPlayerIds.add(e.assist1_player_id);
+      if (e.assist2_player_id) allPlayerIds.add(e.assist2_player_id);
+      if (e.goalie_in_net_id) allPlayerIds.add(e.goalie_in_net_id);
+    });
+
+    // Bulk fetch player names from profiles
+    const playerNameMap = new Map<string, string>();
+    if (allPlayerIds.size > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', Array.from(allPlayerIds));
+      if (profiles) {
+        profiles.forEach((p: any) => playerNameMap.set(p.id, p.full_name || 'Unknown'));
+      }
+    }
+    const getPlayerName = (id: string) => playerNameMap.get(id) || 'Unknown';
+
     const periods = [1, 2, 3].map(period => ({
       period,
       homeGoals: goals.filter(g => g.period === period && g.team_type === 'home').length,
@@ -1670,7 +1692,7 @@ export async function getGameSummary(gameId: string): Promise<{
       } else {
         scorerMap.set(key, {
           playerId: g.player_id,
-          playerName: (g.player as { full_name: string })?.full_name || 'Unknown',
+          playerName: getPlayerName(g.player_id),
           teamType: g.team_type as 'home' | 'away',
           goals: 1,
           assists: 0,
@@ -1691,7 +1713,7 @@ export async function getGameSummary(gameId: string): Promise<{
           } else {
             scorerMap.set(assistId, {
               playerId: assistId,
-              playerName: 'Unknown',
+              playerName: getPlayerName(assistId),
               teamType: g.team_type as 'home' | 'away',
               goals: 0,
               assists: 1,
@@ -1725,7 +1747,7 @@ export async function getGameSummary(gameId: string): Promise<{
       } else {
         goalieMap.set(key, {
           playerId: s.player_id,
-          playerName: (s.player as { full_name: string })?.full_name || 'Unknown',
+          playerName: getPlayerName(s.player_id),
           teamType: s.team_type as 'home' | 'away',
           saves: 1,
           goalsAgainst: 0,
@@ -1745,7 +1767,7 @@ export async function getGameSummary(gameId: string): Promise<{
         } else {
           goalieMap.set(g.goalie_in_net_id, {
             playerId: g.goalie_in_net_id,
-            playerName: 'Unknown',
+            playerName: getPlayerName(g.goalie_in_net_id),
             teamType: g.team_type === 'home' ? 'away' : 'home',
             saves: 0,
             goalsAgainst: 1,
@@ -2141,6 +2163,25 @@ export async function getGameSummaryForVerification(
     const goals = allEvents.filter(e => e.event_type === 'goal');
     const penalties = allEvents.filter(e => e.event_type === 'penalty');
 
+    // Bulk fetch all player names
+    const allPlayerIds2 = new Set<string>();
+    allEvents.forEach((e: any) => {
+      if (e.player_id) allPlayerIds2.add(e.player_id);
+      if (e.assist1_player_id) allPlayerIds2.add(e.assist1_player_id);
+      if (e.assist2_player_id) allPlayerIds2.add(e.assist2_player_id);
+    });
+    const playerNameMap2 = new Map<string, string>();
+    if (allPlayerIds2.size > 0) {
+      const { data: profiles2 } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', Array.from(allPlayerIds2));
+      if (profiles2) {
+        profiles2.forEach((p: any) => playerNameMap2.set(p.id, p.full_name || 'Unknown'));
+      }
+    }
+    const getName2 = (id: string) => playerNameMap2.get(id) || 'Unknown';
+
     const periods = [1, 2, 3].map(period => ({
       period,
       homeGoals: goals.filter(g => g.period === period && g.team_type === 'home').length,
@@ -2159,7 +2200,7 @@ export async function getGameSummaryForVerification(
       } else {
         scorerMap.set(g.player_id, {
           playerId: g.player_id,
-          playerName: (g.player as { full_name: string })?.full_name || 'Unknown',
+          playerName: getName2(g.player_id),
           teamType: g.team_type as 'home' | 'away',
           goals: 1, assists: 0,
         });
@@ -2172,7 +2213,7 @@ export async function getGameSummaryForVerification(
             a.assists += 1;
           } else {
             scorerMap.set(assistId, {
-              playerId: assistId, playerName: 'Unknown',
+              playerId: assistId, playerName: getName2(assistId),
               teamType: g.team_type as 'home' | 'away',
               goals: 0, assists: 1,
             });
