@@ -150,7 +150,7 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
               <h2 className="text-xl font-bold text-white">{league.name}</h2>
               <p className="text-neutral-400">{league.city}, {league.state_province}</p>
               <p className="text-sm text-neutral-500 mt-1">
-                Subdomain: {league.subdomain || league.slug}.hockeylifehl.com
+                Subdomain: {league.subdomain || league.slug}.beerleaguehockey.ca
               </p>
             </div>
           </div>

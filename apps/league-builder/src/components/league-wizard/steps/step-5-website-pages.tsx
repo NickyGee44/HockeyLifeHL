@@ -89,7 +89,7 @@ export function Step5WebsitePages() {
   const configuredSitesUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL?.replace(/\/+$/, '');
 
   const resolvedDomain = React.useMemo(() => {
-    if (!configuredSitesUrl) return 'hockeylifehl.com';
+    if (!configuredSitesUrl) return 'beerleaguehockey.ca';
 
     try {
       const parsed = new URL(configuredSitesUrl);
@@ -99,7 +99,7 @@ export function Step5WebsitePages() {
       const parts = parsed.hostname.split('.');
       return parts.length > 2 ? parts.slice(-2).join('.') : parsed.hostname;
     } catch {
-      return 'hockeylifehl.com';
+      return 'beerleaguehockey.ca';
     }
   }, [configuredSitesUrl]);
 
