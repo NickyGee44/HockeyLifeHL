@@ -43,7 +43,10 @@ export default async function DashboardPage({ params }: Props) {
   ]);
 
   if (!dashboardData) {
-    redirect(`/${locale}/login`);
+    // User is authenticated but has no dashboard data — likely a new OAuth user
+    // who hasn't completed org setup. Redirect to setup instead of login
+    // to avoid a redirect loop (middleware sends authenticated users on /login back here).
+    redirect(`/${locale}/setup-organization`);
   }
 
   const { organizations, totals } = dashboardData;

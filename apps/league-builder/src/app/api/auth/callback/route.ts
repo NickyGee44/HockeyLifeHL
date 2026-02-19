@@ -67,17 +67,20 @@ export async function GET(request: NextRequest) {
     if (user) {
       const isOAuthUser = user.app_metadata?.providers?.some(
         (p: string) => p === 'google' || p === 'apple'
-      );
+      ) || user.app_metadata?.provider === 'google' || user.app_metadata?.provider === 'apple';
 
       if (isOAuthUser) {
-        // Check if user owns or belongs to any organization
-        const { data: ownedOrgs } = await supabase
+        // Use service role to check org ownership (bypasses RLS that may
+        // block the anon client for brand-new users)
+        const serviceSupabase = createServiceRoleClient();
+
+        const { data: ownedOrgs } = await serviceSupabase
           .from('organizations')
           .select('id')
           .eq('owner_user_id', user.id)
           .limit(1);
 
-        const { data: memberships } = await supabase
+        const { data: memberships } = await serviceSupabase
           .from('organization_members')
           .select('id')
           .eq('user_id', user.id)
@@ -86,7 +89,10 @@ export async function GET(request: NextRequest) {
         const hasOrg = (ownedOrgs && ownedOrgs.length > 0) || (memberships && memberships.length > 0);
 
         if (!hasOrg) {
-          return NextResponse.redirect(new URL('/en/setup-organization', request.url));
+          // Detect locale from the `next` param or default to 'en'
+          const locale = next.startsWith('/fr') ? 'fr' : 'en';
+          const setupPath = `/${locale}/setup-organization`;
+          return NextResponse.redirect(new URL(setupPath, request.url));
         }
       }
     }

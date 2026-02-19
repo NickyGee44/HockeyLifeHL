@@ -85,7 +85,20 @@ async function getDashboardData(userId: string): Promise<DashboardData | null> {
     }
 
     if (!data) {
-      return null;
+      // RPC returned null — user likely has no organizations yet.
+      // Return an empty but valid structure so the dashboard can render
+      // its empty-state UI instead of redirecting (which causes loops).
+      return {
+        organizations: [],
+        totals: {
+          total_organizations: 0,
+          total_leagues: 0,
+          total_teams: 0,
+          total_players: 0,
+          active_seasons: 0,
+          total_games_played: 0,
+        },
+      };
     }
 
     // Type assertion - the RPC function returns properly structured JSON
