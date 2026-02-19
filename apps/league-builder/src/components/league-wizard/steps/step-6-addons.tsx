@@ -17,7 +17,7 @@ import type { WizardFormData } from '@/lib/schemas/league-wizard';
 // Pricing constants
 const PLATFORM_BASE_PRICE = 299.99;
 const ADDON_INDIVIDUAL_PRICE = 14.99;
-const ADDON_BUNDLE_PRICE = 29.99;
+const ADDON_BUNDLE_PRICE = 24.99;
 
 export function Step6Addons() {
   const { setValue, watch } = useFormContext<WizardFormData>();
@@ -240,8 +240,8 @@ export function Step6Addons() {
             <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-lg flex items-start gap-2">
               <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
               <p className="text-sm text-green-500">
-                <strong>Bundle applied!</strong> Both add-ons for $29.99/mo
-                instead of $29.98/mo.
+                <strong>Bundle applied!</strong> Both add-ons for $24.99/mo
+                instead of $29.98/mo — Save $4.99/mo!
               </p>
             </div>
           )}

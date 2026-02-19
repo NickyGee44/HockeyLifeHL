@@ -22,30 +22,44 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { jerseyNumber, status, leadershipRole, playerId, seasonId } = body;
 
-    // Handle jersey number update
+    // Accept both camelCase and snake_case field names
+    const jerseyNumber = body.jerseyNumber ?? body.jersey_number;
+    const position = body.position;
+    const status = body.status;
+    const leadershipRole = body.leadershipRole ?? body.leadership_role;
+    const playerId = body.playerId ?? body.player_id;
+    const seasonId = body.seasonId ?? body.season_id;
+
+    // Build a single update object for direct field updates
+    const updateFields: Record<string, unknown> = {};
+
+    // Validate and collect jersey number
     if (jerseyNumber !== undefined) {
-      if (typeof jerseyNumber !== 'number' || jerseyNumber < 1 || jerseyNumber > 99) {
+      const num = typeof jerseyNumber === 'string' ? parseInt(jerseyNumber) : jerseyNumber;
+      if (typeof num !== 'number' || isNaN(num) || num < 1 || num > 99) {
         return NextResponse.json(
           { error: 'Jersey number must be between 1 and 99' },
           { status: 400 }
         );
       }
+      updateFields.jersey_number = num;
+    }
 
-      const result = await updateJerseyNumber({ rosterId, newJerseyNumber: jerseyNumber });
-
-      if (result.error) {
+    // Validate and collect position
+    if (position !== undefined) {
+      const validPositions = ['Forward', 'Defense', 'Goalie', 'forward', 'defense', 'goalie'];
+      if (!validPositions.includes(position)) {
         return NextResponse.json(
-          { error: result.error },
+          { error: 'Position must be Forward, Defense, or Goalie' },
           { status: 400 }
         );
       }
-
-      return NextResponse.json(result.data);
+      // Capitalize first letter for consistency
+      updateFields.position = position.charAt(0).toUpperCase() + position.slice(1).toLowerCase();
     }
 
-    // Handle status update
+    // Validate and collect status
     if (status !== undefined) {
       if (!['active', 'inactive', 'injured', 'suspended', 'traded'].includes(status)) {
         return NextResponse.json(
@@ -53,56 +67,44 @@ export async function PATCH(
           { status: 400 }
         );
       }
-
-      const result = await updatePlayerStatus({ rosterId, status });
-
-      if (result.error) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 400 }
-        );
-      }
-
-      return NextResponse.json(result.data);
+      updateFields.status = status;
     }
 
-    // Handle leadership role update
+    // Validate and collect leadership role
     if (leadershipRole !== undefined) {
-      if (!playerId || !seasonId) {
+      if (leadershipRole !== null && leadershipRole !== '' && !['captain', 'alternate_captain', 'alternate'].includes(leadershipRole)) {
         return NextResponse.json(
-          { error: 'playerId and seasonId required for leadership role update' },
+          { error: 'Leadership role must be captain, alternate_captain, or null' },
           { status: 400 }
         );
       }
-
-      if (leadershipRole !== null && !['captain', 'alternate'].includes(leadershipRole)) {
-        return NextResponse.json(
-          { error: 'Leadership role must be captain, alternate, or null' },
-          { status: 400 }
-        );
-      }
-
-      const result = await assignCaptain({
-        teamId,
-        playerId,
-        seasonId,
-        role: leadershipRole,
-      });
-
-      if (result.error) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 400 }
-        );
-      }
-
-      return NextResponse.json(result.data);
+      updateFields.leadership_role = leadershipRole || null;
     }
 
-    return NextResponse.json(
-      { error: 'No valid update fields provided' },
-      { status: 400 }
-    );
+    if (Object.keys(updateFields).length === 0) {
+      return NextResponse.json(
+        { error: 'No valid update fields provided' },
+        { status: 400 }
+      );
+    }
+
+    // Perform a single update on the roster entry
+    const { data: updated, error: updateError } = await supabase
+      .from('team_rosters')
+      .update(updateFields)
+      .eq('id', rosterId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Error updating roster entry:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update roster entry' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(updated);
   } catch (error) {
     console.error('Error in PATCH /api/teams/[teamId]/roster/[rosterId]:', error);
     return NextResponse.json(

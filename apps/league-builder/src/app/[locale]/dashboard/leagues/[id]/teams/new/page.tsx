@@ -3,7 +3,7 @@ import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { redirect } from '@/i18n/navigation';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getLeagueDivisions, getLeagueVenues } from '@/lib/actions/teams';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { TeamCreationWizard } from '@/components/teams';
 import { createClient } from '@/lib/supabase/server';
@@ -29,6 +29,7 @@ export default async function NewTeamPage({
 
   if (!userData) {
     nextRedirect(`/${locale}/login`);
+    return null;
   }
 
   const supabase = await createClient();
@@ -65,7 +66,7 @@ export default async function NewTeamPage({
         {/* Header */}
         <div className="mb-8">
           <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}`}
+            href={`/dashboard/leagues/${leagueId}`}
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />

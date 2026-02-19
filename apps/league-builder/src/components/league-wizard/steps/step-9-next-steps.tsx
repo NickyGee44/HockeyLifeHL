@@ -18,8 +18,6 @@ interface Step9NextStepsProps {
   leagueSlug: string;
   leagueName: string;
   seasonName: string;
-  seasonStartDate: string;
-  seasonEndDate: string;
   location: string;
   teamCount: number;
   needsPaymentSetup: boolean;

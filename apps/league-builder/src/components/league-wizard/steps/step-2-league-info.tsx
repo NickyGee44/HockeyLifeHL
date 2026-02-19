@@ -19,8 +19,14 @@ import { LogoUploader } from '../../ui/logo-uploader';
 import { uploadWizardLogo, deleteWizardLogo } from '@/lib/actions/logo';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
 
-// Common US timezones
+// Canadian timezones first (Canadian platform), then US
 const TIMEZONES = [
+  { value: 'America/Toronto', label: 'Eastern (Toronto)' },
+  { value: 'America/Winnipeg', label: 'Central (Winnipeg)' },
+  { value: 'America/Edmonton', label: 'Mountain (Edmonton)' },
+  { value: 'America/Vancouver', label: 'Pacific (Vancouver)' },
+  { value: 'America/Halifax', label: 'Atlantic (Halifax)' },
+  { value: 'America/St_Johns', label: "Newfoundland (St. John's)" },
   { value: 'America/New_York', label: 'Eastern Time (ET)' },
   { value: 'America/Chicago', label: 'Central Time (CT)' },
   { value: 'America/Denver', label: 'Mountain Time (MT)' },
@@ -31,8 +37,8 @@ const TIMEZONES = [
 ];
 
 const COUNTRIES = [
-  { value: 'USA', label: 'United States' },
-  { value: 'Canada', label: 'Canada' },
+  { value: 'CA', label: 'Canada' },
+  { value: 'US', label: 'United States' },
   { value: 'Other', label: 'Other' },
 ];
 

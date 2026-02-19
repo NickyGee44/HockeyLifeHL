@@ -510,11 +510,15 @@ export async function setDraftOrder(
     }
 
     // Delete existing order for round 1
-    await supabase
+    const { error: deleteError } = await supabase
       .from('draft_order')
       .delete()
       .eq('draft_id', draftId)
       .eq('round', 1);
+
+    if (deleteError) {
+      return { success: false, error: deleteError.message };
+    }
 
     // Insert new order
     const { error } = await supabase.from('draft_order').insert(

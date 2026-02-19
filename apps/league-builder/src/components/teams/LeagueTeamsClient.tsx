@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import {
   Users,
@@ -214,7 +214,7 @@ export function LeagueTeamsClient({
               </p>
               {!selectedDivision && (
                 <Link
-                  href={`/${locale}/dashboard/leagues/${leagueId}/teams/new`}
+                  href={`/dashboard/leagues/${leagueId}/teams/new`}
                   className={cn(
                     'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
                     'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
@@ -377,13 +377,13 @@ function TeamCardInner({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem asChild>
-              <Link href={`/${locale}/dashboard/teams/${team.id}`}>
+              <Link href={`/dashboard/teams/${team.id}`}>
                 <Shield className="w-4 h-4 mr-2" />
                 View Roster
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href={`/${locale}/dashboard/teams/${team.id}/settings`}>
+              <Link href={`/dashboard/teams/${team.id}/settings`}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Team
               </Link>
@@ -410,7 +410,7 @@ function TeamCardInner({
         </span>
 
         <Link
-          href={`/${locale}/dashboard/teams/${team.id}`}
+          href={`/dashboard/teams/${team.id}`}
           className="text-sm text-rink-500 hover:text-rink-400 font-medium"
         >
           Manage

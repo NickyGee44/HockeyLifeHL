@@ -735,6 +735,8 @@
     "addTeamsFirst": "Add teams to your league before setting up the draft order.",
     "draftOrderHint": "Use the arrows to reorder teams, or click Randomize for a random order. The order will be saved when you create the draft.",
     "draftOrderSummary": "Draft Order",
+    "moveTeamUp": "Move {team} up",
+    "moveTeamDown": "Move {team} down",
     "tryAgain": "Try Again"
   },
   "drafts": {
@@ -1768,6 +1770,7 @@
       "privateWebsite": "Website is private",
       "warningsTitle": "Optional Items",
       "warningsDescription": "These items are optional and can be configured later from your dashboard.",
+      "warningDraftTeams": "Draft leagues require at least 2 teams. Please go back to Step 4 and add teams.",
       "warningNoTeams": "No teams have been added yet. You can add teams later from your dashboard.",
       "warningStripeNotConnected": "Registration fees are configured but Stripe is not connected. Players will not be able to pay online until you connect Stripe from your dashboard.",
       "warningNoContact": "No contact information provided. Consider adding an email or phone number so players can reach you.",

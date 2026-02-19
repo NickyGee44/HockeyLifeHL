@@ -57,9 +57,12 @@ export function Step8Review() {
     formData.registrationFee &&
     formData.stripeAccountStatus !== 'active';
 
-  // Calculate monthly total
-  const addonsTotal = (formData.enableAdvancedStats ? ADDON_INDIVIDUAL_PRICE : 0)
-    + (formData.enableAiNews ? ADDON_INDIVIDUAL_PRICE : 0);
+  // Calculate monthly total (bundle: $24.99 when both selected)
+  const bothAddons = formData.enableAdvancedStats && formData.enableAiNews;
+  const addonsTotal = bothAddons
+    ? 24.99
+    : (formData.enableAdvancedStats ? ADDON_INDIVIDUAL_PRICE : 0)
+      + (formData.enableAiNews ? ADDON_INDIVIDUAL_PRICE : 0);
   const monthlyTotal = PLATFORM_BASE_PRICE + addonsTotal;
 
   return (
@@ -693,7 +696,7 @@ function getWarnings(
   const warnings: string[] = [];
 
   if (formData.registration_type === 'draft' && (!formData.teams || formData.teams.length < 2)) {
-    warnings.push('Draft leagues require at least 2 teams. Please go back to Step 4 and add teams.');
+    warnings.push(t('warningDraftTeams'));
   } else if (!formData.teams || formData.teams.length === 0) {
     warnings.push(t('warningNoTeams'));
   }

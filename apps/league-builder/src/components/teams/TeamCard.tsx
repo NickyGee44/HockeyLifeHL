@@ -166,7 +166,7 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
         {/* Actions */}
         <div className="flex items-center gap-2 pt-4 border-t border-white/[0.06]">
           <Link
-            href={leagueId ? `/dashboard/leagues/${leagueId}/teams/${team.id}` : `/dashboard/teams/${team.id}`}
+            href={`/dashboard/teams/${team.id}`}
             className={cn(
               'flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl',
               'bg-rink-500/10 text-rink-500 border border-rink-500/30',
@@ -176,7 +176,7 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
             Manage Team
           </Link>
           <Link
-            href={leagueId ? `/dashboard/leagues/${leagueId}/teams/${team.id}/settings` : `/dashboard/teams/${team.id}/settings`}
+            href={`/dashboard/teams/${team.id}/settings`}
             className={cn(
               'inline-flex items-center justify-center p-2.5 rounded-xl',
               'bg-neutral-800 text-neutral-400',

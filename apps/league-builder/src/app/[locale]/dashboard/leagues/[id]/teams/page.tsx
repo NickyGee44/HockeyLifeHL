@@ -2,7 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/actions/auth';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import {
   ArrowLeft,
@@ -78,7 +78,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
       .select('team_id')
       .eq('league_id', leagueId)
       .eq('season_id', currentSeason.id)
-      .eq('status', 'active');
+      .is('end_date', null);
 
     if (rosterTeams && rosterTeams.length > 0) {
       const teamIds = [...new Set(rosterTeams.map(r => r.team_id))];
@@ -105,7 +105,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}`}
+            href={`/dashboard/leagues/${leagueId}`}
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -121,7 +121,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
             </div>
 
             <Link
-              href={`/${locale}/dashboard/leagues/${leagueId}/teams/new`}
+              href={`/dashboard/leagues/${leagueId}/teams/new`}
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
                 'bg-gradient-to-r from-rink-500 to-arena-500 text-black',

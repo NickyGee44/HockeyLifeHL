@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
 import {
@@ -38,7 +38,6 @@ interface RosterPlayer {
 interface RosterTableProps {
   teamId: string;
   seasonId?: string;
-  captainId?: string | null;
 }
 
 const POSITIONS = [
@@ -60,6 +59,7 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [editingPlayer, setEditingPlayer] = useState<RosterPlayer | null>(null);
   const [removingPlayer, setRemovingPlayer] = useState<RosterPlayer | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,6 +68,20 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
     fetchRoster();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchRoster is a data-fetching function that depends on teamId and seasonId; also called after player edits
   }, [teamId, seasonId]);
+
+  // Close action menu on outside click
+  const handleClickOutside = useCallback((e: MouseEvent) => {
+    if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      setActionMenuOpen(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (actionMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [actionMenuOpen, handleClickOutside]);
 
   const fetchRoster = async () => {
     try {
@@ -273,7 +287,7 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="relative inline-block">
+                        <div className="relative inline-block" ref={actionMenuOpen === player.id ? menuRef : undefined}>
                           <button
                             onClick={() =>
                               setActionMenuOpen(actionMenuOpen === player.id ? null : player.id)

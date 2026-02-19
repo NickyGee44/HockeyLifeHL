@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Settings,
   Clock,
@@ -20,7 +19,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { cn } from '@hockey-life/ui/lib/utils';
-import { setDraftOrder as saveDraftOrder } from '@/lib/actions/draft';
+import { setupDraft, setDraftOrder as saveDraftOrder } from '@/lib/actions/draft';
 import type { DraftSetupWizardProps, DraftSetupConfig } from './types';
 
 const STEPS = [
@@ -49,7 +48,6 @@ export function DraftSetupWizard({
   onCancel,
 }: DraftSetupWizardProps) {
   const t = useTranslations('draft');
-  const [supabase] = useState(() => createClient());
   const [currentStep, setCurrentStep] = useState(0);
   const [config, setConfig] = useState<DraftSetupConfig>(DEFAULT_CONFIG);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,11 +60,24 @@ export function DraftSetupWizard({
   const [isShuffling, setIsShuffling] = useState(false);
   const [revealedFirst, setRevealedFirst] = useState(false);
   const shuffleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // BUG 1 fix: clean up shuffle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (shuffleTimerRef.current) clearTimeout(shuffleTimerRef.current);
+    };
+  }, []);
+
   const updateConfig = (updates: Partial<DraftSetupConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
   };
 
   const handleNext = () => {
+    if (currentStep === 0 && !config.name.trim()) {
+      setError(t('draftNameRequired'));
+      return;
+    }
+    setError(null);
     if (currentStep < STEPS.length - 1) {
       setCurrentStep((prev) => prev + 1);
     }
@@ -148,25 +159,19 @@ export function DraftSetupWizard({
     setError(null);
 
     try {
-      // Note: setup_draft RPC is defined in migrations but not in generated types yet
-      const { data, error: rpcError } = await (supabase.rpc as any)('setup_draft', {
-        p_league_id: leagueId,
-        p_season_id: seasonId,
-        p_name: config.name,
-        p_draft_type: config.draftType,
-        p_pick_time_seconds: config.pickTimeSeconds,
-        p_total_rounds: config.totalRounds,
-        p_auto_pick_enabled: config.autoPickEnabled,
-        p_allow_trades: config.allowTrades,
-        p_require_roster_confirmation: config.requireRosterConfirmation,
+      const result = await setupDraft(leagueId, seasonId, {
+        name: config.name,
+        draftType: config.draftType,
+        pickTimeSeconds: config.pickTimeSeconds,
+        totalRounds: config.totalRounds,
+        autoPickEnabled: config.autoPickEnabled,
+        allowTrades: config.allowTrades,
+        requireRosterConfirmation: config.requireRosterConfirmation,
       });
 
-      if (rpcError) throw rpcError;
+      if (!result.success) throw new Error(result.error || 'Failed to create draft');
 
-      const result = data as { success?: boolean; error?: string; draft_id?: string };
-      if (!result?.success) throw new Error(result?.error || 'Failed to create draft');
-
-      const newDraftId = result.draft_id!;
+      const newDraftId = result.data!.draftId;
 
       // Save draft order if teams exist
       if (draftOrder.length > 0) {
@@ -325,28 +330,36 @@ export function DraftSetupWizard({
               </div>
               <div className="flex items-center justify-center">
                 <div className="relative h-32 w-32">
-                  <svg className="h-full w-full -rotate-90 transform">
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="none"
-                      className="text-neutral-700"
-                    />
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="none"
-                      strokeDasharray="352"
-                      strokeDashoffset="88"
-                      className="text-rink-500"
-                    />
-                  </svg>
+                  {(() => {
+                    const circumference = 2 * Math.PI * 56; // ~351.86
+                    const maxTime = 300;
+                    const fraction = config.pickTimeSeconds / maxTime;
+                    const offset = circumference * (1 - fraction);
+                    return (
+                      <svg className="h-full w-full -rotate-90 transform">
+                        <circle
+                          cx="64"
+                          cy="64"
+                          r="56"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="none"
+                          className="text-neutral-700"
+                        />
+                        <circle
+                          cx="64"
+                          cy="64"
+                          r="56"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="none"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={offset}
+                          className="text-rink-500 transition-all duration-300"
+                        />
+                      </svg>
+                    );
+                  })()}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-2xl font-bold text-white">
                       {Math.floor(config.pickTimeSeconds / 60)}:
@@ -527,7 +540,7 @@ export function DraftSetupWizard({
                             ? 'cursor-not-allowed text-neutral-600'
                             : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'
                         )}
-                        aria-label={`Move ${team.name} up`}
+                        aria-label={t('moveTeamUp', { team: team.name })}
                       >
                         <ChevronUp className="h-4 w-4" />
                       </button>
@@ -540,7 +553,7 @@ export function DraftSetupWizard({
                             ? 'cursor-not-allowed text-neutral-600'
                             : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'
                         )}
-                        aria-label={`Move ${team.name} down`}
+                        aria-label={t('moveTeamDown', { team: team.name })}
                       >
                         <ChevronDown className="h-4 w-4" />
                       </button>

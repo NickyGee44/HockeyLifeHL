@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createAward,
@@ -139,16 +139,28 @@ function WinnerSelector({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
 
   const loadPlayers = useCallback(async () => {
-    if (!seasonId || players.length > 0) return;
+    if (!seasonId) return;
     setLoading(true);
     const result = await getLeaguePlayersForSeason(leagueId, seasonId);
     if (result.success) {
       setPlayers(result.data);
     }
     setLoading(false);
-  }, [seasonId, leagueId, players.length]);
+  }, [seasonId, leagueId]);
 
   useEffect(() => {
     if (open) {
@@ -176,7 +188,7 @@ function WinnerSelector({
   if (!seasonId) return null;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
         className={cn(
@@ -329,14 +341,14 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
   const [error, setError] = useState<string | null>(null);
   const [addingDefaults, setAddingDefaults] = useState(false);
   const [addedDefaults, setAddedDefaults] = useState<Set<string>>(
-    // Pre-mark defaults that already exist (by category match)
-    new Set(initialAwards.map(a => a.category))
+    // Pre-mark defaults that already exist (by award name match)
+    new Set(initialAwards.map(a => a.award_name))
   );
 
   // Sync local state when server re-renders with new initialAwards
   useEffect(() => {
     setAwards(initialAwards);
-    setAddedDefaults(new Set(initialAwards.map(a => a.category)));
+    setAddedDefaults(new Set(initialAwards.map(a => a.award_name)));
   }, [initialAwards]);
   const [addingCategory, setAddingCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'manage' | 'winners'>('manage');
@@ -346,7 +358,6 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
   const [category, setCategory] = useState('mvp');
   const [seasonId, setSeasonId] = useState('');
   const [teamId, setTeamId] = useState('');
-  const [, setPlayerName] = useState('');
   const [description, setDescription] = useState('');
 
   function resetForm() {
@@ -354,7 +365,6 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
     setCategory('mvp');
     setSeasonId('');
     setTeamId('');
-    setPlayerName('');
     setDescription('');
     setEditingId(null);
     setError(null);
@@ -370,7 +380,6 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
     setCategory(award.category);
     setSeasonId(award.season_id || '');
     setTeamId(award.team_id || '');
-    setPlayerName(award.player_name || '');
     setDescription(award.description || '');
     setEditingId(award.id);
     setShowForm(true);
@@ -378,6 +387,7 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     if (!awardName.trim()) {
       setError('Award name is required');
       return;
@@ -435,6 +445,8 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
     if (result.success) {
       setAwards(awards.filter(a => a.id !== awardId));
       router.refresh();
+    } else {
+      setError('Failed to delete award');
     }
   }
 
@@ -450,11 +462,11 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
       });
 
       if (result.success) {
-        setAddedDefaults(prev => new Set([...prev, defaultAward.category]));
+        setAddedDefaults(prev => new Set([...prev, defaultAward.name]));
         router.refresh();
       }
     } catch {
-      // Silently fail — user can retry
+      setError('Failed to add award');
     } finally {
       setAddingCategory(null);
     }
@@ -463,7 +475,7 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
   async function handleAddAllDefaults() {
     setAddingDefaults(true);
 
-    const toAdd = DEFAULT_AWARDS.filter(d => !addedDefaults.has(d.category));
+    const toAdd = DEFAULT_AWARDS.filter(d => !addedDefaults.has(d.name));
 
     for (const defaultAward of toAdd) {
       try {
@@ -475,7 +487,7 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
         });
 
         if (result.success) {
-          setAddedDefaults(prev => new Set([...prev, defaultAward.category]));
+          setAddedDefaults(prev => new Set([...prev, defaultAward.name]));
         }
       } catch {
         // Continue with remaining
@@ -493,6 +505,8 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
     });
     if (result.success) {
       router.refresh();
+    } else {
+      setError('Failed to clear winner');
     }
   }
 
@@ -506,7 +520,7 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
     groupedAwards.get(key)!.push(award);
   });
 
-  const hasUnadded = DEFAULT_AWARDS.some(d => !addedDefaults.has(d.category));
+  const hasUnadded = DEFAULT_AWARDS.some(d => !addedDefaults.has(d.name));
   const hasWinners = awards.some(a => a.player_id);
 
   return (
@@ -551,6 +565,16 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
       {/* Manage Tab */}
       {activeTab === 'manage' && (
         <>
+          {/* Error banner (for errors outside the form) */}
+          {error && !showForm && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm mb-4 flex items-center justify-between">
+              {error}
+              <button onClick={() => setError(null)} className="p-1 text-red-400 hover:text-red-300">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Add Award Button */}
           {!showForm && (
             <div className="mb-6 flex items-center gap-3">
@@ -725,13 +749,13 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
 
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {DEFAULT_AWARDS.map((defaultAward) => {
-                  const isAdded = addedDefaults.has(defaultAward.category);
+                  const isAdded = addedDefaults.has(defaultAward.name);
                   const isAdding = addingCategory === defaultAward.category;
                   const Icon = defaultAward.icon;
 
                   return (
                     <div
-                      key={defaultAward.category}
+                      key={defaultAward.name}
                       className={cn(
                         'relative rounded-xl border p-5 transition-all',
                         isAdded

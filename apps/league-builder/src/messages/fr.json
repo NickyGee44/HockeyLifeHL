@@ -735,6 +735,8 @@
     "addTeamsFirst": "Ajoutez des equipes a votre ligue avant de configurer l'ordre du repechage.",
     "draftOrderHint": "Utilisez les fleches pour reordonner les equipes ou cliquez sur Aleatoire pour un ordre aleatoire. L'ordre sera sauvegarde lors de la creation du repechage.",
     "draftOrderSummary": "Ordre du repechage",
+    "moveTeamUp": "Deplacer {team} vers le haut",
+    "moveTeamDown": "Deplacer {team} vers le bas",
     "tryAgain": "Reessayer"
   },
   "drafts": {
@@ -1768,6 +1770,7 @@
       "privateWebsite": "Site web prive",
       "warningsTitle": "Elements optionnels",
       "warningsDescription": "Ces elements sont optionnels et peuvent etre configures plus tard depuis votre tableau de bord.",
+      "warningDraftTeams": "Les ligues avec repechage necessitent au moins 2 equipes. Veuillez retourner a l'etape 4 pour ajouter des equipes.",
       "warningNoTeams": "Aucune equipe n'a encore ete ajoutee. Vous pouvez en ajouter plus tard depuis votre tableau de bord.",
       "warningStripeNotConnected": "Les frais d'inscription sont configures mais Stripe n'est pas connecte. Les joueurs ne pourront pas payer en ligne tant que vous n'aurez pas connecte Stripe depuis votre tableau de bord.",
       "warningNoContact": "Aucune information de contact fournie. Pensez a ajouter un courriel ou un telephone pour que les joueurs puissent vous joindre.",

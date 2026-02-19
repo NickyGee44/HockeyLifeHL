@@ -164,6 +164,7 @@ export function WizardContainer({
         return;
       }
 
+      setIsSubmitting(false);
       setCreatedLeague({
         leagueId: result.data.leagueId,
         slug: result.data.slug,
@@ -236,8 +237,6 @@ export function WizardContainer({
         leagueSlug={createdLeague.slug}
         leagueName={formData.name}
         seasonName={formData.season_name}
-        seasonStartDate={formData.season_start_date}
-        seasonEndDate={formData.season_end_date}
         location={`${formData.city}, ${formData.state_province}`}
         teamCount={formData.teams?.length || 0}
         needsPaymentSetup={needsPaymentSetup}

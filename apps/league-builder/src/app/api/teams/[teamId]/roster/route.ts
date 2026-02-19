@@ -52,23 +52,50 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const seasonId = searchParams.get('seasonId');
 
-  if (!seasonId) {
+  // If seasonId provided, use the RPC-based roster fetch
+  if (seasonId) {
+    const result = await getTeamRoster(teamId, seasonId);
+
+    if (result.error) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(result.data);
+  }
+
+  // No seasonId — return all active roster entries (end_date IS NULL)
+  const { data: roster, error: rosterError } = await supabase
+    .from('team_rosters')
+    .select(`
+      id,
+      player_id,
+      jersey_number,
+      position,
+      status,
+      leadership_role,
+      start_date,
+      player:players!team_rosters_player_id_fkey (
+        id,
+        full_name,
+        avatar_url
+      )
+    `)
+    .eq('team_id', teamId)
+    .is('end_date', null)
+    .order('jersey_number');
+
+  if (rosterError) {
+    console.error('Error fetching active roster:', rosterError.message);
     return NextResponse.json(
-      { error: 'seasonId is required' },
-      { status: 400 }
+      { error: 'Failed to fetch roster' },
+      { status: 500 }
     );
   }
 
-  const result = await getTeamRoster(teamId, seasonId);
-
-  if (result.error) {
-    return NextResponse.json(
-      { error: result.error },
-      { status: 400 }
-    );
-  }
-
-  return NextResponse.json(result.data);
+  return NextResponse.json(roster || []);
 }
 
 export async function POST(

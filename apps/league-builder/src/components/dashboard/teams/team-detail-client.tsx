@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import {
   Users,
@@ -96,7 +96,7 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
             )}
 
             {/* Roster Table */}
-            <RosterTable teamId={team.id} captainId={team.captain_id} />
+            <RosterTable teamId={team.id} />
           </div>
         );
 
