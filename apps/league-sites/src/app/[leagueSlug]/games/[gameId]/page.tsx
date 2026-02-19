@@ -12,12 +12,15 @@ import {
   getPlayerLeaders,
   getTeamGoalies,
   getGameRecap,
+  getGameSheet,
+  getGamePlayerStats,
 } from '@/lib/data';
 import { GamePreviewHeader } from '@/components/game/GamePreviewHeader';
 import { PlayerStatsComparison } from '@/components/game/PlayerStatsComparison';
 import { SeasonSeriesCard } from '@/components/game/SeasonSeriesCard';
 import { TeamStatsComparison } from '@/components/game/TeamStatsComparison';
 import { GoalieComparison } from '@/components/game/GoalieComparison';
+import { GameBoxScore } from '@/components/game/GameBoxScore';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { GameRecapSection } from '@/components/game/GameRecapSection';
 
@@ -61,6 +64,8 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
   const game = await getGamePreview(gameId);
   if (!game) return notFound();
 
+  const isCompleted = game.status === 'completed';
+
   // Fetch additional data in parallel
   const [
     seasonSeries,
@@ -72,6 +77,8 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
     homeGoalies,
     awayGoalies,
     gameRecap,
+    gameSheet,
+    gamePlayerStats,
   ] = await Promise.all([
     getSeasonSeries(game.home_team.id, game.away_team.id, game.season_id),
     getFutureMatchups(game.home_team.id, game.away_team.id, game.season_id),
@@ -82,6 +89,8 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
     getTeamGoalies(game.home_team.id, game.season_id),
     getTeamGoalies(game.away_team.id, game.season_id),
     getGameRecap(gameId),
+    isCompleted ? getGameSheet(gameId) : Promise.resolve(null),
+    isCompleted ? getGamePlayerStats(gameId) : Promise.resolve([]),
   ]);
 
   // Parse team colors for future matchups
@@ -101,8 +110,23 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
       />
 
       {/* AI Game Recap */}
-      {gameRecap && game.status === 'completed' && (
+      {gameRecap && isCompleted && (
         <GameRecapSection recap={gameRecap} leagueSlug={leagueSlug} />
+      )}
+
+      {/* Box Score for completed games */}
+      {isCompleted && gameSheet && (
+        <div className="container mx-auto px-4 py-8">
+          <GameBoxScore
+            goals={gameSheet.goals}
+            penalties={gameSheet.penalties}
+            goalies={gameSheet.goalies}
+            playerStats={gamePlayerStats}
+            homeTeam={game.home_team}
+            awayTeam={game.away_team}
+            leagueSlug={leagueSlug}
+          />
+        </div>
       )}
 
       <div className="container mx-auto px-4 py-8">
@@ -115,6 +139,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
               awayTeam={game.away_team}
               homeLeaders={homeLeaders}
               awayLeaders={awayLeaders}
+              leagueSlug={leagueSlug}
             />
 
             {/* Goalie Matchup */}
@@ -123,6 +148,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
               awayTeam={game.away_team}
               homeGoalies={homeGoalies}
               awayGoalies={awayGoalies}
+              leagueSlug={leagueSlug}
             />
 
             {/* Future Matchups between these teams */}

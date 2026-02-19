@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import type { TeamWithStats, PlayerStat } from '@/lib/types';
@@ -8,6 +9,7 @@ interface PlayerStatsComparisonProps {
   awayTeam: TeamWithStats;
   homeLeaders: PlayerStat[];
   awayLeaders: PlayerStat[];
+  leagueSlug: string;
 }
 
 /**
@@ -21,6 +23,7 @@ export function PlayerStatsComparison({
   awayTeam,
   homeLeaders,
   awayLeaders,
+  leagueSlug,
 }: PlayerStatsComparisonProps) {
   // Find max value for scaling progress bars
   const allValues = [...homeLeaders, ...awayLeaders].map((p) => p.value);
@@ -58,7 +61,7 @@ export function PlayerStatsComparison({
       <div className="p-6">
         {/* Team Headers */}
         <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
+          <Link href={`/${leagueSlug}/teams/${awayTeam.slug}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <TeamLogo
               logoUrl={awayTeam.logo}
               teamName={awayTeam.name}
@@ -66,8 +69,8 @@ export function PlayerStatsComparison({
               size="sm"
             />
             <span className="font-semibold text-sm">{awayTeam.name}</span>
-          </div>
-          <div className="flex items-center gap-3">
+          </Link>
+          <Link href={`/${leagueSlug}/teams/${homeTeam.slug}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <span className="font-semibold text-sm">{homeTeam.name}</span>
             <TeamLogo
               logoUrl={homeTeam.logo}
@@ -75,7 +78,7 @@ export function PlayerStatsComparison({
               teamColor={homePrimary}
               size="sm"
             />
-          </div>
+          </Link>
         </div>
 
         {/* Player Comparison Rows */}
@@ -95,6 +98,7 @@ export function PlayerStatsComparison({
                         maxValue={maxValue}
                         color={awayPrimary}
                         align="left"
+                        leagueSlug={leagueSlug}
                       />
                     ) : (
                       <div className="h-12" />
@@ -114,6 +118,7 @@ export function PlayerStatsComparison({
                         maxValue={maxValue}
                         color={homePrimary}
                         align="right"
+                        leagueSlug={leagueSlug}
                       />
                     ) : (
                       <div className="h-12" />
@@ -134,9 +139,10 @@ interface PlayerStatRowProps {
   maxValue: number;
   color: string;
   align: 'left' | 'right';
+  leagueSlug: string;
 }
 
-function PlayerStatRow({ player, maxValue, color, align }: PlayerStatRowProps) {
+function PlayerStatRow({ player, maxValue, color, align, leagueSlug }: PlayerStatRowProps) {
   const isLeft = align === 'left';
 
   return (
@@ -145,15 +151,17 @@ function PlayerStatRow({ player, maxValue, color, align }: PlayerStatRowProps) {
         className={`flex items-center gap-2 mb-1 ${isLeft ? '' : 'flex-row-reverse'}`}
       >
         {/* Player avatar */}
-        <img
-          src={player.avatar_url || '/blank_player.png'}
-          alt={player.player_name}
-          className="w-12 h-12 rounded-full object-cover border-2 flex-shrink-0"
-          style={{ borderColor: color }}
-        />
-        <span className="font-medium text-sm truncate max-w-[100px]">
+        <Link href={`/${leagueSlug}/players/${player.player_id}`}>
+          <img
+            src={player.avatar_url || '/blank_player.png'}
+            alt={player.player_name}
+            className="w-12 h-12 rounded-full object-cover border-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+            style={{ borderColor: color }}
+          />
+        </Link>
+        <Link href={`/${leagueSlug}/players/${player.player_id}`} className="font-medium text-sm truncate max-w-[100px] hover:underline">
           {player.player_name}
-        </span>
+        </Link>
         {player.jersey_number && (
           <span className="text-xs text-[var(--color-text-muted)]">
             #{player.jersey_number}

@@ -437,6 +437,11 @@ body::after {
   box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.12);
 }
 
+.card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+}
+
 /* Buttons */
 .btn-primary {
   background: linear-gradient(to right, var(--league-primary), var(--league-primary-hover, var(--league-primary)));

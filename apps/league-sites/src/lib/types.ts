@@ -606,6 +606,31 @@ export interface LeagueSponsor {
 // Game Sheet Types
 // =============================================================================
 
+/**
+ * Per-game player stats from the player_stats table
+ */
+export interface GamePlayerStats {
+  player_id: string;
+  player_name: string;
+  avatar_url: string | null;
+  team_id: string;
+  team_name: string;
+  jersey_number: string | null;
+  position: string | null;
+  goals: number;
+  assists: number;
+  points: number;
+  shots: number;
+  penalty_minutes: number;
+  plus_minus: number;
+  power_play_goals: number;
+  power_play_assists: number;
+  short_handed_goals: number;
+  short_handed_assists: number;
+  empty_net_goals: number;
+  game_winning_goals: number;
+}
+
 export interface GameSheetGoal {
   period: number;
   time: string | null;

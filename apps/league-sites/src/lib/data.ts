@@ -36,6 +36,7 @@ import type {
   GameSheetGoal,
   GameSheetPenalty,
   GameSheetGoalie,
+  GamePlayerStats,
   PlayerBadge,
 } from './types';
 
@@ -2705,6 +2706,81 @@ export async function getGameSheet(gameId: string): Promise<GameSheetData | null
   });
 
   return { game, goals, penalties, goalies };
+}
+
+// ========== GAME PLAYER STATS (BOX SCORE) ==========
+export async function getGamePlayerStats(gameId: string): Promise<GamePlayerStats[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('player_stats')
+    .select(`
+      player_id,
+      team_id,
+      goals,
+      assists,
+      shots,
+      penalty_minutes,
+      plus_minus,
+      power_play_goals,
+      power_play_assists,
+      short_handed_goals,
+      short_handed_assists,
+      empty_net_goals,
+      game_winning_goals,
+      player:profiles!player_stats_player_id_fkey(full_name, avatar_url),
+      team:teams!player_stats_team_id_fkey(name)
+    `)
+    .eq('game_id', gameId);
+
+  if (error || !data) return [];
+
+  // Also get jersey numbers from team_rosters
+  const playerIds = data.map((row: any) => row.player_id);
+  const teamIds = [...new Set(data.map((row: any) => row.team_id))];
+
+  const { data: rosterRows } = await supabase
+    .from('team_rosters')
+    .select('player_id, jersey_number, position')
+    .in('player_id', playerIds)
+    .in('team_id', teamIds);
+
+  const rosterMap: Record<string, { jersey_number: string | null; position: string | null }> = {};
+  for (const r of rosterRows || []) {
+    rosterMap[r.player_id] = {
+      jersey_number: r.jersey_number != null ? String(r.jersey_number) : null,
+      position: r.position || null,
+    };
+  }
+
+  return data.map((row: any) => {
+    const playerData = Array.isArray(row.player) ? row.player[0] : row.player;
+    const teamData = Array.isArray(row.team) ? row.team[0] : row.team;
+    const roster = rosterMap[row.player_id];
+    const goals = row.goals || 0;
+    const assists = row.assists || 0;
+    return {
+      player_id: row.player_id,
+      player_name: playerData?.full_name || 'Unknown',
+      avatar_url: playerData?.avatar_url || null,
+      team_id: row.team_id,
+      team_name: teamData?.name || 'Unknown',
+      jersey_number: roster?.jersey_number || null,
+      position: roster?.position || null,
+      goals,
+      assists,
+      points: goals + assists,
+      shots: row.shots || 0,
+      penalty_minutes: row.penalty_minutes || 0,
+      plus_minus: row.plus_minus || 0,
+      power_play_goals: row.power_play_goals || 0,
+      power_play_assists: row.power_play_assists || 0,
+      short_handed_goals: row.short_handed_goals || 0,
+      short_handed_assists: row.short_handed_assists || 0,
+      empty_net_goals: row.empty_net_goals || 0,
+      game_winning_goals: row.game_winning_goals || 0,
+    };
+  });
 }
 
 // ========== PLAYER BADGES ==========

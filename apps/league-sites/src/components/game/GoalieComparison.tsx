@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { TeamWithStats, GoalieStats } from '@/lib/types';
 import { Shield } from 'lucide-react';
@@ -7,6 +8,7 @@ interface GoalieComparisonProps {
   awayTeam: TeamWithStats;
   homeGoalies: GoalieStats[];
   awayGoalies: GoalieStats[];
+  leagueSlug: string;
 }
 
 /**
@@ -20,6 +22,7 @@ export function GoalieComparison({
   awayTeam,
   homeGoalies,
   awayGoalies,
+  leagueSlug,
 }: GoalieComparisonProps) {
   const awayColors = awayTeam.colors?.split(',') || [];
   const homeColors = homeTeam.colors?.split(',') || [];
@@ -58,7 +61,7 @@ export function GoalieComparison({
       <div className="p-6">
         {/* Team Headers */}
         <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
+          <Link href={`/${leagueSlug}/teams/${awayTeam.slug}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <TeamLogo
               logoUrl={awayTeam.logo}
               teamName={awayTeam.name}
@@ -66,8 +69,8 @@ export function GoalieComparison({
               size="sm"
             />
             <span className="font-semibold text-sm">{awayTeam.name}</span>
-          </div>
-          <div className="flex items-center gap-3">
+          </Link>
+          <Link href={`/${leagueSlug}/teams/${homeTeam.slug}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <span className="font-semibold text-sm">{homeTeam.name}</span>
             <TeamLogo
               logoUrl={homeTeam.logo}
@@ -75,7 +78,7 @@ export function GoalieComparison({
               teamColor={homePrimary}
               size="sm"
             />
-          </div>
+          </Link>
         </div>
 
         {/* Goalie Matchup Rows */}
@@ -95,6 +98,7 @@ export function GoalieComparison({
                       goalie={awayGoalie}
                       color={awayPrimary}
                       align="left"
+                      leagueSlug={leagueSlug}
                     />
                   ) : (
                     <div className="h-20" />
@@ -113,6 +117,7 @@ export function GoalieComparison({
                       goalie={homeGoalie}
                       color={homePrimary}
                       align="right"
+                      leagueSlug={leagueSlug}
                     />
                   ) : (
                     <div className="h-20" />
@@ -131,9 +136,10 @@ interface GoalieCardProps {
   goalie: GoalieStats;
   color: string;
   align: 'left' | 'right';
+  leagueSlug: string;
 }
 
-function GoalieCard({ goalie, color, align }: GoalieCardProps) {
+function GoalieCard({ goalie, color, align, leagueSlug }: GoalieCardProps) {
   const isLeft = align === 'left';
   const record = `${goalie.wins}-${goalie.losses}${goalie.ties ? `-${goalie.ties}` : ''}`;
 
@@ -144,12 +150,14 @@ function GoalieCard({ goalie, color, align }: GoalieCardProps) {
         className={`flex items-center gap-3 mb-2 ${isLeft ? '' : 'flex-row-reverse'}`}
       >
         {/* Avatar */}
-        <img
-          src={goalie.avatar_url || '/blank_player.png'}
-          alt={goalie.player_name}
-          className="w-16 h-16 rounded-full object-cover border-2 flex-shrink-0"
-          style={{ borderColor: color }}
-        />
+        <Link href={`/${leagueSlug}/players/${goalie.player_id}`}>
+          <img
+            src={goalie.avatar_url || '/blank_player.png'}
+            alt={goalie.player_name}
+            className="w-16 h-16 rounded-full object-cover border-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+            style={{ borderColor: color }}
+          />
+        </Link>
         <div className={`${isLeft ? '' : 'text-right'}`}>
           <div className="flex items-center gap-2">
             {!isLeft && goalie.jersey_number && (
@@ -157,7 +165,9 @@ function GoalieCard({ goalie, color, align }: GoalieCardProps) {
                 #{goalie.jersey_number}
               </span>
             )}
-            <span className="font-semibold text-sm">{goalie.player_name}</span>
+            <Link href={`/${leagueSlug}/players/${goalie.player_id}`} className="font-semibold text-sm hover:underline">
+              {goalie.player_name}
+            </Link>
             {isLeft && goalie.jersey_number && (
               <span className="text-xs text-[var(--color-text-muted)]">
                 #{goalie.jersey_number}
