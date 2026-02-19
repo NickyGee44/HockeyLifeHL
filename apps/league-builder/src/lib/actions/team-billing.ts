@@ -153,8 +153,8 @@ export async function getTeamInvoices(
 
     const supabase = await createClient();
 
-    // Build base query — avoid let reassignment to prevent TS "type instantiation excessively deep" error
-    const baseQuery = supabase
+    // Build base query — cast to any as team_invoices not in generated types
+    const baseQuery = (supabase as any)
       .from('team_invoices')
       .select(`
         *,
@@ -195,7 +195,7 @@ export async function getTeamInvoice(
       return { success: false, error: 'Authentication required' };
     }
 
-    const { data: invoice, error } = await supabase
+    const { data: invoice, error } = await (supabase as any)
       .from('team_invoices')
       .select(`
         *,
@@ -278,14 +278,14 @@ export async function generateTeamInvoices(
     }
 
     // Get existing invoices to avoid duplicates
-    const { data: existingInvoices } = await supabase
+    const { data: existingInvoices } = await (supabase as any)
       .from('team_invoices')
       .select('team_id')
       .eq('league_id', leagueId)
       .eq('season_id', seasonId);
 
     const existingTeamIds = new Set(
-      (existingInvoices || []).map((inv) => inv.team_id)
+      (existingInvoices || []).map((inv: any) => inv.team_id)
     );
 
     let generated = 0;
@@ -306,7 +306,7 @@ export async function generateTeamInvoices(
       const totalPlayers = playerCount || 0;
       const totalAmountCents = totalPlayers * seasonFee.amount_cents;
 
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('team_invoices')
         .insert({
           team_id: team.id,
@@ -352,7 +352,8 @@ export async function updateTeamInvoice(
     const supabase = await createClient();
 
     // Fetch the invoice to get league_id for auth check
-    const { data: existing, error: fetchError } = await supabase
+    // Cast to any — team_invoices table not yet in generated types
+    const { data: existing, error: fetchError } = await (supabase as any)
       .from('team_invoices')
       .select('league_id, total_amount_cents')
       .eq('id', invoiceId)
@@ -388,7 +389,7 @@ export async function updateTeamInvoice(
       updateData.notes = data.notes;
     }
 
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await (supabase as any)
       .from('team_invoices')
       .update(updateData)
       .eq('id', invoiceId)
@@ -435,7 +436,7 @@ export async function recordTeamPayment(
     const supabase = await createClient();
 
     // Fetch invoice for auth and totals
-    const { data: invoice, error: fetchError } = await supabase
+    const { data: invoice, error: fetchError } = await (supabase as any)
       .from('team_invoices')
       .select('league_id, total_amount_cents, amount_paid_cents')
       .eq('id', invoiceId)
@@ -451,7 +452,7 @@ export async function recordTeamPayment(
     }
 
     // Insert the payment record
-    const { data: paymentRecord, error: insertError } = await supabase
+    const { data: paymentRecord, error: insertError } = await (supabase as any)
       .from('team_invoice_payments')
       .insert({
         team_invoice_id: invoiceId,
@@ -469,7 +470,7 @@ export async function recordTeamPayment(
     }
 
     // Sum all payments to update the invoice
-    const { data: allPayments, error: sumError } = await supabase
+    const { data: allPayments, error: sumError } = await (supabase as any)
       .from('team_invoice_payments')
       .select('amount_cents')
       .eq('team_invoice_id', invoiceId);
@@ -479,7 +480,7 @@ export async function recordTeamPayment(
     }
 
     const totalPaid = (allPayments || []).reduce(
-      (sum, p) => sum + p.amount_cents,
+      (sum: number, p: any) => sum + p.amount_cents,
       0
     );
 
@@ -504,7 +505,7 @@ export async function recordTeamPayment(
       invoiceUpdate.paid_at = new Date().toISOString();
     }
 
-    await supabase
+    await (supabase as any)
       .from('team_invoices')
       .update(invoiceUpdate)
       .eq('id', invoiceId);
@@ -537,7 +538,7 @@ export async function getTeamBillingSummary(
 
     const supabase = await createClient();
 
-    const { data: invoices, error } = await supabase
+    const { data: invoices, error } = await (supabase as any)
       .from('team_invoices')
       .select('total_amount_cents, amount_paid_cents, status')
       .eq('league_id', leagueId)
@@ -550,12 +551,12 @@ export async function getTeamBillingSummary(
     const rows = invoices || [];
 
     const summary: TeamBillingSummary = {
-      total_invoiced_cents: rows.reduce((sum, inv) => sum + inv.total_amount_cents, 0),
-      total_collected_cents: rows.reduce((sum, inv) => sum + inv.amount_paid_cents, 0),
+      total_invoiced_cents: rows.reduce((sum: number, inv: any) => sum + inv.total_amount_cents, 0),
+      total_collected_cents: rows.reduce((sum: number, inv: any) => sum + inv.amount_paid_cents, 0),
       outstanding_cents: 0,
       team_count: rows.length,
-      paid_count: rows.filter((inv) => inv.status === 'paid' || inv.status === 'waived').length,
-      overdue_count: rows.filter((inv) => inv.status === 'overdue').length,
+      paid_count: rows.filter((inv: any) => inv.status === 'paid' || inv.status === 'waived').length,
+      overdue_count: rows.filter((inv: any) => inv.status === 'overdue').length,
     };
 
     summary.outstanding_cents = summary.total_invoiced_cents - summary.total_collected_cents;

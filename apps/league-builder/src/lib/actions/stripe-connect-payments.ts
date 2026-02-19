@@ -676,10 +676,10 @@ export async function getPaymentStatistics(
     }
 
     const allPayments = payments || [];
-    const successfulPayments = allPayments.filter((p) => p.status === 'succeeded');
+    const successfulPayments = allPayments.filter((p: any) => p.status === 'succeeded');
 
-    const totalRevenue = successfulPayments.reduce((sum, p) => sum + p.amount_cents, 0);
-    const totalFeesPaid = successfulPayments.reduce((sum, p) => sum + p.application_fee_cents, 0);
+    const totalRevenue = successfulPayments.reduce((sum: number, p: any) => sum + p.amount_cents, 0);
+    const totalFeesPaid = successfulPayments.reduce((sum: number, p: any) => sum + p.application_fee_cents, 0);
 
     const stats: PaymentStats = {
       totalRevenue,

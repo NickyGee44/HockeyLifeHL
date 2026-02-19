@@ -606,7 +606,7 @@ export async function getUserTeams(options?: { status?: TeamStatus; search?: str
     }
 
     // Get roster counts
-    const teamIds = teams?.map(t => t.id) || [];
+    const teamIds = teams?.map((t: any) => t.id) || [];
     const { data: rosterCounts } = await supabase
       .from('team_rosters')
       .select('team_id')
@@ -619,7 +619,7 @@ export async function getUserTeams(options?: { status?: TeamStatus; search?: str
     });
 
     // Fetch captain info separately to avoid FK join RLS issues
-    const captainIds = teams?.filter(t => t.captain_id).map(t => t.captain_id).filter((id): id is string => id !== null) || [];
+    const captainIds = teams?.filter((t: any) => t.captain_id).map((t: any) => t.captain_id).filter((id: any): id is string => id !== null) || [];
     const captainMap = new Map<string, string>();
     if (captainIds.length > 0) {
       const { data: captains } = await supabase
@@ -629,7 +629,7 @@ export async function getUserTeams(options?: { status?: TeamStatus; search?: str
       captains?.forEach(c => captainMap.set(c.id, c.full_name || ''));
     }
 
-    const teamsWithStats = teams?.map(team => ({
+    const teamsWithStats = teams?.map((team: any) => ({
       ...team,
       roster_count: countMap.get(team.id) || 0,
       captain_name: team.captain_id ? captainMap.get(team.captain_id) || null : null,

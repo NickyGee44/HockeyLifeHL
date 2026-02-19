@@ -69,7 +69,7 @@ export async function getLeagueSeasons(leagueId: string, options?: { status?: Se
       return { success: true, data: [] as SeasonWithCounts[] };
     }
 
-    const seasonIds = seasons.map(s => s.id);
+    const seasonIds = seasons.map((s: any) => s.id);
 
     // Get teams count per season (teams linked to the league)
     const { count: teamsCount } = await supabase
@@ -102,7 +102,7 @@ export async function getLeagueSeasons(leagueId: string, options?: { status?: Se
       }
     });
 
-    const seasonsWithCounts: SeasonWithCounts[] = seasons.map(season => ({
+    const seasonsWithCounts: SeasonWithCounts[] = seasons.map((season: any) => ({
       id: season.id,
       name: season.name,
       status: season.status as SeasonStatus | null,
