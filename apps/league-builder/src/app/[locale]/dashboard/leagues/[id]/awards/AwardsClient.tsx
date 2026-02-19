@@ -332,6 +332,12 @@ export function AwardsClient({ leagueId, initialAwards, seasons, teams }: Awards
     // Pre-mark defaults that already exist (by category match)
     new Set(initialAwards.map(a => a.category))
   );
+
+  // Sync local state when server re-renders with new initialAwards
+  useEffect(() => {
+    setAwards(initialAwards);
+    setAddedDefaults(new Set(initialAwards.map(a => a.category)));
+  }, [initialAwards]);
   const [addingCategory, setAddingCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'manage' | 'winners'>('manage');
 

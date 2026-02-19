@@ -154,7 +154,7 @@ export async function getTeam(teamId: string) {
       .from('teams') as any)
       .select(`
         *,
-        leagues!inner(id, name, organization_id, organizations!inner(owner_user_id)),
+        leagues!inner(id, name, organization_id, organizations(owner_user_id)),
         divisions:division_id (id, name),
         venues:home_venue_id (id, name, address),
         captain:captain_id (id, full_name, email)
