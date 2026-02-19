@@ -170,10 +170,9 @@ Location: `apps/league-sites/`
 - All components fall back gracefully when branding is missing
 
 ## Pricing Model
-- Platform is FREE forever — $0/month for all core features
+- Platform Monthly: $299.99/mo — hosting, maintenance, and all core features (no free tier)
 - 2.99% transaction fee on payment processing (minimum $0.50 per transaction)
 - Optional premium add-ons (billed monthly via Stripe):
-  - Platform Monthly: $299.99/mo — priority support, custom branding, advanced admin tools
   - Advanced Stats: $14.99/mo — deep analytics, player comparisons, league-wide stat tracking
   - AI News Writer: $14.99/mo — auto-generated game recaps, weekly roundups, player spotlights
 - Custom domains — paid add-on (contact for quote)

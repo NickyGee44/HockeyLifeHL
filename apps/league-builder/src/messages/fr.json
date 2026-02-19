@@ -81,8 +81,8 @@
     },
     "pricing": {
       "badge": "Tarification simple",
-      "headline": "Gratuit pour commencer. Payez seulement quand vous etes paye.",
-      "subheadline": "Aucun frais mensuel requis. Toutes les fonctionnalites de base sont gratuites pour toujours — juste de petits frais de transaction quand vous traitez des paiements.",
+      "headline": "Tout ce dont vous avez besoin pour gerer votre ligue.",
+      "subheadline": "299,99 $/mois pour l'hebergement, la maintenance et toutes les fonctionnalites — plus 2,99 % de frais de transaction sur les paiements.",
       "fee": "Seulement",
       "feeContext": "sur le traitement des paiements (min 0,50 $/transaction)",
       "benefit1": "Equipes et joueurs illimites",
@@ -855,8 +855,8 @@
   "billing": {
     "title": "Facturation",
     "description": "Gerez votre facturation et le traitement des paiements",
-    "platformFree": "La plateforme est GRATUITE pour toujours",
-    "platformFreeDescription": "Pas de frais mensuels, pas de couts caches. Utilisez toutes les fonctionnalites gratuitement.",
+    "platformFree": "Plateforme mensuelle",
+    "platformFreeDescription": "299,99 $/mois — hebergement, maintenance et toutes les fonctionnalites incluses.",
     "included": {
       "unlimitedTeams": "Equipes et joueurs illimites",
       "leagueWebsite": "Site web de ligue complet inclus",
@@ -2768,7 +2768,8 @@
     },
     "content": {
       "yourCurrentPlan": "Votre forfait actuel",
-      "freeForever": "GRATUIT pour toujours",
+      "freeForever": "Plateforme mensuelle",
+      "platformIncluded": "Toutes les fonctionnalites incluses",
       "premiumFeaturesUnlocked": "Fonctionnalites premium debloquees",
       "platformMonthly": "Plateforme mensuelle",
       "trial": "ESSAI",
@@ -2776,7 +2777,7 @@
       "nextBilling": "Prochaine facturation: {date}",
       "cancelsAtPeriodEnd": "S'annule a la fin de la periode de facturation",
       "transactionFeeOnPayments": "{percent} % de frais de transaction sur les paiements des joueurs",
-      "noCreditCard": "Pas de carte de credit requise. Pas de frais caches. Toujours gratuit.",
+      "noCreditCard": "Inclut l'hebergement, la maintenance et toutes les fonctionnalites.",
       "premiumAddOns": "Extensions premium",
       "subscriptionActivated": "Abonnement active !",
       "subscriptionActivatedDesc": "Votre abonnement est maintenant actif.",
@@ -2791,7 +2792,7 @@
         "adminDashboard": "Tableau de bord d'administration complet",
         "scorekeeperApp": "Application mobile de marqueur",
         "realtimeStats": "Stats et classements en temps reel",
-        "everythingInFree": "Tout dans GRATUIT",
+        "everythingInFree": "Tout dans Plateforme mensuelle",
         "prioritySupport": "Support par courriel prioritaire (reponse 24h)",
         "customBranding": "Couleurs et logos personnalises",
         "advancedPermissions": "Permissions d'administration avancees",
@@ -2890,8 +2891,10 @@
       }
     },
     "plans": {
-      "freeForever": "Gratuit pour toujours",
-      "freeDescription": "Creez et gerez vos ligues sans frais",
+      "freeForever": "Plateforme mensuelle",
+      "platformMonthly": "Plateforme mensuelle",
+      "platformDescription": "Tout ce dont vous avez besoin pour gerer votre ligue",
+      "freeDescription": "Tout ce dont vous avez besoin pour gerer votre ligue",
       "simpleTransparentPricing": "Tarification simple et transparente",
       "paymentProcessing": "Traitement des paiements",
       "perTransaction": "par transaction",

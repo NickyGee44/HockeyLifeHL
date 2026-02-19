@@ -7,6 +7,11 @@ import {
   generateSlug,
   type WizardFormData,
 } from '../schemas/league-wizard';
+import {
+  createConnectAccount,
+  createAccountLink,
+  getConnectAccountInfo,
+} from '@/lib/leagues/stripe-connect';
 
 // ==============================================================================
 // TYPES
@@ -573,7 +578,6 @@ export async function createLeague(
           registration_opens_at: data.registration_opens || null,
           registration_closes_at: data.registration_closes || null,
           registration_type: dbRegistrationType,
-          fee_collection_model: data.feeCollectionModel || 'individual',
           status: 'active', // Valid enum: active, playoffs, completed, draft, archived
           game_duration_minutes: data.game_duration_minutes,
           period_count: data.period_count,
@@ -745,6 +749,167 @@ export async function createLeague(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
+// ==============================================================================
+// STRIPE CONNECT ONBOARDING (WIZARD)
+// ==============================================================================
+
+/**
+ * Starts Stripe Connect onboarding during wizard flow.
+ * Saves the current wizard data as a draft first, then creates
+ * a Stripe Connect Express account linked to the draft league.
+ * Returns the Stripe onboarding URL to redirect the user to.
+ */
+export async function startWizardStripeOnboarding(
+  formData: Partial<WizardFormData>,
+  returnUrl: string,
+  refreshUrl: string
+): Promise<ActionResult<{ url: string; draftId: string }>> {
+  try {
+    const supabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Save draft first to ensure we have a league ID
+    const draftResult = await saveDraft(formData);
+    if (!draftResult.success) {
+      return { success: false, error: `Failed to save draft: ${draftResult.error}` };
+    }
+    const draftId = draftResult.data.draftId;
+
+    // Get the draft league
+    const { data: draft, error: draftError } = await serviceSupabase
+      .from('leagues')
+      .select('id, name, stripe_account_id, stripe_account_status')
+      .eq('id', draftId)
+      .single();
+
+    if (draftError || !draft) {
+      return { success: false, error: 'Draft league not found' };
+    }
+
+    let accountId = draft.stripe_account_id;
+
+    // Create Stripe Connect account if needed
+    if (!accountId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', user.id)
+        .single();
+
+      const email = profile?.email || '';
+      const leagueName = formData.name || draft.name || 'New League';
+
+      accountId = await createConnectAccount(draftId, leagueName, email);
+
+      // Store the account ID on the draft league
+      await serviceSupabase
+        .from('leagues')
+        .update({
+          stripe_account_id: accountId,
+          stripe_account_status: 'pending',
+        })
+        .eq('id', draftId);
+    }
+
+    // Create the onboarding link
+    const link = await createAccountLink(accountId, refreshUrl, returnUrl);
+
+    return {
+      success: true,
+      data: { url: link.url, draftId },
+    };
+  } catch (error) {
+    console.error('[league-wizard] startWizardStripeOnboarding error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to start Stripe onboarding',
+    };
+  }
+}
+
+/**
+ * Checks the Stripe Connect account status for the current user's draft league.
+ * Called when the user returns from Stripe onboarding to update wizard state.
+ */
+export async function checkWizardStripeStatus(): Promise<
+  ActionResult<{
+    status: 'not_connected' | 'pending' | 'active';
+    accountId: string | null;
+  }>
+> {
+  try {
+    const supabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Find the user's draft league with a Stripe account
+    const { data: draft } = await serviceSupabase
+      .from('leagues')
+      .select('id, stripe_account_id, stripe_account_status')
+      .eq('created_by', user.id)
+      .eq('status', 'draft')
+      .not('stripe_account_id', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!draft || !draft.stripe_account_id) {
+      return {
+        success: true,
+        data: { status: 'not_connected', accountId: null },
+      };
+    }
+
+    // Check actual status from Stripe
+    const accountInfo = await getConnectAccountInfo(draft.stripe_account_id);
+
+    let wizardStatus: 'not_connected' | 'pending' | 'active' = 'pending';
+    if (accountInfo.chargesEnabled && accountInfo.payoutsEnabled) {
+      wizardStatus = 'active';
+    } else if (accountInfo.status === 'not_created') {
+      wizardStatus = 'not_connected';
+    }
+
+    // Update the draft league with the current status
+    const dbStatus = wizardStatus === 'active' ? 'complete' : accountInfo.status;
+    await serviceSupabase
+      .from('leagues')
+      .update({ stripe_account_status: dbStatus })
+      .eq('id', draft.id);
+
+    return {
+      success: true,
+      data: {
+        status: wizardStatus,
+        accountId: draft.stripe_account_id,
+      },
+    };
+  } catch (error) {
+    console.error('[league-wizard] checkWizardStripeStatus error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to check Stripe status',
     };
   }
 }

@@ -142,7 +142,7 @@ export function SubscriptionContent({
                 </h2>
               </div>
               <p className="text-neutral-300 text-sm">
-                {hasPlatformSubscription ? t('premiumFeaturesUnlocked') : t('freeForever')}
+                {hasPlatformSubscription ? t('premiumFeaturesUnlocked') : t('platformIncluded')}
               </p>
             </div>
             <Badge className={hasPlatformSubscription && platformAddon?.status === 'trialing'

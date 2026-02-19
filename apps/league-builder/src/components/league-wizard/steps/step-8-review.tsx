@@ -32,6 +32,7 @@ function centsToDollars(cents: number): string {
 }
 
 // Pricing constants
+const PLATFORM_BASE_PRICE = 299.99;
 const ADDON_INDIVIDUAL_PRICE = 14.99;
 
 export function Step8Review() {
@@ -59,7 +60,7 @@ export function Step8Review() {
   // Calculate monthly total
   const addonsTotal = (formData.enableAdvancedStats ? ADDON_INDIVIDUAL_PRICE : 0)
     + (formData.enableAiNews ? ADDON_INDIVIDUAL_PRICE : 0);
-  const monthlyTotal = addonsTotal;
+  const monthlyTotal = PLATFORM_BASE_PRICE + addonsTotal;
 
   return (
     <WizardStepContainer
@@ -251,7 +252,7 @@ export function Step8Review() {
                 label="Playoff Eligibility"
                 value={
                   formData.playoff_eligibility_enabled
-                    ? `Min ${formData.playoff_eligibility_min_games_pct}% of games${formData.playoff_eligibility_min_games ? ` or ${formData.playoff_eligibility_min_games} games` : ''}`
+                    ? `Min ${formData.playoff_eligibility_min_games_pct}% of season games`
                     : 'No minimum games required'
                 }
               />
@@ -399,7 +400,7 @@ export function Step8Review() {
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-muted-foreground">Platform Base (Hosting & Maintenance)</span>
-                <span className="font-semibold text-green-600">FREE</span>
+                <span className="font-semibold">${PLATFORM_BASE_PRICE.toFixed(2)}/mo</span>
               </div>
 
               {formData.enableAdvancedStats && (

@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
+import { useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   DollarSign,
   Calendar,
@@ -15,6 +17,7 @@ import {
   Loader2,
   Shield,
   ArrowRight,
+  ExternalLink,
   User,
   Users,
   Split,
@@ -30,6 +33,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
+import {
+  startWizardStripeOnboarding,
+  checkWizardStripeStatus,
+} from '@/lib/actions/league-wizard';
 
 // Helper function to convert cents to dollars for display
 function centsToDollars(cents: number): string {
@@ -59,6 +66,7 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
     formState: { errors },
     setValue,
     watch,
+    getValues,
   } = useFormContext<WizardFormData>();
 
   // Watch all relevant fields
@@ -79,7 +87,9 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
   const stripeAccountStatus = watch('stripeAccountStatus') as StripeAccountStatus;
   const skipPaymentSetup = watch('skipPaymentSetup');
 
-  // Local state for dollar input display
+  // Local state for dollar input display — initialized from form data,
+  // updated directly in onChange/onClick handlers (no useEffect sync to
+  // avoid infinite re-render loops with react-hook-form watch).
   const [feeDisplay, setFeeDisplay] = React.useState(
     centsToDollars(registrationFee)
   );
@@ -93,23 +103,31 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
   );
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [stripeError, setStripeError] = React.useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const stripeCheckDone = React.useRef(false);
 
-  // Sync display values when form data changes
+  // On return from Stripe onboarding, check account status
   React.useEffect(() => {
-    setFeeDisplay(centsToDollars(registrationFee));
-  }, [registrationFee]);
-
-  React.useEffect(() => {
-    if (earlyBirdDiscount.isPercentage) {
-      setEarlyBirdDisplay(earlyBirdDiscount.amount.toString());
-    } else {
-      setEarlyBirdDisplay(centsToDollars(earlyBirdDiscount.amount));
+    if (stripeCheckDone.current) return;
+    const onboarding = searchParams.get('onboarding');
+    if (onboarding === 'complete' || onboarding === 'refresh') {
+      stripeCheckDone.current = true;
+      checkWizardStripeStatus().then((result) => {
+        if (result.success) {
+          setValue('stripeAccountStatus', result.data.status);
+          setValue('stripeAccountId', result.data.accountId);
+          setValue('skipPaymentSetup', false);
+          if (result.data.status === 'active') {
+            toast.success('Stripe Connect setup complete!');
+          } else if (onboarding === 'refresh') {
+            toast.info('Stripe onboarding incomplete. You can continue setup anytime.');
+          } else {
+            toast.info('Stripe account created. It may take a moment to verify.');
+          }
+        }
+      });
     }
-  }, [earlyBirdDiscount.amount, earlyBirdDiscount.isPercentage]);
-
-  React.useEffect(() => {
-    setLateFeeDisplay(centsToDollars(lateRegistrationFee.amount));
-  }, [lateRegistrationFee.amount]);
+  }, [searchParams, setValue]);
 
   // Calculate preview values
   const calculateEarlyBirdPrice = (): number => {
@@ -137,18 +155,29 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
     }).format(cents / 100);
   };
 
-  // Handle Stripe Connect onboarding
+  // Handle Stripe Connect onboarding — saves draft, creates account, redirects
   const handleConnectStripe = async () => {
     setIsConnecting(true);
     setStripeError(null);
+
     try {
-      setValue('skipPaymentSetup', false);
-      setStripeError('Stripe Connect will be configured after your league is created. You can proceed to the next step.');
-      setValue('stripeAccountStatus', 'pending');
+      const formData = getValues();
+      const basePath = window.location.pathname;
+      const returnUrl = `${window.location.origin}${basePath}?step=7&onboarding=complete`;
+      const refreshUrl = `${window.location.origin}${basePath}?step=7&onboarding=refresh`;
+
+      const result = await startWizardStripeOnboarding(formData, returnUrl, refreshUrl);
+
+      if (result.success) {
+        // Redirect to Stripe onboarding
+        window.location.href = result.data.url;
+      } else {
+        setStripeError(result.error);
+        setIsConnecting(false);
+      }
     } catch (err) {
       console.error('Failed to start Stripe Connect:', err);
       setStripeError('Failed to connect to Stripe. Please try again.');
-    } finally {
       setIsConnecting(false);
     }
   };
@@ -326,13 +355,14 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
                             setValue('earlyBirdDiscount', {
                               ...earlyBirdDiscount,
                               isPercentage: false,
                               amount: 0,
-                            })
-                          }
+                            });
+                            setEarlyBirdDisplay('0.00');
+                          }}
                           className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
                             !earlyBirdDiscount.isPercentage
                               ? 'bg-rink-500/10 border-rink-500 text-rink-500'
@@ -344,13 +374,14 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
                         </button>
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
                             setValue('earlyBirdDiscount', {
                               ...earlyBirdDiscount,
                               isPercentage: true,
                               amount: 0,
-                            })
-                          }
+                            });
+                            setEarlyBirdDisplay('0');
+                          }}
                           className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
                             earlyBirdDiscount.isPercentage
                               ? 'bg-rink-500/10 border-rink-500 text-rink-500'
@@ -669,17 +700,28 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
                       </div>
                     </div>
 
-                    {stripeError && (
-                      <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4">
+                    {stripeAccountStatus === 'pending' && (
+                      <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg mb-4">
                         <div className="flex items-start gap-2">
-                          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                          <p className="text-sm text-blue-800">{stripeError}</p>
+                          <Clock className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                          <p className="text-sm text-blue-400">
+                            Your Stripe account has been created but onboarding is not complete. Click &quot;Continue Setup&quot; to finish, or skip and complete it later from your dashboard.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {stripeError && (
+                      <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg mb-4">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                          <p className="text-sm text-red-400">{stripeError}</p>
                         </div>
                       </div>
                     )}
 
                     <div className="flex flex-col sm:flex-row gap-3">
-                      {stripeAccountStatus !== 'active' && (
+                      {stripeAccountStatus === 'not_connected' && (
                         <>
                           <Button
                             type="button"
@@ -690,12 +732,12 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
                             {isConnecting ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Connecting...
+                                Saving & Redirecting...
                               </>
                             ) : (
                               <>
-                                <CreditCard className="mr-2 h-4 w-4" />
-                                {stripeAccountStatus === 'pending' ? 'Continue Setup' : 'Connect Stripe'}
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Connect Stripe Account
                               </>
                             )}
                           </Button>
@@ -708,6 +750,36 @@ export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7Re
                             Skip for Now
                           </Button>
                         </>
+                      )}
+                      {stripeAccountStatus === 'pending' && (
+                        <div className="flex flex-col sm:flex-row gap-3 w-full">
+                          <Button
+                            type="button"
+                            onClick={handleConnectStripe}
+                            disabled={isConnecting}
+                            className="flex-1"
+                          >
+                            {isConnecting ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Redirecting...
+                              </>
+                            ) : (
+                              <>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Continue Setup
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleSkipSetup}
+                            disabled={isConnecting}
+                          >
+                            Skip for Now
+                          </Button>
+                        </div>
                       )}
                       {stripeAccountStatus === 'active' && (
                         <div className="flex items-center gap-2 text-green-600">

@@ -36,18 +36,18 @@ export function SubscriptionPlans({
   const tFeatures = useTranslations('subscription.plans.features');
   return (
     <div className="space-y-6">
-      {/* Free Forever Card */}
+      {/* Platform Monthly Card */}
       <Card className="border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">{t('freeForever')}</CardTitle>
+              <CardTitle className="text-2xl">{t('platformMonthly')}</CardTitle>
               <CardDescription className="text-base mt-1">
-                {t('freeDescription')}
+                {t('platformDescription')}
               </CardDescription>
             </div>
             <div className="text-right">
-              <span className="text-4xl font-bold text-primary">$0</span>
+              <span className="text-4xl font-bold text-primary">$299.99</span>
               <span className="text-muted-foreground">/month</span>
             </div>
           </div>

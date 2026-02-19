@@ -1,22 +1,21 @@
 /**
  * Subscription Types for Platform (Organization-level billing)
  *
- * Beer League Hockey uses a setup + processing fee model:
- * - One-time setup fee per league ($4,999 CAD)
+ * Beer League Hockey pricing model:
+ * - Platform Monthly: $299.99/mo — hosting, maintenance, all core features
  * - 2.99% processing fee on all player payments (configurable per league)
- * - Fee can be passed to player or absorbed by league
- * - No subscription tiers - all features included
+ * - Optional add-ons: Advanced Stats ($14.99/mo), AI News ($14.99/mo)
+ * - Premium services: Custom domain, data import (contact for quote)
  *
  * NOTE: The tier types below are retained for backward compatibility with
- * existing database records and Stripe subscription IDs. New code should
- * not create new tier-based subscriptions.
+ * existing database records and Stripe subscription IDs.
  */
 
 // ============================================================================
 // Subscription Tiers
 // ============================================================================
 
-// Free platform with optional add-ons
+// Platform subscription with optional add-ons
 export type SubscriptionTier = 'free' | 'custom_domain' | 'enterprise';
 
 export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, {
@@ -39,8 +38,8 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, {
   };
 }> = {
   free: {
-    name: 'Free Forever',
-    price: 0,
+    name: 'Platform Monthly',
+    price: 29999,
     interval: 'month',
     features: [
       'Unlimited leagues',

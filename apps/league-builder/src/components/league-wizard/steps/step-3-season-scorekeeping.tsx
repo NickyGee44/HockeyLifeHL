@@ -396,7 +396,7 @@ export function Step3SeasonScorekeeping() {
         </div>
 
         {eligibilityEnabled && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div className="max-w-xs pt-2">
             <FormField
               label="Minimum Games Played (%)"
               error={errors.playoff_eligibility_min_games_pct?.message}
@@ -414,26 +414,6 @@ export function Step3SeasonScorekeeping() {
                 step={5}
                 placeholder="60"
                 error={!!errors.playoff_eligibility_min_games_pct}
-              />
-            </FormField>
-
-            <FormField
-              label="Minimum Games (Absolute)"
-              error={errors.playoff_eligibility_min_games?.message}
-              htmlFor="playoff_eligibility_min_games"
-              hint="Optional. Hard minimum regardless of percentage"
-            >
-              <Input
-                {...register('playoff_eligibility_min_games', {
-                  setValueAs: (v: string) => (v === '' ? null : parseInt(v, 10)),
-                })}
-                id="playoff_eligibility_min_games"
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                placeholder="Optional"
-                error={!!errors.playoff_eligibility_min_games}
               />
             </FormField>
           </div>

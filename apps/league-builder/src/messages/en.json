@@ -81,8 +81,8 @@
     },
     "pricing": {
       "badge": "Simple Pricing",
-      "headline": "Free to start. Only pay when you get paid.",
-      "subheadline": "No required monthly fees. All core features included free forever — just a small transaction fee when you process payments.",
+      "headline": "Everything you need to run your league.",
+      "subheadline": "$299.99/mo for hosting, maintenance, and all core features — plus a 2.99% transaction fee when you process payments.",
       "fee": "Only",
       "feeContext": "on payment processing (min $0.50/transaction)",
       "benefit1": "Unlimited teams and players",
@@ -855,8 +855,8 @@
   "billing": {
     "title": "Billing",
     "description": "Manage your billing and payment processing",
-    "platformFree": "The Platform is FREE Forever",
-    "platformFreeDescription": "No monthly fees, no hidden costs. Use all features at no charge.",
+    "platformFree": "Platform Monthly",
+    "platformFreeDescription": "$299.99/mo — hosting, maintenance, and all core features included.",
     "included": {
       "unlimitedTeams": "Unlimited teams and players",
       "leagueWebsite": "Full-featured league website included",
@@ -2768,7 +2768,8 @@
     },
     "content": {
       "yourCurrentPlan": "Your Current Plan",
-      "freeForever": "FREE Forever",
+      "freeForever": "Platform Monthly",
+      "platformIncluded": "All core features included",
       "premiumFeaturesUnlocked": "Premium features unlocked",
       "platformMonthly": "Platform Monthly",
       "trial": "TRIAL",
@@ -2776,7 +2777,7 @@
       "nextBilling": "Next billing: {date}",
       "cancelsAtPeriodEnd": "Cancels at end of billing period",
       "transactionFeeOnPayments": "{percent}% transaction fee on player payments",
-      "noCreditCard": "No credit card required. No hidden fees. Always free.",
+      "noCreditCard": "Includes hosting, maintenance, and all platform features.",
       "premiumAddOns": "Premium Add-Ons",
       "subscriptionActivated": "Subscription activated!",
       "subscriptionActivatedDesc": "Your subscription is now active.",
@@ -2791,7 +2792,7 @@
         "adminDashboard": "Complete admin dashboard",
         "scorekeeperApp": "Mobile scorekeeper app",
         "realtimeStats": "Real-time stats and standings",
-        "everythingInFree": "Everything in FREE",
+        "everythingInFree": "Everything in Platform Monthly",
         "prioritySupport": "Priority email support (24hr response)",
         "customBranding": "Custom brand colors and logos",
         "advancedPermissions": "Advanced admin permissions",
@@ -2890,8 +2891,10 @@
       }
     },
     "plans": {
-      "freeForever": "Free Forever",
-      "freeDescription": "Build and manage your leagues at no cost",
+      "freeForever": "Platform Monthly",
+      "platformMonthly": "Platform Monthly",
+      "platformDescription": "Everything you need to run your league",
+      "freeDescription": "Everything you need to run your league",
       "simpleTransparentPricing": "Simple, Transparent Pricing",
       "paymentProcessing": "Payment Processing",
       "perTransaction": "per transaction",

@@ -86,14 +86,24 @@ export function Step6Addons() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Card 1: Advanced Stats Tracking */}
             <div
+              role="button"
+              tabIndex={0}
               className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
                 enableAdvancedStats
                   ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-primary/50'
               }`}
-              onClick={() =>
-                setValue('enableAdvancedStats', !enableAdvancedStats)
-              }
+              onClick={(e) => {
+                // Ignore clicks that originated from the Switch
+                if ((e.target as HTMLElement).closest('[role="switch"]')) return;
+                setValue('enableAdvancedStats', !enableAdvancedStats);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setValue('enableAdvancedStats', !enableAdvancedStats);
+                }
+              }}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -125,7 +135,6 @@ export function Step6Addons() {
                   onCheckedChange={(checked) =>
                     setValue('enableAdvancedStats', checked)
                   }
-                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -154,12 +163,23 @@ export function Step6Addons() {
 
             {/* Card 2: AI News & Summaries */}
             <div
+              role="button"
+              tabIndex={0}
               className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
                 enableAiNews
                   ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-primary/50'
               }`}
-              onClick={() => setValue('enableAiNews', !enableAiNews)}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest('[role="switch"]')) return;
+                setValue('enableAiNews', !enableAiNews);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setValue('enableAiNews', !enableAiNews);
+                }
+              }}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -189,7 +209,6 @@ export function Step6Addons() {
                   onCheckedChange={(checked) =>
                     setValue('enableAiNews', checked)
                   }
-                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
 
