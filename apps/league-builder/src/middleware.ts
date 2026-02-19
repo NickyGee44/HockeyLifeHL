@@ -11,7 +11,7 @@ const intlMiddleware = createMiddleware({
 });
 
 // Public routes that don't require authentication (without locale prefix)
-const PUBLIC_ROUTES = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy'];
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy', '/setup-organization'];
 
 // Auth routes that authenticated users should be redirected away from
 const AUTH_ROUTES = ['/login', '/signup', '/forgot-password'];
@@ -58,6 +58,21 @@ function normalizeFrenchRoute(pathname: string): string {
   return pathname;
 }
 
+/**
+ * Copy Supabase auth cookies from one response to another.
+ * This is critical when the middleware needs to return a redirect
+ * instead of the original intl response — without this, refreshed
+ * session tokens are lost and the user appears unauthenticated.
+ */
+function copyAuthCookies(from: NextResponse, to: NextResponse): void {
+  from.cookies.getAll().forEach((cookie) => {
+    to.cookies.set(cookie.name, cookie.value, {
+      // Preserve the cookie attributes from the Set-Cookie header
+      ...(cookie as any),
+    });
+  });
+}
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -91,7 +106,8 @@ export async function middleware(request: NextRequest) {
     pathWithoutLocale = normalizeFrenchRoute(pathWithoutLocale);
   }
 
-  // Create Supabase client for auth
+  // Create Supabase client for auth — cookies are read from the request
+  // and any refreshed tokens are written to the intl response
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -122,13 +138,18 @@ export async function middleware(request: NextRequest) {
     const loginPath = locale === 'fr' ? '/fr/connexion' : '/en/login';
     const loginUrl = new URL(loginPath, request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    // Carry over any refreshed auth cookies so they aren't lost
+    copyAuthCookies(response, redirectResponse);
+    return redirectResponse;
   }
 
   // Redirect authenticated users away from auth pages
   if (user && isAuthRoute) {
     const dashboardPath = locale === 'fr' ? '/fr/tableau-de-bord' : '/en/dashboard';
-    return NextResponse.redirect(new URL(dashboardPath, request.url));
+    const redirectResponse = NextResponse.redirect(new URL(dashboardPath, request.url));
+    copyAuthCookies(response, redirectResponse);
+    return redirectResponse;
   }
 
   return response;
