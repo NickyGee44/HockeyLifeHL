@@ -115,29 +115,31 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
     <div className="space-y-4">
       {/* Horizontal scrolling timeline strip */}
       <div className="relative group/scroller">
-        {/* Left gradient overlay */}
-        <div
-          className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-16 transition-opacity duration-300"
-          style={{
-            background: 'linear-gradient(to right, var(--color-background), transparent)',
-            opacity: canScrollLeft ? 1 : 0,
-          }}
-        />
-
-        {/* Right gradient overlay */}
-        <div
-          className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-16 transition-opacity duration-300"
-          style={{
-            background: 'linear-gradient(to left, var(--color-background), transparent)',
-            opacity: canScrollRight ? 1 : 0,
-          }}
-        />
+        {/* Scroll buttons — overlaid on edges */}
+        {canScrollLeft && (
+          <button
+            onClick={() => scrollToItem('left')}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-all duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
+          </button>
+        )}
+        {canScrollRight && (
+          <button
+            onClick={() => scrollToItem('right')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-all duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="w-5 h-5 text-[var(--color-text-secondary)]" />
+          </button>
+        )}
 
         {/* Scrollable container */}
         <div
           ref={scrollRef}
           onScroll={updateScrollState}
-          className="flex gap-3 px-1 py-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-4 px-1 py-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           {champions.map((champ) => (
             <button
@@ -147,14 +149,14 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
                 else itemRefs.current.delete(champ.id);
               }}
               onClick={() => handleSelect(champ.id)}
-              className={`group relative flex-shrink-0 w-[200px] rounded-xl border overflow-hidden transition-all duration-200 text-left ${
+              className={`group relative flex-shrink-0 w-[260px] snap-start rounded-xl border overflow-hidden transition-all duration-200 text-left ${
                 selected.id === champ.id
                   ? 'border-amber-500/60 ring-2 ring-amber-500/20 bg-amber-500/5 scale-[1.02]'
                   : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-amber-500/30 hover:bg-amber-500/5'
               }`}
             >
               {/* Photo / Fallback */}
-              <div className="relative h-28 w-full bg-[var(--color-surface-hover)] overflow-hidden">
+              <div className="relative h-44 w-full bg-[var(--color-surface-hover)] overflow-hidden">
                 {champ.photo ? (
                   <img
                     src={champ.photo}
@@ -166,12 +168,12 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
                     <img
                       src={champ.teamLogo}
                       alt={champ.teamName}
-                      className="w-16 h-16 object-contain"
+                      className="w-20 h-20 object-contain"
                     />
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <Trophy className="w-10 h-10 text-amber-400/40" />
+                    <Trophy className="w-12 h-12 text-amber-400/40" />
                   </div>
                 )}
                 {/* Year badge */}
@@ -203,28 +205,6 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
             </button>
           ))}
         </div>
-
-        {/* Scroll buttons — below the strip, right-aligned */}
-        {(canScrollLeft || canScrollRight) && (
-          <div className="flex items-center justify-end gap-1.5 mt-2 pr-1">
-            <button
-              onClick={() => scrollToItem('left')}
-              disabled={!canScrollLeft}
-              className="flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="w-4 h-4 text-[var(--color-text-secondary)]" />
-            </button>
-            <button
-              onClick={() => scrollToItem('right')}
-              disabled={!canScrollRight}
-              className="flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-4 h-4 text-[var(--color-text-secondary)]" />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Expanded detail panel for selected champion */}
@@ -232,7 +212,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
         {/* Header with photo */}
         <div className="relative">
           {selected.photo && (
-            <div className="h-48 md:h-64 w-full overflow-hidden">
+            <div className="h-64 md:h-80 lg:h-96 w-full overflow-hidden">
               <img
                 src={selected.photo}
                 alt={`${selected.teamName || selected.year} Champions`}

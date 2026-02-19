@@ -55,7 +55,26 @@ export default async function LocaleLayout({ children, params }: Props) {
       <NextIntlClientProvider messages={messages}>
         <ThemeProvider defaultTheme="dark" enableSystem enableTransition>
           {children}
-          <Toaster theme="dark" position="bottom-right" richColors />
+          <Toaster
+            theme="dark"
+            position="bottom-right"
+            richColors
+            toastOptions={{
+              style: {
+                borderRadius: '12px',
+                border: '1px solid oklch(0.35 0 0)',
+                background: 'oklch(0.18 0 0)',
+                color: 'oklch(0.9 0 0)',
+                fontFamily: 'Inter, sans-serif',
+              },
+              classNames: {
+                success: '[&>[data-icon]]:text-emerald-400',
+                error: '[&>[data-icon]]:text-red-400',
+                info: '[&>[data-icon]]:text-[#d4af37]',
+                warning: '[&>[data-icon]]:text-amber-400',
+              },
+            }}
+          />
         </ThemeProvider>
       </NextIntlClientProvider>
     </>
