@@ -1,5 +1,4 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
@@ -7,12 +6,14 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
  * Auth Callback Route
  *
  * Handles the PKCE code exchange for Supabase Auth flows:
+ * - OAuth (Google, Apple) sign-in
  * - Password reset email links
  * - Email verification links
  * - Magic link sign-ins
  *
- * Supabase sends the user to: /api/auth/callback?code=...&next=...
- * This route exchanges the code for a session and redirects.
+ * IMPORTANT: We must set cookies on the NextResponse directly (not via
+ * cookies() from next/headers) because cookies().set() writes are NOT
+ * included in NextResponse.redirect() responses in Next.js 15+.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -21,7 +22,11 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type');
 
-  const cookieStore = await cookies();
+  // Create a response we can attach cookies to — we'll swap the URL later
+  // when we know where to redirect.
+  const response = NextResponse.next({
+    request: { headers: request.headers },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,16 +34,30 @@ export async function GET(request: NextRequest) {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+            response.cookies.set(name, value, options);
           });
         },
       },
     }
   );
+
+  /**
+   * Helper: create a redirect response that carries over all cookies
+   * set during the auth exchange (session tokens, code verifier cleanup, etc.)
+   */
+  function redirectWithCookies(url: URL | string): NextResponse {
+    const redirectUrl = typeof url === 'string' ? new URL(url, request.url) : url;
+    const redirectResponse = NextResponse.redirect(redirectUrl);
+    // Copy every cookie from the auth response to the redirect response
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value);
+    });
+    return redirectResponse;
+  }
 
   // Handle PKCE code exchange
   if (code) {
@@ -46,20 +65,19 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[Auth Callback] Code exchange error:', error.message);
-      // Redirect to reset-password with error for recovery flows
       if (type === 'recovery') {
-        return NextResponse.redirect(
+        return redirectWithCookies(
           new URL('/en/reset-password?error=Invalid or expired link', request.url)
         );
       }
-      return NextResponse.redirect(
+      return redirectWithCookies(
         new URL('/en/login?error=auth_error', request.url)
       );
     }
 
     // For recovery type, redirect to reset-password page
     if (type === 'recovery') {
-      return NextResponse.redirect(new URL('/en/reset-password', request.url));
+      return redirectWithCookies(new URL('/en/reset-password', request.url));
     }
 
     // For OAuth users, check if they need to complete org setup
@@ -89,10 +107,9 @@ export async function GET(request: NextRequest) {
         const hasOrg = (ownedOrgs && ownedOrgs.length > 0) || (memberships && memberships.length > 0);
 
         if (!hasOrg) {
-          // Detect locale from the `next` param or default to 'en'
           const locale = next.startsWith('/fr') ? 'fr' : 'en';
           const setupPath = `/${locale}/setup-organization`;
-          return NextResponse.redirect(new URL(setupPath, request.url));
+          return redirectWithCookies(new URL(setupPath, request.url));
         }
       }
     }
@@ -109,14 +126,14 @@ export async function GET(request: NextRequest) {
           .single();
         const matchIds = (profile as any)?.pending_legacy_match_ids as string[] | null;
         if (Array.isArray(matchIds) && matchIds.length > 1) {
-          return NextResponse.redirect(new URL('/en/claim-history', request.url));
+          return redirectWithCookies(new URL('/en/claim-history', request.url));
         }
       }
     } catch {
       // Non-blocking — proceed with normal redirect
     }
 
-    return NextResponse.redirect(new URL(next, request.url));
+    return redirectWithCookies(new URL(next, request.url));
   }
 
   // Handle token_hash verification (older flow)
@@ -129,23 +146,23 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('[Auth Callback] OTP verification error:', error.message);
       if (type === 'recovery') {
-        return NextResponse.redirect(
+        return redirectWithCookies(
           new URL('/en/reset-password?error=Invalid or expired link', request.url)
         );
       }
-      return NextResponse.redirect(
+      return redirectWithCookies(
         new URL('/en/login?error=auth_error', request.url)
       );
     }
 
     // For recovery type, redirect to reset-password page
     if (type === 'recovery') {
-      return NextResponse.redirect(new URL('/en/reset-password', request.url));
+      return redirectWithCookies(new URL('/en/reset-password', request.url));
     }
 
-    return NextResponse.redirect(new URL(next, request.url));
+    return redirectWithCookies(new URL(next, request.url));
   }
 
   // No code or token_hash provided
-  return NextResponse.redirect(new URL('/en/login', request.url));
+  return redirectWithCookies(new URL('/en/login', request.url));
 }
