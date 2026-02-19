@@ -91,7 +91,7 @@ export async function getLeagueAwards(
 
     // Enrich with player, team, and season names
     const enrichedAwards = await Promise.all(
-      (awards || []).map(async (award) => {
+      (awards || []).map(async (award: any) => {
         let player_name: string | null = null;
         let team_name: string | null = null;
         let season_name: string | null = null;
