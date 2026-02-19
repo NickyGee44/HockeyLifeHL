@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Settings,
@@ -18,6 +18,7 @@ import {
   ListOrdered,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { motion } from 'framer-motion';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { setDraftOrder as saveDraftOrder } from '@/lib/actions/draft';
 import type { DraftSetupWizardProps, DraftSetupConfig } from './types';
@@ -58,6 +59,9 @@ export function DraftSetupWizard({
   const [draftOrder, setDraftOrder] = useState<{ id: string; name: string }[]>(
     () => [...teams]
   );
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [revealedFirst, setRevealedFirst] = useState(false);
+  const shuffleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const updateConfig = (updates: Partial<DraftSetupConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
   };
@@ -94,17 +98,44 @@ export function DraftSetupWizard({
     });
   }, []);
 
-  // Randomize the draft order using Fisher-Yates shuffle
-  const randomizeOrder = useCallback(() => {
-    setDraftOrder((prev) => {
-      const shuffled = [...prev];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  // Fisher-Yates shuffle helper
+  const fisherYatesShuffle = <T,>(arr: T[]): T[] => {
+    const shuffled = [...arr];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Animated randomize: 6 rapid shuffles then reveal
+  const animatedRandomize = useCallback(() => {
+    if (isShuffling) return;
+    setIsShuffling(true);
+    setRevealedFirst(false);
+
+    let count = 0;
+    const totalShuffles = 6;
+
+    const doShuffle = () => {
+      count++;
+      setDraftOrder((prev) => fisherYatesShuffle(prev));
+
+      if (count < totalShuffles) {
+        shuffleTimerRef.current = setTimeout(doShuffle, 250);
+      } else {
+        // Final settle
+        setIsShuffling(false);
+        setRevealedFirst(true);
+        // Remove gold highlight after 2s
+        shuffleTimerRef.current = setTimeout(() => {
+          setRevealedFirst(false);
+        }, 2000);
       }
-      return shuffled;
-    });
-  }, []);
+    };
+
+    doShuffle();
+  }, [isShuffling]);
 
   const handleSubmit = async () => {
     if (!config.name.trim()) {
@@ -427,15 +458,17 @@ export function DraftSetupWizard({
                 </p>
               </div>
               <button
-                onClick={randomizeOrder}
+                onClick={animatedRandomize}
+                disabled={isShuffling}
                 className={cn(
                   'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
                   'bg-rink-500/10 text-rink-500 border border-rink-500/30',
-                  'hover:bg-rink-500/20 transition-colors'
+                  'hover:bg-rink-500/20 transition-colors',
+                  'disabled:cursor-not-allowed disabled:opacity-50'
                 )}
               >
-                <Shuffle className="h-4 w-4" />
-                {t('randomize')}
+                <Shuffle className={cn('h-4 w-4', isShuffling && 'animate-spin')} />
+                {isShuffling ? t('shuffling') : t('randomize')}
               </button>
             </div>
 
@@ -450,14 +483,33 @@ export function DraftSetupWizard({
             ) : (
               <div className="space-y-2">
                 {draftOrder.map((team, index) => (
-                  <div
+                  <motion.div
                     key={team.id}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-700 bg-neutral-800/50 p-3 transition-colors hover:border-neutral-600"
+                    layout
+                    layoutId={team.id}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className={cn(
+                      'flex items-center gap-3 rounded-xl border p-3 transition-colors hover:border-neutral-600',
+                      revealedFirst && index === 0
+                        ? 'border-amber-400/80 ring-2 ring-amber-400/80 bg-amber-500/10'
+                        : 'border-neutral-700 bg-neutral-800/50'
+                    )}
                   >
-                    {/* Pick number */}
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-rink-500/10 text-sm font-bold text-rink-500">
+                    {/* Pick number badge */}
+                    <motion.div
+                      key={`${team.id}-${index}`}
+                      initial={false}
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.3 }}
+                      className={cn(
+                        'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-sm font-bold',
+                        revealedFirst && index === 0
+                          ? 'bg-amber-400/20 text-amber-400'
+                          : 'bg-rink-500/10 text-rink-500'
+                      )}
+                    >
                       {index + 1}
-                    </div>
+                    </motion.div>
 
                     {/* Team name */}
                     <div className="flex-1 min-w-0">
@@ -468,10 +520,10 @@ export function DraftSetupWizard({
                     <div className="flex flex-shrink-0 flex-col gap-0.5">
                       <button
                         onClick={() => moveTeamUp(index)}
-                        disabled={index === 0}
+                        disabled={index === 0 || isShuffling}
                         className={cn(
                           'rounded p-1 transition-colors',
-                          index === 0
+                          index === 0 || isShuffling
                             ? 'cursor-not-allowed text-neutral-600'
                             : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'
                         )}
@@ -481,10 +533,10 @@ export function DraftSetupWizard({
                       </button>
                       <button
                         onClick={() => moveTeamDown(index)}
-                        disabled={index === draftOrder.length - 1}
+                        disabled={index === draftOrder.length - 1 || isShuffling}
                         className={cn(
                           'rounded p-1 transition-colors',
-                          index === draftOrder.length - 1
+                          index === draftOrder.length - 1 || isShuffling
                             ? 'cursor-not-allowed text-neutral-600'
                             : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'
                         )}
@@ -493,7 +545,7 @@ export function DraftSetupWizard({
                         <ChevronDown className="h-4 w-4" />
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}

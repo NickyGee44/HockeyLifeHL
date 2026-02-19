@@ -730,6 +730,7 @@
     "draftOrderDescSnake": "Set the picking order for round 1. Order reverses each round.",
     "draftOrderDescLinear": "Set the picking order for round 1. Same order every round.",
     "randomize": "Randomize",
+    "shuffling": "Shuffling...",
     "noTeamsAvailable": "No teams available.",
     "addTeamsFirst": "Add teams to your league before setting up the draft order.",
     "draftOrderHint": "Use the arrows to reorder teams, or click Randomize for a random order. The order will be saved when you create the draft.",

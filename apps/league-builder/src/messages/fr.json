@@ -730,6 +730,7 @@
     "draftOrderDescSnake": "Definissez l'ordre de selection pour la ronde 1. L'ordre s'inverse a chaque ronde.",
     "draftOrderDescLinear": "Definissez l'ordre de selection pour la ronde 1. Meme ordre a chaque ronde.",
     "randomize": "Aleatoire",
+    "shuffling": "Mélange en cours...",
     "noTeamsAvailable": "Aucune equipe disponible.",
     "addTeamsFirst": "Ajoutez des equipes a votre ligue avant de configurer l'ordre du repechage.",
     "draftOrderHint": "Utilisez les fleches pour reordonner les equipes ou cliquez sur Aleatoire pour un ordre aleatoire. L'ordre sera sauvegarde lors de la creation du repechage.",
