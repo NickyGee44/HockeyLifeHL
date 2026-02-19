@@ -360,6 +360,123 @@ async function verifyActiveSession(gameId: string): Promise<string> {
 // =============================================================================
 
 /**
+ * Request scorekeeper token via email.
+ * Always returns success to prevent email enumeration.
+ */
+export async function requestTokenByEmail(
+  leagueSlug: string,
+  email: string
+): Promise<{ success: boolean }> {
+  try {
+    const headersList = await headers();
+    const forwardedFor = headersList.get('x-forwarded-for');
+    const realIp = headersList.get('x-real-ip');
+    const clientIp = forwardedFor?.split(',')[0].trim() || realIp || 'unknown';
+
+    // Rate limit using a synthetic token key
+    const rateLimitCheck = checkRateLimit(clientIp, `email-request:${email}`);
+    if (!rateLimitCheck.allowed) {
+      return { success: true }; // Silent — never reveal rate limiting for email requests
+    }
+
+    const supabase = createServiceRoleClient();
+
+    // Look up league by slug
+    const { data: league } = await (supabase as any)
+      .from('leagues')
+      .select('id, name')
+      .eq('slug', leagueSlug)
+      .maybeSingle();
+
+    if (!league) return { success: true };
+
+    // Find active scorekeeper with matching email
+    const { data: scorekeeper } = await (supabase as any)
+      .from('league_scorekeepers')
+      .select('id, display_name')
+      .eq('league_id', league.id)
+      .ilike('email', email.trim())
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (!scorekeeper) return { success: true };
+
+    // Find active, non-expired session for this scorekeeper
+    const { data: session } = await (supabase as any)
+      .from('scorekeeper_sessions')
+      .select('token, expires_at, game_id')
+      .eq('league_scorekeeper_id', scorekeeper.id)
+      .eq('is_active', true)
+      .gt('expires_at', new Date().toISOString())
+      .order('expires_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!session) return { success: true };
+
+    // Build email content
+    const accessUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca'}/${leagueSlug}/scorekeeper?token=${session.token}`;
+    const expiresAt = new Date(session.expires_at);
+    const expiryStr = expiresAt.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+        <h2 style="margin: 0 0 16px; color: #1a1a1a;">Your Scorekeeper Token</h2>
+        <p style="margin: 0 0 8px; color: #555; font-size: 14px;">
+          Hi${scorekeeper.display_name ? ` ${scorekeeper.display_name}` : ''}, here is your scorekeeper token for <strong>${league.name}</strong>:
+        </p>
+        <div style="background: #f5f5f5; border-radius: 8px; padding: 20px; text-align: center; margin: 16px 0;">
+          <code style="font-size: 28px; font-family: 'SF Mono', 'Fira Code', monospace; letter-spacing: 0.15em; color: #1a1a1a; font-weight: 600;">
+            ${session.token}
+          </code>
+        </div>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${accessUrl}" style="display: inline-block; background: #d4af37; color: #000; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+            Open Scorekeeper
+          </a>
+        </div>
+        <p style="margin: 16px 0 0; color: #888; font-size: 12px; text-align: center;">
+          Token expires: ${expiryStr}
+        </p>
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;" />
+        <p style="margin: 0; color: #aaa; font-size: 11px; text-align: center;">
+          If you did not request this, you can safely ignore this email.
+        </p>
+      </div>
+    `;
+
+    // Send via Resend
+    const { Resend } = await import('resend');
+    const resend = process.env.RESEND_API_KEY
+      ? new Resend(process.env.RESEND_API_KEY)
+      : null;
+
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@beerleaguehockey.ca';
+
+    if (resend) {
+      await resend.emails.send({
+        from: fromEmail,
+        to: email.trim(),
+        subject: `Your Scorekeeper Token — ${league.name}`,
+        html,
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Request token by email error:', error);
+    return { success: true }; // Always return success
+  }
+}
+
+/**
  * Validate a scorekeeper token and set session cookie
  */
 export async function validateScorekeeperToken(token: string): Promise<{
