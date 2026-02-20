@@ -159,24 +159,7 @@ export function applyByeWeeks(
   // For each bye "wave", pick a round and remove one game per round
   // distributing across teams that need byes most
   for (let byeWave = 0; byeWave < additionalByesNeeded; byeWave++) {
-    // Space bye waves evenly across the season
-    const waveSpacing = Math.floor(totalRounds / (additionalByesNeeded + 1));
-
-    for (let roundIdx = 0; roundIdx < totalRounds; roundIdx++) {
-      const round = rounds[roundIdx];
-      const matchupIndices = roundMap.get(round);
-      if (!matchupIndices) continue;
-
-      // Only apply byes at spaced intervals (offset by wave)
-      const offset = waveSpacing * (byeWave + 1);
-      if (roundIdx % totalRounds !== (offset + roundIdx) % totalRounds) {
-        // Use a simpler approach: for each team, find rounds evenly spaced
-        // and remove their game in that round
-        continue;
-      }
-    }
-
-    // Simpler approach: for each team, find the best round for this bye wave
+    // For each team, find the best round for this bye wave
     for (const team of teams) {
       const currentByes = byeCount.get(team.id) ?? 0;
       if (currentByes >= additionalByesNeeded) continue;
@@ -636,10 +619,10 @@ function validateGameAgainstConstraints(
         break;
 
       case 'matchup_constraint':
-        // Handle specific matchup restrictions
+        // Handle specific matchup restrictions (check both directions)
         if (
-          constraint.teamId === game.homeTeamId &&
-          constraint.opponentTeamId === game.awayTeamId
+          (constraint.teamId === game.homeTeamId && constraint.opponentTeamId === game.awayTeamId) ||
+          (constraint.teamId === game.awayTeamId && constraint.opponentTeamId === game.homeTeamId)
         ) {
           violations.push({
             constraintId: constraint.id,
@@ -662,18 +645,21 @@ function hasBackToBackGame(
   teamId: string,
   slot: Date,
   existingGames: ScheduledGame[],
-  gameDurationMinutes: number
+  gameDurationMinutes: number,
+  minHoursBetweenGames?: number
 ): boolean {
   const slotTime = slot.getTime();
-  const gameDuration = gameDurationMinutes * 60 * 1000;
+  // Use minHoursBetweenGames if provided (default 24h), otherwise at least one game duration
+  const minGapMs = minHoursBetweenGames != null
+    ? minHoursBetweenGames * 60 * 60 * 1000
+    : gameDurationMinutes * 60 * 1000;
 
   for (const game of existingGames) {
     if (game.homeTeamId === teamId || game.awayTeamId === teamId) {
       const gameTime = game.scheduledAt.getTime();
       const timeDiff = Math.abs(slotTime - gameTime);
 
-      // Check if games are within one game duration of each other
-      if (timeDiff < gameDuration * 2) {
+      if (timeDiff < minGapMs) {
         return true;
       }
     }
@@ -1081,6 +1067,14 @@ export function rescheduleGame(
 /**
  * Check if a slot is within venue availability.
  */
+/**
+ * Convert HH:mm string to minutes since midnight for reliable comparison.
+ */
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
 function isSlotWithinVenueAvailability(
   slot: Date,
   venueId: string,
@@ -1094,11 +1088,13 @@ function isSlotWithinVenueAvailability(
   }
 
   const dayOfWeek = slot.getDay();
-  const timeStr = `${slot.getHours().toString().padStart(2, '0')}:${slot.getMinutes().toString().padStart(2, '0')}`;
+  const slotMinutes = slot.getHours() * 60 + slot.getMinutes();
 
   return venueSlots.some((a) => {
     if (a.dayOfWeek !== dayOfWeek) return false;
-    return timeStr >= a.startTime && timeStr <= a.endTime;
+    const startMin = timeToMinutes(a.startTime);
+    const endMin = timeToMinutes(a.endTime);
+    return slotMinutes >= startMin && slotMinutes <= endMin;
   });
 }
 
@@ -1357,13 +1353,13 @@ function assignMatchupsToSlotsEnhanced(
         if (homeLimit != null) {
           const homeCount = countTeamGamesInCategory(matchup.homeTeamId, 'late_night', games, constraintConfig);
           if (homeCount >= homeLimit) {
-            slotScore -= 10; // Penalty but not hard constraint
+            continue; // Hard constraint: skip this slot
           }
         }
         if (awayLimit != null) {
           const awayCount = countTeamGamesInCategory(matchup.awayTeamId, 'late_night', games, constraintConfig);
           if (awayCount >= awayLimit) {
-            slotScore -= 10;
+            continue; // Hard constraint: skip this slot
           }
         }
       }
@@ -1377,13 +1373,13 @@ function assignMatchupsToSlotsEnhanced(
         if (homeLimit != null) {
           const homeCount = countTeamGamesInCategory(matchup.homeTeamId, 'early_morning', games, constraintConfig);
           if (homeCount >= homeLimit) {
-            slotScore -= 10;
+            continue; // Hard constraint: skip this slot
           }
         }
         if (awayLimit != null) {
           const awayCount = countTeamGamesInCategory(matchup.awayTeamId, 'early_morning', games, constraintConfig);
           if (awayCount >= awayLimit) {
-            slotScore -= 10;
+            continue; // Hard constraint: skip this slot
           }
         }
       }
