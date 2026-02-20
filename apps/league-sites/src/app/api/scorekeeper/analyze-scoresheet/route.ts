@@ -80,6 +80,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Parse layout hint
+    const sheetLayout = formData.get('sheetLayout') as string | null;
+
     // Parse rosters
     let homeRoster: Array<{ jerseyNumber: number; fullName: string }> = [];
     let awayRoster: Array<{ jerseyNumber: number; fullName: string }> = [];
@@ -105,6 +108,14 @@ export async function POST(request: NextRequest) {
       .map((p) => `#${p.jerseyNumber} ${p.fullName}`)
       .join('\n');
 
+    // Layout hint for spatial awareness
+    let layoutHint = '';
+    if (sheetLayout === 'home-left') {
+      layoutHint = `\nSPATIAL LAYOUT: The LEFT side of the score sheet belongs to the HOME team (${homeTeamName}). The RIGHT side belongs to the AWAY team (${awayTeamName}). Use this to determine which team each goal/penalty belongs to.\n`;
+    } else if (sheetLayout === 'home-right') {
+      layoutHint = `\nSPATIAL LAYOUT: The RIGHT side of the score sheet belongs to the HOME team (${homeTeamName}). The LEFT side belongs to the AWAY team (${awayTeamName}). Use this to determine which team each goal/penalty belongs to.\n`;
+    }
+
     const prompt = `You are analyzing a handwritten hockey score sheet photo. Extract all goals and penalties from this score sheet.
 
 HOME TEAM: ${homeTeamName}
@@ -114,13 +125,24 @@ ${homeRosterText || '(no roster provided)'}
 AWAY TEAM: ${awayTeamName}
 Away Roster:
 ${awayRosterText || '(no roster provided)'}
+${layoutHint}
+HANDWRITING INSTRUCTIONS:
+- When a jersey number is ambiguous (e.g., could be "7" or "1"), prefer the interpretation that matches a player on the relevant team's roster
+- Common misreads: 1↔7, 6↔8, 3↔8, 0↔6, 4↔9, 11↔17, 12↔17
+- If a number doesn't match any roster player, return it as-is but give that event a lower confidence score
+
+PENALTY TYPES (use these exact names):
+Tripping, Hooking, Holding, Slashing, Interference, High Sticking, Roughing, Cross-Checking, Boarding, Elbowing, Charging, Delay of Game, Too Many Men, Unsportsmanlike Conduct, High Sticking (Double), Spearing, Fighting, Checking from Behind, Match Penalty, Game Misconduct
 
 Instructions:
 - Match handwritten jersey numbers to the roster above
 - For goals: identify the period, approximate time, scoring team (home/away), scorer jersey number, and up to 2 assist jersey numbers
-- For penalties: identify the period, approximate time, penalized team (home/away), player jersey number, penalty type, and penalty minutes
-- If you can't read a jersey number clearly, use your best guess based on the roster
+- For penalties: identify the period, approximate time, penalized team (home/away), player jersey number, penalty type (from list above), and penalty minutes
 - If time is not visible, use 0 for both minutes and seconds
+- Include a "confidence" score (0.0 to 1.0) for each event reflecting how confident you are in the reading
+  - 1.0 = clearly legible, matches roster perfectly
+  - 0.7-0.9 = mostly clear, minor ambiguity
+  - Below 0.7 = difficult to read, guessing
 - Return ONLY valid JSON
 
 Return JSON in this exact format:
@@ -133,7 +155,8 @@ Return JSON in this exact format:
       "teamType": "home",
       "scorerJersey": 10,
       "assist1Jersey": 7,
-      "assist2Jersey": null
+      "assist2Jersey": null,
+      "confidence": 0.95
     }
   ],
   "penalties": [
@@ -144,7 +167,8 @@ Return JSON in this exact format:
       "teamType": "home",
       "playerJersey": 15,
       "type": "Tripping",
-      "minutes": 2
+      "minutes": 2,
+      "confidence": 0.85
     }
   ]
 }`;

@@ -26,7 +26,7 @@ interface PenaltyEntryProps {
 }
 
 /** Default NHL-style penalties used when no league config is set */
-const DEFAULT_PENALTIES: PenaltyRule[] = [
+export const DEFAULT_PENALTIES: PenaltyRule[] = [
   // Minors (2 min)
   { type: 'Tripping', minutes: 2 },
   { type: 'Hooking', minutes: 2 },
