@@ -16,6 +16,7 @@ import {
 import { RosterTable } from '@/components/teams/RosterTable';
 import { AddPlayerModalEnhanced } from '@/components/teams/AddPlayerModalEnhanced';
 import { RosterExportButton } from '@/components/teams/RosterExportButton';
+import { TeamEmailBlast } from '@/components/teams/TeamEmailBlast';
 
 interface Team {
   id: string;
@@ -72,6 +73,7 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <TeamEmailBlast teamId={team.id} teamName={team.name} />
                 <RosterExportButton teamId={team.id} />
                 <button
                   onClick={() => setIsAddPlayerOpen(true)}

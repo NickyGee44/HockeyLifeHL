@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { LeagueTeamsClient } from '@/components/teams/LeagueTeamsClient';
 import { RosterExportButton } from '@/components/teams/RosterExportButton';
+import { TeamEmailBlast } from '@/components/teams/TeamEmailBlast';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -122,6 +123,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
             </div>
 
             <div className="flex items-center gap-2">
+              <TeamEmailBlast leagueId={leagueId} leagueName={league.name} />
               <RosterExportButton leagueId={leagueId} seasonId={currentSeason?.id} label="Export All Contacts" />
               <Link
                 href={`/dashboard/leagues/${leagueId}/teams/new`}
