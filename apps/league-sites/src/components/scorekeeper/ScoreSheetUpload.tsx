@@ -613,7 +613,12 @@ function GoalJerseyEditor({
 
   return (
     <div className="space-y-2">
-      <JerseySelect label="Scorer" value={scorer} roster={roster} onChange={setScorer} />
+      <JerseySelect
+        label="Scorer"
+        value={scorer}
+        roster={roster}
+        onChange={(v) => setScorer(v ?? goal.scorerJersey)}
+      />
       <JerseySelect label="Assist 1" value={a1} roster={roster} onChange={setA1} allowNull />
       <JerseySelect label="Assist 2" value={a2} roster={roster} onChange={setA2} allowNull />
       <div className="flex gap-2 pt-1">
@@ -640,7 +645,12 @@ function PenaltyJerseyEditor({
 
   return (
     <div className="space-y-2">
-      <JerseySelect label="Player" value={jersey} roster={roster} onChange={setJersey} />
+      <JerseySelect
+        label="Player"
+        value={jersey}
+        roster={roster}
+        onChange={(v) => setJersey(v ?? penalty.playerJersey)}
+      />
       <div className="flex gap-2 pt-1">
         <button onClick={onCancel} className="flex-1 py-2 text-xs rounded-lg bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">Cancel</button>
         <button onClick={() => onSave({ ...penalty, playerJersey: jersey, confidence: 'high' })} className="flex-1 py-2 text-xs rounded-lg bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] font-semibold">Save</button>

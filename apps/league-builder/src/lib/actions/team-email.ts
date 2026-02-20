@@ -107,8 +107,8 @@ export async function sendTeamEmail(params: SendTeamEmailParams): Promise<EmailR
   );
 
   return {
-    success: result.successful > 0,
-    sentCount: result.successful,
+    success: result.sent > 0,
+    sentCount: result.sent,
     error: result.failed > 0 ? `${result.failed} emails failed to send` : undefined,
   };
 }
@@ -203,8 +203,8 @@ export async function sendLeagueEmail(params: SendLeagueEmailParams): Promise<Em
   );
 
   return {
-    success: result.successful > 0,
-    sentCount: result.successful,
+    success: result.sent > 0,
+    sentCount: result.sent,
     error: result.failed > 0 ? `${result.failed} emails failed to send` : undefined,
   };
 }
