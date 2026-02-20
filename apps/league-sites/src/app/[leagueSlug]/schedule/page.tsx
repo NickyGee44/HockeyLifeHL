@@ -42,12 +42,11 @@ export async function generateMetadata({
 /**
  * Group games by their scheduled date (YYYY-MM-DD key).
  * Returns a Map with date keys in chronological order.
- * Converts UTC times to America/Toronto timezone to avoid day-shift issues
+ * Converts UTC times to the league's timezone to avoid day-shift issues
  * (e.g. a 9 PM EST Thursday game stored as Friday 1am UTC should show as Thursday).
  */
-function groupGamesByDate(games: ScheduleGame[]): Map<string, ScheduleGame[]> {
+function groupGamesByDate(games: ScheduleGame[], timeZone: string): Map<string, ScheduleGame[]> {
   const grouped = new Map<string, ScheduleGame[]>();
-  const timeZone = 'America/Toronto'; // WOHA is in Toronto
 
   for (const game of games) {
     // Convert UTC time to Toronto timezone
@@ -100,6 +99,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
 
   // Default to current season when no season filter is specified
   const selectedSeasonId = seasonFilter || defaultSeason?.id || null;
+  const leagueTimezone = league.timezone || 'America/Toronto';
 
   // Fetch games with resolved season filter
   const [games, gameCounts] = await Promise.all([
@@ -111,6 +111,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       type: typeFilter,
       venue: venueFilter,
       status: statusFilter,
+      timezone: leagueTimezone,
     }),
     getWeekGameCounts(league.id, weekStart, {
       seasonId: selectedSeasonId || undefined,
@@ -119,6 +120,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       type: typeFilter,
       venue: venueFilter,
       status: statusFilter,
+      timezone: leagueTimezone,
     }),
   ]);
 
@@ -126,7 +128,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   const days = buildWeekDays(weekStart, gameCounts);
 
   // Group games by date for date-grouped rendering
-  const gamesByDate = groupGamesByDate(games as ScheduleGame[]);
+  const gamesByDate = groupGamesByDate(games as ScheduleGame[], leagueTimezone);
 
   const scheduleJsonLd = buildScheduleJsonLd(games as ScheduleGame[], league, leagueSlug);
 
@@ -203,7 +205,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
                   </div>
 
                   {/* Games for this date */}
-                  <ScheduleTable games={dateGames} leagueSlug={leagueSlug} showDivision />
+                  <ScheduleTable games={dateGames} leagueSlug={leagueSlug} showDivision timezone={leagueTimezone} />
                 </div>
               ))}
             </div>
