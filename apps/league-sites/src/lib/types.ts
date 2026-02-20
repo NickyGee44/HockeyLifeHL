@@ -92,7 +92,7 @@ export interface Division {
   id: string;
   name: string;
   league_id: string;
-  sort_order: number;
+  sort_order?: number;
 }
 
 export interface Team {
