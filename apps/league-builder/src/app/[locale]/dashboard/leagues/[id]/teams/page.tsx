@@ -9,6 +9,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { LeagueTeamsClient } from '@/components/teams/LeagueTeamsClient';
+import { RosterExportButton } from '@/components/teams/RosterExportButton';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -120,17 +121,20 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
               </p>
             </div>
 
-            <Link
-              href={`/dashboard/leagues/${leagueId}/teams/new`}
-              className={cn(
-                'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
-                'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
-              )}
-            >
-              <Plus className="w-4 h-4" />
-              Add Team
-            </Link>
+            <div className="flex items-center gap-2">
+              <RosterExportButton leagueId={leagueId} seasonId={currentSeason?.id} label="Export All Contacts" />
+              <Link
+                href={`/dashboard/leagues/${leagueId}/teams/new`}
+                className={cn(
+                  'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
+                  'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                  'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
+                )}
+              >
+                <Plus className="w-4 h-4" />
+                Add Team
+              </Link>
+            </div>
           </div>
         </div>
 
