@@ -13,7 +13,7 @@ interface ScoreSheetUploadProps {
 
 type Confidence = 'high' | 'medium' | 'low';
 
-interface ExtractedGoal {
+export interface ExtractedGoal {
   period: number;
   timeMinutes: number;
   timeSeconds: number;
@@ -24,7 +24,7 @@ interface ExtractedGoal {
   confidence?: Confidence;
 }
 
-interface ExtractedPenalty {
+export interface ExtractedPenalty {
   period: number;
   timeMinutes: number;
   timeSeconds: number;
@@ -35,7 +35,7 @@ interface ExtractedPenalty {
   confidence?: Confidence;
 }
 
-type ExtractedEvent =
+export type ExtractedEvent =
   | { kind: 'goal'; data: ExtractedGoal; id: string }
   | { kind: 'penalty'; data: ExtractedPenalty; id: string };
 
