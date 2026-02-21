@@ -41,7 +41,7 @@ export function SponsorFooterStrip({ sponsors }: SponsorFooterStripProps) {
 
   const [displaySponsors, setDisplaySponsors] = useState(stableSponsors);
   useEffect(() => {
-    setDisplaySponsors(shuffleArray(stableSponsors));
+    queueMicrotask(() => setDisplaySponsors(shuffleArray(stableSponsors)));
   }, [stableSponsors]);
 
   const isDefaultOnly = displaySponsors.length === 1 && displaySponsors[0].id === 'blh-default';

@@ -48,7 +48,9 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    queueMicrotask(() => setMounted(true));
+  }, []);
 
   const updateScrollButtons = useCallback(() => {
     if (!scrollRef.current) return;
@@ -170,7 +172,9 @@ function GameTile({ game, leagueSlug }: GameTileProps) {
   const gameDate = new Date(game.scheduled_at);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    queueMicrotask(() => setMounted(true));
+  }, []);
 
   // Parse team color
   const getTeamColor = (colors: string | null): string | null => {
@@ -345,7 +349,9 @@ function StatusBadge({ game, gameDate }: StatusBadgeProps) {
   const { status } = game;
   const isLive = isGameLive(game);
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    queueMicrotask(() => setMounted(true));
+  }, []);
 
   // Show live badge if game is in progress OR within 1 hour of start time
   if (mounted && isLive && status !== 'completed') {

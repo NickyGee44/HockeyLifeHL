@@ -5,7 +5,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 function SignedAtLabel({ isoDate }: { isoDate: string }) {
   const [text, setText] = useState('');
   useEffect(() => {
-    setText(new Date(isoDate).toLocaleString());
+    queueMicrotask(() => setText(new Date(isoDate).toLocaleString()));
   }, [isoDate]);
   return <p className="text-xs text-neutral-500 text-center">Signed {text}</p>;
 }

@@ -9,11 +9,13 @@ function ClientDate({ iso, className }: { iso: string; className?: string }) {
   const [text, setText] = useState('');
   useEffect(() => {
     const d = new Date(iso);
-    setText(
-      d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
-      ' ' +
-      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-    );
+    queueMicrotask(() => {
+      setText(
+        d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+        ' ' +
+        d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      );
+    });
   }, [iso]);
   return <span className={className}>{text}</span>;
 }

@@ -7,7 +7,9 @@ import type { SessionGameInfo } from '@/lib/actions/scorekeeper';
 function ClientTime({ iso }: { iso: string }) {
   const [text, setText] = useState('');
   useEffect(() => {
-    setText(new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+    queueMicrotask(() => {
+      setText(new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+    });
   }, [iso]);
   return <>{text}</>;
 }

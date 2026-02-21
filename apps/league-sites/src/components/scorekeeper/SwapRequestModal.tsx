@@ -7,7 +7,9 @@ import type { DashboardGame } from '@/lib/actions/scorekeeper-dashboard';
 function useClientDate(iso: string | null, options: Intl.DateTimeFormatOptions): string {
   const [text, setText] = useState('');
   useEffect(() => {
-    if (iso) setText(new Date(iso).toLocaleDateString('en-US', options));
+    if (iso) {
+      queueMicrotask(() => setText(new Date(iso).toLocaleDateString('en-US', options)));
+    }
   }, [iso]);
   return text;
 }
@@ -15,7 +17,9 @@ function useClientDate(iso: string | null, options: Intl.DateTimeFormatOptions):
 function useClientTime(iso: string | null, options: Intl.DateTimeFormatOptions): string {
   const [text, setText] = useState('');
   useEffect(() => {
-    if (iso) setText(new Date(iso).toLocaleTimeString('en-US', options));
+    if (iso) {
+      queueMicrotask(() => setText(new Date(iso).toLocaleTimeString('en-US', options)));
+    }
   }, [iso]);
   return text;
 }
@@ -43,6 +47,8 @@ export function SwapRequestModal({ isOpen, onClose, gameId, game }: SwapRequestM
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
   const modalRef = useRef<HTMLDivElement>(null);
+  const gameDateStr = useClientDate(game?.scheduledAt ?? null, { weekday: 'long', month: 'long', day: 'numeric' });
+  const gameTimeStr = useClientTime(game?.scheduledAt ?? null, { hour: 'numeric', minute: '2-digit' });
 
   // Close on escape key
   useEffect(() => {
@@ -85,9 +91,6 @@ export function SwapRequestModal({ isOpen, onClose, gameId, game }: SwapRequestM
   }
 
   if (!isOpen) return null;
-
-  const gameDateStr = useClientDate(game?.scheduledAt ?? null, { weekday: 'long', month: 'long', day: 'numeric' });
-  const gameTimeStr = useClientTime(game?.scheduledAt ?? null, { hour: 'numeric', minute: '2-digit' });
 
   return (
     <div

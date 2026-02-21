@@ -9,7 +9,7 @@ export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
-    setMounted(true); // eslint-disable-line -- standard Next.js hydration pattern
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   if (!mounted) {

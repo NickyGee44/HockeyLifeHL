@@ -13,7 +13,9 @@ interface LeagueFooterProps {
 export function LeagueFooter({ league, leagueSlug }: LeagueFooterProps) {
   // Hydration-safe: use empty string on server, set year after mount
   const [currentYear, setCurrentYear] = useState('');
-  useEffect(() => { setCurrentYear(String(new Date().getFullYear())); }, []);
+  useEffect(() => {
+    queueMicrotask(() => setCurrentYear(String(new Date().getFullYear())));
+  }, []);
 
   return (
     <footer className="relative border-t border-[var(--color-border)] bg-[var(--color-background)] overflow-hidden">

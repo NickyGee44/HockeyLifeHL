@@ -10,7 +10,9 @@ import { acceptSwap, declineSwap } from '@/lib/actions/scorekeeper-swaps';
 function useFormattedDate(isoString: string, options: Intl.DateTimeFormatOptions): string {
   const [formatted, setFormatted] = useState('');
   useEffect(() => {
-    setFormatted(new Date(isoString).toLocaleDateString('en-US', options));
+    queueMicrotask(() => {
+      setFormatted(new Date(isoString).toLocaleDateString('en-US', options));
+    });
   }, [isoString]);
   return formatted;
 }
@@ -18,7 +20,9 @@ function useFormattedDate(isoString: string, options: Intl.DateTimeFormatOptions
 function useFormattedTime(isoString: string, options: Intl.DateTimeFormatOptions): string {
   const [formatted, setFormatted] = useState('');
   useEffect(() => {
-    setFormatted(new Date(isoString).toLocaleTimeString('en-US', options));
+    queueMicrotask(() => {
+      setFormatted(new Date(isoString).toLocaleTimeString('en-US', options));
+    });
   }, [isoString]);
   return formatted;
 }

@@ -27,7 +27,7 @@ export function SyncStatusBanner({ syncState }: SyncStatusBannerProps) {
   // Hydration-safe: always render "online" on server, check navigator on client
   const [isOnline, setIsOnline] = useState(true);
   useEffect(() => {
-    setIsOnline(navigator.onLine);
+    queueMicrotask(() => setIsOnline(navigator.onLine));
     const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
     window.addEventListener('online', goOnline);
