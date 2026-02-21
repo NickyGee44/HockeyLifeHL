@@ -10,3 +10,22 @@ export interface AuthUser {
   email: string;
   role?: UserRole;
 }
+
+const ROLE_WEIGHT: Record<UserRole, number> = {
+  viewer: 1,
+  editor: 2,
+  admin: 3,
+  owner: 4,
+};
+
+export function isAuthenticated(user: AuthUser | null | undefined): user is AuthUser {
+  return Boolean(user?.id && user?.email);
+}
+
+export function hasRequiredRole(
+  userRole: UserRole | undefined,
+  requiredRole: UserRole
+): boolean {
+  if (!userRole) return false;
+  return ROLE_WEIGHT[userRole] >= ROLE_WEIGHT[requiredRole];
+}

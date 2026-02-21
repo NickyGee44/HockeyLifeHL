@@ -9,6 +9,12 @@ import {
   submitPlayerRegistration,
   type RegistrationDraftData,
 } from '@/lib/actions/registration';
+import {
+  canSubmitRegistration,
+  validatePersonalInfoStep,
+  validateSkillPositionStep,
+  validateWaiverStep,
+} from '@/lib/registration/validation';
 import { StepPersonalInfo } from './StepPersonalInfo';
 import { StepSkillPosition } from './StepSkillPosition';
 import { StepWaiver } from './StepWaiver';
@@ -102,6 +108,25 @@ export function RegistrationWizard({
   const currentStepIndex = visibleSteps.findIndex((s) => s.id === currentStep);
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === visibleSteps.length - 1;
+  const personalStepValidation = validatePersonalInfoStep(formData);
+  const skillStepValidation = validateSkillPositionStep(formData);
+  const waiverStepValidation = validateWaiverStep(formData);
+  const paymentReady = canSubmitRegistration(formData, registrationFee);
+
+  const canGoNext = (() => {
+    switch (currentStep) {
+      case 1:
+        return personalStepValidation.valid;
+      case 2:
+        return skillStepValidation.valid;
+      case 3:
+        return waiverStepValidation.valid;
+      case 4:
+        return paymentReady;
+      default:
+        return true;
+    }
+  })();
 
   const updateFormData = useCallback(
     (updates: Partial<RegistrationDraftData>) => {
@@ -149,7 +174,7 @@ export function RegistrationWizard({
     }
 
     // Block submission if payment is required but not completed
-    if (registrationFee > 0 && formData.payment_status !== 'completed') {
+    if (!paymentReady) {
       setSubmitError('Payment is required before submitting your registration. Please go back to the Payment step to complete your payment.');
       return;
     }
@@ -175,7 +200,7 @@ export function RegistrationWizard({
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, formData, leagueId, seasonId, openLogin, registrationFee]);
+  }, [user, formData, leagueId, seasonId, openLogin, paymentReady]);
 
   // Not logged in
   if (!user) {
@@ -368,8 +393,8 @@ export function RegistrationWizard({
             {isLastStep ? (
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || (registrationFee > 0 && formData.payment_status !== 'completed')}
-                title={registrationFee > 0 && formData.payment_status !== 'completed' ? 'Complete payment before submitting' : undefined}
+                disabled={isSubmitting || !paymentReady}
+                title={!paymentReady ? 'Complete payment before submitting' : undefined}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {isSubmitting ? (
@@ -384,7 +409,9 @@ export function RegistrationWizard({
             ) : (
               <button
                 onClick={goNext}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity"
+                disabled={!canGoNext}
+                title={!canGoNext ? 'Complete required fields to continue' : undefined}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 Next
                 <ChevronRight className="w-4 h-4" />

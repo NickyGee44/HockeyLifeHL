@@ -5,6 +5,7 @@ import { CreditCard, CheckCircle2 } from 'lucide-react';
 import { EmbeddedPaymentCheckout } from '@/components/payments/EmbeddedCheckout';
 import type { RegistrationDraftData } from '@/lib/actions/registration';
 import { saveRegistrationDraft } from '@/lib/actions/registration';
+import { createPaymentDraft } from '@/lib/registration/payment';
 
 interface StepPaymentProps {
   formData: RegistrationDraftData;
@@ -33,16 +34,15 @@ export function StepPayment({
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
 
   const handleInitiatePayment = async () => {
-    // First, save a draft to get a registration_submissions ID
     setIsCreatingDraft(true);
     try {
-      const result = await saveRegistrationDraft(leagueId, seasonId, {
-        ...formData,
-        current_step: 4,
-      });
-      if (result.success && result.data) {
-        setRegistrationId(result.data.draftId);
-      }
+      const draftId = await createPaymentDraft(
+        saveRegistrationDraft,
+        leagueId,
+        seasonId,
+        formData
+      );
+      if (draftId) setRegistrationId(draftId);
     } catch {
       // Error handled by the component
     } finally {
@@ -112,8 +112,10 @@ export function StepPayment({
       ) : (
         <div className="text-center">
           <button
+            type="button"
             onClick={handleInitiatePayment}
             disabled={isCreatingDraft}
+            aria-busy={isCreatingDraft}
             className="px-6 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {isCreatingDraft ? 'Preparing...' : `Pay ${formatCurrency(registrationFee)}`}

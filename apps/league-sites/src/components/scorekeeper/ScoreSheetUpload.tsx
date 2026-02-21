@@ -3,6 +3,12 @@
 import { useState, useRef } from 'react';
 import type { GameData, PlayerData } from '@/lib/actions/scorekeeper';
 import { batchAddEvents } from '@/lib/actions/scorekeeper';
+import {
+  parseOcrAnalysisResult,
+  type OcrEvent,
+  type OcrGoal,
+  type OcrPenalty,
+} from '@/lib/scorekeeper/ocr';
 
 interface ScoreSheetUploadProps {
   gameId: string;
@@ -11,33 +17,9 @@ interface ScoreSheetUploadProps {
   onClose: () => void;
 }
 
-type Confidence = 'high' | 'medium' | 'low';
-
-export interface ExtractedGoal {
-  period: number;
-  timeMinutes: number;
-  timeSeconds: number;
-  teamType: 'home' | 'away';
-  scorerJersey: number;
-  assist1Jersey: number | null;
-  assist2Jersey: number | null;
-  confidence?: Confidence;
-}
-
-export interface ExtractedPenalty {
-  period: number;
-  timeMinutes: number;
-  timeSeconds: number;
-  teamType: 'home' | 'away';
-  playerJersey: number;
-  type: string;
-  minutes: number;
-  confidence?: Confidence;
-}
-
-export type ExtractedEvent =
-  | { kind: 'goal'; data: ExtractedGoal; id: string }
-  | { kind: 'penalty'; data: ExtractedPenalty; id: string };
+export type ExtractedGoal = OcrGoal;
+export type ExtractedPenalty = OcrPenalty;
+export type ExtractedEvent = OcrEvent;
 
 type UploadState = 'select' | 'preview' | 'analyzing' | 'review' | 'saving';
 
@@ -109,27 +91,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
       }
 
       const result = await response.json();
-
-      const events: ExtractedEvent[] = [];
-      let idCounter = 0;
-
-      (result.goals || []).forEach((g: ExtractedGoal) => {
-        events.push({ kind: 'goal', data: g, id: `evt-${idCounter++}` });
-      });
-
-      (result.penalties || []).forEach((p: ExtractedPenalty) => {
-        events.push({ kind: 'penalty', data: p, id: `evt-${idCounter++}` });
-      });
-
-      // Sort by period then time
-      events.sort((a, b) => {
-        const aData = a.kind === 'goal' ? a.data : a.data;
-        const bData = b.kind === 'goal' ? b.data : b.data;
-        if (aData.period !== bData.period) return aData.period - bData.period;
-        const aTime = aData.timeMinutes * 60 + aData.timeSeconds;
-        const bTime = bData.timeMinutes * 60 + bData.timeSeconds;
-        return aTime - bTime;
-      });
+      const events = parseOcrAnalysisResult(result);
 
       setExtractedEvents(events);
       setState('review');

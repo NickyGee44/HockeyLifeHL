@@ -3,20 +3,13 @@
 import { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { exportTeamRoster, exportLeagueRosters } from '@/lib/actions/roster-export';
+import { buildRosterCsv } from '@/lib/roster/csv';
 
 interface RosterExportButtonProps {
   teamId?: string;
   leagueId?: string;
   seasonId?: string;
   label?: string;
-}
-
-function escapeCSV(value: string | number | null | undefined): string {
-  const str = String(value ?? '');
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
 }
 
 /**
@@ -65,31 +58,7 @@ export function RosterExportButton({
         return;
       }
 
-      // Build CSV
-      const includeTeam = !!leagueId;
-      const headers = includeTeam
-        ? ['Team', 'Jersey #', 'Name', 'Email', 'Phone', 'Position', 'Role', 'Status']
-        : ['Jersey #', 'Name', 'Email', 'Phone', 'Position', 'Role', 'Status'];
-
-      const csvRows = rows.map((r) => {
-        const role = r.leadershipRole
-          ? r.leadershipRole.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-          : '';
-
-        const base = [
-          escapeCSV(r.jerseyNumber),
-          escapeCSV(r.fullName),
-          escapeCSV(r.email),
-          escapeCSV(r.phone),
-          escapeCSV(r.position),
-          escapeCSV(role),
-          escapeCSV(r.status),
-        ];
-
-        return includeTeam ? [escapeCSV(r.teamName), ...base].join(',') : base.join(',');
-      });
-
-      const csv = [headers.join(','), ...csvRows].join('\n');
+      const csv = buildRosterCsv(rows, !!leagueId);
 
       // Download
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -111,8 +80,10 @@ export function RosterExportButton({
 
   return (
     <button
+      type="button"
       onClick={handleExport}
       disabled={isExporting}
+      aria-busy={isExporting}
       className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 disabled:opacity-50 transition-colors"
     >
       {isExporting ? (
