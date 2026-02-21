@@ -102,7 +102,7 @@ export function EventEditSheet({ event, game, onSave, onClose }: EventEditSheetP
           scorerJersey,
           assist1Jersey,
           assist2Jersey,
-          confidence: 1.0, // User-edited = full confidence
+          confidence: \high\, // User-edited = full confidence
         },
       };
       onSave(updated);
@@ -118,7 +118,7 @@ export function EventEditSheet({ event, game, onSave, onClose }: EventEditSheetP
           playerJersey,
           type: penaltyType,
           minutes: penaltyMinutes,
-          confidence: 1.0,
+          confidence: \high\,
         },
       };
       onSave(updated);
