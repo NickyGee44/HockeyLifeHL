@@ -80,9 +80,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse layout hint
-    const sheetLayout = formData.get('sheetLayout') as string | null;
-
     // Parse rosters
     let homeRoster: Array<{ jerseyNumber: number; fullName: string }> = [];
     let awayRoster: Array<{ jerseyNumber: number; fullName: string }> = [];
@@ -108,44 +105,42 @@ export async function POST(request: NextRequest) {
       .map((p) => `#${p.jerseyNumber} ${p.fullName}`)
       .join('\n');
 
-    // Layout hint for spatial awareness
-    let layoutHint = '';
-    if (sheetLayout === 'home-left') {
-      layoutHint = `\nSPATIAL LAYOUT: The LEFT side of the score sheet belongs to the HOME team (${homeTeamName}). The RIGHT side belongs to the AWAY team (${awayTeamName}). Use this to determine which team each goal/penalty belongs to.\n`;
-    } else if (sheetLayout === 'home-right') {
-      layoutHint = `\nSPATIAL LAYOUT: The RIGHT side of the score sheet belongs to the HOME team (${homeTeamName}). The LEFT side belongs to the AWAY team (${awayTeamName}). Use this to determine which team each goal/penalty belongs to.\n`;
-    }
+    // Build valid jersey lists for disambiguation context
+    const homeJerseys = homeRoster.map((p) => p.jerseyNumber).join(', ');
+    const awayJerseys = awayRoster.map((p) => p.jerseyNumber).join(', ');
 
-    const prompt = `You are analyzing a handwritten hockey score sheet photo. Extract all goals and penalties from this score sheet.
+    const prompt = `You are an expert at reading handwritten hockey score sheets. Extract all goals and penalties from this photo.
+
+IMPORTANT: Score sheets are often messy, smudged, or written in rushed handwriting. Apply these rules:
 
 HOME TEAM: ${homeTeamName}
 Home Roster:
 ${homeRosterText || '(no roster provided)'}
+Valid home jersey numbers: ${homeJerseys || 'unknown'}
 
 AWAY TEAM: ${awayTeamName}
 Away Roster:
 ${awayRosterText || '(no roster provided)'}
-${layoutHint}
-HANDWRITING INSTRUCTIONS:
-- When a jersey number is ambiguous (e.g., could be "7" or "1"), prefer the interpretation that matches a player on the relevant team's roster
-- Common misreads: 1↔7, 6↔8, 3↔8, 0↔6, 4↔9, 11↔17, 12↔17
-- If a number doesn't match any roster player, return it as-is but give that event a lower confidence score
+Valid away jersey numbers: ${awayJerseys || 'unknown'}
 
-PENALTY TYPES (use these exact names):
-Tripping, Hooking, Holding, Slashing, Interference, High Sticking, Roughing, Cross-Checking, Boarding, Elbowing, Charging, Delay of Game, Too Many Men, Unsportsmanlike Conduct, High Sticking (Double), Spearing, Fighting, Checking from Behind, Match Penalty, Game Misconduct
+HANDWRITING RULES:
+- Common confusions: 1↔7, 3↔8, 6↔0, 4↔9, 11↔17, 2↔7
+- If a digit is ambiguous, prefer the jersey number that exists on the team roster
+- Numbers may be written outside boxes, crossed out, or overwritten — extract the final value
+- Score sheets may be rotated, folded, or partially cut off — read whatever is visible
+- Look for columns labeled "Goals", "Assists", "Penalties" or shorthand (G, A, PEN, PIM)
 
-Instructions:
-- Match handwritten jersey numbers to the roster above
-- For goals: identify the period, approximate time, scoring team (home/away), scorer jersey number, and up to 2 assist jersey numbers
-- For penalties: identify the period, approximate time, penalized team (home/away), player jersey number, penalty type (from list above), and penalty minutes
-- If time is not visible, use 0 for both minutes and seconds
-- Include a "confidence" score (0.0 to 1.0) for each event reflecting how confident you are in the reading
-  - 1.0 = clearly legible, matches roster perfectly
-  - 0.7-0.9 = mostly clear, minor ambiguity
-  - Below 0.7 = difficult to read, guessing
-- Return ONLY valid JSON
+CONFIDENCE SCORING:
+- For each event, rate your confidence: "high" (clearly legible), "medium" (best guess from context), "low" (barely readable)
 
-Return JSON in this exact format:
+TIME EXTRACTION:
+- Times may be in formats: 12:34, 12.34, 12'34, or just minutes
+- If time is unreadable, set timeMinutes and timeSeconds to 0
+- Sanity check: time should be 0:00-20:00 per period
+
+PENALTY TYPES (standardize to): Tripping, Hooking, Slashing, Cross-checking, Roughing, High-sticking, Holding, Interference, Boarding, Delay of game, Too many men, Unsportsmanlike conduct, Fighting, Misconduct
+
+Return ONLY valid JSON in this format:
 {
   "goals": [
     {
@@ -156,7 +151,7 @@ Return JSON in this exact format:
       "scorerJersey": 10,
       "assist1Jersey": 7,
       "assist2Jersey": null,
-      "confidence": 0.95
+      "confidence": "high"
     }
   ],
   "penalties": [
@@ -168,7 +163,7 @@ Return JSON in this exact format:
       "playerJersey": 15,
       "type": "Tripping",
       "minutes": 2,
-      "confidence": 0.85
+      "confidence": "high"
     }
   ]
 }`;

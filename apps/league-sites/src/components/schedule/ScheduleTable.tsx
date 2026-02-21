@@ -4,10 +4,10 @@ import { Eye, FileText, Clock } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { Game, ScheduleGame } from '@/lib/types';
 
-// Helper to format time in Toronto timezone
-function formatTimeInToronto(date: Date): string {
+// Helper to format time in the league's timezone
+function formatTimeInTimezone(date: Date, timeZone: string): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Toronto',
+    timeZone,
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
@@ -22,6 +22,7 @@ interface ScheduleTableProps {
   games: ScheduleGameData[];
   leagueSlug: string;
   showDivision?: boolean;
+  timezone?: string;
 }
 
 /**
@@ -37,6 +38,7 @@ export function ScheduleTable({
   games,
   leagueSlug,
   showDivision = true,
+  timezone = 'America/Toronto',
 }: ScheduleTableProps) {
   if (games.length === 0) {
     return (
@@ -89,6 +91,7 @@ export function ScheduleTable({
                 leagueSlug={leagueSlug}
                 showDivision={showDivision}
                 isLast={i === games.length - 1}
+                timezone={timezone}
               />
             ))}
           </tbody>
@@ -103,6 +106,7 @@ export function ScheduleTable({
             game={game}
             leagueSlug={leagueSlug}
             showDivision={showDivision}
+            timezone={timezone}
           />
         ))}
       </div>
@@ -135,11 +139,13 @@ function ScheduleTableRow({
   leagueSlug,
   showDivision,
   isLast,
+  timezone,
 }: {
   game: ScheduleGameData;
   leagueSlug: string;
   showDivision: boolean;
   isLast: boolean;
+  timezone: string;
 }) {
   const gameDate = new Date(game.scheduled_at);
   const isCompleted = game.status === 'completed';
@@ -223,7 +229,7 @@ function ScheduleTableRow({
           </span>
         ) : (
           <span className="text-sm font-medium text-[var(--color-text-primary)]">
-            {formatTimeInToronto(gameDate)}
+            {formatTimeInTimezone(gameDate, timezone)}
           </span>
         )}
       </td>
@@ -282,10 +288,12 @@ function ScheduleCard({
   game,
   leagueSlug,
   showDivision,
+  timezone,
 }: {
   game: ScheduleGameData;
   leagueSlug: string;
   showDivision: boolean;
+  timezone: string;
 }) {
   const gameDate = new Date(game.scheduled_at);
   const isCompleted = game.status === 'completed';
@@ -315,7 +323,7 @@ function ScheduleCard({
             </span>
           ) : (
             <span className="text-sm font-semibold text-[var(--league-primary)]">
-              {formatTimeInToronto(gameDate)}
+              {formatTimeInTimezone(gameDate, timezone)}
             </span>
           )}
         </div>

@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { MapPin, Calendar, Clock } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { GamePreview, TeamWithStats } from '@/lib/types';
@@ -9,6 +8,7 @@ interface GamePreviewHeaderProps {
   homeTeam: TeamWithStats;
   awayTeam: TeamWithStats;
   leagueSlug: string;
+  timezone?: string;
 }
 
 /**
@@ -25,6 +25,7 @@ export function GamePreviewHeader({
   homeTeam,
   awayTeam,
   leagueSlug,
+  timezone = 'America/Toronto',
 }: GamePreviewHeaderProps) {
   const gameDate = new Date(game.scheduled_at);
   const isCompleted = game.status === 'completed';
@@ -145,13 +146,24 @@ export function GamePreviewHeader({
                 <div className="flex items-center gap-2 mt-4">
                   <Calendar className="w-5 h-5" />
                   <span className="text-lg font-medium">
-                    {format(gameDate, 'EEEE, MMMM d, yyyy')}
+                    {new Intl.DateTimeFormat('en-US', {
+                      timeZone: timezone,
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    }).format(gameDate)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <Clock className="w-5 h-5" />
                   <span className="text-2xl font-bold">
-                    {format(gameDate, 'h:mm a')}
+                    {new Intl.DateTimeFormat('en-US', {
+                      timeZone: timezone,
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                    }).format(gameDate)}
                   </span>
                 </div>
               </>
@@ -159,7 +171,12 @@ export function GamePreviewHeader({
 
             {isCompleted && (
               <div className="mt-2 text-white/80 text-sm">
-                {format(gameDate, 'MMMM d, yyyy')}
+                {new Intl.DateTimeFormat('en-US', {
+                  timeZone: timezone,
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                }).format(gameDate)}
               </div>
             )}
 

@@ -62,6 +62,7 @@ export interface League {
   city: string | null;
   state: string | null;
   zip_code: string | null;
+  timezone: string | null;
   status: 'draft' | 'active' | 'archived';
   organization_id: string;
   created_at: string;

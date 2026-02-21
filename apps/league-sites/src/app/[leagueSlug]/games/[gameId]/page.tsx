@@ -107,6 +107,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
         homeTeam={game.home_team}
         awayTeam={game.away_team}
         leagueSlug={leagueSlug}
+        timezone={league.timezone || 'America/Toronto'}
       />
 
       {/* AI Game Recap */}

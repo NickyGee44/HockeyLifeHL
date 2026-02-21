@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import type { GameData, PlayerData } from '@/lib/actions/scorekeeper';
 import { batchAddEvents } from '@/lib/actions/scorekeeper';
-import { EventEditSheet } from './EventEditSheet';
 
 interface ScoreSheetUploadProps {
   gameId: string;
@@ -12,7 +11,9 @@ interface ScoreSheetUploadProps {
   onClose: () => void;
 }
 
-export interface ExtractedGoal {
+type Confidence = 'high' | 'medium' | 'low';
+
+interface ExtractedGoal {
   period: number;
   timeMinutes: number;
   timeSeconds: number;
@@ -20,10 +21,10 @@ export interface ExtractedGoal {
   scorerJersey: number;
   assist1Jersey: number | null;
   assist2Jersey: number | null;
-  confidence?: number;
+  confidence?: Confidence;
 }
 
-export interface ExtractedPenalty {
+interface ExtractedPenalty {
   period: number;
   timeMinutes: number;
   timeSeconds: number;
@@ -31,10 +32,10 @@ export interface ExtractedPenalty {
   playerJersey: number;
   type: string;
   minutes: number;
-  confidence?: number;
+  confidence?: Confidence;
 }
 
-export type ExtractedEvent =
+type ExtractedEvent =
   | { kind: 'goal'; data: ExtractedGoal; id: string }
   | { kind: 'penalty'; data: ExtractedPenalty; id: string };
 
@@ -49,8 +50,6 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
   const [extractedEvents, setExtractedEvents] = useState<ExtractedEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saveResult, setSaveResult] = useState<{ addedCount: number; errors: string[] } | null>(null);
-  const [sheetLayout, setSheetLayout] = useState<'home-left' | 'home-right' | 'unknown'>('unknown');
-  const [editingEvent, setEditingEvent] = useState<ExtractedEvent | null>(null);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +97,6 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
           fullName: p.fullName,
         }))
       ));
-      formData.append('sheetLayout', sheetLayout);
 
       const response = await fetch('/api/scorekeeper/analyze-scoresheet', {
         method: 'POST',
@@ -146,10 +144,11 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
     setExtractedEvents((prev) => prev.filter((e) => e.id !== id));
   }
 
-  const handleUpdateEvent = useCallback((id: string, updated: ExtractedEvent) => {
-    setExtractedEvents((prev) => prev.map((e) => (e.id === id ? updated : e)));
-    setEditingEvent(null);
-  }, []);
+  function handleUpdateEvent(id: string, updatedData: ExtractedGoal | ExtractedPenalty) {
+    setExtractedEvents((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, data: updatedData } as ExtractedEvent : e))
+    );
+  }
 
   async function handleSaveAll() {
     if (extractedEvents.length === 0) return;
@@ -300,36 +299,6 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
                 className="w-full h-auto"
               />
             </div>
-
-            {/* Team Side Selector */}
-            <div className="w-full">
-              <p className="text-xs text-[var(--color-text-secondary)] mb-2 text-center">
-                Which side is the home team on?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSheetLayout('home-left')}
-                  className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium border transition-all active:scale-95 ${
-                    sheetLayout === 'home-left'
-                      ? 'bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] border-transparent'
-                      : 'bg-[var(--color-surface)] text-[var(--color-text-primary)] border-[var(--color-border)]'
-                  }`}
-                >
-                  ← Left: {game.homeTeam.shortName || game.homeTeam.name}
-                </button>
-                <button
-                  onClick={() => setSheetLayout('home-right')}
-                  className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium border transition-all active:scale-95 ${
-                    sheetLayout === 'home-right'
-                      ? 'bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] border-transparent'
-                      : 'bg-[var(--color-surface)] text-[var(--color-text-primary)] border-[var(--color-border)]'
-                  }`}
-                >
-                  {game.homeTeam.shortName || game.homeTeam.name}: Right →
-                </button>
-              </div>
-            </div>
-
             <div className="flex gap-3 w-full">
               <button
                 onClick={handleBack}
@@ -378,7 +347,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
             ) : (
               <>
                 <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-                  Found {extractedEvents.length} event{extractedEvents.length !== 1 ? 's' : ''}. Tap an event to edit, or remove incorrect entries.
+                  Found {extractedEvents.length} event{extractedEvents.length !== 1 ? 's' : ''}. Review and remove any incorrect entries before saving.
                 </p>
 
                 {/* Group by period */}
@@ -405,7 +374,9 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
                             awayTeamName={game.awayTeam.shortName || game.awayTeam.name}
                             findPlayerName={findPlayerName}
                             onRemove={() => handleRemoveEvent(evt.id)}
-                            onEdit={() => setEditingEvent(evt)}
+                            onUpdate={(data) => handleUpdateEvent(evt.id, data)}
+                            homeRoster={game.homeTeam.roster}
+                            awayRoster={game.awayTeam.roster}
                           />
                         ))}
                       </div>
@@ -460,15 +431,6 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
             )}
           </div>
         )}
-        {/* Event Edit Sheet */}
-        {editingEvent && (
-          <EventEditSheet
-            event={editingEvent}
-            game={game}
-            onSave={(updated) => handleUpdateEvent(editingEvent.id, updated)}
-            onClose={() => setEditingEvent(null)}
-          />
-        )}
       </div>
     </div>
   );
@@ -478,27 +440,41 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
 // ReviewEventRow sub-component
 // =============================================================================
 
+function ConfidenceBadge({ level }: { level?: Confidence }) {
+  if (!level || level === 'high') return null;
+  const color = level === 'medium' ? 'text-yellow-400 bg-yellow-500/10' : 'text-red-400 bg-red-500/10';
+  return (
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${color}`}>
+      {level === 'medium' ? 'Uncertain' : 'Low confidence'}
+    </span>
+  );
+}
+
 function ReviewEventRow({
   event,
   homeTeamName,
   awayTeamName,
   findPlayerName,
   onRemove,
-  onEdit,
+  onUpdate,
+  homeRoster,
+  awayRoster,
 }: {
   event: ExtractedEvent;
   homeTeamName: string;
   awayTeamName: string;
   findPlayerName: (teamType: 'home' | 'away', jersey: number | null) => string | null;
   onRemove: () => void;
-  onEdit: () => void;
+  onUpdate: (data: ExtractedGoal | ExtractedPenalty) => void;
+  homeRoster: PlayerData[];
+  awayRoster: PlayerData[];
 }) {
+  const [isEditing, setIsEditing] = useState(false);
   const isGoal = event.kind === 'goal';
   const data = event.data;
   const teamName = data.teamType === 'home' ? homeTeamName : awayTeamName;
   const time = `${data.timeMinutes}:${data.timeSeconds.toString().padStart(2, '0')}`;
-  const confidence = data.confidence;
-  const isLowConfidence = confidence != null && confidence < 0.7;
+  const roster = data.teamType === 'home' ? homeRoster : awayRoster;
 
   let label: string;
   let hasWarning = false;
@@ -526,15 +502,34 @@ function ReviewEventRow({
     label = `PENALTY - #${p.playerJersey} ${playerName || '(unknown)'} - ${p.type} (${p.minutes}min)`;
   }
 
-  // Left border color: orange for jersey warning, yellow for low confidence, transparent otherwise
-  const borderColor = hasWarning
-    ? 'border-l-orange-400'
-    : isLowConfidence
-      ? 'border-l-yellow-400'
-      : 'border-l-transparent';
+  // Inline edit mode — show dropdowns to correct jersey numbers
+  if (isEditing) {
+    return (
+      <div className="p-3 rounded-lg bg-[var(--color-surface)] border border-[var(--league-primary,#d4af37)]/30 space-y-2">
+        <div className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase">
+          Edit {isGoal ? 'Goal' : 'Penalty'} — P{data.period} {time}
+        </div>
+        {isGoal ? (
+          <GoalJerseyEditor
+            goal={data as ExtractedGoal}
+            roster={roster}
+            onSave={(updated) => { onUpdate(updated); setIsEditing(false); }}
+            onCancel={() => setIsEditing(false)}
+          />
+        ) : (
+          <PenaltyJerseyEditor
+            penalty={data as ExtractedPenalty}
+            roster={roster}
+            onSave={(updated) => { onUpdate(updated); setIsEditing(false); }}
+            onCancel={() => setIsEditing(false)}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className={`flex items-center gap-3 p-2.5 rounded-lg bg-[var(--color-surface)] group border-l-[3px] ${borderColor}`}>
+    <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--color-surface)] group">
       {/* Icon */}
       <div
         className={`flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 ${
@@ -552,11 +547,8 @@ function ReviewEventRow({
         )}
       </div>
 
-      {/* Content — tappable for edit */}
-      <button
-        onClick={onEdit}
-        className="flex-1 min-w-0 text-left"
-      >
+      {/* Content */}
+      <div className="flex-1 min-w-0">
         <div className="text-sm text-[var(--color-text-primary)] truncate">
           {label}
         </div>
@@ -567,30 +559,27 @@ function ReviewEventRow({
           <span className="text-xs text-[var(--color-text-secondary)]">
             {teamName}
           </span>
+          <ConfidenceBadge level={data.confidence} />
           {hasWarning && (
             <span className="text-[10px] font-bold text-orange-400">
               Jersey not found
             </span>
           )}
-          {isLowConfidence && !hasWarning && (
-            <span className="text-[10px] font-bold text-yellow-400">
-              Check this
-            </span>
-          )}
         </div>
-      </button>
+      </div>
 
-      {/* Edit button (pencil) */}
-      <button
-        onClick={onEdit}
-        className="flex-shrink-0 p-2 rounded-lg hover:bg-[var(--color-surface-hover,var(--color-surface))] text-[var(--color-text-secondary)] transition-all"
-        aria-label="Edit event"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-        </svg>
-      </button>
+      {/* Edit button — shown when there's a warning or low confidence */}
+      {(hasWarning || data.confidence === 'low' || data.confidence === 'medium') && (
+        <button
+          onClick={() => setIsEditing(true)}
+          className="flex-shrink-0 p-2 rounded-lg hover:bg-blue-500/10 text-[var(--color-text-secondary)] hover:text-blue-400 transition-all"
+          aria-label="Edit event"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+          </svg>
+        </button>
+      )}
 
       {/* Remove button */}
       <button
@@ -602,6 +591,109 @@ function ReviewEventRow({
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
+    </div>
+  );
+}
+
+// Inline jersey editor for goals
+function GoalJerseyEditor({
+  goal,
+  roster,
+  onSave,
+  onCancel,
+}: {
+  goal: ExtractedGoal;
+  roster: PlayerData[];
+  onSave: (g: ExtractedGoal) => void;
+  onCancel: () => void;
+}) {
+  const [scorer, setScorer] = useState(goal.scorerJersey);
+  const [a1, setA1] = useState(goal.assist1Jersey);
+  const [a2, setA2] = useState(goal.assist2Jersey);
+
+  return (
+    <div className="space-y-2">
+      <JerseySelect
+        label="Scorer"
+        value={scorer}
+        roster={roster}
+        onChange={(v) => setScorer(v ?? goal.scorerJersey)}
+      />
+      <JerseySelect label="Assist 1" value={a1} roster={roster} onChange={setA1} allowNull />
+      <JerseySelect label="Assist 2" value={a2} roster={roster} onChange={setA2} allowNull />
+      <div className="flex gap-2 pt-1">
+        <button onClick={onCancel} className="flex-1 py-2 text-xs rounded-lg bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">Cancel</button>
+        <button onClick={() => onSave({ ...goal, scorerJersey: scorer, assist1Jersey: a1, assist2Jersey: a2, confidence: 'high' })} className="flex-1 py-2 text-xs rounded-lg bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] font-semibold">Save</button>
+      </div>
+    </div>
+  );
+}
+
+// Inline jersey editor for penalties
+function PenaltyJerseyEditor({
+  penalty,
+  roster,
+  onSave,
+  onCancel,
+}: {
+  penalty: ExtractedPenalty;
+  roster: PlayerData[];
+  onSave: (p: ExtractedPenalty) => void;
+  onCancel: () => void;
+}) {
+  const [jersey, setJersey] = useState(penalty.playerJersey);
+
+  return (
+    <div className="space-y-2">
+      <JerseySelect
+        label="Player"
+        value={jersey}
+        roster={roster}
+        onChange={(v) => setJersey(v ?? penalty.playerJersey)}
+      />
+      <div className="flex gap-2 pt-1">
+        <button onClick={onCancel} className="flex-1 py-2 text-xs rounded-lg bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">Cancel</button>
+        <button onClick={() => onSave({ ...penalty, playerJersey: jersey, confidence: 'high' })} className="flex-1 py-2 text-xs rounded-lg bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] font-semibold">Save</button>
+      </div>
+    </div>
+  );
+}
+
+// Reusable jersey dropdown
+function JerseySelect({
+  label,
+  value,
+  roster,
+  onChange,
+  allowNull = false,
+}: {
+  label: string;
+  value: number | null;
+  roster: PlayerData[];
+  onChange: (v: number | null) => void;
+  allowNull?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-[var(--color-text-secondary)] w-16">{label}:</span>
+      <select
+        value={value ?? ''}
+        onChange={(e) => {
+          const v = e.target.value;
+          onChange(v === '' ? null : Number(v));
+        }}
+        className="flex-1 text-sm rounded-lg px-2 py-1.5 bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-primary)]"
+      >
+        {allowNull && <option value="">None</option>}
+        {roster.map((p: PlayerData) => (
+          <option key={p.jerseyNumber} value={p.jerseyNumber}>
+            #{p.jerseyNumber} {p.fullName}
+          </option>
+        ))}
+        {value != null && !roster.some((p: PlayerData) => p.jerseyNumber === value) && (
+          <option value={value}>#{value} (not on roster)</option>
+        )}
+      </select>
     </div>
   );
 }

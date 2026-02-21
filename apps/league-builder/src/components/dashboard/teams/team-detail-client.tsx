@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { RosterTable } from '@/components/teams/RosterTable';
 import { AddPlayerModalEnhanced } from '@/components/teams/AddPlayerModalEnhanced';
+import { RosterExportButton } from '@/components/teams/RosterExportButton';
+import { TeamEmailBlast } from '@/components/teams/TeamEmailBlast';
 
 interface Team {
   id: string;
@@ -70,19 +72,23 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
                   {team.roster_count} of {team.max_roster_size ?? 23} players
                 </p>
               </div>
-              <button
-                onClick={() => setIsAddPlayerOpen(true)}
-                disabled={team.roster_count >= (team.max_roster_size ?? 23)}
-                className={cn(
-                  'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm',
-                  team.roster_count >= (team.max_roster_size ?? 23)
-                    ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20 transition-all'
-                )}
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Player
-              </button>
+              <div className="flex items-center gap-2">
+                <TeamEmailBlast teamId={team.id} teamName={team.name} />
+                <RosterExportButton teamId={team.id} />
+                <button
+                  onClick={() => setIsAddPlayerOpen(true)}
+                  disabled={team.roster_count >= (team.max_roster_size ?? 23)}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm',
+                    team.roster_count >= (team.max_roster_size ?? 23)
+                      ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20 transition-all'
+                  )}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add Player
+                </button>
+              </div>
             </div>
 
             {/* Roster Warning if Full */}

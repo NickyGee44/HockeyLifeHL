@@ -959,6 +959,7 @@ export async function getWeekGames(
     teamId?: string;
     type?: string;
     venue?: string;
+    timezone?: string;
     status?: string;
   }
 ): Promise<ScheduleGame[]> {
@@ -992,10 +993,8 @@ export async function getWeekGames(
 
   // Apply optional filters
   if (filters?.day) {
-    // Convert the day filter (in Toronto timezone) to UTC range
-    // E.g., "2026-02-19" in Toronto is 2026-02-19 00:00 EST to 2026-02-19 23:59 EST
-    // which is 2026-02-19 05:00 UTC to 2026-02-20 04:59 UTC (EST = UTC-5)
-    const timeZone = 'America/Toronto';
+    // Convert the day filter (in league timezone) to UTC range
+    const timeZone = filters?.timezone || 'America/Toronto';
 
     // Create Date objects for start and end of day in Toronto timezone
     // We'll use the offset to convert to UTC
@@ -1083,6 +1082,7 @@ export async function getWeekGameCounts(
     type?: string;
     venue?: string;
     status?: string;
+    timezone?: string;
   },
 ): Promise<Record<string, number>> {
   const supabase = await createClient();
@@ -1137,9 +1137,9 @@ export async function getWeekGameCounts(
       return homeTeam?.id === filters.teamId || awayTeam?.id === filters.teamId;
     });
 
-  // Count games per day (convert UTC to Toronto timezone)
+  // Count games per day (convert UTC to league timezone)
   const counts: Record<string, number> = {};
-  const timeZone = 'America/Toronto';
+  const timeZone = filters?.timezone || 'America/Toronto';
 
   filteredGames.forEach((game: { scheduled_at: string }) => {
     const date = new Date(game.scheduled_at);

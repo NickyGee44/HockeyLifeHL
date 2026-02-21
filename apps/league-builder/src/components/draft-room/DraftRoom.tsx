@@ -436,6 +436,7 @@ export function DraftRoom({
       const { data, error: pickError } = await supabase.rpc('make_draft_pick', {
         p_draft_id: draftId,
         p_player_id: selectedPlayer.player_id,
+        p_idempotency_key: crypto.randomUUID(),
       });
 
       if (pickError) throw pickError;
@@ -460,7 +461,8 @@ export function DraftRoom({
     // Guard against concurrent auto-pick attempts
     if (isSubmitting) return;
 
-    // Find the best available player: prefer auto_pick_rank (lowest first), then first in list
+    // Find the best available player: prefer auto_pick_rank, then skill level (A > B > C > D)
+    const skillRank: Record<string, number> = { A: 1, B: 2, C: 3, D: 4 };
     const sortedPlayers = [...players].sort((a, b) => {
       // Players with auto_pick_rank come first, sorted ascending
       if (a.auto_pick_rank != null && b.auto_pick_rank != null) {
@@ -468,7 +470,10 @@ export function DraftRoom({
       }
       if (a.auto_pick_rank != null) return -1;
       if (b.auto_pick_rank != null) return 1;
-      // Fallback: alphabetical by name
+      // Fallback: sort by skill level (A=best first), then alphabetical
+      const aSkill = skillRank[a.skill_level?.toUpperCase() ?? ''] ?? 99;
+      const bSkill = skillRank[b.skill_level?.toUpperCase() ?? ''] ?? 99;
+      if (aSkill !== bSkill) return aSkill - bSkill;
       return a.player_name.localeCompare(b.player_name);
     });
 
@@ -486,6 +491,7 @@ export function DraftRoom({
       const { data, error: pickError } = await supabase.rpc('make_draft_pick', {
         p_draft_id: draftId,
         p_player_id: bestPlayer.player_id,
+        p_idempotency_key: crypto.randomUUID(),
       });
 
       if (pickError) throw pickError;
