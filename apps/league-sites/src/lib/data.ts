@@ -2008,6 +2008,7 @@ export async function getPlayerGameLog(
       assists,
       penalty_minutes,
       game_id,
+      team_id,
       game:games(
         id,
         scheduled_at,
@@ -2033,11 +2034,24 @@ export async function getPlayerGameLog(
   // Transform to expected format
   return data.map((stat: any) => {
     const game = Array.isArray(stat.game) ? stat.game[0] : stat.game;
+    // Determine opponent based on which team the player is on
+    const homeTeam = Array.isArray(game?.home_team) ? game?.home_team[0] : game?.home_team;
+    const awayTeam = Array.isArray(game?.away_team) ? game?.away_team[0] : game?.away_team;
+    const isHome = homeTeam?.id === stat.team_id;
+    const opponentTeam = isHome ? awayTeam : homeTeam;
+    const myScore = isHome ? game?.home_score : game?.away_score;
+    const theirScore = isHome ? game?.away_score : game?.home_score;
+    let result = '-';
+    if (game?.status === 'completed' && myScore != null && theirScore != null) {
+      result = myScore > theirScore ? 'W' : myScore < theirScore ? 'L' : 'T';
+    }
     return {
       game_id: game?.id || stat.game_id || '',
       date: game?.scheduled_at || '',
-      opponent: '',
-      result: game?.status === 'completed' ? 'W' : '-',
+      opponent: opponentTeam?.name || '',
+      opponent_name: opponentTeam?.name || '',
+      opponent_slug: opponentTeam?.slug || '',
+      result,
       goals: stat.goals || 0,
       assists: stat.assists || 0,
       points: (stat.goals || 0) + (stat.assists || 0),
