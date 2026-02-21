@@ -93,8 +93,9 @@ export async function getLeagueStats(supabase: SupabaseClientArg, leagueId: stri
   ]);
 
   const totalGames = gamesResult.count ?? 0;
-  const gamesPlayed = (gamesResult.data || []).filter(
-    (g: any) => g.status === 'completed' || g.status === 'pending_verification',
+  const gameRows = (gamesResult.data ?? []) as Array<{ status: string | null }>;
+  const gamesPlayed = gameRows.filter(
+    (g) => g.status === 'completed' || g.status === 'pending_verification',
   ).length;
 
   return {
@@ -118,7 +119,8 @@ export async function getPlayerLeagues(supabase: SupabaseClientArg, userId: stri
 
   if (!rosters || rosters.length === 0) return [];
 
-  const teamIds = [...new Set(rosters.map((r: any) => r.team_id))];
+  const rosterRows = rosters as Array<{ team_id: string | null }>;
+  const teamIds = [...new Set(rosterRows.map((r) => r.team_id).filter((id): id is string => !!id))];
 
   // Get league IDs from those teams
   const { data: teams } = await supabase
@@ -128,7 +130,9 @@ export async function getPlayerLeagues(supabase: SupabaseClientArg, userId: stri
 
   if (!teams || teams.length === 0) return [];
 
-  const leagueIds = [...new Set(teams.map((t: any) => t.league_id))];
+  const teamRows = (teams ?? []) as Array<{ league_id: string | null }>;
+  const leagueIds = [...new Set(teamRows.map((t) => t.league_id).filter((id): id is string => !!id))];
+  if (leagueIds.length === 0) return [];
 
   // Get the leagues
   const { data: leagues } = await supabase

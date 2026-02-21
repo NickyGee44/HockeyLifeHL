@@ -5,6 +5,32 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 
 const SCOREKEEPER_SESSION_COOKIE = 'sk_session';
 
+interface OcrGoalResponse {
+  period?: number;
+  timeMinutes?: number;
+  timeSeconds?: number;
+  teamType?: 'home' | 'away';
+  scorerJersey?: number;
+  assist1Jersey?: number | null;
+  assist2Jersey?: number | null;
+  confidence?: 'high' | 'medium' | 'low';
+}
+
+interface OcrPenaltyResponse {
+  period?: number;
+  timeMinutes?: number;
+  timeSeconds?: number;
+  teamType?: 'home' | 'away';
+  playerJersey?: number;
+  type?: string;
+  minutes?: number;
+  confidence?: 'high' | 'medium' | 'low';
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
 async function verifySessionFromCookie(): Promise<{
   sessionId: string;
   gameId: string;
@@ -196,11 +222,24 @@ Return ONLY valid JSON in this format:
       );
     }
 
-    const parsed = JSON.parse(content);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON returned by AI analysis' },
+        { status: 502 }
+      );
+    }
+
+    const payload = (parsed ?? {}) as {
+      goals?: OcrGoalResponse[];
+      penalties?: OcrPenaltyResponse[];
+    };
 
     return NextResponse.json({
-      goals: parsed.goals || [],
-      penalties: parsed.penalties || [],
+      goals: asArray<OcrGoalResponse>(payload.goals),
+      penalties: asArray<OcrPenaltyResponse>(payload.penalties),
     });
   } catch (error) {
     console.error('Score sheet analysis error:', error);
