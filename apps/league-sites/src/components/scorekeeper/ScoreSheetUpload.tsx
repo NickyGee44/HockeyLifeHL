@@ -5,6 +5,7 @@ import type { GameData, PlayerData } from '@/lib/actions/scorekeeper';
 import { batchAddEvents } from '@/lib/actions/scorekeeper';
 import {
   parseOcrAnalysisResult,
+  type Confidence,
   type OcrEvent,
   type OcrGoal,
   type OcrPenalty,
