@@ -86,10 +86,10 @@ async function logAuditEvent(
 async function getLeagueByStripeAccount(
   supabase: ReturnType<typeof createServiceClient>,
   stripeAccountId: string
-): Promise<{ id: string; name: string } | null> {
+): Promise<{ id: string; name: string; stripe_account_status: string | null } | null> {
   const { data, error } = await supabase
     .from('leagues')
-    .select('id, name')
+    .select('id, name, stripe_account_status')
     .eq('stripe_account_id', stripeAccountId)
     .single();
 
@@ -180,8 +180,9 @@ async function handleAccountUpdated(
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled } });
 
-  // Send notification if account is fully enabled (new capability)
-  if (status === 'complete' && !account.capabilities?.card_payments) {
+  // Send notification if account just transitioned to fully enabled
+  const previousStatus = league.stripe_account_status;
+  if (status === 'complete' && previousStatus !== 'complete') {
     try {
       // Fetch league owner email
       const { data: leagueData } = await supabase
