@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { safeRedirectPath } from '@/lib/auth/safe-redirect';
 
 /**
  * Auth Callback Route
@@ -15,19 +16,6 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
  * cookies() from next/headers) because cookies().set() writes are NOT
  * included in NextResponse.redirect() responses in Next.js 15+.
  */
-/**
- * Validate the `next` redirect parameter to prevent open-redirect attacks.
- * Only relative paths starting with "/" are allowed; anything else
- * (absolute URLs, protocol-relative "//evil.com", etc.) falls back to the dashboard.
- */
-function safeRedirectPath(next: string | null): string {
-  if (!next) return '/en/dashboard';
-  // Must start with "/" and must NOT start with "//" (protocol-relative URL)
-  if (next.startsWith('/') && !next.startsWith('//')) {
-    return next;
-  }
-  return '/en/dashboard';
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
