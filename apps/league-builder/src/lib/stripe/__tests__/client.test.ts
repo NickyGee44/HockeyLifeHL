@@ -29,14 +29,14 @@ describe('Stripe Client - Price/Tier Mapping', () => {
       expect(result).toBe('price_test_enterprise');
     });
 
-    it('should throw error if enterprise price ID not configured', () => {
+    it('should throw error if enterprise price ID not configured', async () => {
       // STRIPE_PRICE_IDS is captured at module load time, so we need to
       // re-import the module with a clean environment to test missing env vars
       jest.resetModules();
       const savedVal = process.env.STRIPE_PRICE_ENTERPRISE;
       delete process.env.STRIPE_PRICE_ENTERPRISE;
 
-      const { getPriceIdByTier: freshGetPriceIdByTier } = require('../client');
+      const { getPriceIdByTier: freshGetPriceIdByTier } = await import('../client');
 
       expect(() => freshGetPriceIdByTier('enterprise')).toThrow(
         /Stripe price ID not configured for tier: enterprise/
@@ -44,12 +44,12 @@ describe('Stripe Client - Price/Tier Mapping', () => {
       process.env.STRIPE_PRICE_ENTERPRISE = savedVal;
     });
 
-    it('should throw error with helpful message', () => {
+    it('should throw error with helpful message', async () => {
       jest.resetModules();
       const savedVal = process.env.STRIPE_PRICE_ENTERPRISE;
       delete process.env.STRIPE_PRICE_ENTERPRISE;
 
-      const { getPriceIdByTier: freshGetPriceIdByTier } = require('../client');
+      const { getPriceIdByTier: freshGetPriceIdByTier } = await import('../client');
 
       expect(() => freshGetPriceIdByTier('enterprise')).toThrow(
         /Please set STRIPE_PRICE_ENTERPRISE in your environment/

@@ -71,7 +71,7 @@ export async function getLeagueReferees(leagueId: string): Promise<{
 
   // Get assignment counts from game_officials
   const refereeNames = (staff || []).map((s: any) => s.name);
-  let assignmentCounts: Record<string, number> = {};
+  const assignmentCounts: Record<string, number> = {};
 
   if (refereeNames.length > 0) {
     const { data: officials } = await (supabase
