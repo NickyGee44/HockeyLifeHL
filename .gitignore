@@ -72,5 +72,8 @@ e2e/**/.auth/
 # Subdir .claude shims (symlinks for hook cwd compatibility)
 apps/**/.claude/
 
+# MCP config (contains access tokens)
+.mcp.json
+
 # Supabase temp
 supabase/.temp/
