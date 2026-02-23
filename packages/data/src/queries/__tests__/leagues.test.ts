@@ -1,4 +1,3 @@
-import { describe, expect, it } from '@jest/globals';
 import type { League } from '../../types';
 import { getLeagueTheme } from '../leagues';
 

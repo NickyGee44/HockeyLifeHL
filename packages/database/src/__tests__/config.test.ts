@@ -1,4 +1,3 @@
-import { describe, expect, it } from '@jest/globals';
 import { resolveSupabaseConfig } from '../config';
 
 describe('@hockey-life/database config', () => {
