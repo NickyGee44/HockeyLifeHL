@@ -1,12 +1,15 @@
 import { SettingsNav } from '@/components/dashboard/settings-nav';
 import { Link } from '@/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
-export default function SettingsLayout({
+export default async function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const t = await getTranslations('orgSettings');
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -17,13 +20,13 @@ export default function SettingsLayout({
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            {t('backToDashboard')}
           </Link>
           <h1 className="text-3xl font-black text-white tracking-tight">
-            Organization Settings
+            {t('title')}
           </h1>
           <p className="text-neutral-400 mt-2">
-            Manage your organization profile, team, and preferences
+            {t('subtitle')}
           </p>
         </div>
 

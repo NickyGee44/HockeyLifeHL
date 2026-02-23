@@ -3,7 +3,7 @@ import { redirect } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import { OrganizationProfileForm } from '@/components/dashboard/organization-profile-form';
 import { Copy, AlertTriangle } from 'lucide-react';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,21 +15,20 @@ export default async function OrganizationProfilePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const t = await getTranslations('orgSettings');
   const userData = await getCurrentUser();
 
   if (!userData) {
     redirect({ href: '/login', locale });
-    return null; // TypeScript needs this after redirect
+    return null;
   }
 
   const organizations = await getUserOrganizations();
-
-  // Get the first organization (for now, assuming single org per user)
   const organization = organizations[0];
 
   if (!organization) {
     redirect({ href: '/dashboard', locale });
-    return null; // TypeScript needs this after redirect
+    return null;
   }
 
   const orgData = organization as any;
@@ -39,9 +38,9 @@ export default async function OrganizationProfilePage({ params }: Props) {
       {/* Organization Profile Section */}
       <section>
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-white">Organization Profile</h2>
+          <h2 className="text-xl font-bold text-white">{t('profile')}</h2>
           <p className="text-sm text-neutral-400 mt-1">
-            Manage your organization&apos;s basic information and settings
+            {t('profileDescription')}
           </p>
         </div>
         <OrganizationProfileForm organization={orgData} />
@@ -50,19 +49,19 @@ export default async function OrganizationProfilePage({ params }: Props) {
       {/* Organization ID Section */}
       <section>
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-white">Organization ID</h2>
+          <h2 className="text-lg font-semibold text-white">{t('organizationId')}</h2>
           <p className="text-sm text-neutral-400 mt-1">
-            Your unique organization identifier for API integrations
+            {t('organizationIdDescription')}
           </p>
         </div>
-        <div className="bg-neutral-800 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-white/[0.04] border border-white/10 rounded-xl p-4 flex items-center justify-between">
           <code className="text-sm text-rink-500 font-mono">{orgData.id}</code>
           <button
             className={cn(
               'p-2 rounded-lg transition-colors',
-              'text-neutral-400 hover:text-rink-500 hover:bg-neutral-700'
+              'text-neutral-400 hover:text-rink-500 hover:bg-white/[0.06]'
             )}
-            title="Copy ID"
+            title={t('copyId')}
           >
             <Copy className="w-4 h-4" />
           </button>
@@ -74,17 +73,16 @@ export default async function OrganizationProfilePage({ params }: Props) {
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-red-400 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
-            Danger Zone
+            {t('dangerZone')}
           </h2>
           <p className="text-sm text-neutral-400 mt-1">
-            Irreversible and destructive actions
+            {t('dangerZoneDescription')}
           </p>
         </div>
         <div className="border border-red-500/30 bg-red-500/5 rounded-xl p-5">
-          <h3 className="font-semibold text-white mb-2">Delete Organization</h3>
+          <h3 className="font-semibold text-white mb-2">{t('deleteOrganization')}</h3>
           <p className="text-sm text-neutral-400 mb-4">
-            Permanently delete this organization and all associated leagues, teams, and
-            data. This action cannot be undone.
+            {t('deleteOrganizationDescription')}
           </p>
           <button
             disabled
@@ -94,10 +92,10 @@ export default async function OrganizationProfilePage({ params }: Props) {
               'opacity-50 cursor-not-allowed'
             )}
           >
-            Delete Organization
+            {t('deleteOrganization')}
           </button>
           <p className="text-xs text-neutral-500 mt-3">
-            Contact support to delete your organization
+            {t('contactSupport')}
           </p>
         </div>
       </section>

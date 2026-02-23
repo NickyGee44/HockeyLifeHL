@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { cn } from '@hockey-life/ui';
 import { Menu, X, Trophy } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import type { DashboardData } from '@/lib/actions/dashboard';
@@ -47,7 +46,7 @@ export function MobileHeader({ dashboardData }: MobileHeaderProps) {
             <Trophy className="w-3.5 h-3.5 text-black" />
           </div>
           <span className="text-sm font-semibold text-white truncate">
-            {selectedLeague?.name || 'Dashboard'}
+            {selectedLeague?.name || t('dashboard')}
           </span>
         </div>
 
@@ -63,20 +62,6 @@ export function MobileHeader({ dashboardData }: MobileHeaderProps) {
         />
       )}
 
-      {/* Slide-out drawer */}
-      <div
-        className={cn(
-          'fixed top-14 left-0 bottom-0 w-72 z-50 bg-neutral-900 border-r border-white/10',
-          'transition-transform duration-300 ease-in-out',
-          isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-        id="mobile-nav-drawer"
-      >
-        {/* The HierarchicalSidebar renders its content inside here via portal or
-            the DashboardLayoutClient renders the sidebar content for mobile.
-            For now, the full sidebar content is rendered inline in the sidebar component
-            when mobile nav is open. This drawer is the container. */}
-      </div>
     </header>
   );
 }

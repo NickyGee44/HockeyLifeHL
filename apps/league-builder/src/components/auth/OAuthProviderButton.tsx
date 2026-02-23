@@ -65,7 +65,11 @@ export function OAuthProviderButton({
 
     const supabase = createClient();
 
-    const callbackUrl = new URL('/api/auth/callback', window.location.origin);
+    // Use NEXT_PUBLIC_APP_URL to ensure the callback URL matches what's
+    // configured in Supabase's redirect allowlist. Falls back to the
+    // current origin for local dev or preview deployments.
+    const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const callbackUrl = new URL('/api/auth/callback', origin);
     if (redirectTo) {
       callbackUrl.searchParams.set('next', redirectTo);
     }

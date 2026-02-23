@@ -53,6 +53,25 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = React.useState(false);
 
+  // Auto-collapse sidebar on screens below lg (1024px)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const lgQuery = window.matchMedia('(min-width: 1024px)');
+
+    if (!lgQuery.matches) {
+      setIsCollapsed(true);
+    }
+
+    const handler = (e: MediaQueryListEvent) => {
+      if (!e.matches) {
+        setIsCollapsed(true);
+      }
+    };
+
+    lgQuery.addEventListener('change', handler);
+    return () => lgQuery.removeEventListener('change', handler);
+  }, []);
+
   // Sync selected league/season from URL on every navigation
   React.useEffect(() => {
     const urlLeagueId = extractLeagueIdFromPath(pathname);

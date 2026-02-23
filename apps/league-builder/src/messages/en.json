@@ -427,7 +427,10 @@
     "wins": "Wins",
     "losses": "Losses",
     "ties": "Ties",
-    "record": "Record"
+    "record": "Record",
+    "allTeams": "All Teams",
+    "allTeamsDescription": "Manage teams across all your leagues",
+    "backToDashboard": "Back to Dashboard"
   },
   "players": {
     "title": "Players",
@@ -1188,6 +1191,62 @@
     "saveFailed": "Failed to save. Please try again.",
     "deleteFailed": "Failed to delete. Please try again.",
     "loadFailed": "Failed to load data. Please refresh the page."
+  },
+  "errorPages": {
+    "somethingWentWrong": "Something went wrong",
+    "unexpectedError": "An unexpected error occurred. Please try again or go back to the dashboard.",
+    "notFoundDescription": "The page you're looking for doesn't exist or the league may have been removed.",
+    "goToDashboard": "Go to Dashboard"
+  },
+  "orgSettings": {
+    "title": "Organization Settings",
+    "subtitle": "Manage your organization profile, team, and preferences",
+    "backToDashboard": "Back to Dashboard",
+    "profile": "Organization Profile",
+    "profileDescription": "Manage your organization's basic information and settings",
+    "organizationId": "Organization ID",
+    "organizationIdDescription": "Your unique organization identifier for API integrations",
+    "copyId": "Copy ID",
+    "dangerZone": "Danger Zone",
+    "dangerZoneDescription": "Irreversible and destructive actions",
+    "deleteOrganization": "Delete Organization",
+    "deleteOrganizationDescription": "Permanently delete this organization and all associated leagues, teams, and data. This action cannot be undone.",
+    "contactSupport": "Contact support to delete your organization"
+  },
+  "settingsNav": {
+    "ariaLabel": "Settings navigation",
+    "profile": {
+      "name": "Profile",
+      "description": "Organization name, slug, and logo"
+    },
+    "members": {
+      "name": "Team Members",
+      "description": "Invite and manage team members"
+    },
+    "domains": {
+      "name": "Domains",
+      "description": "Subdomains and custom domains"
+    },
+    "subscription": {
+      "name": "Subscription",
+      "description": "Plan, usage, and upgrades"
+    },
+    "billing": {
+      "name": "Billing & Subscriptions",
+      "description": "Plan, add-ons, and payment processing"
+    },
+    "branding": {
+      "name": "Branding",
+      "description": "Colors, logos, and visual identity"
+    },
+    "privacy": {
+      "name": "Privacy",
+      "description": "Data export and account deletion"
+    },
+    "notifications": {
+      "name": "Notifications",
+      "description": "Email and notification preferences"
+    }
   },
   "legal": {
     "termsTitle": "Terms of Service",

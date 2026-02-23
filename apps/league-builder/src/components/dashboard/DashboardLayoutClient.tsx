@@ -39,8 +39,8 @@ function DashboardContent({
         'transition-all duration-300 ease-in-out aurora-bg min-h-screen',
         // Mobile: no left margin, top padding for header, bottom padding for nav
         'pt-14 pb-20 md:pt-0 md:pb-0',
-        // Desktop: sidebar margin
-        isCollapsed ? 'md:ml-16' : 'md:ml-16 lg:ml-72'
+        // Desktop: sidebar margin (matches sidebar width)
+        isCollapsed ? 'md:ml-16' : 'md:ml-72'
       )}
     >
       {setupIssues.length > 0 && (

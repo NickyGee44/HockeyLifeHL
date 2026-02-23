@@ -50,7 +50,16 @@ export default function HierarchicalSidebar({
     isCollapsed: sidebarCollapsed,
     toggle: toggleSidebar,
     selected,
+    isMobileNavOpen,
+    toggleMobileNav,
   } = useSidebar();
+
+  // Close mobile nav when a link is tapped
+  const closeMobileNav = React.useCallback(() => {
+    if (isMobileNavOpen) {
+      toggleMobileNav();
+    }
+  }, [isMobileNavOpen, toggleMobileNav]);
 
   const leagueBase = selected.leagueId
     ? `/dashboard/leagues/${selected.leagueId}`
@@ -81,15 +90,20 @@ export default function HierarchicalSidebar({
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-50 flex-col',
+        'fixed left-0 bottom-0 z-50 flex flex-col',
         'bg-neutral-900 border-r border-white/10',
         'transition-all duration-300 ease-in-out',
-        'hidden md:flex',
-        sidebarCollapsed ? 'w-16' : 'w-72'
+        // Top: below mobile header on mobile, full height on desktop
+        'top-14 md:top-0',
+        // Width: always expanded on mobile, collapsible on desktop
+        'w-72',
+        sidebarCollapsed && 'md:w-16',
+        // Visibility: slide in/out on mobile, always visible on desktop
+        isMobileNavOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
       )}
     >
-      {/* Logo */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-white/10">
+      {/* Logo — hidden on mobile (MobileHeader shows brand) */}
+      <div className="hidden md:flex h-16 items-center justify-between px-4 border-b border-white/10">
         {!sidebarCollapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rink-500 to-arena-500 flex items-center justify-center">
@@ -122,7 +136,15 @@ export default function HierarchicalSidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+      <nav
+        className="flex-1 px-2 py-4 space-y-1 overflow-y-auto"
+        onClick={(e) => {
+          // Close mobile nav when any link is clicked
+          if ((e.target as HTMLElement).closest('a')) {
+            closeMobileNav();
+          }
+        }}
+      >
         {/* Primary nav */}
         <NavLink
           href="/dashboard"
@@ -367,6 +389,7 @@ function NavLink({
   compact = false,
   muted = false,
   highlight = false,
+  onClick,
 }: {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -376,10 +399,12 @@ function NavLink({
   compact?: boolean;
   muted?: boolean;
   highlight?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
         'flex items-center gap-2 rounded-lg transition-all duration-200',
         'group relative',

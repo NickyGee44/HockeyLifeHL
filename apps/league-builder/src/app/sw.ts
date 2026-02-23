@@ -31,6 +31,8 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching,
+  // Never cache navigation (HTML) responses — security headers must be fresh
+  navigateFallback: undefined,
 });
 
 serwist.addEventListeners();

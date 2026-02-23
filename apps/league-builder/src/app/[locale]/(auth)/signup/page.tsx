@@ -57,12 +57,10 @@ export default function SignupPage() {
         <OAuthProviderButton
           provider="google"
           label={t('auth.signUpWithGoogle')}
-          redirectTo="/en/dashboard"
         />
         <OAuthProviderButton
           provider="apple"
           label={t('auth.signUpWithApple')}
-          redirectTo="/en/dashboard"
         />
       </div>
 

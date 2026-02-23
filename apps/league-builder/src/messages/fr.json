@@ -427,7 +427,10 @@
     "wins": "Victoires",
     "losses": "Defaites",
     "ties": "Nulles",
-    "record": "Fiche"
+    "record": "Fiche",
+    "allTeams": "Toutes les equipes",
+    "allTeamsDescription": "Gerez les equipes de toutes vos ligues",
+    "backToDashboard": "Retour au tableau de bord"
   },
   "players": {
     "title": "Joueurs",
@@ -1188,6 +1191,62 @@
     "saveFailed": "Echec de l'enregistrement. Veuillez reessayer.",
     "deleteFailed": "Echec de la suppression. Veuillez reessayer.",
     "loadFailed": "Echec du chargement. Veuillez actualiser la page."
+  },
+  "errorPages": {
+    "somethingWentWrong": "Une erreur est survenue",
+    "unexpectedError": "Une erreur inattendue s'est produite. Veuillez reessayer ou retourner au tableau de bord.",
+    "notFoundDescription": "La page que vous recherchez n'existe pas ou la ligue a peut-etre ete supprimee.",
+    "goToDashboard": "Aller au tableau de bord"
+  },
+  "orgSettings": {
+    "title": "Parametres de l'organisation",
+    "subtitle": "Gerez le profil, l'equipe et les preferences de votre organisation",
+    "backToDashboard": "Retour au tableau de bord",
+    "profile": "Profil de l'organisation",
+    "profileDescription": "Gerez les informations de base et les parametres de votre organisation",
+    "organizationId": "Identifiant de l'organisation",
+    "organizationIdDescription": "Votre identifiant unique d'organisation pour les integrations API",
+    "copyId": "Copier l'identifiant",
+    "dangerZone": "Zone dangereuse",
+    "dangerZoneDescription": "Actions irreversibles et destructives",
+    "deleteOrganization": "Supprimer l'organisation",
+    "deleteOrganizationDescription": "Supprimez definitivement cette organisation et toutes les ligues, equipes et donnees associees. Cette action est irreversible.",
+    "contactSupport": "Contactez le support pour supprimer votre organisation"
+  },
+  "settingsNav": {
+    "ariaLabel": "Navigation des parametres",
+    "profile": {
+      "name": "Profil",
+      "description": "Nom, identifiant et logo de l'organisation"
+    },
+    "members": {
+      "name": "Membres de l'equipe",
+      "description": "Inviter et gerer les membres"
+    },
+    "domains": {
+      "name": "Domaines",
+      "description": "Sous-domaines et domaines personnalises"
+    },
+    "subscription": {
+      "name": "Abonnement",
+      "description": "Forfait, utilisation et mises a niveau"
+    },
+    "billing": {
+      "name": "Facturation et abonnements",
+      "description": "Forfait, supplements et traitement des paiements"
+    },
+    "branding": {
+      "name": "Image de marque",
+      "description": "Couleurs, logos et identite visuelle"
+    },
+    "privacy": {
+      "name": "Confidentialite",
+      "description": "Exportation des donnees et suppression du compte"
+    },
+    "notifications": {
+      "name": "Notifications",
+      "description": "Preferences de courriel et de notification"
+    }
   },
   "legal": {
     "termsTitle": "Conditions d'utilisation",

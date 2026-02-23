@@ -2,13 +2,14 @@ import { getCurrentUser } from '@/lib/actions/auth';
 import { getUserTeams } from '@/lib/actions/teams';
 import { redirect } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
-import { ArrowLeft} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import TeamsListClient from '@/components/dashboard/teams/teams-list-client';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 
 export const metadata = {
   title: 'Teams | Beer League Hockey',
-  description: 'Manage your hockey teams' };
+  description: 'Manage your hockey teams',
+};
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -19,11 +20,12 @@ export default async function TeamsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const t = await getTranslations('teams');
   const userData = await getCurrentUser();
 
   if (!userData) {
     redirect({ href: '/login', locale });
-    return null; // TypeScript needs this after redirect
+    return null;
   }
 
   const resolvedSearchParams = await searchParams;
@@ -57,16 +59,15 @@ export default async function TeamsPage({ params, searchParams }: Props) {
               className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
+              {t('backToDashboard')}
             </Link>
-            <h1 className="text-3xl font-black text-white tracking-tight">All Teams</h1>
+            <h1 className="text-3xl font-black text-white tracking-tight">{t('allTeams')}</h1>
             <p className="text-neutral-400 mt-2">
-              Manage teams across all your leagues
+              {t('allTeamsDescription')}
             </p>
           </div>
         </div>
 
-        {/*andClient Component */}
         <TeamsListClient
           teams={teams}
           initialSearch={search || ''}
