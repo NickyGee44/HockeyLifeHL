@@ -2844,17 +2844,18 @@
       "failed": "Failed to reactivate subscription"
     },
     "content": {
-      "yourCurrentPlan": "Your Current Plan",
-      "freeForever": "Platform Monthly",
-      "platformIncluded": "All core features included",
-      "premiumFeaturesUnlocked": "Premium features unlocked",
       "platformMonthly": "Platform Monthly",
+      "platformDescription": "Hosting, maintenance, and all core features included",
+      "perMonth": "/mo",
       "trial": "TRIAL",
       "active": "ACTIVE",
+      "notSubscribed": "NOT SUBSCRIBED",
       "nextBilling": "Next billing: {date}",
       "cancelsAtPeriodEnd": "Cancels at end of billing period",
-      "transactionFeeOnPayments": "{percent}% transaction fee on player payments",
-      "noCreditCard": "Includes hosting, maintenance, and all platform features.",
+      "transactionFeeOnPayments": "+ {percent}% transaction fee on player payments",
+      "subscribeToGetStarted": "Subscribe to activate your league platform",
+      "subscribe": "Subscribe Now",
+      "failedCheckout": "Failed to start checkout",
       "premiumAddOns": "Premium Add-Ons",
       "subscriptionActivated": "Subscription activated!",
       "subscriptionActivatedDesc": "Your subscription is now active.",
@@ -2868,12 +2869,7 @@
         "unlimitedSeasons": "Unlimited seasons and games",
         "adminDashboard": "Complete admin dashboard",
         "scorekeeperApp": "Mobile scorekeeper app",
-        "realtimeStats": "Real-time stats and standings",
-        "everythingInFree": "Everything in Platform Monthly",
-        "prioritySupport": "Priority email support (24hr response)",
-        "customBranding": "Custom brand colors and logos",
-        "advancedPermissions": "Advanced admin permissions",
-        "whiteLabel": "White-label league websites"
+        "realtimeStats": "Real-time stats and standings"
       }
     },
     "upgrade": {

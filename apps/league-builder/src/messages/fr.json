@@ -2844,17 +2844,18 @@
       "failed": "Echec de la reactivation de l'abonnement"
     },
     "content": {
-      "yourCurrentPlan": "Votre forfait actuel",
-      "freeForever": "Plateforme mensuelle",
-      "platformIncluded": "Toutes les fonctionnalites incluses",
-      "premiumFeaturesUnlocked": "Fonctionnalites premium debloquees",
       "platformMonthly": "Plateforme mensuelle",
+      "platformDescription": "Hebergement, maintenance et toutes les fonctionnalites incluses",
+      "perMonth": "/mois",
       "trial": "ESSAI",
       "active": "ACTIF",
+      "notSubscribed": "NON ABONNE",
       "nextBilling": "Prochaine facturation: {date}",
       "cancelsAtPeriodEnd": "S'annule a la fin de la periode de facturation",
-      "transactionFeeOnPayments": "{percent} % de frais de transaction sur les paiements des joueurs",
-      "noCreditCard": "Inclut l'hebergement, la maintenance et toutes les fonctionnalites.",
+      "transactionFeeOnPayments": "+ {percent} % de frais de transaction sur les paiements des joueurs",
+      "subscribeToGetStarted": "Abonnez-vous pour activer votre plateforme de ligue",
+      "subscribe": "S'abonner maintenant",
+      "failedCheckout": "Echec du demarrage du paiement",
       "premiumAddOns": "Extensions premium",
       "subscriptionActivated": "Abonnement active !",
       "subscriptionActivatedDesc": "Votre abonnement est maintenant actif.",
@@ -2868,12 +2869,7 @@
         "unlimitedSeasons": "Saisons et matchs illimites",
         "adminDashboard": "Tableau de bord d'administration complet",
         "scorekeeperApp": "Application mobile de marqueur",
-        "realtimeStats": "Stats et classements en temps reel",
-        "everythingInFree": "Tout dans Plateforme mensuelle",
-        "prioritySupport": "Support par courriel prioritaire (reponse 24h)",
-        "customBranding": "Couleurs et logos personnalises",
-        "advancedPermissions": "Permissions d'administration avancees",
-        "whiteLabel": "Sites web de ligue en marque blanche"
+        "realtimeStats": "Stats et classements en temps reel"
       }
     },
     "upgrade": {
