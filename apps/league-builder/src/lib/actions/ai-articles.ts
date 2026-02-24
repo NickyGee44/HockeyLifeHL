@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from './permissions';
+import { hasAiNewsAddon } from '@/lib/utils/addon-helpers';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -35,6 +36,12 @@ export async function regenerateGameRecap(
   const access = await verifyLeagueOwnerAccess(leagueId);
   if (!access.authorized) {
     return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  // Verify AI News addon is active
+  const hasAddon = await hasAiNewsAddon(leagueId);
+  if (!hasAddon) {
+    return { success: false, error: 'AI News Writer addon required. Upgrade at Settings > Billing.' };
   }
 
   const supabase = await createClient();

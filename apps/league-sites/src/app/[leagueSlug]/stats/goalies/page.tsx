@@ -2,9 +2,10 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
-import { getLeagueBySlug, getGoalieLeaders, getCurrentSeason, getSeasons, getPlayerBadgesByIds } from '@/lib/data';
+import { getLeagueBySlug, getGoalieLeaders, getCurrentSeason, getSeasons, getPlayerBadgesByIds, hasAdvancedStatsAddon } from '@/lib/data';
 import { GoalieStatsTable } from '@/components/stats/GoalieStatsTable';
 import { GoalieStatsFilters } from '@/components/stats/GoalieStatsFilters';
+import { AddonUpsell } from '@/components/shared';
 
 interface GoalieStatsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -27,13 +28,16 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) notFound();
 
+  const hasFullStats = await hasAdvancedStatsAddon(league.id);
+  const leaderLimit = hasFullStats ? 50 : 5;
+
   const currentSeason = await getCurrentSeason(league.id);
   const seasonId = seasonFilter || currentSeason?.id;
 
   // Fetch data in parallel, with division filter
   const [seasons, goalieLeaders] = await Promise.all([
     getSeasons(league.id),
-    getGoalieLeaders(league.id, seasonId, sort, 50, divisionFilter),
+    getGoalieLeaders(league.id, seasonId, sort, leaderLimit, divisionFilter),
   ]);
 
   // Fetch badges for goalies
@@ -89,6 +93,13 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
             <p className="text-[var(--color-text-secondary)]">
               Goalie statistics will appear once games are recorded.
             </p>
+          </div>
+        )}
+
+        {/* Upsell for non-subscribers */}
+        {!hasFullStats && goalieLeaders.length > 0 && (
+          <div className="mt-6">
+            <AddonUpsell addonType="advanced_stats" compact />
           </div>
         )}
 

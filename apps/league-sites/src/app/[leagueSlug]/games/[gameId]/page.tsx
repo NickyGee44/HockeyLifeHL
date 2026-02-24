@@ -14,6 +14,7 @@ import {
   getGameRecap,
   getGameSheet,
   getGamePlayerStats,
+  hasAdvancedStatsAddon,
 } from '@/lib/data';
 import { GamePreviewHeader } from '@/components/game/GamePreviewHeader';
 import { PlayerStatsComparison } from '@/components/game/PlayerStatsComparison';
@@ -23,6 +24,7 @@ import { GoalieComparison } from '@/components/game/GoalieComparison';
 import { GameBoxScore } from '@/components/game/GameBoxScore';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { GameRecapSection } from '@/components/game/GameRecapSection';
+import { AddonUpsell } from '@/components/shared';
 
 interface GamePageProps {
   params: Promise<{ leagueSlug: string; gameId: string }>;
@@ -64,9 +66,11 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
   const game = await getGamePreview(gameId);
   if (!game) return notFound();
 
+  const hasFullStats = await hasAdvancedStatsAddon(league.id);
   const isCompleted = game.status === 'completed';
 
   // Fetch additional data in parallel
+  // Advanced stats (player comparisons, goalie matchup, team stats) require addon
   const [
     seasonSeries,
     futureMatchups,
@@ -82,12 +86,12 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
   ] = await Promise.all([
     getSeasonSeries(game.home_team.id, game.away_team.id, game.season_id),
     getFutureMatchups(game.home_team.id, game.away_team.id, game.season_id),
-    getTeamSeasonStats(game.home_team.id, game.season_id),
-    getTeamSeasonStats(game.away_team.id, game.season_id),
-    getPlayerLeaders(game.home_team.id, game.season_id, 'points'),
-    getPlayerLeaders(game.away_team.id, game.season_id, 'points'),
-    getTeamGoalies(game.home_team.id, game.season_id),
-    getTeamGoalies(game.away_team.id, game.season_id),
+    hasFullStats ? getTeamSeasonStats(game.home_team.id, game.season_id) : Promise.resolve(null),
+    hasFullStats ? getTeamSeasonStats(game.away_team.id, game.season_id) : Promise.resolve(null),
+    hasFullStats ? getPlayerLeaders(game.home_team.id, game.season_id, 'points') : Promise.resolve([]),
+    hasFullStats ? getPlayerLeaders(game.away_team.id, game.season_id, 'points') : Promise.resolve([]),
+    hasFullStats ? getTeamGoalies(game.home_team.id, game.season_id) : Promise.resolve([]),
+    hasFullStats ? getTeamGoalies(game.away_team.id, game.season_id) : Promise.resolve([]),
     getGameRecap(gameId),
     isCompleted ? getGameSheet(gameId) : Promise.resolve(null),
     isCompleted ? getGamePlayerStats(gameId) : Promise.resolve([]),
@@ -134,23 +138,29 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Player Stats Comparison - Points Leaders */}
-            <PlayerStatsComparison
-              homeTeam={game.home_team}
-              awayTeam={game.away_team}
-              homeLeaders={homeLeaders}
-              awayLeaders={awayLeaders}
-              leagueSlug={leagueSlug}
-            />
+            {hasFullStats ? (
+              <>
+                {/* Player Stats Comparison - Points Leaders */}
+                <PlayerStatsComparison
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                  homeLeaders={homeLeaders}
+                  awayLeaders={awayLeaders}
+                  leagueSlug={leagueSlug}
+                />
 
-            {/* Goalie Matchup */}
-            <GoalieComparison
-              homeTeam={game.home_team}
-              awayTeam={game.away_team}
-              homeGoalies={homeGoalies}
-              awayGoalies={awayGoalies}
-              leagueSlug={leagueSlug}
-            />
+                {/* Goalie Matchup */}
+                <GoalieComparison
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                  homeGoalies={homeGoalies}
+                  awayGoalies={awayGoalies}
+                  leagueSlug={leagueSlug}
+                />
+              </>
+            ) : (
+              <AddonUpsell addonType="advanced_stats" />
+            )}
 
             {/* Future Matchups between these teams */}
             {futureMatchups.length > 0 && (
@@ -210,13 +220,15 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
               awayTeam={game.away_team}
             />
 
-            {/* Team Stats Comparison */}
-            <TeamStatsComparison
-              homeTeam={game.home_team}
-              awayTeam={game.away_team}
-              homeStats={homeStats}
-              awayStats={awayStats}
-            />
+            {/* Team Stats Comparison (Advanced Stats addon) */}
+            {hasFullStats && homeStats && awayStats && (
+              <TeamStatsComparison
+                homeTeam={game.home_team}
+                awayTeam={game.away_team}
+                homeStats={homeStats}
+                awayStats={awayStats}
+              />
+            )}
           </div>
         </div>
       </div>

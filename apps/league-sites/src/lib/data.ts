@@ -2294,6 +2294,28 @@ export async function hasAiNewsAddon(leagueId: string): Promise<boolean> {
   return !!addon;
 }
 
+export async function hasAdvancedStatsAddon(leagueId: string): Promise<boolean> {
+  const supabase = await createClient();
+
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('organization_id')
+    .eq('id', leagueId)
+    .single();
+
+  if (!league?.organization_id) return false;
+
+  const { data: addon } = await supabase
+    .from('organization_addons')
+    .select('id')
+    .eq('organization_id', league.organization_id)
+    .eq('addon_type', 'advanced_stats')
+    .in('status', ['active', 'trialing'])
+    .maybeSingle();
+
+  return !!addon;
+}
+
 /**
  * Get the latest published announcement for a league
  */

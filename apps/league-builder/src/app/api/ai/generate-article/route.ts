@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import { hasAiNewsAddon } from '@/lib/utils/addon-helpers';
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -45,6 +46,15 @@ export async function POST(request: NextRequest) {
   const access = await verifyLeagueOwnerAccess(leagueId);
   if (!access.authorized) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Verify AI News addon is active
+  const hasAddon = await hasAiNewsAddon(leagueId);
+  if (!hasAddon) {
+    return NextResponse.json(
+      { error: 'AI News Writer addon is required. Upgrade at Settings > Billing.' },
+      { status: 403 }
+    );
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
