@@ -43,6 +43,7 @@ interface Team {
   secondary_color: string | null;
   logo_url: string | null;
   status: string | null;
+  team_rating_grade?: string | null;
   division_id: string | null;
   divisions: {
     id: string;
@@ -363,9 +364,16 @@ function TeamCardInner({
             <h3 className="font-semibold text-white group-hover:text-rink-500 transition-colors">
               {team.name}
             </h3>
-            {team.divisions && (
-              <p className="text-sm text-neutral-500">{team.divisions.name}</p>
-            )}
+            <div className="flex items-center gap-2">
+              {team.divisions && (
+                <p className="text-sm text-neutral-500">{team.divisions.name}</p>
+              )}
+              {team.team_rating_grade && (
+                <span className="px-1.5 py-0.5 rounded bg-rink-500/20 text-rink-400 text-[10px] font-semibold">
+                  {team.team_rating_grade}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

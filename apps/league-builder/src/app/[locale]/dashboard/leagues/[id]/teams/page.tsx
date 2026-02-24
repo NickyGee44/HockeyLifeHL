@@ -94,6 +94,20 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
     console.error('[Teams Page] Error fetching teams:', teamsError.message);
   }
 
+  const { data: teamRatings } = currentSeason?.id
+    ? await supabase
+        .from('team_ratings' as any)
+        .select('team_id, overall_grade')
+        .eq('league_id', leagueId)
+        .eq('season_id', currentSeason.id)
+    : { data: [] as Array<{ team_id: string; overall_grade: string | null }> };
+
+  const teamRatingById = new Map((teamRatings ?? []).map((row) => [row.team_id, row.overall_grade]));
+  const teamsWithRatings = (teams || []).map((team: any) => ({
+    ...team,
+    team_rating_grade: teamRatingById.get(team.id) || null,
+  }));
+
   // Get divisions for this league
   const { data: divisions } = await supabase
     .from('divisions')
@@ -145,7 +159,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
           leagueId={leagueId}
           leagueName={league.name}
           locale={locale}
-          teams={teams || []}
+          teams={teamsWithRatings}
           divisions={divisions || []}
           initialTab={tab || 'teams'}
         />

@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getTeam } from '@/lib/actions/teams';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from '@/i18n/navigation';
 import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
@@ -48,6 +49,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
   }
 
   const team = result.data;
+  const { data: activeSeason } = await getCurrentSeason(team.league_id);
   const resolvedSearchParams = await searchParams;
   const currentTab = resolvedSearchParams.tab || 'roster';
 
@@ -179,8 +181,20 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
         </div>
 
         {/* Content with Tabs - Client Component */}
-        <TeamDetailClient team={team} initialTab={currentTab} />
+        <TeamDetailClient team={team} initialTab={currentTab} seasonId={activeSeason?.id} />
       </div>
     </div>
   );
+}
+
+async function getCurrentSeason(leagueId: string) {
+  const supabase = await createClient();
+  return supabase
+    .from('seasons')
+    .select('id, name')
+    .eq('league_id', leagueId)
+    .eq('status', 'active')
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 }

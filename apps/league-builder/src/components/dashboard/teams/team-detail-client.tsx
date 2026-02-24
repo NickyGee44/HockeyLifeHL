@@ -38,6 +38,7 @@ interface Team {
 interface TeamDetailClientProps {
   team: Team;
   initialTab: string;
+  seasonId?: string;
 }
 
 const TABS = [
@@ -46,7 +47,7 @@ const TABS = [
   { id: 'stats', label: 'Statistics', icon: BarChart3 },
 ];
 
-export default function TeamDetailClient({ team, initialTab }: TeamDetailClientProps) {
+export default function TeamDetailClient({ team, initialTab, seasonId }: TeamDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentTab, setCurrentTab] = useState(initialTab);
@@ -102,7 +103,7 @@ export default function TeamDetailClient({ team, initialTab }: TeamDetailClientP
             )}
 
             {/* Roster Table */}
-            <RosterTable teamId={team.id} />
+            <RosterTable teamId={team.id} seasonId={seasonId} />
           </div>
         );
 
