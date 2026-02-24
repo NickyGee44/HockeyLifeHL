@@ -1,10 +1,35 @@
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
+// Allowed origins for iframe embedding (website editor preview)
+const FRAME_ANCESTORS = [
+  "'self'",
+  'https://app.beerleaguehockey.ca',
+  'https://beerleaguehockey.ca',
+  'https://www.beerleaguehockey.ca',
+  process.env.NEXT_PUBLIC_LEAGUE_BUILDER_URL,
+  'http://localhost:3000',
+].filter(Boolean).join(' ');
+
 const nextConfig: NextConfig = {
   // Enable experimental features for multi-tenant subdomain routing
   experimental: {
     // Allow reading from workspace packages
+  },
+
+  // Allow league-builder to embed league-sites in an iframe (website editor preview)
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: `frame-ancestors ${FRAME_ANCESTORS}`,
+          },
+        ],
+      },
+    ];
   },
 
   // Configure images from Supabase storage and external sources

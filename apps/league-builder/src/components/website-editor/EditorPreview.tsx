@@ -71,9 +71,11 @@ export function EditorPreview() {
               <p className="text-neutral-400 text-sm mb-4">
                 {t('previewUnavailableDescription')}
               </p>
-              <div className="bg-neutral-800 rounded-lg p-3 mb-4 border border-white/10">
-                <code className="text-rink-400 text-sm font-mono">pnpm dev:website</code>
-              </div>
+              {process.env.NODE_ENV === 'development' && (
+                <div className="bg-neutral-800 rounded-lg p-3 mb-4 border border-white/10">
+                  <code className="text-rink-400 text-sm font-mono">pnpm dev:website</code>
+                </div>
+              )}
               <button
                 onClick={handleRetryPreview}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-rink-500/20 text-rink-400 hover:bg-rink-500/30 transition-colors"

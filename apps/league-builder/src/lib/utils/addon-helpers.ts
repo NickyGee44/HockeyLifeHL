@@ -58,3 +58,8 @@ export async function hasAdvancedStatsAddon(leagueId: string): Promise<boolean> 
 export async function hasAiNewsAddon(leagueId: string): Promise<boolean> {
   return hasAddonByLeagueId(leagueId, 'ai_news');
 }
+
+/** Check if an organization has an active Platform Monthly subscription */
+export async function hasPlatformSubscription(orgId: string): Promise<boolean> {
+  return hasAddonByOrgId(orgId, 'platform_subscription');
+}

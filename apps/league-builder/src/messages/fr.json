@@ -1523,7 +1523,7 @@
     "showPanel": "Afficher le panneau d'édition",
     "hidePanel": "Masquer le panneau d'édition",
     "previewUnavailable": "Aperçu indisponible",
-    "previewUnavailableDescription": "Le serveur d'aperçu du site de la ligue n'est pas en cours d'exécution. Démarrez-le avec la commande ci-dessous, puis réessayez.",
+    "previewUnavailableDescription": "Impossible de charger l'aperçu de votre site de ligue. Il peut s'agir d'un problème temporaire — cliquez sur réessayer ci-dessous.",
     "retryPreview": "Réessayer l'aperçu",
     "panels": {
       "theme": "Thème",
