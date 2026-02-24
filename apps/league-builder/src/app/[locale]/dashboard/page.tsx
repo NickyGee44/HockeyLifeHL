@@ -16,6 +16,9 @@ import {
   CreditCard,
   Palette,
   Globe,
+  DollarSign,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import { LeagueLogo } from '@/components/ui/league-logo';
@@ -51,57 +54,125 @@ export default async function DashboardPage({ params }: Props) {
 
   const { organizations, totals } = dashboardData;
 
+  // Derive subscription info from first org for financial overview
+  const primaryOrg = organizations[0];
+  const subscriptionTier = primaryOrg?.subscription_tier || 'starter';
+  const subscriptionStatus = primaryOrg?.subscription_status || 'active';
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-black text-white tracking-tight">
             {t('dashboard.welcome', { name: profile?.full_name || user.email?.split('@')[0] || 'User' })}
           </h1>
-          <p className="text-neutral-400 mt-2">
+          <p className="text-neutral-400 mt-1">
             {t('dashboard.overview')}
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <StatsCard
-            title={t('company.leagues')}
-            value={totals.total_leagues}
-            icon={<Trophy className="w-5 h-5" />}
-            trend={null}
-          />
-          <StatsCard
-            title={t('teams.title')}
-            value={totals.total_teams}
-            icon={<Users className="w-5 h-5" />}
-            trend={null}
-            emptyAction={
-              totals.total_teams === 0 ? (
+        {/* Top Overview: Stats + Financial */}
+        <div className="grid gap-6 lg:grid-cols-3 mb-8">
+          {/* Left: Stats Cards (2/3) */}
+          <div className="lg:col-span-2">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <MiniStatsCard
+                title={t('company.leagues')}
+                value={totals.total_leagues}
+                icon={<Trophy className="w-4 h-4" />}
+              />
+              <MiniStatsCard
+                title={t('teams.title')}
+                value={totals.total_teams}
+                icon={<Users className="w-4 h-4" />}
+              />
+              <MiniStatsCard
+                title={t('players.title')}
+                value={totals.total_players}
+                icon={<Calendar className="w-4 h-4" />}
+              />
+              <MiniStatsCard
+                title={t('dashboard.gamesPlayed')}
+                value={totals.total_games_played ?? 0}
+                icon={<TrendingUp className="w-4 h-4" />}
+              />
+            </div>
+          </div>
+
+          {/* Right: Financial Overview (1/3) */}
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-rink-500" />
+                {t('dashboard.financialOverview')}
+              </h3>
+              <Link
+                href="/dashboard/settings/billing"
+                className="text-xs text-rink-500 hover:text-rink-400"
+              >
+                {t('common.details')}
+              </Link>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-neutral-400">{t('dashboard.plan')}</span>
+                <span className="text-xs font-medium text-white capitalize">{subscriptionTier}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-neutral-400">{t('dashboard.status')}</span>
+                <span className={cn(
+                  'inline-flex items-center gap-1 text-xs font-medium',
+                  subscriptionStatus === 'active' ? 'text-green-400' :
+                  subscriptionStatus === 'trialing' ? 'text-cyan-400' :
+                  'text-amber-400'
+                )}>
+                  {subscriptionStatus === 'active' ? (
+                    <CheckCircle2 className="w-3 h-3" />
+                  ) : (
+                    <AlertCircle className="w-3 h-3" />
+                  )}
+                  <span className="capitalize">{subscriptionStatus}</span>
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-neutral-400">{t('dashboard.platformFee')}</span>
+                <span className="text-xs font-medium text-white">2.99%</span>
+              </div>
+              <div className="pt-2 border-t border-white/[0.06]">
                 <Link
-                  href="/dashboard/leagues/new"
-                  className="text-xs text-rink-500 hover:text-rink-400 mt-2 inline-flex items-center gap-1"
+                  href="/dashboard/settings/billing"
+                  className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium text-rink-500 hover:text-rink-400 rounded-lg hover:bg-white/[0.04] transition-colors"
                 >
-                  <Plus className="h-3 w-3" />
-                  {t('navigation.createLeague')}
+                  <CreditCard className="w-3.5 h-3.5" />
+                  {t('dashboard.manageBilling')}
                 </Link>
-              ) : null
-            }
-          />
-          <StatsCard
-            title={t('players.title')}
-            value={totals.total_players}
-            icon={<Calendar className="w-5 h-5" />}
-            trend={null}
-          />
-          <StatsCard
-            title={t('dashboard.gamesPlayed')}
-            value={totals.total_games_played ?? 0}
-            icon={<TrendingUp className="w-5 h-5" />}
-            trend={null}
-          />
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Leagues Section — moved up, renamed from "Teams" */}
+        {totals.total_leagues > 0 && (
+          <div className="mb-8 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">{t('company.leagues')}</h2>
+              <Link
+                href="/dashboard/leagues"
+                className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1"
+              >
+                {t('common.all')} <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {organizations.flatMap((org) =>
+                org.leagues.slice(0, 3).map((league) => (
+                  <LeagueCard key={league.id} league={league} orgName={org.name} t={t} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Staff Assignments Panel */}
         {staffData.isStaff && (
@@ -240,71 +311,28 @@ export default async function DashboardPage({ params }: Props) {
             </div>
           )}
         </div>
-
-        {/* Leagues Section (if any exist) */}
-        {totals.total_leagues > 0 && (
-          <div className="mt-8 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">{t('navigation.teams')}</h2>
-              <Link
-                href="/dashboard/leagues"
-                className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1"
-              >
-                {t('common.all')} <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {organizations.flatMap((org) =>
-                org.leagues.slice(0, 3).map((league) => (
-                  <LeagueCard key={league.id} league={league} orgName={org.name} t={t} />
-                ))
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-// Stats Card Component
-function StatsCard({
+// Mini Stats Card — compact version
+function MiniStatsCard({
   title,
   value,
   icon,
-  trend,
-  subtitle,
-  emptyAction,
 }: {
   title: string;
   value: number;
   icon: React.ReactNode;
-  trend: number | null;
-  subtitle?: string;
-  emptyAction?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 hover:border-white/20 transition-colors">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-2 rounded-xl bg-rink-500/10 text-rink-500">{icon}</div>
-        {trend !== null && (
-          <span
-            className={cn(
-              'text-xs font-medium px-2 py-1 rounded-full',
-              trend >= 0
-                ? 'bg-green-500/10 text-green-500'
-                : 'bg-red-500/10 text-red-500'
-            )}
-          >
-            {trend >= 0 ? '+' : ''}
-            {trend}%
-          </span>
-        )}
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl px-4 py-3 hover:border-white/20 transition-colors">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="p-1.5 rounded-lg bg-rink-500/10 text-rink-500">{icon}</div>
+        <span className="text-xs text-neutral-400 truncate">{title}</span>
       </div>
-      <div className="text-3xl font-black text-white mb-1">{value}</div>
-      <div className="text-sm text-neutral-400">{title}</div>
-      {subtitle && <div className="text-xs text-neutral-500 mt-1">{subtitle}</div>}
-      {emptyAction}
+      <div className="text-2xl font-black text-white">{value}</div>
     </div>
   );
 }

@@ -163,7 +163,8 @@
     "clearAll": "Clear All",
     "noResults": "No results found",
     "tryAgain": "Try again",
-    "learnMore": "Learn more"
+    "learnMore": "Learn more",
+    "details": "Details"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -401,7 +402,12 @@
     "totalTeams": "Total Teams",
     "totalPlayers": "Total Players",
     "gamesPlayed": "Games Played",
-    "gamesRemaining": "Games Remaining"
+    "gamesRemaining": "Games Remaining",
+    "financialOverview": "Financial Overview",
+    "plan": "Plan",
+    "status": "Status",
+    "platformFee": "Platform Fee",
+    "manageBilling": "Manage Billing"
   },
   "teams": {
     "title": "Teams",

@@ -163,7 +163,8 @@
     "clearAll": "Tout effacer",
     "noResults": "Aucun resultat trouve",
     "tryAgain": "Reessayer",
-    "learnMore": "En savoir plus"
+    "learnMore": "En savoir plus",
+    "details": "Details"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -401,7 +402,12 @@
     "totalTeams": "Total des equipes",
     "totalPlayers": "Total des joueurs",
     "gamesPlayed": "Matchs joues",
-    "gamesRemaining": "Matchs restants"
+    "gamesRemaining": "Matchs restants",
+    "financialOverview": "Apercu financier",
+    "plan": "Forfait",
+    "status": "Statut",
+    "platformFee": "Frais de plateforme",
+    "manageBilling": "Gerer la facturation"
   },
   "teams": {
     "title": "Equipes",
