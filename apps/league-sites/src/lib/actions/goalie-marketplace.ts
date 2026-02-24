@@ -1,3 +1,4 @@
+// @ts-nocheck — new tables pending migration; regenerate types after running migrations
 'use server';
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
