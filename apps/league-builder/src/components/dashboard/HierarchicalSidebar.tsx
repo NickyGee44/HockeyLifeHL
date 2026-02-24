@@ -8,6 +8,7 @@ import { cn } from '@hockey-life/ui';
 import {
   Home,
   Trophy,
+  BarChart3,
   Settings,
   Plus,
   ChevronLeft,
@@ -170,6 +171,13 @@ export default function HierarchicalSidebar({
               icon={Users}
               label={t('teamsAndDivisions')}
               isActive={isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/ratings`}
+              icon={BarChart3}
+              label={t('playerRatings')}
+              isActive={isPathActive(`${leagueBase}/ratings`)}
               collapsed={sidebarCollapsed}
             />
             <NavLink

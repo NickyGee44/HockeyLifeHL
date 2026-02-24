@@ -33,6 +33,8 @@ interface RosterPlayer {
     full_name: string;
     avatar_url?: string | null;
   };
+  rating_grade?: string | null;
+  rating_percentile?: number | null;
 }
 
 interface RosterTableProps {
@@ -231,6 +233,9 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-24">
                       Status
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-24">
+                      Grade
+                    </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider w-20">
                       Actions
                     </th>
@@ -285,6 +290,15 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
                         >
                           {player.status.charAt(0).toUpperCase() + player.status.slice(1)}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {player.rating_grade ? (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-rink-500/20 text-rink-400">
+                            {player.rating_grade}
+                          </span>
+                        ) : (
+                          <span className="text-neutral-500 text-xs">-</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="relative inline-block" ref={actionMenuOpen === player.id ? menuRef : undefined}>

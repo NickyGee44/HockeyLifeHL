@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addPlayerToRoster, getTeamRoster } from '@/lib/actions/roster';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
@@ -63,7 +63,52 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(result.data);
+    const { data: season } = await supabase
+      .from('seasons')
+      .select('registration_type')
+      .eq('id', seasonId)
+      .eq('league_id', team.league_id)
+      .maybeSingle();
+
+    const canSeeRatings =
+      membership?.role === 'owner' ||
+      membership?.role === 'admin' ||
+      (membership?.role === 'captain' && season?.registration_type === 'draft');
+
+    if (!canSeeRatings || !Array.isArray(result.data) || result.data.length === 0) {
+      return NextResponse.json(result.data);
+    }
+
+    const playerIds = result.data
+      .map((row: any) => row.player_id)
+      .filter((id: unknown): id is string => typeof id === 'string');
+
+    if (playerIds.length === 0) {
+      return NextResponse.json(result.data);
+    }
+
+    const service = createServiceRoleClient();
+    const { data: ratings } = await service
+      .from('player_ratings')
+      .select('player_id, rating, overall_percentile')
+      .eq('league_id', team.league_id)
+      .eq('season_id', seasonId)
+      .in('player_id', playerIds);
+
+    const ratingByPlayerId = new Map(
+      (ratings ?? []).map((row) => [row.player_id, { rating: row.rating, overall: row.overall_percentile }])
+    );
+
+    const withRatings = result.data.map((row: any) => {
+      const rating = ratingByPlayerId.get(row.player_id);
+      return {
+        ...row,
+        rating_grade: rating?.rating ?? null,
+        rating_percentile: rating?.overall ?? null,
+      };
+    });
+
+    return NextResponse.json(withRatings);
   }
 
   // No seasonId — return all active roster entries (end_date IS NULL)
