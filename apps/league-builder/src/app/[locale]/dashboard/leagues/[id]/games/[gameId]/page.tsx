@@ -11,10 +11,12 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getGame, getGameAuditLog } from '@/lib/actions/games';
 import { getLeagueReferees } from '@/lib/actions/referee-management';
+import { getGoalieRequests } from '@/lib/actions/goalie-marketplace';
 import { cn } from '@hockey-life/ui';
 import { StatusBadge } from '@/components/games';
 import { GameDetailClient } from '@/components/dashboard/leagues/game-detail-client';
 import { GameOfficialsPanel } from '@/components/referees';
+import { GoalieRequestStatus, RequestGoalieButton } from '@/components/goalie-marketplace';
 import {
   ArrowLeft,
   Calendar,
@@ -101,6 +103,19 @@ export default async function GameDetailPage({ params }: Props) {
   const availableReferees = (refereesResult.success && refereesResult.data)
     ? refereesResult.data.referees.filter((r) => r.is_active).map((r) => ({ id: r.id, name: r.name }))
     : [];
+
+  // Determine if the viewer can request a goalie for one of the teams in this game
+  const [captainTeamsResult, goalieRequestsResult] = await Promise.all([
+    supabase
+      .from('teams')
+      .select('id')
+      .in('id', [game.home_team_id, game.away_team_id])
+      .eq('captain_id', user.id),
+    getGoalieRequests(leagueId, { gameId }),
+  ]);
+
+  const captainTeamId = captainTeamsResult.data?.[0]?.id || null;
+  const requestForGame = goalieRequestsResult.success ? goalieRequestsResult.data[0] || null : null;
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -214,6 +229,17 @@ export default async function GameDetailPage({ params }: Props) {
               {game.location || 'TBD'}
             </p>
           </div>
+        </div>
+
+        {/* Goalie Marketplace */}
+        <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h2 className="text-lg font-bold text-white">Goalie Marketplace</h2>
+            {captainTeamId && !requestForGame && game.status === 'scheduled' && (
+              <RequestGoalieButton gameId={gameId} teamId={captainTeamId} />
+            )}
+          </div>
+          <GoalieRequestStatus request={requestForGame} />
         </div>
 
         {/* Game Officials */}

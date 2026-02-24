@@ -3138,5 +3138,12 @@
       "emptyTitle": "Aucune note d'arbitre",
       "emptyDescription": "Les notes des marqueurs des matchs terminés apparaîtront ici."
     }
+  },
+  "goalieMarketplace": {
+    "settingsTitle": "Banque de gardiens",
+    "settingsDescription": "Gérer les gardiens remplaçants et les demandes",
+    "requestButton": "Demander un gardien",
+    "requestStatus": "Statut de la demande de gardien",
+    "rateGoalie": "Évaluer le gardien"
   }
 }

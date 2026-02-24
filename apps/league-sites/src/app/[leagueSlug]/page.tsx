@@ -405,6 +405,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                   icon={<Calendar className="w-4 h-4" />}
                   label="Contact League"
                 />
+                <QuickLink
+                  href={`/${leagueSlug}/goalies/register`}
+                  icon={<UserPlus className="w-4 h-4" />}
+                  label="🥅 Register as a Sub Goalie"
+                />
               </nav>
             </section>
           </div>

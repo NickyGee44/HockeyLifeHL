@@ -19,6 +19,10 @@ export * from './registration-rejected';
 export * from './registration-admin-alert';
 export * from './scorekeeper-assignment';
 export * from './suspension-issued';
+export * from './goalie-request-notification';
+export * from './goalie-request-filled-captain';
+export * from './goalie-request-filled-goalie';
+export * from './goalie-rating-prompt';
 
 export type EmailTemplateType =
   | 'game_reminder'
@@ -34,4 +38,8 @@ export type EmailTemplateType =
   | 'registration_rejected'
   | 'registration_admin_alert'
   | 'scorekeeper_assignment'
-  | 'suspension_issued';
+  | 'suspension_issued'
+  | 'goalie_request_notification'
+  | 'goalie_request_filled_captain'
+  | 'goalie_request_filled_goalie'
+  | 'goalie_rating_prompt';

@@ -81,6 +81,11 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       description: 'Send league emails from your own domain',
       icon: 'Mail',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/email-domain` },
+    {
+      title: 'Goalie Pool',
+      description: 'Manage substitute goalies and marketplace requests',
+      icon: 'Shield',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/goalie-pool` },
   ];
 
   const orgSettings = [

@@ -3138,5 +3138,12 @@
       "emptyTitle": "No Referee Notes",
       "emptyDescription": "Scorekeeper notes from completed games will appear here."
     }
+  },
+  "goalieMarketplace": {
+    "settingsTitle": "Goalie Pool",
+    "settingsDescription": "Manage substitute goalies and requests",
+    "requestButton": "Request Goalie",
+    "requestStatus": "Goalie Request Status",
+    "rateGoalie": "Rate Goalie"
   }
 }

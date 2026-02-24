@@ -81,6 +81,7 @@ export function LeagueFooter({ league, leagueSlug }: LeagueFooterProps) {
               <FooterLink href={`/${leagueSlug}/standings`}>Standings</FooterLink>
               <FooterLink href={`/${leagueSlug}/teams`}>Teams</FooterLink>
               <FooterLink href={`/${leagueSlug}/stats`}>Stats</FooterLink>
+              <FooterLink href={`/${leagueSlug}/goalies/register`}>🥅 Register as a Sub Goalie</FooterLink>
               <FooterLink href={`/${leagueSlug}/players`}>Players</FooterLink>
               <FooterLink href={`/${leagueSlug}/news`}>News</FooterLink>
               <FooterLink href={`/${leagueSlug}/events`}>Events</FooterLink>
