@@ -89,14 +89,14 @@ export async function GET(
 
     const service = createServiceRoleClient();
     const { data: ratings } = await service
-      .from('player_ratings')
-      .select('player_id, rating, overall_percentile')
+      .from('player_ratings' as any)
+      .select('player_id, rating, overall_percentile' as any)
       .eq('league_id', team.league_id)
       .eq('season_id', seasonId)
       .in('player_id', playerIds);
 
     const ratingByPlayerId = new Map(
-      (ratings ?? []).map((row) => [row.player_id, { rating: row.rating, overall: row.overall_percentile }])
+      (ratings ?? []).map((row: any) => [row.player_id, { rating: row.rating, overall: row.overall_percentile }])
     );
 
     const withRatings = result.data.map((row: any) => {

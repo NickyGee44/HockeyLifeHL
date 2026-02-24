@@ -35,7 +35,7 @@ export async function registerGoalieSelf(
     if (!league) return { success: false, error: 'League not found' };
 
     const { data, error } = await (supabase as any)
-      .from('goalie_pool')
+      .from('goalie_pool' as any)
       .insert({
         league_id: league.id,
         name: input.name,
@@ -85,7 +85,7 @@ export async function getGoalieAcceptView(
     const supabase = createServiceRoleClient();
 
     const { data: notification } = await (supabase as any)
-      .from('goalie_request_notifications')
+      .from('goalie_request_notifications' as any)
       .select(`
         request_id,
         goalie_id,
@@ -141,7 +141,7 @@ export async function acceptGoalieRequestByToken(
     const supabase = createServiceRoleClient();
 
     const { data: notification } = await (supabase as any)
-      .from('goalie_request_notifications')
+      .from('goalie_request_notifications' as any)
       .select(`
         id,
         goalie_id,
@@ -171,7 +171,7 @@ export async function acceptGoalieRequestByToken(
     }
 
     const { data: updated } = await (supabase as any)
-      .from('goalie_requests')
+      .from('goalie_requests' as any)
       .update({
         status: 'filled',
         filled_by: notification.goalie_id,
@@ -189,11 +189,11 @@ export async function acceptGoalieRequestByToken(
 
     await Promise.all([
       (supabase as any)
-        .from('goalie_request_notifications')
+        .from('goalie_request_notifications' as any)
         .update({ status: 'accepted' })
         .eq('id', notification.id),
       (supabase as any)
-        .from('goalie_request_notifications')
+        .from('goalie_request_notifications' as any)
         .update({ status: 'expired' })
         .eq('request_id', request.id)
         .neq('id', notification.id),

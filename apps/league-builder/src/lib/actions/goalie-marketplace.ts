@@ -148,7 +148,7 @@ export async function getGoaliePool(leagueId: string, filters?: GoalieFilters): 
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query: any = (supabase as any)
-      .from('goalie_pool')
+      .from('goalie_pool' as any)
       .select('*')
       .eq('league_id', leagueId)
       .order('created_at', { ascending: false });
@@ -167,7 +167,7 @@ export async function getGoaliePool(leagueId: string, filters?: GoalieFilters): 
 
     const goalieIds = goalies.map(g => g.id);
     const { data: ratings } = await (supabase as any)
-      .from('goalie_ratings')
+      .from('goalie_ratings' as any)
       .select('goalie_id, stars')
       .in('goalie_id', goalieIds);
 
@@ -206,7 +206,7 @@ export async function addGoalieToPool(leagueId: string, goalieData: AddGoalieInp
 
     const supabase = await createClient();
     const { data, error } = await (supabase as any)
-      .from('goalie_pool')
+      .from('goalie_pool' as any)
       .insert({
         league_id: leagueId,
         name: goalieData.name,
@@ -241,7 +241,7 @@ export async function updateGoalie(goalieId: string, updates: Partial<AddGoalieI
 
     const supabase = await createClient();
     const { data: existing } = await (supabase as any)
-      .from('goalie_pool')
+      .from('goalie_pool' as any)
       .select('league_id')
       .eq('id', goalieId)
       .single();
@@ -252,7 +252,7 @@ export async function updateGoalie(goalieId: string, updates: Partial<AddGoalieI
     if (!isAdmin) return { success: false, error: 'Not authorized to update goalie' };
 
     const { data, error } = await (supabase as any)
-      .from('goalie_pool')
+      .from('goalie_pool' as any)
       .update({
         ...updates,
         email: updates.email ? updates.email.toLowerCase() : undefined,
@@ -277,7 +277,7 @@ export async function removeGoalie(goalieId: string): Promise<ActionResult<{ id:
 
     const supabase = await createClient();
     const { data: existing } = await (supabase as any)
-      .from('goalie_pool')
+      .from('goalie_pool' as any)
       .select('league_id')
       .eq('id', goalieId)
       .single();
@@ -288,7 +288,7 @@ export async function removeGoalie(goalieId: string): Promise<ActionResult<{ id:
     if (!isAdmin) return { success: false, error: 'Not authorized to remove goalie' };
 
     const { error } = await (supabase as any)
-      .from('goalie_pool')
+      .from('goalie_pool' as any)
       .update({ status: 'blacklisted' })
       .eq('id', goalieId);
 
@@ -331,7 +331,7 @@ export async function createGoalieRequest(
     const expiresAt = new Date(new Date(game.scheduled_at).getTime() - 60 * 60 * 1000).toISOString();
 
     const { data: request, error } = await (supabase as any)
-      .from('goalie_requests')
+      .from('goalie_requests' as any)
       .insert({
         game_id: gameId,
         team_id: teamId,
@@ -352,7 +352,7 @@ export async function createGoalieRequest(
     // Notify all active goalies in this league
     const [goaliesResult, leagueResult, teamResult] = await Promise.all([
       (supabase as any)
-        .from('goalie_pool')
+        .from('goalie_pool' as any)
         .select('id, name, email')
         .eq('league_id', access.leagueId)
         .eq('status', 'active'),
@@ -363,7 +363,7 @@ export async function createGoalieRequest(
     const goalies = goaliesResult.data || [];
     if (goalies.length > 0) {
       const { data: notifications } = await (supabase as any)
-        .from('goalie_request_notifications')
+        .from('goalie_request_notifications' as any)
         .insert(goalies.map((goalie: { id: string }) => ({ request_id: request.id, goalie_id: goalie.id })))
         .select('goalie_id, accept_token');
 
@@ -417,7 +417,7 @@ export async function cancelGoalieRequest(requestId: string): Promise<ActionResu
 
     const supabase = await createClient();
     const { data: request } = await (supabase as any)
-      .from('goalie_requests')
+      .from('goalie_requests' as any)
       .select('id, league_id, requested_by')
       .eq('id', requestId)
       .single();
@@ -430,7 +430,7 @@ export async function cancelGoalieRequest(requestId: string): Promise<ActionResu
     }
 
     const { error } = await (supabase as any)
-      .from('goalie_requests')
+      .from('goalie_requests' as any)
       .update({ status: 'cancelled' })
       .eq('id', requestId)
       .eq('status', 'open');
@@ -455,7 +455,7 @@ export async function getGoalieRequests(
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query: any = (supabase as any)
-      .from('goalie_requests')
+      .from('goalie_requests' as any)
       .select('*')
       .eq('league_id', leagueId)
       .order('created_at', { ascending: false });
@@ -487,7 +487,7 @@ export async function getGoalieRatings(goalieId: string): Promise<ActionResult<A
 
     const supabase = await createClient();
     const { data, error } = await (supabase as any)
-      .from('goalie_ratings')
+      .from('goalie_ratings' as any)
       .select('id, stars, tags, private_note, created_at, rated_by')
       .eq('goalie_id', goalieId)
       .order('created_at', { ascending: false });
@@ -515,7 +515,7 @@ export async function rateGoalie(
     const supabase = await createClient();
 
     const { data: request } = await (supabase as any)
-      .from('goalie_requests')
+      .from('goalie_requests' as any)
       .select('league_id, team_id')
       .eq('game_id', gameId)
       .eq('filled_by', goalieId)
@@ -531,7 +531,7 @@ export async function rateGoalie(
     }
 
     const { data, error } = await (supabase as any)
-      .from('goalie_ratings')
+      .from('goalie_ratings' as any)
       .upsert({
         goalie_id: goalieId,
         rated_by: userId,
@@ -563,7 +563,7 @@ export async function acceptGoalieRequest(acceptToken: string): Promise<ActionRe
     const supabase = createServiceRoleClient();
 
     const { data: notification, error: notificationError } = await (supabase as any)
-      .from('goalie_request_notifications')
+      .from('goalie_request_notifications' as any)
       .select(`
         id,
         status,
@@ -601,14 +601,14 @@ export async function acceptGoalieRequest(acceptToken: string): Promise<ActionRe
     const isExpired = request.expires_at ? new Date(request.expires_at) < new Date() : false;
     if (request.status !== 'open' || isExpired) {
       await (supabase as any)
-        .from('goalie_request_notifications')
+        .from('goalie_request_notifications' as any)
         .update({ status: 'expired' })
         .eq('id', notification.id);
       return { success: true, data: { requestId: request.id, status: 'expired' } };
     }
 
     const { data: updatedRequest } = await (supabase as any)
-      .from('goalie_requests')
+      .from('goalie_requests' as any)
       .update({
         status: 'filled',
         filled_by: notification.goalie_id,
@@ -626,11 +626,11 @@ export async function acceptGoalieRequest(acceptToken: string): Promise<ActionRe
 
     await Promise.all([
       (supabase as any)
-        .from('goalie_request_notifications')
+        .from('goalie_request_notifications' as any)
         .update({ status: 'accepted' })
         .eq('id', notification.id),
       (supabase as any)
-        .from('goalie_request_notifications')
+        .from('goalie_request_notifications' as any)
         .update({ status: 'expired' })
         .eq('request_id', request.id)
         .neq('id', notification.id),

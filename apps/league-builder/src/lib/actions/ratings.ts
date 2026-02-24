@@ -187,7 +187,7 @@ export async function getPlayerRatings(
 
   const [ratingsRes, profilesRes, rostersRes, teamsRes, divisionsRes, statsRes] = await Promise.all([
     supabase
-      .from('player_ratings')
+      .from('player_ratings' as any)
       .select('player_id, rating, overall_percentile, raw_percentile, games_played, position')
       .eq('league_id', leagueId)
       .eq('season_id', seasonId),
@@ -242,7 +242,7 @@ export async function getPlayerRatings(
     statByPlayer.set(row.player_id, stat);
   }
 
-  const rows = (ratingsRes.data ?? []).map((row) => {
+  const rows = (ratingsRes.data ?? []).map((row: any) => {
     const roster = latestRosterByPlayer.get(row.player_id);
     const stats = statByPlayer.get(row.player_id) ?? { points: 0, plusMinus: 0 };
 
@@ -279,7 +279,7 @@ export async function getPlayerRatings(
   filtered.sort((a, b) => b.overallPercentile - a.overallPercentile);
 
   const page = Math.max(1, filters.page ?? 1);
-  const pageSize = clamp(filters.pageSize ?? 25, 5, 100);
+  const pageSize = Math.min(100, Math.max(5, filters.pageSize ?? 25));
   const offset = (page - 1) * pageSize;
 
   return {
@@ -454,7 +454,7 @@ export async function getPlayerDetail(
 
   const [ratingsRes, rostersRes, seasonsRes, teamsRes, divisionsRes] = await Promise.all([
     service
-      .from('player_ratings')
+      .from('player_ratings' as any)
       .select('season_id, rating, overall_percentile, games_played, position, calculated_at')
       .eq('league_id', leagueId)
       .eq('player_id', playerId)
@@ -490,7 +490,7 @@ export async function getPlayerDetail(
     data: {
       playerId,
       name: profile?.full_name || 'Unknown Player',
-      ratingsHistory: (ratingsRes.data ?? []).map((row) => ({
+      ratingsHistory: (ratingsRes.data ?? []).map((row: any) => ({
         seasonId: row.season_id,
         seasonName: seasonNameById.get(row.season_id) || row.season_id,
         grade: row.rating,
@@ -499,7 +499,7 @@ export async function getPlayerDetail(
         position: row.position,
         calculatedAt: row.calculated_at,
       })),
-      teamHistory: (rostersRes.data ?? []).map((row) => ({
+      teamHistory: (rostersRes.data ?? []).map((row: any) => ({
         seasonId: row.season_id,
         teamName: teamNameById.get(row.team_id) || 'Unknown Team',
         divisionName: row.division_id ? (divisionNameById.get(row.division_id) || 'Unassigned') : 'Unassigned',

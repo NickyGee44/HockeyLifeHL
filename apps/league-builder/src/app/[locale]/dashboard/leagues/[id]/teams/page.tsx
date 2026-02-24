@@ -102,7 +102,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
         .eq('season_id', currentSeason.id)
     : { data: [] as Array<{ team_id: string; overall_grade: string | null }> };
 
-  const teamRatingById = new Map((teamRatings ?? []).map((row) => [row.team_id, row.overall_grade]));
+  const teamRatingById = new Map((teamRatings ?? []).map((row: any) => [row.team_id, row.overall_grade]));
   const teamsWithRatings = (teams || []).map((team: any) => ({
     ...team,
     team_rating_grade: teamRatingById.get(team.id) || null,
