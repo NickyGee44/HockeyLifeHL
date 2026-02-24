@@ -1211,7 +1211,15 @@
     "dangerZoneDescription": "Actions irreversibles et destructives",
     "deleteOrganization": "Supprimer l'organisation",
     "deleteOrganizationDescription": "Supprimez definitivement cette organisation et toutes les ligues, equipes et donnees associees. Cette action est irreversible.",
-    "contactSupport": "Contactez le support pour supprimer votre organisation"
+    "contactSupport": "Contactez le support pour supprimer votre organisation",
+    "linkedAccounts": {
+      "title": "Comptes connectes",
+      "description": "Associez votre compte Google ou Apple pour une connexion rapide",
+      "notConnected": "Non connecte",
+      "link": "Associer",
+      "unlink": "Deconnecter",
+      "cannotUnlinkLast": "Vous ne pouvez pas deconnecter votre seule methode de connexion"
+    }
   },
   "settingsNav": {
     "ariaLabel": "Navigation des parametres",

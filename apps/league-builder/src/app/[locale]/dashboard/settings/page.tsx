@@ -2,6 +2,7 @@ import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
 import { redirect } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import { OrganizationProfileForm } from '@/components/dashboard/organization-profile-form';
+import { LinkedAccountsSection } from '@/components/dashboard/linked-accounts-section';
 import { Copy, AlertTriangle } from 'lucide-react';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 
@@ -45,6 +46,9 @@ export default async function OrganizationProfilePage({ params }: Props) {
         </div>
         <OrganizationProfileForm organization={orgData} />
       </section>
+
+      {/* Connected Accounts Section */}
+      <LinkedAccountsSection />
 
       {/* Organization ID Section */}
       <section>

@@ -1211,7 +1211,15 @@
     "dangerZoneDescription": "Irreversible and destructive actions",
     "deleteOrganization": "Delete Organization",
     "deleteOrganizationDescription": "Permanently delete this organization and all associated leagues, teams, and data. This action cannot be undone.",
-    "contactSupport": "Contact support to delete your organization"
+    "contactSupport": "Contact support to delete your organization",
+    "linkedAccounts": {
+      "title": "Connected Accounts",
+      "description": "Link your Google or Apple account for quick sign-in",
+      "notConnected": "Not connected",
+      "link": "Link",
+      "unlink": "Disconnect",
+      "cannotUnlinkLast": "You cannot disconnect your only login method"
+    }
   },
   "settingsNav": {
     "ariaLabel": "Settings navigation",
