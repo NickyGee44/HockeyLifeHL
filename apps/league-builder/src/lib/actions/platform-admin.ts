@@ -66,10 +66,9 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     usersResult,
     seasonsResult,
   ] = await Promise.all([
-    (supabase as any).from('organizations').select(`
-      id, name, bypass_subscription_gate, created_at, owner_user_id,
-      profiles!organizations_owner_user_id_fkey ( email, full_name )
-    `).order('created_at', { ascending: false }),
+    (supabase as any).from('organizations').select(
+      'id, name, bypass_subscription_gate, created_at, owner_user_id'
+    ).order('created_at', { ascending: false }),
 
     (supabase as any).from('organization_addons')
       .select('organization_id, addon_type, status')
@@ -92,7 +91,22 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     (supabase as any).from('seasons').select('id', { count: 'exact', head: true }).eq('status', 'active'),
   ]);
 
-  const orgs = orgsResult.data ?? [];
+  const TEST_ORG_IDS = new Set([
+    '918d7824-7efa-4e99-8816-e06b056ca64d', // DRAFT TEST
+    'a90ca03c-7443-43ce-affc-b8961eef3a48', // Wally Test League
+  ]);
+
+  const rawOrgs = (orgsResult.data ?? []).filter((o: any) => !TEST_ORG_IDS.has(o.id));
+
+  // Separate profile lookup (avoids unreliable FK hint in PostgREST)
+  const ownerIds = [...new Set(rawOrgs.map((o: any) => o.owner_user_id).filter(Boolean))];
+  const profilesResult = ownerIds.length > 0
+    ? await (supabase as any).from('profiles').select('id, email, full_name').in('id', ownerIds)
+    : { data: [] };
+  const profileMap = new Map<string, { email: string; full_name: string }>();
+  for (const p of (profilesResult.data ?? [])) profileMap.set(p.id, p);
+
+  const orgs = rawOrgs.map((o: any) => ({ ...o, profile: profileMap.get(o.owner_user_id) ?? null }));
   const addons = addonsResult.data ?? [];
   const leagues = leaguesResult.data ?? [];
   const teams = teamsResult.data ?? [];
@@ -167,8 +181,8 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     return {
       id: org.id,
       name: org.name,
-      owner_email: org.profiles?.email ?? null,
-      owner_name: org.profiles?.full_name ?? null,
+      owner_email: org.profile?.email ?? null,
+      owner_name: org.profile?.full_name ?? null,
       bypass_subscription_gate: org.bypass_subscription_gate,
       has_platform_subscription: hasPlatformSub,
       has_ai_news: hasAiNews,
