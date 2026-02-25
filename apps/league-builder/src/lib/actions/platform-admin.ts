@@ -3,6 +3,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { revalidatePath } from 'next/cache';
+import { stripe } from '@/lib/stripe/client';
 
 async function assertPlatformAdmin() {
   const userData = await getCurrentUser();
@@ -50,6 +51,43 @@ export interface AiLeagueStat {
   tokens: number;
 }
 
+export interface SubscriptionHealthRow {
+  org_id: string;
+  org_name: string;
+  subscription_status: string;
+  current_period_end: string | null;
+  payment_method_last4: string | null;
+  payment_method_brand: string | null;
+  trial_ends_at: string | null;
+  cancel_at_period_end: boolean;
+  addon_types: string[];
+  mrr_cents: number;
+}
+
+export interface StripeInvoiceRow {
+  id: string;
+  org_name: string;
+  amount_cents: number;
+  status: string;
+  created: number; // unix timestamp
+  description: string;
+  hosted_url: string | null;
+}
+
+export interface PlatformFinancials {
+  subscriptions: SubscriptionHealthRow[];
+  at_risk: {
+    past_due: number;
+    cancelling: number;
+    trials_expiring_7d: number;
+    renewals_7d: number;
+  };
+  recent_invoices: StripeInvoiceRow[];
+  failed_invoices: StripeInvoiceRow[];
+  connect_fees_30d_cents: number;
+  stripe_available: boolean;
+}
+
 export interface PlatformAdminData {
   orgs: PlatformOrgRow[];
   totals: {
@@ -78,6 +116,7 @@ export interface PlatformAdminData {
     avg_gen_ms: number;
     by_league: AiLeagueStat[];
   };
+  financials: PlatformFinancials;
 }
 
 export async function getPlatformAdminData(): Promise<PlatformAdminData> {
@@ -85,8 +124,9 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
   const supabase = createServiceRoleClient();
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Run all independent queries in parallel
+  // Run all independent DB queries in parallel
   const [
     orgsResult,
     addonsResult,
@@ -100,14 +140,17 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     newUsersResult,
     bugReportsResult,
     aiLogResult,
+    connectFeesResult,
   ] = await Promise.all([
     (supabase as any).from('organizations').select(
-      'id, name, bypass_subscription_gate, created_at, owner_user_id'
+      `id, name, bypass_subscription_gate, created_at, owner_user_id,
+       stripe_customer_id, subscription_status, current_period_end,
+       payment_method_last4, payment_method_brand, trial_ends_at, cancel_at_period_end`
     ).order('created_at', { ascending: false }),
 
     (supabase as any).from('organization_addons')
-      .select('organization_id, addon_type, status')
-      .in('status', ['active', 'trialing']),
+      .select('organization_id, addon_type, status, amount_cents, current_period_end')
+      .in('status', ['active', 'trialing', 'past_due']),
 
     (supabase as any).from('leagues').select('id, organization_id, name, slug'),
 
@@ -138,6 +181,11 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     (supabase as any).from('ai_generation_log')
       .select('league_id, tokens_used, generation_time_ms, article_type')
       .eq('status', 'completed'),
+
+    (supabase as any).from('stripe_connect_payments')
+      .select('application_fee_cents')
+      .eq('status', 'succeeded')
+      .gte('created_at', thirtyDaysAgo),
   ]);
 
   const TEST_ORG_IDS = new Set([
@@ -163,16 +211,21 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
   const games = gamesResult.data ?? [];
   const recentGames = recentGamesResult.data ?? [];
 
-  // league_id → league name (for bug reports + AI stats)
+  // league_id → league name
   const leagueNameById = new Map<string, string>();
   for (const l of leagues) leagueNameById.set(l.id, l.name);
 
   // Build lookup maps
+  const addonsByOrg = new Map<string, Array<{ addon_type: string; status: string; amount_cents: number; current_period_end: string | null }>>();
+  for (const addon of addons) {
+    if (!addonsByOrg.has(addon.organization_id)) addonsByOrg.set(addon.organization_id, []);
+    addonsByOrg.get(addon.organization_id)!.push(addon);
+  }
+
   const activeAddonsByOrg = new Map<string, Set<string>>();
   for (const addon of addons) {
-    if (!activeAddonsByOrg.has(addon.organization_id)) {
-      activeAddonsByOrg.set(addon.organization_id, new Set());
-    }
+    if (addon.status !== 'active' && addon.status !== 'trialing') continue;
+    if (!activeAddonsByOrg.has(addon.organization_id)) activeAddonsByOrg.set(addon.organization_id, new Set());
     activeAddonsByOrg.get(addon.organization_id)!.add(addon.addon_type);
   }
 
@@ -182,14 +235,12 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     leaguesByOrg.get(l.organization_id)!.push(l);
   }
 
-  // team_id → league_id (via teams table)
   const leagueByTeam = new Map<string, string>();
   for (const t of teams) leagueByTeam.set(t.id, t.league_id);
 
   const teamCountByLeague = new Map<string, number>();
   for (const t of teams) teamCountByLeague.set(t.league_id, (teamCountByLeague.get(t.league_id) ?? 0) + 1);
 
-  // Roster spots by league (via team_id → league_id)
   const rosterByLeague = new Map<string, number>();
   for (const r of rosters) {
     const lid = leagueByTeam.get(r.team_id);
@@ -251,6 +302,105 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
       primary_league_name: primary?.name ?? null,
     };
   });
+
+  // --- Subscription health (from DB) ---
+  const now = new Date();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+  const subscriptions: SubscriptionHealthRow[] = orgs
+    .filter((org: any) => org.subscription_status && org.subscription_status !== 'none')
+    .map((org: any) => {
+      const orgAddons = addonsByOrg.get(org.id) ?? [];
+      const activeAddons = orgAddons.filter((a: any) => a.status === 'active' || a.status === 'trialing');
+      const mrr = activeAddons.reduce((s: number, a: any) => s + (a.amount_cents ?? 0), 0);
+      return {
+        org_id: org.id,
+        org_name: org.name,
+        subscription_status: org.subscription_status,
+        current_period_end: org.current_period_end,
+        payment_method_last4: org.payment_method_last4,
+        payment_method_brand: org.payment_method_brand,
+        trial_ends_at: org.trial_ends_at,
+        cancel_at_period_end: !!org.cancel_at_period_end,
+        addon_types: activeAddons.map((a: any) => a.addon_type),
+        mrr_cents: mrr,
+      };
+    });
+
+  const pastDueCount = subscriptions.filter(s => s.subscription_status === 'past_due').length;
+  const cancellingCount = subscriptions.filter(s => s.cancel_at_period_end).length;
+  const trialsExpiring = subscriptions.filter(s =>
+    s.trial_ends_at && new Date(s.trial_ends_at).getTime() - now.getTime() < sevenDaysMs
+  ).length;
+  const renewalsSoon = subscriptions.filter(s =>
+    s.current_period_end &&
+    !s.cancel_at_period_end &&
+    new Date(s.current_period_end).getTime() - now.getTime() < sevenDaysMs &&
+    new Date(s.current_period_end).getTime() > now.getTime()
+  ).length;
+
+  // --- Stripe API: invoice history (graceful fallback) ---
+  let recentInvoices: StripeInvoiceRow[] = [];
+  let failedInvoices: StripeInvoiceRow[] = [];
+  let stripeAvailable = false;
+
+  const customerToOrg = new Map<string, string>();
+  for (const org of orgs) {
+    if (org.stripe_customer_id) customerToOrg.set(org.stripe_customer_id, org.name);
+  }
+
+  try {
+    const [paidList, openList] = await Promise.all([
+      stripe.invoices.list({ limit: 8, status: 'paid' }),
+      stripe.invoices.list({ limit: 5 }),
+    ]);
+    stripeAvailable = true;
+
+    recentInvoices = paidList.data.map((inv) => ({
+      id: inv.id,
+      org_name: customerToOrg.get(inv.customer as string) ?? 'Unknown',
+      amount_cents: inv.amount_paid,
+      status: inv.status ?? 'paid',
+      created: inv.created,
+      description: inv.lines?.data?.[0]?.description ?? '',
+      hosted_url: inv.hosted_invoice_url ?? null,
+    }));
+
+    failedInvoices = openList.data
+      .filter((inv) => (inv.attempt_count ?? 0) > 0 && inv.status !== 'paid')
+      .map((inv) => ({
+        id: inv.id,
+        org_name: customerToOrg.get(inv.customer as string) ?? 'Unknown',
+        amount_cents: inv.amount_due,
+        status: inv.status ?? 'open',
+        created: inv.created,
+        description: inv.lines?.data?.[0]?.description ?? '',
+        hosted_url: inv.hosted_invoice_url ?? null,
+      }));
+  } catch {
+    // Stripe unavailable — degrade gracefully, page still loads
+    stripeAvailable = false;
+  }
+
+  // --- Connect fees (player registrations) ---
+  const connectFees = connectFeesResult.data ?? [];
+  const connectFees30dCents = connectFees.reduce(
+    (s: number, r: any) => s + (r.application_fee_cents ?? 0), 0
+  );
+
+  const financials: PlatformFinancials = {
+    subscriptions,
+    at_risk: {
+      past_due: pastDueCount,
+      cancelling: cancellingCount,
+      trials_expiring_7d: trialsExpiring,
+      renewals_7d: renewalsSoon,
+    },
+    recent_invoices: recentInvoices,
+    failed_invoices: failedInvoices,
+    connect_fees_30d_cents: connectFees30dCents,
+    stripe_available: stripeAvailable,
+  };
 
   // --- Bug reports ---
   const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -321,7 +471,7 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     new_users_30d: newUsersResult.count ?? 0,
   };
 
-  return { orgs: rows, totals, bugs, ai };
+  return { orgs: rows, totals, bugs, ai, financials };
 }
 
 export async function toggleBypassGate(orgId: string, enabled: boolean): Promise<void> {

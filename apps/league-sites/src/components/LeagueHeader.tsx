@@ -81,7 +81,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
           background: 'linear-gradient(90deg, transparent, var(--league-primary), transparent)' }}
       />
 
-      <div className="mx-auto max-w-[1400px] px-6">
+      <div className="mx-auto w-full px-4 sm:px-6">
         <div className="flex h-[64px] items-center gap-3">
           {/* Logo — fixed left */}
           <Link href={`/${leagueSlug}`} className="group relative z-10 flex shrink-0 items-center gap-3 -my-2 md:-my-7">
@@ -98,7 +98,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 {initials.slice(0, 3)}
               </div>
             )}
-            <span className="hidden truncate text-base font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)] sm:block lg:hidden xl:block">
+            <span className="hidden truncate text-base font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)] sm:block lg:hidden">
               {displayName}
             </span>
           </Link>
