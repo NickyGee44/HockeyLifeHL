@@ -85,7 +85,7 @@ ALTER TABLE public.goalie_ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goalie_request_notifications ENABLE ROW LEVEL SECURITY;
 
 -- Goalie pool SELECT: league members/admins/owners can view
-CREATE POLICY IF NOT EXISTS "goalie_pool_select_league_members"
+CREATE POLICY "goalie_pool_select_league_members"
   ON public.goalie_pool
   FOR SELECT
   TO authenticated
@@ -104,7 +104,7 @@ CREATE POLICY IF NOT EXISTS "goalie_pool_select_league_members"
   );
 
 -- Goalie pool write: league admins/owners
-CREATE POLICY IF NOT EXISTS "goalie_pool_write_admins"
+CREATE POLICY "goalie_pool_write_admins"
   ON public.goalie_pool
   FOR ALL
   TO authenticated
@@ -138,14 +138,14 @@ CREATE POLICY IF NOT EXISTS "goalie_pool_write_admins"
   );
 
 -- Public self-registration to goalie pool
-CREATE POLICY IF NOT EXISTS "goalie_pool_insert_self_registration"
+CREATE POLICY "goalie_pool_insert_self_registration"
   ON public.goalie_pool
   FOR INSERT
   TO anon, authenticated
   WITH CHECK (registered_via = 'self_registration');
 
 -- Requests SELECT: league members can view
-CREATE POLICY IF NOT EXISTS "goalie_requests_select_league_members"
+CREATE POLICY "goalie_requests_select_league_members"
   ON public.goalie_requests
   FOR SELECT
   TO authenticated
@@ -159,7 +159,7 @@ CREATE POLICY IF NOT EXISTS "goalie_requests_select_league_members"
   );
 
 -- Requests write: captain who requested OR league admins/owners
-CREATE POLICY IF NOT EXISTS "goalie_requests_write_captain_or_admin"
+CREATE POLICY "goalie_requests_write_captain_or_admin"
   ON public.goalie_requests
   FOR ALL
   TO authenticated
@@ -205,7 +205,7 @@ CREATE POLICY IF NOT EXISTS "goalie_requests_write_captain_or_admin"
   );
 
 -- Ratings SELECT: captains/admins/owners and rating author
-CREATE POLICY IF NOT EXISTS "goalie_ratings_select_captains"
+CREATE POLICY "goalie_ratings_select_captains"
   ON public.goalie_ratings
   FOR SELECT
   TO authenticated
@@ -231,7 +231,7 @@ CREATE POLICY IF NOT EXISTS "goalie_ratings_select_captains"
   );
 
 -- Ratings insert: captain/admin/owner and must be self as rated_by
-CREATE POLICY IF NOT EXISTS "goalie_ratings_insert_captains"
+CREATE POLICY "goalie_ratings_insert_captains"
   ON public.goalie_ratings
   FOR INSERT
   TO authenticated
@@ -259,7 +259,7 @@ CREATE POLICY IF NOT EXISTS "goalie_ratings_insert_captains"
   );
 
 -- Notifications SELECT for league members/admins (internal tracking)
-CREATE POLICY IF NOT EXISTS "goalie_notifications_select_league_members"
+CREATE POLICY "goalie_notifications_select_league_members"
   ON public.goalie_request_notifications
   FOR SELECT
   TO authenticated
@@ -282,7 +282,7 @@ CREATE POLICY IF NOT EXISTS "goalie_notifications_select_league_members"
   );
 
 -- Notifications write for league admins/owners/captains
-CREATE POLICY IF NOT EXISTS "goalie_notifications_write_internal"
+CREATE POLICY "goalie_notifications_write_internal"
   ON public.goalie_request_notifications
   FOR ALL
   TO authenticated

@@ -31,7 +31,7 @@ BEGIN
       JOIN pg_attribute a
         ON a.attrelid = c.conrelid
        AND a.attnum = u.attnum
-    ) = ARRAY['player_id', 'season_id'];
+    )::text[] = ARRAY['player_id', 'season_id']::text[];
 
   IF old_constraint_name IS NOT NULL THEN
     EXECUTE format('ALTER TABLE public.player_ratings DROP CONSTRAINT %I', old_constraint_name);
