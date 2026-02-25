@@ -2,11 +2,13 @@ import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
 // Allowed origins for iframe embedding (website editor preview)
+// These are the PARENT origins (league-builder) that may embed league-sites in an iframe.
 const FRAME_ANCESTORS = [
   "'self'",
   'https://app.beerleaguehockey.ca',
   'https://beerleaguehockey.ca',
   'https://www.beerleaguehockey.ca',
+  'https://*.vercel.app',
   process.env.NEXT_PUBLIC_LEAGUE_BUILDER_URL,
   'http://localhost:3000',
 ].filter(Boolean).join(' ');

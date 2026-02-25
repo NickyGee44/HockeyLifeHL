@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { ClipboardList } from 'lucide-react';
+import { SubscriptionWall } from '@/components/shared';
 import { format } from 'date-fns';
 import {
   getLeagueBySlug,
@@ -87,6 +88,7 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
   const gamesByDate = groupGamesByDate(scores);
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-12 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
@@ -171,5 +173,6 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
         </div>
       )}
     </div>
+    </SubscriptionWall>
   );
 }

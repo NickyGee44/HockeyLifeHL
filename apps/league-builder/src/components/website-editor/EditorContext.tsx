@@ -28,6 +28,33 @@ function extractWebsiteSettings(settings: Record<string, unknown> | null): Websi
   return website;
 }
 
+/**
+ * Build the preview iframe URL for a league.
+ *
+ * Production uses wildcard subdomains (e.g. slug.beerleaguehockey.ca),
+ * while local dev uses path-based routing (localhost:3001/slug).
+ */
+function buildPreviewUrl(baseUrl: string, slug: string): string {
+  try {
+    const url = new URL(baseUrl);
+    const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+
+    if (isLocalhost) {
+      // Dev: path-based routing — http://localhost:3001/slug?preview=true
+      return `${baseUrl.replace(/\/+$/, '')}/${slug}?preview=true`;
+    }
+
+    // Production: subdomain routing — https://slug.domain.com?preview=true
+    url.hostname = `${slug}.${url.hostname}`;
+    url.pathname = '/';
+    url.search = 'preview=true';
+    return url.toString();
+  } catch {
+    // Fallback: path-based
+    return `${baseUrl.replace(/\/+$/, '')}/${slug}?preview=true`;
+  }
+}
+
 function leagueToState(league: LeagueEditorData | undefined, leagues: LeagueEditorData[]): EditorState {
   const ws = extractWebsiteSettings(league?.settings ?? null);
   return {
@@ -216,7 +243,7 @@ export function EditorProvider({ children, organizationId, leagues, previewBaseU
 
   const selectedLeague = state.leagues.find((l) => l.id === state.selectedLeagueId);
   const previewUrl = selectedLeague
-    ? `${previewBaseUrl}/${selectedLeague.slug}?preview=true`
+    ? buildPreviewUrl(previewBaseUrl, selectedLeague.slug)
     : '';
 
   return (

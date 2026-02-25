@@ -2801,6 +2801,22 @@
     "failedInitialize": "Failed to initialize Stripe Connect"
   },
   "subscription": {
+    "gate": {
+      "title": "Subscription Required",
+      "description": "Subscribe to Platform Monthly to unlock all league management features and activate your public league website.",
+      "includes": "Everything included:",
+      "cta": "Subscribe Now",
+      "features": {
+        "unlimitedTeams": "Unlimited teams & divisions",
+        "scheduleGeneration": "Schedule generation & management",
+        "scorekeepingApp": "Scorekeeping app",
+        "playerRegistration": "Player registration & rosters",
+        "standingsAndStats": "Standings & player stats",
+        "leagueWebsite": "Public league website",
+        "newsAndContent": "News & content management",
+        "emailNotifications": "Email notifications"
+      }
+    },
     "title": "Subscription",
     "description": "Manage your subscription and billing",
     "loadingDetails": "Loading subscription details...",

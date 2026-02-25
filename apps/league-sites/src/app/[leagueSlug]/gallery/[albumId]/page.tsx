@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ImageIcon } from 'lucide-react';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getAlbumWithPhotos } from '@/lib/data';
 import { PhotoLightbox } from '@/components/gallery/PhotoLightbox';
 import type { Metadata } from 'next';
@@ -42,6 +43,7 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
   const { album, photos } = result;
 
   return (
+    <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Header */}
       <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
@@ -79,5 +81,6 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
         )}
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

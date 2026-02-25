@@ -6,6 +6,7 @@ import { getCachedDashboardData } from '@/lib/actions/dashboard';
 import { getSetupIssues } from '@/lib/actions/setup-status';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { createClient } from '@/lib/supabase/server';
+import { hasPlatformSubscription } from '@/lib/utils/addon-helpers';
 import DashboardLayoutClient from '@/components/dashboard/DashboardLayoutClient';
 
 export default async function DashboardLayout({
@@ -32,11 +33,16 @@ export default async function DashboardLayout({
   ]);
   const captainTeams = captainTeamsResult.data || [];
 
+  // Check if the user's primary organization has an active Platform subscription
+  const orgId = dashboardData?.organizations?.[0]?.id;
+  const isSubscribed = orgId ? await hasPlatformSubscription(orgId) : false;
+
   return (
     <DashboardLayoutClient
       captainTeams={captainTeams}
       dashboardData={dashboardData}
       setupIssues={setupIssues}
+      isSubscribed={isSubscribed}
     >
       {children}
     </DashboardLayoutClient>

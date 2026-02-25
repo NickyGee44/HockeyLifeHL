@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { Newspaper } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getAllArticles } from '@/lib/data';
 import { NewsList } from '@/components/news/NewsList';
 
@@ -29,6 +30,7 @@ export default async function NewsPage({ params }: NewsPageProps) {
   const articles = await getAllArticles(league.id);
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -55,5 +57,6 @@ export default async function NewsPage({ params }: NewsPageProps) {
         )}
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

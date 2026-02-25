@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ShieldAlert } from 'lucide-react';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getSuspensions, getSeasons, getCurrentSeason } from '@/lib/data';
 import { SuspensionsClient } from '@/components/suspensions/SuspensionsClient';
 
@@ -42,6 +43,7 @@ export default async function SuspensionsPage({ params, searchParams }: Suspensi
     : suspensions;
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-8">
       <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-2xl shadow-lg max-w-5xl mx-auto p-6 md:p-8">
         {/* Header */}
@@ -63,5 +65,6 @@ export default async function SuspensionsPage({ params, searchParams }: Suspensi
         />
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

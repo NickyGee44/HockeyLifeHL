@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getTeams, getDivisions, getCurrentSeason, getSeasons } from '@/lib/data';
 import { TeamsGrid } from './TeamsGrid';
 import { buildTeamsJsonLd } from '@/lib/jsonld';
@@ -39,7 +40,7 @@ export default async function TeamsPage({ params, searchParams }: TeamsPageProps
   const teamsJsonLd = buildTeamsJsonLd(teams, league, leagueSlug);
 
   return (
-    <>
+    <SubscriptionWall>
       {/* JSON-LD Structured Data for SEO */}
       {teamsJsonLd.length > 0 && (
         <script
@@ -56,6 +57,6 @@ export default async function TeamsPage({ params, searchParams }: TeamsPageProps
         currentSeasonId={selectedSeasonId}
         seasonName={selectedSeason?.name}
       />
-    </>
+    </SubscriptionWall>
   );
 }

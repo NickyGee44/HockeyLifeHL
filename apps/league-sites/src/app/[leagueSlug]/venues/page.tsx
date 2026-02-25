@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getVenues } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { MapPin, Calendar, Clock, ChevronRight, Building2 } from 'lucide-react';
@@ -115,6 +116,7 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
   const venues = await getVenuesWithGames(league.id);
 
   return (
+    <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Header */}
       <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
@@ -154,6 +156,7 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
         )}
       </div>
     </div>
+    </SubscriptionWall>
   );
 }
 

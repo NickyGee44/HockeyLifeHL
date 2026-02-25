@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Calendar, User } from 'lucide-react';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
 
 interface ArticlePageProps {
@@ -44,6 +45,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   });
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
         {/* Back Link */}
@@ -122,5 +124,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </div>
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { Trophy } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason, getSeasons } from '@/lib/data';
 import { StandingsWithSearch } from '@/components/StandingsWithSearch';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
@@ -42,6 +43,7 @@ export default async function StandingsPage({ params, searchParams }: StandingsP
   const standingsByDivision = groupByDivision(standings, divisions);
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-12 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
@@ -102,6 +104,7 @@ export default async function StandingsPage({ params, searchParams }: StandingsP
         </div>
       )}
     </div>
+    </SubscriptionWall>
   );
 }
 

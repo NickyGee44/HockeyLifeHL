@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { SubscriptionWall } from '@/components/shared';
 import {
   ArrowLeft,
   Users,
@@ -80,6 +81,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   const recentGames = schedule.filter((g) => g.status === 'completed').slice(0, 5);
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-12 animate-fade-in">
       {/* Back Link */}
       <Link
@@ -247,6 +249,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
         <ScheduleTab upcomingGames={upcomingGames} recentGames={recentGames} teamId={team.id} leagueSlug={leagueSlug} />
       )}
     </div>
+    </SubscriptionWall>
   );
 }
 

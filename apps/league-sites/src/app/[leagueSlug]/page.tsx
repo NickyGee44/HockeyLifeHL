@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { SubscriptionWall } from '@/components/shared';
 import {
   Calendar,
   Trophy,
@@ -185,6 +186,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const jsonLd = buildSportsOrganizationJsonLd(league);
 
   return (
+    <SubscriptionWall>
     <div className={`animate-fade-in league-home league-home-${templateVariant} league-home-shell`}>
       {/* JSON-LD Structured Data for SEO */}
       <script
@@ -477,6 +479,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       )}
 
     </div>
+    </SubscriptionWall>
   );
 }
 

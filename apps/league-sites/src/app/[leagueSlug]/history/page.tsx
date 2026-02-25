@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { SubscriptionWall } from '@/components/shared';
 import {
   getLeagueBySlug,
   getSeasons,
@@ -189,6 +190,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
   ).size;
 
   return (
+    <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Hero Header */}
       <div className="relative border-b border-[var(--color-border)] overflow-hidden">
@@ -318,6 +320,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
         </section>
       </div>
     </div>
+    </SubscriptionWall>
   );
 }
 

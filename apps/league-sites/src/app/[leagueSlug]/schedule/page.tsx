@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getCurrentSeason, getVenues, getTeams } from '@/lib/data';
 import { WeekPicker } from '@/components/schedule/WeekPicker';
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
@@ -133,6 +134,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   const scheduleJsonLd = buildScheduleJsonLd(games as ScheduleGame[], league, leagueSlug);
 
   return (
+    <SubscriptionWall>
     <div className="min-h-screen py-8 px-4" style={{ background: 'var(--color-background)' }}>
       {/* JSON-LD Structured Data for SEO */}
       {scheduleJsonLd.length > 0 && (
@@ -221,6 +223,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
         </div>
       </div>
     </div>
+    </SubscriptionWall>
   );
 }
 

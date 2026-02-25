@@ -24,7 +24,7 @@ import { GoalieComparison } from '@/components/game/GoalieComparison';
 import { GameBoxScore } from '@/components/game/GameBoxScore';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { GameRecapSection } from '@/components/game/GameRecapSection';
-import { AddonUpsell } from '@/components/shared';
+import { AddonUpsell, SubscriptionWall } from '@/components/shared';
 
 interface GamePageProps {
   params: Promise<{ leagueSlug: string; gameId: string }>;
@@ -104,6 +104,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
   const homePrimary = homeColors[0] || 'var(--league-primary)';
 
   return (
+    <SubscriptionWall>
     <div className="min-h-screen">
       {/* Hero Header with diagonal stripes */}
       <GamePreviewHeader
@@ -233,5 +234,6 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
         </div>
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

@@ -20,6 +20,7 @@ interface DashboardLayoutClientProps {
   captainTeams: CaptainTeamOverview[];
   dashboardData: DashboardData | null;
   setupIssues: LeagueSetupIssue[];
+  isSubscribed: boolean;
 }
 
 function DashboardContent({
@@ -59,6 +60,7 @@ export default function DashboardLayoutClient({
   captainTeams,
   dashboardData,
   setupIssues,
+  isSubscribed,
 }: DashboardLayoutClientProps) {
   return (
     <SidebarProvider>
@@ -70,6 +72,7 @@ export default function DashboardLayoutClient({
         <HierarchicalSidebar
           dashboardData={dashboardData}
           captainTeams={captainTeams}
+          isSubscribed={isSubscribed}
         />
 
         <DashboardContent setupIssues={setupIssues} dashboardData={dashboardData}>{children}</DashboardContent>

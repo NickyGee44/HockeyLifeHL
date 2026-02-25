@@ -28,6 +28,7 @@ import {
   Image,
   CheckCircle2,
   Bug,
+  Lock,
 } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { signOut } from '@/lib/actions/auth';
@@ -39,11 +40,13 @@ import type { DashboardData } from '@/lib/actions/dashboard';
 interface HierarchicalSidebarProps {
   dashboardData: DashboardData | null;
   captainTeams: CaptainTeamOverview[];
+  isSubscribed: boolean;
 }
 
 export default function HierarchicalSidebar({
   dashboardData,
-  captainTeams
+  captainTeams,
+  isSubscribed
 }: HierarchicalSidebarProps) {
   const t = useTranslations('navigation');
   const locale = useLocale();
@@ -166,6 +169,7 @@ export default function HierarchicalSidebar({
               label={t('schedule')}
               isActive={isPathActive(`${leagueBase}/schedule`)}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`${leagueBase}/teams`}
@@ -173,6 +177,7 @@ export default function HierarchicalSidebar({
               label={t('teamsAndDivisions')}
               isActive={isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`${leagueBase}/ratings`}
@@ -187,6 +192,7 @@ export default function HierarchicalSidebar({
               label={t('completedGames')}
               isActive={isPathActive(`${leagueBase}/games`) || pathname.includes('/standings')}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`${leagueBase}/registrations`}
@@ -194,6 +200,7 @@ export default function HierarchicalSidebar({
               label={t('registration')}
               isActive={isPathActive(`${leagueBase}/registrations`)}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`${leagueBase}/staff`}
@@ -201,6 +208,7 @@ export default function HierarchicalSidebar({
               label={t('staff')}
               isActive={isPathActive(`${leagueBase}/staff`)}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`${leagueBase}/bugs`}
@@ -216,6 +224,7 @@ export default function HierarchicalSidebar({
                 label={t('draftRoom')}
                 isActive={isPathActive(`${leagueBase}/draft`)}
                 collapsed={sidebarCollapsed}
+                locked={!isSubscribed}
               />
             )}
 
@@ -227,6 +236,7 @@ export default function HierarchicalSidebar({
               label={t('news')}
               isActive={isPathActive(`${leagueBase}/news`)}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`${leagueBase}/sponsors`}
@@ -234,6 +244,7 @@ export default function HierarchicalSidebar({
               label={t('sponsors')}
               isActive={isPathActive(`${leagueBase}/sponsors`)}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`${leagueBase}/awards`}
@@ -241,6 +252,7 @@ export default function HierarchicalSidebar({
               label={t('awards')}
               isActive={isPathActive(`${leagueBase}/awards`)}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`${leagueBase}/gallery`}
@@ -248,6 +260,7 @@ export default function HierarchicalSidebar({
               label={t('gallery')}
               isActive={isPathActive(`${leagueBase}/gallery`)}
               collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
             />
             <NavLink
               href={`/website-editor?league=${selected.leagueId}`}
@@ -256,6 +269,7 @@ export default function HierarchicalSidebar({
               isActive={pathname.includes('website-editor')}
               collapsed={sidebarCollapsed}
               highlight
+              locked={!isSubscribed}
             />
           </>
         )}
@@ -405,6 +419,7 @@ function NavLink({
   compact = false,
   muted = false,
   highlight = false,
+  locked = false,
   onClick,
 }: {
   href: string;
@@ -415,17 +430,23 @@ function NavLink({
   compact?: boolean;
   muted?: boolean;
   highlight?: boolean;
+  locked?: boolean;
   onClick?: () => void;
 }) {
+  // When locked, redirect to billing instead of the feature page
+  const resolvedHref = locked ? '/dashboard/settings/billing' : href;
+
   return (
     <Link
-      href={href}
+      href={resolvedHref}
       onClick={onClick}
       className={cn(
         'flex items-center gap-2 rounded-lg transition-all duration-200',
         'group relative',
         compact ? 'px-2 py-1.5' : 'px-3 py-2.5 rounded-xl',
-        isActive
+        locked
+          ? 'text-neutral-600 hover:text-neutral-500 hover:bg-neutral-800/20 border border-transparent cursor-not-allowed'
+          : isActive
           ? 'bg-rink-500/10 text-rink-500 border border-rink-500/30'
           : muted
           ? 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/30 border border-transparent'
@@ -438,7 +459,9 @@ function NavLink({
         className={cn(
           'flex-shrink-0',
           compact ? 'w-4 h-4' : 'w-5 h-5',
-          isActive
+          locked
+            ? 'text-neutral-600'
+            : isActive
             ? 'text-rink-500'
             : highlight
             ? 'text-arena-400 group-hover:text-arena-300'
@@ -446,13 +469,16 @@ function NavLink({
         )}
       />
       {!collapsed && (
-        <span className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>
+        <span className={cn('font-medium flex-1', compact ? 'text-xs' : 'text-sm')}>
           {label}
         </span>
       )}
+      {!collapsed && locked && (
+        <Lock className="w-3.5 h-3.5 text-neutral-600 flex-shrink-0" />
+      )}
       {collapsed && (
         <div className="absolute left-full ml-2 px-2 py-1 bg-neutral-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
-          {label}
+          {label}{locked ? ' 🔒' : ''}
         </div>
       )}
     </Link>

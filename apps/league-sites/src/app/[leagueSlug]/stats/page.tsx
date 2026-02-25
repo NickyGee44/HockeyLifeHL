@@ -8,7 +8,7 @@ import { SpecialTeamsTable } from '@/components/stats/SpecialTeamsTable';
 import { StatLeaders } from '@/components/stats/StatLeaders';
 import { StatsFilters } from '@/components/stats/StatsFilters';
 import { SeasonSelector } from '@/components/stats/SeasonSelector';
-import { AddonUpsell } from '@/components/shared';
+import { AddonUpsell, SubscriptionWall } from '@/components/shared';
 import { createClient } from '@/lib/supabase/server';
 
 interface StatsPageProps {
@@ -88,6 +88,7 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
     assistsLeaders.length > 0;
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-12 animate-fade-in">
       {/* Season Selector and Filters */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -225,6 +226,7 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
         </div>
       </div>
     </div>
+    </SubscriptionWall>
   );
 }
 

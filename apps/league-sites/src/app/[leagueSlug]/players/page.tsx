@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getTeams, getDivisions, getPlayerBadgesByIds } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { User, Users } from 'lucide-react';
@@ -147,6 +148,7 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
   const positions = [...new Set(players.map((p) => p.position).filter(Boolean))] as string[];
 
   return (
+    <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Header */}
       <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
@@ -196,5 +198,6 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
         )}
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

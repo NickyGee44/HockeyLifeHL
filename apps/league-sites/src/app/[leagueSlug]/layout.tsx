@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions, getSeasons, getLeagueSponsors } from '@/lib/data';
+import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions, getSeasons, getLeagueSponsors, hasPlatformSubscription } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
 import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
@@ -10,6 +10,7 @@ import { DivisionFilterProvider } from '@/components/DivisionFilterProvider';
 import { SponsorFooterStrip } from '@/components/sponsors/SponsorFooterStrip';
 import { BugReportProvider } from '@/components/bug-report/BugReportProvider';
 import { BugReportButton } from '@/components/bug-report/BugReportButton';
+import { SubscriptionProvider } from '@/components/shared';
 import type { Metadata } from 'next';
 
 /**
@@ -87,12 +88,13 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     notFound();
   }
 
-  const [theme, tickerGames, divisions, seasons, sponsors] = await Promise.all([
+  const [theme, tickerGames, divisions, seasons, sponsors, isSubscribed] = await Promise.all([
     Promise.resolve(getLeagueTheme(league)),
     getTickerGames(league.id),
     getDivisions(league.id),
     getSeasons(league.id),
     getLeagueSponsors(league.id),
+    hasPlatformSubscription(league.id),
   ]);
   const templateClass = `league-template-${theme.templateVariant}`;
 
@@ -112,21 +114,23 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
       <AuthProvider>
         <PreviewModeProvider>
           <BugReportProvider leagueId={league.id} seasonId={activeSeasonId}>
-            <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
-              <div className={`relative z-[1] min-h-screen flex flex-col ${templateClass}`}>
-                <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
-                <LeagueHeader
-                  league={league}
-                  leagueSlug={leagueSlug}
-                  registrationOpen={registrationOpen}
-                  visiblePages={(league as any).settings?.website?.visiblePages}
-                />
-                <main className="flex-1">{children}</main>
-                <SponsorFooterStrip sponsors={sponsors} />
-                <LeagueFooter league={league} leagueSlug={leagueSlug} />
-                <BugReportButton />
-              </div>
-            </DivisionFilterProvider>
+            <SubscriptionProvider isSubscribed={isSubscribed}>
+              <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
+                <div className={`relative z-[1] min-h-screen flex flex-col ${templateClass}`}>
+                  <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+                  <LeagueHeader
+                    league={league}
+                    leagueSlug={leagueSlug}
+                    registrationOpen={registrationOpen}
+                    visiblePages={(league as any).settings?.website?.visiblePages}
+                  />
+                  <main className="flex-1">{children}</main>
+                  <SponsorFooterStrip sponsors={sponsors} />
+                  <LeagueFooter league={league} leagueSlug={leagueSlug} />
+                  <BugReportButton />
+                </div>
+              </DivisionFilterProvider>
+            </SubscriptionProvider>
           </BugReportProvider>
         </PreviewModeProvider>
       </AuthProvider>

@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, User, Calendar, BarChart3, History, Newspaper } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { SubscriptionWall } from '@/components/shared';
 import {
   getLeagueBySlug,
   getPlayerProfile,
@@ -94,6 +95,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   const currentSeasonName = seasons.find(s => s.id === seasonId)?.name;
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-8 animate-fade-in">
       {/* Back Link */}
       <Link
@@ -222,5 +224,6 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
         )}
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

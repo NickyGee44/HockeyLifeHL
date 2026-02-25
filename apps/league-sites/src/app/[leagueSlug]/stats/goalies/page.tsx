@@ -5,7 +5,7 @@ import { ArrowLeft, Shield } from 'lucide-react';
 import { getLeagueBySlug, getGoalieLeaders, getCurrentSeason, getSeasons, getPlayerBadgesByIds, hasAdvancedStatsAddon } from '@/lib/data';
 import { GoalieStatsTable } from '@/components/stats/GoalieStatsTable';
 import { GoalieStatsFilters } from '@/components/stats/GoalieStatsFilters';
-import { AddonUpsell } from '@/components/shared';
+import { AddonUpsell, SubscriptionWall } from '@/components/shared';
 
 interface GoalieStatsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -45,6 +45,7 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
   const badges = await getPlayerBadgesByIds(goaliePlayerIds);
 
   return (
+    <SubscriptionWall>
     <div className="container mx-auto px-4 py-8 animate-fade-in">
       {/* Back Link */}
       <Link
@@ -117,5 +118,6 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
         </div>
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

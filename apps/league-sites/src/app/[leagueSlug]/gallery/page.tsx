@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { ImageIcon } from 'lucide-react';
+import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getGalleryAlbums } from '@/lib/data';
 import { AlbumGrid } from '@/components/gallery/AlbumGrid';
 import type { Metadata } from 'next';
@@ -35,6 +36,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
   const albums = await getGalleryAlbums(league.id);
 
   return (
+    <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Header */}
       <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
@@ -57,5 +59,6 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
         <AlbumGrid albums={albums} leagueSlug={leagueSlug} />
       </div>
     </div>
+    </SubscriptionWall>
   );
 }

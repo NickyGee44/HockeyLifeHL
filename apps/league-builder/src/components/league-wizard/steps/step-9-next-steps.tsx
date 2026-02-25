@@ -73,8 +73,21 @@ export function Step9NextSteps({
   domainRequested,
   isDraftLeague,
 }: Step9NextStepsProps) {
-  const sitesBaseUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL?.replace(/\/+$/, '') ?? '';
-  const leagueSiteUrl = sitesBaseUrl ? `${sitesBaseUrl}/${leagueSlug}` : `/${leagueSlug}`;
+  const leagueSiteUrl = (() => {
+    const sitesBaseUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL?.replace(/\/+$/, '') ?? '';
+    if (!sitesBaseUrl) return `/${leagueSlug}`;
+    try {
+      const url = new URL(sitesBaseUrl);
+      const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+      if (isLocal) return `${sitesBaseUrl}/${leagueSlug}`;
+      // Production: subdomain routing (slug.beerleaguehockey.ca)
+      url.hostname = `${leagueSlug}.${url.hostname}`;
+      url.pathname = '/';
+      return url.toString().replace(/\/$/, '');
+    } catch {
+      return `${sitesBaseUrl}/${leagueSlug}`;
+    }
+  })();
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-8 px-4">

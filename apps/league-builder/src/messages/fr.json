@@ -2801,6 +2801,22 @@
     "failedInitialize": "Echec de l'initialisation de Stripe Connect"
   },
   "subscription": {
+    "gate": {
+      "title": "Abonnement requis",
+      "description": "Abonnez-vous au forfait Plateforme Mensuel pour débloquer toutes les fonctionnalités de gestion de ligue et activer votre site web public.",
+      "includes": "Tout inclus :",
+      "cta": "S'abonner maintenant",
+      "features": {
+        "unlimitedTeams": "Équipes et divisions illimitées",
+        "scheduleGeneration": "Génération et gestion du calendrier",
+        "scorekeepingApp": "Application de marquage",
+        "playerRegistration": "Inscription et alignements des joueurs",
+        "standingsAndStats": "Classements et statistiques des joueurs",
+        "leagueWebsite": "Site web public de la ligue",
+        "newsAndContent": "Gestion des nouvelles et du contenu",
+        "emailNotifications": "Notifications par courriel"
+      }
+    },
     "title": "Abonnement",
     "description": "Gerez votre abonnement et votre facturation",
     "loadingDetails": "Chargement des details de l'abonnement...",
