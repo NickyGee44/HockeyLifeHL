@@ -34,7 +34,6 @@ const navItems = [
   { href: '/standings', label: 'Standings', icon: Trophy },
   { href: '/teams', label: 'Teams', icon: Users },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
-  { href: '/goalies/register', label: '🥅 Sub Goalie', icon: UserPlus },
   { href: '/news', label: 'News', icon: Newspaper },
   { href: '/history', label: 'History', icon: Crown },
   { href: '/gallery', label: 'Gallery', icon: Camera },
@@ -133,12 +132,6 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
 
           {/* Auth — anchored right */}
           <div className="hidden shrink-0 items-center gap-2 lg:flex">
-            <Link
-              href={`/${leagueSlug}/goalies/register`}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border border-[var(--header-border)] text-[var(--header-text)] hover:bg-[var(--header-surface-hover)]"
-            >
-              🥅 Register as a Sub Goalie
-            </Link>
             {registrationOpen && (
               <Link
                 href={`/${leagueSlug}/register`}
@@ -221,13 +214,6 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 Register Now
               </Link>
             )}
-            <Link
-              href={`/${leagueSlug}/goalies/register`}
-              className="mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-[var(--header-border)] text-[var(--header-text)] hover:bg-[var(--header-surface-hover)] transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              🥅 Register as a Sub Goalie
-            </Link>
             <div className="mt-3 flex items-center justify-end border-t border-[var(--header-border)] pt-3">
               <ThemeToggle />
             </div>

@@ -407,12 +407,28 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                   icon={<Calendar className="w-4 h-4" />}
                   label="Contact League"
                 />
-                <QuickLink
-                  href={`/${leagueSlug}/goalies/register`}
-                  icon={<UserPlus className="w-4 h-4" />}
-                  label="🥅 Register as a Sub Goalie"
-                />
               </nav>
+            </section>
+
+            {/* Sub Goalie Banner */}
+            <section className={`${panelClass} p-5`}>
+              <Link
+                href={`/${leagueSlug}/goalies/register`}
+                className="flex items-center gap-3 group"
+              >
+                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[var(--league-primary)]/15 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 text-[var(--league-primary)]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">
+                    Register as a Sub Goalie
+                  </p>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    Join the goalie pool and get called up when teams need coverage.
+                  </p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0 group-hover:text-[var(--league-primary)] transition-colors" />
+              </Link>
             </section>
           </div>
         </div>
