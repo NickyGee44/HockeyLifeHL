@@ -672,6 +672,14 @@ export async function submitPlayerRegistration(
     }
 
     const serviceSupabase = createServiceRoleClient();
+    const tosAccepted = (data as any).tos_accepted ?? data.consent_terms ?? false;
+    if (!tosAccepted) {
+      return {
+        success: false,
+        error: 'You must accept the Terms of Service and Privacy Policy to register.',
+      };
+    }
+    const emailMarketingOptIn = (data as any).email_marketing_opt_in ?? data.consent_marketing ?? false;
 
     // Server-side payment enforcement: resolve expected fee from season_fees
     const { data: seasonFee } = await serviceSupabase
@@ -826,15 +834,17 @@ export async function submitPlayerRegistration(
         consent_type: 'registration_data_processing_v1',
         granted: true,
       },
-    ];
-
-    if (data.consent_marketing) {
-      consents.push({
+      {
         user_id: user.id,
-        consent_type: 'registration_marketing',
-        granted: true,
-      });
-    }
+        consent_type: 'terms_of_service_v1',
+        granted: tosAccepted,
+      },
+      {
+        user_id: user.id,
+        consent_type: 'email_marketing_v1',
+        granted: emailMarketingOptIn,
+      },
+    ];
 
     await serviceSupabase.from('user_consents').insert(consents);
 

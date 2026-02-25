@@ -1272,7 +1272,35 @@
     "backToHome": "Retour a l'accueil",
     "termsIntro": "En accedant et en utilisant Beer League Hockey (\"le Service\"), vous acceptez d'etre lie par ces Conditions d'utilisation. Veuillez les lire attentivement.",
     "privacyIntro": "Cette Politique de confidentialite decrit comment Beer League Hockey recueille, utilise et protege vos renseignements personnels lorsque vous utilisez notre plateforme.",
-    "contactEmail": "Pour toute question, contactez-nous a {email}"
+    "contactEmail": "Pour toute question, contactez-nous a {email}",
+    "registrationConsent": {
+      "tosCheckboxLabel": "J'ai lu et j'accepte les Conditions d'utilisation et la Politique de confidentialite",
+      "emailMarketingCheckboxLabel": "Je souhaite recevoir les mises a jour, nouvelles et promotions de la ligue par courriel",
+      "termsSections": {
+        "acceptance": "Acceptation des conditions",
+        "accounts": "Comptes utilisateurs et inscription",
+        "participation": "Participation a la ligue",
+        "payments": "Paiements et remboursements",
+        "conduct": "Code de conduite",
+        "liability": "Responsabilite et renonciations",
+        "dataUse": "Collecte et utilisation des donnees",
+        "termination": "Resiliation",
+        "changes": "Modifications des conditions",
+        "contact": "Coordonnees"
+      },
+      "privacySections": {
+        "collection": "Renseignements que nous recueillons",
+        "usage": "Comment nous utilisons vos renseignements",
+        "email": "Communications par courriel",
+        "sharing": "Partage des donnees",
+        "retention": "Conservation des donnees",
+        "rights": "Vos droits",
+        "cookies": "Temoins et analyses",
+        "children": "Confidentialite des enfants",
+        "changes": "Modifications de cette politique",
+        "contact": "Coordonnees"
+      }
+    }
   },
   "dates": {
     "today": "Aujourd'hui",

@@ -1272,7 +1272,35 @@
     "backToHome": "Back to Home",
     "termsIntro": "By accessing and using Beer League Hockey (\"the Service\"), you accept and agree to be bound by these Terms of Service. Please read them carefully.",
     "privacyIntro": "This Privacy Policy describes how Beer League Hockey collects, uses, and protects your personal information when you use our platform.",
-    "contactEmail": "For questions, contact us at {email}"
+    "contactEmail": "For questions, contact us at {email}",
+    "registrationConsent": {
+      "tosCheckboxLabel": "I have read and agree to the Terms of Service and Privacy Policy",
+      "emailMarketingCheckboxLabel": "I'd like to receive league updates, news, and promotions via email",
+      "termsSections": {
+        "acceptance": "Acceptance of Terms",
+        "accounts": "User Accounts & Registration",
+        "participation": "League Participation",
+        "payments": "Payments & Refunds",
+        "conduct": "Code of Conduct",
+        "liability": "Liability & Waivers",
+        "dataUse": "Data Collection & Use",
+        "termination": "Termination",
+        "changes": "Changes to Terms",
+        "contact": "Contact Information"
+      },
+      "privacySections": {
+        "collection": "Information We Collect",
+        "usage": "How We Use Your Information",
+        "email": "Email Communications",
+        "sharing": "Data Sharing",
+        "retention": "Data Retention",
+        "rights": "Your Rights",
+        "cookies": "Cookies & Analytics",
+        "children": "Children's Privacy",
+        "changes": "Changes to This Policy",
+        "contact": "Contact Information"
+      }
+    }
   },
   "dates": {
     "today": "Today",
