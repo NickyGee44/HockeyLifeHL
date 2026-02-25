@@ -15,7 +15,8 @@ import {
   Camera,
   Menu,
   X,
-  UserPlus } from 'lucide-react';
+  UserPlus,
+  ChevronDown } from 'lucide-react';
 import type { League } from '@/lib/types';
 import { AuthButton } from './auth/AuthButton';
 import { usePreviewMode } from './PreviewModeProvider';
@@ -132,6 +133,28 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
 
           {/* Auth — anchored right */}
           <div className="hidden shrink-0 items-center gap-2 lg:flex">
+            {divisions.length > 1 && (
+              <div className="relative">
+                <select
+                  value={selectedDivisionId || ''}
+                  onChange={(e) => setDivision(e.target.value || null)}
+                  className="appearance-none pl-2.5 pr-6 py-1.5 rounded-lg text-xs font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 transition-colors"
+                  style={{
+                    background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
+                    color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
+                    border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
+                  }}
+                  aria-label="Filter by division"
+                  data-testid="division-filter"
+                >
+                  <option value="">All Divisions</option>
+                  {divisions.map((div) => (
+                    <option key={div.id} value={div.id}>{div.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 opacity-60" style={{ color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)' }} />
+              </div>
+            )}
             {registrationOpen && (
               <Link
                 href={`/${leagueSlug}/register`}
@@ -160,30 +183,29 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
           </div>
         </div>
 
-        {/* Division Filter - persistent strip below header on all screen sizes */}
-        {divisions.length > 1 && (
-          <div className="border-t border-[var(--header-border)] px-4 py-2" data-testid="division-filter-strip">
-            <select
-              value={selectedDivisionId || ''}
-              onChange={(e) => setDivision(e.target.value || null)}
-              className="w-full max-w-xs appearance-none rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
-              style={{
-                background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
-                color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
-                border: selectedDivisionId ? 'none' : '1px solid var(--header-border)' }}
-              aria-label="Filter by division"
-              data-testid="division-filter"
-            >
-              <option value="">All Divisions</option>
-              {divisions.map((div) => (
-                <option key={div.id} value={div.id}>{div.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {isMobileMenuOpen && (
           <nav className="border-t border-[var(--header-border)] pb-4 pt-3 lg:hidden max-h-[calc(100dvh-80px)] overflow-y-auto overflow-x-visible" data-testid="mobile-nav">
+            {divisions.length > 1 && (
+              <div className="mb-3 pb-3 border-b border-[var(--header-border)]">
+                <select
+                  value={selectedDivisionId || ''}
+                  onChange={(e) => setDivision(e.target.value || null)}
+                  className="w-full appearance-none rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                  style={{
+                    background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
+                    color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
+                    border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
+                  }}
+                  aria-label="Filter by division"
+                  data-testid="division-filter-mobile"
+                >
+                  <option value="">All Divisions</option>
+                  {divisions.map((div) => (
+                    <option key={div.id} value={div.id}>{div.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-1">
               {filteredNavItems.map((item) => {
                 const active = isItemActive(item.href);
