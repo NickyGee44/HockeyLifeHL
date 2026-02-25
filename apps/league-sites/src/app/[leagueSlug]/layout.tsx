@@ -8,6 +8,8 @@ import { AuthProvider } from '@/components/auth';
 import { ScoreTicker } from '@/components/ScoreTicker';
 import { DivisionFilterProvider } from '@/components/DivisionFilterProvider';
 import { SponsorFooterStrip } from '@/components/sponsors/SponsorFooterStrip';
+import { BugReportProvider } from '@/components/bug-report/BugReportProvider';
+import { BugReportButton } from '@/components/bug-report/BugReportButton';
 import type { Metadata } from 'next';
 
 /**
@@ -103,25 +105,29 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     }
     return false;
   });
+  const activeSeasonId = (seasons.find((season) => (season as any).status === 'active') as any)?.id ?? null;
 
   return (
     <LeagueThemeProvider theme={theme}>
       <AuthProvider>
         <PreviewModeProvider>
-          <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
-            <div className={`relative z-[1] min-h-screen flex flex-col ${templateClass}`}>
-              <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
-              <LeagueHeader
-                league={league}
-                leagueSlug={leagueSlug}
-                registrationOpen={registrationOpen}
-                visiblePages={(league as any).settings?.website?.visiblePages}
-              />
-              <main className="flex-1">{children}</main>
-              <SponsorFooterStrip sponsors={sponsors} />
-              <LeagueFooter league={league} leagueSlug={leagueSlug} />
-            </div>
-          </DivisionFilterProvider>
+          <BugReportProvider leagueId={league.id} seasonId={activeSeasonId}>
+            <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
+              <div className={`relative z-[1] min-h-screen flex flex-col ${templateClass}`}>
+                <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+                <LeagueHeader
+                  league={league}
+                  leagueSlug={leagueSlug}
+                  registrationOpen={registrationOpen}
+                  visiblePages={(league as any).settings?.website?.visiblePages}
+                />
+                <main className="flex-1">{children}</main>
+                <SponsorFooterStrip sponsors={sponsors} />
+                <LeagueFooter league={league} leagueSlug={leagueSlug} />
+                <BugReportButton />
+              </div>
+            </DivisionFilterProvider>
+          </BugReportProvider>
         </PreviewModeProvider>
       </AuthProvider>
     </LeagueThemeProvider>

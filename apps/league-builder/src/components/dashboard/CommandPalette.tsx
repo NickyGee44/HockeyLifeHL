@@ -20,6 +20,7 @@ import {
   Award,
   Image,
   Dices,
+  Bug,
   Plus,
   Search,
 } from 'lucide-react';
@@ -61,6 +62,7 @@ export function CommandPalette() {
       { label: t('pages.teamsAndDivisions'), icon: Users, href: `${leagueBase}/teams` },
       { label: t('pages.standings'), icon: Trophy, href: `${leagueBase}/games` },
       { label: t('pages.registration'), icon: ClipboardCheck, href: `${leagueBase}/registrations` },
+      { label: t('pages.bugReports'), icon: Bug, href: `${leagueBase}/bugs` },
       { label: t('pages.players'), icon: User, href: `${leagueBase}/staff` },
       { label: t('pages.settings'), icon: Settings, href: '/dashboard/settings' },
       { label: t('pages.billing'), icon: CreditCard, href: '/dashboard/settings/billing' },

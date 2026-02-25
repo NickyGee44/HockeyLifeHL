@@ -177,6 +177,7 @@
     "schedule": "Calendrier",
     "standings": "Classement",
     "completedGames": "Matchs terminés",
+    "bugReports": "Rapports de bogues",
     "registration": "Inscription",
     "drafts": "Repechage",
     "draftRoom": "Salle de repechage",
@@ -216,6 +217,7 @@
       "teamsAndDivisions": "Equipes et divisions",
       "standings": "Classement",
       "registration": "Inscription",
+      "bugReports": "Rapports de bogues",
       "players": "Joueurs",
       "settings": "Parametres",
       "billing": "Facturation",
@@ -3138,6 +3140,79 @@
     "refereeNotes": {
       "emptyTitle": "Aucune note d'arbitre",
       "emptyDescription": "Les notes des marqueurs des matchs terminés apparaîtront ici."
+    }
+  },
+  "bugReports": {
+    "title": "Rapports de bogues",
+    "subtitle": "Consultez les rapports soumis par les joueurs et le personnel",
+    "backToLeague": "Retour à {leagueName}",
+    "buttonLabel": "Signaler un bogue",
+    "dashboard": {
+      "openBugs": "Bogues ouverts",
+      "criticalBugs": "Bogues critiques",
+      "reportsThisWeek": "Rapports cette semaine",
+      "resolvedThisMonth": "Résolus ce mois-ci"
+    },
+    "filters": {
+      "allStatuses": "Tous les statuts",
+      "allSeverities": "Toutes les sévérités",
+      "allCategories": "Toutes les catégories"
+    },
+    "table": {
+      "date": "Date",
+      "description": "Description",
+      "category": "Catégorie",
+      "severity": "Sévérité",
+      "status": "Statut",
+      "reports": "Rapports",
+      "actions": "Actions",
+      "noResults": "Aucun rapport ne correspond à vos filtres."
+    },
+    "detail": {
+      "fullDescription": "Description complète",
+      "expectedBehavior": "Comportement attendu",
+      "screenshot": "Capture d'écran",
+      "browserInfo": "Infos navigateur",
+      "consoleErrors": "Erreurs console",
+      "failedNetworkRequests": "Requêtes réseau en échec",
+      "navigationTrail": "Parcours de navigation",
+      "userInteractions": "Interactions utilisateur",
+      "quickActions": "Actions rapides",
+      "resolutionNotes": "Notes de résolution",
+      "saveNotes": "Enregistrer les notes"
+    },
+    "modal": {
+      "title": "Signaler un bogue",
+      "descriptionLabel": "Que s'est-il passé?",
+      "expectedLabel": "Qu'attendiez-vous?",
+      "categoryLabel": "Catégorie",
+      "next": "Suivant",
+      "goBack": "Retour",
+      "submit": "Soumettre le rapport",
+      "confirmTitle": "Vous êtes sur le point de soumettre un rapport de bogue",
+      "confirmBody": "Nous inclurons une capture d'écran, les infos de votre navigateur et les journaux d'erreurs pour accélérer le correctif",
+      "success": "Merci! Nous allons vérifier cela."
+    },
+    "status": {
+      "new": "Nouveau",
+      "investigating": "En investigation",
+      "fixDeployed": "Correctif déployé",
+      "closed": "Fermé",
+      "duplicate": "Doublon",
+      "wontFix": "Ne sera pas corrigé"
+    },
+    "severity": {
+      "critical": "Critique",
+      "high": "Élevée",
+      "medium": "Moyenne",
+      "low": "Faible"
+    },
+    "category": {
+      "bug": "Quelque chose est cassé",
+      "visual": "Affichage incorrect",
+      "confusing": "Confus",
+      "suggestion": "Suggestion",
+      "other": "Autre"
     }
   },
   "goalieMarketplace": {

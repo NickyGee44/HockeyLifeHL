@@ -27,6 +27,7 @@ import {
   Award,
   Image,
   CheckCircle2,
+  Bug,
 } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { signOut } from '@/lib/actions/auth';
@@ -199,6 +200,13 @@ export default function HierarchicalSidebar({
               icon={User}
               label={t('staff')}
               isActive={isPathActive(`${leagueBase}/staff`)}
+              collapsed={sidebarCollapsed}
+            />
+            <NavLink
+              href={`${leagueBase}/bugs`}
+              icon={Bug}
+              label={t('bugReports')}
+              isActive={isPathActive(`${leagueBase}/bugs`)}
               collapsed={sidebarCollapsed}
             />
             {hasDraft && (

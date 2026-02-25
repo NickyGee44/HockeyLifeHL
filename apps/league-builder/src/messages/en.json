@@ -177,6 +177,7 @@
     "schedule": "Schedule",
     "standings": "Standings",
     "completedGames": "Completed Games",
+    "bugReports": "Bug Reports",
     "registration": "Registration",
     "drafts": "Drafts",
     "draftRoom": "Draft Room",
@@ -216,6 +217,7 @@
       "teamsAndDivisions": "Teams & Divisions",
       "standings": "Standings",
       "registration": "Registration",
+      "bugReports": "Bug Reports",
       "players": "Players",
       "settings": "Settings",
       "billing": "Billing",
@@ -3138,6 +3140,79 @@
     "refereeNotes": {
       "emptyTitle": "No Referee Notes",
       "emptyDescription": "Scorekeeper notes from completed games will appear here."
+    }
+  },
+  "bugReports": {
+    "title": "Bug Reports",
+    "subtitle": "Review reports submitted by players and staff",
+    "backToLeague": "Back to {leagueName}",
+    "buttonLabel": "Report Bug",
+    "dashboard": {
+      "openBugs": "Open bugs",
+      "criticalBugs": "Critical bugs",
+      "reportsThisWeek": "Reports this week",
+      "resolvedThisMonth": "Resolved this month"
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "allSeverities": "All severities",
+      "allCategories": "All categories"
+    },
+    "table": {
+      "date": "Date",
+      "description": "Description",
+      "category": "Category",
+      "severity": "Severity",
+      "status": "Status",
+      "reports": "Reports",
+      "actions": "Actions",
+      "noResults": "No reports match your current filters."
+    },
+    "detail": {
+      "fullDescription": "Full description",
+      "expectedBehavior": "Expected behavior",
+      "screenshot": "Screenshot",
+      "browserInfo": "Browser info",
+      "consoleErrors": "Console errors",
+      "failedNetworkRequests": "Failed network requests",
+      "navigationTrail": "Navigation trail",
+      "userInteractions": "User interactions",
+      "quickActions": "Quick actions",
+      "resolutionNotes": "Resolution notes",
+      "saveNotes": "Save Notes"
+    },
+    "modal": {
+      "title": "Report a bug",
+      "descriptionLabel": "What happened?",
+      "expectedLabel": "What did you expect?",
+      "categoryLabel": "Category",
+      "next": "Next",
+      "goBack": "Go Back",
+      "submit": "Submit Report",
+      "confirmTitle": "You're about to submit a bug report",
+      "confirmBody": "We'll include a screenshot, your browser info, and error logs to help us fix this faster",
+      "success": "Thanks! We'll look into this."
+    },
+    "status": {
+      "new": "New",
+      "investigating": "Investigating",
+      "fixDeployed": "Fix Deployed",
+      "closed": "Closed",
+      "duplicate": "Duplicate",
+      "wontFix": "Won't Fix"
+    },
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "category": {
+      "bug": "Something broke",
+      "visual": "Looks wrong",
+      "confusing": "Confusing",
+      "suggestion": "Suggestion",
+      "other": "Other"
     }
   },
   "goalieMarketplace": {
