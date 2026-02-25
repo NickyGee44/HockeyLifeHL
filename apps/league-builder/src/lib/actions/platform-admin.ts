@@ -32,6 +32,24 @@ export interface PlatformOrgRow {
   primary_league_name: string | null;
 }
 
+export interface BugReportRow {
+  id: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  status: string;
+  category: string;
+  description: string;
+  report_count: number;
+  created_at: string;
+  league_name: string | null;
+}
+
+export interface AiLeagueStat {
+  league_id: string;
+  league_name: string;
+  count: number;
+  tokens: number;
+}
+
 export interface PlatformAdminData {
   orgs: PlatformOrgRow[];
   totals: {
@@ -45,6 +63,20 @@ export interface PlatformAdminData {
     mrr_cents: number;
     total_users: number;
     active_seasons: number;
+    new_users_30d: number;
+  };
+  bugs: {
+    open_critical: number;
+    open_high: number;
+    open_medium: number;
+    open_low: number;
+    recent: BugReportRow[];
+  };
+  ai: {
+    articles_total: number;
+    tokens_total: number;
+    avg_gen_ms: number;
+    by_league: AiLeagueStat[];
   };
 }
 
@@ -65,6 +97,9 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     recentGamesResult,
     usersResult,
     seasonsResult,
+    newUsersResult,
+    bugReportsResult,
+    aiLogResult,
   ] = await Promise.all([
     (supabase as any).from('organizations').select(
       'id, name, bypass_subscription_gate, created_at, owner_user_id'
@@ -89,6 +124,20 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     (supabase as any).from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null),
 
     (supabase as any).from('seasons').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+
+    (supabase as any).from('profiles').select('id', { count: 'exact', head: true })
+      .is('deleted_at', null)
+      .gte('created_at', thirtyDaysAgo),
+
+    (supabase as any).from('bug_reports')
+      .select('id, severity, status, category, description, report_count, created_at, league_id')
+      .not('status', 'in', '("closed","wont_fix","duplicate")')
+      .order('created_at', { ascending: false })
+      .limit(20),
+
+    (supabase as any).from('ai_generation_log')
+      .select('league_id, tokens_used, generation_time_ms, article_type')
+      .eq('status', 'completed'),
   ]);
 
   const TEST_ORG_IDS = new Set([
@@ -113,6 +162,10 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
   const rosters = rosterResult.data ?? [];
   const games = gamesResult.data ?? [];
   const recentGames = recentGamesResult.data ?? [];
+
+  // league_id → league name (for bug reports + AI stats)
+  const leagueNameById = new Map<string, string>();
+  for (const l of leagues) leagueNameById.set(l.id, l.name);
 
   // Build lookup maps
   const activeAddonsByOrg = new Map<string, Set<string>>();
@@ -199,6 +252,61 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     };
   });
 
+  // --- Bug reports ---
+  const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  const openBugs: BugReportRow[] = (bugReportsResult.data ?? [])
+    .map((b: any) => ({
+      id: b.id,
+      severity: b.severity,
+      status: b.status,
+      category: b.category,
+      description: b.description,
+      report_count: b.report_count,
+      created_at: b.created_at,
+      league_name: leagueNameById.get(b.league_id) ?? null,
+    }))
+    .sort((a: BugReportRow, b: BugReportRow) =>
+      (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4)
+    );
+
+  const bugs = {
+    open_critical: openBugs.filter(b => b.severity === 'critical').length,
+    open_high: openBugs.filter(b => b.severity === 'high').length,
+    open_medium: openBugs.filter(b => b.severity === 'medium').length,
+    open_low: openBugs.filter(b => b.severity === 'low').length,
+    recent: openBugs.slice(0, 10),
+  };
+
+  // --- AI usage ---
+  const aiLog = aiLogResult.data ?? [];
+  const aiByLeague = new Map<string, { count: number; tokens: number }>();
+  let totalTokens = 0;
+  let totalGenMs = 0;
+  for (const row of aiLog) {
+    totalTokens += row.tokens_used ?? 0;
+    totalGenMs += row.generation_time_ms ?? 0;
+    const lid = row.league_id;
+    if (!aiByLeague.has(lid)) aiByLeague.set(lid, { count: 0, tokens: 0 });
+    const entry = aiByLeague.get(lid)!;
+    entry.count++;
+    entry.tokens += row.tokens_used ?? 0;
+  }
+  const aiByLeagueSorted: AiLeagueStat[] = [...aiByLeague.entries()]
+    .map(([lid, stat]) => ({
+      league_id: lid,
+      league_name: leagueNameById.get(lid) ?? lid,
+      count: stat.count,
+      tokens: stat.tokens,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const ai = {
+    articles_total: aiLog.length,
+    tokens_total: totalTokens,
+    avg_gen_ms: aiLog.length > 0 ? Math.round(totalGenMs / aiLog.length) : 0,
+    by_league: aiByLeagueSorted,
+  };
+
   const totals = {
     org_count: rows.length,
     league_count: rows.reduce((s, r) => s + r.league_count, 0),
@@ -210,9 +318,10 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     mrr_cents: totalMrr,
     total_users: usersResult.count ?? 0,
     active_seasons: seasonsResult.count ?? 0,
+    new_users_30d: newUsersResult.count ?? 0,
   };
 
-  return { orgs: rows, totals };
+  return { orgs: rows, totals, bugs, ai };
 }
 
 export async function toggleBypassGate(orgId: string, enabled: boolean): Promise<void> {
