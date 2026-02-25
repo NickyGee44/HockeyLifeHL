@@ -230,7 +230,7 @@ export function StepConfirmation({
             className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
           />
           <span className="text-xs text-[var(--color-text-secondary)]">
-            I'd like to receive league updates, news, and promotions via email.
+            I&apos;d like to receive league updates, news, and promotions via email.
           </span>
         </label>
       </div>
