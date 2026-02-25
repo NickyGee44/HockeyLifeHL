@@ -5,10 +5,12 @@ import type { RegistrationDraftData } from '@/lib/actions/registration';
 
 interface StepConfirmationProps {
   formData: RegistrationDraftData;
+  leagueSlug: string;
   leagueName: string;
   seasonName: string;
   registrationFee: number;
   teams: { id: string; name: string }[];
+  onUpdate: (updates: Partial<RegistrationDraftData>) => void;
   canSubmit?: boolean;
 }
 
@@ -30,10 +32,12 @@ const SKILL_LABELS: Record<string, string> = {
 
 export function StepConfirmation({
   formData,
+  leagueSlug,
   leagueName,
   seasonName,
   registrationFee,
   teams,
+  onUpdate,
   canSubmit = true,
 }: StepConfirmationProps) {
   const teamName = formData.team_id
@@ -187,11 +191,48 @@ export function StepConfirmation({
         </div>
       )}
 
-      <div className="p-4 rounded-xl bg-[var(--league-primary)]/10 border border-[var(--league-primary)]/30">
-        <p className="text-sm text-[var(--color-text-primary)]">
-          By submitting, you confirm that all information is accurate and you agree to the league
-          rules and regulations.
-        </p>
+      <div className="p-4 rounded-xl bg-[var(--league-primary)]/10 border border-[var(--league-primary)]/30 space-y-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={!!formData.tos_accepted}
+            onChange={(e) => onUpdate({ tos_accepted: e.target.checked })}
+            className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
+          />
+          <span className="text-sm text-[var(--color-text-primary)]">
+            I have read and agree to the{' '}
+            <a
+              href={`/${leagueSlug}/terms`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold underline hover:opacity-80"
+            >
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a
+              href={`/${leagueSlug}/privacy`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold underline hover:opacity-80"
+            >
+              Privacy Policy
+            </a>
+            .
+          </span>
+        </label>
+
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={!!formData.email_marketing_opt_in}
+            onChange={(e) => onUpdate({ email_marketing_opt_in: e.target.checked })}
+            className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
+          />
+          <span className="text-xs text-[var(--color-text-secondary)]">
+            I'd like to receive league updates, news, and promotions via email.
+          </span>
+        </label>
       </div>
     </div>
   );

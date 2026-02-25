@@ -98,6 +98,8 @@ export function RegistrationWizard({
     payment_status: initialData?.payment_status || (registrationFee > 0 ? 'pending' : 'not_required'),
     payment_intent_id: initialData?.payment_intent_id || '',
     amount_cents: registrationFee,
+    tos_accepted: initialData?.tos_accepted ?? false,
+    email_marketing_opt_in: initialData?.email_marketing_opt_in ?? false,
   });
 
   // Determine which steps to show (skip payment if free)
@@ -112,6 +114,7 @@ export function RegistrationWizard({
   const skillStepValidation = validateSkillPositionStep(formData);
   const waiverStepValidation = validateWaiverStep(formData);
   const paymentReady = canSubmitRegistration(formData, registrationFee);
+  const canSubmitFinal = paymentReady && formData.tos_accepted === true;
 
   const canGoNext = (() => {
     switch (currentStep) {
@@ -176,6 +179,10 @@ export function RegistrationWizard({
     // Block submission if payment is required but not completed
     if (!paymentReady) {
       setSubmitError('Payment is required before submitting your registration. Please go back to the Payment step to complete your payment.');
+      return;
+    }
+    if (!formData.tos_accepted) {
+      setSubmitError('Please accept the Terms of Service and Privacy Policy before submitting.');
       return;
     }
 
@@ -353,10 +360,12 @@ export function RegistrationWizard({
         {currentStep === 5 && (
           <StepConfirmation
             formData={formData}
+            leagueSlug={leagueSlug}
             leagueName={leagueName}
             seasonName={seasonName}
             registrationFee={registrationFee}
             teams={teams}
+            onUpdate={updateFormData}
             canSubmit={registrationFee <= 0 || formData.payment_status === 'completed'}
           />
         )}
@@ -393,8 +402,14 @@ export function RegistrationWizard({
             {isLastStep ? (
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !paymentReady}
-                title={!paymentReady ? 'Complete payment before submitting' : undefined}
+                disabled={isSubmitting || !canSubmitFinal}
+                title={
+                  !paymentReady
+                    ? 'Complete payment before submitting'
+                    : !formData.tos_accepted
+                      ? 'Accept Terms of Service and Privacy Policy before submitting'
+                      : undefined
+                }
                 className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {isSubmitting ? (

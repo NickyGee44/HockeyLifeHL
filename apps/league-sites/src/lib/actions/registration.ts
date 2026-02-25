@@ -61,6 +61,8 @@ export interface RegistrationDraftData {
   payment_status?: string;
   payment_intent_id?: string;
   amount_cents?: number;
+  tos_accepted?: boolean;
+  email_marketing_opt_in?: boolean;
   consent_marketing?: boolean;
 }
 
@@ -332,6 +334,12 @@ export async function submitPlayerRegistration(
     }
 
     const serviceSupabase = createServiceRoleClient();
+    if (!data.tos_accepted) {
+      return {
+        success: false,
+        error: 'You must accept the Terms of Service and Privacy Policy to register.',
+      };
+    }
 
     // Server-side payment enforcement
     const { data: seasonFee } = await serviceSupabase
@@ -476,14 +484,14 @@ export async function submitPlayerRegistration(
     }
 
     // Store consents
+    const emailMarketingOptIn = data.email_marketing_opt_in ?? data.consent_marketing ?? false;
     const consents = [
       { user_id: user.id, consent_type: 'registration_terms_v1', granted: true },
       { user_id: user.id, consent_type: 'registration_privacy_v1', granted: true },
       { user_id: user.id, consent_type: 'registration_data_processing_v1', granted: true },
+      { user_id: user.id, consent_type: 'terms_of_service_v1', granted: data.tos_accepted },
+      { user_id: user.id, consent_type: 'email_marketing_v1', granted: emailMarketingOptIn },
     ];
-    if (data.consent_marketing) {
-      consents.push({ user_id: user.id, consent_type: 'registration_marketing', granted: true });
-    }
     await serviceSupabase.from('user_consents').insert(consents);
 
     revalidatePath('/');
