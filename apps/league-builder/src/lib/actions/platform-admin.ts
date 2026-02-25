@@ -269,9 +269,13 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
     const hasStats = orgAddons.has('advanced_stats');
 
     let orgMrr = 0;
-    if (hasPlatformSub) { orgMrr += PLATFORM_PRICE_CENTS; subscribedCount++; }
-    if (hasStats) orgMrr += ADDON_PRICE_CENTS;
-    if (hasAiNews) orgMrr += ADDON_PRICE_CENTS;
+    if (hasPlatformSub) {
+      orgMrr += PLATFORM_PRICE_CENTS;
+      subscribedCount++;
+      // Only count addon MRR if they're actually a paying subscriber
+      if (hasStats) orgMrr += ADDON_PRICE_CENTS;
+      if (hasAiNews) orgMrr += ADDON_PRICE_CENTS;
+    }
     totalMrr += orgMrr;
     if (org.bypass_subscription_gate) bypassCount++;
 
@@ -308,7 +312,11 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 
   const subscriptions: SubscriptionHealthRow[] = orgs
-    .filter((org: any) => org.subscription_status && org.subscription_status !== 'none')
+    .filter((org: any) =>
+      !org.bypass_subscription_gate &&
+      org.subscription_status &&
+      org.subscription_status !== 'none'
+    )
     .map((org: any) => {
       const orgAddons = addonsByOrg.get(org.id) ?? [];
       const activeAddons = orgAddons.filter((a: any) => a.status === 'active' || a.status === 'trialing');
