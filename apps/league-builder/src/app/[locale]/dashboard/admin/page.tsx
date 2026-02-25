@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/actions/auth';
-import { getPlatformAdminData, toggleBypassGate } from '@/lib/actions/platform-admin';
+import { getPlatformAdminData } from '@/lib/actions/platform-admin';
+import { BypassToggle } from './BypassToggle';
 import {
-  Building2, Users, Trophy, BarChart3, DollarSign, Zap,
+  Building2, Users, Trophy, BarChart3, DollarSign,
   ExternalLink, CheckCircle2, Clock, Shield, Activity,
   TrendingUp, Gamepad2, Calendar, Bug, Sparkles,
   AlertTriangle, AlertCircle, Info, UserPlus,
@@ -145,11 +146,7 @@ export default async function PlatformAdminPage() {
                         <CheckCircle2 className="w-3 h-3" /> Subscribed
                       </span>
                     ) : (
-                      <form action={async () => { 'use server'; await toggleBypassGate(org.id, !org.bypass_subscription_gate); }}>
-                        <button type="submit" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25 transition-colors cursor-pointer">
-                          <Zap className="w-3 h-3" /> Bypass On
-                        </button>
-                      </form>
+                      <BypassToggle orgId={org.id} orgName={org.name} enabled={org.bypass_subscription_gate} variant="card" />
                     )}
                   </div>
                 </div>
@@ -507,16 +504,7 @@ export default async function PlatformAdminPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <form action={async () => { 'use server'; await toggleBypassGate(org.id, !org.bypass_subscription_gate); }}>
-                        <button type="submit" className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                          org.bypass_subscription_gate
-                            ? 'bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25'
-                            : 'bg-neutral-800 text-neutral-600 hover:bg-neutral-700'
-                        }`}>
-                          <Zap className="w-3 h-3" />
-                          {org.bypass_subscription_gate ? 'On' : 'Off'}
-                        </button>
-                      </form>
+                      <BypassToggle orgId={org.id} orgName={org.name} enabled={org.bypass_subscription_gate} variant="table" />
                     </td>
                     <td className="px-4 py-3 text-neutral-600 text-xs whitespace-nowrap">{fmtDate(org.created_at)}</td>
                     <td className="px-4 py-3">
