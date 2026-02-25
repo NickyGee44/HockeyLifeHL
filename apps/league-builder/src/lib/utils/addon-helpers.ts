@@ -59,7 +59,17 @@ export async function hasAiNewsAddon(leagueId: string): Promise<boolean> {
   return hasAddonByLeagueId(leagueId, 'ai_news');
 }
 
-/** Check if an organization has an active Platform Monthly subscription */
+/** Check if an organization has an active Platform Monthly subscription (or bypass flag set) */
 export async function hasPlatformSubscription(orgId: string): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+
+  const { data: org } = await (supabase as any)
+    .from('organizations')
+    .select('bypass_subscription_gate')
+    .eq('id', orgId)
+    .maybeSingle();
+
+  if (org?.bypass_subscription_gate) return true;
+
   return hasAddonByOrgId(orgId, 'platform_subscription');
 }

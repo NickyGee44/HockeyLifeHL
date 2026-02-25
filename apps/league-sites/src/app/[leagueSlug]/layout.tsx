@@ -19,12 +19,6 @@ import type { Metadata } from 'next';
  */
 export const revalidate = 60;
 
-/**
- * Leagues that bypass the subscription wall — actively being pitched/demoed.
- * Remove slugs here once they subscribe to Platform Monthly.
- */
-const SUBSCRIPTION_BYPASS_SLUGS = new Set(['bmhl', 'woha', 'hlhl']);
-
 interface LeagueLayoutProps {
   children: React.ReactNode;
   params: Promise<{ leagueSlug: string }>;
@@ -94,7 +88,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     notFound();
   }
 
-  const [theme, tickerGames, divisions, seasons, sponsors, subscriptionResult] = await Promise.all([
+  const [theme, tickerGames, divisions, seasons, sponsors, isSubscribed] = await Promise.all([
     Promise.resolve(getLeagueTheme(league)),
     getTickerGames(league.id),
     getDivisions(league.id),
@@ -102,7 +96,6 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     getLeagueSponsors(league.id),
     hasPlatformSubscription(league.id),
   ]);
-  const isSubscribed = subscriptionResult || SUBSCRIPTION_BYPASS_SLUGS.has(leagueSlug);
   const templateClass = `league-template-${theme.templateVariant}`;
 
   // Check if any season has open registration

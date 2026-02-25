@@ -2327,6 +2327,15 @@ export async function hasPlatformSubscription(leagueId: string): Promise<boolean
 
   if (!league?.organization_id) return false;
 
+  // Check bypass flag first — set on demo/pitch orgs, clear once they subscribe
+  const { data: org } = await (supabase as any)
+    .from('organizations')
+    .select('bypass_subscription_gate')
+    .eq('id', league.organization_id)
+    .maybeSingle();
+
+  if (org?.bypass_subscription_gate) return true;
+
   const { data: addon } = await supabase
     .from('organization_addons')
     .select('id')
