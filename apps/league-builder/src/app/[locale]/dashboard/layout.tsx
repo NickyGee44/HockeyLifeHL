@@ -36,6 +36,7 @@ export default async function DashboardLayout({
   // Check if the user's primary organization has an active Platform subscription
   const orgId = dashboardData?.organizations?.[0]?.id;
   const isSubscribed = orgId ? await hasPlatformSubscription(orgId) : false;
+  const isPlatformAdmin = !!(userData.profile as any)?.is_platform_admin;
 
   return (
     <DashboardLayoutClient
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
       dashboardData={dashboardData}
       setupIssues={setupIssues}
       isSubscribed={isSubscribed}
+      isPlatformAdmin={isPlatformAdmin}
     >
       {children}
     </DashboardLayoutClient>

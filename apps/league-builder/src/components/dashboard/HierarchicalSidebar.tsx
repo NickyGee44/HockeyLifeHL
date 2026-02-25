@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   Bug,
   Lock,
+  Zap,
 } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { signOut } from '@/lib/actions/auth';
@@ -41,12 +42,14 @@ interface HierarchicalSidebarProps {
   dashboardData: DashboardData | null;
   captainTeams: CaptainTeamOverview[];
   isSubscribed: boolean;
+  isPlatformAdmin: boolean;
 }
 
 export default function HierarchicalSidebar({
   dashboardData,
   captainTeams,
-  isSubscribed
+  isSubscribed,
+  isPlatformAdmin,
 }: HierarchicalSidebarProps) {
   const t = useTranslations('navigation');
   const locale = useLocale();
@@ -360,6 +363,26 @@ export default function HierarchicalSidebar({
           collapsed={sidebarCollapsed}
           muted
         />
+
+        {/* Platform Admin — only visible to platform admin */}
+        {isPlatformAdmin && (
+          <>
+            <div className="my-4 border-t border-white/[0.06]" />
+            {!sidebarCollapsed && (
+              <div className="px-3 mb-2">
+                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Platform</span>
+              </div>
+            )}
+            <NavLink
+              href="/dashboard/admin"
+              icon={Zap}
+              label="Admin Overview"
+              isActive={isPathActive('/dashboard/admin')}
+              collapsed={sidebarCollapsed}
+              highlight
+            />
+          </>
+        )}
 
         {/* Divider */}
         <div className="my-4 border-t border-white/[0.06]" />
