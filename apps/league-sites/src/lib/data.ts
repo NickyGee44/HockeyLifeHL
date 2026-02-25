@@ -2317,9 +2317,10 @@ export async function hasAdvancedStatsAddon(leagueId: string): Promise<boolean> 
 }
 
 export async function hasPlatformSubscription(leagueId: string): Promise<boolean> {
-  const supabase = await createClient();
+  // Use service role to bypass RLS — organizations table is not readable by anon users
+  const serviceSupabase = createServiceRoleClient();
 
-  const { data: league } = await supabase
+  const { data: league } = await serviceSupabase
     .from('leagues')
     .select('organization_id')
     .eq('id', leagueId)
@@ -2328,7 +2329,7 @@ export async function hasPlatformSubscription(leagueId: string): Promise<boolean
   if (!league?.organization_id) return false;
 
   // Check bypass flag first — set on demo/pitch orgs, clear once they subscribe
-  const { data: org } = await (supabase as any)
+  const { data: org } = await (serviceSupabase as any)
     .from('organizations')
     .select('bypass_subscription_gate')
     .eq('id', league.organization_id)
@@ -2336,7 +2337,7 @@ export async function hasPlatformSubscription(leagueId: string): Promise<boolean
 
   if (org?.bypass_subscription_gate) return true;
 
-  const { data: addon } = await supabase
+  const { data: addon } = await serviceSupabase
     .from('organization_addons')
     .select('id')
     .eq('organization_id', league.organization_id)
