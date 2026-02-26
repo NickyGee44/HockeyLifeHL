@@ -68,6 +68,8 @@ export async function getScheduleTemplates(leagueId: string): Promise<ScheduleTe
     byeWeeksPerTeam: 1,
     defaultVenueId: t.default_venue_id,
     rotateHomeVenue: t.rotate_home_venue ?? true,
+    skipHolidays: true,
+    holidayDates: [],
     playoffFormat: 'none' as const, // Default - playoffs not configured yet
     playoffTeams: 8, // Default playoff teams
     playoffQualificationMode: 'count' as const,
@@ -142,6 +144,8 @@ export async function createScheduleTemplate(
       endDate: new Date(),
       defaultVenueId: data.default_venue_id,
       rotateHomeVenue: data.rotate_home_venue ?? true,
+      skipHolidays: true,
+      holidayDates: [],
       playoffFormat: 'none' as const,
       playoffTeams: 8,
       playoffQualificationMode: 'count' as const,

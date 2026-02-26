@@ -8,7 +8,7 @@
  */
 
 import { cn } from '@hockey-life/ui/lib/utils';
-import { Calendar, CalendarOff, Clock, MapPin, Users, Repeat, Trophy, Info, GitBranch, Percent, Hash } from 'lucide-react';
+import { Calendar, CalendarOff, Clock, MapPin, Users, Repeat, Trophy, Info, GitBranch, Percent, Hash, Snowflake } from 'lucide-react';
 import type { ScheduleConfig, ScheduleTemplate, Team, Venue } from '@/lib/schedule/types';
 
 // ============================================================================
@@ -69,18 +69,105 @@ const PLAYOFF_FORMATS = [
 // COMPONENT
 // ============================================================================
 
-/** Count available game-day slots between two dates for the given day-of-week set. */
-function countAvailableSlots(start: Date, end: Date, gameDays: number[]): number {
+/** Format a Date as YYYY-MM-DD using local (not UTC) components. */
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Count available game-day slots between two dates for the given day-of-week set, skipping any skipDates. */
+function countAvailableSlots(start: Date, end: Date, gameDays: number[], skipDates?: string[]): number {
   let count = 0;
   const current = new Date(start);
   current.setHours(0, 0, 0, 0);
   const endNorm = new Date(end);
   endNorm.setHours(23, 59, 59, 999);
+  const skipSet = new Set(skipDates ?? []);
   while (current <= endNorm) {
-    if (gameDays.includes(current.getDay())) count++;
+    if (gameDays.includes(current.getDay()) && !skipSet.has(toLocalDateStr(current))) count++;
     current.setDate(current.getDate() + 1);
   }
   return count;
+}
+
+// ============================================================================
+// HOLIDAY UTILITIES
+// ============================================================================
+
+/** Meeus/Jones/Butcher Easter algorithm — returns Easter Sunday for a given year. */
+function computeEaster(year: number): Date {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day);
+}
+
+/** Returns the nth occurrence of a weekday (0=Sun…6=Sat) in a given month. */
+function nthWeekdayOfMonth(year: number, month: number, weekday: number, n: number): Date {
+  const first = new Date(year, month, 1);
+  const diff = (weekday - first.getDay() + 7) % 7;
+  return new Date(year, month, 1 + diff + (n - 1) * 7);
+}
+
+/** Returns the last occurrence of a weekday on or before the given day of month. */
+function lastWeekdayOnOrBefore(year: number, month: number, day: number, weekday: number): Date {
+  const ref = new Date(year, month, day);
+  const back = (ref.getDay() - weekday + 7) % 7;
+  return new Date(year, month, day - back);
+}
+
+interface HolidayDef {
+  id: string;
+  label: string;
+  compute: (year: number) => Date[];
+}
+
+const HOCKEY_HOLIDAYS: HolidayDef[] = [
+  { id: 'new_years_day',    label: "New Year's Day (Jan 1)",           compute: (y) => [new Date(y, 0, 1)] },
+  { id: 'good_friday',      label: 'Good Friday',                      compute: (y) => { const e = computeEaster(y); return [new Date(y, e.getMonth(), e.getDate() - 2)]; } },
+  { id: 'easter_sunday',    label: 'Easter Sunday',                    compute: (y) => [computeEaster(y)] },
+  { id: 'victoria_day',     label: 'Victoria Day (Mon before May 25)', compute: (y) => [lastWeekdayOnOrBefore(y, 4, 24, 1)] },
+  { id: 'canada_day',       label: 'Canada Day (Jul 1)',               compute: (y) => [new Date(y, 6, 1)] },
+  { id: 'civic_holiday',    label: 'Civic Holiday (1st Mon of Aug)',   compute: (y) => [nthWeekdayOfMonth(y, 7, 1, 1)] },
+  { id: 'labour_day',       label: 'Labour Day (1st Mon of Sep)',      compute: (y) => [nthWeekdayOfMonth(y, 8, 1, 1)] },
+  { id: 'thanksgiving_ca',  label: 'Thanksgiving (2nd Mon of Oct)',    compute: (y) => [nthWeekdayOfMonth(y, 9, 1, 2)] },
+  { id: 'remembrance_day',  label: 'Remembrance Day (Nov 11)',         compute: (y) => [new Date(y, 10, 11)] },
+  { id: 'christmas_eve',    label: 'Christmas Eve (Dec 24)',           compute: (y) => [new Date(y, 11, 24)] },
+  { id: 'christmas_day',    label: 'Christmas Day (Dec 25)',           compute: (y) => [new Date(y, 11, 25)] },
+  { id: 'boxing_day',       label: 'Boxing Day (Dec 26)',              compute: (y) => [new Date(y, 11, 26)] },
+  { id: 'new_years_eve',    label: "New Year's Eve (Dec 31)",          compute: (y) => [new Date(y, 11, 31)] },
+];
+
+/** Returns holidays that fall within [startDate, endDate], grouped by holiday definition. */
+function getHolidaysInRange(
+  startDate: Date,
+  endDate: Date
+): { id: string; label: string; dates: string[] }[] {
+  const startYear = startDate.getFullYear();
+  const endYear = endDate.getFullYear();
+  const startStr = toLocalDateStr(startDate);
+  const endStr = toLocalDateStr(endDate);
+
+  return HOCKEY_HOLIDAYS.flatMap((h) => {
+    const dates: string[] = [];
+    for (let y = startYear; y <= endYear; y++) {
+      for (const d of h.compute(y)) {
+        const ds = toLocalDateStr(d);
+        if (ds >= startStr && ds <= endStr) dates.push(ds);
+      }
+    }
+    return dates.length > 0 ? [{ id: h.id, label: h.label, dates }] : [];
+  });
 }
 
 export function ScheduleConfigStep({
@@ -101,10 +188,13 @@ export function ScheduleConfigStep({
   const rounds = teamCount % 2 === 0 ? teamCount - 1 : teamCount;
   const totalGames = gamesPerRound * rounds * (config.scheduleType === 'double_round_robin' ? 2 : 1);
 
-  // Max games fillable in the current date range with the selected game days
+  // Max games fillable in the current date range with the selected game days (minus holidays)
   const maxFillableGames = config.gameDays.length > 0
-    ? countAvailableSlots(config.startDate, config.endDate, config.gameDays)
+    ? countAvailableSlots(config.startDate, config.endDate, config.gameDays, config.holidayDates)
     : 0;
+
+  // Holidays detected in the date range
+  const detectedHolidays = getHolidaysInRange(config.startDate, config.endDate);
 
   const toggleGameDay = (day: number) => {
     setConfig((prev) => ({
@@ -682,6 +772,106 @@ export function ScheduleConfigStep({
               </div>
             </div>
           </>
+        )}
+      </div>
+
+      {/* Holiday Avoidance */}
+      <div className="border-t border-neutral-800 pt-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-neutral-300 flex items-center gap-2 cursor-pointer">
+            <Snowflake className="w-4 h-4" />
+            Holiday Avoidance
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={config.skipHolidays}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                if (enabled) {
+                  // Pre-populate all detected holidays
+                  const allDates = detectedHolidays.flatMap((h) => h.dates);
+                  setConfig((prev) => ({ ...prev, skipHolidays: true, holidayDates: allDates }));
+                } else {
+                  setConfig((prev) => ({ ...prev, skipHolidays: false, holidayDates: [] }));
+                }
+              }}
+              className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
+            />
+            <span className="text-sm text-neutral-300">Skip major holidays</span>
+          </label>
+        </div>
+
+        {config.skipHolidays && (
+          <div className="space-y-2">
+            {detectedHolidays.length === 0 ? (
+              <p className="text-sm text-neutral-500">No major holidays fall within the selected date range.</p>
+            ) : (
+              <>
+                <p className="text-xs text-neutral-500">
+                  {detectedHolidays.length} holiday{detectedHolidays.length !== 1 ? 's' : ''} detected in this date range.
+                  Checked dates will be skipped when generating the schedule.
+                </p>
+                <div className="space-y-1.5">
+                  {detectedHolidays.map((holiday) =>
+                    holiday.dates.map((ds) => {
+                      const checked = config.holidayDates.includes(ds);
+                      const displayDate = new Date(ds + 'T12:00:00').toLocaleDateString('en-US', {
+                        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+                      });
+                      return (
+                        <label
+                          key={`${holiday.id}-${ds}`}
+                          className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-neutral-800/50 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setConfig((prev) => ({
+                                  ...prev,
+                                  holidayDates: [...prev.holidayDates, ds].sort(),
+                                }));
+                              } else {
+                                setConfig((prev) => ({
+                                  ...prev,
+                                  holidayDates: prev.holidayDates.filter((d) => d !== ds),
+                                }));
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-rink-500 focus:ring-rink-500"
+                          />
+                          <span className="text-sm text-neutral-300">{holiday.label}</span>
+                          <span className="text-xs text-neutral-500 ml-auto">{displayDate}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allDates = detectedHolidays.flatMap((h) => h.dates);
+                      setConfig((prev) => ({ ...prev, holidayDates: allDates.sort() }));
+                    }}
+                    className="text-xs text-rink-400 hover:text-rink-300 transition-colors"
+                  >
+                    Select all
+                  </button>
+                  <span className="text-xs text-neutral-600">·</span>
+                  <button
+                    type="button"
+                    onClick={() => setConfig((prev) => ({ ...prev, holidayDates: [] }))}
+                    className="text-xs text-neutral-400 hover:text-neutral-300 transition-colors"
+                  >
+                    Deselect all
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
 

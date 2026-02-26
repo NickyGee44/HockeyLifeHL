@@ -65,10 +65,9 @@ function countAvailableGameDays(start: Date, end: Date, gameDays: number[]): num
 }
 
 function getDefaultConfig(startDate: Date, endDate: Date): ScheduleConfig {
-  // Clamp start to today — if the season already started, generate future games only
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const effectiveStart = startDate < today ? today : new Date(startDate);
+  // Use the season's actual start date — no clamping to today.
+  // Users control the range via the date pickers in the config step.
+  const effectiveStart = new Date(startDate);
 
   const defaultGameDays = [1, 3]; // Monday, Wednesday
   // Auto-calculate gamesPerTeam to fill all available game-day slots in the date range
@@ -92,6 +91,8 @@ function getDefaultConfig(startDate: Date, endDate: Date): ScheduleConfig {
     byeWeeksPerTeam: 1,
     defaultVenueId: null,
     rotateHomeVenue: true,
+    skipHolidays: true,
+    holidayDates: [],
     playoffFormat: 'none',
     playoffTeams: 8,
     playoffQualificationMode: 'count',

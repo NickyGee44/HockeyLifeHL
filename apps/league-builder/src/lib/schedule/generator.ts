@@ -477,9 +477,20 @@ function getAvailableTimeSlots(
   // Get blackout periods
   const blackouts = getBlackoutPeriods(constraints);
 
+  const holidaySet = new Set(config.holidayDates ?? []);
+
   // Iterate through each day in the range
   const currentDate = new Date(startDate);
   while (currentDate <= endDate) {
+    // Skip holiday dates
+    if (config.skipHolidays && holidaySet.size > 0) {
+      const ds = currentDate.toISOString().split('T')[0];
+      if (holidaySet.has(ds)) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        continue;
+      }
+    }
+
     const dayOfWeek = currentDate.getDay();
 
     // Check if this is a game day

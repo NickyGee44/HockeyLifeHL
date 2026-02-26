@@ -170,6 +170,10 @@ export interface ScheduleConfig {
   defaultVenueId: string | null;
   rotateHomeVenue: boolean;
 
+  // Holiday avoidance
+  skipHolidays: boolean;
+  holidayDates: string[]; // YYYY-MM-DD dates to skip (holidays, special events)
+
   // Playoff settings
   playoffFormat: PlayoffFormat;
   playoffTeams: number; // Number of teams that make playoffs (4, 6, 8, etc.)
