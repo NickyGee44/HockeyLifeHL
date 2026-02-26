@@ -44,14 +44,21 @@ export default async function DraftPage({ params }: Props) {
     notFound();
   }
 
-  // Find the draft-type season
-  const draftSeason = (league.seasons as any[])?.find(
-    (s: any) => s.registration_type === 'draft'
-  );
+  const allSeasons = (league.seasons as any[]) ?? [];
+
+  // Find the active/upcoming draft-type season
+  const draftSeason = allSeasons.find(
+    (s: any) => s.registration_type === 'draft' && s.status !== 'archived'
+  ) ?? allSeasons.find((s: any) => s.registration_type === 'draft');
 
   if (!draftSeason) {
     notFound();
   }
+
+  // Past seasons that can be used as a player pool source (completed or archived, not the current one)
+  const pastSeasons = allSeasons.filter(
+    (s: any) => s.id !== draftSeason.id && (s.status === 'completed' || s.status === 'archived')
+  );
 
   // Check for existing draft record
   const { data: existingDraft } = await (supabase as any)
@@ -129,6 +136,7 @@ export default async function DraftPage({ params }: Props) {
           seasonName={draftSeason.name}
           existingDraft={existingDraft || null}
           teams={teams || []}
+          pastSeasons={pastSeasons}
           userId={userId}
           userTeamId={captainTeam?.team_id || null}
           isAdmin={isAdmin}
