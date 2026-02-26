@@ -49,7 +49,10 @@ async function verifyCaptainRole(
     .select('leadership_role')
     .eq('team_id', teamId)
     .eq('player_id', user.id)
-    .single();
+    .eq('status', 'active')
+    .is('end_date', null)
+    .limit(1)
+    .maybeSingle();
 
   if (
     !membership ||
