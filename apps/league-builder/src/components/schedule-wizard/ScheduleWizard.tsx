@@ -34,6 +34,7 @@ interface ScheduleWizardProps {
   endDate: Date;
   onComplete: (result: ScheduleGenerationResult) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
 type WizardStep = 'config' | 'constraints' | 'preview' | 'result';
@@ -86,7 +87,8 @@ export function ScheduleWizard({
   startDate,
   endDate,
   onComplete,
-  onCancel }: ScheduleWizardProps) {
+  onCancel,
+  isSaving = false }: ScheduleWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('config');
   const [config, setConfig] = useState<ScheduleConfig>(() => getDefaultConfig(startDate, endDate));
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -321,10 +323,20 @@ export function ScheduleWizard({
           {currentStep === 'result' && generationResult?.success && (
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Check className="w-4 h-4" />
-              Save Schedule
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  Save Schedule
+                </>
+              )}
             </button>
           )}
         </div>

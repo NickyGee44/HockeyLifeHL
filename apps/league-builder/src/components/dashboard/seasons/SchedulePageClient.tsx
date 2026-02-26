@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin } from 'lucide-react';
+import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin, Loader2 } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { ScheduleWizard } from '@/components/schedule-wizard';
 import { ScheduleCalendar } from '@/components/schedule-wizard/ScheduleCalendar';
@@ -114,6 +114,7 @@ export function SchedulePageClient({
   const [selectedGame, setSelectedGame] = useState<ScheduledGame | null>(null);
   const [showGameDetail, setShowGameDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
 
@@ -141,13 +142,18 @@ export function SchedulePageClient({
       }
 
       setIsSaving(true);
+      setSaveError(null);
       try {
         const saveResult = await saveScheduleGames(seasonId, leagueId, result.games, result.logId);
         if (saveResult.success) {
           setGames(result.games);
           setShowWizard(false);
           router.refresh();
+        } else {
+          setSaveError(saveResult.error ?? 'Failed to save schedule. Please try again.');
         }
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save schedule. Please try again.');
       } finally {
         setIsSaving(false);
       }
@@ -179,7 +185,13 @@ export function SchedulePageClient({
   if (showWizard) {
     return (
       <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto">
-        <div className="w-full max-w-4xl h-[90vh] flex flex-col">
+        <div className="w-full max-w-4xl h-[90vh] flex flex-col gap-3">
+          {saveError && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{saveError}</span>
+            </div>
+          )}
           <ScheduleWizard
             seasonId={seasonId}
             leagueId={leagueId}
@@ -189,7 +201,8 @@ export function SchedulePageClient({
             startDate={startDate}
             endDate={endDate}
             onComplete={handleWizardComplete}
-            onCancel={() => setShowWizard(false)}
+            onCancel={() => { setShowWizard(false); setSaveError(null); }}
+            isSaving={isSaving}
           />
         </div>
       </div>

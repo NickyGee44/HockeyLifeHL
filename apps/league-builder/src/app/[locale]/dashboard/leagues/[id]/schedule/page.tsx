@@ -29,12 +29,21 @@ async function getSeasonScheduleData(supabase: any, seasonId: string) {
 
   if (error || !season) return null;
 
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('id, name, short_name, division_id, home_venue_id')
-    .eq('league_id', season.league_id)
-    .eq('status', 'active')
-    .order('name');
+  // Only include teams with active rosters in this specific season
+  const { data: seasonRosters } = await supabase
+    .from('team_rosters')
+    .select('team_id')
+    .eq('season_id', seasonId)
+    .eq('status', 'active');
+  const seasonTeamIds = [...new Set((seasonRosters ?? []).map((r: any) => r.team_id))];
+
+  const { data: teams } = seasonTeamIds.length > 0
+    ? await supabase
+        .from('teams')
+        .select('id, name, short_name, division_id, home_venue_id')
+        .in('id', seasonTeamIds)
+        .order('name')
+    : { data: [] };
 
   const { data: venues } = await supabase
     .from('venues')

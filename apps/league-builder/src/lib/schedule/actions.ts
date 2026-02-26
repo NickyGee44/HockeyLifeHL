@@ -324,12 +324,36 @@ export async function generateSeasonSchedule(
     };
   }
 
-  // Fetch teams for the season
-  const { data: teamsData, error: teamsError } = await supabase
-    .from('teams')
-    .select('id, name, short_name, division_id, home_venue_id')
-    .eq('league_id', leagueId)
+  // Fetch teams for the season — only teams with active rosters in this season
+  const { data: seasonRosters, error: rostersError } = await supabase
+    .from('team_rosters')
+    .select('team_id')
+    .eq('season_id', seasonId)
     .eq('status', 'active');
+
+  if (rostersError) {
+    return {
+      success: false,
+      games: [],
+      totalGames: 0,
+      gamesPerTeam: {},
+      homeGamesPerTeam: {},
+      awayGamesPerTeam: {},
+      constraintViolations: [],
+      hardConstraintFailures: [],
+      durationMs: Date.now() - startTime,
+      error: rostersError.message,
+    };
+  }
+
+  const seasonTeamIds = [...new Set((seasonRosters ?? []).map((r) => r.team_id))];
+
+  const { data: teamsData, error: teamsError } = seasonTeamIds.length > 0
+    ? await supabase
+        .from('teams')
+        .select('id, name, short_name, division_id, home_venue_id')
+        .in('id', seasonTeamIds)
+    : { data: [], error: null };
 
   if (teamsError || !teamsData) {
     return {
