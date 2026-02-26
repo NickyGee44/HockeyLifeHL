@@ -4,6 +4,7 @@ import { useState, useEffect, use, useTransition } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
+import { useLeague } from '@/hooks/useLeague';
 import { createClient } from '@/lib/supabase/client';
 import {
   ArrowLeft,
@@ -66,7 +67,8 @@ const DUTY_ICONS: Record<string, React.ReactNode> = {
 
 export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
   const { leagueSlug } = use(params);
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile();
+  const { league } = useLeague();
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
   const [dutyTypes, setDutyTypes] = useState<DutyType[]>([]);
   const [upcomingGames, setUpcomingGames] = useState<UpcomingGame[]>([]);
   const [gameDuties, setGameDuties] = useState<Record<string, GameDuty[]>>({});

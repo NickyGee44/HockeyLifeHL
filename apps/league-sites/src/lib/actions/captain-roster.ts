@@ -266,7 +266,7 @@ export async function approveJoinRequest(
   const { error: updateError } = await supabase
     .from('team_join_requests')
     .update({
-      status: 'approved',
+      status: 'accepted',
       reviewed_at: new Date().toISOString(),
       reviewed_by: auth.userId,
     })

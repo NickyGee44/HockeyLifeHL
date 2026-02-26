@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
+import { useLeague } from '@/hooks/useLeague';
 import { createClient } from '@/lib/supabase/client';
 import {
   Shield,
@@ -39,7 +40,8 @@ interface TeamStats {
 
 export default function CaptainPage({ params }: CaptainPageProps) {
   const { leagueSlug } = use(params);
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile();
+  const { league } = useLeague();
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);

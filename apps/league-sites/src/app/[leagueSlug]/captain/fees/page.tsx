@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
+import { useLeague } from '@/hooks/useLeague';
 import { createClient } from '@/lib/supabase/client';
 import {
   ArrowLeft,
@@ -77,7 +78,8 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; I
 
 export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
   const { leagueSlug } = use(params);
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile();
+  const { league } = useLeague();
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
   const [invoices, setInvoices] = useState<TeamInvoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

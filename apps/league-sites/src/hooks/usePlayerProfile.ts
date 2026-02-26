@@ -76,7 +76,7 @@ export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
 
       setProfile(profileData);
 
-      // Fetch team memberships
+      // Fetch team memberships (active only, no end_date)
       const { data: teamsData, error: teamsError } = await supabase
         .from('team_rosters')
         .select(`
@@ -87,7 +87,9 @@ export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
           leadership_role,
           team:teams(id, name, slug, logo_url, league_id, division_id)
         `)
-        .eq('player_id', user.id);
+        .eq('player_id', user.id)
+        .eq('status', 'active')
+        .is('end_date', null);
 
       if (teamsError) {
         throw new Error(teamsError.message);
