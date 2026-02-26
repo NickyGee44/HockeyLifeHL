@@ -15,20 +15,30 @@ import {
   HelpCircle,
   X,
   Loader2,
-  CheckCheck,
   ArrowLeft,
+  ArrowRight,
   ClipboardCheck,
+  Shield,
+  UserPlus,
 } from 'lucide-react';
 import {
   updateGameCheckin,
-  bulkUpdateCheckins,
   type CheckinStatus,
 } from '@/lib/actions/checkins';
-import {
-  type GameWithCheckin,
-  useWeekGroupedGames,
-  WeekHeader,
-} from '@/components/dashboard/WeekGroupedGames';
+import { SubInviteModal } from '@/components/captain/SubInviteModal';
+import { GoalieRequestModal } from '@/components/captain/GoalieRequestModal';
+import type { GameWithCheckin } from '@/components/dashboard/WeekGroupedGames';
+
+interface RosterEntry {
+  player_id: string;
+  position: string | null;
+  jersey_number: number | null;
+  profile: {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
+}
 
 export default function CheckinPage() {
   const params = useParams();
@@ -37,24 +47,55 @@ export default function CheckinPage() {
   const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
 
   const teamId = currentTeam?.team_id;
+  const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
+
+  // Games + navigation
   const [games, setGames] = useState<GameWithCheckin[]>([]);
-  const [checkins, setCheckins] = useState<Record<string, CheckinStatus>>({});
+  const [currentGameIndex, setCurrentGameIndex] = useState(0);
+
+  // Checkins: my own per game, and all teammates per game
+  const [myCheckins, setMyCheckins] = useState<Record<string, CheckinStatus>>({});
+  const [teamCheckins, setTeamCheckins] = useState<Record<string, Record<string, string>>>({});
+
+  // Roster (once, for the team)
+  const [roster, setRoster] = useState<RosterEntry[]>([]);
+
+  // Open goalie requests (set of gameIds that already have an open request)
+  const [openGoalieRequestGames, setOpenGoalieRequestGames] = useState<Set<string>>(new Set());
+
+  // Loading / error
   const [isLoading, setIsLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
-  const [bulkWeek, setBulkWeek] = useState<string | null>(null);
 
-  const weekGroups = useWeekGroupedGames(games);
+  // Modals
+  const [showSubModal, setShowSubModal] = useState(false);
+  const [showGoalieModal, setShowGoalieModal] = useState(false);
 
-  // Summary stats
-  const totalGames = games.length;
-  const confirmedCount = Object.values(checkins).filter(s => s === 'confirmed').length;
-  const tentativeCount = Object.values(checkins).filter(s => s === 'tentative').length;
-  const needsResponse = totalGames - Object.keys(checkins).length;
+  // Derived: current game
+  const currentGame = games[currentGameIndex] ?? null;
+
+  // My RSVP summary (across ALL games)
+  const confirmedCount = Object.values(myCheckins).filter(s => s === 'confirmed').length;
+  const tentativeCount = Object.values(myCheckins).filter(s => s === 'tentative').length;
+  const needsResponse = games.length - Object.keys(myCheckins).length;
+
+  // Current game: team attendance
+  const currentCheckins = currentGame ? (teamCheckins[currentGame.id] ?? {}) : {};
+  const inPlayers = roster.filter(r => currentCheckins[r.player_id] === 'confirmed');
+  const outPlayers = roster.filter(r => currentCheckins[r.player_id] === 'out');
+  const maybePlayers = roster.filter(r => currentCheckins[r.player_id] === 'tentative');
+  const noReplyPlayers = roster.filter(r => !currentCheckins[r.player_id]);
+
+  // Captain action visibility
+  const hasGoalieConfirmed = roster.some(
+    r => r.position?.toLowerCase() === 'goalie' && currentCheckins[r.player_id] === 'confirmed'
+  );
+  const hasOpenGoalieRequest = currentGame ? openGoalieRequestGames.has(currentGame.id) : false;
+  const showGoalieButton = isCaptain && !hasGoalieConfirmed && !hasOpenGoalieRequest;
 
   useEffect(() => {
-    // Wait for both team and league to be resolved before fetching
     if (!teamId || !league) return;
 
     const leagueId = league.id;
@@ -62,12 +103,11 @@ export default function CheckinPage() {
 
     const fetchData = async () => {
       const supabase = createClient();
-
-      // Use start of today (midnight local) so games earlier today still appear
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
-      let query = supabase
+      // --- 1. Games ---
+      let gamesQuery = supabase
         .from('games')
         .select(`
           id,
@@ -84,12 +124,9 @@ export default function CheckinPage() {
         .gte('scheduled_at', startOfToday.toISOString())
         .order('scheduled_at', { ascending: true });
 
-      // Scope to the active season when available
-      if (seasonId) {
-        query = query.eq('season_id', seasonId);
-      }
+      if (seasonId) gamesQuery = gamesQuery.eq('season_id', seasonId);
 
-      const { data: gamesData, error: gamesError } = await query;
+      const { data: gamesData, error: gamesError } = await gamesQuery;
 
       if (gamesError) {
         console.error('Failed to fetch games:', gamesError.message);
@@ -97,33 +134,81 @@ export default function CheckinPage() {
         return;
       }
 
-      if (gamesData) {
-        const transformed = gamesData.map((game: any) => {
-          const rawHome = Array.isArray(game.home_team) ? game.home_team[0] : game.home_team;
-          const rawAway = Array.isArray(game.away_team) ? game.away_team[0] : game.away_team;
-          return {
-            ...game,
-            home_team: rawHome ? { ...rawHome, logo: rawHome.logo_url } : null,
-            away_team: rawAway ? { ...rawAway, logo: rawAway.logo_url } : null,
-          };
-        });
-        setGames(transformed);
+      const transformed: GameWithCheckin[] = (gamesData || []).map((game: any) => {
+        const rawHome = Array.isArray(game.home_team) ? game.home_team[0] : game.home_team;
+        const rawAway = Array.isArray(game.away_team) ? game.away_team[0] : game.away_team;
+        return {
+          ...game,
+          home_team: rawHome ? { ...rawHome, logo: rawHome.logo_url } : null,
+          away_team: rawAway ? { ...rawAway, logo: rawAway.logo_url } : null,
+        };
+      });
+      setGames(transformed);
+
+      const gameIds = transformed.map(g => g.id);
+
+      // --- 2. Roster ---
+      const { data: rosterData } = await supabase
+        .from('team_rosters')
+        .select('player_id, position, jersey_number, profile:profiles(id, full_name, avatar_url)')
+        .eq('team_id', teamId)
+        .eq('status', 'active')
+        .is('end_date', null);
+
+      if (rosterData) {
+        setRoster(
+          rosterData.map((r: any) => ({
+            player_id: r.player_id,
+            position: r.position,
+            jersey_number: r.jersey_number,
+            profile: Array.isArray(r.profile) ? r.profile[0] : r.profile,
+          }))
+        );
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      // --- 3. All team checkins for loaded games (batch) ---
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user && gameIds.length > 0) {
         const { data: checkinsData } = await supabase
           .from('game_checkins')
-          .select('game_id, status')
-          .eq('player_id', user.id)
-          .eq('team_id', teamId);
+          .select('game_id, player_id, status')
+          .eq('team_id', teamId)
+          .in('game_id', gameIds);
 
         if (checkinsData) {
-          const map = checkinsData.reduce((acc, row) => {
-            acc[row.game_id] = row.status as CheckinStatus;
-            return acc;
-          }, {} as Record<string, CheckinStatus>);
-          setCheckins(map);
+          const mine: Record<string, CheckinStatus> = {};
+          const team: Record<string, Record<string, string>> = {};
+
+          for (const row of checkinsData) {
+            // Team map
+            if (!team[row.game_id]) team[row.game_id] = {};
+            team[row.game_id][row.player_id] = row.status;
+
+            // My own
+            if (row.player_id === user.id) {
+              mine[row.game_id] = row.status as CheckinStatus;
+            }
+          }
+
+          setMyCheckins(mine);
+          setTeamCheckins(team);
+        }
+      }
+
+      // --- 4. Open goalie requests for this team ---
+      if (gameIds.length > 0) {
+        const { data: openRequests } = await supabase
+          .from('goalie_requests' as any)
+          .select('game_id')
+          .eq('team_id', teamId)
+          .eq('status', 'open')
+          .in('game_id', gameIds);
+
+        if (openRequests) {
+          setOpenGoalieRequestGames(new Set((openRequests as any[]).map(r => r.game_id)));
         }
       }
 
@@ -140,7 +225,16 @@ export default function CheckinPage() {
     startTransition(async () => {
       const result = await updateGameCheckin(gameId, teamId, status);
       if (result.success) {
-        setCheckins(prev => ({ ...prev, [gameId]: status }));
+        setMyCheckins(prev => ({ ...prev, [gameId]: status }));
+        // Also update team checkins map for realtime roster display
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setTeamCheckins(prev => ({
+            ...prev,
+            [gameId]: { ...(prev[gameId] ?? {}), [user.id]: status },
+          }));
+        }
       } else {
         setSaveError(result.error || 'Failed to save your response. Please try again.');
       }
@@ -148,20 +242,8 @@ export default function CheckinPage() {
     });
   };
 
-  const handleBulkCheckin = (weekLabel: string, gameIds: string[]) => {
-    if (!teamId) return;
-    setBulkWeek(weekLabel);
-    startTransition(async () => {
-      const result = await bulkUpdateCheckins(gameIds, teamId, 'confirmed');
-      if (result.success) {
-        setCheckins(prev => {
-          const updated = { ...prev };
-          for (const id of gameIds) updated[id] = 'confirmed';
-          return updated;
-        });
-      }
-      setBulkWeek(null);
-    });
+  const handleGoalieRequestSubmitted = (gameId: string) => {
+    setOpenGoalieRequestGames(prev => new Set([...prev, gameId]));
   };
 
   const formatDate = (dateStr: string) => {
@@ -171,13 +253,13 @@ export default function CheckinPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     if (date.toDateString() === today.toDateString()) return 'Today';
     if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   };
 
   const formatTime = (dateStr: string) =>
     new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-  // Loading state
+  // ── Loading ──
   if (leagueLoading || profileLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -189,7 +271,7 @@ export default function CheckinPage() {
     );
   }
 
-  // Not on a team
+  // ── Not on a team ──
   if (!teamId) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
@@ -233,7 +315,7 @@ export default function CheckinPage() {
         </div>
       )}
 
-      {/* Summary Bar */}
+      {/* My RSVP Summary (all games) */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 text-center">
           <p className="text-2xl font-bold text-green-400">{confirmedCount}</p>
@@ -249,7 +331,7 @@ export default function CheckinPage() {
         </div>
       </div>
 
-      {/* Games List */}
+      {/* Games */}
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
@@ -262,134 +344,334 @@ export default function CheckinPage() {
           <p className="text-[var(--color-text-secondary)]">No upcoming games scheduled</p>
         </div>
       ) : (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
-          {weekGroups.map(group => {
-            const weekConfirmed = group.games.filter(g => checkins[g.id] === 'confirmed').length;
-            const unconfirmedIds = group.games.filter(g => checkins[g.id] !== 'confirmed').map(g => g.id);
+        <>
+          {/* Game Navigation */}
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => setCurrentGameIndex(i => Math.max(0, i - 1))}
+              disabled={currentGameIndex === 0}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Prev
+            </button>
 
-            return (
-              <div key={group.label}>
-                <WeekHeader label={group.label} gameCount={group.games.length} confirmedCount={weekConfirmed} />
+            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+              Game {currentGameIndex + 1} of {games.length}
+            </span>
 
-                {unconfirmedIds.length > 0 && (
-                  <div className="px-4 py-1.5 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+            <button
+              onClick={() => setCurrentGameIndex(i => Math.min(games.length - 1, i + 1))}
+              disabled={currentGameIndex === games.length - 1}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Game Card */}
+          {currentGame && (
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+              {/* Matchup header */}
+              <div className="p-4 border-b border-[var(--color-border)]">
+                {/* Teams */}
+                <div className="flex items-center justify-center gap-4 mb-3">
+                  <TeamBadge
+                    team={currentGame.home_team}
+                    isMyTeam={currentGame.home_team_id === teamId}
+                  />
+                  <span className="text-lg font-bold text-[var(--color-text-muted)]">vs</span>
+                  <TeamBadge
+                    team={currentGame.away_team}
+                    isMyTeam={currentGame.away_team_id === teamId}
+                  />
+                </div>
+
+                {/* Game info */}
+                <div className="flex items-center justify-center gap-4 text-sm text-[var(--color-text-secondary)]">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {formatDate(currentGame.scheduled_at)}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    {formatTime(currentGame.scheduled_at)}
+                  </span>
+                  {currentGame.location && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {currentGame.location}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* My RSVP */}
+              <div className="p-4 border-b border-[var(--color-border)]">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
+                  My RSVP
+                </p>
+                {updatingGame === currentGame.id ? (
+                  <div className="flex items-center justify-center py-3 text-[var(--color-text-secondary)]">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-sm">Updating...</span>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => handleBulkCheckin(group.label, unconfirmedIds)}
-                      disabled={isPending || bulkWeek === group.label}
-                      className="inline-flex items-center gap-1.5 text-xs text-[var(--league-primary)] hover:underline disabled:opacity-50"
+                      onClick={() => handleCheckin(currentGame.id, 'confirmed')}
+                      disabled={isPending}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                        myCheckins[currentGame.id] === 'confirmed'
+                          ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
+                          : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-green-500/10 hover:text-green-400'
+                      }`}
                     >
-                      {bulkWeek === group.label ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <CheckCheck className="w-3 h-3" />
-                      )}
-                      Mark all as In ({unconfirmedIds.length} remaining)
+                      <Check className="w-4 h-4" />
+                      In
+                    </button>
+                    <button
+                      onClick={() => handleCheckin(currentGame.id, 'tentative')}
+                      disabled={isPending}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                        myCheckins[currentGame.id] === 'tentative'
+                          ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30'
+                          : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-amber-500/10 hover:text-amber-400'
+                      }`}
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      Maybe
+                    </button>
+                    <button
+                      onClick={() => handleCheckin(currentGame.id, 'out')}
+                      disabled={isPending}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                        myCheckins[currentGame.id] === 'out'
+                          ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30'
+                          : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-red-500/10 hover:text-red-400'
+                      }`}
+                    >
+                      <X className="w-4 h-4" />
+                      Out
                     </button>
                   </div>
                 )}
+              </div>
 
-                <div className="divide-y divide-[var(--color-border)]">
-                  {group.games.map(game => {
-                    const isHome = game.home_team_id === teamId;
-                    const opponent = isHome ? game.away_team : game.home_team;
-                    const currentStatus = checkins[game.id];
-                    const isUpdating = updatingGame === game.id;
+              {/* Team Attendance */}
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+                    Team Attendance
+                  </p>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-green-400">{inPlayers.length} in</span>
+                    <span className="text-[var(--color-text-muted)]">·</span>
+                    <span className="text-red-400">{outPlayers.length} out</span>
+                    {maybePlayers.length > 0 && (
+                      <>
+                        <span className="text-[var(--color-text-muted)]">·</span>
+                        <span className="text-amber-400">{maybePlayers.length} maybe</span>
+                      </>
+                    )}
+                    {noReplyPlayers.length > 0 && (
+                      <>
+                        <span className="text-[var(--color-text-muted)]">·</span>
+                        <span className="text-[var(--color-text-muted)]">{noReplyPlayers.length} no reply</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  {roster.map(player => {
+                    const status = currentCheckins[player.player_id];
+                    const name = player.profile?.full_name || 'Unknown';
+                    const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
                     return (
-                      <div key={game.id} className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          {opponent?.logo ? (
-                            <Image src={opponent.logo} alt={opponent.name} width={36} height={36} className="rounded-lg" />
-                          ) : (
-                            <div className="w-9 h-9 bg-[var(--color-surface-hover)] rounded-lg flex items-center justify-center text-sm font-bold text-[var(--color-text-secondary)]">
-                              {opponent?.name?.charAt(0) || '?'}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-medium text-[var(--color-text-secondary)] uppercase">
-                                {isHome ? 'vs' : '@'}
-                              </span>
-                              <span className="font-medium text-[var(--color-text-primary)] truncate">
-                                {opponent?.name || 'TBD'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 text-xs text-[var(--color-text-secondary)] mt-0.5">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(game.scheduled_at)}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {formatTime(game.scheduled_at)}
-                              </span>
-                              {game.location && (
-                                <span className="flex items-center gap-1 truncate">
-                                  <MapPin className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">{game.location}</span>
-                                </span>
-                              )}
-                            </div>
+                      <div
+                        key={player.player_id}
+                        className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
+                      >
+                        {/* Avatar */}
+                        {player.profile?.avatar_url ? (
+                          <Image
+                            src={player.profile.avatar_url}
+                            alt={name}
+                            width={28}
+                            height={28}
+                            className="rounded-full flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-xs font-bold text-[var(--color-text-secondary)] flex-shrink-0">
+                            {initials}
                           </div>
+                        )}
+
+                        {/* Name + position */}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm text-[var(--color-text-primary)] truncate">
+                            {player.jersey_number ? `#${player.jersey_number} ` : ''}{name}
+                          </span>
+                          {player.position && (
+                            <span className="ml-1.5 text-xs text-[var(--color-text-muted)]">
+                              {player.position}
+                            </span>
+                          )}
                         </div>
 
-                        {/* Big RSVP Buttons */}
-                        <div className="flex gap-2">
-                          {isUpdating ? (
-                            <div className="flex-1 flex items-center justify-center py-3 text-[var(--color-text-secondary)]">
-                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                              <span className="text-sm">Updating...</span>
-                            </div>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => handleCheckin(game.id, 'confirmed')}
-                                disabled={isPending}
-                                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                                  currentStatus === 'confirmed'
-                                    ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
-                                    : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-green-500/10 hover:text-green-400'
-                                }`}
-                              >
-                                <Check className="w-4 h-4" />
-                                In
-                              </button>
-                              <button
-                                onClick={() => handleCheckin(game.id, 'tentative')}
-                                disabled={isPending}
-                                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                                  currentStatus === 'tentative'
-                                    ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30'
-                                    : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-amber-500/10 hover:text-amber-400'
-                                }`}
-                              >
-                                <HelpCircle className="w-4 h-4" />
-                                Maybe
-                              </button>
-                              <button
-                                onClick={() => handleCheckin(game.id, 'out')}
-                                disabled={isPending}
-                                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                                  currentStatus === 'out'
-                                    ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30'
-                                    : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-red-500/10 hover:text-red-400'
-                                }`}
-                              >
-                                <X className="w-4 h-4" />
-                                Out
-                              </button>
-                            </>
-                          )}
-                        </div>
+                        {/* Status badge */}
+                        <StatusBadge status={status} />
                       </div>
                     );
                   })}
+
+                  {roster.length === 0 && (
+                    <p className="text-sm text-[var(--color-text-muted)] text-center py-2">
+                      No roster members found
+                    </p>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
+
+              {/* Captain Actions */}
+              {isCaptain && (
+                <div className="px-4 pb-4 flex items-center gap-3">
+                  <button
+                    onClick={() => setShowSubModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:bg-[var(--league-primary)]/10 hover:text-[var(--league-primary)] transition-colors border border-[var(--color-border)]"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Find Sub
+                  </button>
+
+                  {showGoalieButton && (
+                    <button
+                      onClick={() => setShowGoalieModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:bg-[var(--league-primary)]/10 hover:text-[var(--league-primary)] transition-colors border border-[var(--color-border)]"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Request Goalie
+                    </button>
+                  )}
+
+                  {hasOpenGoalieRequest && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                      <Shield className="w-4 h-4" />
+                      Goalie Requested
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Dot navigation */}
+          {games.length > 1 && (
+            <div className="flex items-center justify-center gap-1.5 mt-4">
+              {games.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentGameIndex(i)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    i === currentGameIndex
+                      ? 'bg-[var(--league-primary)] w-4'
+                      : 'bg-[var(--color-border)] hover:bg-[var(--color-text-muted)]'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Sub Invite Modal */}
+      {currentGame && (
+        <SubInviteModal
+          isOpen={showSubModal}
+          onClose={() => setShowSubModal(false)}
+          gameId={currentGame.id}
+          teamId={teamId}
+          leagueId={league?.id ?? ''}
+          // SubInviteModal only reads player_id to filter the sub list; cast to satisfy RosterPlayer[]
+          roster={roster as any}
+          gameDateLabel={formatDate(currentGame.scheduled_at)}
+        />
+      )}
+
+      {/* Goalie Request Modal */}
+      {currentGame && (
+        <GoalieRequestModal
+          isOpen={showGoalieModal}
+          onClose={() => {
+            setShowGoalieModal(false);
+          }}
+          gameId={currentGame.id}
+          teamId={teamId}
+          gameDateLabel={formatDate(currentGame.scheduled_at)}
+        />
       )}
     </div>
+  );
+}
+
+// ── Sub-components ──
+
+function TeamBadge({
+  team,
+  isMyTeam,
+}: {
+  team: GameWithCheckin['home_team'];
+  isMyTeam: boolean;
+}) {
+  const name = team?.name || 'TBD';
+  return (
+    <div className={`flex flex-col items-center gap-1 ${isMyTeam ? 'opacity-100' : 'opacity-70'}`}>
+      {team?.logo ? (
+        <Image src={team.logo} alt={name} width={44} height={44} className="rounded-xl" />
+      ) : (
+        <div className="w-11 h-11 rounded-xl bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-text-secondary)]">
+          {name.charAt(0)}
+        </div>
+      )}
+      <span className={`text-xs font-medium truncate max-w-[80px] text-center ${isMyTeam ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+        {name}
+      </span>
+      {isMyTeam && (
+        <span className="text-[10px] text-[var(--league-primary)]/60 uppercase tracking-wider">Your Team</span>
+      )}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status?: string }) {
+  if (status === 'confirmed') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-400">
+        <Check className="w-3 h-3" />
+        In
+      </span>
+    );
+  }
+  if (status === 'out') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-red-400">
+        <X className="w-3 h-3" />
+        Out
+      </span>
+    );
+  }
+  if (status === 'tentative') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400">
+        <HelpCircle className="w-3 h-3" />
+        Maybe
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs text-[var(--color-text-muted)]">—</span>
   );
 }

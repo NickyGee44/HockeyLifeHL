@@ -134,6 +134,118 @@ export async function getGoalieAcceptView(
   }
 }
 
+export async function createGoalieRequest(
+  gameId: string,
+  teamId: string,
+  data: { skillLevelNeeded?: string; compensation?: string; notes?: string }
+): Promise<{ success: boolean; data?: { goaliesNotified: number }; error?: string }> {
+  try {
+    // Auth + captain role check
+    const { createAuthClient } = await import('@/lib/supabase/server');
+    const authClient = await createAuthClient();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    const { data: membership } = await authClient
+      .from('team_rosters')
+      .select('leadership_role')
+      .eq('team_id', teamId)
+      .eq('player_id', user.id)
+      .single();
+
+    if (
+      !membership ||
+      !['captain', 'alternate_captain'].includes(membership.leadership_role || '')
+    ) {
+      return { success: false, error: 'Captain role required' };
+    }
+
+    const supabase = createServiceRoleClient();
+
+    // Get game + league info
+    const { data: game } = await supabase
+      .from('games')
+      .select('scheduled_at, league_id, home_team_id, away_team_id')
+      .eq('id', gameId)
+      .single();
+
+    if (!game) return { success: false, error: 'Game not found' };
+    if (game.home_team_id !== teamId && game.away_team_id !== teamId) {
+      return { success: false, error: 'Team is not in this game' };
+    }
+
+    // Check for existing open request
+    const { data: existing } = await (supabase as any)
+      .from('goalie_requests' as any)
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('team_id', teamId)
+      .eq('status', 'open')
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: 'A goalie request already exists for this game' };
+    }
+
+    const expiresAt = new Date(
+      new Date(game.scheduled_at).getTime() - 60 * 60 * 1000
+    ).toISOString();
+
+    // Create the request
+    const { data: request, error: requestError } = await (supabase as any)
+      .from('goalie_requests' as any)
+      .insert({
+        game_id: gameId,
+        team_id: teamId,
+        league_id: game.league_id,
+        requested_by: user.id,
+        skill_level_needed: data.skillLevelNeeded || 'intermediate',
+        compensation: data.compensation || null,
+        notes: data.notes || null,
+        expires_at: expiresAt,
+      })
+      .select('id')
+      .single();
+
+    if (requestError || !request) {
+      return {
+        success: false,
+        error: requestError?.message || 'Failed to create goalie request',
+      };
+    }
+
+    // Notify all active goalies in this league
+    const { data: goalies } = await (supabase as any)
+      .from('goalie_pool' as any)
+      .select('id, email')
+      .eq('league_id', game.league_id)
+      .eq('status', 'active');
+
+    if (goalies && goalies.length > 0) {
+      const { randomUUID } = await import('crypto');
+      await (supabase as any)
+        .from('goalie_request_notifications' as any)
+        .insert(
+          goalies.map((g: any) => ({
+            request_id: request.id,
+            goalie_id: g.id,
+            accept_token: randomUUID(),
+            status: 'pending',
+          }))
+        );
+    }
+
+    return { success: true, data: { goaliesNotified: goalies?.length ?? 0 } };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create goalie request',
+    };
+  }
+}
+
 export async function acceptGoalieRequestByToken(
   leagueSlug: string,
   token: string,

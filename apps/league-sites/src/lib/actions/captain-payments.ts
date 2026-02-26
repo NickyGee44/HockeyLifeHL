@@ -14,11 +14,11 @@ export interface CaptainPaymentPlayer {
   avatarUrl: string | null;
   amountOwedCents: number;
   amountPaidCents: number;
-  status: string;
-  paymentPlan: string;
+  status: string; // 'no_fee' when player has no payment record
+  paymentPlan: string | null;
   lastReminderSentAt: string | null;
   reminderSentCount: number;
-  paymentId: string;
+  paymentId: string | null; // null for players with no payment record
   nextPaymentDate: string | null;
 }
 
@@ -80,50 +80,72 @@ export async function getCaptainTeamPayments(
 
   const supabase = await createClient();
 
-  const { data: payments, error } = await supabase
-    .from('player_payments')
+  // Step 1: Fetch ALL active roster members (regardless of payment record)
+  const { data: rosterData, error: rosterError } = await supabase
+    .from('team_rosters')
     .select(
       `
-      id,
-      status,
-      payment_plan,
-      total_amount_cents,
-      amount_paid_cents,
-      last_reminder_sent_at,
-      reminder_sent_count,
-      next_payment_date,
-      player:player_id (
-        id,
-        full_name,
-        email,
-        avatar_url
-      )
+      player_id,
+      jersey_number,
+      position,
+      profile:profiles(id, full_name, email, avatar_url)
     `
     )
     .eq('team_id', teamId)
-    .eq('season_id', seasonId)
-    .order('created_at', { ascending: false });
+    .eq('status', 'active')
+    .is('end_date', null);
 
-  if (error) {
-    console.error('[CaptainPayments] getCaptainTeamPayments error:', error.message);
-    return { success: false, error: 'Failed to fetch team payments.' };
+  if (rosterError) {
+    console.error('[CaptainPayments] roster fetch error:', rosterError.message);
+    return { success: false, error: 'Failed to fetch team roster.' };
   }
 
-  const result: CaptainPaymentPlayer[] = (payments || []).map((p) => {
-    const player = p.player as any;
+  const playerIds = (rosterData || []).map((r) => r.player_id);
+
+  // Step 2: Fetch payment records for those players (may be empty)
+  const paymentsMap = new Map<string, any>();
+  if (playerIds.length > 0) {
+    const { data: payments } = await supabase
+      .from('player_payments')
+      .select(
+        `
+        id,
+        player_id,
+        status,
+        payment_plan,
+        total_amount_cents,
+        amount_paid_cents,
+        last_reminder_sent_at,
+        reminder_sent_count,
+        next_payment_date
+      `
+      )
+      .eq('team_id', teamId)
+      .eq('season_id', seasonId)
+      .in('player_id', playerIds);
+
+    for (const p of payments || []) {
+      paymentsMap.set(p.player_id, p);
+    }
+  }
+
+  // Step 3: Merge — every roster player appears, payment data is null if missing
+  const result: CaptainPaymentPlayer[] = (rosterData || []).map((r) => {
+    const profile = Array.isArray(r.profile) ? r.profile[0] : (r.profile as any);
+    const payment = paymentsMap.get(r.player_id);
     return {
-      id: player?.id || '',
-      playerName: player?.full_name || 'Unknown',
-      email: player?.email || null,
-      avatarUrl: player?.avatar_url || null,
-      amountOwedCents: p.total_amount_cents ?? 0,
-      amountPaidCents: p.amount_paid_cents ?? 0,
-      status: p.status,
-      paymentPlan: p.payment_plan,
-      lastReminderSentAt: p.last_reminder_sent_at,
-      reminderSentCount: p.reminder_sent_count ?? 0,
-      paymentId: p.id,
-      nextPaymentDate: p.next_payment_date,
+      id: profile?.id || r.player_id,
+      playerName: profile?.full_name || 'Unknown',
+      email: profile?.email || null,
+      avatarUrl: profile?.avatar_url || null,
+      amountOwedCents: payment?.total_amount_cents ?? 0,
+      amountPaidCents: payment?.amount_paid_cents ?? 0,
+      status: payment?.status ?? 'no_fee',
+      paymentPlan: payment?.payment_plan ?? null,
+      lastReminderSentAt: payment?.last_reminder_sent_at ?? null,
+      reminderSentCount: payment?.reminder_sent_count ?? 0,
+      paymentId: payment?.id ?? null,
+      nextPaymentDate: payment?.next_payment_date ?? null,
     };
   });
 
@@ -268,6 +290,14 @@ export async function getCaptainPaymentSummary(
 
   const supabase = await createClient();
 
+  // Count roster members (source of truth for total players)
+  const { count: rosterCount } = await supabase
+    .from('team_rosters')
+    .select('player_id', { count: 'exact', head: true })
+    .eq('team_id', teamId)
+    .eq('status', 'active')
+    .is('end_date', null);
+
   const { data: payments, error } = await supabase
     .from('player_payments')
     .select('status, total_amount_cents, amount_paid_cents')
@@ -280,7 +310,7 @@ export async function getCaptainPaymentSummary(
   }
 
   const summary: CaptainPaymentSummary = {
-    totalPlayers: 0,
+    totalPlayers: rosterCount ?? 0,
     paidCount: 0,
     pendingCount: 0,
     overdueCount: 0,
@@ -289,7 +319,6 @@ export async function getCaptainPaymentSummary(
   };
 
   for (const p of payments || []) {
-    summary.totalPlayers++;
     summary.totalExpectedCents += p.total_amount_cents ?? 0;
     summary.totalCollectedCents += p.amount_paid_cents ?? 0;
 

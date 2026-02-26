@@ -38,6 +38,7 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }>
   cancelled: { bg: 'bg-neutral-500/10 border-neutral-600/30', text: 'text-neutral-500', label: 'Cancelled' },
   failed: { bg: 'bg-red-500/10 border-red-500/30', text: 'text-red-400', label: 'Failed' },
   disputed: { bg: 'bg-orange-500/10 border-orange-500/30', text: 'text-orange-400', label: 'Disputed' },
+  no_fee: { bg: 'bg-neutral-800/50 border-neutral-700/30', text: 'text-neutral-500', label: 'No Fee' },
 };
 
 function formatMoney(cents: number): string {
@@ -45,7 +46,8 @@ function formatMoney(cents: number): string {
 }
 
 function isReminderDisabled(player: CaptainPaymentPlayer): boolean {
-  if (['paid', 'refunded', 'cancelled'].includes(player.status)) return true;
+  if (!player.paymentId) return true; // no payment record
+  if (['paid', 'refunded', 'cancelled', 'no_fee'].includes(player.status)) return true;
   if (player.lastReminderSentAt) {
     const lastSent = new Date(player.lastReminderSentAt).getTime();
     const now = Date.now();
@@ -216,10 +218,10 @@ export default function PlayerPaymentsPage({ params }: PlayerPaymentsPageProps) 
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-12 text-center">
           <CreditCard className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-4" />
           <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
-            No Player Payments
+            No Roster Members
           </h3>
           <p className="text-[var(--color-text-secondary)]">
-            No player payment records found for this season. Payments will appear here once season fees are configured.
+            No active players on the roster yet. Once players join, their payment status will appear here.
           </p>
         </div>
       ) : (
@@ -247,14 +249,14 @@ export default function PlayerPaymentsPage({ params }: PlayerPaymentsPageProps) 
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
                 {payments.map((player) => {
-                  const config = STATUS_CONFIG[player.status] || STATUS_CONFIG.pending;
+                  const config = STATUS_CONFIG[player.status] || STATUS_CONFIG.no_fee;
                   const progress =
                     player.amountOwedCents > 0
                       ? Math.round((player.amountPaidCents / player.amountOwedCents) * 100)
                       : 0;
 
                   return (
-                    <tr key={player.paymentId} className="hover:bg-[var(--color-surface-hover)] transition-colors">
+                    <tr key={player.id} className="hover:bg-[var(--color-surface-hover)] transition-colors">
                       {/* Player */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -390,11 +392,15 @@ function ReminderButton({
 
   const disabled = isReminderDisabled(player) || sending || sent;
 
+  if (!player.paymentId) {
+    return <span className="text-xs text-[var(--color-text-muted)]">—</span>;
+  }
+
   const handleSend = async () => {
     setSending(true);
     setError(null);
 
-    const result = await sendCaptainPaymentReminder(teamId, player.paymentId);
+    const result = await sendCaptainPaymentReminder(teamId, player.paymentId!);
 
     if (result.success) {
       setSent(true);
