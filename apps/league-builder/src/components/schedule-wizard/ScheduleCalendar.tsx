@@ -81,11 +81,12 @@ export function ScheduleCalendar({
   const month = currentDate.getMonth();
   const days = useMemo(() => getDaysInMonth(year, month), [year, month]);
 
-  // Group games by date
+  // Group games by local date (not UTC) so evening games land on the correct day
   const gamesByDate = useMemo(() => {
     const grouped: Record<string, ScheduledGame[]> = {};
     for (const game of games) {
-      const dateKey = game.scheduledAt.toISOString().split('T')[0];
+      const d = game.scheduledAt;
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -157,7 +158,7 @@ export function ScheduleCalendar({
       {/* Calendar Grid */}
       <div className="grid grid-cols-7">
         {days.map((day, index) => {
-          const dateKey = day.toISOString().split('T')[0];
+          const dateKey = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
           const dayGames = gamesByDate[dateKey] ?? [];
           const isCurrentMonth = day.getMonth() === month;
           const isToday = isSameDay(day, today);

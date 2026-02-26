@@ -668,6 +668,29 @@ function hasBackToBackGame(
   return false;
 }
 
+/**
+ * Check if a team already has a game scheduled on the same calendar day (local time).
+ * Enforces the universal constraint: one game per team per day.
+ */
+function hasGameOnSameCalendarDay(
+  teamId: string,
+  slot: Date,
+  existingGames: ScheduledGame[]
+): boolean {
+  const sy = slot.getFullYear();
+  const sm = slot.getMonth();
+  const sd = slot.getDate();
+  for (const game of existingGames) {
+    if (game.homeTeamId === teamId || game.awayTeamId === teamId) {
+      const g = game.scheduledAt;
+      if (g.getFullYear() === sy && g.getMonth() === sm && g.getDate() === sd) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // ============================================================================
 // SCHEDULE ASSIGNMENT
 // ============================================================================
@@ -720,6 +743,14 @@ function assignMatchupsToSlots(
         ) {
           continue;
         }
+      }
+
+      // Hard constraint: one game per team per calendar day
+      if (
+        hasGameOnSameCalendarDay(matchup.homeTeamId, slot, games) ||
+        hasGameOnSameCalendarDay(matchup.awayTeamId, slot, games)
+      ) {
+        continue;
       }
 
       // Check team blackouts
@@ -1300,6 +1331,14 @@ function assignMatchupsToSlotsEnhanced(
         ) {
           continue;
         }
+      }
+
+      // Hard constraint: one game per team per calendar day
+      if (
+        hasGameOnSameCalendarDay(matchup.homeTeamId, slot, games) ||
+        hasGameOnSameCalendarDay(matchup.awayTeamId, slot, games)
+      ) {
+        continue;
       }
 
       // Check team blackouts
