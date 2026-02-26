@@ -50,19 +50,43 @@ const STEPS: { id: WizardStep; label: string; icon: React.ReactNode }[] = [
 // DEFAULT CONFIG
 // ============================================================================
 
+/** Count available game day slots between two dates for the given day-of-week set. */
+function countAvailableGameDays(start: Date, end: Date, gameDays: number[]): number {
+  let count = 0;
+  const current = new Date(start);
+  current.setHours(0, 0, 0, 0);
+  const endNorm = new Date(end);
+  endNorm.setHours(23, 59, 59, 999);
+  while (current <= endNorm) {
+    if (gameDays.includes(current.getDay())) count++;
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
+}
+
 function getDefaultConfig(startDate: Date, endDate: Date): ScheduleConfig {
+  // Clamp start to today — if the season already started, generate future games only
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const effectiveStart = startDate < today ? today : new Date(startDate);
+
+  const defaultGameDays = [1, 3]; // Monday, Wednesday
+  // Auto-calculate gamesPerTeam to fill all available game-day slots in the date range
+  const availableSlots = countAvailableGameDays(effectiveStart, endDate, defaultGameDays);
+  const gamesPerTeam = availableSlots > 0 ? availableSlots : 14;
+
   return {
     scheduleType: 'round_robin',
-    gamesPerTeam: 14,
+    gamesPerTeam,
     allowBackToBack: false,
     homeAwayBalance: true,
     divisionGamesRatio: 0.6,
     divisionAware: true, // Default on — falls back gracefully when no divisions
     crossDivisionGamesPerTeam: 2,
-    gameDays: [1, 3], // Monday, Wednesday
+    gameDays: defaultGameDays,
     gameTimes: ['19:00', '20:30', '22:00'],
     gameDurationMinutes: 60,
-    startDate,
+    startDate: effectiveStart,
     endDate,
     allowByeWeeks: false,
     byeWeeksPerTeam: 1,

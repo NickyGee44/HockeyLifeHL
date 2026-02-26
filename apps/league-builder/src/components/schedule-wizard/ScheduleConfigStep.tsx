@@ -69,6 +69,20 @@ const PLAYOFF_FORMATS = [
 // COMPONENT
 // ============================================================================
 
+/** Count available game-day slots between two dates for the given day-of-week set. */
+function countAvailableSlots(start: Date, end: Date, gameDays: number[]): number {
+  let count = 0;
+  const current = new Date(start);
+  current.setHours(0, 0, 0, 0);
+  const endNorm = new Date(end);
+  endNorm.setHours(23, 59, 59, 999);
+  while (current <= endNorm) {
+    if (gameDays.includes(current.getDay())) count++;
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
+}
+
 export function ScheduleConfigStep({
   config,
   setConfig,
@@ -86,6 +100,11 @@ export function ScheduleConfigStep({
   const gamesPerRound = Math.floor(teamCount / 2);
   const rounds = teamCount % 2 === 0 ? teamCount - 1 : teamCount;
   const totalGames = gamesPerRound * rounds * (config.scheduleType === 'double_round_robin' ? 2 : 1);
+
+  // Max games fillable in the current date range with the selected game days
+  const maxFillableGames = config.gameDays.length > 0
+    ? countAvailableSlots(config.startDate, config.endDate, config.gameDays)
+    : 0;
 
   const toggleGameDay = (day: number) => {
     setConfig((prev) => ({
@@ -158,23 +177,62 @@ export function ScheduleConfigStep({
         </div>
       </div>
 
+      {/* Date Range */}
+      <div>
+        <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <Calendar className="w-4 h-4 inline mr-2" />
+          Schedule Date Range
+        </label>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-400">From</span>
+            <input
+              type="date"
+              value={config.startDate instanceof Date ? config.startDate.toISOString().split('T')[0] : ''}
+              onChange={(e) => {
+                const d = e.target.value ? new Date(e.target.value + 'T00:00:00') : config.startDate;
+                setConfig((prev) => ({ ...prev, startDate: d }));
+              }}
+              className="px-3 py-1.5 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-rink-500"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-400">To</span>
+            <input
+              type="date"
+              value={config.endDate instanceof Date ? config.endDate.toISOString().split('T')[0] : ''}
+              onChange={(e) => {
+                const d = e.target.value ? new Date(e.target.value + 'T23:59:59') : config.endDate;
+                setConfig((prev) => ({ ...prev, endDate: d }));
+              }}
+              className="px-3 py-1.5 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-rink-500"
+            />
+          </div>
+        </div>
+        {maxFillableGames > 0 && (
+          <p className="text-xs text-neutral-500 mt-1">
+            {maxFillableGames} game-day slot{maxFillableGames !== 1 ? 's' : ''} available in this date range with selected game days
+          </p>
+        )}
+      </div>
+
       {/* Games Per Team Input (for custom mode) */}
       <div>
         <label className="block text-sm font-medium text-neutral-300 mb-2">
           <Users className="w-4 h-4 inline mr-2" />
           Regular Season Games Per Team
         </label>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <input
             type="number"
             min={teamCount > 1 ? teamCount - 1 : 1}
-            max={50}
+            max={200}
             value={config.gamesPerTeam}
             onChange={(e) => {
               const value = parseInt(e.target.value) || teamCount - 1;
               setConfig((prev) => ({
                 ...prev,
-                gamesPerTeam: Math.max(teamCount - 1, Math.min(50, value)),
+                gamesPerTeam: Math.max(teamCount - 1, Math.min(200, value)),
                 scheduleType: 'custom', // Switch to custom when manually editing
               }));
             }}
@@ -183,9 +241,22 @@ export function ScheduleConfigStep({
           <span className="text-sm text-neutral-400">
             games per team ({totalGames} total games)
           </span>
+          {maxFillableGames > 0 && config.gamesPerTeam !== maxFillableGames && (
+            <button
+              type="button"
+              onClick={() => setConfig((prev) => ({
+                ...prev,
+                gamesPerTeam: maxFillableGames,
+                scheduleType: 'custom',
+              }))}
+              className="px-3 py-1.5 text-xs font-medium text-rink-400 bg-rink-500/10 border border-rink-500/30 rounded-lg hover:bg-rink-500/20 transition-colors"
+            >
+              Fill date range ({maxFillableGames})
+            </button>
+          )}
         </div>
         <p className="text-xs text-neutral-500 mt-1">
-          Minimum: {teamCount - 1} games (play each team once). Maximum: 50 games.
+          Minimum: {teamCount - 1} games (play each team once). Use &ldquo;Fill date range&rdquo; to schedule all available game days.
         </p>
       </div>
 
