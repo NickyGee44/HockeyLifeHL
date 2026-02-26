@@ -7,9 +7,7 @@ import { cn } from '@hockey-life/ui';
 import {
   Users,
   Plus,
-  Shield,
   MoreVertical,
-  Edit,
   Trash2,
   Clock,
   Loader2,
@@ -384,18 +382,6 @@ function TeamCardInner({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem asChild>
-              <Link href={`/dashboard/teams/${team.id}`}>
-                <Shield className="w-4 h-4 mr-2" />
-                View Roster
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/dashboard/teams/${team.id}/settings`}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Team
-              </Link>
-            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-500"
               onClick={() => onDelete(team)}
@@ -417,12 +403,6 @@ function TeamCardInner({
           {(team.status || 'active').charAt(0).toUpperCase() + (team.status || 'active').slice(1)}
         </span>
 
-        <Link
-          href={`/dashboard/teams/${team.id}`}
-          className="text-sm text-rink-500 hover:text-rink-400 font-medium"
-        >
-          Manage
-        </Link>
       </div>
     </div>
   );
