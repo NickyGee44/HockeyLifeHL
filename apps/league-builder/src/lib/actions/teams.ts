@@ -1,9 +1,10 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { verifyCaptainOrAdminAccess, verifyLeagueOwnerAccess } from './permissions';
+import { getCurrentUser } from './auth';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -146,7 +147,14 @@ export async function getLeagueTeams(leagueId: string, options?: { status?: Team
  * Get a single team with full details
  */
 export async function getTeam(teamId: string) {
-  const supabase = await createClient();
+  // Use service role client to bypass RLS for the join query, but verify
+  // authorization explicitly: user must be org owner, league admin, or team captain.
+  const userData = await getCurrentUser();
+  if (!userData) {
+    return { error: 'Unauthorized' };
+  }
+
+  const supabase = createServiceRoleClient();
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -166,6 +174,18 @@ export async function getTeam(teamId: string) {
       if (isDevelopment) {
         console.error('Error fetching team:', sanitizeErrorForLogging(error));
       }
+      return { error: 'Team not found' };
+    }
+
+    // Explicit authorization check: user must be org owner, captain, or platform admin
+    const orgOwnerId = (team.leagues as any)?.organizations?.owner_user_id;
+    const teamCaptainId = team.captain_id;
+    const isPlatformAdmin = !!(userData.profile as any)?.is_platform_admin;
+    if (
+      orgOwnerId !== userData.user.id &&
+      teamCaptainId !== userData.user.id &&
+      !isPlatformAdmin
+    ) {
       return { error: 'Team not found' };
     }
 

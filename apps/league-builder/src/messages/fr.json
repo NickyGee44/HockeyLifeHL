@@ -202,7 +202,13 @@
     "sectionLeague": "Gestion de la ligue",
     "sectionContent": "Contenu",
     "sectionSettings": "Parametres et compte",
-    "myTeams": "Mes equipes"
+    "myTeams": "Mes equipes",
+    "sectionOrganization": "Organisation",
+    "companyProfile": "Profil de l'organisation",
+    "members": "Membres",
+    "leagueOverview": "Aperçu de la ligue",
+    "seasons": "Saisons",
+    "games": "Matchs"
   },
   "commandPalette": {
     "searchPlaceholder": "Rechercher des pages et actions...",

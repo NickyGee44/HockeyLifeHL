@@ -30,6 +30,11 @@ import {
   Bug,
   Lock,
   Zap,
+  Building2,
+  LayoutDashboard,
+  CalendarDays,
+  UserCircle2,
+  Gamepad2,
 } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { signOut } from '@/lib/actions/auth';
@@ -85,6 +90,19 @@ export default function HierarchicalSidebar({
     return pathname.includes(`/dashboard/captain/${teamId}`);
   };
 
+  // Determine if this user owns any organizations (org admin vs captain-only)
+  const isOrgOwner = (dashboardData?.organizations?.length ?? 0) > 0;
+
+  // Get selected league name for section header
+  const selectedLeagueName = React.useMemo(() => {
+    if (!dashboardData?.organizations || !selected.leagueId) return null;
+    for (const org of dashboardData.organizations) {
+      const league = org.leagues.find((l) => l.id === selected.leagueId);
+      if (league) return league.name;
+    }
+    return null;
+  }, [dashboardData, selected.leagueId]);
+
   // Check if selected league exists (show draft room conditionally)
   const hasDraft = React.useMemo(() => {
     if (!dashboardData?.organizations || !selected.leagueId) return false;
@@ -94,6 +112,290 @@ export default function HierarchicalSidebar({
     }
     return false;
   }, [dashboardData, selected.leagueId]);
+
+  const sidebarContent = isOrgOwner ? (
+    // ── FULL ORG ADMIN VIEW ──────────────────────────────────────────────────
+    <nav
+      className="flex-1 px-2 py-4 space-y-1 overflow-y-auto"
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('a')) closeMobileNav();
+      }}
+    >
+      {/* Home */}
+      <NavLink
+        href="/dashboard"
+        icon={Home}
+        label={t('overview')}
+        isActive={pathname === `/${locale}/dashboard` || pathname === `/${locale}/tableau-de-bord`}
+        collapsed={sidebarCollapsed}
+      />
+
+      {/* ── Organization ── */}
+      <SectionLabel label={t('sectionOrganization')} collapsed={sidebarCollapsed} />
+      <NavLink
+        href="/dashboard/company"
+        icon={Building2}
+        label={t('companyProfile')}
+        isActive={isPathActive('/dashboard/company')}
+        collapsed={sidebarCollapsed}
+      />
+      <NavLink
+        href="/dashboard/settings/members"
+        icon={Users}
+        label={t('members')}
+        isActive={isPathActive('/dashboard/settings/members')}
+        collapsed={sidebarCollapsed}
+      />
+      <NavLink
+        href="/dashboard/settings/billing"
+        icon={CreditCard}
+        label={t('billing')}
+        isActive={isPathActive('/dashboard/settings/billing')}
+        collapsed={sidebarCollapsed}
+      />
+      <NavLink
+        href="/dashboard/settings"
+        icon={Settings}
+        label={t('settings')}
+        isActive={isPathActive('/dashboard/settings') && !isPathActive('/dashboard/settings/billing') && !isPathActive('/dashboard/settings/members')}
+        collapsed={sidebarCollapsed}
+      />
+      <NavLink
+        href="/dashboard/leagues/new"
+        icon={Plus}
+        label={t('createLeague')}
+        isActive={isPathActive('/dashboard/leagues/new')}
+        collapsed={sidebarCollapsed}
+        muted
+      />
+
+      {/* ── League Section (when a league is selected) ── */}
+      {selected.leagueId && (
+        <>
+          <SectionLabel
+            label={selectedLeagueName ?? t('sectionLeague')}
+            collapsed={sidebarCollapsed}
+          />
+          <NavLink
+            href={leagueBase}
+            icon={LayoutDashboard}
+            label={t('leagueOverview')}
+            isActive={pathname === `/${locale}${leagueBase}`}
+            collapsed={sidebarCollapsed}
+          />
+          <NavLink
+            href={`${leagueBase}/schedule`}
+            icon={Calendar}
+            label={t('schedule')}
+            isActive={isPathActive(`${leagueBase}/schedule`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/teams`}
+            icon={Users}
+            label={t('teamsAndDivisions')}
+            isActive={isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/seasons`}
+            icon={CalendarDays}
+            label={t('seasons')}
+            isActive={isPathActive(`${leagueBase}/seasons`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/games`}
+            icon={CheckCircle2}
+            label={t('games')}
+            isActive={isPathActive(`${leagueBase}/games`) || pathname.includes('/standings')}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/registrations`}
+            icon={ClipboardCheck}
+            label={t('registration')}
+            isActive={isPathActive(`${leagueBase}/registrations`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/staff`}
+            icon={User}
+            label={t('staff')}
+            isActive={isPathActive(`${leagueBase}/staff`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/ratings`}
+            icon={BarChart3}
+            label={t('playerRatings')}
+            isActive={isPathActive(`${leagueBase}/ratings`)}
+            collapsed={sidebarCollapsed}
+          />
+          {hasDraft && (
+            <NavLink
+              href={`${leagueBase}/draft`}
+              icon={Dices}
+              label={t('draftRoom')}
+              isActive={isPathActive(`${leagueBase}/draft`)}
+              collapsed={sidebarCollapsed}
+              locked={!isSubscribed}
+            />
+          )}
+          <NavLink
+            href={`${leagueBase}/bugs`}
+            icon={Bug}
+            label={t('bugReports')}
+            isActive={isPathActive(`${leagueBase}/bugs`)}
+            collapsed={sidebarCollapsed}
+          />
+
+          {/* ── Content ── */}
+          <SectionLabel label={t('sectionContent')} collapsed={sidebarCollapsed} />
+          <NavLink
+            href={`${leagueBase}/news`}
+            icon={Newspaper}
+            label={t('news')}
+            isActive={isPathActive(`${leagueBase}/news`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/sponsors`}
+            icon={Star}
+            label={t('sponsors')}
+            isActive={isPathActive(`${leagueBase}/sponsors`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/awards`}
+            icon={Award}
+            label={t('awards')}
+            isActive={isPathActive(`${leagueBase}/awards`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/gallery`}
+            icon={Image}
+            label={t('gallery')}
+            isActive={isPathActive(`${leagueBase}/gallery`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`/website-editor?league=${selected.leagueId}`}
+            icon={Palette}
+            label={t('websiteEditor')}
+            isActive={pathname.includes('website-editor')}
+            collapsed={sidebarCollapsed}
+            highlight
+            locked={!isSubscribed}
+          />
+        </>
+      )}
+
+      {/* ── My Teams (if org owner is also a captain) ── */}
+      {captainTeams.length > 0 && (
+        <>
+          <div className="my-4 border-t border-white/[0.06]" />
+          {!sidebarCollapsed && (
+            <div className="px-3 mb-2">
+              <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                {t('myTeams')}
+              </span>
+            </div>
+          )}
+          {captainTeams.map((team) => (
+            <CaptainTeamLink
+              key={team.id}
+              team={team}
+              isActive={isCaptainPathActive(team.id)}
+              collapsed={sidebarCollapsed}
+            />
+          ))}
+        </>
+      )}
+
+      {/* ── Platform Admin ── */}
+      {isPlatformAdmin && (
+        <>
+          <div className="my-4 border-t border-white/[0.06]" />
+          {!sidebarCollapsed && (
+            <div className="px-3 mb-2">
+              <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Platform</span>
+            </div>
+          )}
+          <NavLink
+            href="/dashboard/admin"
+            icon={Zap}
+            label="Admin Overview"
+            isActive={isPathActive('/dashboard/admin')}
+            collapsed={sidebarCollapsed}
+            highlight
+          />
+        </>
+      )}
+
+      <div className="my-4 border-t border-white/[0.06]" />
+      <LanguageSwitcher collapsed={sidebarCollapsed} />
+    </nav>
+  ) : (
+    // ── CAPTAIN-ONLY VIEW ────────────────────────────────────────────────────
+    <nav
+      className="flex-1 px-2 py-4 space-y-1 overflow-y-auto"
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('a')) closeMobileNav();
+      }}
+    >
+      {/* My Teams — the only thing a non-org captain needs */}
+      {captainTeams.length > 0 ? (
+        <>
+          <SectionLabel label={t('myTeams')} collapsed={sidebarCollapsed} />
+          {captainTeams.map((team) => (
+            <CaptainTeamLink
+              key={team.id}
+              team={team}
+              isActive={isCaptainPathActive(team.id)}
+              collapsed={sidebarCollapsed}
+            />
+          ))}
+        </>
+      ) : (
+        !sidebarCollapsed && (
+          <div className="px-3 py-6 text-center">
+            <UserCircle2 className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
+            <p className="text-xs text-neutral-500">No teams assigned yet</p>
+          </div>
+        )
+      )}
+
+      {/* Platform Admin (rare, but handle edge case) */}
+      {isPlatformAdmin && (
+        <>
+          <div className="my-4 border-t border-white/[0.06]" />
+          <NavLink
+            href="/dashboard/admin"
+            icon={Zap}
+            label="Admin Overview"
+            isActive={isPathActive('/dashboard/admin')}
+            collapsed={sidebarCollapsed}
+            highlight
+          />
+        </>
+      )}
+
+      <div className="my-4 border-t border-white/[0.06]" />
+      <LanguageSwitcher collapsed={sidebarCollapsed} />
+    </nav>
+  );
 
   return (
     <aside
@@ -138,260 +440,17 @@ export default function HierarchicalSidebar({
         </button>
       </div>
 
-      {/* League Scope Selector */}
-      <div className="border-b border-white/[0.06]">
-        <LeagueScopeSelector dashboardData={dashboardData} collapsed={sidebarCollapsed} />
-      </div>
+      {/* League Scope Selector — only for org owners */}
+      {isOrgOwner && (
+        <div className="border-b border-white/[0.06]">
+          <LeagueScopeSelector dashboardData={dashboardData} collapsed={sidebarCollapsed} />
+        </div>
+      )}
 
       {/* Navigation */}
-      <nav
-        className="flex-1 px-2 py-4 space-y-1 overflow-y-auto"
-        onClick={(e) => {
-          // Close mobile nav when any link is clicked
-          if ((e.target as HTMLElement).closest('a')) {
-            closeMobileNav();
-          }
-        }}
-      >
-        {/* Primary nav */}
-        <NavLink
-          href="/dashboard"
-          icon={Home}
-          label={t('overview')}
-          isActive={pathname === `/${locale}/dashboard` || pathname === `/${locale}/tableau-de-bord`}
-          collapsed={sidebarCollapsed}
-        />
+      {sidebarContent}
 
-        {/* League Management — core league operations */}
-        {selected.leagueId && (
-          <>
-            <SectionLabel label={t('sectionLeague')} collapsed={sidebarCollapsed} />
-            <NavLink
-              href={`${leagueBase}/schedule`}
-              icon={Calendar}
-              label={t('schedule')}
-              isActive={isPathActive(`${leagueBase}/schedule`)}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`${leagueBase}/teams`}
-              icon={Users}
-              label={t('teamsAndDivisions')}
-              isActive={isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`${leagueBase}/ratings`}
-              icon={BarChart3}
-              label={t('playerRatings')}
-              isActive={isPathActive(`${leagueBase}/ratings`)}
-              collapsed={sidebarCollapsed}
-            />
-            <NavLink
-              href={`${leagueBase}/games`}
-              icon={CheckCircle2}
-              label={t('completedGames')}
-              isActive={isPathActive(`${leagueBase}/games`) || pathname.includes('/standings')}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`${leagueBase}/registrations`}
-              icon={ClipboardCheck}
-              label={t('registration')}
-              isActive={isPathActive(`${leagueBase}/registrations`)}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`${leagueBase}/staff`}
-              icon={User}
-              label={t('staff')}
-              isActive={isPathActive(`${leagueBase}/staff`)}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`${leagueBase}/bugs`}
-              icon={Bug}
-              label={t('bugReports')}
-              isActive={isPathActive(`${leagueBase}/bugs`)}
-              collapsed={sidebarCollapsed}
-            />
-            {hasDraft && (
-              <NavLink
-                href={`${leagueBase}/draft`}
-                icon={Dices}
-                label={t('draftRoom')}
-                isActive={isPathActive(`${leagueBase}/draft`)}
-                collapsed={sidebarCollapsed}
-                locked={!isSubscribed}
-              />
-            )}
-
-            {/* Content — news, media, and presentation */}
-            <SectionLabel label={t('sectionContent')} collapsed={sidebarCollapsed} />
-            <NavLink
-              href={`${leagueBase}/news`}
-              icon={Newspaper}
-              label={t('news')}
-              isActive={isPathActive(`${leagueBase}/news`)}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`${leagueBase}/sponsors`}
-              icon={Star}
-              label={t('sponsors')}
-              isActive={isPathActive(`${leagueBase}/sponsors`)}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`${leagueBase}/awards`}
-              icon={Award}
-              label={t('awards')}
-              isActive={isPathActive(`${leagueBase}/awards`)}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`${leagueBase}/gallery`}
-              icon={Image}
-              label={t('gallery')}
-              isActive={isPathActive(`${leagueBase}/gallery`)}
-              collapsed={sidebarCollapsed}
-              locked={!isSubscribed}
-            />
-            <NavLink
-              href={`/website-editor?league=${selected.leagueId}`}
-              icon={Palette}
-              label={t('websiteEditor')}
-              isActive={pathname.includes('website-editor')}
-              collapsed={sidebarCollapsed}
-              highlight
-              locked={!isSubscribed}
-            />
-          </>
-        )}
-
-        {/* Captain Teams Section */}
-        {captainTeams.length > 0 && (
-          <>
-            <div className="my-4 border-t border-white/[0.06]" />
-            {!sidebarCollapsed && (
-              <div className="px-3 mb-2">
-                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  {t('myTeams')}
-                </span>
-              </div>
-            )}
-            {captainTeams.map((team) => {
-              const isActive = isCaptainPathActive(team.id);
-              const hasPendingRequests = team.pending_requests_count > 0;
-
-              return (
-                <Link
-                  key={team.id}
-                  href={`/dashboard/captain/${team.id}`}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
-                    'group relative',
-                    isActive
-                      ? 'bg-rink-500/10 text-rink-500 border border-rink-500/30'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border border-transparent'
-                  )}
-                >
-                  <div className="relative flex-shrink-0">
-                    <Shield
-                      className={cn(
-                        'w-5 h-5',
-                        isActive ? 'text-rink-500' : 'text-neutral-500 group-hover:text-rink-500'
-                      )}
-                    />
-                    {hasPendingRequests && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-neutral-900" />
-                    )}
-                  </div>
-                  {!sidebarCollapsed && (
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-sm truncate">{team.short_name}</span>
-                        {hasPendingRequests && (
-                          <span className="flex-shrink-0 px-1.5 py-0.5 text-xs font-bold bg-yellow-500 text-black rounded">
-                            {team.pending_requests_count}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {sidebarCollapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-neutral-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
-                      {team.name}
-                      {hasPendingRequests && ` (${team.pending_requests_count})`}
-                    </div>
-                  )}
-                </Link>
-              );
-            })}
-          </>
-        )}
-
-        {/* Settings & Account */}
-        <SectionLabel label={t('sectionSettings')} collapsed={sidebarCollapsed} />
-        <NavLink
-          href="/dashboard/settings"
-          icon={Settings}
-          label={t('settings')}
-          isActive={isPathActive('/dashboard/settings') && !isPathActive('/dashboard/settings/billing')}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href="/dashboard/settings/billing"
-          icon={CreditCard}
-          label={t('billing')}
-          isActive={isPathActive('/dashboard/settings/billing')}
-          collapsed={sidebarCollapsed}
-        />
-        <NavLink
-          href="/dashboard/leagues/new"
-          icon={Plus}
-          label={t('createLeague')}
-          isActive={isPathActive('/dashboard/leagues/new')}
-          collapsed={sidebarCollapsed}
-          muted
-        />
-
-        {/* Platform Admin — only visible to platform admin */}
-        {isPlatformAdmin && (
-          <>
-            <div className="my-4 border-t border-white/[0.06]" />
-            {!sidebarCollapsed && (
-              <div className="px-3 mb-2">
-                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Platform</span>
-              </div>
-            )}
-            <NavLink
-              href="/dashboard/admin"
-              icon={Zap}
-              label="Admin Overview"
-              isActive={isPathActive('/dashboard/admin')}
-              collapsed={sidebarCollapsed}
-              highlight
-            />
-          </>
-        )}
-
-        {/* Divider */}
-        <div className="my-4 border-t border-white/[0.06]" />
-
-        {/* Language Switcher */}
-        <LanguageSwitcher collapsed={sidebarCollapsed} />
-      </nav>
-
-      {/* User section */}
+      {/* User / Logout section */}
       <div className="p-2 border-t border-white/10">
         <form action={signOut}>
           <button
@@ -418,7 +477,65 @@ export default function HierarchicalSidebar({
   );
 }
 
-// Section label for grouping nav items
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+/** Captain team link with pending request badge */
+function CaptainTeamLink({
+  team,
+  isActive,
+  collapsed,
+}: {
+  team: CaptainTeamOverview;
+  isActive: boolean;
+  collapsed: boolean;
+}) {
+  const hasPendingRequests = team.pending_requests_count > 0;
+
+  return (
+    <Link
+      href={`/dashboard/captain/${team.id}`}
+      className={cn(
+        'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+        'group relative',
+        isActive
+          ? 'bg-rink-500/10 text-rink-500 border border-rink-500/30'
+          : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border border-transparent'
+      )}
+    >
+      <div className="relative flex-shrink-0">
+        <Shield
+          className={cn(
+            'w-5 h-5',
+            isActive ? 'text-rink-500' : 'text-neutral-500 group-hover:text-rink-500'
+          )}
+        />
+        {hasPendingRequests && (
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-neutral-900" />
+        )}
+      </div>
+      {!collapsed && (
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-sm truncate">{team.short_name}</span>
+            {hasPendingRequests && (
+              <span className="flex-shrink-0 px-1.5 py-0.5 text-xs font-bold bg-yellow-500 text-black rounded">
+                {team.pending_requests_count}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+      {collapsed && (
+        <div className="absolute left-full ml-2 px-2 py-1 bg-neutral-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
+          {team.name}
+          {hasPendingRequests && ` (${team.pending_requests_count})`}
+        </div>
+      )}
+    </Link>
+  );
+}
+
+/** Section label for grouping nav items */
 function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
   if (collapsed) {
     return <div className="my-3 mx-3 border-t border-white/[0.06]" />;
@@ -432,7 +549,7 @@ function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean 
   );
 }
 
-// Reusable Nav Link component
+/** Reusable Nav Link component */
 function NavLink({
   href,
   icon: Icon,
