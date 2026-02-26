@@ -10,7 +10,7 @@ import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getLeagueScorekepers } from '@/lib/actions/scorekeeper-management';
-import { ScorekeeperManagementClient } from '@/components/scorekeepers';
+import { ScorekeeperManagementClient, SelfScorekeeperToggle } from '@/components/scorekeepers';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Users } from 'lucide-react';
 
@@ -42,7 +42,7 @@ export default async function LeagueScorekeepersPage({ params }: Props) {
   // Get league details
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
-    .select('id, name, primary_color, created_by')
+    .select('id, name, primary_color, created_by, settings')
     .eq('id', leagueId)
     .single();
 
@@ -129,6 +129,12 @@ export default async function LeagueScorekeepersPage({ params }: Props) {
             color="blue"
           />
         </div>
+
+        {/* Self-Scorekeeping Toggle */}
+        <SelfScorekeeperToggle
+          leagueId={leagueId}
+          initialEnabled={(league.settings as any)?.self_scorekeeper_enabled === true}
+        />
 
         {/* Management Client */}
         <ScorekeeperManagementClient

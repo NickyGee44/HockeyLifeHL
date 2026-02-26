@@ -7,3 +7,4 @@ export { AutoAssignModal } from './auto-assign-modal';
 export { BulkAssignGamesModal } from './bulk-assign-games-modal';
 export { ScorekeeperManagementClient } from './scorekeeper-management-client';
 export { AdminScorekeeperScheduleClient } from './admin-scorekeeper-schedule-client';
+export { SelfScorekeeperToggle } from './SelfScorekeeperToggle';

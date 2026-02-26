@@ -1,6 +1,6 @@
 'use server';
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient, createAuthClient } from '@/lib/supabase/server';
 import { cookies, headers } from 'next/headers';
 import { randomBytes } from 'crypto';
 
@@ -2414,5 +2414,137 @@ export async function finalizeGameStats(gameId: string): Promise<{
   } catch (error) {
     console.error('Finalize stats error:', error);
     return { success: false, error: 'Failed to finalize stats' };
+  }
+}
+
+// =============================================================================
+// Captain Self-Scorekeeper: Auto-Assign
+// =============================================================================
+
+/**
+ * Get or create a scorekeeper session for a captain's own game.
+ *
+ * Self-scorekeeping must be enabled in the league settings
+ * (`leagues.settings.self_scorekeeper_enabled === true`).
+ *
+ * Returns the token which the client uses to start the scorekeeper session
+ * by navigating to `/{leagueSlug}/scorekeeper?token={token}`.
+ */
+export async function getOrCreateCaptainScorekeeperSession(
+  gameId: string,
+  teamId: string
+): Promise<{ success: boolean; token?: string; leagueSlug?: string; error?: string }> {
+  try {
+    const authClient = await createAuthClient();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    // Verify captain role for this team
+    const { data: roster } = await authClient
+      .from('team_rosters')
+      .select('leadership_role')
+      .eq('team_id', teamId)
+      .eq('player_id', user.id)
+      .single();
+
+    if (
+      !roster ||
+      !['captain', 'alternate_captain'].includes(roster.leadership_role || '')
+    ) {
+      return { success: false, error: 'Captain role required to start scoring' };
+    }
+
+    const supabase = createServiceRoleClient();
+
+    // Fetch game + league details
+    const { data: game } = await supabase
+      .from('games')
+      .select('id, league_id, home_team_id, away_team_id, scheduled_at, leagues(slug, settings)')
+      .eq('id', gameId)
+      .single();
+
+    if (!game) return { success: false, error: 'Game not found' };
+
+    // Verify the team is actually in this game
+    if (game.home_team_id !== teamId && game.away_team_id !== teamId) {
+      return { success: false, error: 'Your team is not in this game' };
+    }
+
+    // Verify self-scorekeeping is enabled for this league
+    const leagueArr = game.leagues as any;
+    const leagueData = Array.isArray(leagueArr) ? leagueArr[0] : leagueArr;
+    const leagueSettings = (leagueData?.settings as Record<string, unknown>) ?? {};
+
+    if (!leagueSettings.self_scorekeeper_enabled) {
+      return { success: false, error: 'Self-scorekeeping is not enabled for this league' };
+    }
+
+    const leagueSlug: string = leagueData?.slug ?? '';
+
+    // Look for an existing active session for this captain + game
+    const { data: existing } = await supabase
+      .from('scorekeeper_sessions')
+      .select('token, expires_at')
+      .eq('game_id', gameId)
+      .eq('scorekeeper_id', user.id)
+      .eq('is_active', true)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: true, token: existing.token, leagueSlug };
+    }
+
+    // Generate a unique 16-character token
+    let token = randomBytes(8).toString('hex').toUpperCase();
+    let attempts = 0;
+    while (attempts < 10) {
+      const { data: collision } = await supabase
+        .from('scorekeeper_sessions')
+        .select('id')
+        .eq('token', token)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!collision) break;
+      token = randomBytes(8).toString('hex').toUpperCase();
+      attempts++;
+    }
+
+    // Session expires 6 hours after game start time
+    const gameTime = new Date(game.scheduled_at);
+    const expiresAt = new Date(gameTime.getTime() + 6 * 60 * 60 * 1000).toISOString();
+
+    const { data: session, error: sessionError } = await supabase
+      .from('scorekeeper_sessions')
+      .insert({
+        game_id: gameId,
+        league_id: game.league_id,
+        token,
+        expires_at: expiresAt,
+        created_by: user.id,
+        scorekeeper_id: user.id,
+        session_type: 'single',
+        is_active: true,
+      })
+      .select('id')
+      .single();
+
+    if (sessionError || !session) {
+      console.error('[CaptainScorekeeper] Session create error:', sessionError?.message);
+      return { success: false, error: 'Failed to create scoring session' };
+    }
+
+    return { success: true, token, leagueSlug };
+  } catch (err) {
+    console.error('[CaptainScorekeeper] Unexpected error:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to start scoring session',
+    };
   }
 }

@@ -20,11 +20,13 @@ import {
   ClipboardCheck,
   Shield,
   UserPlus,
+  PlayCircle,
 } from 'lucide-react';
 import {
   updateGameCheckin,
   type CheckinStatus,
 } from '@/lib/actions/checkins';
+import { getOrCreateCaptainScorekeeperSession } from '@/lib/actions/scorekeeper';
 import { SubInviteModal } from '@/components/captain/SubInviteModal';
 import { GoalieRequestModal } from '@/components/captain/GoalieRequestModal';
 import type { GameWithCheckin } from '@/components/dashboard/WeekGroupedGames';
@@ -72,6 +74,10 @@ export default function CheckinPage() {
   // Modals
   const [showSubModal, setShowSubModal] = useState(false);
   const [showGoalieModal, setShowGoalieModal] = useState(false);
+
+  // Self-scorekeeping
+  const selfScorekeeperEnabled = league?.settings?.self_scorekeeper_enabled === true;
+  const [startingScore, setStartingScore] = useState(false);
 
   // Derived: current game
   const currentGame = games[currentGameIndex] ?? null;
@@ -244,6 +250,18 @@ export default function CheckinPage() {
 
   const handleGoalieRequestSubmitted = (gameId: string) => {
     setOpenGoalieRequestGames(prev => new Set([...prev, gameId]));
+  };
+
+  const handleStartScoring = async (gameId: string) => {
+    if (!teamId) return;
+    setStartingScore(true);
+    const result = await getOrCreateCaptainScorekeeperSession(gameId, teamId);
+    setStartingScore(false);
+    if (result.success && result.token) {
+      window.location.href = `/${result.leagueSlug ?? leagueSlug}/scorekeeper?token=${result.token}`;
+    } else {
+      setSaveError(result.error || 'Failed to start scoring session');
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -538,7 +556,7 @@ export default function CheckinPage() {
 
               {/* Captain Actions */}
               {isCaptain && (
-                <div className="px-4 pb-4 flex items-center gap-3">
+                <div className="px-4 pb-4 flex items-center flex-wrap gap-3">
                   <button
                     onClick={() => setShowSubModal(true)}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:bg-[var(--league-primary)]/10 hover:text-[var(--league-primary)] transition-colors border border-[var(--color-border)]"
@@ -562,6 +580,22 @@ export default function CheckinPage() {
                       <Shield className="w-4 h-4" />
                       Goalie Requested
                     </span>
+                  )}
+
+                  {/* Self-scorekeeper: only visible when league has self_scorekeeper_enabled */}
+                  {selfScorekeeperEnabled && currentGame && (
+                    <button
+                      onClick={() => handleStartScoring(currentGame.id)}
+                      disabled={startingScore}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-[var(--league-primary)]/15 text-[var(--league-primary)] hover:bg-[var(--league-primary)]/25 transition-colors border border-[var(--league-primary)]/30 disabled:opacity-50"
+                    >
+                      {startingScore ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <PlayCircle className="w-4 h-4" />
+                      )}
+                      Score Game
+                    </button>
                   )}
                 </div>
               )}

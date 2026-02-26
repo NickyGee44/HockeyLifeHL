@@ -16,6 +16,7 @@ interface League {
   status: string;
   is_public: boolean;
   current_season_id: string | null; // Computed from active season
+  settings: Record<string, unknown> | null;
 }
 
 interface UseLeagueReturn {
@@ -57,7 +58,8 @@ export function useLeague(): UseLeagueReturn {
             primary_color,
             secondary_color,
             status,
-            is_public
+            is_public,
+            settings
           `)
           .eq('slug', leagueSlug)
           .single();
@@ -81,7 +83,7 @@ export function useLeague(): UseLeagueReturn {
           currentSeasonId = seasonData?.id || null;
         }
 
-        setLeague({ ...data, current_season_id: currentSeasonId });
+        setLeague({ ...data, settings: (data.settings as Record<string, unknown> | null) ?? null, current_season_id: currentSeasonId });
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch league'));
       } finally {

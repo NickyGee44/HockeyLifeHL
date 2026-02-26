@@ -128,3 +128,42 @@ export async function updatePenaltyRules(
 
   return { success: true };
 }
+
+// ============================================================================
+// Update Scorekeeper Mode (self-scorekeeper toggle)
+// ============================================================================
+
+export async function updateScorekeeperMode(
+  leagueId: string,
+  selfScorekeeperEnabled: boolean
+): Promise<{ success: boolean; error?: string }> {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  const supabase = await createClient();
+
+  // Read current settings and merge
+  const { data: current } = await supabase
+    .from('leagues')
+    .select('settings')
+    .eq('id', leagueId)
+    .single();
+
+  const currentSettings = (current?.settings as Record<string, unknown>) ?? {};
+  const merged = { ...currentSettings, self_scorekeeper_enabled: selfScorekeeperEnabled };
+
+  const { error } = await supabase
+    .from('leagues')
+    .update({ settings: merged, updated_at: new Date().toISOString() })
+    .eq('id', leagueId);
+
+  if (error) {
+    console.error('[updateScorekeeperMode] Error:', error.message);
+    return { success: false, error: 'Failed to update scorekeeper mode' };
+  }
+
+  revalidatePath(`/dashboard/leagues/${leagueId}/settings/scorekeepers`);
+  return { success: true };
+}
