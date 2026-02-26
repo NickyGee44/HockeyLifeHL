@@ -511,10 +511,10 @@ export async function saveScheduleGames(
     return { success: false, gamesCreated: 0, error: error.message };
   }
 
-  // RPC returns an array with a single result object
-  const results = data as Array<{ success: boolean; games_created: number; error_message: string }> | null;
-  const result = results?.[0];
+  // RPC returns JSONB directly (not wrapped in an array)
+  const result = data as { success: boolean; games_created: number; error_message: string | null } | null;
   if (!result?.success) {
+    console.error('save_schedule_games returned failure:', result);
     return {
       success: false,
       gamesCreated: 0,
