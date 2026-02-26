@@ -58,7 +58,7 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
         .select(`
           id,
           scheduled_at,
-          venue,
+          location,
           home_team_id,
           away_team_id,
           home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url),
@@ -313,10 +313,10 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
                                   <Clock className="w-3.5 h-3.5" />
                                   {formatTime(game.scheduled_at)}
                                 </span>
-                                {game.venue && (
+                                {game.location && (
                                   <span className="flex items-center gap-1 truncate">
                                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                                    <span className="truncate">{game.venue}</span>
+                                    <span className="truncate">{game.location}</span>
                                   </span>
                                 )}
                               </div>

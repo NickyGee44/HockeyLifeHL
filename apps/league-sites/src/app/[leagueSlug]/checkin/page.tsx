@@ -58,12 +58,16 @@ export default function CheckinPage() {
     const fetchData = async () => {
       const supabase = createClient();
 
+      // Use start of today (midnight local) so games earlier today still appear
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+
       const { data: gamesData } = await supabase
         .from('games')
         .select(`
           id,
           scheduled_at,
-          venue,
+          location,
           home_team_id,
           away_team_id,
           home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url),
@@ -71,7 +75,7 @@ export default function CheckinPage() {
         `)
         .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
         .in('status', ['scheduled', 'in_progress'])
-        .gte('scheduled_at', new Date().toISOString())
+        .gte('scheduled_at', startOfToday.toISOString())
         .order('scheduled_at', { ascending: true });
 
       if (gamesData) {
@@ -287,10 +291,10 @@ export default function CheckinPage() {
                                 <Clock className="w-3 h-3" />
                                 {formatTime(game.scheduled_at)}
                               </span>
-                              {game.venue && (
+                              {game.location && (
                                 <span className="flex items-center gap-1 truncate">
                                   <MapPin className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">{game.venue}</span>
+                                  <span className="truncate">{game.location}</span>
                                 </span>
                               )}
                             </div>

@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 export interface GameWithCheckin {
   id: string;
   scheduled_at: string;
-  venue: string | null;
+  location: string | null;
   home_team_id: string;
   away_team_id: string;
   home_team: {
