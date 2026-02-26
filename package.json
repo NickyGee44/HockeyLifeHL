@@ -50,7 +50,7 @@
     "html-escaper": "^3.0.3",
     "lucide-react": "^0.562.0",
     "motion": "^12.29.2",
-    "next": "16.1.1",
+    "next": "16.1.5",
     "next-themes": "^0.4.6",
     "node-html-parser": "^7.0.2",
     "openai": "^6.16.0",
@@ -64,7 +64,6 @@
     "sonner": "^2.0.7",
     "stripe": "^20.1.2",
     "tailwind-merge": "^3.4.0",
-    "xlsx": "^0.18.5",
     "zod": "^4.3.5"
   },
   "devDependencies": {
@@ -73,9 +72,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/xlsx": "^0.0.35",
     "eslint": "^9",
-    "eslint-config-next": "16.1.1",
+    "eslint-config-next": "16.1.5",
     "jest": "^29.7.0",
     "knip": "^5.83.1",
     "tailwindcss": "^4",
