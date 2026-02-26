@@ -40,6 +40,7 @@ export default function CheckinPage() {
   const [games, setGames] = useState<GameWithCheckin[]>([]);
   const [checkins, setCheckins] = useState<Record<string, CheckinStatus>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
   const [bulkWeek, setBulkWeek] = useState<string | null>(null);
@@ -53,7 +54,11 @@ export default function CheckinPage() {
   const needsResponse = totalGames - Object.keys(checkins).length;
 
   useEffect(() => {
-    if (!teamId) return;
+    // Wait for both team and league to be resolved before fetching
+    if (!teamId || !league) return;
+
+    const leagueId = league.id;
+    const seasonId = league.current_season_id;
 
     const fetchData = async () => {
       const supabase = createClient();
@@ -62,7 +67,7 @@ export default function CheckinPage() {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
-      const { data: gamesData } = await supabase
+      let query = supabase
         .from('games')
         .select(`
           id,
@@ -73,10 +78,24 @@ export default function CheckinPage() {
           home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url),
           away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url)
         `)
+        .eq('league_id', leagueId)
         .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
         .in('status', ['scheduled', 'in_progress'])
         .gte('scheduled_at', startOfToday.toISOString())
         .order('scheduled_at', { ascending: true });
+
+      // Scope to the active season when available
+      if (seasonId) {
+        query = query.eq('season_id', seasonId);
+      }
+
+      const { data: gamesData, error: gamesError } = await query;
+
+      if (gamesError) {
+        console.error('Failed to fetch games:', gamesError.message);
+        setIsLoading(false);
+        return;
+      }
 
       if (gamesData) {
         const transformed = gamesData.map((game: any) => {
@@ -112,15 +131,18 @@ export default function CheckinPage() {
     };
 
     fetchData();
-  }, [teamId]);
+  }, [teamId, league]);
 
   const handleCheckin = (gameId: string, status: CheckinStatus) => {
     if (!teamId) return;
+    setSaveError(null);
     setUpdatingGame(gameId);
     startTransition(async () => {
       const result = await updateGameCheckin(gameId, teamId, status);
       if (result.success) {
         setCheckins(prev => ({ ...prev, [gameId]: status }));
+      } else {
+        setSaveError(result.error || 'Failed to save your response. Please try again.');
       }
       setUpdatingGame(null);
     });
@@ -200,6 +222,16 @@ export default function CheckinPage() {
           Game Check-In
         </h1>
       </div>
+
+      {/* Save error banner */}
+      {saveError && (
+        <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
+          <p className="text-sm text-red-400">{saveError}</p>
+          <button onClick={() => setSaveError(null)} className="text-red-400/60 hover:text-red-400">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Summary Bar */}
       <div className="grid grid-cols-3 gap-3 mb-6">

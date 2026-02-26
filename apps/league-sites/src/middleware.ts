@@ -1,3 +1,4 @@
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -34,31 +35,59 @@ const PRODUCTION_DOMAIN = 'beerleaguehockey.ca';
 // Development domain patterns
 const DEV_DOMAINS = ['localhost', '127.0.0.1', '.local'];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get('host') || '';
 
   // Extract subdomain
   const subdomain = getSubdomain(hostname);
 
-  // If no subdomain or reserved subdomain, continue normally
+  // Build the base response (rewrite or passthrough)
+  let response: NextResponse;
+
   if (!subdomain || RESERVED_SUBDOMAINS.includes(subdomain.toLowerCase())) {
-    return NextResponse.next();
+    response = NextResponse.next();
+  } else if (url.pathname.startsWith(`/${subdomain}`)) {
+    // Already on a league route (avoid infinite rewrite)
+    response = NextResponse.next();
+  } else {
+    // Rewrite URL to include league slug
+    // metro-hockey.beerleaguehockey.ca/schedule -> /metro-hockey/schedule
+    const newPath = `/${subdomain}${url.pathname}`;
+    url.pathname = newPath;
+    response = NextResponse.rewrite(url);
+    response.headers.set('x-league-slug', subdomain);
   }
 
-  // Check if already on a league route (avoid infinite rewrite)
-  if (url.pathname.startsWith(`/${subdomain}`)) {
-    return NextResponse.next();
+  // Refresh the Supabase session on every request so server actions always
+  // receive a valid, non-expired auth token. Without this, JWT tokens expire
+  // after 1 hour and server-side auth calls silently return null.
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+    // This call refreshes the session token if it's expired
+    await supabase.auth.getUser();
   }
-
-  // Rewrite URL to include league slug
-  // metro-hockey.beerleaguehockey.ca/schedule -> /metro-hockey/schedule
-  const newPath = `/${subdomain}${url.pathname}`;
-  url.pathname = newPath;
-
-  // Add league slug header for components to read
-  const response = NextResponse.rewrite(url);
-  response.headers.set('x-league-slug', subdomain);
 
   return response;
 }
