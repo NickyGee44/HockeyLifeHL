@@ -290,14 +290,11 @@ export default function HierarchicalSidebar({
             collapsed={sidebarCollapsed}
             locked={!isSubscribed}
           />
-          <NavLink
-            href={`/website-editor?league=${selected.leagueId}`}
+          {/* Website Editor — temporarily disabled */}
+          <ComingSoonLink
             icon={Palette}
             label={t('websiteEditor')}
-            isActive={pathname.includes('website-editor')}
             collapsed={sidebarCollapsed}
-            highlight
-            locked={!isSubscribed}
           />
         </>
       )}
@@ -532,6 +529,43 @@ function CaptainTeamLink({
         </div>
       )}
     </Link>
+  );
+}
+
+/** Disabled nav item shown as "coming soon" — renders a non-clickable button */
+function ComingSoonLink({
+  icon: Icon,
+  label,
+  collapsed,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  collapsed: boolean;
+}) {
+  return (
+    <div
+      title={collapsed ? `${label} (coming soon)` : undefined}
+      className={cn(
+        'flex items-center gap-2 px-3 py-2.5 rounded-xl',
+        'text-neutral-600 border border-transparent cursor-not-allowed select-none',
+        'group relative'
+      )}
+    >
+      <Icon className="w-5 h-5 flex-shrink-0 text-neutral-700" />
+      {!collapsed && (
+        <>
+          <span className="font-medium text-sm flex-1">{label}</span>
+          <span className="text-[10px] font-semibold text-neutral-600 bg-neutral-800 px-1.5 py-0.5 rounded">
+            Soon
+          </span>
+        </>
+      )}
+      {collapsed && (
+        <div className="absolute left-full ml-2 px-2 py-1 bg-neutral-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
+          {label} (coming soon)
+        </div>
+      )}
+    </div>
   );
 }
 

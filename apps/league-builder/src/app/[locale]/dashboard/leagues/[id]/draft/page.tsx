@@ -63,11 +63,33 @@ export default async function DraftPage({ params }: Props) {
     .limit(1)
     .maybeSingle();
 
-  // Get teams
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('id, name')
-    .eq('league_id', leagueId);
+  // Get teams scoped to this draft season.
+  // If a draft already exists, fetch teams from draft_order (exact set for this draft).
+  // Otherwise fall back to active teams in the league for the setup wizard.
+  let teams: { id: string; name: string }[] = [];
+  if (existingDraft) {
+    const { data: draftOrderRows } = await (supabase as any)
+      .from('draft_order')
+      .select('team_id, teams(id, name)')
+      .eq('draft_id', existingDraft.id)
+      .order('pick_position', { ascending: true });
+
+    const seen = new Set<string>();
+    for (const row of draftOrderRows ?? []) {
+      const t = (row as any).teams;
+      if (t && !seen.has(t.id)) {
+        seen.add(t.id);
+        teams.push({ id: t.id, name: t.name });
+      }
+    }
+  } else {
+    const { data: activeTeams } = await supabase
+      .from('teams')
+      .select('id, name')
+      .eq('league_id', leagueId)
+      .eq('status', 'active');
+    teams = activeTeams ?? [];
+  }
 
   // Check if user is admin (owner) of this league
   const { data: membership } = await supabase
