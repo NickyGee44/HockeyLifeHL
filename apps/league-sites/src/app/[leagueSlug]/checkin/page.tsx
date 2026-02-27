@@ -255,12 +255,17 @@ export default function CheckinPage() {
   const handleStartScoring = async (gameId: string) => {
     if (!teamId) return;
     setStartingScore(true);
-    const result = await getOrCreateCaptainScorekeeperSession(gameId, teamId);
-    setStartingScore(false);
-    if (result.success && result.token) {
-      window.location.href = `/${result.leagueSlug ?? leagueSlug}/scorekeeper?token=${result.token}`;
-    } else {
-      setSaveError(result.error || 'Failed to start scoring session');
+    try {
+      const result = await getOrCreateCaptainScorekeeperSession(gameId, teamId);
+      if (result.success && result.token) {
+        window.location.href = `/${result.leagueSlug ?? leagueSlug}/scorekeeper?token=${result.token}`;
+      } else {
+        setSaveError(result.error || 'Failed to start scoring session');
+      }
+    } catch {
+      setSaveError('Failed to start scoring session. Please try again.');
+    } finally {
+      setStartingScore(false);
     }
   };
 
@@ -587,7 +592,7 @@ export default function CheckinPage() {
                     <button
                       onClick={() => handleStartScoring(currentGame.id)}
                       disabled={startingScore}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-[var(--league-primary)]/15 text-[var(--league-primary)] hover:bg-[var(--league-primary)]/25 transition-colors border border-[var(--league-primary)]/30 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-[var(--league-primary)] text-white hover:opacity-90 active:opacity-80 transition-opacity shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {startingScore ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
