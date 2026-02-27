@@ -1,4 +1,3 @@
-// @ts-nocheck — new tables pending migration; regenerate types after running migrations
 'use server';
 
 import crypto from 'node:crypto';
@@ -110,7 +109,7 @@ export async function submitBugReport(
 
     const currentPath = new URL(input.collected.url, 'https://local.invalid').pathname;
     const normalizedPath = normalizePath(currentPath);
-    const primaryError = normalizeErrorMessage(getPrimaryError(input));
+    const primaryError = normalizeErrorMessage(getPrimaryError(input.collected));
     const browserCategory = getBrowserCategory(input.collected.browserInfo.userAgent);
 
     const signatureBase = `${primaryError}|${normalizedPath}|${browserCategory}`;

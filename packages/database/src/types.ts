@@ -443,6 +443,200 @@ export type Database = {
           },
         ]
       }
+      bug_reports: {
+        Row: {
+          app_state: Json
+          browser_info: Json
+          category: string
+          console_logs: Json
+          created_at: string
+          description: string
+          duplicate_of: string | null
+          error_signature: string | null
+          error_state: Json | null
+          expected_behavior: string | null
+          github_issue_url: string | null
+          id: string
+          league_id: string
+          navigation_history: Json
+          network_errors: Json
+          performance_data: Json
+          report_count: number
+          reporter_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          route_params: Json
+          screenshot_url: string | null
+          season_id: string | null
+          severity: string
+          status: string
+          team_id: string | null
+          updated_at: string
+          url: string
+          user_interactions: Json
+          user_role: string | null
+        }
+        Insert: {
+          app_state?: Json
+          browser_info: Json
+          category?: string
+          console_logs?: Json
+          created_at?: string
+          description: string
+          duplicate_of?: string | null
+          error_signature?: string | null
+          error_state?: Json | null
+          expected_behavior?: string | null
+          github_issue_url?: string | null
+          id?: string
+          league_id: string
+          navigation_history?: Json
+          network_errors?: Json
+          performance_data?: Json
+          report_count?: number
+          reporter_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          route_params?: Json
+          screenshot_url?: string | null
+          season_id?: string | null
+          severity?: string
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          url: string
+          user_interactions?: Json
+          user_role?: string | null
+        }
+        Update: {
+          app_state?: Json
+          browser_info?: Json
+          category?: string
+          console_logs?: Json
+          created_at?: string
+          description?: string
+          duplicate_of?: string | null
+          error_signature?: string | null
+          error_state?: Json | null
+          expected_behavior?: string | null
+          github_issue_url?: string | null
+          id?: string
+          league_id?: string
+          navigation_history?: Json
+          network_errors?: Json
+          performance_data?: Json
+          report_count?: number
+          reporter_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          route_params?: Json
+          screenshot_url?: string | null
+          season_id?: string | null
+          severity?: string
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          url?: string
+          user_interactions?: Json
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bug_reports_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "bug_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "player_season_stats"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "bug_reports_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "standings_calculated"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "bug_reports_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team_standings"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "bug_reports_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colors: {
         Row: {
           created_at: string | null
@@ -525,6 +719,65 @@ export type Database = {
           },
         ]
       }
+      division_balance_snapshots: {
+        Row: {
+          balance_score: number | null
+          created_at: string | null
+          id: string
+          league_id: string
+          recommendations: Json | null
+          season_id: string
+          snapshot_data: Json
+        }
+        Insert: {
+          balance_score?: number | null
+          created_at?: string | null
+          id?: string
+          league_id: string
+          recommendations?: Json | null
+          season_id: string
+          snapshot_data: Json
+        }
+        Update: {
+          balance_score?: number | null
+          created_at?: string | null
+          id?: string
+          league_id?: string
+          recommendations?: Json | null
+          season_id?: string
+          snapshot_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "division_balance_snapshots_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "division_balance_snapshots_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "division_balance_snapshots_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "division_balance_snapshots_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       divisions: {
         Row: {
           created_at: string | null
@@ -536,6 +789,7 @@ export type Database = {
           name: string
           period_count: number | null
           skill_level: string | null
+          sort_order: number
           updated_at: string | null
         }
         Insert: {
@@ -548,6 +802,7 @@ export type Database = {
           name: string
           period_count?: number | null
           skill_level?: string | null
+          sort_order?: number
           updated_at?: string | null
         }
         Update: {
@@ -560,6 +815,7 @@ export type Database = {
           name?: string
           period_count?: number | null
           skill_level?: string | null
+          sort_order?: number
           updated_at?: string | null
         }
         Relationships: [
@@ -1453,7 +1709,7 @@ export type Database = {
           current_pick_started_at?: string | null
           current_round?: number | null
           current_team_id?: string | null
-          cycle_number: number
+          cycle_number?: number
           draft_link?: string | null
           draft_order_assigned?: boolean | null
           draft_type?: string | null
@@ -3274,6 +3530,345 @@ export type Database = {
             columns: ["stats_submitted_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goalie_pool: {
+        Row: {
+          availability: Json
+          created_at: string
+          email: string
+          has_full_gear: boolean
+          id: string
+          league_id: string
+          name: string
+          phone: string | null
+          preferred_arenas: string[]
+          rate_per_game: number
+          registered_via: string
+          skill_level: Database["public"]["Enums"]["skill_level_enum"] | null
+          status: string
+          updated_at: string
+          verification_token: string
+        }
+        Insert: {
+          availability?: Json
+          created_at?: string
+          email: string
+          has_full_gear?: boolean
+          id?: string
+          league_id: string
+          name: string
+          phone?: string | null
+          preferred_arenas?: string[]
+          rate_per_game?: number
+          registered_via?: string
+          skill_level?: Database["public"]["Enums"]["skill_level_enum"] | null
+          status?: string
+          updated_at?: string
+          verification_token?: string
+        }
+        Update: {
+          availability?: Json
+          created_at?: string
+          email?: string
+          has_full_gear?: boolean
+          id?: string
+          league_id?: string
+          name?: string
+          phone?: string | null
+          preferred_arenas?: string[]
+          rate_per_game?: number
+          registered_via?: string
+          skill_level?: Database["public"]["Enums"]["skill_level_enum"] | null
+          status?: string
+          updated_at?: string
+          verification_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goalie_pool_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_pool_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_pool_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goalie_ratings: {
+        Row: {
+          created_at: string
+          game_id: string | null
+          goalie_id: string
+          id: string
+          league_id: string
+          private_note: string | null
+          rated_by: string
+          stars: number
+          tags: string[]
+        }
+        Insert: {
+          created_at?: string
+          game_id?: string | null
+          goalie_id: string
+          id?: string
+          league_id: string
+          private_note?: string | null
+          rated_by: string
+          stars: number
+          tags?: string[]
+        }
+        Update: {
+          created_at?: string
+          game_id?: string | null
+          goalie_id?: string
+          id?: string
+          league_id?: string
+          private_note?: string | null
+          rated_by?: string
+          stars?: number
+          tags?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goalie_ratings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_ratings_goalie_id_fkey"
+            columns: ["goalie_id"]
+            isOneToOne: false
+            referencedRelation: "goalie_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_ratings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_ratings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_ratings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_ratings_rated_by_fkey"
+            columns: ["rated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_ratings_rated_by_fkey"
+            columns: ["rated_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goalie_request_notifications: {
+        Row: {
+          accept_token: string
+          channel: string
+          goalie_id: string
+          id: string
+          request_id: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          accept_token?: string
+          channel?: string
+          goalie_id: string
+          id?: string
+          request_id: string
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          accept_token?: string
+          channel?: string
+          goalie_id?: string
+          id?: string
+          request_id?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goalie_request_notifications_goalie_id_fkey"
+            columns: ["goalie_id"]
+            isOneToOne: false
+            referencedRelation: "goalie_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_request_notifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "goalie_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goalie_requests: {
+        Row: {
+          compensation: string | null
+          created_at: string
+          expires_at: string | null
+          filled_at: string | null
+          filled_by: string | null
+          game_id: string
+          id: string
+          league_id: string
+          notes: string | null
+          requested_by: string
+          skill_level_needed:
+            | Database["public"]["Enums"]["skill_level_enum"]
+            | null
+          status: string
+          team_id: string
+        }
+        Insert: {
+          compensation?: string | null
+          created_at?: string
+          expires_at?: string | null
+          filled_at?: string | null
+          filled_by?: string | null
+          game_id: string
+          id?: string
+          league_id: string
+          notes?: string | null
+          requested_by: string
+          skill_level_needed?:
+            | Database["public"]["Enums"]["skill_level_enum"]
+            | null
+          status?: string
+          team_id: string
+        }
+        Update: {
+          compensation?: string | null
+          created_at?: string
+          expires_at?: string | null
+          filled_at?: string | null
+          filled_by?: string | null
+          game_id?: string
+          id?: string
+          league_id?: string
+          notes?: string | null
+          requested_by?: string
+          skill_level_needed?:
+            | Database["public"]["Enums"]["skill_level_enum"]
+            | null
+          status?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goalie_requests_filled_by_fkey"
+            columns: ["filled_by"]
+            isOneToOne: false
+            referencedRelation: "goalie_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "player_season_stats"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "standings_calculated"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team_standings"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "goalie_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -5250,6 +5845,7 @@ export type Database = {
       organizations: {
         Row: {
           billing_cycle_anchor: number | null
+          bypass_subscription_gate: boolean
           cancel_at_period_end: boolean | null
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -5282,6 +5878,7 @@ export type Database = {
         }
         Insert: {
           billing_cycle_anchor?: number | null
+          bypass_subscription_gate?: boolean
           cancel_at_period_end?: boolean | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -5314,6 +5911,7 @@ export type Database = {
         }
         Update: {
           billing_cycle_anchor?: number | null
+          bypass_subscription_gate?: boolean
           cancel_at_period_end?: boolean | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -6417,37 +7015,59 @@ export type Database = {
         Row: {
           attendance_rate: number | null
           calculated_at: string | null
+          division_id: string | null
           games_played: number | null
           id: string
           league_id: string
+          overall_percentile: number | null
           player_id: string
           points_per_game: number | null
+          position: string | null
           rating: Database["public"]["Enums"]["player_rating"]
+          raw_percentile: number | null
           season_id: string
+          stats_json: Json | null
         }
         Insert: {
           attendance_rate?: number | null
           calculated_at?: string | null
+          division_id?: string | null
           games_played?: number | null
           id?: string
           league_id: string
+          overall_percentile?: number | null
           player_id: string
           points_per_game?: number | null
+          position?: string | null
           rating: Database["public"]["Enums"]["player_rating"]
+          raw_percentile?: number | null
           season_id: string
+          stats_json?: Json | null
         }
         Update: {
           attendance_rate?: number | null
           calculated_at?: string | null
+          division_id?: string | null
           games_played?: number | null
           id?: string
           league_id?: string
+          overall_percentile?: number | null
           player_id?: string
           points_per_game?: number | null
+          position?: string | null
           rating?: Database["public"]["Enums"]["player_rating"]
+          raw_percentile?: number | null
           season_id?: string
+          stats_json?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "player_ratings_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "player_ratings_league_id_fkey"
             columns: ["league_id"]
@@ -9301,6 +9921,118 @@ export type Database = {
           },
           {
             foreignKeyName: "team_messages_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_ratings: {
+        Row: {
+          calculated_at: string | null
+          defense_rating: number | null
+          division_id: string | null
+          goaltending_rating: number | null
+          id: string
+          league_id: string
+          offense_rating: number | null
+          overall_grade: string | null
+          overall_percentile: number | null
+          record_factor: number | null
+          roster_count: number | null
+          season_id: string
+          team_id: string
+        }
+        Insert: {
+          calculated_at?: string | null
+          defense_rating?: number | null
+          division_id?: string | null
+          goaltending_rating?: number | null
+          id?: string
+          league_id: string
+          offense_rating?: number | null
+          overall_grade?: string | null
+          overall_percentile?: number | null
+          record_factor?: number | null
+          roster_count?: number | null
+          season_id: string
+          team_id: string
+        }
+        Update: {
+          calculated_at?: string | null
+          defense_rating?: number | null
+          division_id?: string | null
+          goaltending_rating?: number | null
+          id?: string
+          league_id?: string
+          offense_rating?: number | null
+          overall_grade?: string | null
+          overall_percentile?: number | null
+          record_factor?: number | null
+          roster_count?: number | null
+          season_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_ratings_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_ratings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_ratings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_ratings_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_ratings_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_ratings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "player_season_stats"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "team_ratings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "standings_calculated"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "team_ratings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team_standings"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "team_ratings_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
