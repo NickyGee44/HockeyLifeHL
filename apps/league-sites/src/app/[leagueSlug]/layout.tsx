@@ -11,6 +11,7 @@ import { SponsorFooterStrip } from '@/components/sponsors/SponsorFooterStrip';
 import { BugReportProvider } from '@/components/bug-report/BugReportProvider';
 import { BugReportButton } from '@/components/bug-report/BugReportButton';
 import { SubscriptionProvider } from '@/components/shared';
+import { DemoTourPanel } from '@/components/demo/DemoTourPanel';
 import type { Metadata } from 'next';
 
 /**
@@ -128,6 +129,9 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                   <SponsorFooterStrip sponsors={sponsors} />
                   <LeagueFooter league={league} leagueSlug={leagueSlug} />
                   <BugReportButton />
+                  {(league as any).settings?.website?.demoMode && (
+                    <DemoTourPanel leagueSlug={leagueSlug} />
+                  )}
                 </div>
               </DivisionFilterProvider>
             </SubscriptionProvider>
