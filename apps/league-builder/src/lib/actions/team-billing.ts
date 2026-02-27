@@ -625,7 +625,7 @@ export async function getPerTeamPaymentBreakdown(
       const teamName = teamData?.name || 'Unassigned';
       const fee = sub.fee_amount_cents || 0;
       const paid = sub.amount_paid_cents || 0;
-      const isPaid = sub.payment_status === 'paid';
+      const isPaid = sub.payment_status === 'completed';
 
       if (!teamMap.has(teamId)) {
         teamMap.set(teamId, {
@@ -710,7 +710,7 @@ export async function getUnpaidPlayers(
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
       .in('status', ['pending', 'approved'])
-      .neq('payment_status', 'paid')
+      .neq('payment_status', 'completed')
       .gt('fee_amount_cents', 0);
 
     if (error) {
