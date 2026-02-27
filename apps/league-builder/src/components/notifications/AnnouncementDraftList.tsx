@@ -41,6 +41,7 @@ export function AnnouncementDraftList({ leagueId, onEditDraft, refreshKey }: Ann
   }, [leagueId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDrafts();
   }, [loadDrafts, refreshKey]);
 

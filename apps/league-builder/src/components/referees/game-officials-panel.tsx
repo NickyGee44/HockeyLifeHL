@@ -38,11 +38,7 @@ export function GameOfficialsPanel({
   const [newRole, setNewRole] = useState('referee');
   const [selectedPreset, setSelectedPreset] = useState('');
 
-  // Load officials on mount
-  useEffect(() => {
-    loadOfficials();
-  }, [gameId]);
-
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   const loadOfficials = () => {
     startTransition(async () => {
       const result = await getGameOfficials(gameId);
@@ -51,6 +47,12 @@ export function GameOfficialsPanel({
       }
     });
   };
+
+  // Load officials on mount
+  useEffect(() => {
+    loadOfficials();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId]);
 
   const handleAdd = () => {
     const name = selectedPreset || newName.trim();

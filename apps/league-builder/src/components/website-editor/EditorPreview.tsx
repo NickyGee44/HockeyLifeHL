@@ -17,6 +17,7 @@ export function EditorPreview() {
 
   // Reset timeout when preview becomes ready or when the URL changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimedOut(false);
     if (state.isPreviewReady) return;
 

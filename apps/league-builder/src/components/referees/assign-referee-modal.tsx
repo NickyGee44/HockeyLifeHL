@@ -61,6 +61,7 @@ export function AssignRefereeModal({
 
   useEffect(() => {
     if (selectedReferee) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChosenRefereeId(selectedReferee.id);
     }
   }, [selectedReferee]);

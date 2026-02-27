@@ -69,6 +69,7 @@ export function LinkedAccountsSection() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchIdentities();
   }, [fetchIdentities]);
 

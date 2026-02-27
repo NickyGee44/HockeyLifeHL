@@ -17,6 +17,7 @@ export function PlayerDetailPanel({ open, playerId, leagueId, onClose }: PlayerD
   useEffect(() => {
     if (!open || !playerId) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     getPlayerDetail(playerId, leagueId)
       .then((result) => setDetail(result.success ? result.data : undefined))

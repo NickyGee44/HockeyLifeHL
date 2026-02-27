@@ -80,6 +80,7 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
   // Mounted state to avoid Radix Select hydration mismatch
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

@@ -52,7 +52,7 @@ function getBrowserCategory(userAgent: string): string {
 }
 
 function getPrimaryError(collected: CollectedBugReportData): string {
-  const unhandled = collected.errorState.unhandledErrors[0]?.message;
+  const unhandled = collected.errorState?.unhandledErrors?.[0]?.message;
   if (unhandled) return unhandled;
 
   const consoleError = collected.consoleLogs.find((entry) => entry.level === 'error')?.message;
@@ -65,7 +65,7 @@ function getPrimaryError(collected: CollectedBugReportData): string {
 }
 
 function classifySeverity(input: SubmitBugReportInput): 'critical' | 'high' | 'medium' | 'low' {
-  const hasUnhandled = input.collected.errorState.unhandledErrors.length > 0;
+  const hasUnhandled = (input.collected.errorState?.unhandledErrors?.length ?? 0) > 0;
   const hasConsoleError = input.collected.consoleLogs.some((entry) => entry.level === 'error');
   const hasServerError = input.collected.networkErrors.some((entry) => entry.status >= 500);
 
