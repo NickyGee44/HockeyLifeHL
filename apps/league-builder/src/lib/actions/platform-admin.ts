@@ -189,7 +189,6 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
   ]);
 
   const TEST_ORG_IDS = new Set([
-    '918d7824-7efa-4e99-8816-e06b056ca64d', // DRAFT TEST
     'a90ca03c-7443-43ce-affc-b8961eef3a48', // Wally Test League
   ]);
 
