@@ -2448,6 +2448,8 @@ export async function getOrCreateCaptainScorekeeperSession(
       .select('leadership_role')
       .eq('team_id', teamId)
       .eq('player_id', user.id)
+      .eq('status', 'active')
+      .is('end_date', null)
       .single();
 
     if (
