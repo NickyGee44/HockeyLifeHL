@@ -57,6 +57,11 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       icon: 'CreditCard',
       href: `/${locale}/dashboard/leagues/${leagueId}/billing` },
     {
+      title: 'Venues & Ice Times',
+      description: 'Manage rinks, weekly availability, and blackout dates',
+      icon: 'MapPin',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/venues` },
+    {
       title: 'Game Rules',
       description: 'Penalty types, durations, and game rule overrides',
       icon: 'Gavel',
