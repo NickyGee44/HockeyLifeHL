@@ -54,7 +54,12 @@ export function ShotEntry({
   }
 
   async function handleShooterSelect(shooter: PlayerData) {
-    if (!goalie || isPending) return;
+    if (isPending) return;
+    if (!goalie) {
+      // No goalie registered on this team — dismiss without recording
+      onCancel();
+      return;
+    }
     setIsPending(true);
     try {
       await addShotEvent({
@@ -74,7 +79,12 @@ export function ShotEntry({
 
   async function handleQuickSave() {
     // Record save without specifying shooter
-    if (!goalie || isPending) return;
+    if (isPending) return;
+    if (!goalie) {
+      // No goalie registered on this team — dismiss without recording
+      onCancel();
+      return;
+    }
     setIsPending(true);
     try {
       await addShotEvent({
