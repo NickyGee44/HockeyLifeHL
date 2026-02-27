@@ -224,6 +224,13 @@ export default function HierarchicalSidebar({
             locked={!isSubscribed}
           />
           <NavLink
+            href={`${leagueBase}/billing`}
+            icon={CreditCard}
+            label={t('leagueBilling')}
+            isActive={isPathActive(`${leagueBase}/billing`)}
+            collapsed={sidebarCollapsed}
+          />
+          <NavLink
             href={`${leagueBase}/staff`}
             icon={User}
             label={t('staff')}

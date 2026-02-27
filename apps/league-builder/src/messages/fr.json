@@ -208,7 +208,8 @@
     "members": "Membres",
     "leagueOverview": "Aperçu de la ligue",
     "seasons": "Saisons",
-    "games": "Matchs"
+    "games": "Matchs",
+    "leagueBilling": "Paiements"
   },
   "commandPalette": {
     "searchPlaceholder": "Rechercher des pages et actions...",
