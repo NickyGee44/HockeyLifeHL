@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
+import { safeRedirectPath } from '@/lib/auth/safe-redirect';
 
 /**
  * Auth Callback Route for League Sites
@@ -14,7 +15,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+  const next = safeRedirectPath(searchParams.get('next'));
 
   const cookieStore = await cookies();
 

@@ -17,6 +17,7 @@ import { stripe, getPriceIdByTier } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
 import type { SubscriptionTier } from '@/lib/types/subscription';
 import { capturePaymentError } from '@/lib/sentry/payments';
+import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
 
 interface CheckoutSessionRequest {
   tier: SubscriptionTier;
@@ -34,6 +35,14 @@ export async function POST(request: NextRequest) {
     if (!tier || !successUrl || !cancelUrl) {
       return NextResponse.json(
         { error: 'Missing required fields: tier, successUrl, cancelUrl' },
+        { status: 400 }
+      );
+    }
+
+    // Validate redirect URLs to prevent open-redirect attacks
+    if (!isAllowedRedirectUrl(successUrl) || !isAllowedRedirectUrl(cancelUrl)) {
+      return NextResponse.json(
+        { error: 'Invalid redirect URL' },
         { status: 400 }
       );
     }

@@ -55,16 +55,21 @@ export async function sendTeamInvite(
     .eq('id', teamId)
     .single();
 
-  if (!team || team.captain_id !== user.id) {
-    // Also check if user is a league admin
-    const { data: staff } = await supabase
-      .from('league_staff')
-      .select('id')
-      .eq('league_id', team?.league_id || '')
-      .ilike('role_title', '%admin%')
-      .limit(1);
+  if (!team) {
+    return { success: false, error: 'Team not found' };
+  }
 
-    if (!staff || staff.length === 0) {
+  if (team.captain_id !== user.id) {
+    // Check if the current user is a league admin/owner via league_memberships
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role')
+      .eq('league_id', team.league_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (!membership || !['owner', 'admin'].includes(membership.role)) {
       return { success: false, error: 'Not authorized — must be captain or admin' };
     }
   }

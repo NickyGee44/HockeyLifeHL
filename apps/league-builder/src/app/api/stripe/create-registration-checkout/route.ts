@@ -18,6 +18,7 @@ import { stripe } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
 import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
 import { capturePaymentError } from '@/lib/sentry/payments';
+import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
 
 interface RegistrationCheckoutRequest {
   leagueId: string;
@@ -37,6 +38,14 @@ export async function POST(request: NextRequest) {
     if (!leagueId || !seasonId || !seasonFeeId || !playerPaymentId || !successUrl || !cancelUrl) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate redirect URLs to prevent open-redirect attacks
+    if (!isAllowedRedirectUrl(successUrl) || !isAllowedRedirectUrl(cancelUrl)) {
+      return NextResponse.json(
+        { error: 'Invalid redirect URL' },
         { status: 400 }
       );
     }
