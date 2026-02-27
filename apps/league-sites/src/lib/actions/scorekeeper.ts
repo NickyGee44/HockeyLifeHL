@@ -2484,12 +2484,11 @@ export async function getOrCreateCaptainScorekeeperSession(
 
     const leagueSlug: string = leagueData?.slug ?? '';
 
-    // Look for an existing active session for this captain + game
+    // Look for any existing active session for this game (shared between both team captains)
     const { data: existing } = await supabase
       .from('scorekeeper_sessions')
       .select('token, expires_at')
       .eq('game_id', gameId)
-      .eq('scorekeeper_id', user.id)
       .eq('is_active', true)
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
