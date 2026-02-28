@@ -18,11 +18,11 @@ export function ScorekeeperBadge({
   accessCount,
   className,
 }: ScorekeeperBadgeProps) {
+  const t = useTranslations('games');
+
   if (!assigned) {
     return null;
   }
-
-  const t = useTranslations('games');
   const isExpired = expiresAt && new Date(expiresAt) < new Date();
   const hasAccessed = (accessCount || 0) > 0;
 
