@@ -63,6 +63,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily',
       priority: 1.0,
     },
+    // Static platform pages
+    {
+      url: `${BASE_URL}/privacy-policy`,
+      lastModified: new Date('2026-03-01'),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/tos`,
+      lastModified: new Date('2026-03-01'),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
   ];
 
   for (const league of leagues) {
