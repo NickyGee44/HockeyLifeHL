@@ -179,7 +179,7 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
       {/* Upsell for non-subscribers */}
       {!hasFullStats && hasStats && (
         <div className="mt-8">
-          {null}
+          
         </div>
       )}
 

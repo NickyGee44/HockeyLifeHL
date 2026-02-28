@@ -160,7 +160,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
                 />
               </>
             ) : (
-              {null}
+              
             )}
 
             {/* Future Matchups between these teams */}

@@ -100,7 +100,7 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
         {/* Upsell for non-subscribers */}
         {!hasFullStats && goalieLeaders.length > 0 && (
           <div className="mt-6">
-            {null}
+            
           </div>
         )}
 
