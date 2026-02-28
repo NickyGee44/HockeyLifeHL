@@ -22,6 +22,97 @@ export type DomainVerificationResult = {
 const VERCEL_CNAME = 'cname.vercel-dns.com';
 const VERCEL_IPS = ['76.76.21.21', '76.76.21.142', '76.76.21.164', '76.223.126.88'];
 
+// ---------------------------------------------------------------------------
+// Vercel API helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Register a custom domain on the league-sites Vercel project.
+ * Best-effort: logs errors but never throws.
+ */
+async function registerVercelDomain(domain: string): Promise<void> {
+  const projectId = process.env.VERCEL_LEAGUE_SITES_PROJECT_ID;
+  const token = process.env.VERCEL_TOKEN;
+
+  if (!projectId || !token) {
+    console.warn('[domain] Vercel env vars not set — skipping domain registration', {
+      hasProjectId: Boolean(projectId),
+      hasToken: Boolean(token),
+    });
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.vercel.com/v9/projects/${projectId}/domains`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: domain }),
+      }
+    );
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error('[domain] Vercel domain registration failed', {
+        status: res.status,
+        body,
+        domain,
+      });
+    } else {
+      console.log('[domain] Vercel domain registered:', domain);
+    }
+  } catch (err) {
+    console.error('[domain] Vercel domain registration threw an error', err);
+  }
+}
+
+/**
+ * Remove a custom domain from the league-sites Vercel project.
+ * Best-effort: logs errors but never throws.
+ */
+async function deregisterVercelDomain(domain: string): Promise<void> {
+  const projectId = process.env.VERCEL_LEAGUE_SITES_PROJECT_ID;
+  const token = process.env.VERCEL_TOKEN;
+
+  if (!projectId || !token) {
+    console.warn('[domain] Vercel env vars not set — skipping domain deregistration');
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.vercel.com/v9/projects/${projectId}/domains/${encodeURIComponent(domain)}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!res.ok && res.status !== 404) {
+      const body = await res.text();
+      console.error('[domain] Vercel domain removal failed', {
+        status: res.status,
+        body,
+        domain,
+      });
+    } else {
+      console.log('[domain] Vercel domain removed:', domain);
+    }
+  } catch (err) {
+    console.error('[domain] Vercel domain removal threw an error', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public actions
+// ---------------------------------------------------------------------------
+
 /**
  * Get domain configuration for an organization
  */
@@ -151,7 +242,7 @@ export async function setCustomDomain(
 }
 
 /**
- * Verify a custom domain by checking DNS records
+ * Verify a custom domain by checking DNS records, then registering it on Vercel.
  */
 export async function verifyCustomDomain(
   organizationId: string
@@ -196,7 +287,7 @@ export async function verifyCustomDomain(
     };
   }
 
-  // DNS verification passed, update database
+  // DNS verification passed — update database
   const { error: updateError } = await supabase
     .from('organizations')
     .update({
@@ -215,6 +306,9 @@ export async function verifyCustomDomain(
     };
   }
 
+  // Register domain on Vercel (best-effort — DNS is source of truth)
+  await registerVercelDomain(customDomain);
+
   revalidatePath('/dashboard/settings/domains');
 
   return {
@@ -226,7 +320,7 @@ export async function verifyCustomDomain(
 }
 
 /**
- * Remove custom domain from an organization
+ * Remove custom domain from an organization and deregister it from Vercel.
  */
 export async function removeCustomDomain(
   organizationId: string
@@ -239,10 +333,10 @@ export async function removeCustomDomain(
     return { error: 'Not authenticated' };
   }
 
-  // Check organization ownership
+  // Check organization ownership — also fetch custom_domain so we can deregister from Vercel
   const { data: org, error: orgError } = await supabase
     .from('organizations')
-    .select('owner_user_id')
+    .select('owner_user_id, custom_domain')
     .eq('id', organizationId)
     .single();
 
@@ -254,7 +348,9 @@ export async function removeCustomDomain(
     return { error: 'Only the organization owner can manage domains' };
   }
 
-  // Remove custom domain
+  const customDomain = (org as Record<string, unknown>).custom_domain as string | null;
+
+  // Remove custom domain from DB
   const { error: updateError } = await supabase
     .from('organizations')
     .update({
@@ -269,6 +365,11 @@ export async function removeCustomDomain(
       console.error('Error removing custom domain:', updateError);
     }
     return { error: 'Failed to remove custom domain' };
+  }
+
+  // Deregister from Vercel (best-effort)
+  if (customDomain) {
+    await deregisterVercelDomain(customDomain);
   }
 
   revalidatePath('/dashboard/settings/domains');
@@ -349,6 +450,143 @@ async function checkDNSRecords(domain: string): Promise<{
       message: 'Could not perform DNS lookup. Please try again later.',
     };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Domain search + purchase (Vercel Registrar)
+// ---------------------------------------------------------------------------
+
+export type DomainSearchResult = {
+  name: string;
+  price: number;
+  available: boolean;
+  premium: boolean;
+};
+
+/**
+ * Search available domains via Vercel's registrar API.
+ */
+export async function searchDomains(
+  query: string
+): Promise<{ data?: DomainSearchResult[]; error?: string }> {
+  const token = process.env.VERCEL_TOKEN;
+  if (!token) return { error: 'Vercel token not configured' };
+  if (!query || query.trim().length < 2) return { data: [] };
+
+  try {
+    const res = await fetch(
+      `https://api.vercel.com/v4/domains?limit=10&query=${encodeURIComponent(query.trim())}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      }
+    );
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error('[domain] searchDomains failed', { status: res.status, body });
+      return { error: 'Domain search failed' };
+    }
+
+    const json = (await res.json()) as {
+      domains?: Array<{
+        name: string;
+        price?: number;
+        available?: boolean;
+        premium?: boolean;
+      }>;
+    };
+
+    const results: DomainSearchResult[] = (json.domains ?? []).map((d) => ({
+      name: d.name,
+      price: d.price ?? 0,
+      available: d.available ?? false,
+      premium: d.premium ?? false,
+    }));
+
+    return { data: results };
+  } catch (err) {
+    console.error('[domain] searchDomains threw', err);
+    return { error: 'Domain search failed' };
+  }
+}
+
+/**
+ * Purchase a domain via Vercel's registrar, then auto-configure it for the org.
+ * Domains purchased through Vercel point at Vercel automatically — no DNS step needed.
+ */
+export async function purchaseDomain(
+  organizationId: string,
+  domain: string
+): Promise<{ success?: boolean; error?: string; domain?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: org, error: orgError } = await supabase
+    .from('organizations')
+    .select('owner_user_id')
+    .eq('id', organizationId)
+    .single();
+
+  if (orgError || !org) return { error: 'Organization not found' };
+  if (org.owner_user_id !== user.id)
+    return { error: 'Only the organization owner can purchase domains' };
+
+  const token = process.env.VERCEL_TOKEN;
+  if (!token) return { error: 'Vercel token not configured' };
+
+  // Purchase via Vercel Registrar
+  const res = await fetch('https://api.vercel.com/v4/domains/buy', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: domain }),
+  });
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: string | { code?: string; message?: string };
+    };
+    const errCode =
+      typeof body.error === 'object'
+        ? (body.error?.code ?? 'unknown')
+        : (body.error ?? 'unknown');
+
+    // Treat already-owned as success — just configure it
+    const alreadyOwned = ['domain_already_purchased', 'domain_already_owned'].includes(errCode);
+    if (!alreadyOwned) {
+      console.error('[domain] purchaseDomain failed', { status: res.status, body });
+      return { error: `Failed to purchase domain: ${errCode}` };
+    }
+    console.log('[domain] domain already owned by this account — configuring:', domain);
+  }
+
+  // Set domain in DB (marks as unverified first)
+  const setResult = await setCustomDomain(organizationId, domain);
+  if (setResult.error) return { error: setResult.error };
+
+  // Immediately mark as verified — Vercel manages DNS, no manual step needed
+  const supabase2 = await createClient();
+  const { error: verifyErr } = await supabase2
+    .from('organizations')
+    .update({ custom_domain_verified: true, updated_at: new Date().toISOString() })
+    .eq('id', organizationId);
+
+  if (verifyErr) {
+    console.error('[domain] failed to mark domain as verified', verifyErr);
+  }
+
+  // Register on the league-sites Vercel project
+  await registerVercelDomain(domain);
+
+  revalidatePath('/dashboard/settings/domains');
+
+  return { success: true, domain };
 }
 
 /**

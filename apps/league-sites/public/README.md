@@ -159,3 +159,27 @@ public/icons/
 - [Maskable Icon Tester](https://maskable.app/)
 - [Favicon Generator](https://favicon.io/)
 - [PWA Asset Generator](https://github.com/onderceylan/pwa-asset-generator)
+
+## Custom Domain Setup (One-Time DNS Step)
+
+For the custom domain feature to work, a wildcard DNS record must be configured on the **league-sites** Vercel project:
+
+1. In Vercel → league-sites project → Settings → Domains:
+   - Add `*.beerleaguehockey.ca` as a domain (if not already present).
+   - Vercel will issue a wildcard TLS certificate automatically.
+
+2. At your DNS registrar (wherever `beerleaguehockey.ca` is managed):
+   - Add a wildcard CNAME: `* → cname.vercel-dns.com`
+   - Or a wildcard A record: `* → 76.76.21.21`
+
+3. Required environment variables for the **league-builder** app:
+   ```
+   VERCEL_TOKEN=<your-vercel-api-token>
+   VERCEL_LEAGUE_SITES_PROJECT_ID=<vercel-project-id-for-league-sites>
+   ```
+
+4. Required environment variable for the **league-sites** app:
+   ```
+   SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key>
+   ```
+   (The service role key is needed so the middleware can query the `organizations` table without user auth context.)
