@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart3, Trophy, Target, Shield, ChevronRight, Zap } from 'lucide-react';
-import { getLeagueBySlug, getStatsLeadersWithAvatars, getCurrentSeason, getSpecialTeamsLeaders, getPlayerBadgesByIds, hasAdvancedStatsAddon } from '@/lib/data';
+import { getLeagueBySlug, getStatsLeadersWithAvatars, getCurrentSeason, getSpecialTeamsLeaders, getPlayerBadgesByIds } from '@/lib/data';
 import { StatsLeadersTabs } from '@/components/StatsLeadersTabs';
 import { SpecialTeamsTable } from '@/components/stats/SpecialTeamsTable';
 import { StatLeaders } from '@/components/stats/StatLeaders';
@@ -28,9 +28,6 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
 
   if (!league) notFound();
 
-  const hasFullStats = await hasAdvancedStatsAddon(league.id);
-  const leaderLimit = hasFullStats ? 50 : 5;
-
   const currentSeason = await getCurrentSeason(league.id);
 
   // Fetch all seasons for selector
@@ -50,12 +47,10 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
   const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
 
   const [pointsLeaders, goalsLeaders, assistsLeaders, specialTeamsLeaders] = await Promise.all([
-    getStatsLeadersWithAvatars(league.id, 'points', leaderLimit, effectiveDivisionFilter, selectedSeasonId),
-    getStatsLeadersWithAvatars(league.id, 'goals', leaderLimit, effectiveDivisionFilter, selectedSeasonId),
-    getStatsLeadersWithAvatars(league.id, 'assists', leaderLimit, effectiveDivisionFilter, selectedSeasonId),
-    hasFullStats
-      ? getSpecialTeamsLeaders(league.id, selectedSeasonId || currentSeason?.id, effectiveDivisionFilter)
-      : Promise.resolve([]),
+    getStatsLeadersWithAvatars(league.id, 'points', 50, effectiveDivisionFilter, selectedSeasonId),
+    getStatsLeadersWithAvatars(league.id, 'goals', 50, effectiveDivisionFilter, selectedSeasonId),
+    getStatsLeadersWithAvatars(league.id, 'assists', 50, effectiveDivisionFilter, selectedSeasonId),
+    getSpecialTeamsLeaders(league.id, selectedSeasonId || currentSeason?.id, effectiveDivisionFilter),
   ]);
 
   // Enrich special teams leaders with avatar URLs
@@ -173,13 +168,6 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
             Special Teams Stats
           </h2>
           <SpecialTeamsTable leaders={specialTeamsLeaders} leagueSlug={leagueSlug} />
-        </div>
-      )}
-
-      {/* Upsell for non-subscribers */}
-      {!hasFullStats && hasStats && (
-        <div className="mt-8">
-          
         </div>
       )}
 
