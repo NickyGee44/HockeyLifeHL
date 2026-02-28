@@ -2,9 +2,10 @@
  * Structured Webhook Logging
  *
  * Provides structured logging for webhook events with consistent format
- * for observability and debugging. Prepares for integration with error
- * tracking services like Sentry or Datadog.
+ * for observability and debugging.
  */
+
+import * as Sentry from '@sentry/nextjs';
 
 export type WebhookLogLevel = 'info' | 'warn' | 'error';
 
@@ -187,13 +188,11 @@ export function logWebhookError(
 
   logWebhookEvent('error', 'Webhook processing error', errorContext);
 
-  // TODO: Integrate with Sentry/Datadog
-  // Example Sentry integration:
-  // Sentry.captureException(error, {
-  //   contexts: {
-  //     webhook: errorContext,
-  //   },
-  // });
+  Sentry.captureException(error, {
+    contexts: {
+      webhook: errorContext as unknown as Record<string, unknown>,
+    },
+  });
 }
 
 /**

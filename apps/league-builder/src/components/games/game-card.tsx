@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@hockey-life/ui';
+import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import type { Game } from '@/lib/actions/games';
 import { StatusBadge, StatusDot } from './status-badge';
@@ -27,6 +28,7 @@ export function GameCard({
   showCheckbox = false,
   className,
 }: GameCardProps) {
+  const t = useTranslations('games');
   const isCompleted = game.status === 'completed';
   const homeTeam = game.home_team;
   const awayTeam = game.away_team;
@@ -200,6 +202,7 @@ export function GameCardCompact({
   onAssignScorekeeper,
   onClick,
 }: GameCardProps) {
+  const t = useTranslations('games');
   const homeTeam = game.home_team;
   const awayTeam = game.away_team;
 
@@ -226,11 +229,11 @@ export function GameCardCompact({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 text-sm">
           <span className="font-medium text-white truncate">
-            {homeTeam?.short_name || homeTeam?.name || 'Home'}
+            {homeTeam?.short_name || homeTeam?.name || t('home')}
           </span>
           <span className="text-neutral-500">vs</span>
           <span className="font-medium text-white truncate">
-            {awayTeam?.short_name || awayTeam?.name || 'Away'}
+            {awayTeam?.short_name || awayTeam?.name || t('away')}
           </span>
         </div>
         <div className="flex items-center gap-2 mt-1 text-xs text-neutral-500">

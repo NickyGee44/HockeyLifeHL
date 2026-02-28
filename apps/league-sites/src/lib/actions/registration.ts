@@ -373,6 +373,20 @@ export async function submitPlayerRegistration(
             error: `Payment has not been completed (status: ${paymentIntent.status}). Please complete payment before submitting.`,
           };
         }
+
+        // Verify the amount paid matches the expected fee — prevents reusing a
+        // succeeded payment intent from a cheaper registration to bypass fees.
+        if (paymentIntent.amount_received !== expectedFeeCents) {
+          console.error('[Registration] Payment amount mismatch', {
+            expected: expectedFeeCents,
+            received: paymentIntent.amount_received,
+            payment_intent_id: data.payment_intent_id,
+          });
+          return {
+            success: false,
+            error: 'Payment amount does not match the registration fee. Please contact support.',
+          };
+        }
       } catch (stripeError) {
         console.error('Stripe PaymentIntent verification failed:', stripeError);
         return {

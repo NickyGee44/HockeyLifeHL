@@ -281,6 +281,9 @@ importers:
       framer-motion:
         specifier: ^12.29.2
         version: 12.29.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      isomorphic-dompurify:
+        specifier: ^2.35.0
+        version: 2.35.0
       lucide-react:
         specifier: ^0.562.0
         version: 0.562.0(react@19.2.3)

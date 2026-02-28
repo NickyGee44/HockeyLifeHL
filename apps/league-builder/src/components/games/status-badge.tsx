@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@hockey-life/ui';
+import { useTranslations } from 'next-intl';
 import type { GameStatus } from '@/lib/actions/games';
 import {
   Clock,
@@ -19,51 +20,15 @@ interface StatusBadgeProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const statusConfig: Record<
+const statusStyles: Record<
   GameStatus,
-  {
-    label: string;
-    bgColor: string;
-    textColor: string;
-    borderColor: string;
-    icon: typeof Clock;
-  }
+  { bgColor: string; textColor: string; borderColor: string; icon: typeof Clock }
 > = {
-  scheduled: {
-    label: 'Scheduled',
-    bgColor: 'bg-blue-500/10',
-    textColor: 'text-blue-500',
-    borderColor: 'border-blue-500/30',
-    icon: Clock,
-  },
-  in_progress: {
-    label: 'In Progress',
-    bgColor: 'bg-green-500/10',
-    textColor: 'text-green-500',
-    borderColor: 'border-green-500/30',
-    icon: Play,
-  },
-  completed: {
-    label: 'Completed',
-    bgColor: 'bg-rink-500/10',
-    textColor: 'text-rink-500',
-    borderColor: 'border-rink-500/30',
-    icon: CheckCircle,
-  },
-  cancelled: {
-    label: 'Cancelled',
-    bgColor: 'bg-red-500/10',
-    textColor: 'text-red-500',
-    borderColor: 'border-red-500/30',
-    icon: XCircle,
-  },
-  postponed: {
-    label: 'Postponed',
-    bgColor: 'bg-yellow-500/10',
-    textColor: 'text-yellow-500',
-    borderColor: 'border-yellow-500/30',
-    icon: PauseCircle,
-  },
+  scheduled: { bgColor: 'bg-blue-500/10', textColor: 'text-blue-500', borderColor: 'border-blue-500/30', icon: Clock },
+  in_progress: { bgColor: 'bg-green-500/10', textColor: 'text-green-500', borderColor: 'border-green-500/30', icon: Play },
+  completed: { bgColor: 'bg-rink-500/10', textColor: 'text-rink-500', borderColor: 'border-rink-500/30', icon: CheckCircle },
+  cancelled: { bgColor: 'bg-red-500/10', textColor: 'text-red-500', borderColor: 'border-red-500/30', icon: XCircle },
+  postponed: { bgColor: 'bg-yellow-500/10', textColor: 'text-yellow-500', borderColor: 'border-yellow-500/30', icon: PauseCircle },
 };
 
 const sizeConfig = {
@@ -88,24 +53,25 @@ export function StatusBadge({
   showIcon = true,
   size = 'md',
 }: StatusBadgeProps) {
-  const config = statusConfig[status];
+  const t = useTranslations('games');
+  const styles = statusStyles[status];
   const sizes = sizeConfig[size];
-  const Icon = config.icon;
+  const Icon = styles.icon;
 
   return (
     <div className="inline-flex items-center gap-1.5">
       <span
         className={cn(
           'inline-flex items-center gap-1.5 font-semibold rounded-full border',
-          config.bgColor,
-          config.textColor,
-          config.borderColor,
+          styles.bgColor,
+          styles.textColor,
+          styles.borderColor,
           sizes.badge,
           className
         )}
       >
         {showIcon && <Icon className={sizes.icon} />}
-        {config.label}
+        {t(`status.${status}`)}
       </span>
       {isRescheduled && (
         <span
@@ -116,7 +82,7 @@ export function StatusBadge({
           )}
         >
           <RefreshCw className={sizes.icon} />
-          Rescheduled
+          {t('status.rescheduled')}
         </span>
       )}
     </div>

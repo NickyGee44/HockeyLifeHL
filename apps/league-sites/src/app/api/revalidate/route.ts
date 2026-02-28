@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
+import { timingSafeEqual } from 'crypto';
+
+function safeStringCompare(a: string, b: string): boolean {
+  try {
+    // Use constant-length buffers to prevent length-based timing leaks
+    const len = Math.max(a.length, b.length, 32);
+    const bufA = Buffer.alloc(len);
+    const bufB = Buffer.alloc(len);
+    bufA.write(a);
+    bufB.write(b);
+    return timingSafeEqual(bufA, bufB) && a.length === b.length;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * API route for on-demand revalidation of league pages
@@ -23,7 +38,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    if (secret !== revalidationSecret) {
+    if (!safeStringCompare(secret ?? '', revalidationSecret)) {
       return NextResponse.json(
         { error: 'Invalid revalidation secret' },
         { status: 401 }

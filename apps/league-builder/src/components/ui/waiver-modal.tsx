@@ -6,6 +6,7 @@ import { X, ChevronDown, Check, ScrollText } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
 import { SignaturePad } from './signature-pad';
 import { cn } from '@hockey-life/ui/lib/utils';
+import DOMPurify from 'isomorphic-dompurify';
 
 export interface WaiverModalProps {
   isOpen: boolean;
@@ -149,7 +150,7 @@ export function WaiverModal({
               <div
                 className="text-neutral-300 leading-relaxed"
                 dangerouslySetInnerHTML={{
-                  __html: content
+                  __html: DOMPurify.sanitize(content)
                     .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-white mt-6 mb-3">$1</h3>')
                     .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-8 mb-4">$1</h2>')
                     .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-rink-500 mb-6">$1</h1>')

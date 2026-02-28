@@ -38,9 +38,20 @@ export function RulesContent({ content }: RulesContentProps) {
     currentList = null;
   }
 
+  function escapeHtml(unsafe: string): string {
+    return unsafe
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function formatInline(text: string): string {
+    // Escape raw HTML before applying markdown-like transforms to prevent XSS
+    const safe = escapeHtml(text);
     // Bold: **text**
-    let formatted = text.replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--color-text-primary)] font-semibold">$1</strong>');
+    let formatted = safe.replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--color-text-primary)] font-semibold">$1</strong>');
     // Italic: *text* (but not **)
     formatted = formatted.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
     return formatted;

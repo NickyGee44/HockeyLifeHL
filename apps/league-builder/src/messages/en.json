@@ -508,7 +508,8 @@
       "in_progress": "In Progress",
       "completed": "Completed",
       "cancelled": "Cancelled",
-      "postponed": "Postponed"
+      "postponed": "Postponed",
+      "rescheduled": "Rescheduled"
     },
     "manageCancellations": "Manage Cancellations",
     "postponedCount": "{count} postponed",
@@ -577,7 +578,21 @@
     "reschedule": "Reschedule",
     "enterReason": "Enter reason...",
     "back": "Back",
-    "sameLocation": "Same location"
+    "sameLocation": "Same location",
+    "cancelReasons": {
+      "weather": "Weather conditions",
+      "venue": "Venue unavailable",
+      "players": "Insufficient players",
+      "forfeit": "Team forfeit",
+      "conflict": "Scheduling conflict",
+      "ice": "Ice conditions",
+      "other": "Other"
+    },
+    "scorekeeperBadge": {
+      "expired": "Expired",
+      "active": "Active",
+      "assigned": "Assigned"
+    }
   },
   "standings": {
     "title": "Standings",

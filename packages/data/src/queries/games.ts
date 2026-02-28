@@ -148,7 +148,10 @@ export async function getPlayerUpcomingGames(
 
   if (!rosters || rosters.length === 0) return [];
 
-  const teamIds = [...new Set(rosters.map((r: any) => r.team_id))];
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const teamIds = [...new Set(rosters.map((r: any) => r.team_id))].filter((id) => UUID_REGEX.test(String(id)));
+
+  if (teamIds.length === 0) return [];
 
   const { data, error } = await supabase
     .from('games')
@@ -163,6 +166,7 @@ export async function getPlayerUpcomingGames(
     .order('scheduled_at', { ascending: true })
     .limit(limit);
 
+  if (error) console.error('[getPlayerUpcomingGames]', error.message);
   if (error || !data) return [];
 
   return data.map((game: any) => ({
@@ -187,7 +191,10 @@ export async function getPlayerRecentGames(
 
   if (!rosters || rosters.length === 0) return [];
 
-  const teamIds = [...new Set(rosters.map((r: any) => r.team_id))];
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const teamIds = [...new Set(rosters.map((r: any) => r.team_id))].filter((id) => UUID_REGEX.test(String(id)));
+
+  if (teamIds.length === 0) return [];
 
   const { data, error } = await supabase
     .from('games')
@@ -201,6 +208,7 @@ export async function getPlayerRecentGames(
     .order('scheduled_at', { ascending: false })
     .limit(limit);
 
+  if (error) console.error('[getPlayerRecentGames]', error.message);
   if (error || !data) return [];
 
   return data.map((game: any) => ({

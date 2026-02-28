@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@hockey-life/ui';
+import { useTranslations } from 'next-intl';
 import { UserCheck, Clock } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
@@ -21,6 +22,7 @@ export function ScorekeeperBadge({
     return null;
   }
 
+  const t = useTranslations('games');
   const isExpired = expiresAt && new Date(expiresAt) < new Date();
   const hasAccessed = (accessCount || 0) > 0;
 
@@ -38,7 +40,7 @@ export function ScorekeeperBadge({
     >
       <UserCheck className="w-3 h-3" />
       <span>
-        {isExpired ? 'Expired' : hasAccessed ? 'Active' : 'Assigned'}
+        {isExpired ? t('scorekeeperBadge.expired') : hasAccessed ? t('scorekeeperBadge.active') : t('scorekeeperBadge.assigned')}
       </span>
       {!isExpired && expiresAt && (
         <>

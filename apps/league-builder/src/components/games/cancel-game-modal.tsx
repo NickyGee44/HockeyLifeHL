@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,15 +28,15 @@ interface CancelGameModalProps {
   onSuccess?: (game: Game) => void;
 }
 
-const cancelReasonSuggestions = [
-  'Weather conditions',
-  'Venue unavailable',
-  'Insufficient players',
-  'Team forfeit',
-  'Scheduling conflict',
-  'Ice conditions',
-  'Other',
-];
+const CANCEL_REASON_KEYS = [
+  'weather',
+  'venue',
+  'players',
+  'forfeit',
+  'conflict',
+  'ice',
+  'other',
+] as const;
 
 export function CancelGameModal({
   game,
@@ -43,12 +44,13 @@ export function CancelGameModal({
   onOpenChange,
   onSuccess,
 }: CancelGameModalProps) {
+  const t = useTranslations('games');
   const [loading, setLoading] = useState(false);
   const [actionType, setActionType] = useState<'cancel' | 'postpone'>('cancel');
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [customReason, setCustomReason] = useState('');
 
-  const reason = selectedReason === 'Other' ? customReason : selectedReason;
+  const reason = selectedReason === 'other' ? customReason : (selectedReason ? t(`cancelReasons.${selectedReason}` as Parameters<typeof t>[0]) : '');
   const isValid = reason.trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,26 +192,26 @@ export function CancelGameModal({
           <div className="space-y-3">
             <Label className="text-neutral-300">Reason</Label>
             <div className="flex flex-wrap gap-2">
-              {cancelReasonSuggestions.map((suggestion) => (
+              {CANCEL_REASON_KEYS.map((key) => (
                 <button
-                  key={suggestion}
+                  key={key}
                   type="button"
-                  onClick={() => setSelectedReason(suggestion)}
+                  onClick={() => setSelectedReason(key)}
                   className={cn(
                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                    selectedReason === suggestion
+                    selectedReason === key
                       ? 'bg-rink-500/20 text-rink-500 border border-rink-500/40'
                       : 'bg-neutral-900 text-neutral-400 border border-white/[0.06] hover:border-rink-500/30'
                   )}
                 >
-                  {suggestion}
+                  {t(`cancelReasons.${key}` as Parameters<typeof t>[0])}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Custom Reason */}
-          {selectedReason === 'Other' && (
+          {selectedReason === 'other' && (
             <div className="space-y-2">
               <Label htmlFor="customReason" className="text-neutral-300">
                 Custom Reason

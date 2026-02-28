@@ -504,11 +504,12 @@
     "gameCancelled": "Match annule",
     "vs": "c.",
     "status": {
-      "scheduled": "Prevu",
+      "scheduled": "Prévu",
       "in_progress": "En cours",
-      "completed": "Termine",
-      "cancelled": "Annule",
-      "postponed": "Reporte"
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "postponed": "Reporté",
+      "rescheduled": "Replanifié"
     },
     "manageCancellations": "Gerer les annulations",
     "postponedCount": "{count} reporte(s)",
@@ -577,7 +578,21 @@
     "reschedule": "Replanifier",
     "enterReason": "Entrez la raison...",
     "back": "Retour",
-    "sameLocation": "Meme lieu"
+    "sameLocation": "Même lieu",
+    "cancelReasons": {
+      "weather": "Conditions météorologiques",
+      "venue": "Lieu non disponible",
+      "players": "Joueurs insuffisants",
+      "forfeit": "Forfait d'équipe",
+      "conflict": "Conflit d'horaire",
+      "ice": "Conditions de glace",
+      "other": "Autre"
+    },
+    "scorekeeperBadge": {
+      "expired": "Expiré",
+      "active": "Actif",
+      "assigned": "Assigné"
+    }
   },
   "standings": {
     "title": "Classement",
