@@ -168,13 +168,18 @@ interface GameTileProps {
 
 function GameTile({ game, leagueSlug }: GameTileProps) {
   const isCompleted = game.status === 'completed';
-  const isLive = isGameLive(game);
-  const gameDate = new Date(game.scheduled_at);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
   }, []);
+
+  // Hydration-safe: on server/first render use only explicit in_progress status
+  // (no time-based check), switch to full live detection after mount.
+  // This prevents ISR cache mismatches where the page was baked before a game
+  // entered its live window but the client loads it mid-game.
+  const isLive = mounted ? isGameLive(game) : game.status === 'in_progress';
+  const gameDate = new Date(game.scheduled_at);
 
   // Parse team color
   const getTeamColor = (colors: string | null): string | null => {
@@ -347,11 +352,13 @@ interface StatusBadgeProps {
 
 function StatusBadge({ game, gameDate }: StatusBadgeProps) {
   const { status } = game;
-  const isLive = isGameLive(game);
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
   }, []);
+
+  // Hydration-safe: same pattern as GameTile — only use time-based detection after mount
+  const isLive = mounted ? isGameLive(game) : game.status === 'in_progress';
 
   // Show live badge if game is in progress OR within 1 hour of start time
   if (mounted && isLive && status !== 'completed') {
