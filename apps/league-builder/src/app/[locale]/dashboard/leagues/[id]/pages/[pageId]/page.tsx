@@ -1,19 +1,29 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
+  AlignLeft,
+  AlertCircle,
   ArrowLeft,
   ArrowDown,
   ArrowUp,
+  ChevronDown,
+  ChevronRight,
+  ImageIcon,
+  Link as LinkIcon,
+  Loader2,
+  Minus,
+  Plus,
   Save,
   Trash2,
-  Eye,
+  Type,
+  Upload,
+  X,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -30,6 +40,7 @@ import {
   getLeaguePreviewData,
   updateCustomPage,
 } from '../actions';
+import { uploadPageImage, deletePageImage } from '@/lib/actions/image-upload';
 
 type BlockType = 'heading' | 'text' | 'image' | 'divider' | 'callout' | 'link';
 type HeadingLevel = 'h1' | 'h2' | 'h3';
@@ -44,108 +55,438 @@ type ContentBlock =
   | { id: string; type: 'link'; label: string; url: string };
 
 function createId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 100);
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
 }
 
 function createBlock(type: BlockType): ContentBlock {
   const id = createId();
   switch (type) {
-    case 'heading':
-      return { id, type, level: 'h2', text: '' };
-    case 'text':
-      return { id, type, text: '' };
-    case 'image':
-      return { id, type, url: '', alt: '', caption: '' };
-    case 'divider':
-      return { id, type };
-    case 'callout':
-      return { id, type, text: '', style: 'info' };
-    case 'link':
-      return { id, type, label: '', url: '' };
-    default:
-      return { id, type: 'text', text: '' };
+    case 'heading': return { id, type, level: 'h2', text: '' };
+    case 'text': return { id, type, text: '' };
+    case 'image': return { id, type, url: '', alt: '', caption: '' };
+    case 'divider': return { id, type };
+    case 'callout': return { id, type, text: '', style: 'info' };
+    case 'link': return { id, type, label: '', url: '' };
+    default: return { id, type: 'text', text: '' };
   }
 }
 
 function normalizeBlocks(content: unknown): ContentBlock[] {
-  if (!Array.isArray(content)) {
-    return [];
+  if (!Array.isArray(content)) return [];
+  return content.map((raw) => {
+    if (!raw || typeof raw !== 'object') return null;
+    const obj = raw as Record<string, unknown>;
+    const type = obj.type;
+    const id = typeof obj.id === 'string' && obj.id ? obj.id : createId();
+    if (type === 'heading') return { id, type: 'heading' as const, level: obj.level === 'h1' || obj.level === 'h3' ? obj.level : 'h2', text: typeof obj.text === 'string' ? obj.text : '' };
+    if (type === 'text') return { id, type: 'text' as const, text: typeof obj.text === 'string' ? obj.text : '' };
+    if (type === 'image') return { id, type: 'image' as const, url: typeof obj.url === 'string' ? obj.url : '', alt: typeof obj.alt === 'string' ? obj.alt : '', caption: typeof obj.caption === 'string' ? obj.caption : '' };
+    if (type === 'divider') return { id, type: 'divider' as const };
+    if (type === 'callout') return { id, type: 'callout' as const, text: typeof obj.text === 'string' ? obj.text : '', style: obj.style === 'warning' || obj.style === 'success' ? obj.style : 'info' };
+    if (type === 'link') return { id, type: 'link' as const, label: typeof obj.label === 'string' ? obj.label : '', url: typeof obj.url === 'string' ? obj.url : '' };
+    return null;
+  }).filter((b): b is ContentBlock => b !== null);
+}
+
+// ─── Block type metadata ───────────────────────────────────────────────────
+
+const BLOCK_TYPES: { type: BlockType; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { type: 'heading', label: 'Heading', Icon: Type },
+  { type: 'text', label: 'Text', Icon: AlignLeft },
+  { type: 'image', label: 'Image', Icon: ImageIcon },
+  { type: 'divider', label: 'Divider', Icon: Minus },
+  { type: 'callout', label: 'Callout', Icon: AlertCircle },
+  { type: 'link', label: 'Link', Icon: LinkIcon },
+];
+
+function blockIcon(type: BlockType) {
+  const found = BLOCK_TYPES.find((b) => b.type === type);
+  return found ? found.Icon : AlignLeft;
+}
+
+function blockContentPreview(block: ContentBlock): string {
+  switch (block.type) {
+    case 'heading': return block.text ? `${block.level.toUpperCase()}: ${block.text.slice(0, 55)}` : `${block.level.toUpperCase()}: (empty)`;
+    case 'text': return block.text ? block.text.slice(0, 60) : '(empty text)';
+    case 'image': return block.url ? 'Image uploaded' : 'No image yet';
+    case 'divider': return '──────────────';
+    case 'callout': return block.text ? `[${block.style}] ${block.text.slice(0, 50)}` : `[${block.style}] (empty)`;
+    case 'link': return block.label ? `${block.label} → ${block.url.slice(0, 30)}` : '(empty link)';
+    default: return '';
+  }
+}
+
+// ─── Inline image uploader (no crop — for content images) ─────────────────
+
+function InlineImageUploader({
+  leagueId,
+  value,
+  onChange,
+}: {
+  leagueId: string;
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File) {
+    const MAX = 5 * 1024 * 1024;
+    if (file.size > MAX) { setUploadError('Image must be under 5MB.'); return; }
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const result = await uploadPageImage(leagueId, file);
+      if (result.success) { onChange(result.data.url); }
+      else { setUploadError(result.error); }
+    } finally { setUploading(false); }
   }
 
-  const normalized = content
-    .map((raw) => {
-      if (!raw || typeof raw !== 'object') return null;
-      const obj = raw as Record<string, unknown>;
-      const type = obj.type;
-      const id = typeof obj.id === 'string' && obj.id ? obj.id : createId();
+  async function handleRemove() {
+    if (value) await deletePageImage(leagueId, value);
+    onChange('');
+  }
 
-      if (type === 'heading') {
-        return {
-          id,
-          type: 'heading' as const,
-          level: obj.level === 'h1' || obj.level === 'h3' ? obj.level : 'h2',
-          text: typeof obj.text === 'string' ? obj.text : '',
-        };
-      }
-
-      if (type === 'text') {
-        return {
-          id,
-          type: 'text' as const,
-          text: typeof obj.text === 'string' ? obj.text : '',
-        };
-      }
-
-      if (type === 'image') {
-        return {
-          id,
-          type: 'image' as const,
-          url: typeof obj.url === 'string' ? obj.url : '',
-          alt: typeof obj.alt === 'string' ? obj.alt : '',
-          caption: typeof obj.caption === 'string' ? obj.caption : '',
-        };
-      }
-
-      if (type === 'divider') {
-        return { id, type: 'divider' as const };
-      }
-
-      if (type === 'callout') {
-        return {
-          id,
-          type: 'callout' as const,
-          text: typeof obj.text === 'string' ? obj.text : '',
-          style: obj.style === 'warning' || obj.style === 'success' ? obj.style : 'info',
-        };
-      }
-
-      if (type === 'link') {
-        return {
-          id,
-          type: 'link' as const,
-          label: typeof obj.label === 'string' ? obj.label : '',
-          url: typeof obj.url === 'string' ? obj.url : '',
-        };
-      }
-
-      return null;
-    })
-    .filter((block): block is ContentBlock => block !== null);
-
-  return normalized;
+  return (
+    <div className="space-y-2">
+      {value ? (
+        <div className="relative rounded-lg overflow-hidden border border-white/10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="Page content" className="w-full max-h-56 object-cover" />
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-lg border-2 border-dashed border-neutral-700 text-neutral-400 hover:border-rink-500 hover:text-rink-400 transition-colors disabled:opacity-50"
+        >
+          {uploading ? (
+            <><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">Uploading...</span></>
+          ) : (
+            <><Upload className="w-6 h-6" /><span className="text-sm">Click to upload image</span><span className="text-xs text-neutral-600">PNG, JPG, WebP — max 5MB</span></>
+          )}
+        </button>
+      )}
+      {uploadError && <p className="text-xs text-red-400">{uploadError}</p>}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+      />
+    </div>
+  );
 }
+
+// ─── Add block picker ──────────────────────────────────────────────────────
+
+function AddBlockRow({ onAdd }: { onAdd: (type: BlockType) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex justify-center py-1 group">
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-dashed border-neutral-700 text-neutral-500 text-xs hover:border-rink-500 hover:text-rink-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+        >
+          <Plus className="w-3 h-3" /> Add block
+        </button>
+      ) : (
+        <div className="flex flex-wrap gap-1.5 items-center p-2 bg-neutral-900 border border-white/10 rounded-xl shadow-lg">
+          {BLOCK_TYPES.map(({ type, label, Icon }) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => { onAdd(type); setOpen(false); }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+          <button type="button" onClick={() => setOpen(false)} className="p-1.5 text-neutral-500 hover:text-white transition-colors">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Block card (collapsed + expanded) ────────────────────────────────────
+
+function BlockCard({
+  block,
+  index,
+  total,
+  leagueId,
+  onUpdate,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+}: {
+  block: ContentBlock;
+  index: number;
+  total: number;
+  leagueId: string;
+  onUpdate: (b: ContentBlock) => void;
+  onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const Icon = blockIcon(block.type);
+  const preview = blockContentPreview(block);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] overflow-hidden">
+      {/* Header (always visible) */}
+      <div
+        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none hover:bg-white/[0.03] transition-colors"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className="p-1.5 rounded-md bg-neutral-800 text-neutral-400">
+          <Icon className="w-3.5 h-3.5" />
+        </div>
+        <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide w-14 flex-shrink-0">
+          {block.type === 'heading' ? block.level : block.type}
+        </span>
+        <span className="flex-1 text-sm text-neutral-300 truncate min-w-0">{preview}</span>
+        <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button type="button" disabled={index === 0} onClick={onMoveUp} className="p-1.5 text-neutral-500 hover:text-white disabled:opacity-30 transition-colors rounded">
+            <ArrowUp className="w-3.5 h-3.5" />
+          </button>
+          <button type="button" disabled={index === total - 1} onClick={onMoveDown} className="p-1.5 text-neutral-500 hover:text-white disabled:opacity-30 transition-colors rounded">
+            <ArrowDown className="w-3.5 h-3.5" />
+          </button>
+          <button type="button" onClick={onDelete} className="p-1.5 text-neutral-500 hover:text-red-400 transition-colors rounded">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+          <div className="p-1.5 text-neutral-600">
+            {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded editor */}
+      {expanded && (
+        <div className="border-t border-white/5 px-4 py-4 space-y-3">
+          {block.type === 'heading' && (
+            <div className="grid gap-3 md:grid-cols-4">
+              <Select value={block.level} onValueChange={(v: HeadingLevel) => onUpdate({ ...block, level: v })}>
+                <SelectTrigger className="bg-neutral-800 border-neutral-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="h1">H1 — Title</SelectItem>
+                  <SelectItem value="h2">H2 — Section</SelectItem>
+                  <SelectItem value="h3">H3 — Subsection</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="md:col-span-3">
+                <Input
+                  value={block.text}
+                  onChange={(e) => onUpdate({ ...block, text: e.target.value })}
+                  placeholder="Heading text"
+                  className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {block.type === 'text' && (
+            <Textarea
+              value={block.text}
+              onChange={(e) => onUpdate({ ...block, text: e.target.value })}
+              placeholder="Write your paragraph text here..."
+              rows={5}
+              className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 resize-y"
+            />
+          )}
+
+          {block.type === 'image' && (
+            <div className="space-y-3">
+              <InlineImageUploader
+                leagueId={leagueId}
+                value={block.url}
+                onChange={(url) => onUpdate({ ...block, url })}
+              />
+              <Input
+                value={block.alt}
+                onChange={(e) => onUpdate({ ...block, alt: e.target.value })}
+                placeholder="Alt text (for accessibility)"
+                className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
+              />
+              <Input
+                value={block.caption}
+                onChange={(e) => onUpdate({ ...block, caption: e.target.value })}
+                placeholder="Caption (optional)"
+                className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
+              />
+            </div>
+          )}
+
+          {block.type === 'divider' && (
+            <div className="rounded-md border border-dashed border-white/20 py-3 text-center text-sm text-neutral-500">
+              Visual divider — no settings needed
+            </div>
+          )}
+
+          {block.type === 'callout' && (
+            <div className="space-y-3">
+              <Select value={block.style} onValueChange={(v: CalloutStyle) => onUpdate({ ...block, style: v })}>
+                <SelectTrigger className="bg-neutral-800 border-neutral-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="info">ℹ Info</SelectItem>
+                  <SelectItem value="warning">⚠ Warning</SelectItem>
+                  <SelectItem value="success">✓ Success</SelectItem>
+                </SelectContent>
+              </Select>
+              <Textarea
+                value={block.text}
+                onChange={(e) => onUpdate({ ...block, text: e.target.value })}
+                placeholder="Callout message..."
+                rows={3}
+                className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
+              />
+            </div>
+          )}
+
+          {block.type === 'link' && (
+            <div className="space-y-3">
+              <Input
+                value={block.label}
+                onChange={(e) => onUpdate({ ...block, label: e.target.value })}
+                placeholder="Button label"
+                className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
+              />
+              <Input
+                value={block.url}
+                onChange={(e) => onUpdate({ ...block, url: e.target.value })}
+                placeholder="https://example.com"
+                className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Live preview ──────────────────────────────────────────────────────────
+
+function BlockPreview({ block }: { block: ContentBlock }) {
+  switch (block.type) {
+    case 'heading': {
+      const sizes: Record<HeadingLevel, string> = { h1: 'text-3xl font-bold', h2: 'text-2xl font-semibold', h3: 'text-xl font-semibold' };
+      return (
+        <div className={`${sizes[block.level]} text-gray-900`}>
+          {block.text || <span className="text-gray-300 italic text-base font-normal">Heading text...</span>}
+        </div>
+      );
+    }
+    case 'text':
+      return (
+        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-[15px]">
+          {block.text || <span className="text-gray-300 italic">Text content...</span>}
+        </p>
+      );
+    case 'image':
+      return block.url ? (
+        <figure className="space-y-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={block.url} alt={block.alt || ''} className="w-full rounded-lg object-cover max-h-72" />
+          {block.caption && <figcaption className="text-sm text-gray-500 text-center">{block.caption}</figcaption>}
+        </figure>
+      ) : (
+        <div className="w-full h-40 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 gap-2">
+          <ImageIcon className="w-8 h-8" />
+          <span className="text-sm">No image uploaded yet</span>
+        </div>
+      );
+    case 'divider':
+      return <hr className="border-gray-200" />;
+    case 'callout': {
+      const styles: Record<CalloutStyle, string> = {
+        info: 'bg-blue-50 border-blue-300 text-blue-900',
+        warning: 'bg-yellow-50 border-yellow-300 text-yellow-900',
+        success: 'bg-green-50 border-green-300 text-green-900',
+      };
+      return (
+        <div className={`px-4 py-3 border-l-4 rounded-r-lg text-sm leading-relaxed ${styles[block.style]}`}>
+          {block.text || <span className="italic opacity-60">Callout text...</span>}
+        </div>
+      );
+    }
+    case 'link':
+      return (
+        <div>
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm">
+            <LinkIcon className="w-3.5 h-3.5" />
+            {block.label || <span className="italic opacity-70">Link label</span>}
+          </span>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
+function PagePreview({ title, blocks }: { title: string; blocks: ContentBlock[] }) {
+  const hasContent = title || blocks.length > 0;
+  return (
+    <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+      {/* Mock browser chrome */}
+      <div className="bg-gray-100 border-b border-gray-200 px-4 py-2.5 flex items-center gap-2">
+        <div className="flex gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-red-400" />
+          <div className="w-3 h-3 rounded-full bg-yellow-400" />
+          <div className="w-3 h-3 rounded-full bg-green-400" />
+        </div>
+        <div className="flex-1 bg-white rounded border border-gray-200 px-3 py-1 text-xs text-gray-500 font-mono truncate ml-2">
+          yourleague.com/p/…
+        </div>
+      </div>
+      {/* Page content */}
+      <div className="p-8 min-h-[400px]">
+        {!hasContent ? (
+          <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-3">
+            <ImageIcon className="w-12 h-12 text-gray-300" />
+            <p className="text-sm text-center">Your page preview will appear here as you add content</p>
+          </div>
+        ) : (
+          <div className="space-y-5 max-w-2xl">
+            {title && <h1 className="text-3xl font-bold text-gray-900 pb-2 border-b border-gray-100">{title}</h1>}
+            {blocks.map((block) => (
+              <BlockPreview key={block.id} block={block} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page component ───────────────────────────────────────────────────
 
 export default function CustomPageEditorPage() {
   const router = useRouter();
@@ -161,38 +502,26 @@ export default function CustomPageEditorPage() {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [blocks, setBlocks] = useState<ContentBlock[]>([]);
-
   const [leagueSlug, setLeagueSlug] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
 
   useEffect(() => {
     let active = true;
-
     async function loadData() {
       setLoading(true);
       setError(null);
-
       const leagueResult = await getLeaguePreviewData(leagueId);
       if (!active) return;
-
-      if (leagueResult.success) {
-        setLeagueSlug(leagueResult.data.slug);
-      } else {
-        setError(leagueResult.error);
-      }
+      if (leagueResult.success) setLeagueSlug(leagueResult.data.slug);
+      else setError(leagueResult.error);
 
       if (!isNewPage) {
         const pageResult = await getCustomPageForEditor(pageId, leagueId);
         if (!active) return;
-
-        if (!pageResult.success) {
-          setError(pageResult.error);
-          setLoading(false);
-          return;
-        }
-
+        if (!pageResult.success) { setError(pageResult.error); setLoading(false); return; }
         const page = pageResult.data;
         setTitle(page.title || '');
         setSlug(page.slug || '');
@@ -200,19 +529,14 @@ export default function CustomPageEditorPage() {
         setBlocks(normalizeBlocks(page.content));
         setSlugManuallyEdited(Boolean(page.slug));
       }
-
       setLoading(false);
     }
-
     loadData();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [isNewPage, pageId, leagueId]);
 
   function updateBlock(index: number, updated: ContentBlock) {
-    setBlocks((prev) => prev.map((block, i) => (i === index ? updated : block)));
+    setBlocks((prev) => prev.map((b, i) => (i === index ? updated : b)));
   }
 
   function deleteBlock(index: number) {
@@ -224,72 +548,46 @@ export default function CustomPageEditorPage() {
       const target = index + direction;
       if (target < 0 || target >= prev.length) return prev;
       const next = [...prev];
-      const temp = next[index];
-      next[index] = next[target];
-      next[target] = temp;
+      [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
   }
 
-  function addBlock(type: BlockType) {
+  function insertBlockAt(afterIndex: number, type: BlockType) {
+    setBlocks((prev) => {
+      const next = [...prev];
+      next.splice(afterIndex + 1, 0, createBlock(type));
+      return next;
+    });
+  }
+
+  function appendBlock(type: BlockType) {
     setBlocks((prev) => [...prev, createBlock(type)]);
   }
 
   function onTitleChange(nextTitle: string) {
     setTitle(nextTitle);
-    if (!slugManuallyEdited) {
-      setSlug(slugify(nextTitle));
-    }
+    if (!slugManuallyEdited) setSlug(slugify(nextTitle));
   }
 
   async function handleSave() {
     const cleanedTitle = title.trim();
     const derivedSlug = slugify(slug || title);
-
-    if (!cleanedTitle) {
-      setError('Title is required.');
-      return;
-    }
-
-    if (!derivedSlug) {
-      setError('Slug is required.');
-      return;
-    }
+    if (!cleanedTitle) { setError('Title is required.'); return; }
+    if (!derivedSlug) { setError('Slug is required.'); return; }
 
     setSaving(true);
     setError(null);
-
     try {
-      const payload = {
-        title: cleanedTitle,
-        slug: derivedSlug,
-        content: blocks,
-        is_published: isPublished,
-      };
-
+      const payload = { title: cleanedTitle, slug: derivedSlug, content: blocks, is_published: isPublished };
       if (isNewPage) {
-        const result = await createCustomPage(leagueId, {
-          ...payload,
-          sort_order: Date.now(),
-        });
-
-        if (!result.success) {
-          setError(result.error);
-          setSaving(false);
-          return;
-        }
-
+        const result = await createCustomPage(leagueId, { ...payload, sort_order: Date.now() });
+        if (!result.success) { setError(result.error); return; }
         router.replace(`/${locale}/dashboard/leagues/${leagueId}/pages/${result.data.id}`);
         router.refresh();
       } else {
         const result = await updateCustomPage(pageId, leagueId, payload);
-
-        if (!result.success) {
-          setError(result.error);
-          setSaving(false);
-          return;
-        }
-
+        if (!result.success) { setError(result.error); return; }
         router.refresh();
       }
     } finally {
@@ -297,264 +595,151 @@ export default function CustomPageEditorPage() {
     }
   }
 
-  function openPreview() {
-    if (!leagueSlug || !slugify(slug || title)) {
-      return;
-    }
-
-    const url = `/${leagueSlug}/p/${slugify(slug || title)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-
-  const editorTitle = useMemo(() => (isNewPage ? 'New Custom Page' : 'Edit Custom Page'), [isNewPage]);
+  const editorTitle = useMemo(() => (isNewPage ? 'New Custom Page' : 'Edit Page'), [isNewPage]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-950">
-        <div className="mx-auto max-w-5xl px-4 py-8 text-neutral-300 sm:px-6 lg:px-8">Loading...</div>
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-rink-500" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-neutral-950">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}/pages`}
-            className="mb-4 inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-rink-500"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Custom Pages
-          </Link>
+      <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
 
-          <h1 className="text-3xl font-black tracking-tight text-white">{editorTitle}</h1>
-          <p className="mt-1 text-neutral-400">Build and publish custom league website pages.</p>
+        {/* Header */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <Link
+              href={`/${locale}/dashboard/leagues/${leagueId}/pages`}
+              className="mb-2 inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Custom Pages
+            </Link>
+            <h1 className="text-2xl font-black tracking-tight text-white">{editorTitle}</h1>
+          </div>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold"
+          >
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {saving ? 'Saving...' : 'Save Page'}
+          </Button>
         </div>
 
         {error && (
-          <Card className="mb-4 border-red-500/30 bg-red-500/10 text-red-200">
-            <CardContent className="pt-6">{error}</CardContent>
-          </Card>
+          <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
         )}
 
-        <Card className="mb-6 border-white/10 bg-white/[0.04] text-white">
-          <CardHeader>
-            <CardTitle>Page Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="page-title" className="text-sm text-neutral-300">Title</label>
-              <Input
-                id="page-title"
-                value={title}
-                onChange={(e) => onTitleChange(e.target.value)}
-                placeholder="About Our League"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="page-slug" className="text-sm text-neutral-300">Slug</label>
-              <Input
-                id="page-slug"
-                value={slug}
-                onChange={(e) => {
-                  setSlug(e.target.value);
-                  setSlugManuallyEdited(true);
-                }}
-                placeholder="about-our-league"
-              />
-              <p className="text-xs text-neutral-500">Public URL: /p/{slugify(slug || title) || 'your-slug'}</p>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border border-white/10 bg-neutral-900/50 px-3 py-2">
-              <span className="text-sm text-neutral-300">Published</span>
-              <Switch checked={isPublished} onCheckedChange={setIsPublished} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6 border-white/10 bg-white/[0.04] text-white">
-          <CardHeader>
-            <CardTitle>Add Block</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => addBlock('heading')}>Heading</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => addBlock('text')}>Text</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => addBlock('image')}>Image</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => addBlock('divider')}>Divider</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => addBlock('callout')}>Callout</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => addBlock('link')}>Link</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-3">
-          {blocks.map((block, index) => (
-            <Card key={block.id} className="border-white/10 bg-white/[0.04] text-white">
-              <CardContent className="pt-6">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-sm font-medium uppercase tracking-wide text-neutral-400">{block.type}</span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => moveBlock(index, -1)}
-                      disabled={index === 0}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => moveBlock(index, 1)}
-                      disabled={index === blocks.length - 1}
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => deleteBlock(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {block.type === 'heading' && (
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <Select
-                      value={block.level}
-                      onValueChange={(value: HeadingLevel) =>
-                        updateBlock(index, { ...block, level: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Heading level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="h1">H1</SelectItem>
-                        <SelectItem value="h2">H2</SelectItem>
-                        <SelectItem value="h3">H3</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="md:col-span-2">
-                      <Input
-                        value={block.text}
-                        onChange={(e) => updateBlock(index, { ...block, text: e.target.value })}
-                        placeholder="Heading text"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {block.type === 'text' && (
-                  <Textarea
-                    value={block.text}
-                    onChange={(e) => updateBlock(index, { ...block, text: e.target.value })}
-                    placeholder="Write your text"
-                    rows={5}
-                  />
-                )}
-
-                {block.type === 'image' && (
-                  <div className="space-y-3">
-                    <Input
-                      value={block.url}
-                      onChange={(e) => updateBlock(index, { ...block, url: e.target.value })}
-                      placeholder="Image URL"
-                    />
-                    <Input
-                      value={block.alt}
-                      onChange={(e) => updateBlock(index, { ...block, alt: e.target.value })}
-                      placeholder="Alt text"
-                    />
-                    <Input
-                      value={block.caption}
-                      onChange={(e) => updateBlock(index, { ...block, caption: e.target.value })}
-                      placeholder="Caption"
-                    />
-                  </div>
-                )}
-
-                {block.type === 'divider' && (
-                  <div className="rounded-md border border-dashed border-white/20 py-3 text-center text-sm text-neutral-400">
-                    Divider
-                  </div>
-                )}
-
-                {block.type === 'callout' && (
-                  <div className="space-y-3">
-                    <Select
-                      value={block.style}
-                      onValueChange={(value: CalloutStyle) =>
-                        updateBlock(index, { ...block, style: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Callout style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="success">Success</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Textarea
-                      value={block.text}
-                      onChange={(e) => updateBlock(index, { ...block, text: e.target.value })}
-                      placeholder="Callout text"
-                      rows={4}
-                    />
-                  </div>
-                )}
-
-                {block.type === 'link' && (
-                  <div className="space-y-3">
-                    <Input
-                      value={block.label}
-                      onChange={(e) => updateBlock(index, { ...block, label: e.target.value })}
-                      placeholder="Link label"
-                    />
-                    <Input
-                      value={block.url}
-                      onChange={(e) => updateBlock(index, { ...block, url: e.target.value })}
-                      placeholder="https://example.com"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-
-          {blocks.length === 0 && (
-            <Card className="border-white/10 bg-white/[0.04] text-white">
-              <CardContent className="py-10 text-center text-neutral-400">
-                No blocks yet. Add your first content block.
-              </CardContent>
-            </Card>
-          )}
+        {/* Mobile tab switcher */}
+        <div className="flex lg:hidden mb-4 rounded-xl border border-white/10 bg-neutral-900 p-1 gap-1">
+          <button
+            type="button"
+            onClick={() => setMobileTab('edit')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mobileTab === 'edit' ? 'bg-rink-500/20 text-rink-400' : 'text-neutral-400 hover:text-white'}`}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab('preview')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mobileTab === 'preview' ? 'bg-rink-500/20 text-rink-400' : 'text-neutral-400 hover:text-white'}`}
+          >
+            Preview
+          </button>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={openPreview}
-            disabled={!leagueSlug || !slugify(slug || title)}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            Preview
-          </Button>
-          <Button type="button" onClick={handleSave} disabled={saving}>
-            <Save className="mr-2 h-4 w-4" />
-            {saving ? 'Saving...' : 'Save'}
-          </Button>
+        {/* Split pane */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+
+          {/* ── Left: Block editor ── */}
+          <div className={`w-full lg:w-[440px] flex-shrink-0 space-y-1 ${mobileTab === 'preview' ? 'hidden lg:block' : ''}`}>
+
+            {/* First add-block row */}
+            <AddBlockRow onAdd={(type) => appendBlock(type)} />
+
+            {blocks.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-neutral-700 bg-neutral-900/30 py-14 text-center">
+                <ImageIcon className="w-10 h-10 mx-auto text-neutral-700 mb-3" />
+                <p className="text-sm text-neutral-500">No blocks yet.</p>
+                <p className="text-xs text-neutral-600 mt-1">Use the + button above to add your first content block.</p>
+              </div>
+            ) : (
+              blocks.map((block, index) => (
+                <div key={block.id}>
+                  <BlockCard
+                    block={block}
+                    index={index}
+                    total={blocks.length}
+                    leagueId={leagueId}
+                    onUpdate={(updated) => updateBlock(index, updated)}
+                    onDelete={() => deleteBlock(index)}
+                    onMoveUp={() => moveBlock(index, -1)}
+                    onMoveDown={() => moveBlock(index, 1)}
+                  />
+                  <AddBlockRow onAdd={(type) => insertBlockAt(index, type)} />
+                </div>
+              ))
+            )}
+
+            {/* Page Settings */}
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 space-y-4">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Page Settings</p>
+              <div className="space-y-1.5">
+                <label className="text-sm text-neutral-300">Title</label>
+                <Input
+                  value={title}
+                  onChange={(e) => onTitleChange(e.target.value)}
+                  placeholder="About Our League"
+                  className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm text-neutral-300">Slug</label>
+                <Input
+                  value={slug}
+                  onChange={(e) => { setSlug(e.target.value); setSlugManuallyEdited(true); }}
+                  placeholder="about-our-league"
+                  className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 font-mono text-sm"
+                />
+                <p className="text-xs text-neutral-600">
+                  Public URL: /p/<span className="text-neutral-400">{slugify(slug || title) || 'your-slug'}</span>
+                </p>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-white/10 bg-neutral-900/50 px-3 py-2.5">
+                <div>
+                  <p className="text-sm text-neutral-300">Published</p>
+                  <p className="text-xs text-neutral-600">{isPublished ? 'Visible on your league site' : 'Only visible to admins'}</p>
+                </div>
+                <Switch checked={isPublished} onCheckedChange={setIsPublished} />
+              </div>
+              {leagueSlug && slugify(slug || title) && (
+                <a
+                  href={`/${leagueSlug}/p/${slugify(slug || title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-xs text-rink-400 hover:text-rink-300 transition-colors"
+                >
+                  Open live page ↗
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* ── Right: Live preview ── */}
+          <div className={`flex-1 min-w-0 ${mobileTab === 'edit' ? 'hidden lg:block' : ''}`}>
+            <div className="sticky top-6">
+              <p className="text-xs font-semibold text-neutral-600 uppercase tracking-wide mb-3">Live Preview</p>
+              <PagePreview title={title} blocks={blocks} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

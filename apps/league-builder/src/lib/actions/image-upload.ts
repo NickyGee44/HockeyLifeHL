@@ -220,3 +220,47 @@ export async function deleteStaffPhoto(
 ): Promise<ImageActionResult<void>> {
   return deleteImage('staff-photos', url);
 }
+
+// ==============================================================================
+// PAGE CONTENT IMAGES
+// ==============================================================================
+
+export async function uploadPageImage(
+  leagueId: string,
+  file: File
+): Promise<ImageActionResult<{ url: string; path: string }>> {
+  return uploadImage('page-images', leagueId, file, {
+    maxSize: FIVE_MB,
+    allowedTypes: IMAGE_TYPES,
+    label: 'page image',
+  });
+}
+
+export async function deletePageImage(
+  leagueId: string,
+  url: string
+): Promise<ImageActionResult<void>> {
+  return deleteImage('page-images', url);
+}
+
+// ==============================================================================
+// GALLERY PHOTOS (individual photos within an album)
+// ==============================================================================
+
+export async function uploadGalleryPhoto(
+  leagueId: string,
+  file: File
+): Promise<ImageActionResult<{ url: string; path: string }>> {
+  return uploadImage('gallery-images', leagueId, file, {
+    maxSize: 10 * 1024 * 1024,
+    allowedTypes: IMAGE_TYPES,
+    label: 'gallery photo',
+  });
+}
+
+export async function deleteGalleryPhoto(
+  leagueId: string,
+  url: string
+): Promise<ImageActionResult<void>> {
+  return deleteImage('gallery-images', url);
+}

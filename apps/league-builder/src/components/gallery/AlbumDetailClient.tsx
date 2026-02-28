@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
 import { Plus, Trash2, Save, Eye, EyeOff, ImageIcon } from 'lucide-react';
 import { updateAlbum, addPhotos, updatePhoto, deletePhoto } from '@/lib/actions/gallery';
+import { uploadGalleryCover, deleteGalleryCover, uploadGalleryPhoto } from '@/lib/actions/image-upload';
+import { LogoUploader } from '@/components/ui/logo-uploader';
 
 interface Album {
   id: string;
@@ -31,7 +33,7 @@ interface AlbumDetailClientProps {
   photos: Photo[];
 }
 
-export function AlbumDetailClient({ leagueId: _leagueId, locale: _locale, album, photos }: AlbumDetailClientProps) {
+export function AlbumDetailClient({ leagueId, locale: _locale, album, photos }: AlbumDetailClientProps) {
   const t = useTranslations('gallery');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -55,7 +57,7 @@ export function AlbumDetailClient({ leagueId: _leagueId, locale: _locale, album,
       await updateAlbum(album.id, {
         title: editTitle.trim(),
         description: editDescription.trim() || undefined,
-        coverPhotoUrl: editCoverUrl.trim() || undefined });
+        coverPhotoUrl: editCoverUrl || undefined });
       router.refresh();
     });
   }
@@ -68,7 +70,7 @@ export function AlbumDetailClient({ leagueId: _leagueId, locale: _locale, album,
   }
 
   async function handleAddPhoto() {
-    if (!photoUrl.trim()) return;
+    if (!photoUrl) return;
 
     startTransition(async () => {
       await addPhotos(album.id, [
@@ -140,12 +142,22 @@ export function AlbumDetailClient({ leagueId: _leagueId, locale: _locale, album,
           </div>
           <div>
             <label className="block text-sm font-medium text-neutral-300 mb-1">{t('coverPhoto')}</label>
-            <input
-              type="url"
+            <LogoUploader
               value={editCoverUrl}
-              onChange={(e) => setEditCoverUrl(e.target.value)}
-              className="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-4 py-2 text-white focus:ring-2 focus:ring-rink-500 focus:border-transparent"
-              placeholder="https://..."
+              onChange={(url) => setEditCoverUrl(url)}
+              onUpload={async (file) => {
+                const result = await uploadGalleryCover(leagueId, file);
+                if (!result.success) throw new Error(result.error);
+                return result.data;
+              }}
+              onRemove={async () => {
+                if (editCoverUrl) await deleteGalleryCover(leagueId, editCoverUrl);
+                setEditCoverUrl('');
+              }}
+              aspectRatio={16 / 9}
+              outputSize={1200}
+              shape="square"
+              placeholder="Upload cover photo"
             />
           </div>
         </div>
@@ -195,12 +207,19 @@ export function AlbumDetailClient({ leagueId: _leagueId, locale: _locale, album,
             <h3 className="text-white font-medium">{t('addPhotos')}</h3>
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-1">{t('photoUrl')}</label>
-              <input
-                type="url"
+              <LogoUploader
                 value={photoUrl}
-                onChange={(e) => setPhotoUrl(e.target.value)}
-                className="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-4 py-2 text-white focus:ring-2 focus:ring-rink-500 focus:border-transparent"
-                placeholder="https://..."
+                onChange={(url) => setPhotoUrl(url)}
+                onUpload={async (file) => {
+                  const result = await uploadGalleryPhoto(leagueId, file);
+                  if (!result.success) throw new Error(result.error);
+                  return result.data;
+                }}
+                onRemove={async () => setPhotoUrl('')}
+                aspectRatio={4 / 3}
+                outputSize={1600}
+                shape="square"
+                placeholder="Upload photo"
               />
             </div>
             <div>
@@ -215,7 +234,7 @@ export function AlbumDetailClient({ leagueId: _leagueId, locale: _locale, album,
             <div className="flex gap-3">
               <button
                 onClick={handleAddPhoto}
-                disabled={isPending || !photoUrl.trim()}
+                disabled={isPending || !photoUrl}
                 className="px-5 py-2 rounded-lg font-semibold text-sm bg-rink-500 text-black hover:bg-rink-400 transition-colors disabled:opacity-50"
               >
                 {isPending ? 'Adding...' : 'Add Photo'}
