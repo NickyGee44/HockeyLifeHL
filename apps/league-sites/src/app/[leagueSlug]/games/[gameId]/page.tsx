@@ -24,7 +24,7 @@ import { GoalieComparison } from '@/components/game/GoalieComparison';
 import { GameBoxScore } from '@/components/game/GameBoxScore';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { GameRecapSection } from '@/components/game/GameRecapSection';
-import { AddonUpsell, SubscriptionWall } from '@/components/shared';
+import { SubscriptionWall } from '@/components/shared';
 
 interface GamePageProps {
   params: Promise<{ leagueSlug: string; gameId: string }>;
@@ -160,7 +160,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
                 />
               </>
             ) : (
-              <AddonUpsell addonType="advanced_stats" />
+              {null}
             )}
 
             {/* Future Matchups between these teams */}

@@ -8,7 +8,7 @@ import { SpecialTeamsTable } from '@/components/stats/SpecialTeamsTable';
 import { StatLeaders } from '@/components/stats/StatLeaders';
 import { StatsFilters } from '@/components/stats/StatsFilters';
 import { SeasonSelector } from '@/components/stats/SeasonSelector';
-import { AddonUpsell, SubscriptionWall } from '@/components/shared';
+import { SubscriptionWall } from '@/components/shared';
 import { createClient } from '@/lib/supabase/server';
 
 interface StatsPageProps {
@@ -179,7 +179,7 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
       {/* Upsell for non-subscribers */}
       {!hasFullStats && hasStats && (
         <div className="mt-8">
-          <AddonUpsell addonType="advanced_stats" compact />
+          {null}
         </div>
       )}
 

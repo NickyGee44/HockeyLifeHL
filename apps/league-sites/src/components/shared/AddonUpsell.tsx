@@ -1,3 +1,4 @@
+// NOTE: This component must NEVER be used in league-sites (player-facing). For league-builder (admin) only.
 'use client';
 
 import { Lock, BarChart3, Newspaper, ArrowRight } from 'lucide-react';
