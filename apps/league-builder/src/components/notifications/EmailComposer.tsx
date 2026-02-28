@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import DOMPurify from 'isomorphic-dompurify';
 import {
   Send,
   Users,
@@ -548,7 +549,7 @@ export function EmailComposer({ leagueId, leagueName, onSuccess, editDraft }: Em
 
         {showInlinePreview ? (
           <div className="min-h-[200px] bg-[#0a0a0a] border border-[rgba(34,211,238,0.3)] rounded-lg p-4 text-[#a3a3a3]">
-            <div dangerouslySetInnerHTML={{ __html: inlinePreviewContent || '<em>Nothing to preview</em>' }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(inlinePreviewContent) || '<em>Nothing to preview</em>' }} />
           </div>
         ) : (
           <textarea

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { canApproveJoinRequests, verifyCaptainOrAdminAccess } from './permissions';
+import { sendJoinRequestCaptainNotification } from '@/lib/notifications/actions';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -107,6 +108,15 @@ export async function createJoinRequest(params: CreateJoinRequestParams) {
       }
       return { error: 'Failed to create join request' };
     }
+
+    // Notify team captain (fire-and-forget — never blocks the request)
+    void sendJoinRequestCaptainNotification({
+      requestId: request.id,
+      teamId,
+      leagueId,
+      playerId: user.id,
+      message: message || null,
+    });
 
     revalidatePath(`/teams/${teamId}`);
     return { success: true, data: request };

@@ -1,6 +1,18 @@
 import type { SupabaseClientArg, UpcomingGame, RecentGame, ScheduleGame, GamePreview, Game } from '../types';
 
-function transformTeamData(team: any): any {
+interface RawTeamShape {
+  id: string;
+  name: string;
+  slug?: string | null;
+  logo_url?: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  division_id?: string | null;
+  division?: { name: string } | null;
+  divisions?: { name: string } | Array<{ name: string }> | null;
+}
+
+function transformTeamData(team: RawTeamShape | RawTeamShape[] | null | undefined) {
   if (!team) return null;
   const rawTeam = Array.isArray(team) ? team[0] : team;
   if (!rawTeam) return null;

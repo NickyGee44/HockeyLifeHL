@@ -1,6 +1,28 @@
 import type { SupabaseClientArg, Team, TeamStanding, Player } from '../types';
 
-function transformTeamData(team: any): any {
+interface RawTeamShape {
+  id: string;
+  name: string;
+  slug?: string | null;
+  logo_url?: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  division_id?: string | null;
+  division?: { name: string } | null;
+  divisions?: { name: string } | Array<{ name: string }> | null;
+}
+
+interface RawRosterRow {
+  is_goalie?: boolean | null;
+  player_id: string;
+  position?: string | null;
+  jersey_number?: number | null;
+  leadership_role?: string | null;
+  profile?: { id: string; full_name: string | null; avatar_url: string | null; position?: string | null } | Array<{ id: string; full_name: string | null; avatar_url: string | null; position?: string | null }> | null;
+  [key: string]: unknown;
+}
+
+function transformTeamData(team: RawTeamShape | RawTeamShape[] | null | undefined) {
   if (!team) return null;
   const rawTeam = Array.isArray(team) ? team[0] : team;
   if (!rawTeam) return null;
@@ -96,9 +118,9 @@ export async function getTeamRoster(
 
   if (error || !rosterRows) return [];
 
-  const goalieIds = new Set((goalieRows || []).map((r: any) => r.player_id));
+  const goalieIds = new Set((goalieRows || []).map((r: { player_id: string }) => r.player_id));
 
-  return rosterRows.map((row: any) => {
+  return (rosterRows as RawRosterRow[]).map((row) => {
     const profileRow = Array.isArray(row.profile) ? row.profile[0] : row.profile;
     const isGoalie = Boolean(row.is_goalie || goalieIds.has(row.player_id));
     const position = normalizeRosterPosition(row.position ?? profileRow?.position, isGoalie);
@@ -155,7 +177,7 @@ export async function getPlayerTeams(
   if (!rosters) return [];
 
   return rosters
-    .map((r: any) => {
+    .map((r: { teams: RawTeamShape | RawTeamShape[] | null }) => {
       const team = Array.isArray(r.teams) ? r.teams[0] : r.teams;
       return team;
     })

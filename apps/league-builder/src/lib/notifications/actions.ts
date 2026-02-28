@@ -9,6 +9,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { sendEmail, sendBatchEmails, getUnsubscribeUrl, type BatchEmailRecipient } from './email-service';
 import {
+  getBaseEmailTemplate,
+  createBadge,
+  createInfoBox,
   getGameReminderEmail,
   getRosterChangeEmail,
   getLeagueAnnouncementEmail,
@@ -1116,6 +1119,122 @@ export async function sendAnnouncementDraft(draftId: string): Promise<Notificati
   });
 
   return result;
+}
+
+// =============================================================================
+// Get Delivery Stats
+// =============================================================================
+
+// =============================================================================
+// Send Join Request Captain Notification
+// =============================================================================
+
+/**
+ * Notify the team captain when a player submits a join request.
+ * Non-critical: errors are swallowed so a mail failure never blocks the join request.
+ */
+export async function sendJoinRequestCaptainNotification(params: {
+  requestId: string;
+  teamId: string;
+  leagueId: string;
+  playerId: string;
+  message?: string | null;
+}): Promise<void> {
+  const supabase = await createClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
+
+  try {
+    const [playerResult, teamResult, captainResult, pendingResult] = await Promise.all([
+      supabase.from('profiles').select('full_name').eq('id', params.playerId).single(),
+      supabase.from('teams').select('name, league_id').eq('id', params.teamId).single(),
+      supabase
+        .from('team_rosters')
+        .select('player_id, profiles:profiles!player_id(id, email, full_name)')
+        .eq('team_id', params.teamId)
+        .eq('leadership_role', 'captain' as any)
+        .eq('status', 'active')
+        .limit(1),
+      supabase
+        .from('team_join_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_id', params.teamId)
+        .eq('status', 'pending'),
+    ]);
+
+    const playerName = playerResult.data?.full_name || 'A player';
+    const teamName = teamResult.data?.name || 'your team';
+    const captainRoster = captainResult.data?.[0];
+    const captain = captainRoster?.profiles as { id: string; email: string; full_name: string | null } | undefined;
+    const pendingCount = pendingResult.count ?? 1;
+
+    if (!captain?.email) return;
+
+    const { canSend, unsubscribeToken } = await shouldSendEmail(captain.id, 'game_updates');
+    if (!canSend) return;
+
+    const reviewUrl = `${siteUrl}/dashboard/captain/requests`;
+
+    const messageBlock = params.message
+      ? `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:16px;margin:16px 0;">
+           <p style="margin:0 0 8px 0;color:#a3a3a3;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Message from Player</p>
+           <p style="margin:0;color:#fafafa;font-style:italic;">"${params.message}"</p>
+         </div>`
+      : '';
+
+    const pendingNote = pendingCount > 1
+      ? `<p style="color:#a3a3a3;">You now have <strong>${pendingCount}</strong> pending join requests for this team.</p>`
+      : '';
+
+    const content = `
+      <p>Hi ${captain.full_name || 'Captain'},</p>
+
+      ${createBadge('New Join Request', 'gold')}
+
+      <p style="font-size:20px;color:#fafafa;margin-top:16px;">
+        <strong>${playerName} wants to join ${teamName}</strong>
+      </p>
+
+      <p>
+        A player has submitted a request to join your team. Please log in to your captain dashboard to review and approve or decline.
+      </p>
+
+      ${messageBlock}
+      ${pendingNote}
+
+      ${createInfoBox('<strong>Action Required</strong><br>Review this join request from your captain dashboard.')}
+    `;
+
+    const subject = `Join Request: ${playerName} wants to join ${teamName}`;
+
+    const html = getBaseEmailTemplate({
+      title: 'New Team Join Request',
+      preheader: subject,
+      content,
+      buttonText: 'Review Request',
+      buttonUrl: reviewUrl,
+      footerNote: 'This notification was sent because you are a captain in this league.',
+      unsubscribeUrl: unsubscribeToken ? getUnsubscribeUrl(unsubscribeToken, 'game_updates') : undefined,
+      leagueName: teamName,
+    });
+
+    const result = await sendEmail({ to: captain.email, subject, html });
+
+    await logNotification({
+      leagueId: params.leagueId,
+      userId: captain.id,
+      type: 'join_request_captain_alert',
+      channel: 'email',
+      subject,
+      relatedEntityType: 'team_join_request',
+      relatedEntityId: params.requestId,
+      status: result.success ? 'sent' : 'failed',
+      providerMessageId: result.messageId,
+      failureReason: result.error,
+    });
+  } catch (err) {
+    console.error('[Notifications] sendJoinRequestCaptainNotification error:', err);
+    // Non-critical — never block the join request on notification failure
+  }
 }
 
 // =============================================================================
