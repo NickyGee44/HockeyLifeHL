@@ -34,14 +34,24 @@ async function assertLeagueAccess(leagueId: string): Promise<ActionResult<true>>
   return { success: true, data: true };
 }
 
-export async function getLeaguePreviewData(leagueId: string): Promise<ActionResult<{ slug: string }>> {
+export type LeaguePreviewData = {
+  slug: string;
+  name: string;
+  primaryColor: string;
+  secondaryColor: string;
+  logoUrl: string | null;
+  fontFamily: string;
+  themePreset: 'dark' | 'light' | 'custom';
+};
+
+export async function getLeaguePreviewData(leagueId: string): Promise<ActionResult<LeaguePreviewData>> {
   const auth = await assertLeagueAccess(leagueId);
   if (!auth.success) return auth;
 
   const supabase = await createClient();
   const { data: league, error } = await supabase
     .from('leagues')
-    .select('slug')
+    .select('slug, name, primary_color, secondary_color, logo_url, font_family, settings')
     .eq('id', leagueId)
     .single();
 
@@ -49,7 +59,21 @@ export async function getLeaguePreviewData(leagueId: string): Promise<ActionResu
     return { success: false, error: 'League not found' };
   }
 
-  return { success: true, data: { slug: league.slug } };
+  const settings = league.settings as Record<string, any> | null;
+  const themePreset = (settings?.website?.themePreset ?? 'dark') as 'dark' | 'light' | 'custom';
+
+  return {
+    success: true,
+    data: {
+      slug: league.slug,
+      name: league.name,
+      primaryColor: league.primary_color || '#22D3EE',
+      secondaryColor: league.secondary_color || '#0f172a',
+      logoUrl: league.logo_url || null,
+      fontFamily: league.font_family || 'Inter, system-ui, sans-serif',
+      themePreset,
+    },
+  };
 }
 
 export async function getCustomPageForEditor(pageId: string, leagueId: string): Promise<ActionResult<CustomPageRow>> {
