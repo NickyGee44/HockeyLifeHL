@@ -40,6 +40,14 @@ export interface WebsiteSettings {
   socialYoutube?: string;
   socialTiktok?: string;
   visiblePages?: Record<string, boolean>;
+  navItems?: Array<{
+    label: string;
+    href: string;
+    isExternal?: boolean;
+    isCustomPage?: boolean;
+    pageSlug?: string;
+  }>;
+  showGameTicker?: boolean;
   seoTitle?: string;
   seoDescription?: string;
 }
@@ -70,6 +78,14 @@ export interface EditorState {
 
   // Navigation
   visiblePages: Record<string, boolean>;
+  navItems: Array<{
+    label: string;
+    href: string;
+    isExternal?: boolean;
+    isCustomPage?: boolean;
+    pageSlug?: string;
+  }>;
+  showGameTicker: boolean;
 
   // Social
   socialFacebook: string;
@@ -126,6 +142,14 @@ export interface PreviewThemePayload {
 
   // Navigation
   visiblePages: Record<string, boolean>;
+  navItems: Array<{
+    label: string;
+    href: string;
+    isExternal?: boolean;
+    isCustomPage?: boolean;
+    pageSlug?: string;
+  }>;
+  showGameTicker: boolean;
 
   // Social
   socialFacebook: string;

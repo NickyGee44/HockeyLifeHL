@@ -3070,6 +3070,8 @@ export async function getGoaliePlayerMatchups(
 // ============================================================================
 
 export async function getCustomPage(leagueId: string, slug: string) {
+  const supabase = await createClient();
+
   const { data, error } = await supabase
     .from('custom_pages')
     .select('*')
@@ -3083,6 +3085,8 @@ export async function getCustomPage(leagueId: string, slug: string) {
 }
 
 export async function getCustomPages(leagueId: string) {
+  const supabase = await createClient();
+
   const { data, error } = await supabase
     .from('custom_pages')
     .select('*')

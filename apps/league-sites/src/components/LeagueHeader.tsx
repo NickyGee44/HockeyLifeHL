@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import type { LucideIcon } from 'lucide-react';
 import {
   Calendar,
   Trophy,
@@ -30,7 +31,22 @@ interface LeagueHeaderProps {
   visiblePages?: Record<string, boolean>;
 }
 
-const navItems = [
+type DefaultNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+type NavItem = {
+  label: string;
+  href: string;
+  isExternal?: boolean;
+  isCustomPage?: boolean;
+  pageSlug?: string;
+  icon?: LucideIcon;
+};
+
+const navItems: DefaultNavItem[] = [
   { href: '/schedule', label: 'Schedule', icon: Calendar },
   { href: '/standings', label: 'Standings', icon: Trophy },
   { href: '/teams', label: 'Teams', icon: Users },
@@ -46,14 +62,36 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
   const pathname = usePathname();
   const { isPreviewMode, theme } = usePreviewMode();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
+  const customNavItems = (league as any).settings?.website?.navItems;
+  const hasCustomNav = Array.isArray(customNavItems) && customNavItems.length > 0;
+
+  const normalizedCustomNavItems: NavItem[] = hasCustomNav
+    ? customNavItems
+        .filter(
+          (item: unknown): item is NavItem =>
+            typeof item === 'object' &&
+            item !== null &&
+            typeof (item as NavItem).label === 'string' &&
+            typeof (item as NavItem).href === 'string'
+        )
+        .map((item) => ({
+          label: item.label,
+          href: item.href,
+          isExternal: item.isExternal,
+          isCustomPage: item.isCustomPage,
+          pageSlug: item.pageSlug,
+        }))
+    : [];
 
   // Filter nav items based on visiblePages setting
-  const filteredNavItems = visiblePages
-    ? navItems.filter((item) => {
-        const pageKey = item.href.replace('/', '');
-        return visiblePages[pageKey] !== false;
-      })
-    : navItems;
+  const filteredNavItems: NavItem[] = hasCustomNav
+    ? normalizedCustomNavItems
+    : visiblePages
+      ? navItems.filter((item) => {
+          const pageKey = item.href.replace('/', '');
+          return visiblePages[pageKey] !== false;
+        })
+      : navItems;
 
   const logoUrl = isPreviewMode && theme?.logoUrl !== undefined ? theme.logoUrl : league.logo_url;
   const displayName = league.short_name || league.name;
@@ -65,8 +103,31 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
     .toUpperCase();
   const _location = [league.city, league.state].filter(Boolean).join(', ');
 
-  const isItemActive = (href: string) => {
-    const path = `/${leagueSlug}${href}`;
+  const getInternalPath = (item: NavItem) => {
+    if (item.isCustomPage) {
+      const slugOrHref = item.pageSlug || item.href;
+      const normalizedSlug = slugOrHref.replace(/^\/+/, '');
+      return `/${leagueSlug}/p/${normalizedSlug}`;
+    }
+
+    const normalizedHref = item.href.startsWith('/') ? item.href : `/${item.href}`;
+    return `/${leagueSlug}${normalizedHref}`;
+  };
+
+  const getItemHref = (item: NavItem) => {
+    if (item.isExternal) {
+      return item.href;
+    }
+
+    return getInternalPath(item);
+  };
+
+  const isItemActive = (item: NavItem) => {
+    if (item.isExternal) {
+      return false;
+    }
+
+    const path = getInternalPath(item);
     return pathname === path || pathname.startsWith(`${path}/`);
   };
 
@@ -110,19 +171,44 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {filteredNavItems.map((item) => {
-                const active = isItemActive(item.href);
+                const active = isItemActive(item);
+                const href = getItemHref(item);
+                const baseClasses = `inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${
+                  active
+                    ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                    : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
+                }`;
+
+                const content = (
+                  <>
+                    {item.icon && (
+                      <item.icon className={`h-3.5 w-3.5 hidden xl:block ${active ? 'text-[var(--league-primary)]' : 'text-[var(--league-primary)]/80'}`} />
+                    )}
+                    {item.label}
+                  </>
+                );
+
+                if (item.isExternal) {
+                  return (
+                    <a
+                      key={`${item.label}-${item.href}`}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={baseClasses}
+                    >
+                      {content}
+                    </a>
+                  );
+                }
+
                 return (
                   <Link
-                    key={item.href}
-                    href={`/${leagueSlug}${item.href}`}
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${
-                      active
-                        ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
-                        : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
-                    }`}
+                    key={`${item.label}-${item.href}`}
+                    href={href}
+                    className={baseClasses}
                   >
-                    <item.icon className={`h-3.5 w-3.5 hidden xl:block ${active ? 'text-[var(--league-primary)]' : 'text-[var(--league-primary)]/80'}`} />
-                    {item.label}
+                    {content}
                   </Link>
                 );
               })}
@@ -208,20 +294,44 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
             )}
             <div className="grid grid-cols-2 gap-1">
               {filteredNavItems.map((item) => {
-                const active = isItemActive(item.href);
+                const active = isItemActive(item);
+                const href = getItemHref(item);
+                const baseClasses = `inline-flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                    : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
+                }`;
+
+                const content = (
+                  <>
+                    {item.icon && <item.icon className="h-4 w-4 text-[var(--league-primary)]" />}
+                    {item.label}
+                  </>
+                );
+
+                if (item.isExternal) {
+                  return (
+                    <a
+                      key={`${item.label}-${item.href}`}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={baseClasses}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {content}
+                    </a>
+                  );
+                }
+
                 return (
                   <Link
-                    key={item.href}
-                    href={`/${leagueSlug}${item.href}`}
-                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
-                        : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
-                    }`}
+                    key={`${item.label}-${item.href}`}
+                    href={href}
+                    className={baseClasses}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <item.icon className="h-4 w-4 text-[var(--league-primary)]" />
-                    {item.label}
+                    {content}
                   </Link>
                 );
               })}

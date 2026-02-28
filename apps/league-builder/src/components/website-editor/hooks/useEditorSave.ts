@@ -23,6 +23,8 @@ export function useEditorSave() {
         socialYoutube: state.socialYoutube,
         socialTiktok: state.socialTiktok,
         visiblePages: state.visiblePages,
+        navItems: state.navItems,
+        showGameTicker: state.showGameTicker,
         seoTitle: state.seoTitle,
         seoDescription: state.seoDescription,
       };

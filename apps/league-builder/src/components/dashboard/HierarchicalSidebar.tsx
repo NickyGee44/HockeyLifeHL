@@ -23,6 +23,7 @@ import {
   User,
   Dices,
   Newspaper,
+  FileText,
   Star,
   Award,
   Image,
@@ -270,6 +271,14 @@ export default function HierarchicalSidebar({
             icon={Newspaper}
             label={t('news')}
             isActive={isPathActive(`${leagueBase}/news`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/pages`}
+            icon={FileText}
+            label={t('pages')}
+            isActive={isPathActive(`${leagueBase}/pages`)}
             collapsed={sidebarCollapsed}
             locked={!isSubscribed}
           />
