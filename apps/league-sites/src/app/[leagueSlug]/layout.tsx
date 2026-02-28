@@ -128,7 +128,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                   <main className="flex-1">{children}</main>
                   <SponsorFooterStrip sponsors={sponsors} />
                   <LeagueFooter league={league} leagueSlug={leagueSlug} />
-                  <BugReportButton />
+                  {!(league as any).settings?.website?.demoMode && <BugReportButton />}
                   {(league as any).settings?.website?.demoMode && (
                     <DemoTourPanel leagueSlug={leagueSlug} />
                   )}
