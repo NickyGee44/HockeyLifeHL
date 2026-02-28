@@ -1369,7 +1369,7 @@ export async function getStatsLeaders(
     }
   );
 
-  if (!rpcError && rpcData) {
+  if (!rpcError && rpcData && rpcData.length > 0) {
     return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
   }
 
