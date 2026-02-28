@@ -119,7 +119,7 @@ export function GamePreviewHeader({
                 href={`/${leagueSlug}/teams/${awayTeam.slug}`}
                 className="block text-white hover:underline"
               >
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold drop-shadow-lg leading-tight">
+                <h2 className="text-base sm:text-xl md:text-2xl font-bold drop-shadow-lg leading-tight line-clamp-2 break-words">
                   {awayTeam.name}
                 </h2>
               </Link>
@@ -138,7 +138,7 @@ export function GamePreviewHeader({
           </div>
 
           {/* Center Info */}
-          <div className="flex flex-col items-center text-center text-white z-20">
+          <div className="flex flex-col items-center text-center text-white z-20 shrink-0 min-w-[120px] px-2">
             {getStatusBadge()}
 
             {!isCompleted && !isLive && (
@@ -208,7 +208,7 @@ export function GamePreviewHeader({
                 href={`/${leagueSlug}/teams/${homeTeam.slug}`}
                 className="block text-white hover:underline"
               >
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold drop-shadow-lg leading-tight">
+                <h2 className="text-base sm:text-xl md:text-2xl font-bold drop-shadow-lg leading-tight line-clamp-2 break-words">
                   {homeTeam.name}
                 </h2>
               </Link>
