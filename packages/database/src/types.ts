@@ -14,50 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      custom_pages: {
-        Row: {
-          id: string
-          league_id: string
-          title: string
-          slug: string
-          content: Json
-          is_published: boolean
-          sort_order: number
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          league_id: string
-          title: string
-          slug: string
-          content?: Json
-          is_published?: boolean
-          sort_order?: number
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          league_id?: string
-          title?: string
-          slug?: string
-          content?: Json
-          is_published?: boolean
-          sort_order?: number
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "custom_pages_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       account_deletion_log: {
         Row: {
           cancelled_at: string | null
@@ -756,6 +712,64 @@ export type Database = {
           },
           {
             foreignKeyName: "contact_submissions_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_pages: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          is_published: boolean
+          league_id: string
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          is_published?: boolean
+          league_id: string
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          is_published?: boolean
+          league_id?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_pages_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_pages_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_pages_league_id_fkey"
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "public_leagues"
@@ -5012,6 +5026,7 @@ export type Database = {
           payment_mode: string | null
           postal_code: string | null
           primary_color: string | null
+          registration_form_config: Json
           registration_url: string | null
           search_keywords: string[] | null
           secondary_color: string | null
@@ -5070,6 +5085,7 @@ export type Database = {
           payment_mode?: string | null
           postal_code?: string | null
           primary_color?: string | null
+          registration_form_config?: Json
           registration_url?: string | null
           search_keywords?: string[] | null
           secondary_color?: string | null
@@ -5128,6 +5144,7 @@ export type Database = {
           payment_mode?: string | null
           postal_code?: string | null
           primary_color?: string | null
+          registration_form_config?: Json
           registration_url?: string | null
           search_keywords?: string[] | null
           secondary_color?: string | null
@@ -7334,6 +7351,8 @@ export type Database = {
           signature_type: Database["public"]["Enums"]["signature_type_enum"]
           signed_name: string
           user_agent: string | null
+          waiver_accepted: boolean
+          waiver_accepted_at: string | null
           waiver_content_hash: string
           waiver_version: string
         }
@@ -7349,6 +7368,8 @@ export type Database = {
           signature_type?: Database["public"]["Enums"]["signature_type_enum"]
           signed_name: string
           user_agent?: string | null
+          waiver_accepted?: boolean
+          waiver_accepted_at?: string | null
           waiver_content_hash: string
           waiver_version?: string
         }
@@ -7364,6 +7385,8 @@ export type Database = {
           signature_type?: Database["public"]["Enums"]["signature_type_enum"]
           signed_name?: string
           user_agent?: string | null
+          waiver_accepted?: boolean
+          waiver_accepted_at?: string | null
           waiver_content_hash?: string
           waiver_version?: string
         }
@@ -10242,6 +10265,141 @@ export type Database = {
           {
             foreignKeyName: "team_registration_requests_reviewed_by_fkey"
             columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_registrations: {
+        Row: {
+          alternate_day: string | null
+          backup_rep_email: string | null
+          backup_rep_name: string | null
+          comments: string | null
+          created_at: string
+          id: string
+          league_id: string
+          level: string | null
+          location_preference: string | null
+          played_last_season: boolean | null
+          preferred_day: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          season_id: string
+          status: string
+          submitted_by: string | null
+          team_last_season: string | null
+          team_name: string
+          updated_at: string
+          waiver_accepted: boolean
+          waiver_accepted_at: string | null
+          waiver_version: string | null
+        }
+        Insert: {
+          alternate_day?: string | null
+          backup_rep_email?: string | null
+          backup_rep_name?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          league_id: string
+          level?: string | null
+          location_preference?: string | null
+          played_last_season?: boolean | null
+          preferred_day?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          season_id: string
+          status?: string
+          submitted_by?: string | null
+          team_last_season?: string | null
+          team_name: string
+          updated_at?: string
+          waiver_accepted?: boolean
+          waiver_accepted_at?: string | null
+          waiver_version?: string | null
+        }
+        Update: {
+          alternate_day?: string | null
+          backup_rep_email?: string | null
+          backup_rep_name?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          league_id?: string
+          level?: string | null
+          location_preference?: string | null
+          played_last_season?: boolean | null
+          preferred_day?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          season_id?: string
+          status?: string
+          submitted_by?: string | null
+          team_last_season?: string | null
+          team_name?: string
+          updated_at?: string
+          waiver_accepted?: boolean
+          waiver_accepted_at?: string | null
+          waiver_version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_registrations_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registrations_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registrations_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registrations_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registrations_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registrations_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registrations_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registrations_submitted_by_fkey"
+            columns: ["submitted_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]

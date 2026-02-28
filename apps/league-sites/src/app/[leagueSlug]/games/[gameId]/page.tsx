@@ -159,9 +159,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
                   leagueSlug={leagueSlug}
                 />
               </>
-            ) : (
-              
-            )}
+            ) : null}
 
             {/* Future Matchups between these teams */}
             {futureMatchups.length > 0 && (
