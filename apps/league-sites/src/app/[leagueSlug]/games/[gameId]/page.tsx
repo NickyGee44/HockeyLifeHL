@@ -185,23 +185,31 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
                       <Link
                         key={matchup.id}
                         href={`/${leagueSlug}/games/${matchup.id}`}
-                        className="flex items-center justify-between py-3 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-border-muted)] transition-colors"
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-border-muted)] transition-colors gap-2"
                       >
-                        <span className="text-sm text-[var(--color-text-secondary)]">
-                          {format(matchupDate, 'EEE, MMM d')}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
+                        {/* Date + time row on mobile */}
+                        <div className="flex items-center justify-between sm:contents">
+                          <span className="text-sm text-[var(--color-text-secondary)] shrink-0">
+                            {format(matchupDate, 'EEE, MMM d')}
+                          </span>
+                          <span className="text-sm font-medium sm:hidden" style={{ color: 'var(--league-primary)' }}>
+                            {format(matchupDate, 'h:mm a')}
+                          </span>
+                        </div>
+                        {/* Teams */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <TeamLogo logoUrl={gameAway.logo} teamName={gameAway.name} teamColor={gameAwayColor} size="sm" />
-                            <span className="text-sm font-medium">{gameAway.name}</span>
+                            <span className="text-sm font-medium truncate">{gameAway.name}</span>
                           </div>
-                          <span className="text-xs text-[var(--color-text-muted)] font-medium">@</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{gameHome.name}</span>
+                          <span className="text-xs text-[var(--color-text-muted)] font-medium shrink-0">@</span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-sm font-medium truncate">{gameHome.name}</span>
                             <TeamLogo logoUrl={gameHome.logo} teamName={gameHome.name} teamColor={gameHomeColor} size="sm" />
                           </div>
                         </div>
-                        <span className="text-sm font-medium" style={{ color: 'var(--league-primary)' }}>
+                        {/* Time — hidden on mobile (shown inline above) */}
+                        <span className="hidden sm:inline text-sm font-medium shrink-0" style={{ color: 'var(--league-primary)' }}>
                           {format(matchupDate, 'h:mm a')}
                         </span>
                       </Link>

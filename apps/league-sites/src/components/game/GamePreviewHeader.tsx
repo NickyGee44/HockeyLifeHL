@@ -102,10 +102,10 @@ export function GamePreviewHeader({
       <div className="relative z-10 container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           {/* Away Team (Left) */}
-          <div className="flex-1 flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+          <div className="flex-1 min-w-0 flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
             <Link
               href={`/${leagueSlug}/teams/${awayTeam.slug}`}
-              className="block transition-transform hover:scale-105"
+              className="block transition-transform hover:scale-105 flex-shrink-0"
             >
               <TeamLogo
                 logoUrl={awayTeam.logo}
@@ -114,12 +114,12 @@ export function GamePreviewHeader({
                 size="2xl"
               />
             </Link>
-            <div>
+            <div className="min-w-0 w-full">
               <Link
                 href={`/${leagueSlug}/teams/${awayTeam.slug}`}
                 className="block text-white hover:underline"
               >
-                <h2 className="text-2xl md:text-3xl font-bold drop-shadow-lg">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold drop-shadow-lg leading-tight">
                   {awayTeam.name}
                 </h2>
               </Link>
@@ -191,10 +191,10 @@ export function GamePreviewHeader({
           </div>
 
           {/* Home Team (Right) */}
-          <div className="flex-1 flex flex-col md:flex-row-reverse items-center gap-4 text-center md:text-right">
+          <div className="flex-1 min-w-0 flex flex-col md:flex-row-reverse items-center gap-4 text-center md:text-right">
             <Link
               href={`/${leagueSlug}/teams/${homeTeam.slug}`}
-              className="block transition-transform hover:scale-105"
+              className="block transition-transform hover:scale-105 flex-shrink-0"
             >
               <TeamLogo
                 logoUrl={homeTeam.logo}
@@ -203,12 +203,12 @@ export function GamePreviewHeader({
                 size="2xl"
               />
             </Link>
-            <div>
+            <div className="min-w-0 w-full">
               <Link
                 href={`/${leagueSlug}/teams/${homeTeam.slug}`}
                 className="block text-white hover:underline"
               >
-                <h2 className="text-2xl md:text-3xl font-bold drop-shadow-lg">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold drop-shadow-lg leading-tight">
                   {homeTeam.name}
                 </h2>
               </Link>
