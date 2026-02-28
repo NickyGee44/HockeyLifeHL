@@ -452,6 +452,143 @@ async function checkDNSRecords(domain: string): Promise<{
   }
 }
 
+// ---------------------------------------------------------------------------
+// Domain search + purchase (Vercel Registrar)
+// ---------------------------------------------------------------------------
+
+export type DomainSearchResult = {
+  name: string;
+  price: number;
+  available: boolean;
+  premium: boolean;
+};
+
+/**
+ * Search available domains via Vercel's registrar API.
+ */
+export async function searchDomains(
+  query: string
+): Promise<{ data?: DomainSearchResult[]; error?: string }> {
+  const token = process.env.VERCEL_TOKEN;
+  if (!token) return { error: 'Vercel token not configured' };
+  if (!query || query.trim().length < 2) return { data: [] };
+
+  try {
+    const res = await fetch(
+      `https://api.vercel.com/v4/domains?limit=10&query=${encodeURIComponent(query.trim())}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      }
+    );
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error('[domain] searchDomains failed', { status: res.status, body });
+      return { error: 'Domain search failed' };
+    }
+
+    const json = (await res.json()) as {
+      domains?: Array<{
+        name: string;
+        price?: number;
+        available?: boolean;
+        premium?: boolean;
+      }>;
+    };
+
+    const results: DomainSearchResult[] = (json.domains ?? []).map((d) => ({
+      name: d.name,
+      price: d.price ?? 0,
+      available: d.available ?? false,
+      premium: d.premium ?? false,
+    }));
+
+    return { data: results };
+  } catch (err) {
+    console.error('[domain] searchDomains threw', err);
+    return { error: 'Domain search failed' };
+  }
+}
+
+/**
+ * Purchase a domain via Vercel's registrar, then auto-configure it for the org.
+ * Domains purchased through Vercel point at Vercel automatically — no DNS step needed.
+ */
+export async function purchaseDomain(
+  organizationId: string,
+  domain: string
+): Promise<{ success?: boolean; error?: string; domain?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: org, error: orgError } = await supabase
+    .from('organizations')
+    .select('owner_user_id')
+    .eq('id', organizationId)
+    .single();
+
+  if (orgError || !org) return { error: 'Organization not found' };
+  if (org.owner_user_id !== user.id)
+    return { error: 'Only the organization owner can purchase domains' };
+
+  const token = process.env.VERCEL_TOKEN;
+  if (!token) return { error: 'Vercel token not configured' };
+
+  // Purchase via Vercel Registrar
+  const res = await fetch('https://api.vercel.com/v4/domains/buy', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: domain }),
+  });
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: string | { code?: string; message?: string };
+    };
+    const errCode =
+      typeof body.error === 'object'
+        ? (body.error?.code ?? 'unknown')
+        : (body.error ?? 'unknown');
+
+    // Treat already-owned as success — just configure it
+    const alreadyOwned = ['domain_already_purchased', 'domain_already_owned'].includes(errCode);
+    if (!alreadyOwned) {
+      console.error('[domain] purchaseDomain failed', { status: res.status, body });
+      return { error: `Failed to purchase domain: ${errCode}` };
+    }
+    console.log('[domain] domain already owned by this account — configuring:', domain);
+  }
+
+  // Set domain in DB (marks as unverified first)
+  const setResult = await setCustomDomain(organizationId, domain);
+  if (setResult.error) return { error: setResult.error };
+
+  // Immediately mark as verified — Vercel manages DNS, no manual step needed
+  const supabase2 = await createClient();
+  const { error: verifyErr } = await supabase2
+    .from('organizations')
+    .update({ custom_domain_verified: true, updated_at: new Date().toISOString() })
+    .eq('id', organizationId);
+
+  if (verifyErr) {
+    console.error('[domain] failed to mark domain as verified', verifyErr);
+  }
+
+  // Register on the league-sites Vercel project
+  await registerVercelDomain(domain);
+
+  revalidatePath('/dashboard/settings/domains');
+
+  return { success: true, domain };
+}
+
 /**
  * Get DNS instructions for a domain
  */

@@ -186,6 +186,14 @@ export function Step9NextSteps({
 
         <ActionCard
           icon={<Globe className="h-5 w-5 text-primary" />}
+          title="Get Your Own Domain"
+          description="Buy a custom domain (e.g. yourleague.ca) and point it here — no DNS setup required"
+          buttonLabel="Domain Settings"
+          href="/dashboard/settings/domains"
+        />
+
+        <ActionCard
+          icon={<Globe className="h-5 w-5 text-primary" />}
           title="Customize Your Website"
           description="Personalize your league's public website"
           buttonLabel="Website Editor"

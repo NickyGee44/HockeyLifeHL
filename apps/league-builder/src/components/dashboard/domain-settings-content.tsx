@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Globe,
   CheckCircle,
+  ChevronDown,
   Clock,
   AlertCircle,
   Copy,
@@ -17,10 +18,12 @@ import {
   RefreshCw,
   HelpCircle,
   Trash2,
+  Search,
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import { toast } from 'sonner';
 import { setCustomDomain, verifyCustomDomain, removeCustomDomain } from '@/lib/actions/domain';
+import { DomainPurchase } from './domain-purchase';
 
 interface Organization {
   id: string;
@@ -41,6 +44,7 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [showDomainSearch, setShowDomainSearch] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'failed' | null>(
     organization.custom_domain_verified ? 'verified' : organization.custom_domain ? 'pending' : null
   );
@@ -215,6 +219,30 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
           {hasCustomDomainAccess ? (
             // User has access to custom domains
             <>
+              {/* Search & Buy a Domain */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowDomainSearch(!showDomainSearch)}
+                  className="flex items-center gap-2 text-sm text-rink-500 hover:text-rink-400 transition-colors mb-3"
+                >
+                  <Search className="h-4 w-4" />
+                  {showDomainSearch ? 'Hide domain search' : 'Search & buy a domain'}
+                  <ChevronDown className={cn('h-4 w-4 transition-transform', showDomainSearch && 'rotate-180')} />
+                </button>
+                {showDomainSearch && (
+                  <DomainPurchase
+                    organizationId={organization.id}
+                    onPurchase={(domain) => {
+                      setCustomDomainValue(domain);
+                      setVerificationStatus('verified');
+                      setShowDomainSearch(false);
+                      toast.success(`Domain ${domain} is ready to use!`);
+                    }}
+                  />
+                )}
+              </div>
+
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-neutral-300">
                   Domain Name
