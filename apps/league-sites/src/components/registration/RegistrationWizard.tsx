@@ -8,14 +8,17 @@ import {
   saveRegistrationDraft,
   submitPlayerRegistration,
   type RegistrationDraftData,
+  type LeagueFormConfig,
 } from '@/lib/actions/registration';
 import {
   canSubmitRegistration,
   validatePersonalInfoStep,
+  validateLeaguePreferencesStep,
   validateSkillPositionStep,
   validateWaiverStep,
 } from '@/lib/registration/validation';
 import { StepPersonalInfo } from './StepPersonalInfo';
+import { StepLeaguePreferences } from './StepLeaguePreferences';
 import { StepSkillPosition } from './StepSkillPosition';
 import { StepWaiver } from './StepWaiver';
 import { StepPayment } from './StepPayment';
@@ -37,14 +40,16 @@ interface RegistrationWizardProps {
   waiverVersion: string;
   waiverContentHash: string;
   initialData: RegistrationDraftData | null;
+  leagueFormConfig: LeagueFormConfig;
 }
 
 const STEPS = [
   { id: 1, label: 'Personal Info' },
-  { id: 2, label: 'Skill & Position' },
-  { id: 3, label: 'Waiver' },
-  { id: 4, label: 'Payment' },
-  { id: 5, label: 'Confirm' },
+  { id: 2, label: 'Preferences' },
+  { id: 3, label: 'Skill & Position' },
+  { id: 4, label: 'Waiver' },
+  { id: 5, label: 'Payment' },
+  { id: 6, label: 'Confirm' },
 ];
 
 // ============================================================================
@@ -63,6 +68,7 @@ export function RegistrationWizard({
   waiverVersion: _waiverVersion,
   waiverContentHash,
   initialData,
+  leagueFormConfig,
 }: RegistrationWizardProps) {
   const { user } = useUser();
   const { openLogin } = useAuth();
@@ -91,8 +97,20 @@ export function RegistrationWizard({
     skill_level: initialData?.skill_level || '',
     years_experience: initialData?.years_experience ?? null,
     previous_leagues: initialData?.previous_leagues || '',
+    paid_team_rep: initialData?.paid_team_rep ?? null,
+    played_last_season: initialData?.played_last_season ?? null,
+    team_last_season: initialData?.team_last_season || '',
+    prior_organization: initialData?.prior_organization || '',
+    level: initialData?.level || '',
+    location_preference: initialData?.location_preference || '',
+    preferred_night: initialData?.preferred_night || '',
+    alternate_night: initialData?.alternate_night || '',
+    referral_source: initialData?.referral_source || '',
+    comments: initialData?.comments || '',
+    goalie_role: initialData?.goalie_role ?? null,
+    waiver_accepted: initialData?.waiver_accepted ?? false,
     signature_data: initialData?.signature_data || '',
-    signature_type: initialData?.signature_type || 'typed',
+    signature_type: initialData?.signature_type || 'checkbox',
     signed_name: initialData?.signed_name || '',
     waiver_content_hash: waiverContentHash,
     payment_status: initialData?.payment_status || (registrationFee > 0 ? 'pending' : 'not_required'),
@@ -102,15 +120,16 @@ export function RegistrationWizard({
     email_marketing_opt_in: initialData?.email_marketing_opt_in ?? false,
   });
 
-  // Determine which steps to show (skip payment if free)
+  // Determine which steps to show (skip payment step if free)
   const visibleSteps = registrationFee > 0
     ? STEPS
-    : STEPS.filter((s) => s.id !== 4);
+    : STEPS.filter((s) => s.id !== 5);
 
   const currentStepIndex = visibleSteps.findIndex((s) => s.id === currentStep);
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === visibleSteps.length - 1;
-  const personalStepValidation = validatePersonalInfoStep(formData);
+  const personalStepValidation = validatePersonalInfoStep(formData, leagueFormConfig);
+  const preferencesStepValidation = validateLeaguePreferencesStep(formData, leagueFormConfig);
   const skillStepValidation = validateSkillPositionStep(formData);
   const waiverStepValidation = validateWaiverStep(formData);
   const paymentReady = canSubmitRegistration(formData, registrationFee);
@@ -121,10 +140,12 @@ export function RegistrationWizard({
       case 1:
         return personalStepValidation.valid;
       case 2:
-        return skillStepValidation.valid;
+        return preferencesStepValidation.valid;
       case 3:
-        return waiverStepValidation.valid;
+        return skillStepValidation.valid;
       case 4:
+        return waiverStepValidation.valid;
+      case 5:
         return paymentReady;
       default:
         return true;
@@ -330,23 +351,31 @@ export function RegistrationWizard({
           <StepPersonalInfo
             formData={formData}
             teams={teams}
+            leagueFormConfig={leagueFormConfig}
             onUpdate={updateFormData}
           />
         )}
         {currentStep === 2 && (
+          <StepLeaguePreferences
+            formData={formData}
+            leagueFormConfig={leagueFormConfig}
+            onUpdate={updateFormData}
+          />
+        )}
+        {currentStep === 3 && (
           <StepSkillPosition
             formData={formData}
             onUpdate={updateFormData}
           />
         )}
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <StepWaiver
             formData={formData}
             waiverContent={waiverContent}
             onUpdate={updateFormData}
           />
         )}
-        {currentStep === 4 && registrationFee > 0 && (
+        {currentStep === 5 && registrationFee > 0 && (
           <StepPayment
             formData={formData}
             registrationFee={registrationFee}
@@ -357,7 +386,7 @@ export function RegistrationWizard({
             onNext={goNext}
           />
         )}
-        {currentStep === 5 && (
+        {currentStep === 6 && (
           <StepConfirmation
             formData={formData}
             leagueSlug={leagueSlug}

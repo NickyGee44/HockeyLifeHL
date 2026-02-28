@@ -167,3 +167,57 @@ export async function updateScorekeeperMode(
   revalidatePath(`/dashboard/leagues/${leagueId}/settings/scorekeepers`);
   return { success: true };
 }
+
+// ============================================================================
+// Registration Form Config
+// ============================================================================
+
+export interface RegistrationFormConfig {
+  levels: string[];
+  locations: string[];
+  nights: string[];
+  enabled_fields: {
+    played_last_season: boolean;
+    level: boolean;
+    location_preference: boolean;
+    preferred_night: boolean;
+    referral_source: boolean;
+    paid_team_rep: boolean;
+  };
+}
+
+export async function updateRegistrationFormConfig(
+  leagueId: string,
+  config: RegistrationFormConfig
+): Promise<{ success: boolean; error?: string }> {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  // Sanitize: strip empty strings from arrays
+  const sanitized: RegistrationFormConfig = {
+    levels: config.levels.map((l) => l.trim()).filter(Boolean),
+    locations: config.locations.map((l) => l.trim()).filter(Boolean),
+    nights: config.nights.map((n) => n.trim()).filter(Boolean),
+    enabled_fields: config.enabled_fields,
+  };
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('leagues')
+    .update({
+      registration_form_config: sanitized as any,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', leagueId);
+
+  if (error) {
+    console.error('[updateRegistrationFormConfig] Error:', error.message);
+    return { success: false, error: 'Failed to save registration form configuration' };
+  }
+
+  revalidatePath(`/dashboard/leagues/${leagueId}/settings/registration`);
+  return { success: true };
+}

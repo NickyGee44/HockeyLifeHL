@@ -14,6 +14,7 @@ import {
   Shield,
   Trash2,
   ClipboardCheck,
+  ClipboardList,
   Eye,
   Building2,
   AlertTriangle,
@@ -26,7 +27,7 @@ import {
 
 const iconMap: Record<string, any> = {
   Settings, Palette, Globe, Bell, CreditCard, Users, Shield,
-  Trash2, ClipboardCheck, Eye, Building2, AlertTriangle, Receipt, ScrollText, Mail, Gavel,
+  Trash2, ClipboardCheck, ClipboardList, Eye, Building2, AlertTriangle, Receipt, ScrollText, Mail, Gavel,
 };
 
 interface SettingItem {

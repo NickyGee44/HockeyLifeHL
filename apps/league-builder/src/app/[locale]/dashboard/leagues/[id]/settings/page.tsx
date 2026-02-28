@@ -77,6 +77,11 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       icon: 'Shield',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/referees` },
     {
+      title: 'Registration Form',
+      description: 'Configure divisions, locations, nights, and optional fields',
+      icon: 'ClipboardList',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/registration` },
+    {
       title: 'Waiver',
       description: 'Manage liability waiver and view signed agreements',
       icon: 'ScrollText',

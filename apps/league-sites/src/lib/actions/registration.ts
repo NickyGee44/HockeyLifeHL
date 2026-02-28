@@ -47,23 +47,53 @@ export interface RegistrationDraftData {
   emergency_contact_phone?: string;
   emergency_contact_relationship?: string;
   medical_notes?: string;
+  // League preferences (step 2)
+  paid_team_rep?: boolean | null;
+  played_last_season?: boolean | null;
+  team_last_season?: string;
+  prior_organization?: string;
+  level?: string;
+  location_preference?: string;
+  preferred_night?: string;
+  alternate_night?: string;
+  referral_source?: string;
+  comments?: string;
+  // Skill & position
   primary_position?: string;
   secondary_position?: string;
   preferred_jersey_number?: number | null;
   skill_level?: string;
   years_experience?: number | null;
   previous_leagues?: string;
+  goalie_role?: 'looking_for_team' | 'sub_only' | null;
   photo_url?: string;
+  // Waiver
+  waiver_accepted?: boolean;
   signature_data?: string;
-  signature_type?: 'drawn' | 'typed';
+  signature_type?: 'drawn' | 'typed' | 'checkbox';
   signed_name?: string;
   waiver_content_hash?: string;
+  // Payment & consent
   payment_status?: string;
   payment_intent_id?: string;
   amount_cents?: number;
   tos_accepted?: boolean;
   email_marketing_opt_in?: boolean;
   consent_marketing?: boolean;
+}
+
+export interface LeagueFormConfig {
+  levels?: string[];
+  locations?: string[];
+  nights?: string[];
+  enabled_fields?: {
+    played_last_season?: boolean;
+    level?: boolean;
+    location_preference?: boolean;
+    preferred_night?: boolean;
+    referral_source?: boolean;
+    paid_team_rep?: boolean;
+  };
 }
 
 interface LeagueWaiver {
@@ -100,6 +130,7 @@ export async function getLeagueRegistrationData(leagueSlug: string) {
       slug,
       stripe_account_id,
       stripe_account_status,
+      registration_form_config,
       seasons (
         id,
         name,
@@ -403,9 +434,17 @@ export async function submitPlayerRegistration(
       data.payment_intent_id = undefined;
     }
 
-    // Save waiver if provided
+    // Require waiver acceptance
+    if (!data.waiver_accepted) {
+      return {
+        success: false,
+        error: 'You must read and accept the waiver to complete registration.',
+      };
+    }
+
+    // Save waiver record
     let waiverId = null;
-    if (data.signature_data && data.signed_name) {
+    {
       const { data: existingWaiver } = await serviceSupabase
         .from('player_waivers')
         .select('id')
@@ -415,6 +454,16 @@ export async function submitPlayerRegistration(
         .single();
 
       if (existingWaiver) {
+        // Update waiver_accepted flag on existing record
+        await serviceSupabase
+          .from('player_waivers')
+          .update({
+            waiver_accepted: true,
+            waiver_accepted_at: new Date().toISOString(),
+            signature_type: data.signature_type || 'checkbox',
+            signed_name: data.signed_name || data.full_name || '',
+          })
+          .eq('id', existingWaiver.id);
         waiverId = existingWaiver.id;
       } else {
         const { data: template } = await serviceSupabase
@@ -430,11 +479,13 @@ export async function submitPlayerRegistration(
             player_id: user.id,
             league_id: data.league_id,
             season_id: data.season_id,
-            signature_data: data.signature_data,
-            signature_type: data.signature_type || 'drawn',
-            signed_name: data.signed_name,
+            signature_data: data.signature_data || '',
+            signature_type: data.signature_type || 'checkbox',
+            signed_name: data.signed_name || data.full_name || '',
             waiver_version: template?.version || 'v1',
-            waiver_content_hash: template?.content_hash || '',
+            waiver_content_hash: template?.content_hash || data.waiver_content_hash || '',
+            waiver_accepted: true,
+            waiver_accepted_at: new Date().toISOString(),
           })
           .select('id')
           .single();
@@ -520,6 +571,87 @@ export async function submitPlayerRegistration(
     };
   } catch (error) {
     console.error('Submit registration error:', error);
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+// ============================================================================
+// Team Registration
+// ============================================================================
+
+export interface TeamRegistrationData {
+  league_id: string;
+  season_id: string;
+  team_name: string;
+  level?: string;
+  played_last_season?: boolean;
+  team_last_season?: string;
+  backup_rep_name?: string;
+  backup_rep_email?: string;
+  location_preference?: string;
+  preferred_day?: string;
+  alternate_day?: string;
+  comments?: string;
+  waiver_accepted: boolean;
+  waiver_version?: string;
+}
+
+export async function submitTeamRegistration(
+  data: TeamRegistrationData
+): ActionResult<{ registrationId: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: 'Please sign in to register your team.' };
+    }
+
+    if (!data.waiver_accepted) {
+      return {
+        success: false,
+        error: 'You must read and accept the waiver to submit team registration.',
+      };
+    }
+
+    if (!data.team_name.trim()) {
+      return { success: false, error: 'Team name is required.' };
+    }
+
+    const serviceSupabase = createServiceRoleClient();
+
+    const { data: registration, error } = await serviceSupabase
+      .from('team_registrations')
+      .insert({
+        league_id: data.league_id,
+        season_id: data.season_id,
+        submitted_by: user.id,
+        team_name: data.team_name.trim(),
+        level: data.level || null,
+        played_last_season: data.played_last_season ?? null,
+        team_last_season: data.team_last_season || null,
+        backup_rep_name: data.backup_rep_name || null,
+        backup_rep_email: data.backup_rep_email || null,
+        location_preference: data.location_preference || null,
+        preferred_day: data.preferred_day || null,
+        alternate_day: data.alternate_day || null,
+        comments: data.comments || null,
+        waiver_accepted: true,
+        waiver_accepted_at: new Date().toISOString(),
+        waiver_version: data.waiver_version || 'v1',
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Team registration error:', error);
+      return { success: false, error: 'Failed to submit team registration.' };
+    }
+
+    revalidatePath('/');
+
+    return { success: true, data: { registrationId: registration.id } };
+  } catch (error) {
+    console.error('Team registration error:', error);
     return { success: false, error: 'An unexpected error occurred.' };
   }
 }

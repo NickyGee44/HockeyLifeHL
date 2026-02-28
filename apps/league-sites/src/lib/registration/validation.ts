@@ -1,4 +1,4 @@
-import type { RegistrationDraftData } from '@/lib/actions/registration';
+import type { RegistrationDraftData, LeagueFormConfig } from '@/lib/actions/registration';
 
 export interface StepValidationResult {
   valid: boolean;
@@ -10,7 +10,8 @@ function valuePresent(value: string | null | undefined): boolean {
 }
 
 export function validatePersonalInfoStep(
-  data: RegistrationDraftData
+  data: RegistrationDraftData,
+  leagueFormConfig?: LeagueFormConfig
 ): StepValidationResult {
   const errors: string[] = [];
 
@@ -18,8 +19,11 @@ export function validatePersonalInfoStep(
     errors.push('Full name is required.');
   }
 
-  if (data.registration_type === 'team_registration' && !valuePresent(data.team_id || '')) {
-    errors.push('Team selection is required for team registration.');
+  if (data.registration_type === 'team_registration') {
+    if (!valuePresent(data.team_id || '')) {
+      errors.push('Team selection is required for team registration.');
+    }
+    // paid_team_rep is informational — not blocked if not answered
   }
 
   if (!valuePresent(data.emergency_contact_name)) {
@@ -31,6 +35,15 @@ export function validatePersonalInfoStep(
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+export function validateLeaguePreferencesStep(
+  _data: RegistrationDraftData,
+  _leagueFormConfig?: LeagueFormConfig
+): StepValidationResult {
+  // All league preference fields are optional by default.
+  // League owners can make fields required via future config — not implemented in v1.
+  return { valid: true, errors: [] };
 }
 
 export function validateSkillPositionStep(
@@ -53,8 +66,8 @@ export function validateWaiverStep(
   data: RegistrationDraftData
 ): StepValidationResult {
   const errors: string[] = [];
-  if (!valuePresent(data.signed_name)) {
-    errors.push('Typed signature is required.');
+  if (!data.waiver_accepted) {
+    errors.push('You must scroll to the bottom and accept the waiver to continue.');
   }
   return { valid: errors.length === 0, errors };
 }
@@ -66,4 +79,3 @@ export function canSubmitRegistration(
   if (registrationFeeCents <= 0) return true;
   return data.payment_status === 'completed';
 }
-

@@ -131,6 +131,43 @@ export function StepSkillPosition({ formData, onUpdate }: StepSkillPositionProps
         </div>
       </div>
 
+      {/* Goalie role — only shown when primary position is Goalie */}
+      {(formData.primary_position === 'G' || formData.primary_position === 'Goalie') && (
+        <div className="border border-[var(--league-primary)]/20 rounded-xl p-4 bg-[var(--league-primary)]/5">
+          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-3">
+            Goalie Availability
+          </label>
+          <div className="space-y-2">
+            {[
+              {
+                value: 'looking_for_team' as const,
+                label: 'Looking for a team to join',
+                desc: 'I want to play for a regular team this season',
+              },
+              {
+                value: 'sub_only' as const,
+                label: 'Available as a substitute goalie only',
+                desc: 'I am available to fill in for other teams on an as-needed basis',
+              },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onUpdate({ goalie_role: opt.value })}
+                className={`w-full p-3 rounded-lg border text-left transition-all ${
+                  formData.goalie_role === opt.value
+                    ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10'
+                    : 'border-[var(--color-border)] hover:border-[var(--color-border-emphasis)]'
+                }`}
+              >
+                <p className="font-medium text-sm text-[var(--color-text-primary)]">{opt.label}</p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{opt.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Years Experience */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>

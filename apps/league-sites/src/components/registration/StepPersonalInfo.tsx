@@ -1,14 +1,16 @@
 'use client';
 
-import type { RegistrationDraftData } from '@/lib/actions/registration';
+import type { RegistrationDraftData, LeagueFormConfig } from '@/lib/actions/registration';
 
 interface StepPersonalInfoProps {
   formData: RegistrationDraftData;
   teams: { id: string; name: string }[];
+  leagueFormConfig: LeagueFormConfig;
   onUpdate: (updates: Partial<RegistrationDraftData>) => void;
 }
 
-export function StepPersonalInfo({ formData, teams, onUpdate }: StepPersonalInfoProps) {
+export function StepPersonalInfo({ formData, teams, leagueFormConfig, onUpdate }: StepPersonalInfoProps) {
+  const showPaidTeamRep = leagueFormConfig.enabled_fields?.paid_team_rep !== false;
   return (
     <div className="space-y-6">
       <div>
@@ -52,22 +54,52 @@ export function StepPersonalInfo({ formData, teams, onUpdate }: StepPersonalInfo
 
       {/* Team Selection (only for team_registration) */}
       {formData.registration_type === 'team_registration' && teams.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
-            Select Team
-          </label>
-          <select
-            value={formData.team_id || ''}
-            onChange={(e) => onUpdate({ team_id: e.target.value || null })}
-            className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
-          >
-            <option value="">Select a team...</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
+              Select Team *
+            </label>
+            <select
+              value={formData.team_id || ''}
+              onChange={(e) => onUpdate({ team_id: e.target.value || null })}
+              className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+            >
+              <option value="">Select a team...</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Paid team rep confirmation */}
+          {showPaidTeamRep && (
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                Have you paid your Team Rep? *
+              </label>
+              <div className="flex gap-2">
+                {[
+                  { value: true, label: 'Yes, paid' },
+                  { value: false, label: 'Not yet' },
+                ].map((opt) => (
+                  <button
+                    key={String(opt.value)}
+                    type="button"
+                    onClick={() => onUpdate({ paid_team_rep: opt.value })}
+                    className={`px-5 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                      formData.paid_team_rep === opt.value
+                        ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10 text-[var(--league-primary)]'
+                        : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-emphasis)]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

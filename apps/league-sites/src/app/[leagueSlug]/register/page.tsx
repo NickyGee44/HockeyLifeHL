@@ -175,8 +175,23 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
     name: team.name,
   }));
 
+  const leagueFormConfig = (league as any).registration_form_config ?? {};
+
   return (
     <div className="py-8">
+      {/* Team registration entry point */}
+      <div className="max-w-2xl mx-auto px-4 mb-4 text-center">
+        <p className="text-sm text-[var(--color-text-muted)]">
+          Registering a team?{' '}
+          <a
+            href={`/${leagueSlug}/register/team`}
+            className="text-[var(--league-primary)] hover:underline font-medium"
+          >
+            Click here for team registration
+          </a>
+        </p>
+      </div>
+
       <RegistrationWizard
         leagueId={league.id}
         leagueSlug={leagueSlug}
@@ -189,6 +204,7 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
         waiverVersion={waiver.version}
         waiverContentHash={waiver.content_hash}
         initialData={initialData}
+        leagueFormConfig={leagueFormConfig}
       />
     </div>
   );
