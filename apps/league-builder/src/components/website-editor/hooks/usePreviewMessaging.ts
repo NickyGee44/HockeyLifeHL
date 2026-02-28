@@ -68,6 +68,8 @@ export function usePreviewMessaging() {
 
       // Navigation
       visiblePages: state.visiblePages,
+      navItems: state.navItems,
+      showGameTicker: state.showGameTicker,
 
       // Social
       socialFacebook: state.socialFacebook,

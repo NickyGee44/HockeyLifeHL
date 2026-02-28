@@ -74,6 +74,8 @@ function leagueToState(league: LeagueEditorData | undefined, leagues: LeagueEdit
     contactPhone: league?.contact_phone ?? '',
     websiteUrl: league?.website_url ?? '',
     visiblePages: ws.visiblePages ?? { ...DEFAULT_VISIBLE_PAGES },
+    navItems: ws.navItems ?? [],
+    showGameTicker: ws.showGameTicker ?? false,
     socialFacebook: ws.socialFacebook ?? '',
     socialTwitter: ws.socialTwitter ?? '',
     socialInstagram: ws.socialInstagram ?? '',
@@ -200,6 +202,8 @@ export function EditorProvider({ children, organizationId, leagues, previewBaseU
       state.socialInstagram !== s.socialInstagram ||
       state.socialYoutube !== s.socialYoutube ||
       state.socialTiktok !== s.socialTiktok ||
+      state.showGameTicker !== s.showGameTicker ||
+      JSON.stringify(state.navItems) !== JSON.stringify(s.navItems) ||
       JSON.stringify(state.visiblePages) !== JSON.stringify(s.visiblePages)
     );
   }, [state]);

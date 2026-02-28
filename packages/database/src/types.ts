@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_pages: {
+        Row: {
+          id: string
+          league_id: string
+          title: string
+          slug: string
+          content: Json
+          is_published: boolean
+          sort_order: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          league_id: string
+          title: string
+          slug: string
+          content?: Json
+          is_published?: boolean
+          sort_order?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          league_id?: string
+          title?: string
+          slug?: string
+          content?: Json
+          is_published?: boolean
+          sort_order?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_pages_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       account_deletion_log: {
         Row: {
           cancelled_at: string | null

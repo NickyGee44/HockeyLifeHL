@@ -3064,3 +3064,36 @@ export async function getGoaliePlayerMatchups(
     };
   });
 }
+
+// ============================================================================
+// Custom Pages
+// ============================================================================
+
+export async function getCustomPage(leagueId: string, slug: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('custom_pages')
+    .select('*')
+    .eq('league_id', leagueId)
+    .eq('slug', slug)
+    .eq('is_published', true)
+    .single();
+
+  if (error || !data) return null;
+  return data;
+}
+
+export async function getCustomPages(leagueId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('custom_pages')
+    .select('*')
+    .eq('league_id', leagueId)
+    .eq('is_published', true)
+    .order('sort_order', { ascending: true });
+
+  if (error) return [];
+  return data ?? [];
+}

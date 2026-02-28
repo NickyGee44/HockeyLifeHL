@@ -69,6 +69,40 @@ export function AdvancedPanel() {
           </div>
         </div>
       </div>
+
+      <div className="rounded-lg border border-white/10 bg-neutral-800 p-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-neutral-300">
+              Game Score Ticker
+            </label>
+            <p className="text-xs text-neutral-500">
+              Show a scrolling ticker of today&apos;s games at the top of your site
+            </p>
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.showGameTicker}
+            onClick={() => setField('showGameTicker', !state.showGameTicker)}
+            className={`
+              relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
+              transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-rink-500/20 focus:ring-offset-2 focus:ring-offset-neutral-900
+              ${state.showGameTicker ? 'bg-rink-500' : 'bg-neutral-600'}
+            `}
+          >
+            <span
+              aria-hidden="true"
+              className={`
+                pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0
+                transition duration-200 ease-in-out
+                ${state.showGameTicker ? 'translate-x-5' : 'translate-x-0'}
+              `}
+            />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

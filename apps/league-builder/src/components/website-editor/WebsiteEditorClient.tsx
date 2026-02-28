@@ -32,7 +32,7 @@ interface WebsiteEditorClientProps {
 // ---------------------------------------------------------------------------
 
 function EditorShell() {
-  const { setPreviewReady, iframeRef, previewUrl } = useEditor();
+  const { state, setPreviewReady, iframeRef, previewUrl } = useEditor();
 
   // Single instantiation of preview messaging (sends theme via postMessage)
   usePreviewMessaging();
@@ -52,7 +52,7 @@ function EditorShell() {
     theme: <ThemePanel />,
     images: <ImagesPanel />,
     content: <ContentPanel />,
-    navigation: <NavigationPanel />,
+    navigation: <NavigationPanel leagueId={state.selectedLeagueId} />,
     social: <SocialLinksPanel />,
     seo: <SeoPanel />,
     advanced: <AdvancedPanel />,
