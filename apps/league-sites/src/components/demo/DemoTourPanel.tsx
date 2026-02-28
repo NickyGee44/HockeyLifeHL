@@ -105,10 +105,13 @@ export function DemoTourPanel({ leagueSlug, hasSchedule, hasNews, hasRegistratio
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: SSR-safe mount flag
     setMounted(true);
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: hydrating from localStorage on mount
       if (raw) setVisited(new Set(JSON.parse(raw)));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: hydrating from localStorage on mount
       if (localStorage.getItem(DISMISSED_KEY)) setDismissed(true);
     } catch {}
   }, []);

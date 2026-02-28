@@ -7,12 +7,12 @@ import type { NextRequest } from 'next/server';
  *
  * Handles routing for:
  * - [league-slug].beerleaguehockey.ca -> /[leagueSlug]/...
- * - Custom domains (future) -> /[leagueSlug]/...
+ * - Custom domains (e.g. truenorthhockey.ca) -> /[leagueSlug]/...
  *
  * Examples:
  * - metro-hockey.beerleaguehockey.ca -> /metro-hockey/
  * - metro-hockey.beerleaguehockey.ca/schedule -> /metro-hockey/schedule
- * - metro-hockey.beerleaguehockey.ca/teams/dragons -> /metro-hockey/teams/dragons
+ * - truenorthhockey.ca -> /[slug from DB]/
  */
 
 // List of reserved subdomains that should not be treated as league slugs
@@ -45,23 +45,45 @@ export async function middleware(request: NextRequest) {
   // Build the base response (rewrite or passthrough)
   let response: NextResponse;
 
-  if (!subdomain || RESERVED_SUBDOMAINS.includes(subdomain.toLowerCase())) {
-    response = NextResponse.next();
-  } else if (url.pathname.startsWith(`/${subdomain}`)) {
-    // Already on a league route (avoid infinite rewrite)
-    response = NextResponse.next();
+  if (subdomain && !RESERVED_SUBDOMAINS.includes(subdomain.toLowerCase())) {
+    // -----------------------------------------------------------------------
+    // Subdomain route: metro-hockey.beerleaguehockey.ca -> /metro-hockey/...
+    // -----------------------------------------------------------------------
+    if (url.pathname.startsWith(`/${subdomain}`)) {
+      // Already on a league route (avoid infinite rewrite)
+      response = NextResponse.next();
+    } else {
+      const newPath = `/${subdomain}${url.pathname}`;
+      url.pathname = newPath;
+      response = NextResponse.rewrite(url);
+      response.headers.set('x-league-slug', subdomain);
+    }
+  } else if (!subdomain && isCustomDomainCandidate(hostname)) {
+    // -----------------------------------------------------------------------
+    // Custom domain route: truenorthhockey.ca -> look up slug in DB
+    // -----------------------------------------------------------------------
+    const slug = await resolveCustomDomain(hostname.split(':')[0]);
+
+    if (slug) {
+      if (url.pathname.startsWith(`/${slug}`)) {
+        // Already rewritten — passthrough
+        response = NextResponse.next();
+      } else {
+        const newPath = `/${slug}${url.pathname}`;
+        url.pathname = newPath;
+        response = NextResponse.rewrite(url);
+        response.headers.set('x-league-slug', slug);
+      }
+    } else {
+      // Unknown custom domain — passthrough (will 404 naturally)
+      response = NextResponse.next();
+    }
   } else {
-    // Rewrite URL to include league slug
-    // metro-hockey.beerleaguehockey.ca/schedule -> /metro-hockey/schedule
-    const newPath = `/${subdomain}${url.pathname}`;
-    url.pathname = newPath;
-    response = NextResponse.rewrite(url);
-    response.headers.set('x-league-slug', subdomain);
+    response = NextResponse.next();
   }
 
   // Refresh the Supabase session on every request so server actions always
-  // receive a valid, non-expired auth token. Without this, JWT tokens expire
-  // after 1 hour and server-side auth calls silently return null.
+  // receive a valid, non-expired auth token.
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -93,6 +115,73 @@ export async function middleware(request: NextRequest) {
 }
 
 /**
+ * Returns true if hostname looks like a real external custom domain
+ * (not a BLH subdomain, not localhost).
+ */
+function isCustomDomainCandidate(hostname: string): boolean {
+  const host = hostname.split(':')[0];
+
+  // Skip dev environments
+  if (DEV_DOMAINS.some((dev) => host === dev || host.endsWith(dev))) {
+    return false;
+  }
+
+  // Skip anything that is (or is a subdomain of) beerleaguehockey.ca
+  if (host === PRODUCTION_DOMAIN || host.endsWith(`.${PRODUCTION_DOMAIN}`)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Look up a verified custom domain in the organizations table and return the
+ * league slug. Uses the Supabase service-role key so RLS does not block the
+ * query (middleware runs outside user session context).
+ *
+ * Returns null if no matching verified domain is found.
+ */
+async function resolveCustomDomain(hostname: string): Promise<string | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceKey) {
+    console.warn('[middleware] Supabase service role key not configured — cannot resolve custom domain');
+    return null;
+  }
+
+  try {
+    // Use the Supabase REST API directly via fetch (no client lib needed in edge)
+    const encodedHostname = encodeURIComponent(hostname);
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/organizations?custom_domain=eq.${encodedHostname}&custom_domain_verified=eq.true&select=slug&limit=1`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Accept: 'application/json',
+        },
+        // Don't cache — domain mappings can change
+        cache: 'no-store',
+      }
+    );
+
+    if (!res.ok) {
+      console.error('[middleware] Custom domain lookup failed', { status: res.status, hostname });
+      return null;
+    }
+
+    const rows = (await res.json()) as Array<{ slug: string }>;
+    return rows.length > 0 ? rows[0].slug : null;
+  } catch (err) {
+    console.error('[middleware] Custom domain lookup threw', err);
+    return null;
+  }
+}
+
+/**
  * Extract subdomain from hostname
  *
  * Examples:
@@ -101,6 +190,7 @@ export async function middleware(request: NextRequest) {
  * - metro-hockey.localhost:3001 -> metro-hockey
  * - localhost:3001 -> null
  * - beerleaguehockey.ca -> null
+ * - truenorthhockey.ca -> null  (custom domain, handled separately)
  */
 function getSubdomain(hostname: string): string | null {
   // Remove port if present
