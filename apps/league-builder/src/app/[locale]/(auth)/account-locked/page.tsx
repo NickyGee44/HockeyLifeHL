@@ -1,6 +1,9 @@
+import { Suspense } from 'react';
 import { AccountLockedMessage } from '@/components/auth';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -29,5 +32,9 @@ export default async function AccountLockedPage({ params, searchParams }: Props)
   // Default to 15 minutes from now if no lockedUntil provided
   const lockedUntil = until || getDefaultLockTime();
 
-  return <AccountLockedMessage lockedUntil={lockedUntil} email={email} />;
+  return (
+    <Suspense>
+      <AccountLockedMessage lockedUntil={lockedUntil} email={email} />
+    </Suspense>
+  );
 }
