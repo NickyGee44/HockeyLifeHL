@@ -75,6 +75,89 @@ export async function POST(request: NextRequest) {
 
   const leagueName = league?.name || 'the league';
 
+  // Build stats context from player_ratings when seasonId is available
+  let statsContext = '';
+  if (seasonId) {
+    try {
+      const serviceClient = (await import('@/lib/supabase/server')).createServiceRoleClient();
+      const [skatersRes, goaliesRes] = await Promise.all([
+        serviceClient
+          .from('player_ratings' as any)
+          .select('player_id, rating, overall_percentile, games_played, stats_json')
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+          .eq('position', 'skater')
+          .order('overall_percentile', { ascending: false })
+          .limit(5),
+        serviceClient
+          .from('player_ratings' as any)
+          .select('player_id, rating, overall_percentile, games_played, stats_json')
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+          .eq('position', 'goalie')
+          .order('overall_percentile', { ascending: false })
+          .limit(3),
+      ]);
+
+      const allPlayerIds = [
+        ...(skatersRes.data ?? []).map((r: any) => r.player_id),
+        ...(goaliesRes.data ?? []).map((r: any) => r.player_id),
+      ];
+
+      if (allPlayerIds.length > 0) {
+        const [profilesRes, rostersRes, teamsRes] = await Promise.all([
+          serviceClient.from('profiles').select('id, full_name').in('id', allPlayerIds),
+          serviceClient
+            .from('team_rosters')
+            .select('player_id, team_id')
+            .eq('league_id', leagueId)
+            .eq('season_id', seasonId)
+            .in('player_id', allPlayerIds),
+          serviceClient.from('teams').select('id, name').eq('league_id', leagueId),
+        ]);
+
+        const nameById = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p.full_name || 'Unknown']));
+        const teamById = new Map((teamsRes.data ?? []).map((t: any) => [t.id, t.name]));
+        const teamByPlayer = new Map((rostersRes.data ?? []).map((r: any) => [r.player_id, r.team_id]));
+
+        const formatSkater = (r: any, idx: number) => {
+          const sj = (r.stats_json as Record<string, unknown>) ?? {};
+          const pts = typeof sj.points === 'number' ? sj.points : 0;
+          const name = nameById.get(r.player_id) || 'Unknown';
+          const team = teamById.get(teamByPlayer.get(r.player_id) ?? '') || 'Unknown Team';
+          return `${idx + 1}. ${name} (${team}) — ${r.games_played} GP, ${pts} PTS, ${r.rating} rated`;
+        };
+
+        const formatGoalie = (r: any, idx: number) => {
+          const sj = (r.stats_json as Record<string, unknown>) ?? {};
+          const svPct = typeof sj.savePct === 'number' ? sj.savePct.toFixed(3) : '—';
+          const gaa = typeof sj.gaa === 'number' ? sj.gaa.toFixed(2) : '—';
+          const wins = typeof sj.wins === 'number' ? sj.wins : 0;
+          const shutouts = typeof sj.shutouts === 'number' ? sj.shutouts : 0;
+          const name = nameById.get(r.player_id) || 'Unknown';
+          const team = teamById.get(teamByPlayer.get(r.player_id) ?? '') || 'Unknown Team';
+          return `${idx + 1}. ${name} (${team}) — ${r.games_played} GP, ${svPct} SV%, ${gaa} GAA, ${wins}W, ${shutouts} SO, ${r.rating} rated`;
+        };
+
+        const skaterLines = (skatersRes.data ?? []).map((r: any, i: number) => formatSkater(r, i));
+        const goalieLines = (goaliesRes.data ?? []).map((r: any, i: number) => formatGoalie(r, i));
+
+        if (skaterLines.length > 0 || goalieLines.length > 0) {
+          statsContext = '\n\nREAL LEAGUE DATA — use these actual names and statistics in your article when relevant:\n';
+          if (skaterLines.length > 0) {
+            statsContext += `\nTop Skaters This Season:\n${skaterLines.join('\n')}`;
+          }
+          if (goalieLines.length > 0) {
+            statsContext += `\n\nTop Goalies This Season:\n${goalieLines.join('\n')}`;
+          }
+          statsContext += '\n\nReference these players by name to make the article specific and accurate.';
+        }
+      }
+    } catch {
+      // Stats context is best-effort — article still generates without it
+    }
+  }
+
   const articleTypeLabels: Record<string, string> = {
     news: 'general news article',
     game_recap: 'game recap',
@@ -94,7 +177,7 @@ Guidelines:
 - Include appropriate hockey terminology
 - Keep articles concise but compelling (300-600 words for the content)
 - The content should be plain text (no markdown formatting, no headers, no bullet points)
-- Write in third person
+- Write in third person${statsContext}
 
 You must respond with ONLY a valid JSON object in this exact format, with no other text before or after:
 {"title": "Article Title Here", "content": "Full article content here...", "excerpt": "A brief 1-2 sentence summary for article cards."}`;

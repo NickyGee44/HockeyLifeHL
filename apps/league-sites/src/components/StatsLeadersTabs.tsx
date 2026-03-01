@@ -27,10 +27,16 @@ export function StatsLeadersTabs({
   const [searchTerm, setSearchTerm] = useState('');
   const [showAll, setShowAll] = useState(false);
 
+  // Goalies have a dedicated /stats/goalies page — exclude them from skater leaderboards
+  const isGoalie = (p: PlayerStatsWithAvatar) => {
+    const pos = p.position?.toLowerCase();
+    return pos === 'goalie' || pos === 'g';
+  };
+
   const tabs = [
-    { id: 'points' as TabType, label: 'Points', icon: Trophy, data: pointsLeaders },
-    { id: 'goals' as TabType, label: 'Goals', icon: Target, data: goalsLeaders },
-    { id: 'assists' as TabType, label: 'Assists', icon: Shield, data: assistsLeaders },
+    { id: 'points' as TabType, label: 'Points', icon: Trophy, data: pointsLeaders.filter(p => !isGoalie(p)) },
+    { id: 'goals' as TabType, label: 'Goals', icon: Target, data: goalsLeaders.filter(p => !isGoalie(p)) },
+    { id: 'assists' as TabType, label: 'Assists', icon: Shield, data: assistsLeaders.filter(p => !isGoalie(p)) },
   ];
 
   const activeData = tabs.find((t) => t.id === activeTab)?.data || [];

@@ -18,6 +18,10 @@ type PlayerRow = {
   points: number;
   plusMinus: number;
   trend: 'up' | 'down' | 'flat';
+  savePct: number | null;
+  gaa: number | null;
+  wins: number | null;
+  shutouts: number | null;
 };
 
 interface PlayerDirectoryProps {
@@ -85,6 +89,8 @@ export function PlayerDirectory({ leagueId, rows }: PlayerDirectoryProps) {
               <th className="text-right p-3">GP</th>
               <th className="text-right p-3">Pts</th>
               <th className="text-right p-3">+/-</th>
+              <th className="text-right p-3">SV%</th>
+              <th className="text-right p-3">GAA</th>
               <th className="text-right p-3">Overall %</th>
             </tr>
           </thead>
@@ -95,15 +101,44 @@ export function PlayerDirectory({ leagueId, rows }: PlayerDirectoryProps) {
                 className="border-t border-white/5 hover:bg-white/[0.03] cursor-pointer"
                 onClick={() => setSelectedPlayerId(row.playerId)}
               >
-                <td className="p-3 text-white">{row.name}</td>
+                <td className="p-3 text-white">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        row.position === 'goalie'
+                          ? 'bg-purple-500/20 text-purple-400'
+                          : 'bg-sky-500/20 text-sky-400'
+                      }`}
+                    >
+                      {row.position === 'goalie' ? 'G' : 'S'}
+                    </span>
+                    {row.name}
+                  </div>
+                </td>
                 <td className="p-3 text-neutral-300">{row.teamName}</td>
                 <td className="p-3 text-neutral-300">{row.divisionName}</td>
                 <td className="p-3">
                   <span className="px-2 py-1 rounded bg-rink-500/20 text-rink-400 text-xs font-semibold">{row.grade}</span>
                 </td>
                 <td className="p-3 text-right text-neutral-300">{row.gamesPlayed}</td>
-                <td className="p-3 text-right text-neutral-300">{row.points}</td>
-                <td className="p-3 text-right text-neutral-300">{row.plusMinus}</td>
+                <td className="p-3 text-right text-neutral-300">
+                  {row.position === 'skater' ? row.points : <span className="text-neutral-600">—</span>}
+                </td>
+                <td className="p-3 text-right text-neutral-300">
+                  {row.position === 'skater' ? (
+                    <span className={row.plusMinus > 0 ? 'text-green-400' : row.plusMinus < 0 ? 'text-red-400' : ''}>
+                      {row.plusMinus > 0 ? '+' : ''}{row.plusMinus}
+                    </span>
+                  ) : (
+                    <span className="text-neutral-600">—</span>
+                  )}
+                </td>
+                <td className="p-3 text-right text-neutral-300">
+                  {row.savePct !== null ? row.savePct.toFixed(3) : <span className="text-neutral-600">—</span>}
+                </td>
+                <td className="p-3 text-right text-neutral-300">
+                  {row.gaa !== null ? row.gaa.toFixed(2) : <span className="text-neutral-600">—</span>}
+                </td>
                 <td className="p-3 text-right text-white">{row.overallPercentile.toFixed(1)}</td>
               </tr>
             ))}

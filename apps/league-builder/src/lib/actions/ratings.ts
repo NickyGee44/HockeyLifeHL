@@ -168,6 +168,11 @@ export async function getPlayerRatings(
       points: number;
       plusMinus: number;
       trend: 'up' | 'down' | 'flat';
+      // Goalie-specific stats (null for skaters)
+      savePct: number | null;
+      gaa: number | null;
+      wins: number | null;
+      shutouts: number | null;
     }>;
     total: number;
     page: number;
@@ -189,7 +194,7 @@ export async function getPlayerRatings(
   const [ratingsRes, profilesRes, rostersRes, teamsRes, divisionsRes, statsRes] = await Promise.all([
     supabase
       .from('player_ratings' as any)
-      .select('player_id, rating, overall_percentile, raw_percentile, games_played, position')
+      .select('player_id, rating, overall_percentile, raw_percentile, games_played, position, stats_json')
       .eq('league_id', leagueId)
       .eq('season_id', seasonId),
     supabase
@@ -246,6 +251,8 @@ export async function getPlayerRatings(
   const rows = (ratingsRes.data ?? []).map((row: any) => {
     const roster = latestRosterByPlayer.get(row.player_id);
     const stats = statByPlayer.get(row.player_id) ?? { points: 0, plusMinus: 0 };
+    const isGoalie = row.position === 'goalie';
+    const statsJson = (row.stats_json as Record<string, unknown>) ?? null;
 
     return {
       playerId: row.player_id,
@@ -262,6 +269,10 @@ export async function getPlayerRatings(
       points: stats.points,
       plusMinus: stats.plusMinus,
       trend: 'flat' as const,
+      savePct: isGoalie && typeof statsJson?.savePct === 'number' ? statsJson.savePct : null,
+      gaa: isGoalie && typeof statsJson?.gaa === 'number' ? statsJson.gaa : null,
+      wins: isGoalie && typeof statsJson?.wins === 'number' ? statsJson.wins : null,
+      shutouts: isGoalie && typeof statsJson?.shutouts === 'number' ? statsJson.shutouts : null,
     };
   });
 
