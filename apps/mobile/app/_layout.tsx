@@ -1,10 +1,12 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { PostHogProvider } from 'posthog-react-native';
+import { posthog } from '../src/lib/posthog';
 
 export default function RootLayout() {
   return (
-    <>
+    <PostHogProvider client={posthog}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -29,6 +31,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </>
+    </PostHogProvider>
   );
 }
