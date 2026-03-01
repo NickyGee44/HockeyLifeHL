@@ -241,9 +241,8 @@ function RuleRow({
   const minutesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // If the parent resets the value externally (e.g. reset to defaults), sync it.
-  useEffect(() => {
-    setDraftMinutes(rule.minutes);
-  }, [rule.minutes]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setDraftMinutes(rule.minutes); }, [rule.minutes]);
 
   // Clear the timer on unmount to avoid stale updates.
   useEffect(() => {
