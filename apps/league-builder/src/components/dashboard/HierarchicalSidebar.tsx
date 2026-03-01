@@ -29,6 +29,7 @@ import {
   Image,
   CheckCircle2,
   Flag,
+  MapPin,
   Mail,
   PartyPopper,
   Bug,
@@ -251,6 +252,14 @@ export default function HierarchicalSidebar({
             locked={!isSubscribed}
           />
           <NavLink
+            href={`${leagueBase}/settings/venues`}
+            icon={MapPin}
+            label={t('venues')}
+            isActive={isPathActive(`${leagueBase}/settings/venues`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
             href={`${leagueBase}/ratings`}
             icon={BarChart3}
             label={t('playerRatings')}
@@ -289,6 +298,15 @@ export default function HierarchicalSidebar({
             label={t('bugReports')}
             isActive={isPathActive(`${leagueBase}/bugs`)}
             collapsed={sidebarCollapsed}
+          />
+
+          <NavLink
+            href={`${leagueBase}/settings`}
+            icon={Settings}
+            label={t('leagueSettings')}
+            isActive={isPathActive(`${leagueBase}/settings`) && !isPathActive(`${leagueBase}/settings/referees`) && !isPathActive(`${leagueBase}/settings/venues`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
           />
 
           {/* ── Content ── */}
