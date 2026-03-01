@@ -81,11 +81,13 @@ export default async function SeasonDetailPage({ params }: Props) {
     .select('*', { count: 'exact', head: true })
     .eq('season_id', seasonId);
 
-  // Get player registrations count (via team_rosters)
+  // Get pending registration submissions count
   const { count: registrationsCount } = await supabase
-    .from('team_rosters')
+    .from('registration_submissions')
     .select('*', { count: 'exact', head: true })
-    .eq('season_id', seasonId);
+    .eq('league_id', leagueId)
+    .eq('season_id', seasonId)
+    .eq('status', 'pending');
 
   // Get season fees
   const feesResult = await getSeasonFees(leagueId, { seasonId });
@@ -254,7 +256,7 @@ export default async function SeasonDetailPage({ params }: Props) {
             description="Manage player and team registrations"
             badge={
               registrationsCount ? (
-                <span className="text-xs text-rink-400">
+                <span className="text-xs text-yellow-400">
                   {registrationsCount} pending
                 </span>
               ) : null
