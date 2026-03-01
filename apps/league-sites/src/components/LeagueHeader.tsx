@@ -58,6 +58,7 @@ const navItems: DefaultNavItem[] = [
   { href: '/history', label: 'History', icon: Crown },
   { href: '/gallery', label: 'Gallery', icon: Camera },
   { href: '/players', label: 'Players', icon: Users },
+  { href: '/events', label: 'Events', icon: Calendar },
   { href: '/about', label: 'About', icon: Info },
   { href: '/contact', label: 'Contact', icon: Mail },
 ];
