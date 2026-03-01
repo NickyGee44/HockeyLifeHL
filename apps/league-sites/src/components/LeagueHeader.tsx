@@ -14,6 +14,7 @@ import {
   Newspaper,
   Crown,
   Camera,
+  Mail,
   Menu,
   X,
   UserPlus,
@@ -55,6 +56,7 @@ const navItems: DefaultNavItem[] = [
   { href: '/history', label: 'History', icon: Crown },
   { href: '/gallery', label: 'Gallery', icon: Camera },
   { href: '/about', label: 'About', icon: Info },
+  { href: '/contact', label: 'Contact', icon: Mail },
 ];
 
 export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePages }: LeagueHeaderProps) {

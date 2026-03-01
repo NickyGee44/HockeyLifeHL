@@ -28,6 +28,9 @@ import {
   Award,
   Image,
   CheckCircle2,
+  Flag,
+  Mail,
+  PartyPopper,
   Bug,
   Lock,
   Zap,
@@ -240,6 +243,14 @@ export default function HierarchicalSidebar({
             locked={!isSubscribed}
           />
           <NavLink
+            href={`${leagueBase}/settings/referees`}
+            icon={Flag}
+            label={t('referees')}
+            isActive={isPathActive(`${leagueBase}/settings/referees`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
             href={`${leagueBase}/ratings`}
             icon={BarChart3}
             label={t('playerRatings')}
@@ -256,6 +267,22 @@ export default function HierarchicalSidebar({
               locked={!isSubscribed}
             />
           )}
+          <NavLink
+            href={`${leagueBase}/contact-inbox`}
+            icon={Mail}
+            label={t('contactInbox')}
+            isActive={isPathActive(`${leagueBase}/contact-inbox`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/events`}
+            icon={PartyPopper}
+            label={t('events')}
+            isActive={isPathActive(`${leagueBase}/events`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
           <NavLink
             href={`${leagueBase}/bugs`}
             icon={Bug}
