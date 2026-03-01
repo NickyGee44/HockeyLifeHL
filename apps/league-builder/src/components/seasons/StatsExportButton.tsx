@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Download, Loader2 } from 'lucide-react';
 import { exportPlayerStatsCSV, exportGoalieStatsCSV } from '@/lib/actions/stats-export';
 
@@ -11,6 +12,7 @@ interface StatsExportButtonProps {
 }
 
 export function StatsExportButton({ leagueId, seasonId, seasonName }: StatsExportButtonProps) {
+  const t = useTranslations('seasons');
   const [loadingSkater, setLoadingSkater] = useState(false);
   const [loadingGoalie, setLoadingGoalie] = useState(false);
 
@@ -56,7 +58,7 @@ export function StatsExportButton({ leagueId, seasonId, seasonName }: StatsExpor
         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white transition-colors disabled:opacity-50"
       >
         {loadingSkater ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-        Skaters
+        {t('export.skaters')}
       </button>
       <button
         onClick={handleGoalieExport}
@@ -64,7 +66,7 @@ export function StatsExportButton({ leagueId, seasonId, seasonName }: StatsExpor
         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white transition-colors disabled:opacity-50"
       >
         {loadingGoalie ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-        Goalies
+        {t('export.goalies')}
       </button>
     </div>
   );

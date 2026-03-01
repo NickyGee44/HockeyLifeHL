@@ -454,7 +454,30 @@
     "record": "Record",
     "allTeams": "All Teams",
     "allTeamsDescription": "Manage teams across all your leagues",
-    "backToDashboard": "Back to Dashboard"
+    "backToDashboard": "Back to Dashboard",
+    "import": {
+      "title": "Import Teams from CSV",
+      "description": "Bulk-create teams in this league. Division names must match existing divisions exactly. Duplicate team names are skipped.",
+      "clickToUpload": "Click to upload CSV",
+      "columns": "Columns: team_name, division, color, captain_email",
+      "downloadTemplate": "Download Template",
+      "previewTitle": "Preview — {count} team(s)",
+      "teamHeader": "Team",
+      "divisionHeader": "Division",
+      "colorHeader": "Color",
+      "captainHeader": "Captain",
+      "andMore": "...and {count} more",
+      "importButton": "Import {count} Team(s)",
+      "cancel": "Cancel",
+      "close": "Close",
+      "importComplete": "Import complete",
+      "teamsCreated": "team(s) created",
+      "rowsSkipped": "skipped (name already exists)",
+      "errors": "Errors:",
+      "noValidRows": "No valid rows found. Check the file format.",
+      "parseError": "Failed to parse file. Ensure it is a valid CSV.",
+      "readError": "Failed to read file."
+    }
   },
   "players": {
     "title": "Players",
@@ -487,6 +510,29 @@
       "intermediate": "Intermediate",
       "advanced": "Advanced",
       "elite": "Elite"
+    },
+    "import": {
+      "title": "Import Players from CSV",
+      "description": "Bulk-add players to this season. Players without existing accounts will be created as pending profiles — they can sign up with their email to activate.",
+      "clickToUpload": "Click to upload CSV",
+      "columns": "Columns: first_name, last_name, email, phone, position, jersey_number",
+      "downloadTemplate": "Download Template",
+      "previewTitle": "Preview — {count} player(s)",
+      "nameHeader": "Name",
+      "emailHeader": "Email",
+      "positionHeader": "Position",
+      "jerseyHeader": "#",
+      "andMore": "...and {count} more",
+      "importButton": "Import {count} Player(s)",
+      "cancel": "Cancel",
+      "close": "Close",
+      "importComplete": "Import complete",
+      "playersImported": "player(s) imported",
+      "rowsSkipped": "skipped (already registered)",
+      "errors": "Errors:",
+      "noValidRows": "No valid rows found. Check the file format.",
+      "parseError": "Failed to parse file. Ensure it is a valid CSV.",
+      "readError": "Failed to read file."
     }
   },
   "schedule": {
@@ -600,6 +646,30 @@
       "expired": "Expired",
       "active": "Active",
       "assigned": "Assigned"
+    },
+    "import": {
+      "title": "Import Schedule from CSV",
+      "description": "Upload a CSV file to bulk-import games. Team names must match existing teams exactly.",
+      "clickToUpload": "Click to upload CSV",
+      "columns": "Columns: date, time, home_team, away_team, venue, notes",
+      "downloadTemplate": "Download Template",
+      "previewTitle": "Preview — {count} game(s)",
+      "dateHeader": "Date",
+      "timeHeader": "Time",
+      "homeHeader": "Home",
+      "awayHeader": "Away",
+      "venueHeader": "Venue",
+      "andMore": "...and {count} more",
+      "importButton": "Import {count} Game(s)",
+      "cancel": "Cancel",
+      "close": "Close",
+      "importComplete": "Import complete",
+      "gamesImported": "game(s) imported",
+      "rowsSkipped": "row(s) skipped",
+      "errors": "Errors:",
+      "noValidRows": "No valid rows found. Check the file format.",
+      "parseError": "Failed to parse file. Ensure it is a valid CSV.",
+      "readError": "Failed to read file."
     }
   },
   "standings": {
@@ -1724,7 +1794,11 @@
     "regenerate": "Regenerate",
     "addPhoto": "Add Photo",
     "aiNewsNotEnabled": "AI News Writer is not enabled for this league.",
-    "enableAiNews": "Enable AI News - $14.99/mo"
+    "enableAiNews": "Enable AI News - $14.99/mo",
+    "announcement": {
+      "button": "Send Announcement",
+      "modalTitle": "Send League Announcement"
+    }
   },
   "sponsors": {
     "title": "Sponsors",
@@ -2010,6 +2084,10 @@
       "namePlaceholder": "Enter season name",
       "cancel": "Cancel",
       "confirm": "Clone Season"
+    },
+    "export": {
+      "skaters": "Skaters",
+      "goalies": "Goalies"
     }
   },
   "divisions": {

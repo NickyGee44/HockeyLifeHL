@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +37,7 @@ export function ImportScheduleModal({
   onOpenChange,
   onSuccess,
 }: ImportScheduleModalProps) {
+  const t = useTranslations('schedule');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [parsedRows, setParsedRows] = useState<ScheduleImportRow[]>([]);
@@ -77,15 +79,15 @@ export function ImportScheduleModal({
         }
 
         if (parsed.length === 0) {
-          setError('No valid rows found. Check the file format.');
+          setError(t('import.noValidRows'));
         } else {
           setParsedRows(parsed);
         }
       } catch {
-        setError('Failed to parse file. Ensure it is a valid CSV.');
+        setError(t('import.parseError'));
       }
     };
-    reader.onerror = () => setError('Failed to read file.');
+    reader.onerror = () => setError(t('import.readError'));
     reader.readAsText(file);
   };
 
@@ -115,9 +117,9 @@ export function ImportScheduleModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Import Schedule from CSV</DialogTitle>
+          <DialogTitle>{t('import.title')}</DialogTitle>
           <DialogDescription className="text-neutral-400">
-            Upload a CSV file to bulk-import games. Team names must match existing teams exactly.
+            {t('import.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -133,22 +135,22 @@ export function ImportScheduleModal({
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
               <div className="flex items-center gap-2 text-green-400 font-medium mb-2">
                 <CheckCircle className="w-5 h-5" />
-                Import complete
+                {t('import.importComplete')}
               </div>
               <div className="text-sm text-neutral-300 space-y-1">
-                <p>{importResult.imported} game{importResult.imported !== 1 ? 's' : ''} imported</p>
+                <p>{importResult.imported} {t('import.gamesImported')}</p>
                 {importResult.skipped > 0 && (
-                  <p className="text-yellow-400">{importResult.skipped} row{importResult.skipped !== 1 ? 's' : ''} skipped</p>
+                  <p className="text-yellow-400">{importResult.skipped} {t('import.rowsSkipped')}</p>
                 )}
                 {importResult.errors.length > 0 && (
                   <div className="mt-2 text-red-400">
-                    <p className="font-medium">Errors:</p>
+                    <p className="font-medium">{t('import.errors')}</p>
                     <ul className="list-disc list-inside text-xs mt-1">
                       {importResult.errors.slice(0, 5).map((err, i) => (
                         <li key={i}>{err}</li>
                       ))}
                       {importResult.errors.length > 5 && (
-                        <li>...and {importResult.errors.length - 5} more</li>
+                        <li>{t('import.andMore', { count: importResult.errors.length - 5 })}</li>
                       )}
                     </ul>
                   </div>
@@ -174,9 +176,9 @@ export function ImportScheduleModal({
                   className="hidden"
                 />
                 <Upload className="w-10 h-10 text-neutral-500 mx-auto mb-3" />
-                <p className="text-neutral-300 font-medium mb-1">Click to upload CSV</p>
+                <p className="text-neutral-300 font-medium mb-1">{t('import.clickToUpload')}</p>
                 <p className="text-sm text-neutral-500">
-                  Columns: date, time, home_team, away_team, venue, notes
+                  {t('import.columns')}
                 </p>
               </div>
 
@@ -188,7 +190,7 @@ export function ImportScheduleModal({
                 className="w-full border-white/10 text-neutral-300 hover:bg-neutral-800"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Download Template
+                {t('import.downloadTemplate')}
               </Button>
 
               {parsedRows.length > 0 && (
@@ -196,18 +198,18 @@ export function ImportScheduleModal({
                   <div className="bg-neutral-800 px-4 py-2 flex items-center gap-2 border-b border-white/10">
                     <FileText className="w-4 h-4 text-neutral-400" />
                     <span className="text-sm font-medium text-white">
-                      Preview — {parsedRows.length} game{parsedRows.length !== 1 ? 's' : ''}
+                      {t('import.previewTitle', { count: parsedRows.length })}
                     </span>
                   </div>
                   <div className="max-h-48 overflow-y-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-neutral-800/50">
                         <tr>
-                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">Date</th>
-                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">Time</th>
-                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">Home</th>
-                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">Away</th>
-                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">Venue</th>
+                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">{t('import.dateHeader')}</th>
+                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">{t('import.timeHeader')}</th>
+                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">{t('import.homeHeader')}</th>
+                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">{t('import.awayHeader')}</th>
+                          <th className="px-3 py-2 text-left text-neutral-400 font-medium">{t('import.venueHeader')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -223,7 +225,7 @@ export function ImportScheduleModal({
                         {parsedRows.length > 10 && (
                           <tr className="border-t border-white/5">
                             <td colSpan={5} className="px-3 py-2 text-center text-neutral-500">
-                              ...and {parsedRows.length - 10} more
+                              {t('import.andMore', { count: parsedRows.length - 10 })}
                             </td>
                           </tr>
                         )}
@@ -243,7 +245,7 @@ export function ImportScheduleModal({
             onClick={handleClose}
             className="border-white/10 text-neutral-300 hover:bg-neutral-800"
           >
-            {importResult ? 'Close' : 'Cancel'}
+            {importResult ? t('import.close') : t('import.cancel')}
           </Button>
           {!importResult && (
             <Button
@@ -256,7 +258,9 @@ export function ImportScheduleModal({
               )}
             >
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Import {parsedRows.length > 0 ? `${parsedRows.length} Game${parsedRows.length !== 1 ? 's' : ''}` : 'Games'}
+              {parsedRows.length > 0
+                ? t('import.importButton', { count: parsedRows.length })
+                : t('import.importButton', { count: 0 })}
             </Button>
           )}
         </DialogFooter>

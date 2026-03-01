@@ -454,7 +454,30 @@
     "record": "Fiche",
     "allTeams": "Toutes les equipes",
     "allTeamsDescription": "Gerez les equipes de toutes vos ligues",
-    "backToDashboard": "Retour au tableau de bord"
+    "backToDashboard": "Retour au tableau de bord",
+    "import": {
+      "title": "Importer des équipes depuis un CSV",
+      "description": "Créez des équipes en lot dans cette ligue. Les noms de division doivent correspondre exactement aux divisions existantes. Les noms d'équipes en double sont ignorés.",
+      "clickToUpload": "Cliquez pour téléverser un CSV",
+      "columns": "Colonnes : nom_équipe, division, couleur, courriel_capitaine",
+      "downloadTemplate": "Télécharger le modèle",
+      "previewTitle": "Aperçu — {count} équipe(s)",
+      "teamHeader": "Équipe",
+      "divisionHeader": "Division",
+      "colorHeader": "Couleur",
+      "captainHeader": "Capitaine",
+      "andMore": "...et {count} de plus",
+      "importButton": "Importer {count} équipe(s)",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "importComplete": "Importation terminée",
+      "teamsCreated": "équipe(s) créée(s)",
+      "rowsSkipped": "ignorée(s) (nom déjà utilisé)",
+      "errors": "Erreurs :",
+      "noValidRows": "Aucune ligne valide trouvée. Vérifiez le format du fichier.",
+      "parseError": "Échec de l'analyse du fichier. Assurez-vous qu'il s'agit d'un CSV valide.",
+      "readError": "Échec de la lecture du fichier."
+    }
   },
   "players": {
     "title": "Joueurs",
@@ -487,6 +510,29 @@
       "intermediate": "Intermediaire",
       "advanced": "Avance",
       "elite": "Elite"
+    },
+    "import": {
+      "title": "Importer des joueurs depuis un CSV",
+      "description": "Ajoutez des joueurs en lot à cette saison. Les joueurs sans compte existant seront créés comme profils en attente — ils peuvent s'inscrire avec leur courriel pour activer.",
+      "clickToUpload": "Cliquez pour téléverser un CSV",
+      "columns": "Colonnes : prénom, nom, courriel, téléphone, position, numéro_maillot",
+      "downloadTemplate": "Télécharger le modèle",
+      "previewTitle": "Aperçu — {count} joueur(s)",
+      "nameHeader": "Nom",
+      "emailHeader": "Courriel",
+      "positionHeader": "Position",
+      "jerseyHeader": "#",
+      "andMore": "...et {count} de plus",
+      "importButton": "Importer {count} joueur(s)",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "importComplete": "Importation terminée",
+      "playersImported": "joueur(s) importé(s)",
+      "rowsSkipped": "ignoré(s) (déjà inscrit(s))",
+      "errors": "Erreurs :",
+      "noValidRows": "Aucune ligne valide trouvée. Vérifiez le format du fichier.",
+      "parseError": "Échec de l'analyse du fichier. Assurez-vous qu'il s'agit d'un CSV valide.",
+      "readError": "Échec de la lecture du fichier."
     }
   },
   "schedule": {
@@ -600,6 +646,30 @@
       "expired": "Expiré",
       "active": "Actif",
       "assigned": "Assigné"
+    },
+    "import": {
+      "title": "Importer l'horaire depuis un CSV",
+      "description": "Téléversez un fichier CSV pour importer les matchs en lot. Les noms d'équipes doivent correspondre exactement aux équipes existantes.",
+      "clickToUpload": "Cliquez pour téléverser un CSV",
+      "columns": "Colonnes : date, heure, équipe_locale, équipe_visiteuse, lieu, notes",
+      "downloadTemplate": "Télécharger le modèle",
+      "previewTitle": "Aperçu — {count} match(s)",
+      "dateHeader": "Date",
+      "timeHeader": "Heure",
+      "homeHeader": "Local",
+      "awayHeader": "Visiteur",
+      "venueHeader": "Lieu",
+      "andMore": "...et {count} de plus",
+      "importButton": "Importer {count} match(s)",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "importComplete": "Importation terminée",
+      "gamesImported": "match(s) importé(s)",
+      "rowsSkipped": "ligne(s) ignorée(s)",
+      "errors": "Erreurs :",
+      "noValidRows": "Aucune ligne valide trouvée. Vérifiez le format du fichier.",
+      "parseError": "Échec de l'analyse du fichier. Assurez-vous qu'il s'agit d'un CSV valide.",
+      "readError": "Échec de la lecture du fichier."
     }
   },
   "standings": {
@@ -1724,7 +1794,11 @@
     "regenerate": "Régénérer",
     "addPhoto": "Ajouter une photo",
     "aiNewsNotEnabled": "Le rédacteur IA n'est pas activé pour cette ligue.",
-    "enableAiNews": "Activer AI News - 14,99 $/mois"
+    "enableAiNews": "Activer AI News - 14,99 $/mois",
+    "announcement": {
+      "button": "Envoyer une annonce",
+      "modalTitle": "Envoyer une annonce à la ligue"
+    }
   },
   "sponsors": {
     "title": "Commanditaires",
@@ -2010,6 +2084,10 @@
       "namePlaceholder": "Entrez le nom de la saison",
       "cancel": "Annuler",
       "confirm": "Cloner la saison"
+    },
+    "export": {
+      "skaters": "Patineurs",
+      "goalies": "Gardiens"
     }
   },
   "divisions": {
