@@ -28,7 +28,10 @@ dotenv.config({ path: '.env.local' });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+// Allow a dedicated test key so you don't have to swap out the live key.
+// Add STRIPE_SECRET_KEY_TEST=sk_test_... to .env.local and this script will
+// use it automatically, leaving STRIPE_SECRET_KEY (live) untouched.
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY_TEST ?? process.env.STRIPE_TEST_SECRET_KEY ?? process.env.STRIPE_SECRET_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
