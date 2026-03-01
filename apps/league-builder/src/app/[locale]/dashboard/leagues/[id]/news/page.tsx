@@ -14,6 +14,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { NewsArticleActions } from './NewsArticleActions';
+import { AnnouncementComposerButton } from '@/components/news/AnnouncementComposerButton';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -67,17 +68,20 @@ export default async function LeagueNewsPage({ params }: Props) {
               </p>
             </div>
 
-            <Link
-              href={`/${locale}/dashboard/leagues/${leagueId}/news/new`}
-              className={cn(
-                'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
-                'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
-                'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
-              )}
-            >
-              <Plus className="w-4 h-4" />
-              New Article
-            </Link>
+            <div className="flex items-center gap-2">
+              <AnnouncementComposerButton leagueId={leagueId} leagueName={league.name} />
+              <Link
+                href={`/${locale}/dashboard/leagues/${leagueId}/news/new`}
+                className={cn(
+                  'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
+                  'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                  'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
+                )}
+              >
+                <Plus className="w-4 h-4" />
+                New Article
+              </Link>
+            </div>
           </div>
         </div>
 

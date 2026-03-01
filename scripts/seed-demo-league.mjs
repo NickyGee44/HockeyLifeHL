@@ -54,6 +54,7 @@ const leagueData = {
     requireApproval: false,
     emailNotifications: false,
     website: {
+      demoMode: true,
       themePreset: 'dark',
       visiblePages: {
         schedule: true,
@@ -78,6 +79,8 @@ const seasonData = {
   start_date: '2026-01-05T00:00:00-04:00',
   end_date: '2026-04-13T23:59:59-03:00',
   registration_type: 'open_registration',
+  registration_opens_at: '2026-01-01T00:00:00Z',
+  registration_closes_at: '2027-12-31T23:59:59Z',
   status: 'active',
   game_duration_minutes: 60,
   period_count: 3,
