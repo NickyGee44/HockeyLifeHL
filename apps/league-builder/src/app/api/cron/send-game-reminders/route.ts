@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { sendEmail } from '@/lib/notifications/email-service';
+import { sendEmail, getUnsubscribeUrl } from '@/lib/notifications/email-service';
 import { getGameReminderEmail } from '@/lib/notifications/templates/game-reminder';
 import { format } from 'date-fns';
 
@@ -9,13 +9,13 @@ import { format } from 'date-fns';
  * Schedule: Every hour on the hour (0 * * * *)
  *
  * Finds games scheduled 23–25 hours from now, fetches rostered players,
- * and sends reminder emails. Uses a sent_at column on games to avoid
- * double-sending — since we don't have that column yet, we use a simple
- * notification_sent flag via game metadata or just accept that running
- * every hour for a 2-hour window may send at most 2 reminders.
+ * sends reminder emails, and marks each game with reminder_sent_at to
+ * prevent duplicate sends.
  *
- * Actually: we query games in the 23h–25h window and check a
- * game_reminder_sent_at column. If it's null, we send and mark it.
+ * Respects user_notification_preferences:
+ * - Skips players with email_enabled=false or email_game_updates=false
+ * - Includes a valid token-based unsubscribe link in every email
+ * - Generates and stores unsubscribe tokens for players who don't have one
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -88,14 +88,37 @@ export async function GET(request: NextRequest) {
 
       if (!rosters || rosters.length === 0) continue;
 
-      // Fetch notification preferences — skip players who have opted out of game emails
+      // Fetch notification preferences for all players:
+      // - opt-out check (skip if email_enabled=false or email_game_updates=false)
+      // - unsubscribe token for compliant one-click unsubscribe link
       const playerIds = (rosters as any[]).map((r) => r.player_id).filter(Boolean);
-      const { data: optedOut } = await supabase
+      const { data: prefs } = await supabase
         .from('user_notification_preferences')
-        .select('user_id')
-        .in('user_id', playerIds)
-        .or('email_enabled.eq.false,email_game_updates.eq.false');
-      const optedOutIds = new Set((optedOut ?? []).map((p: any) => p.user_id));
+        .select('user_id, email_enabled, email_game_updates, unsubscribe_token')
+        .in('user_id', playerIds);
+
+      const prefsByUserId = new Map<string, any>();
+      for (const pref of (prefs ?? []) as any[]) {
+        prefsByUserId.set(pref.user_id, pref);
+      }
+
+      // Generate unsubscribe tokens for players who don't have one, upsert in bulk
+      const needsToken = playerIds.filter((id) => !prefsByUserId.get(id)?.unsubscribe_token);
+      if (needsToken.length > 0) {
+        const tokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+        const upserts = needsToken.map((userId) => ({
+          user_id: userId,
+          unsubscribe_token: crypto.randomUUID(),
+          unsubscribe_token_expires_at: tokenExpiry,
+        }));
+        const { data: inserted } = await supabase
+          .from('user_notification_preferences')
+          .upsert(upserts, { onConflict: 'user_id' })
+          .select('user_id, unsubscribe_token, email_enabled, email_game_updates');
+        for (const row of (inserted ?? []) as any[]) {
+          prefsByUserId.set(row.user_id, row);
+        }
+      }
 
       const siteUrl = process.env.NEXT_PUBLIC_SITES_URL || 'https://beerleaguehockey.ca';
       const leagueSlug = league?.slug;
@@ -104,8 +127,9 @@ export async function GET(request: NextRequest) {
         const profile = roster.profiles;
         if (!profile?.email || !profile?.full_name) continue;
 
-        // Respect notification preferences
-        if (optedOutIds.has(roster.player_id)) continue;
+        // Respect notification opt-outs
+        const pref = prefsByUserId.get(roster.player_id);
+        if (pref?.email_enabled === false || pref?.email_game_updates === false) continue;
 
         const isHomeTeam = roster.team_id === game.home_team_id;
         const myTeamName = isHomeTeam ? homeTeam?.name : awayTeam?.name;
@@ -117,7 +141,11 @@ export async function GET(request: NextRequest) {
           ? `${siteUrl}/${leagueSlug}/me`
           : siteUrl;
 
-        const unsubscribeUrl = `${siteUrl}/unsubscribe?email=${encodeURIComponent(profile.email)}`;
+        // Use token-based unsubscribe URL (CAN-SPAM / CASL compliant)
+        const unsubscribeToken = pref?.unsubscribe_token;
+        const unsubscribeUrl = unsubscribeToken
+          ? getUnsubscribeUrl(unsubscribeToken, 'game_updates')
+          : `${siteUrl}/unsubscribe`;
 
         const html = getGameReminderEmail({
           playerName: profile.full_name,
