@@ -39,6 +39,7 @@ type PlayerAggregate = {
 };
 
 const MIN_GAMES_FOR_RATING = 5;
+const MIN_PLAYERS_FOR_DIVISION_RATING = 3;
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -61,7 +62,7 @@ function inverseNormalize(value: number, min: number, max: number): number {
 
 function percentileFromRank(rank: number, total: number): number {
   if (total <= 1) {
-    return 100;
+    return 50; // sole qualifier gets neutral percentile, not artificial 100th
   }
   const p = ((total - rank - 1) / (total - 1)) * 100;
   return round2(clamp(p, 0, 100));
@@ -356,110 +357,145 @@ export async function calculatePlayerRatings(
     });
   }
 
-  const skaterRanges = {
-    ppgMin: Math.min(...skaterCandidates.map((p) => p.pointsPerGame), 0),
-    ppgMax: Math.max(...skaterCandidates.map((p) => p.pointsPerGame), 1),
-    plusMin: Math.min(...skaterCandidates.map((p) => p.plusMinusPerGame), -1),
-    plusMax: Math.max(...skaterCandidates.map((p) => p.plusMinusPerGame), 1),
-    pimMin: Math.min(...skaterCandidates.map((p) => p.pimPerGame), 0),
-    pimMax: Math.max(...skaterCandidates.map((p) => p.pimPerGame), 3),
-  };
+  // Group candidates by division before computing composites so that ranges and
+  // rankings both use the same per-division context (fixes global-normalization bias).
+  const skatersByDivision = new Map<string, typeof skaterCandidates>();
+  for (const p of skaterCandidates) {
+    const key = p.divisionId ?? 'unassigned';
+    const list = skatersByDivision.get(key) ?? [];
+    list.push(p);
+    skatersByDivision.set(key, list);
+  }
 
-  const goalieRanges = {
-    saveMin: Math.min(...goalieCandidates.map((p) => p.savePct), 0.5),
-    saveMax: Math.max(...goalieCandidates.map((p) => p.savePct), 0.95),
-    gaaMin: Math.min(...goalieCandidates.map((p) => p.gaa), 1),
-    gaaMax: Math.max(...goalieCandidates.map((p) => p.gaa), 6),
-  };
+  const goaliesByDivision = new Map<string, typeof goalieCandidates>();
+  for (const p of goalieCandidates) {
+    const key = p.divisionId ?? 'unassigned';
+    const list = goaliesByDivision.get(key) ?? [];
+    list.push(p);
+    goaliesByDivision.set(key, list);
+  }
 
   const aggregates: PlayerAggregate[] = [];
 
-  for (const player of skaterCandidates) {
-    const ppgNorm = normalize(player.pointsPerGame, skaterRanges.ppgMin, skaterRanges.ppgMax);
-    const plusNorm = normalize(player.plusMinusPerGame, skaterRanges.plusMin, skaterRanges.plusMax);
-    const pimNorm = inverseNormalize(player.pimPerGame, skaterRanges.pimMin, skaterRanges.pimMax);
-    const attNorm = clamp(player.attendanceRate, 0, 1);
+  const allDivisionKeys = new Set([
+    ...skatersByDivision.keys(),
+    ...goaliesByDivision.keys(),
+  ]);
 
-    const offensive = ppgNorm;
-    const defensive = 0.6 * plusNorm + 0.4 * pimNorm;
-    const composite = (0.5 * ppgNorm) + (0.2 * plusNorm) + (0.15 * pimNorm) + (0.15 * attNorm);
-
-    aggregates.push({
-      playerId: player.playerId,
-      teamId: player.teamId,
-      divisionId: player.divisionId,
-      position: 'skater',
-      gamesPlayed: player.gamesPlayed,
-      pointsPerGame: round2(player.pointsPerGame),
-      attendanceRate: round2(player.attendanceRate),
-      compositeScore: round2(composite * 100),
-      offensiveComponent: round2(offensive * 100),
-      defensiveComponent: round2(defensive * 100),
-      rawPercentile: 0,
-      overallPercentile: 0,
-      rating: 'D-',
-      stats: {
-        goals: player.goals,
-        assists: player.assists,
-        points: player.points,
-        shots: player.shots,
-        plusMinusPerGame: round2(player.plusMinusPerGame),
-        pimPerGame: round2(player.pimPerGame),
-      },
-    });
-  }
-
-  for (const player of goalieCandidates) {
-    const saveNorm = normalize(player.savePct, goalieRanges.saveMin, goalieRanges.saveMax);
-    const gaaNorm = inverseNormalize(player.gaa, goalieRanges.gaaMin, goalieRanges.gaaMax);
-    const winNorm = clamp(player.winPct, 0, 1);
-    const attNorm = clamp(player.attendanceRate, 0, 1);
-
-    const offensive = winNorm;
-    const defensive = 0.65 * saveNorm + 0.35 * gaaNorm;
-    const composite = (0.4 * saveNorm) + (0.25 * gaaNorm) + (0.2 * winNorm) + (0.15 * attNorm);
-
-    aggregates.push({
-      playerId: player.playerId,
-      teamId: player.teamId,
-      divisionId: player.divisionId,
-      position: 'goalie',
-      gamesPlayed: player.gamesPlayed,
-      pointsPerGame: 0,
-      attendanceRate: round2(player.attendanceRate),
-      compositeScore: round2(composite * 100),
-      offensiveComponent: round2(offensive * 100),
-      defensiveComponent: round2(defensive * 100),
-      rawPercentile: 0,
-      overallPercentile: 0,
-      rating: 'D-',
-      stats: {
-        saves: player.saves,
-        shotsAgainst: player.shotsAgainst,
-        goalsAgainst: player.goalsAgainst,
-        savePct: round2(player.savePct),
-        gaa: round2(player.gaa),
-        winPct: round2(player.winPct),
-        wins: player.wins,
-        shutouts: player.shutouts,
-      },
-    });
-  }
-
-  const byDivision = new Map<string, PlayerAggregate[]>();
-  for (const player of aggregates) {
-    const key = player.divisionId ?? 'unassigned';
-    const list = byDivision.get(key) ?? [];
-    list.push(player);
-    byDivision.set(key, list);
-  }
-
-  for (const [divisionKey, players] of byDivision.entries()) {
-    const sorted = [...players].sort((a, b) => b.compositeScore - a.compositeScore);
+  for (const divisionKey of allDivisionKeys) {
+    const divSkaters = skatersByDivision.get(divisionKey) ?? [];
+    const divGoalies = goaliesByDivision.get(divisionKey) ?? [];
     const divisionId = divisionKey === 'unassigned' ? null : divisionKey;
     const tier = divisionId ? divisionTierMap.get(divisionId) ?? 4 : 4;
     const tierPolicy = divisionWeightAndFloor(tier);
 
+    const divAggregate: PlayerAggregate[] = [];
+
+    // Per-division skater composites — ranges from actual data only, no sentinels.
+    // normalize() already returns 0.5 when max <= min (flat distribution).
+    if (divSkaters.length > 0) {
+      const ppgMin  = Math.min(...divSkaters.map((p) => p.pointsPerGame));
+      const ppgMax  = Math.max(...divSkaters.map((p) => p.pointsPerGame));
+      const plusMin = Math.min(...divSkaters.map((p) => p.plusMinusPerGame));
+      const plusMax = Math.max(...divSkaters.map((p) => p.plusMinusPerGame));
+      const pimMin  = Math.min(...divSkaters.map((p) => p.pimPerGame));
+      const pimMax  = Math.max(...divSkaters.map((p) => p.pimPerGame));
+
+      for (const player of divSkaters) {
+        const ppgNorm  = normalize(player.pointsPerGame,    ppgMin,  ppgMax);
+        const plusNorm = normalize(player.plusMinusPerGame, plusMin, plusMax);
+        const pimNorm  = inverseNormalize(player.pimPerGame, pimMin, pimMax);
+        const attNorm  = clamp(player.attendanceRate, 0, 1);
+
+        const offensive = ppgNorm;
+        const defensive = 0.6 * plusNorm + 0.4 * pimNorm;
+        const composite = (0.5 * ppgNorm) + (0.2 * plusNorm) + (0.15 * pimNorm) + (0.15 * attNorm);
+
+        divAggregate.push({
+          playerId: player.playerId,
+          teamId: player.teamId,
+          divisionId: player.divisionId,
+          position: 'skater',
+          gamesPlayed: player.gamesPlayed,
+          pointsPerGame: round2(player.pointsPerGame),
+          attendanceRate: round2(player.attendanceRate),
+          compositeScore: round2(composite * 100),
+          offensiveComponent: round2(offensive * 100),
+          defensiveComponent: round2(defensive * 100),
+          rawPercentile: 0,
+          overallPercentile: 0,
+          rating: 'D-',
+          stats: {
+            goals: player.goals,
+            assists: player.assists,
+            points: player.points,
+            shots: player.shots,
+            plusMinusPerGame: round2(player.plusMinusPerGame),
+            pimPerGame: round2(player.pimPerGame),
+          },
+        });
+      }
+    }
+
+    // Per-division goalie composites — same pattern, no sentinels.
+    if (divGoalies.length > 0) {
+      const saveMin = Math.min(...divGoalies.map((p) => p.savePct));
+      const saveMax = Math.max(...divGoalies.map((p) => p.savePct));
+      const gaaMin  = Math.min(...divGoalies.map((p) => p.gaa));
+      const gaaMax  = Math.max(...divGoalies.map((p) => p.gaa));
+
+      for (const player of divGoalies) {
+        const saveNorm = normalize(player.savePct, saveMin, saveMax);
+        const gaaNorm  = inverseNormalize(player.gaa, gaaMin, gaaMax);
+        const winNorm  = clamp(player.winPct, 0, 1);
+        const attNorm  = clamp(player.attendanceRate, 0, 1);
+
+        const offensive = winNorm;
+        const defensive = 0.65 * saveNorm + 0.35 * gaaNorm;
+        const composite = (0.4 * saveNorm) + (0.25 * gaaNorm) + (0.2 * winNorm) + (0.15 * attNorm);
+
+        divAggregate.push({
+          playerId: player.playerId,
+          teamId: player.teamId,
+          divisionId: player.divisionId,
+          position: 'goalie',
+          gamesPlayed: player.gamesPlayed,
+          pointsPerGame: 0,
+          attendanceRate: round2(player.attendanceRate),
+          compositeScore: round2(composite * 100),
+          offensiveComponent: round2(offensive * 100),
+          defensiveComponent: round2(defensive * 100),
+          rawPercentile: 0,
+          overallPercentile: 0,
+          rating: 'D-',
+          stats: {
+            saves: player.saves,
+            shotsAgainst: player.shotsAgainst,
+            goalsAgainst: player.goalsAgainst,
+            savePct: round2(player.savePct),
+            gaa: round2(player.gaa),
+            winPct: round2(player.winPct),
+            wins: player.wins,
+            shutouts: player.shutouts,
+          },
+        });
+      }
+    }
+
+    // Require a minimum number of qualified players before percentile ranking
+    // is meaningful. Below threshold, everyone gets the neutral D+ (50th pct).
+    if (divAggregate.length < MIN_PLAYERS_FOR_DIVISION_RATING) {
+      for (const p of divAggregate) {
+        p.rawPercentile = 50;
+        p.overallPercentile = 50;
+        p.rating = percentileToGrade(50);
+      }
+      aggregates.push(...divAggregate);
+      continue;
+    }
+
+    // Sort by composite and assign within-division percentile ranks.
+    const sorted = [...divAggregate].sort((a, b) => b.compositeScore - a.compositeScore);
     sorted.forEach((player, idx) => {
       const rawPercentile = percentileFromRank(idx, sorted.length);
       const weightedPercentile = clamp(
@@ -467,11 +503,12 @@ export async function calculatePlayerRatings(
         0,
         100
       );
-
       player.rawPercentile = rawPercentile;
       player.overallPercentile = round2(weightedPercentile);
       player.rating = percentileToGrade(player.overallPercentile);
     });
+
+    aggregates.push(...divAggregate);
   }
 
   const now = new Date().toISOString();
