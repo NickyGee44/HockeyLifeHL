@@ -7435,6 +7435,87 @@ export type Database = {
           },
         ]
       }
+      playoff_series: {
+        Row: {
+          created_at: string
+          high_seed_id: string | null
+          high_seed_wins: number
+          id: string
+          league_id: string
+          low_seed_id: string | null
+          low_seed_wins: number
+          round_number: number
+          season_id: string
+          series_number: number
+          status: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          high_seed_id?: string | null
+          high_seed_wins?: number
+          id?: string
+          league_id: string
+          low_seed_id?: string | null
+          low_seed_wins?: number
+          round_number: number
+          season_id: string
+          series_number: number
+          status?: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          high_seed_id?: string | null
+          high_seed_wins?: number
+          id?: string
+          league_id?: string
+          low_seed_id?: string | null
+          low_seed_wins?: number
+          round_number?: number
+          season_id?: string
+          series_number?: number
+          status?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playoff_series_high_seed_id_fkey"
+            columns: ["high_seed_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playoff_series_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playoff_series_low_seed_id_fkey"
+            columns: ["low_seed_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playoff_series_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playoff_series_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           availability: string | null

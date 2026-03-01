@@ -22,6 +22,8 @@ import {
   Edit } from 'lucide-react';
 import { SeasonFeeManager } from '@/components/payments/SeasonFeeManager';
 import { getSeasonFees } from '@/lib/payments/fee-actions';
+import { PlayoffBracketClient } from '@/components/playoffs';
+import { getPlayoffBracket } from '@/lib/actions/playoff-bracket';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -86,6 +88,20 @@ export default async function SeasonDetailPage({ params }: Props) {
   // Get season fees
   const feesResult = await getSeasonFees(leagueId, { seasonId });
   const seasonFees = feesResult.success ? feesResult.data : [];
+
+  // Get playoff bracket data
+  const bracketResult = await getPlayoffBracket(leagueId, seasonId);
+  const initialBracket = bracketResult.success ? bracketResult.data : null;
+
+  // Check if user is owner/admin of this league
+  const { data: membership } = await supabase
+    .from('league_memberships')
+    .select('role')
+    .eq('league_id', leagueId)
+    .eq('user_id', user!.id)
+    .maybeSingle();
+
+  const canEdit = membership?.role === 'owner' || membership?.role === 'admin';
 
   const statusColors: Record<string, string> = {
     active: 'bg-green-500/10 text-green-500 border-green-500/30',
@@ -263,6 +279,16 @@ export default async function SeasonDetailPage({ params }: Props) {
             seasonId={seasonId}
             seasonName={season.name}
             initialFees={seasonFees}
+          />
+        </div>
+
+        {/* Playoff Bracket Section */}
+        <div className="mb-8">
+          <PlayoffBracketClient
+            leagueId={leagueId}
+            seasonId={seasonId}
+            initialBracket={initialBracket}
+            canEdit={canEdit}
           />
         </div>
 
