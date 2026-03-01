@@ -171,36 +171,58 @@ export async function getTeam(teamId: string) {
       .single();
 
     if (error || !team) {
-      if (isDevelopment) {
-        console.error('Error fetching team:', sanitizeErrorForLogging(error));
-      }
+      console.error('[getTeam] Query failed for team', teamId, ':', sanitizeErrorForLogging(error));
       return { error: 'Team not found' };
     }
 
-    // Explicit authorization check: user must be org owner, league admin, captain, or platform admin
-    const orgOwnerId = (team.leagues as any)?.organizations?.owner_user_id;
+    // Explicit authorization check: user must be org owner/member, league admin, captain, or platform admin
+    // leagues may be returned as object or array depending on PostgREST cardinality detection
+    const leagueData = Array.isArray((team.leagues as any))
+      ? (team.leagues as any)[0]
+      : (team.leagues as any);
+    const orgOwnerId = leagueData?.organizations?.owner_user_id;
+    const organizationId = leagueData?.organization_id;
     const teamCaptainId = team.captain_id;
-    const leagueId = (team.leagues as any)?.id;
+    const leagueId = leagueData?.id;
     const isPlatformAdmin = !!(userData.profile as any)?.is_platform_admin;
 
+    const isOrgOwner = !!orgOwnerId && orgOwnerId === userData.user.id;
+    const isTeamCaptain = !!teamCaptainId && teamCaptainId === userData.user.id;
+
+    let isOrgMember = false;
     let isLeagueAdmin = false;
-    if (leagueId && orgOwnerId !== userData.user.id && teamCaptainId !== userData.user.id && !isPlatformAdmin) {
-      const { data: membership } = await supabase
-        .from('league_memberships')
-        .select('role')
-        .eq('league_id', leagueId)
-        .eq('user_id', userData.user.id)
-        .in('role', ['admin', 'owner'])
-        .maybeSingle();
-      isLeagueAdmin = !!membership;
+
+    if (!isOrgOwner && !isTeamCaptain && !isPlatformAdmin) {
+      // Check organization membership (covers org-level admins who aren't the owner)
+      if (organizationId) {
+        const { data: orgMembership } = await supabase
+          .from('organization_members')
+          .select('role')
+          .eq('organization_id', organizationId)
+          .eq('user_id', userData.user.id)
+          .eq('status', 'active')
+          .maybeSingle();
+        isOrgMember = !!orgMembership;
+      }
+
+      // Check league-level membership
+      if (!isOrgMember && leagueId) {
+        const { data: membership } = await supabase
+          .from('league_memberships')
+          .select('role')
+          .eq('league_id', leagueId)
+          .eq('user_id', userData.user.id)
+          .in('role', ['admin', 'owner'])
+          .maybeSingle();
+        isLeagueAdmin = !!membership;
+      }
     }
 
-    if (
-      orgOwnerId !== userData.user.id &&
-      teamCaptainId !== userData.user.id &&
-      !isPlatformAdmin &&
-      !isLeagueAdmin
-    ) {
+    if (!isOrgOwner && !isTeamCaptain && !isPlatformAdmin && !isOrgMember && !isLeagueAdmin) {
+      console.error(
+        `[getTeam] Auth denied for user ${userData.user.id} on team ${teamId}:`,
+        { orgOwnerId, organizationId, teamCaptainId, leagueId, isPlatformAdmin }
+      );
       return { error: 'Team not found' };
     }
 

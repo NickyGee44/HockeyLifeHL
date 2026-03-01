@@ -193,7 +193,7 @@ async function getCurrentSeason(leagueId: string) {
     .from('seasons')
     .select('id, name')
     .eq('league_id', leagueId)
-    .eq('status', 'active')
+    .in('status', ['active', 'playoffs'])
     .order('start_date', { ascending: false })
     .limit(1)
     .maybeSingle();
