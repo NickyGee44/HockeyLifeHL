@@ -10961,20 +10961,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_teams_captain"
-            columns: ["captain_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_teams_captain"
-            columns: ["captain_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "teams_captain_id_fkey"
             columns: ["captain_id"]
             isOneToOne: false
