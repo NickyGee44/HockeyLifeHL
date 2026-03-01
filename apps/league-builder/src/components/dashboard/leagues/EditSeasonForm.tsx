@@ -18,6 +18,7 @@ interface Season {
   games_per_cycle: number | null;
   max_players_per_team: number | null;
   allow_team_selection: boolean | null;
+  playoff_format: string | null;
 }
 
 interface EditSeasonFormProps {
@@ -50,6 +51,7 @@ export function EditSeasonForm({ leagueId, season }: EditSeasonFormProps) {
         max_players_per_team:
           parseInt(formData.get('max_players_per_team') as string) || 18,
         allow_team_selection: formData.get('allow_team_selection') === 'true',
+        playoff_format: formData.get('playoff_format') as string,
       });
 
       if (result.error) {
@@ -144,6 +146,27 @@ export function EditSeasonForm({ leagueId, season }: EditSeasonFormProps) {
               <option value="completed">Completed</option>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="playoff_format" className="block text-sm font-medium text-neutral-300 mb-2">
+            Playoff Format
+          </label>
+          <select
+            id="playoff_format"
+            name="playoff_format"
+            defaultValue={season.playoff_format || 'single_elimination'}
+            className={cn(
+              'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
+              'text-white',
+              'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
+            )}
+          >
+            <option value="single_elimination">Single Elimination</option>
+            <option value="best_of_3">Best of 3</option>
+            <option value="best_of_5">Best of 5</option>
+            <option value="none">No Playoffs</option>
+          </select>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

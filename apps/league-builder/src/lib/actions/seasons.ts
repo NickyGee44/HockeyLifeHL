@@ -193,6 +193,7 @@ export async function updateSeason(seasonId: string, data: {
   max_players_per_team?: number;
   allow_team_selection?: boolean;
   status?: SeasonStatus;
+  playoff_format?: string;
 }) {
   const supabase = await createClient();
 
@@ -233,6 +234,7 @@ export async function updateSeason(seasonId: string, data: {
     if (data.max_players_per_team !== undefined) updateData.max_players_per_team = data.max_players_per_team;
     if (data.allow_team_selection !== undefined) updateData.allow_team_selection = data.allow_team_selection;
     if (data.status !== undefined) updateData.status = data.status;
+    if (data.playoff_format !== undefined) updateData.playoff_format = data.playoff_format;
 
     const { error: updateError } = await supabase
       .from('seasons')

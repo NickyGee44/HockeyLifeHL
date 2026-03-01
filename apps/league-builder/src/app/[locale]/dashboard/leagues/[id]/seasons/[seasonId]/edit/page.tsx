@@ -93,7 +93,8 @@ export default async function EditSeasonPage({ params }: Props) {
             registration_type: season.registration_type,
             games_per_cycle: season.games_per_cycle,
             max_players_per_team: season.max_players_per_team,
-            allow_team_selection: season.allow_team_selection }}
+            allow_team_selection: season.allow_team_selection,
+            playoff_format: season.playoff_format }}
         />
       </div>
     </div>
