@@ -78,6 +78,48 @@ export default async function LeagueDetailPage({ params }: Props) {
     .select('*', { count: 'exact', head: true })
     .eq('league_id', leagueId);
 
+  // Pending action counts — all run in parallel
+  const currentSeason = league.seasons?.find(
+    (s: any) => s.status === 'active' || s.status === 'registration'
+  ) ?? league.seasons?.[0] ?? null;
+
+  const [
+    { count: pendingRegistrations },
+    { count: pendingGames },
+    { count: activeSuspensions },
+    { count: unreadMessages },
+  ] = await Promise.all([
+    (supabase.from('registration_submissions') as any)
+      .select('*', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .eq('status', 'pending'),
+    currentSeason
+      ? supabase
+          .from('games')
+          .select('*', { count: 'exact', head: true })
+          .eq('league_id', leagueId)
+          .eq('season_id', currentSeason.id)
+          .eq('status', 'completed')
+          .or('home_captain_verified.eq.false,away_captain_verified.eq.false')
+      : Promise.resolve({ count: 0 }),
+    (supabase.from('suspensions') as any)
+      .select('*', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .eq('status', 'active'),
+    supabase
+      .from('contact_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .eq('is_read', false),
+  ]);
+
+  const pendingActions = [
+    pendingRegistrations && { label: `${pendingRegistrations} pending registration${pendingRegistrations === 1 ? '' : 's'}`, href: `/${locale}/dashboard/leagues/${leagueId}/registrations?status=pending`, color: 'yellow' },
+    pendingGames && { label: `${pendingGames} game${pendingGames === 1 ? '' : 's'} awaiting verification`, href: `/${locale}/dashboard/leagues/${leagueId}/games`, color: 'blue' },
+    activeSuspensions && { label: `${activeSuspensions} active suspension${activeSuspensions === 1 ? '' : 's'}`, href: `/${locale}/dashboard/leagues/${leagueId}/games`, color: 'red' },
+    unreadMessages && { label: `${unreadMessages} new contact message${unreadMessages === 1 ? '' : 's'}`, href: `/${locale}/dashboard/leagues/${leagueId}/contact-inbox`, color: 'purple' },
+  ].filter(Boolean) as Array<{ label: string; href: string; color: string }>;
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -166,6 +208,32 @@ export default async function LeagueDetailPage({ params }: Props) {
             <p className="text-lg font-semibold text-white truncate">{league.timezone || t('notSet')}</p>
           </div>
         </div>
+
+        {/* Pending Actions Banner */}
+        {pendingActions.length > 0 && (
+          <div className="mb-6 bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
+            <p className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3">Needs Attention</p>
+            <div className="flex flex-wrap gap-2">
+              {pendingActions.map((action) => {
+                const colorMap: Record<string, string> = {
+                  yellow: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30 hover:bg-yellow-500/20',
+                  blue: 'bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20',
+                  red: 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20',
+                  purple: 'bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20',
+                };
+                return (
+                  <Link
+                    key={action.label}
+                    href={action.href}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${colorMap[action.color] ?? colorMap.yellow}`}
+                  >
+                    {action.label} →
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
