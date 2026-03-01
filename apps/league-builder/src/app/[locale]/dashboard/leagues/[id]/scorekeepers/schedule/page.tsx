@@ -71,9 +71,9 @@ export default async function AdminScorekeeperSchedulePage({ params }: Props) {
   // Fetch data in parallel
   const serviceClient = createServiceRoleClient();
 
-  const [scorekeepersResult, gamesResult, swapRequestsResult] = await Promise.all([
+  const [scorekeepersResult, gamesResult] = await Promise.all([
     getLeagueScorekepers(leagueId),
-    // Get upcoming games with scorekeeper assignments
+    // Get upcoming games with scorekeeper assignments — already filtered by league_id
     serviceClient
       .from('games')
       .select(`
@@ -96,21 +96,28 @@ export default async function AdminScorekeeperSchedulePage({ params }: Props) {
       .in('status', ['scheduled', 'in_progress'])
       .order('scheduled_at', { ascending: true })
       .limit(100),
-    // Get pending swap requests
-    (serviceClient as any)
-      .from('scorekeeper_swap_requests')
-      .select(`
-        id,
-        game_id,
-        reason,
-        status,
-        created_at,
-        requesting_sk:league_scorekeepers!scorekeeper_swap_requests_requesting_scorekeeper_id_fkey(id, display_name),
-        accepting_sk:league_scorekeepers!scorekeeper_swap_requests_accepting_scorekeeper_id_fkey(id, display_name)
-      `)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false }),
   ]);
+
+  // Get pending swap requests filtered to this league's games.
+  // scorekeeper_swap_requests has no league_id column, so we scope by
+  // the game IDs already fetched above (which are already league-scoped).
+  const leagueGameIds = (gamesResult.data || []).map((g: any) => g.id as string);
+  const swapRequestsResult = leagueGameIds.length > 0
+    ? await (serviceClient as any)
+        .from('scorekeeper_swap_requests')
+        .select(`
+          id,
+          game_id,
+          reason,
+          status,
+          created_at,
+          requesting_sk:league_scorekeepers!scorekeeper_swap_requests_requesting_scorekeeper_id_fkey(id, display_name),
+          accepting_sk:league_scorekeepers!scorekeeper_swap_requests_accepting_scorekeeper_id_fkey(id, display_name)
+        `)
+        .in('game_id', leagueGameIds)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+    : { data: [] };
 
   const scorekeepers = scorekeepersResult.success ? scorekeepersResult.data.scorekeepers : [];
   const games = (gamesResult.data || []).map((g: any) => ({

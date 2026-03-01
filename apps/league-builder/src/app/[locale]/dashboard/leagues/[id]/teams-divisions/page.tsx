@@ -1,6 +1,6 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getDivisions } from '@/lib/actions/divisions';
 import Link from 'next/link';
@@ -26,6 +26,7 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
   }
 
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
 
   // Get league details
   const { data: league, error: leagueError } = await supabase
@@ -82,6 +83,30 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
     .eq('status', 'active')
     .is('division_id', null);
 
+  // Fetch players registered for this league who haven't been assigned to a team yet.
+  // Uses serviceClient so the profiles join isn't blocked by RLS (which restricts
+  // profiles reads to auth.uid() only on the regular client).
+  const { data: freeAgentPlayers } = await (serviceClient as any)
+    .from('registration_submissions')
+    .select(`
+      id,
+      player_id,
+      status,
+      preferred_position,
+      preferred_jersey_number,
+      payment_status,
+      amount_paid_cents,
+      submitted_at,
+      player:profiles!registration_submissions_player_id_fkey(
+        id, full_name, email, phone
+      )
+    `)
+    .eq('league_id', leagueId)
+    .is('team_id', null)
+    .in('status', ['approved', 'imported'])
+    .not('submitted_at', 'is', null)
+    .order('submitted_at', { ascending: false });
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -125,6 +150,7 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
           locale={locale}
           teams={teams || []}
           divisions={divisions || []}
+          freeAgentPlayers={freeAgentPlayers || []}
           totalTeams={totalTeams || 0}
           unassignedTeams={unassignedTeams || 0}
           initialTab={tab || 'teams'}

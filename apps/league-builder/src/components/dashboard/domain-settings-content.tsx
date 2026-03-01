@@ -384,43 +384,74 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
             </>
           ) : (
             // User needs to purchase custom domain add-on
-            <div className="bg-gradient-to-br from-rink-500/10 to-rink-600/5 border border-rink-500/30 rounded-xl p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-rink-500/20">
-                  <Crown className="h-6 w-6 text-rink-500" />
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-rink-500/10 to-rink-600/5 border border-rink-500/30 rounded-xl p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-rink-500/20">
+                    <Crown className="h-6 w-6 text-rink-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <h4 className="font-semibold text-neutral-100">
+                        Custom Domain Add-on
+                      </h4>
+                      <span className="text-sm font-semibold text-rink-400 bg-rink-500/10 border border-rink-500/30 rounded-lg px-2.5 py-1 whitespace-nowrap">
+                        Contact for pricing
+                      </span>
+                    </div>
+                    <p className="text-sm text-neutral-400 mb-4">
+                      Use your own domain name (e.g.,{' '}
+                      <code className="px-1 py-0.5 bg-neutral-900 rounded text-rink-500 text-xs">
+                        yourleague.ca
+                      </code>
+                      ) instead of the default subdomain. Typically set up same-day.
+                    </p>
+                    <ul className="text-sm text-neutral-400 space-y-2 mb-5">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
+                        Your own fully branded domain (e.g. yourleague.ca)
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
+                        Free SSL certificate automatically included
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
+                        We handle DNS setup — no technical knowledge needed
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
+                        Works for all leagues in your organization
+                      </li>
+                    </ul>
+                    <Button
+                      className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold"
+                      asChild
+                    >
+                      <a
+                        href={`mailto:support@beerleaguehockey.ca?subject=Custom Domain Setup — ${encodeURIComponent(organization.name)}&body=Hi%2C%0A%0AI'd like to set up a custom domain for my league organization: ${encodeURIComponent(organization.name)} (${encodeURIComponent(organization.slug)}).%0A%0ADomain I'd like to use: %0A%0AThanks`}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Request Custom Domain Setup
+                      </a>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-neutral-100 mb-2">
-                    Custom Domain Add-on
-                  </h4>
-                  <p className="text-sm text-neutral-400 mb-4">
-                    Custom domains allow you to use your own domain name (e.g., yourleague.com)
-                    instead of the default subdomain. Contact us for custom pricing.
-                  </p>
-                  <ul className="text-sm text-neutral-400 space-y-2 mb-4">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-rink-500" />
-                      Use your own branded domain
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-rink-500" />
-                      Automatic SSL certificate included
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-rink-500" />
-                      DNS verification and setup assistance
-                    </li>
-                  </ul>
-                  <Button
-                    className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold"
-                    asChild
+              </div>
+
+              {/* Already have a domain? */}
+              <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4">
+                <p className="text-sm text-neutral-400">
+                  <span className="font-medium text-neutral-300">Already have a domain?</span>{' '}
+                  Email{' '}
+                  <a
+                    href="mailto:support@beerleaguehockey.ca?subject=Custom Domain Setup"
+                    className="text-rink-500 hover:text-rink-400 underline underline-offset-2"
                   >
-                    <a href="mailto:support@beerleaguehockey.ca?subject=Custom Domain Setup">
-                      <Mail className="h-4 w-4 mr-2" />
-                      Get a Quote
-                    </a>
-                  </Button>
-                </div>
+                    support@beerleaguehockey.ca
+                  </a>{' '}
+                  and we&apos;ll get you set up and provide the DNS records to configure.
+                </p>
               </div>
             </div>
           )}

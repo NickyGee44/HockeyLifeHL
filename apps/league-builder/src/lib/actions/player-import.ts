@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { revalidatePath } from 'next/cache';
 
@@ -46,11 +46,12 @@ export async function importPlayersFromCSV(
     return { success: false, error: 'Maximum 200 players per import' };
   }
 
-  const supabase = await createClient();
   const serviceClient = await createServiceRoleClient();
 
-  // Fetch existing registrations for this season to detect duplicates
-  const { data: existingRegs } = await supabase
+  // Fetch existing registrations for this season to detect duplicates.
+  // Must use serviceClient — RLS on profiles restricts the joined column to auth.uid() only,
+  // which would return nothing for an admin looking at other players' profiles.
+  const { data: existingRegs } = await serviceClient
     .from('registration_submissions')
     .select('player_id, profiles!inner(email)')
     .eq('league_id', leagueId)
@@ -96,8 +97,9 @@ export async function importPlayersFromCSV(
     const jerseyNumber = row.jerseyNumber ? parseInt(row.jerseyNumber, 10) : null;
     const phone = row.phone?.trim() || null;
 
-    // Look up or create profile
-    const { data: existingProfile } = await supabase
+    // Look up or create profile — serviceClient bypasses RLS so we can read
+    // any profile by email regardless of who is calling
+    const { data: existingProfile } = await serviceClient
       .from('profiles')
       .select('id')
       .eq('email', email)
@@ -129,8 +131,10 @@ export async function importPlayersFromCSV(
       profileId = newId;
     }
 
-    // Create registration submission
-    const { error: regError } = await supabase
+    // Create registration submission — serviceClient required because RLS policy
+    // "Players can submit registrations" checks player_id = auth.uid(), but here
+    // the admin is auth'd and player_id is the imported player's UUID (different person).
+    const { error: regError } = await serviceClient
       .from('registration_submissions')
       .insert({
         league_id: leagueId,

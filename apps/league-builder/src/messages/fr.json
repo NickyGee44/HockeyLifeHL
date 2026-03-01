@@ -179,7 +179,7 @@
     "events": "Événements",
     "venues": "Patinoires",
     "leagueSettings": "Paramètres de la ligue",
-    "paymentTracking": "Suivi des paiements",
+    "paymentTracking": "Paiements des joueurs",
     "scorekeeperSchedule": "Horaire des marqueurs",
     "schedule": "Calendrier",
     "standings": "Classement",
@@ -217,7 +217,7 @@
     "leagueOverview": "Aperçu de la ligue",
     "seasons": "Saisons",
     "games": "Matchs",
-    "leagueBilling": "Paiements"
+    "leagueBilling": "Configuration des paiements"
   },
   "commandPalette": {
     "searchPlaceholder": "Rechercher des pages et actions...",

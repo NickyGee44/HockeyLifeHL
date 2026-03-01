@@ -3,9 +3,26 @@
 import { useState } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
-import { Users, LayoutGrid, UserX, Trophy } from 'lucide-react';
+import { Users, LayoutGrid, UserX, Trophy, CheckCircle, Clock, DollarSign } from 'lucide-react';
 import { LeagueTeamsClient } from '@/components/teams/LeagueTeamsClient';
 import { DivisionList } from '@/components/divisions';
+
+interface FreeAgentPlayer {
+  id: string;
+  player_id: string;
+  status: string;
+  preferred_position: string | null;
+  preferred_jersey_number: number | null;
+  payment_status: string;
+  amount_paid_cents: number;
+  submitted_at: string;
+  player: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string | null;
+  } | null;
+}
 
 interface TeamsDivisionsClientProps {
   leagueId: string;
@@ -14,6 +31,7 @@ interface TeamsDivisionsClientProps {
   locale: string;
   teams: any[];
   divisions: any[];
+  freeAgentPlayers: FreeAgentPlayer[];
   totalTeams: number;
   unassignedTeams: number;
   initialTab: string;
@@ -25,6 +43,7 @@ export function TeamsDivisionsClient({
   locale,
   teams,
   divisions,
+  freeAgentPlayers,
   totalTeams,
   unassignedTeams,
   initialTab,
@@ -47,8 +66,6 @@ export function TeamsDivisionsClient({
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
-  const freeAgents = teams.filter((t) => !t.division_id);
-
   const tabs = [
     {
       id: 'teams',
@@ -66,7 +83,7 @@ export function TeamsDivisionsClient({
       id: 'free-agents',
       label: 'Free Agents',
       icon: UserX,
-      count: freeAgents.length,
+      count: freeAgentPlayers.length,
     },
   ];
 
@@ -152,37 +169,85 @@ export function TeamsDivisionsClient({
       {/* Free Agents Tab */}
       {activeTab === 'free-agents' && (
         <div className="space-y-4">
-          {freeAgents.length === 0 ? (
+          {freeAgentPlayers.length === 0 ? (
             <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
               <UserX className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">No Free Agents</h3>
               <p className="text-neutral-400 max-w-md mx-auto">
-                All teams are assigned to divisions. Free agents are teams without a division assignment.
+                All registered players have been assigned to a team, or no players have registered yet.
               </p>
             </div>
           ) : (
             <>
               <p className="text-neutral-400 text-sm">
-                {freeAgents.length} team{freeAgents.length !== 1 ? 's' : ''} not assigned to any division
+                {freeAgentPlayers.length} player{freeAgentPlayers.length !== 1 ? 's' : ''} registered but not assigned to a team
               </p>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {freeAgents.map((team) => (
-                  <div
-                    key={team.id}
-                    className="flex items-center gap-3 p-4 bg-white/[0.04] border border-white/10 rounded-xl"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold text-white"
-                      style={{ backgroundColor: team.primary_color || '#22D3EE' }}
-                    >
-                      {team.short_name || team.name?.charAt(0) || '?'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-white truncate">{team.name}</p>
-                      <p className="text-xs text-yellow-500">No division</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
+                {/* Table header */}
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-3 border-b border-white/10 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                  <span>Player</span>
+                  <span className="text-center w-20">Position</span>
+                  <span className="text-center w-10">#</span>
+                  <span className="text-center w-24">Payment</span>
+                </div>
+                <div className="divide-y divide-white/5">
+                  {freeAgentPlayers.map((fa) => {
+                    const name = fa.player?.full_name || 'Unknown';
+                    const email = fa.player?.email || '';
+                    const phone = fa.player?.phone || null;
+                    const position = fa.preferred_position || '—';
+                    const jersey = fa.preferred_jersey_number ?? null;
+                    const paid = fa.payment_status === 'completed';
+                    const free = fa.payment_status === 'not_required';
+                    const pending = fa.payment_status === 'pending' || (!paid && !free);
+
+                    return (
+                      <div
+                        key={fa.id}
+                        className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-white/[0.02] transition-colors"
+                      >
+                        {/* Player info */}
+                        <div className="min-w-0">
+                          <p className="font-medium text-white truncate">{name}</p>
+                          <p className="text-xs text-neutral-500 truncate">{email}</p>
+                          {phone && <p className="text-xs text-neutral-600 truncate">{phone}</p>}
+                        </div>
+
+                        {/* Position */}
+                        <span className="w-20 text-center text-sm text-neutral-300">
+                          {position}
+                        </span>
+
+                        {/* Jersey number */}
+                        <span className="w-10 text-center text-sm text-neutral-300">
+                          {jersey !== null ? `#${jersey}` : '—'}
+                        </span>
+
+                        {/* Payment status */}
+                        <div className="w-24 flex justify-center">
+                          {paid && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 text-xs font-medium">
+                              <CheckCircle className="w-3 h-3" />
+                              Paid
+                            </span>
+                          )}
+                          {free && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-700/50 text-neutral-400 text-xs font-medium">
+                              <DollarSign className="w-3 h-3" />
+                              Free
+                            </span>
+                          )}
+                          {pending && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-xs font-medium">
+                              <Clock className="w-3 h-3" />
+                              Unpaid
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </>
           )}

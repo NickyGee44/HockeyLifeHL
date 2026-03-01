@@ -179,7 +179,7 @@
     "events": "Events",
     "venues": "Venues",
     "leagueSettings": "League Settings",
-    "paymentTracking": "Payment Tracking",
+    "paymentTracking": "Player Payments",
     "scorekeeperSchedule": "Scorekeeper Schedule",
     "schedule": "Schedule",
     "standings": "Standings",
@@ -217,7 +217,7 @@
     "leagueOverview": "League Overview",
     "seasons": "Seasons",
     "games": "Games",
-    "leagueBilling": "Payments"
+    "leagueBilling": "Payment Setup"
   },
   "commandPalette": {
     "searchPlaceholder": "Search pages and actions...",
