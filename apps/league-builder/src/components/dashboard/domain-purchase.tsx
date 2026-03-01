@@ -161,7 +161,7 @@ export function DomainPurchase({ organizationId, onPurchase }: DomainPurchasePro
           )}
 
         <p className="text-xs text-neutral-500">
-          Domains purchased at-cost (~$15/yr .ca, ~$20/yr .com). No markup. Vercel manages DNS automatically.
+          Domain cost (~$15/yr .ca, ~$20/yr .com) is included with your platform subscription. Vercel manages DNS automatically — active within minutes.
         </p>
       </CardContent>
     </Card>

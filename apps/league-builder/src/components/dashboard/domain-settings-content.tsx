@@ -14,7 +14,6 @@ import {
   Check,
   ExternalLink,
   Crown,
-  Mail,
   RefreshCw,
   HelpCircle,
   Trash2,
@@ -32,6 +31,7 @@ interface Organization {
   custom_domain?: string | null;
   custom_domain_verified?: boolean;
   subscription_tier?: string;
+  subscription_status?: string;
 }
 
 interface DomainSettingsContentProps {
@@ -49,8 +49,10 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
     organization.custom_domain_verified ? 'verified' : organization.custom_domain ? 'pending' : null
   );
 
-  // Custom domains are a paid add-on - check if organization has it enabled
-  const hasCustomDomainAccess = !!organization.custom_domain || organization.subscription_tier === 'custom_domain';
+  // Custom domain setup is included with any active subscription.
+  // Domain purchase cost (~$15-20/yr) is absorbed by the platform — no separate charge to the customer.
+  const isActiveSubscriber = ['active', 'trialing'].includes(organization.subscription_status ?? '');
+  const hasCustomDomainAccess = !!organization.custom_domain || isActiveSubscriber;
 
   // Subdomain URL
   const subdomainUrl = `${organization.slug}.beerleaguehockey.ca`;
@@ -208,9 +210,13 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
                 Use your own domain name for your league website
               </CardDescription>
             </div>
-            {!hasCustomDomainAccess && (
-              <Badge variant="outline" className="border-rink-500/50 text-rink-500">
-                Paid Add-on
+            {hasCustomDomainAccess ? (
+              <Badge className="bg-green-600/20 text-green-400 border-green-500/30">
+                Included
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-neutral-600 text-neutral-400">
+                Requires Subscription
               </Badge>
             )}
           </div>
@@ -393,46 +399,36 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <h4 className="font-semibold text-neutral-100">
-                        Custom Domain Add-on
+                        Custom Domain
                       </h4>
                       <span className="text-sm font-semibold text-rink-400 bg-rink-500/10 border border-rink-500/30 rounded-lg px-2.5 py-1 whitespace-nowrap">
-                        Contact for pricing
+                        Included with subscription
                       </span>
                     </div>
                     <p className="text-sm text-neutral-400 mb-4">
-                      Use your own domain name (e.g.,{' '}
-                      <code className="px-1 py-0.5 bg-neutral-900 rounded text-rink-500 text-xs">
-                        yourleague.ca
-                      </code>
-                      ) instead of the default subdomain. Typically set up same-day.
+                      Custom domains are included with any active platform subscription.
+                      Subscribe to unlock the domain search and purchase wizard — no DNS setup required.
                     </p>
                     <ul className="text-sm text-neutral-400 space-y-2 mb-5">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
-                        Your own fully branded domain (e.g. yourleague.ca)
+                        Search and buy a domain directly (e.g. yourleague.ca)
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
-                        Free SSL certificate automatically included
+                        Automatic SSL and DNS — works instantly after purchase
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
-                        We handle DNS setup — no technical knowledge needed
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
-                        Works for all leagues in your organization
+                        Or bring your own domain and we&apos;ll provide the DNS records
                       </li>
                     </ul>
                     <Button
                       className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold"
                       asChild
                     >
-                      <a
-                        href={`mailto:support@beerleaguehockey.ca?subject=Custom Domain Setup — ${encodeURIComponent(organization.name)}&body=Hi%2C%0A%0AI'd like to set up a custom domain for my league organization: ${encodeURIComponent(organization.name)} (${encodeURIComponent(organization.slug)}).%0A%0ADomain I'd like to use: %0A%0AThanks`}
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        Request Custom Domain Setup
+                      <a href="/dashboard/settings/billing">
+                        Subscribe to Unlock
                       </a>
                     </Button>
                   </div>
@@ -442,15 +438,8 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
               {/* Already have a domain? */}
               <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4">
                 <p className="text-sm text-neutral-400">
-                  <span className="font-medium text-neutral-300">Already have a domain?</span>{' '}
-                  Email{' '}
-                  <a
-                    href="mailto:support@beerleaguehockey.ca?subject=Custom Domain Setup"
-                    className="text-rink-500 hover:text-rink-400 underline underline-offset-2"
-                  >
-                    support@beerleaguehockey.ca
-                  </a>{' '}
-                  and we&apos;ll get you set up and provide the DNS records to configure.
+                  <span className="font-medium text-neutral-300">Already own a domain?</span>{' '}
+                  Subscribe to access the custom domain settings, then point your existing domain at us — we&apos;ll provide the DNS record.
                 </p>
               </div>
             </div>
