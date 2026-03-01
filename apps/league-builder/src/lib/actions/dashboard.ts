@@ -8,6 +8,18 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 /**
  * Dashboard data type with aggregated counts
  */
+export interface LeagueSummary {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  created_at: string;
+  team_count: number;
+  player_count: number;
+  logo_url: string | null;
+  primary_color: string | null;
+}
+
 export interface DashboardData {
   organizations: Array<{
     id: string;
@@ -18,18 +30,10 @@ export interface DashboardData {
     trial_ends_at: string | null;
     created_at: string;
     league_count: number;
-    leagues: Array<{
-      id: string;
-      name: string;
-      slug: string;
-      status: string;
-      created_at: string;
-      team_count: number;
-      player_count: number;
-      logo_url: string | null;
-      primary_color: string | null;
-    }>;
+    leagues: LeagueSummary[];
   }>;
+  /** Leagues the user is admin/owner of via league_memberships (not org-owned) */
+  managed_leagues: Array<LeagueSummary & { member_role: string }>;
   totals: {
     total_organizations: number;
     total_leagues: number;
@@ -86,10 +90,9 @@ async function getDashboardData(userId: string): Promise<DashboardData | null> {
 
     if (!data) {
       // RPC returned null — user likely has no organizations yet.
-      // Return an empty but valid structure so the dashboard can render
-      // its empty-state UI instead of redirecting (which causes loops).
       return {
         organizations: [],
+        managed_leagues: [],
         totals: {
           total_organizations: 0,
           total_leagues: 0,
@@ -99,6 +102,12 @@ async function getDashboardData(userId: string): Promise<DashboardData | null> {
           total_games_played: 0,
         },
       };
+    }
+
+    // Normalize: ensure managed_leagues exists even if RPC is an older version
+    const raw = data as any;
+    if (!raw.managed_leagues) {
+      raw.managed_leagues = [];
     }
 
     // Type assertion - the RPC function returns properly structured JSON

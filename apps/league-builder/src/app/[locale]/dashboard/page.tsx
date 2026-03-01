@@ -52,7 +52,7 @@ export default async function DashboardPage({ params }: Props) {
     redirect(`/${locale}/setup-organization`);
   }
 
-  const { organizations, totals } = dashboardData;
+  const { organizations, totals, managed_leagues = [] } = dashboardData;
 
   // Derive subscription info from first org for financial overview
   const primaryOrg = organizations[0];
@@ -254,6 +254,39 @@ export default async function DashboardPage({ params }: Props) {
               </Link>
             )}
           </div>
+
+          {managed_leagues.length > 0 && (
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 mb-4">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+                Leagues you manage
+              </p>
+              <div className="space-y-2">
+                {managed_leagues.map((league) => (
+                  <Link
+                    key={league.id}
+                    href={`/${locale}/dashboard/leagues/${league.id}`}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors group"
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: league.primary_color || '#22D3EE' }}
+                    >
+                      {league.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white group-hover:text-rink-400 transition-colors truncate">
+                        {league.name}
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        {league.team_count} team{league.team_count !== 1 ? 's' : ''} · {league.member_role}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-neutral-600 group-hover:text-rink-400 transition-colors" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {organizations.length === 0 ? (
             <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
