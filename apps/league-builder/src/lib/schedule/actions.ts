@@ -1046,6 +1046,72 @@ export async function saveTeamSchedulePreference(
 }
 
 /**
+ * Bulk-save team schedule preferences as league-wide defaults (season_id = null)
+ * so they persist across seasons and auto-load in the schedule wizard for any
+ * future season belonging to the same league.
+ *
+ * Safely handles the PostgreSQL NULLS DISTINCT behaviour by checking for an
+ * existing null-season record per team before inserting.
+ */
+export async function bulkSaveLeagueTeamPreferences(
+  leagueId: string,
+  preferences: TeamSchedulePreference[]
+): Promise<{ success: boolean; error?: string }> {
+  if (preferences.length === 0) return { success: true };
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { success: false, error: 'Not authenticated' };
+
+  // Fetch existing league-wide (season_id IS NULL) rows for these teams so we
+  // can UPDATE instead of INSERT (avoids duplicate rows under NULLS DISTINCT).
+  const teamIds = preferences.map((p) => p.teamId);
+  const { data: existing } = await supabase
+    .from('team_schedule_preferences')
+    .select('id, team_id')
+    .eq('league_id', leagueId)
+    .in('team_id', teamIds)
+    .is('season_id', null);
+
+  const existingIdByTeam = new Map<string, string>(
+    (existing ?? []).map((r) => [r.team_id as string, r.id as string])
+  );
+
+  for (const pref of preferences) {
+    const rowData = {
+      league_id: leagueId,
+      team_id: pref.teamId,
+      season_id: null,
+      home_venue_id: pref.homeVenueId ?? null,
+      seniority_level: pref.seniorityLevel ?? 5,
+      preferred_game_times: pref.preferredGameTimes ?? [],
+      avoided_game_times: pref.avoidedGameTimes ?? [],
+      preferred_days: pref.preferredDays ?? [],
+      avoided_days: pref.avoidedDays ?? [],
+      max_late_night_games: pref.maxLateNightGames ?? null,
+      max_early_morning_games: pref.maxEarlyMorningGames ?? null,
+      weekend_preference: pref.weekendPreference ?? 0.5,
+      min_hours_between_games: pref.minHoursBetweenGames ?? 24,
+      notes: pref.notes ?? null,
+      created_by: userData.user.id,
+    };
+
+    const existingId = existingIdByTeam.get(pref.teamId);
+    if (existingId) {
+      await supabase
+        .from('team_schedule_preferences')
+        .update(rowData)
+        .eq('id', existingId);
+    } else {
+      await supabase.from('team_schedule_preferences').insert(rowData);
+    }
+  }
+
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+/**
  * Delete a team schedule preference.
  */
 export async function deleteTeamSchedulePreference(

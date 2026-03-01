@@ -183,6 +183,23 @@ export function ScheduleConfigStep({
   // Detect divisions from team data
   const divisionIds = new Set(teams.filter((t) => t.divisionId).map((t) => t.divisionId!));
   const hasDivisions = divisionIds.size > 1;
+
+  // Largest division size — used for division-aware minimum games per team
+  const maxDivisionSize = hasDivisions
+    ? Math.max(
+        ...Array.from(divisionIds).map(
+          (id) => teams.filter((t) => t.divisionId === id).length
+        )
+      )
+    : teamCount;
+
+  // When division-aware scheduling is on, teams only play their division
+  // opponents (+ a few cross-division games), so the minimum is much lower.
+  const minGamesPerTeam =
+    config.divisionAware && hasDivisions
+      ? Math.max(1, maxDivisionSize - 1) + (config.crossDivisionGamesPerTeam ?? 0)
+      : Math.max(1, teamCount - 1);
+
   // Calculate expected games
   const gamesPerRound = Math.floor(teamCount / 2);
   const rounds = teamCount % 2 === 0 ? teamCount - 1 : teamCount;
@@ -315,14 +332,14 @@ export function ScheduleConfigStep({
         <div className="flex items-center gap-3 flex-wrap">
           <input
             type="number"
-            min={teamCount > 1 ? teamCount - 1 : 1}
+            min={minGamesPerTeam}
             max={200}
             value={config.gamesPerTeam}
             onChange={(e) => {
-              const value = parseInt(e.target.value) || teamCount - 1;
+              const value = parseInt(e.target.value) || minGamesPerTeam;
               setConfig((prev) => ({
                 ...prev,
-                gamesPerTeam: Math.max(teamCount - 1, Math.min(200, value)),
+                gamesPerTeam: Math.max(minGamesPerTeam, Math.min(200, value)),
                 scheduleType: 'custom', // Switch to custom when manually editing
               }));
             }}
@@ -346,7 +363,9 @@ export function ScheduleConfigStep({
           )}
         </div>
         <p className="text-xs text-neutral-500 mt-1">
-          Minimum: {teamCount - 1} games (play each team once). Use &ldquo;Fill date range&rdquo; to schedule all available game days.
+          {config.divisionAware && hasDivisions
+            ? `Minimum: ${minGamesPerTeam} games (${maxDivisionSize - 1} divisional + ${config.crossDivisionGamesPerTeam ?? 0} cross-division). Use \u201cFill date range\u201d to schedule all available game days.`
+            : `Minimum: ${minGamesPerTeam} games (play each team once). Use \u201cFill date range\u201d to schedule all available game days.`}
         </p>
       </div>
 

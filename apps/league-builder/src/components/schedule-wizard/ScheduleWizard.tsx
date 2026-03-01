@@ -6,7 +6,7 @@
  * Multi-step wizard for generating a season schedule.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Check, Calendar, Settings, AlertCircle, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import type {
@@ -15,6 +15,7 @@ import type {
   Team,
   Venue,
   ScheduleGenerationResult } from '@/lib/schedule/types';
+import { bulkSaveLeagueTeamPreferences } from '@/lib/schedule/actions';
 import { ScheduleConfigStep } from './ScheduleConfigStep';
 import { EnhancedConstraintStep, type ConstraintData } from './EnhancedConstraintStep';
 import { PreviewStep } from './PreviewStep';
@@ -122,6 +123,9 @@ export function ScheduleWizard({
   const [error, setError] = useState<string | null>(null);
   const [constraintData, setConstraintData] = useState<ConstraintData | null>(null);
   const [constraints, setConstraints] = useState<string[]>([]);
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+  // Track which team preferences have already been bulk-saved to avoid re-saving on back/next
+  const savedPreferencesRef = useRef(false);
 
   // Handle constraint data changes from enhanced constraint step
   const handleConstraintsChange = useCallback((data: ConstraintData) => {
@@ -133,12 +137,29 @@ export function ScheduleWizard({
   const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
 
   // Navigation
-  const goToNext = useCallback(() => {
+  const goToNext = useCallback(async () => {
     const nextIndex = currentStepIndex + 1;
-    if (nextIndex < STEPS.length) {
-      setCurrentStep(STEPS[nextIndex].id);
+    if (nextIndex >= STEPS.length) return;
+
+    // When leaving the constraints step, persist team preferences as league-wide
+    // defaults so they auto-load the next time the wizard opens (any season).
+    if (currentStep === 'constraints' && !savedPreferencesRef.current) {
+      const prefs = constraintData?.teamPreferences ?? [];
+      if (prefs.length > 0) {
+        setIsSavingPreferences(true);
+        try {
+          await bulkSaveLeagueTeamPreferences(leagueId, prefs);
+          savedPreferencesRef.current = true;
+        } catch (e) {
+          console.error('Failed to persist team preferences:', e);
+        } finally {
+          setIsSavingPreferences(false);
+        }
+      }
     }
-  }, [currentStepIndex]);
+
+    setCurrentStep(STEPS[nextIndex].id);
+  }, [currentStepIndex, currentStep, constraintData, leagueId]);
 
   const goToPrevious = useCallback(() => {
     const prevIndex = currentStepIndex - 1;
@@ -316,10 +337,20 @@ export function ScheduleWizard({
           {currentStep !== 'result' && currentStep !== 'preview' && (
             <button
               onClick={goToNext}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
+              disabled={isSavingPreferences}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Next
-              <ArrowRight className="w-4 h-4" />
+              {isSavingPreferences ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           )}
 

@@ -927,20 +927,6 @@ export async function generateSchedule(
         error: 'At least 4 teams are required to generate a schedule' };
     }
 
-    if (teams.length > 16) {
-      return {
-        success: false,
-        games: [],
-        totalGames: 0,
-        gamesPerTeam: {},
-        homeGamesPerTeam: {},
-        awayGamesPerTeam: {},
-        constraintViolations: [],
-        hardConstraintFailures: [],
-        durationMs: Date.now() - startTime,
-        error: 'Maximum 16 teams supported for schedule generation' };
-    }
-
     // Generate matchups — use division-aware algorithm when enabled
     const useDivisionAware = config.divisionAware &&
       teams.some((t) => t.divisionId != null);
@@ -1524,20 +1510,6 @@ export async function generateScheduleEnhanced(
         hardConstraintFailures: [],
         durationMs: Date.now() - startTime,
         error: 'At least 4 teams are required to generate a schedule' };
-    }
-
-    if (teams.length > 16) {
-      return {
-        success: false,
-        games: [],
-        totalGames: 0,
-        gamesPerTeam: {},
-        homeGamesPerTeam: {},
-        awayGamesPerTeam: {},
-        constraintViolations: [],
-        hardConstraintFailures: [],
-        durationMs: Date.now() - startTime,
-        error: 'Maximum 16 teams supported for schedule generation' };
     }
 
     // Generate matchups — use division-aware algorithm when enabled
