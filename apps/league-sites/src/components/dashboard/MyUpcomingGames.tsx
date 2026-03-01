@@ -59,6 +59,7 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
           id,
           scheduled_at,
           location,
+          game_type,
           home_team_id,
           away_team_id,
           home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url),
@@ -307,6 +308,11 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
                                 <span className="font-medium text-[var(--color-text-primary)] truncate">
                                   {opponent?.name || 'TBD'}
                                 </span>
+                                {(game as any).game_type === 'playoff' && (
+                                  <span className="shrink-0 px-1.5 py-0.5 text-xs font-semibold rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                    Playoff
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] mt-1">
                                 <span className="flex items-center gap-1">

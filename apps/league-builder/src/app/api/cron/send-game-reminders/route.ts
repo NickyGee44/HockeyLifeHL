@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
         .from('team_rosters')
         .select(`
           team_id,
+          player_id,
           profiles!team_rosters_player_id_fkey(full_name, email)
         `)
         .in('team_id', [game.home_team_id, game.away_team_id].filter(Boolean))
@@ -87,12 +88,24 @@ export async function GET(request: NextRequest) {
 
       if (!rosters || rosters.length === 0) continue;
 
+      // Fetch notification preferences — skip players who have opted out of game emails
+      const playerIds = (rosters as any[]).map((r) => r.player_id).filter(Boolean);
+      const { data: optedOut } = await supabase
+        .from('user_notification_preferences')
+        .select('user_id')
+        .in('user_id', playerIds)
+        .or('email_enabled.eq.false,email_game_updates.eq.false');
+      const optedOutIds = new Set((optedOut ?? []).map((p: any) => p.user_id));
+
       const siteUrl = process.env.NEXT_PUBLIC_SITES_URL || 'https://beerleaguehockey.ca';
       const leagueSlug = league?.slug;
 
       for (const roster of rosters as any[]) {
         const profile = roster.profiles;
         if (!profile?.email || !profile?.full_name) continue;
+
+        // Respect notification preferences
+        if (optedOutIds.has(roster.player_id)) continue;
 
         const isHomeTeam = roster.team_id === game.home_team_id;
         const myTeamName = isHomeTeam ? homeTeam?.name : awayTeam?.name;
