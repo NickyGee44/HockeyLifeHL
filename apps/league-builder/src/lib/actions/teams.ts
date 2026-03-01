@@ -159,13 +159,14 @@ export async function getTeam(teamId: string) {
   try {
     // Fetch the team with simple joins — no nested org embed to avoid PostgREST
     // syntax ambiguity. We'll look up the org owner in a separate query if needed.
+    // home_venue_id has no FK constraint on teams, so we can't embed venues
+    // directly via PostgREST — fetch the team first, then look up venue separately.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: team, error } = await (supabase
       .from('teams') as any)
       .select(`
         *,
-        divisions:division_id (id, name),
-        venues:home_venue_id (id, name, address),
+        divisions:teams_division_id_fkey(id, name),
         captain:teams_captain_id_fkey(id, full_name, email)
       `)
       .eq('id', teamId)
@@ -174,6 +175,17 @@ export async function getTeam(teamId: string) {
     if (error || !team) {
       console.error('[getTeam] Query failed for team', teamId, ':', sanitizeErrorForLogging(error));
       return { error: 'Team not found' };
+    }
+
+    // Fetch venue name separately (no FK on home_venue_id)
+    let venueName: string | null = null;
+    if (team.home_venue_id) {
+      const { data: venue } = await supabase
+        .from('venues')
+        .select('name')
+        .eq('id', team.home_venue_id)
+        .single();
+      venueName = venue?.name ?? null;
     }
 
     const teamCaptainId = team.captain_id;
@@ -255,7 +267,7 @@ export async function getTeam(teamId: string) {
         roster_count: rosterCount || 0,
         captain_name: (team.captain as any)?.full_name || null,
         division_name: (team.divisions as any)?.name || null,
-        venue_name: (team.venues as any)?.name || null,
+        venue_name: venueName,
       }
     };
   } catch (error) {
