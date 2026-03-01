@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from 'react';
 import { cn } from '@hockey-life/ui';
-import { Trophy, Loader2, ChevronRight } from 'lucide-react';
+import { Trophy, Loader2, ChevronRight, CalendarPlus, X, Check } from 'lucide-react';
 import {
   generatePlayoffBracket,
   recordSeriesWin,
+  schedulePlayoffGame,
   type PlayoffBracket,
   type PlayoffSeries,
 } from '@/lib/actions/playoff-bracket';
@@ -34,21 +35,47 @@ function getRoundLabel(round: number, totalRounds: number): string {
 
 function SeriesCard({
   series,
+  leagueId,
+  seasonId,
   canEdit,
   onRecordWin,
+  onScheduleGame,
   isPending,
 }: {
   series: PlayoffSeries;
+  leagueId: string;
+  seasonId: string;
   canEdit: boolean;
   onRecordWin: (seriesId: string, side: 'high' | 'low') => void;
+  onScheduleGame: (seriesId: string, scheduledAt: string, location: string) => void;
   isPending: boolean;
 }) {
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
+  const [scheduleLocation, setScheduleLocation] = useState('');
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
   const isCompleted = series.status === 'completed';
   const isActive = series.status === 'in_progress' || series.status === 'pending';
-  const hasTeams = series.high_seed_id || series.low_seed_id;
+  const hasTeams = series.high_seed_id && series.low_seed_id;
 
   const highWon = isCompleted && series.winner_id === series.high_seed_id;
   const lowWon = isCompleted && series.winner_id === series.low_seed_id;
+
+  const handleScheduleSubmit = () => {
+    if (!scheduleDate || !scheduleTime) {
+      setScheduleError('Date and time are required');
+      return;
+    }
+    setScheduleError(null);
+    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+    onScheduleGame(series.id, scheduledAt, scheduleLocation);
+    setShowScheduleForm(false);
+    setScheduleDate('');
+    setScheduleTime('');
+    setScheduleLocation('');
+  };
 
   return (
     <div
@@ -159,6 +186,71 @@ function SeriesCard({
           </span>
         </div>
       )}
+
+      {/* Schedule Game button — only for active series with both teams */}
+      {canEdit && isActive && hasTeams && !showScheduleForm && (
+        <div className="mt-2 pt-2 border-t border-white/10">
+          <button
+            onClick={() => setShowScheduleForm(true)}
+            className={cn(
+              'w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              'bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200'
+            )}
+          >
+            <CalendarPlus className="w-3 h-3" />
+            Schedule Game
+          </button>
+        </div>
+      )}
+
+      {/* Inline schedule form */}
+      {showScheduleForm && (
+        <div className="mt-2 pt-2 border-t border-white/10 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-neutral-400">Schedule Game</span>
+            <button
+              onClick={() => { setShowScheduleForm(false); setScheduleError(null); }}
+              className="text-neutral-500 hover:text-neutral-300"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {scheduleError && (
+            <p className="text-xs text-red-400">{scheduleError}</p>
+          )}
+          <input
+            type="date"
+            value={scheduleDate}
+            onChange={(e) => setScheduleDate(e.target.value)}
+            className="w-full px-2 py-1.5 rounded-lg bg-neutral-800 border border-white/10 text-white text-xs focus:outline-none focus:border-rink-500/50"
+          />
+          <input
+            type="time"
+            value={scheduleTime}
+            onChange={(e) => setScheduleTime(e.target.value)}
+            className="w-full px-2 py-1.5 rounded-lg bg-neutral-800 border border-white/10 text-white text-xs focus:outline-none focus:border-rink-500/50"
+          />
+          <input
+            type="text"
+            value={scheduleLocation}
+            onChange={(e) => setScheduleLocation(e.target.value)}
+            placeholder="Venue (optional)"
+            className="w-full px-2 py-1.5 rounded-lg bg-neutral-800 border border-white/10 text-white text-xs placeholder:text-neutral-600 focus:outline-none focus:border-rink-500/50"
+          />
+          <button
+            onClick={handleScheduleSubmit}
+            disabled={isPending}
+            className={cn(
+              'w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+              'bg-rink-500/20 text-rink-400 hover:bg-rink-500/30 hover:text-rink-300',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          >
+            {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+            Confirm
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -181,7 +273,6 @@ export function PlayoffBracketClient({
         setError(result.error);
         return;
       }
-      // Reload bracket data after generation
       window.location.reload();
     });
   };
@@ -194,8 +285,18 @@ export function PlayoffBracketClient({
         setError(result.error);
         return;
       }
-      // Update local state optimistically — reload to get fresh data
       window.location.reload();
+    });
+  };
+
+  const handleScheduleGame = (seriesId: string, scheduledAt: string, location: string) => {
+    setError(null);
+    startTransition(async () => {
+      const result = await schedulePlayoffGame(leagueId, seasonId, seriesId, scheduledAt, location);
+      if (!result.success) {
+        setError(result.error);
+      }
+      // Success — no reload needed, the game is now in the schedule
     });
   };
 
@@ -343,8 +444,11 @@ export function PlayoffBracketClient({
                       <SeriesCard
                         key={s.id}
                         series={s}
+                        leagueId={leagueId}
+                        seasonId={seasonId}
                         canEdit={canEdit}
                         onRecordWin={handleRecordWin}
+                        onScheduleGame={handleScheduleGame}
                         isPending={isPending}
                       />
                     ))}
@@ -378,12 +482,18 @@ export function PlayoffBracketClient({
           <span className="text-xs text-neutral-500">Awaiting opponent</span>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs px-1.5 py-0.5 rounded bg-rink-500/20 text-rink-400 font-medium">
-              +W
-            </span>
-            <span className="text-xs text-neutral-500">Record a win</span>
-          </div>
+          <>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs px-1.5 py-0.5 rounded bg-rink-500/20 text-rink-400 font-medium">
+                +W
+              </span>
+              <span className="text-xs text-neutral-500">Record a win</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CalendarPlus className="w-3 h-3 text-neutral-500" />
+              <span className="text-xs text-neutral-500">Schedule game for scorekeeper</span>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -286,3 +286,65 @@ export async function recordSeriesWin(
   revalidatePath(`/dashboard/leagues/${leagueId}/seasons/${seasonId}`);
   return { success: true, data: undefined };
 }
+
+export async function schedulePlayoffGame(
+  leagueId: string,
+  seasonId: string,
+  seriesId: string,
+  scheduledAt: string,
+  location: string
+): Promise<ActionResult<{ gameId: string }>> {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) return { success: false, error: 'Not authorized' };
+
+  const supabase = await createClient();
+
+  // Get series to confirm it has teams and belongs to this league
+  const { data: series, error: seriesError } = await supabase
+    .from('playoff_series')
+    .select('*')
+    .eq('id', seriesId)
+    .eq('season_id', seasonId)
+    .eq('league_id', leagueId)
+    .single();
+
+  if (seriesError || !series) return { success: false, error: 'Series not found' };
+  if (!series.high_seed_id || !series.low_seed_id) {
+    return { success: false, error: 'Cannot schedule a game — both teams are not yet determined' };
+  }
+  if (series.status === 'completed') {
+    return { success: false, error: 'Series is already complete' };
+  }
+
+  const { data: game, error: insertError } = await supabase
+    .from('games')
+    .insert({
+      league_id: leagueId,
+      season_id: seasonId,
+      home_team_id: series.high_seed_id,
+      away_team_id: series.low_seed_id,
+      scheduled_at: scheduledAt,
+      location: location || null,
+      game_type: 'playoff',
+      playoff_series_id: seriesId,
+      round_number: series.round_number,
+      status: 'scheduled',
+    })
+    .select('id')
+    .single();
+
+  if (insertError || !game) {
+    return { success: false, error: insertError?.message ?? 'Failed to create game' };
+  }
+
+  // Mark series as in_progress if it was pending
+  if (series.status === 'pending') {
+    await supabase
+      .from('playoff_series')
+      .update({ status: 'in_progress' })
+      .eq('id', seriesId);
+  }
+
+  revalidatePath(`/dashboard/leagues/${leagueId}/seasons/${seasonId}`);
+  return { success: true, data: { gameId: game.id } };
+}

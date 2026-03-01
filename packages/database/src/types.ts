@@ -3313,6 +3313,7 @@ export type Database = {
           period_count: number | null
           period_length_minutes: number | null
           period_started_at: string | null
+          playoff_series_id: string | null
           reminder_sent_at: string | null
           rescheduled_at: string | null
           round_number: number | null
@@ -3379,6 +3380,7 @@ export type Database = {
           period_count?: number | null
           period_length_minutes?: number | null
           period_started_at?: string | null
+          playoff_series_id?: string | null
           reminder_sent_at?: string | null
           rescheduled_at?: string | null
           round_number?: number | null
@@ -3445,6 +3447,7 @@ export type Database = {
           period_count?: number | null
           period_length_minutes?: number | null
           period_started_at?: string | null
+          playoff_series_id?: string | null
           reminder_sent_at?: string | null
           rescheduled_at?: string | null
           round_number?: number | null
