@@ -66,7 +66,7 @@ export function CommandPalette() {
       { label: t('pages.players'), icon: User, href: `${leagueBase}/staff` },
       { label: t('pages.settings'), icon: Settings, href: '/dashboard/settings' },
       { label: t('pages.billing'), icon: CreditCard, href: '/dashboard/settings/billing' },
-      { label: t('pages.websiteEditor'), icon: Palette, href: `/website-editor?league=${selected.leagueId}` },
+      // Website Editor temporarily disabled
       { label: t('pages.news'), icon: Newspaper, href: `${leagueBase}/news` },
       { label: t('pages.sponsors'), icon: Star, href: `${leagueBase}/sponsors` },
       { label: t('pages.awards'), icon: Award, href: `${leagueBase}/awards` },

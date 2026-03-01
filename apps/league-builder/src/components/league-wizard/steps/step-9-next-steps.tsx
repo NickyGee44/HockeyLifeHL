@@ -193,14 +193,6 @@ export function Step9NextSteps({
         />
 
         <ActionCard
-          icon={<Globe className="h-5 w-5 text-primary" />}
-          title="Customize Your Website"
-          description="Personalize your league's public website"
-          buttonLabel="Website Editor"
-          href="/website-editor"
-        />
-
-        <ActionCard
           icon={<ExternalLink className="h-5 w-5 text-primary" />}
           title="Preview Your Site"
           description="See what your league site looks like"

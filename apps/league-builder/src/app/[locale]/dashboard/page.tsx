@@ -207,34 +207,7 @@ export default async function DashboardPage({ params }: Props) {
           </div>
         )}
 
-        {/* Website Editor - Featured Action */}
-        {totals.total_leagues > 0 && (
-          <div className="mb-8">
-            <Link
-              href="/website-editor"
-              className={cn(
-                'flex items-center gap-4 p-6 rounded-2xl',
-                'bg-gradient-to-r from-arena-500/20 via-rink-500/10 to-arena-500/20',
-                'border border-arena-500/30 hover:border-arena-500/50',
-                'group transition-all duration-300 hover:shadow-lg hover:shadow-arena-500/10'
-              )}
-            >
-              <div className="p-3 rounded-xl bg-arena-500/20 text-arena-400 group-hover:scale-110 transition-transform">
-                <Palette className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-                  {t('dashboardCta.websiteEditor')}
-                  <Globe className="w-4 h-4 text-arena-400" />
-                </h3>
-                <p className="text-neutral-400 text-sm">
-                  {t('dashboardCta.websiteEditorDescription')}
-                </p>
-              </div>
-              <ArrowRight className="w-5 h-5 text-arena-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        )}
+        {/* Website Editor removed — temporarily disabled */}
 
         {/* Quick Actions */}
         <div className="mb-8">

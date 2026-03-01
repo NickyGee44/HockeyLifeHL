@@ -45,12 +45,7 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       description: 'Basic league information and settings',
       icon: 'Settings',
       href: `/${locale}/dashboard/leagues/${leagueId}/settings/general` },
-    {
-      title: 'Website Editor',
-      description: 'Customize your league website with live preview',
-      icon: 'Palette',
-      href: `/${locale}/website-editor?league=${leagueId}`,
-      highlight: true },
+    // Website Editor temporarily disabled
     {
       title: 'Billing',
       description: 'Payment collection and fee settings',

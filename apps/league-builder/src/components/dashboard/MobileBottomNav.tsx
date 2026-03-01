@@ -69,7 +69,7 @@ export function MobileBottomNav() {
     { label: t('sponsors'), href: `${leagueBase}/sponsors`, icon: Star },
     { label: t('awards'), href: `${leagueBase}/awards`, icon: Award },
     { label: t('gallery'), href: `${leagueBase}/gallery`, icon: Image },
-    { label: t('websiteEditor'), href: `/website-editor?league=${selected.leagueId}`, icon: Palette },
+    // Website Editor temporarily disabled
   ] : [];
 
   const moreSettingsItems = [

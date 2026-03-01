@@ -61,7 +61,7 @@ const navItems: DefaultNavItem[] = [
   { href: '/gallery', label: 'Gallery', icon: Camera },
   { href: '/players', label: 'Players', icon: Users },
   { href: '/events', label: 'Events', icon: Calendar },
-  { href: '/suspensions', label: 'Suspensions', icon: Ban },
+  // Suspensions hidden from public nav — visible to captains/admins in their dashboards only
   { href: '/venues', label: 'Venues', icon: MapPin },
   { href: '/about', label: 'About', icon: Info },
   { href: '/contact', label: 'Contact', icon: Mail },
