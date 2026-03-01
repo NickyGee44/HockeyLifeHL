@@ -2,8 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { Plus, Loader2, AlertTriangle, X } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
-import { createSuspension } from '@/lib/actions/suspensions';
+import { createSuspension, getRosteredPlayersForSuspension } from '@/lib/actions/suspensions';
 
 interface CreateSuspensionModalProps {
   leagueId: string;
@@ -52,27 +51,10 @@ export function CreateSuspensionModal({
 
     setLoadingPlayers(true);
 
-    const supabase = createClient();
-    supabase
-      .from('team_rosters')
-      .select('player_id, profiles(id, first_name, last_name)')
-      .eq('team_id', teamId)
-      .eq('league_id', leagueId)
-      .is('end_date', null)
-      .then(({ data }) => {
-        const opts: PlayerOption[] = (data ?? [])
-          .map((r: any) => {
-            const p = r.profiles;
-            if (!p) return null;
-            return {
-              id: p.id,
-              name: [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Unknown',
-            };
-          })
-          .filter(Boolean) as PlayerOption[];
-        setPlayers(opts);
-        setLoadingPlayers(false);
-      });
+    getRosteredPlayersForSuspension(teamId, leagueId).then((opts) => {
+      setPlayers(opts);
+      setLoadingPlayers(false);
+    });
   }, [teamId, leagueId]);
 
   function reset() {

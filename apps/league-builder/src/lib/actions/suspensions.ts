@@ -6,7 +6,7 @@
  * Server actions for creating and managing player suspensions.
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { sendSuspensionNotification } from '@/lib/notifications/actions';
 
@@ -94,4 +94,48 @@ export async function createSuspension(
   revalidatePath(`/dashboard/leagues/${params.leagueId}/games`);
 
   return { success: true, suspensionId: data.id };
+}
+
+// =============================================================================
+// getRosteredPlayersForSuspension
+// =============================================================================
+
+export interface RosteredPlayer {
+  id: string;
+  name: string;
+}
+
+/**
+ * Returns active rostered players for a team.
+ * Uses the service role client so the profiles join isn't blocked by RLS
+ * (the browser client can only read auth.uid()'s own profile).
+ */
+export async function getRosteredPlayersForSuspension(
+  teamId: string,
+  leagueId: string
+): Promise<RosteredPlayer[]> {
+  const supabase = createServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from('team_rosters')
+    .select('player_id, profiles!team_rosters_player_id_fkey(id, first_name, last_name)')
+    .eq('team_id', teamId)
+    .eq('league_id', leagueId)
+    .is('end_date', null);
+
+  if (error || !data) {
+    console.error('[Suspensions] getRosteredPlayersForSuspension error:', error?.message);
+    return [];
+  }
+
+  return (data as any[])
+    .map((r) => {
+      const p = r.profiles;
+      if (!p) return null;
+      return {
+        id: p.id as string,
+        name: [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Unknown',
+      };
+    })
+    .filter(Boolean) as RosteredPlayer[];
 }
