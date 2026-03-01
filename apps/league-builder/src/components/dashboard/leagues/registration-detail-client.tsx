@@ -162,18 +162,12 @@ export function RegistrationDetailClient({
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div className="flex items-start gap-4">
           {/* Avatar */}
-          <div className="w-16 h-16 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
-            {registration.photo_url ? (
-              <img
-                src={registration.photo_url}
-                alt={registration.player.full_name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <User className="w-8 h-8 text-neutral-400" />
-              </div>
-            )}
+          <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+            <img
+              src={registration.photo_url || '/blank_player.png'}
+              alt={registration.player.full_name}
+              className="w-full h-full object-cover"
+            />
           </div>
 
           <div>
