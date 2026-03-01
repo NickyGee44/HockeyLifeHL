@@ -601,6 +601,7 @@ export async function uploadTeamLogo(teamId: string, file: File) {
  */
 export async function getUserTeams(options?: { status?: TeamStatus; search?: string }) {
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -608,30 +609,54 @@ export async function getUserTeams(options?: { status?: TeamStatus; search?: str
   }
 
   try {
-    // Get organizations owned by user first (avoid FK join RLS issues)
-    const { data: orgs } = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('owner_user_id', user.id);
+    // Platform admins can see all teams across all leagues
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_platform_admin')
+      .eq('id', user.id)
+      .single();
 
-    if (!orgs || orgs.length === 0) {
-      return { success: true, data: [] };
+    const isPlatformAdmin = !!(profile as any)?.is_platform_admin;
+
+    let leagueIds: string[];
+    let leagueMap: Map<string, string>;
+
+    if (isPlatformAdmin) {
+      // Platform admin: fetch all leagues
+      const { data: allLeagues } = await serviceSupabase
+        .from('leagues')
+        .select('id, name')
+        .order('name');
+      if (!allLeagues || allLeagues.length === 0) {
+        return { success: true, data: [] };
+      }
+      leagueIds = allLeagues.map((l: any) => l.id);
+      leagueMap = new Map(allLeagues.map((l: any) => [l.id, l.name]));
+    } else {
+      // Get organizations owned by user first (avoid FK join RLS issues)
+      const { data: orgs } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('owner_user_id', user.id);
+
+      if (!orgs || orgs.length === 0) {
+        return { success: true, data: [] };
+      }
+
+      const orgIds = orgs.map(o => o.id);
+
+      // Get all leagues in user's organizations
+      const { data: leagues } = await supabase
+        .from('leagues')
+        .select('id, name')
+        .in('organization_id', orgIds);
+
+      if (!leagues || leagues.length === 0) {
+        return { success: true, data: [] };
+      }
+      leagueIds = leagues.map((l: any) => l.id);
+      leagueMap = new Map(leagues.map((l: any) => [l.id, l.name]));
     }
-
-    const orgIds = orgs.map(o => o.id);
-
-    // Get all leagues in user's organizations
-    const { data: leagues } = await supabase
-      .from('leagues')
-      .select('id, name')
-      .in('organization_id', orgIds);
-
-    if (!leagues || leagues.length === 0) {
-      return { success: true, data: [] };
-    }
-
-    const leagueIds = leagues.map(l => l.id);
-    const leagueMap = new Map(leagues.map(l => [l.id, l.name]));
 
     // Get teams without FK joins
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
