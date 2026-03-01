@@ -199,10 +199,10 @@ export default function HierarchicalSidebar({
             locked={!isSubscribed}
           />
           <NavLink
-            href={`${leagueBase}/teams`}
+            href={`${leagueBase}/teams-divisions`}
             icon={Users}
             label={t('teamsAndDivisions')}
-            isActive={isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
+            isActive={isPathActive(`${leagueBase}/teams-divisions`) || isPathActive(`${leagueBase}/teams`) || isPathActive(`${leagueBase}/divisions`)}
             collapsed={sidebarCollapsed}
             locked={!isSubscribed}
           />
