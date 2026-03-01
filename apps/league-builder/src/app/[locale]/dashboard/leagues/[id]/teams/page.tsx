@@ -11,6 +11,7 @@ import {
 import { LeagueTeamsClient } from '@/components/teams/LeagueTeamsClient';
 import { RosterExportButton } from '@/components/teams/RosterExportButton';
 import { TeamEmailBlast } from '@/components/teams/TeamEmailBlast';
+import { ImportTeamsButton } from '@/components/teams/ImportTeamsButton';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -139,6 +140,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
             <div className="flex items-center gap-2">
               <TeamEmailBlast leagueId={leagueId} leagueName={league.name} />
               <RosterExportButton leagueId={leagueId} seasonId={currentSeason?.id} label="Export All Contacts" />
+              <ImportTeamsButton leagueId={leagueId} />
               <Link
                 href={`/dashboard/leagues/${leagueId}/teams/new`}
                 className={cn(

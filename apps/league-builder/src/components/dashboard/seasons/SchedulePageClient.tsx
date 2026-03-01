@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin, Loader2 } from 'lucide-react';
+import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin, Loader2, Upload } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { ScheduleWizard } from '@/components/schedule-wizard';
 import { ScheduleCalendar } from '@/components/schedule-wizard/ScheduleCalendar';
@@ -17,6 +17,7 @@ import { BulkPostponeDateWizard } from '@/components/dashboard/seasons/BulkPostp
 import { BulkMoveVenueWizard } from '@/components/dashboard/seasons/BulkMoveVenueWizard';
 import { GameDetailSheet } from '@/components/dashboard/seasons/GameDetailSheet';
 import { saveScheduleGames } from '@/lib/schedule/actions';
+import { ImportScheduleModal } from '@/components/schedule/ImportScheduleModal';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -115,6 +116,7 @@ export function SchedulePageClient({
   const [showGameDetail, setShowGameDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
 
@@ -289,6 +291,13 @@ export function SchedulePageClient({
               Regenerate All
             </button>
           )}
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-300 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
           <button
             onClick={() => setShowWizard(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
@@ -479,6 +488,15 @@ export function SchedulePageClient({
         game={selectedGame}
         teams={teams}
         onGameUpdated={() => router.refresh()}
+      />
+
+      {/* Import Schedule Modal */}
+      <ImportScheduleModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        leagueId={leagueId}
+        seasonId={seasonId}
+        onSuccess={() => router.refresh()}
       />
     </div>
   );

@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
+import { ImportPlayersButton } from '@/components/players/ImportPlayersButton';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -107,6 +108,11 @@ export default async function RegistrationsPage({
     name: s.name,
   }));
 
+  // Resolve active season for player import (prefer URL param, then active status)
+  const activeSeason = seasons.find((s: any) =>
+    seasonId ? s.id === seasonId : (league.seasons as any[]).find((ls: any) => ls.id === s.id)?.status === 'active'
+  ) ?? seasons[0];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -117,6 +123,9 @@ export default async function RegistrationsPage({
           </h1>
           <p className="text-neutral-400">{league.name}</p>
         </div>
+        {activeSeason && (
+          <ImportPlayersButton leagueId={leagueId} seasonId={activeSeason.id} />
+        )}
       </div>
 
       {/* Stats Cards */}
