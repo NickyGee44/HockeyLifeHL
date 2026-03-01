@@ -56,16 +56,28 @@ export function PreviewStep({
   const gamesPerRound = Math.floor(teams.length / 2);
   const rounds = teams.length % 2 === 0 ? teams.length - 1 : teams.length;
   const multiplier = config.scheduleType === 'double_round_robin' ? 2 : 1;
-  const totalGames = gamesPerRound * rounds * multiplier;
 
-  // Calculate available slots
+  // For division-aware or custom schedules, use gamesPerTeam to compute total
+  // games rather than the full round-robin formula. Full round-robin (teamCount-1)
+  // is only correct when every team plays every other team exactly once.
+  const totalGames =
+    config.divisionAware || config.scheduleType === 'custom'
+      ? Math.floor(teams.length * config.gamesPerTeam / 2)
+      : gamesPerRound * rounds * multiplier;
+
+  // Calculate available slots.
+  // Each (date, time) slot can host floor(teams/2) games simultaneously — all
+  // teams playing at the same time across multiple rinks/venues.
+  // Using this concurrent capacity gives the real schedulable game count.
+  const concurrentGamesPerSlot = Math.max(1, Math.floor(teams.length / 2));
   const startDate = new Date(config.startDate);
   const endDate = new Date(config.endDate);
   const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   const gameDaysPerWeek = config.gameDays.length;
   const slotsPerDay = config.gameTimes.length;
   const totalWeeks = Math.ceil(daysDiff / 7);
-  const availableSlots = totalWeeks * gameDaysPerWeek * slotsPerDay;
+  const dateTimeSlots = totalWeeks * gameDaysPerWeek * slotsPerDay;
+  const availableSlots = dateTimeSlots * concurrentGamesPerSlot;
 
   // Generate schedule when user clicks generate
   const handleGenerate = useCallback(async () => {
