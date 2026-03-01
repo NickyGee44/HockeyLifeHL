@@ -514,6 +514,59 @@ export async function createEmbeddedCheckout(
 }
 
 // ============================================================================
+// Action: Get Payment Intent ID from a completed Checkout Session
+// ============================================================================
+
+/**
+ * After the embedded checkout completes, retrieve the payment_intent ID
+ * so it can be stored in formData for server-side verification on submit.
+ */
+export async function getSessionPaymentIntentId(
+  registrationId: string
+): Promise<ActionResult<{ paymentIntentId: string }>> {
+  try {
+    const playerId = await getCurrentPlayerId();
+    if (!playerId) {
+      return { success: false, error: 'Authentication required.' };
+    }
+
+    const supabase = await createClient();
+
+    const { data: registration, error: fetchError } = await supabase
+      .from('registration_submissions')
+      .select('id, player_id, stripe_checkout_session_id')
+      .eq('id', registrationId)
+      .single();
+
+    if (fetchError || !registration) {
+      return { success: false, error: 'Registration not found.' };
+    }
+
+    if (registration.player_id !== playerId) {
+      return { success: false, error: 'Unauthorized.' };
+    }
+
+    if (!registration.stripe_checkout_session_id) {
+      return { success: false, error: 'No checkout session found for this registration.' };
+    }
+
+    const stripe = getStripeClient();
+    const session = await stripe.checkout.sessions.retrieve(
+      registration.stripe_checkout_session_id
+    );
+
+    if (!session.payment_intent || typeof session.payment_intent !== 'string') {
+      return { success: false, error: 'Payment intent not found in session.' };
+    }
+
+    return { success: true, data: { paymentIntentId: session.payment_intent } };
+  } catch (error) {
+    console.error('[Registration Payments] getSessionPaymentIntentId error:', error);
+    return { success: false, error: 'Failed to retrieve payment confirmation.' };
+  }
+}
+
+// ============================================================================
 // Action: Get Outstanding Balance for League
 // ============================================================================
 

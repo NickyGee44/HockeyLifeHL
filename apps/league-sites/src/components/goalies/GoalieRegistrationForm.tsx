@@ -84,7 +84,10 @@ export function GoalieRegistrationForm({ leagueSlug }: GoalieRegistrationFormPro
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input type="number" min="0" className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text-primary)]" placeholder="Rate per game" value={rate} onChange={(e) => setRate(e.target.value)} />
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-[var(--color-text-secondary)]">Rate per game (optional)</label>
+          <input type="number" min="0" className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text-primary)]" placeholder="e.g. 25" value={rate} onChange={(e) => setRate(e.target.value)} />
+        </div>
         <input className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text-primary)]" placeholder="Preferred arenas (comma-separated)" value={arenas} onChange={(e) => setArenas(e.target.value)} />
       </div>
 

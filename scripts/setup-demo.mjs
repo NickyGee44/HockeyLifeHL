@@ -237,6 +237,18 @@ async function setup() {
   const league = await getDemoLeague();
   ok(`Found league: ${league.name} (${league.id})`);
 
+  // Ensure league name is "DEMO LEAGUE" (idempotent)
+  if (league.name !== 'DEMO LEAGUE') {
+    const { error: nameErr } = await supabase
+      .from('leagues')
+      .update({ name: 'DEMO LEAGUE' })
+      .eq('id', league.id);
+    if (nameErr) err(`Failed to rename league: ${nameErr.message}`);
+    else ok('League name → "DEMO LEAGUE"');
+  } else {
+    ok('League name already "DEMO LEAGUE"');
+  }
+
   // Step 2: Get or create organization
   hr();
   log('Step 2 — Organization + subscription bypass');
@@ -274,7 +286,7 @@ async function setup() {
     const { data: insertedOrg, error: orgErr } = await supabase
       .from('organizations')
       .insert({
-        name: 'Demo Organization (Hockey Life HL)',
+        name: 'Demo Organization (DEMO LEAGUE)',
         slug: 'demo-org',
         owner_user_id: league.created_by,
         bypass_subscription_gate: true,
@@ -287,7 +299,7 @@ async function setup() {
       const { data: insertedOrg2, error: orgErr2 } = await supabase
         .from('organizations')
         .insert({
-          name: 'Demo Organization (Hockey Life HL)',
+          name: 'Demo Organization (DEMO LEAGUE)',
           slug: `demo-org-${Date.now()}`,
           owner_user_id: league.created_by,
           bypass_subscription_gate: true,
@@ -464,7 +476,7 @@ async function setup() {
           country: 'CA',
           email: 'demo@beerleaguehockey.ca',
           business_type: 'company',
-          company: { name: 'Hockey Life HL (Demo)' },
+          company: { name: 'DEMO LEAGUE (Demo)' },
           capabilities: {
             card_payments: { requested: true },
             transfers: { requested: true },

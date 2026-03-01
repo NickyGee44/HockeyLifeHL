@@ -6,6 +6,7 @@ import { EmbeddedPaymentCheckout } from '@/components/payments/EmbeddedCheckout'
 import type { RegistrationDraftData } from '@/lib/actions/registration';
 import { saveRegistrationDraft } from '@/lib/actions/registration';
 import { createPaymentDraft } from '@/lib/registration/payment';
+import { getSessionPaymentIntentId } from '@/lib/actions/registration-payments';
 
 interface StepPaymentProps {
   formData: RegistrationDraftData;
@@ -50,10 +51,22 @@ export function StepPayment({
     }
   };
 
-  const handlePaymentComplete = () => {
-    onUpdate({
-      payment_status: 'completed',
-    });
+  const handlePaymentComplete = async () => {
+    // Fetch the payment_intent ID from the completed checkout session so
+    // the server can verify it on final submission.
+    if (registrationId) {
+      const result = await getSessionPaymentIntentId(registrationId);
+      if (result.success && result.data) {
+        onUpdate({
+          payment_status: 'completed',
+          payment_intent_id: result.data.paymentIntentId,
+        });
+      } else {
+        onUpdate({ payment_status: 'completed' });
+      }
+    } else {
+      onUpdate({ payment_status: 'completed' });
+    }
     // Auto-advance to confirmation step after payment
     if (onNext) {
       setTimeout(() => onNext(), 1500);

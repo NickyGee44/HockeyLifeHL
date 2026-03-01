@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getVenues } from '@/lib/data';
+import { getLeagueBySlug, getVenues, getVenueObjects } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { MapPin, Calendar, Clock, ChevronRight, Building2 } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -30,6 +30,7 @@ export async function generateMetadata({
 
 interface VenueWithGames {
   name: string;
+  mapsUrl?: string;
   upcomingGames: {
     id: string;
     scheduled_at: string;
@@ -42,9 +43,21 @@ interface VenueWithGames {
 async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
   const supabase = await createClient();
 
-  // Get all venues
-  const venues = await getVenues(leagueId);
+  // Get all venues (names from games) + venue objects (addresses from venues table)
+  const [venues, venueObjects] = await Promise.all([
+    getVenues(leagueId),
+    getVenueObjects(leagueId),
+  ]);
   if (venues.length === 0) return [];
+
+  // Build a name → Google Maps URL map from the venues table
+  const mapsUrlByName = new Map<string, string>();
+  for (const v of venueObjects) {
+    const parts = [v.address, v.city, v.state_province, v.postal_code, v.country].filter(Boolean);
+    if (parts.length > 0) {
+      mapsUrlByName.set(v.name, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`);
+    }
+  }
 
   const now = new Date();
   const twoWeeksLater = new Date(now);
@@ -99,6 +112,7 @@ async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
   // Build result array
   const venuesWithGames: VenueWithGames[] = venues.map((venue) => ({
     name: venue,
+    mapsUrl: mapsUrlByName.get(venue),
     upcomingGames: upcomingByVenue.get(venue) || [],
     totalGames: countByVenue.get(venue) || 0,
   }));
@@ -188,12 +202,23 @@ function VenueCard({
       <div className="p-4 border-b border-[var(--color-border)]">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-hover)] flex items-center justify-center flex-shrink-0">
-            <MapPin className="w-5 h-5 text-[var(--color-text-secondary)]" />
+            <MapPin className={`w-5 h-5 ${venue.mapsUrl ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-[var(--color-text-primary)] truncate">
-              {venue.name}
-            </h3>
+            {venue.mapsUrl ? (
+              <a
+                href={venue.mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] hover:underline truncate block transition-colors"
+              >
+                {venue.name}
+              </a>
+            ) : (
+              <h3 className="font-semibold text-[var(--color-text-primary)] truncate">
+                {venue.name}
+              </h3>
+            )}
             <p className="text-sm text-[var(--color-text-secondary)]">
               {venue.totalGames} games scheduled
             </p>

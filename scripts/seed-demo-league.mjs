@@ -1,5 +1,5 @@
 /**
- * Seed Demo League: Hockey Life HL
+ * Seed Demo League: DEMO LEAGUE
  *
  * Creates the demo league with season, 8 teams, and 4 venues.
  * Uses Supabase service role client to bypass RLS.
@@ -33,10 +33,10 @@ const RESET = process.argv.includes('--reset');
 // ---------------------------------------------------------------------------
 
 const leagueData = {
-  name: 'Hockey Life HL',
+  name: 'DEMO LEAGUE',
   slug: 'demo',
   description:
-    'The original Hockey Life HL - over a decade of beer league hockey in Halifax. This demo showcases all platform features with real legacy player data.',
+    'DEMO LEAGUE — explore the full platform with real game data, teams, and player stats. Perfect for evaluating all features before committing.',
   city: 'Halifax',
   state_province: 'Nova Scotia',
   country: 'CA',

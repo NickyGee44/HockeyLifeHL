@@ -229,19 +229,23 @@ export async function getTeams(leagueId: string, seasonId?: string): Promise<Tea
       .eq('season_id', seasonId)
       .eq('status', 'active');
 
-    if (!rosterTeams || rosterTeams.length === 0) return [];
+    const teamIds = rosterTeams && rosterTeams.length > 0
+      ? [...new Set(rosterTeams.map(r => r.team_id))]
+      : null;
 
-    const teamIds = [...new Set(rosterTeams.map(r => r.team_id))];
+    // If a season was specified but has no active rosters yet, fall through
+    // to return all teams for the league rather than an empty list.
+    if (teamIds) {
+      const { data, error } = await supabase
+        .from('teams')
+        .select(`*, division:divisions(*)`)
+        .eq('league_id', leagueId)
+        .in('id', teamIds)
+        .order('name', { ascending: true });
 
-    const { data, error } = await supabase
-      .from('teams')
-      .select(`*, division:divisions(*)`)
-      .eq('league_id', leagueId)
-      .in('id', teamIds)
-      .order('name', { ascending: true });
-
-    if (error || !data) return [];
-    return data as Team[];
+      if (error || !data) return [];
+      return data as Team[];
+    }
   }
 
   const { data, error } = await supabase
@@ -1864,6 +1868,28 @@ export async function getScores(
   }
 
   return normalizedGames;
+}
+
+/**
+ * Fetch venue objects from the venues table (includes full address data)
+ */
+export async function getVenueObjects(leagueId: string): Promise<{
+  name: string;
+  address: string | null;
+  city: string | null;
+  state_province: string | null;
+  country: string | null;
+  postal_code: string | null;
+}[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('venues')
+    .select('name, address, city, state_province, country, postal_code')
+    .eq('league_id', leagueId)
+    .order('name', { ascending: true });
+
+  if (error || !data) return [];
+  return data as any[];
 }
 
 /**

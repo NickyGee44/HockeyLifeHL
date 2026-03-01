@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { FileText, ChevronDown } from 'lucide-react';
 import type { RegistrationDraftData } from '@/lib/actions/registration';
 
@@ -11,19 +10,12 @@ interface StepWaiverProps {
 }
 
 export function StepWaiver({ formData, waiverContent, onUpdate }: StepWaiverProps) {
-  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollTop + clientHeight >= scrollHeight - 20) {
-      setHasScrolledToBottom(true);
-    }
-  };
-
   const handleAcceptChange = (checked: boolean) => {
     onUpdate({
       waiver_accepted: checked,
       signature_type: 'checkbox',
+      // Record the player's name as the "signature" when they accept
+      signed_name: checked ? (formData.full_name || '') : '',
     });
   };
 
@@ -41,7 +33,6 @@ export function StepWaiver({ formData, waiverContent, onUpdate }: StepWaiverProp
 
       {/* Waiver Content */}
       <div
-        onScroll={handleScroll}
         className="max-h-80 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)] prose prose-sm prose-invert max-w-none"
       >
         <div
@@ -56,40 +47,29 @@ export function StepWaiver({ formData, waiverContent, onUpdate }: StepWaiverProp
         />
       </div>
 
-      {/* Scroll prompt */}
-      {!hasScrolledToBottom && (
-        <div className="flex items-center justify-center gap-2 py-1">
-          <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)] animate-bounce" />
-          <p className="text-xs text-[var(--color-text-muted)]">
-            Scroll to the bottom to enable the acceptance checkbox
-          </p>
-          <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)] animate-bounce" />
-        </div>
-      )}
+      {/* Scroll hint */}
+      <div className="flex items-center justify-center gap-2 py-1">
+        <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)] animate-bounce" />
+        <p className="text-xs text-[var(--color-text-muted)]">
+          Please read the full waiver above before accepting
+        </p>
+        <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)] animate-bounce" />
+      </div>
 
-      {/* Agreement checkbox — disabled until scrolled */}
+      {/* Agreement checkbox */}
       <div className="space-y-4">
-        <label
-          className={`flex items-start gap-3 ${hasScrolledToBottom ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-        >
+        <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
             checked={!!formData.waiver_accepted}
-            disabled={!hasScrolledToBottom}
             onChange={(e) => handleAcceptChange(e.target.checked)}
-            className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)] disabled:cursor-not-allowed"
+            className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
           />
           <span className="text-sm text-[var(--color-text-primary)]">
             I have read and agree to the waiver and release of liability above. I understand that
             participating in recreational hockey involves inherent risks.
           </span>
         </label>
-
-        {!hasScrolledToBottom && (
-          <p className="text-xs text-amber-400/80 ml-7">
-            You must scroll to the bottom of the waiver before accepting.
-          </p>
-        )}
       </div>
     </div>
   );
