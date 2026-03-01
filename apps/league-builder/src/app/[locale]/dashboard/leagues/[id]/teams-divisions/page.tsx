@@ -40,8 +40,32 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
     notFound();
   }
 
-  // Get teams with division info
-  const { data: teams, error: teamsError } = await supabase
+  // Get current season (active or in playoffs)
+  const { data: currentSeason } = await supabase
+    .from('seasons')
+    .select('id, name')
+    .eq('league_id', leagueId)
+    .in('status', ['active', 'playoffs'])
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Get team IDs that have active roster entries in the current season
+  let seasonTeamIds: string[] | null = null;
+  if (currentSeason) {
+    const { data: rosterRows } = await serviceClient
+      .from('team_rosters')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', currentSeason.id)
+      .eq('status', 'active');
+    if (rosterRows && rosterRows.length > 0) {
+      seasonTeamIds = [...new Set(rosterRows.map((r: any) => r.team_id as string))];
+    }
+  }
+
+  // Build teams query — filter to current-season teams if we have a season
+  let teamsQuery = supabase
     .from('teams')
     .select(`
       id,
@@ -60,6 +84,12 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
     .eq('league_id', leagueId)
     .neq('status', 'inactive')
     .order('name');
+
+  if (seasonTeamIds) {
+    teamsQuery = (teamsQuery as any).in('id', seasonTeamIds);
+  }
+
+  const { data: teams, error: teamsError } = await teamsQuery;
 
   if (teamsError) {
     console.error('[Teams & Divisions Page] Error fetching teams:', teamsError.message);

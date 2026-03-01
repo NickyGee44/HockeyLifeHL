@@ -162,7 +162,7 @@ export async function getTeam(teamId: string) {
       .from('teams') as any)
       .select(`
         *,
-        leagues!inner(id, name, organization_id, organizations(owner_user_id)),
+        leagues:teams_league_id_fkey(id, name, organization_id, organizations:leagues_organization_id_fkey(owner_user_id)),
         divisions:division_id (id, name),
         venues:home_venue_id (id, name, address),
         captain:teams_captain_id_fkey(id, full_name, email)
