@@ -87,6 +87,7 @@ export interface Season {
   end_date: string;
   status: 'upcoming' | 'active' | 'completed';
   is_current: boolean;
+  champion_team_id?: string | null;
 }
 
 export interface Division {

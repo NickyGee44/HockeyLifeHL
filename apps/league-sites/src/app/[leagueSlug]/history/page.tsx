@@ -82,10 +82,15 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
   });
 
   // Get standings for each past season to find champions
+  // Prefer champion_team_id (set by playoff trigger) over standings rank #1
   const seasonsWithChampions = await Promise.all(
     pastSeasons.map(async (season) => {
       const standings = await getStandings(league.id, season.id);
-      const champion = standings.length > 0 ? standings[0] : null;
+      let champion = standings.length > 0 ? standings[0] : null;
+      if (season.champion_team_id) {
+        const playoffChampion = standings.find(s => s.team_id === season.champion_team_id);
+        if (playoffChampion) champion = playoffChampion;
+      }
       return { ...season, champion };
     })
   );
