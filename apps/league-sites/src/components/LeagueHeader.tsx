@@ -16,6 +16,8 @@ import {
   Camera,
   Mail,
   Shield,
+  Ban,
+  MapPin,
   Menu,
   X,
   UserPlus,
@@ -59,6 +61,8 @@ const navItems: DefaultNavItem[] = [
   { href: '/gallery', label: 'Gallery', icon: Camera },
   { href: '/players', label: 'Players', icon: Users },
   { href: '/events', label: 'Events', icon: Calendar },
+  { href: '/suspensions', label: 'Suspensions', icon: Ban },
+  { href: '/venues', label: 'Venues', icon: MapPin },
   { href: '/about', label: 'About', icon: Info },
   { href: '/contact', label: 'Contact', icon: Mail },
 ];
