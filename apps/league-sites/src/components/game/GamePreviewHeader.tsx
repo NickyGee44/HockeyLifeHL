@@ -139,6 +139,11 @@ export function GamePreviewHeader({
 
           {/* Center Info */}
           <div className="flex flex-col items-center text-center text-white z-20 shrink-0 min-w-[120px] px-2">
+            {game.game_type === 'playoff' && (
+              <span className="mb-2 px-3 py-1 text-xs font-bold rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/40 uppercase tracking-wide">
+                Playoff
+              </span>
+            )}
             {getStatusBadge()}
 
             {!isCompleted && !isLive && (

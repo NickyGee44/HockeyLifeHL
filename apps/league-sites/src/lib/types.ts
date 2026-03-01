@@ -330,6 +330,8 @@ export interface GamePreview {
   status: 'scheduled' | 'in_progress' | 'completed' | 'pending_verification' | 'postponed' | 'cancelled';
   period: number | null;
   period_time: string | null;
+  game_type?: string | null;
+  playoff_series_id?: string | null;
   created_at: string;
   home_team: TeamWithStats;
   away_team: TeamWithStats;
