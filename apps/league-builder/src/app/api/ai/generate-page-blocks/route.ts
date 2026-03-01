@@ -113,7 +113,7 @@ Respond with ONLY a valid JSON object in this exact format, no other text:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20251001',
         max_tokens: 2000,
         system: systemPrompt,
         messages: [{ role: 'user', content: `Create a page about: ${prompt}` }],
