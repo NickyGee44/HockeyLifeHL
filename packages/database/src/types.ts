@@ -3313,6 +3313,7 @@ export type Database = {
           period_count: number | null
           period_length_minutes: number | null
           period_started_at: string | null
+          reminder_sent_at: string | null
           rescheduled_at: string | null
           round_number: number | null
           scheduled_at: string
@@ -3378,6 +3379,7 @@ export type Database = {
           period_count?: number | null
           period_length_minutes?: number | null
           period_started_at?: string | null
+          reminder_sent_at?: string | null
           rescheduled_at?: string | null
           round_number?: number | null
           scheduled_at: string
@@ -3443,6 +3445,7 @@ export type Database = {
           period_count?: number | null
           period_length_minutes?: number | null
           period_started_at?: string | null
+          reminder_sent_at?: string | null
           rescheduled_at?: string | null
           round_number?: number | null
           scheduled_at?: string
