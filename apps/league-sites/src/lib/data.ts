@@ -1881,7 +1881,8 @@ export async function getVenueObjects(leagueId: string): Promise<{
   country: string | null;
   postal_code: string | null;
 }[]> {
-  const supabase = await createClient();
+  // venues table requires service role — anon RLS policy may not be applied
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('venues')
     .select('name, address, city, state_province, country, postal_code')
