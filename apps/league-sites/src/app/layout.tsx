@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { CookieConsentBanner, ConditionalAnalytics } from '@/components/cookie-consent';
+import { PostHogProvider } from '@/providers/PostHogProvider';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <PostHogProvider>
         <ThemeProvider
           attribute="data-theme"
           defaultTheme="dark"
@@ -38,6 +40,7 @@ export default function RootLayout({
           <CookieConsentBanner />
         </ThemeProvider>
         <ConditionalAnalytics />
+        </PostHogProvider>
       </body>
     </html>
   );

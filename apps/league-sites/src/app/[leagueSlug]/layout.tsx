@@ -13,6 +13,7 @@ import { BugReportButton } from '@/components/bug-report/BugReportButton';
 import { SubscriptionProvider } from '@/components/shared';
 import { DemoTourPanel } from '@/components/demo/DemoTourPanel';
 import type { Metadata } from 'next';
+import { LeagueSiteAnalytics } from '@/components/LeagueSiteAnalytics';
 
 /**
  * Revalidate every 60 seconds as a time-based fallback.
@@ -129,6 +130,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                     visiblePages={(league as any).settings?.website?.visiblePages}
                     isPlayoffSeason={isPlayoffSeason}
                   />
+                  <LeagueSiteAnalytics leagueSlug={leagueSlug} />
                   <main className="flex-1">{children}</main>
                   <SponsorFooterStrip sponsors={sponsors} />
                   <LeagueFooter league={league} leagueSlug={leagueSlug} />
