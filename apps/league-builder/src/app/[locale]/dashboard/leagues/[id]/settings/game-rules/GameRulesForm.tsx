@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef, useEffect } from 'react';
 import { Plus, Trash2, RotateCcw, Save } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import { updatePenaltyRules, type PenaltyRuleConfig } from '@/lib/actions/league-settings';
@@ -234,6 +234,35 @@ function RuleRow({
   onRemove: () => void;
   severityColor: string;
 }) {
+  // Keep a local draft for the minutes input so typing doesn't immediately
+  // regroup the row (which would unmount the input and lose focus).
+  // The parent state (and grouping) updates after a short delay.
+  const [draftMinutes, setDraftMinutes] = useState(rule.minutes);
+  const minutesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // If the parent resets the value externally (e.g. reset to defaults), sync it.
+  useEffect(() => {
+    setDraftMinutes(rule.minutes);
+  }, [rule.minutes]);
+
+  // Clear the timer on unmount to avoid stale updates.
+  useEffect(() => {
+    return () => {
+      if (minutesTimerRef.current) clearTimeout(minutesTimerRef.current);
+    };
+  }, []);
+
+  const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value) || 1;
+    setDraftMinutes(val);
+    if (minutesTimerRef.current) clearTimeout(minutesTimerRef.current);
+    // Wait 1.5 s before committing to parent — prevents the row from jumping
+    // groups while the user is still typing or clicking the spinner.
+    minutesTimerRef.current = setTimeout(() => {
+      onUpdate('minutes', val);
+    }, 1500);
+  };
+
   return (
     <div className={cn(
       'flex items-center gap-3 p-3 rounded-xl border transition-colors',
@@ -251,8 +280,8 @@ function RuleRow({
           type="number"
           min={1}
           max={60}
-          value={rule.minutes}
-          onChange={e => onUpdate('minutes', parseInt(e.target.value) || 2)}
+          value={draftMinutes}
+          onChange={handleMinutesChange}
           className="w-16 bg-neutral-800 text-white text-sm text-center rounded-lg px-2 py-1.5 border border-white/10 focus:border-rink-500/50 outline-none"
         />
         <span className="text-xs text-neutral-400">min</span>
