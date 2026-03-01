@@ -245,6 +245,7 @@ export interface TickerGame {
   home_score: number | null;
   away_score: number | null;
   status: 'scheduled' | 'in_progress' | 'completed' | 'pending_verification' | 'postponed' | 'cancelled';
+  game_type?: string | null;
   home_team: {
     id: string;
     name: string;

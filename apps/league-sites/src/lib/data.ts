@@ -924,6 +924,7 @@ export async function getTickerGames(
       home_score,
       away_score,
       status,
+      game_type,
       home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(name)),
       away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(name))
     `)

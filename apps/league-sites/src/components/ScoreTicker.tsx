@@ -263,6 +263,11 @@ function GameTile({ game, leagueSlug }: GameTileProps) {
         ) : (
           <div />
         )}
+        {game.game_type === 'playoff' && (
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-purple-500/30 text-purple-300 border border-purple-500/30">
+            PO
+          </span>
+        )}
         {divisionName && (
           <span
             className="text-[9px] font-bold px-2 py-0.5 rounded bg-[var(--league-primary)] text-[var(--color-text-inverse)]"
