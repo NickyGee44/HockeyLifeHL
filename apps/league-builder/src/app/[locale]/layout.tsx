@@ -7,6 +7,7 @@ import '../globals.css';
 import { Toaster } from 'sonner';
 import { ThemeProvider, themeScript } from '@/components/ThemeProvider';
 import { locales, type Locale } from '@/i18n/config';
+import { PostHogProvider } from '@/providers/PostHogProvider';
 
 export const metadata: Metadata = {
   title: 'Beer League Hockey - League Builder',
@@ -52,6 +53,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: themeScript }}
       />
+      <PostHogProvider>
       <NextIntlClientProvider messages={messages}>
         <ThemeProvider defaultTheme="dark" enableSystem enableTransition>
           {children}
@@ -77,6 +79,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           />
         </ThemeProvider>
       </NextIntlClientProvider>
+      </PostHogProvider>
     </>
   );
 }

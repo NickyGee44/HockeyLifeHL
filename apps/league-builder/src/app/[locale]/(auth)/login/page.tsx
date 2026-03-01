@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
+import { posthog } from '@/lib/posthog-client';
 import { OAuthProviderButton } from '@/components/auth/OAuthProviderButton';
 
 export default function LoginPage() {
@@ -53,6 +54,7 @@ function LoginForm() {
       }
     } catch (error) {
       if (isRedirectError(error)) {
+        posthog.capture('user_logged_in');
         throw error;
       }
       setError(t('errors.generic'));

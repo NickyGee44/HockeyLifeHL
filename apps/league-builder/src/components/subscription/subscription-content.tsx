@@ -25,6 +25,7 @@ import { CheckCircle2, Crown, CreditCard, ExternalLink, Loader2 } from 'lucide-r
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { createAddonCheckout } from '@/lib/actions/addons';
+import { posthog } from '@/lib/posthog-client';
 
 interface SubscriptionContentProps {
   orgId: string;
@@ -84,6 +85,7 @@ export function SubscriptionContent({
     if (checkoutHandled.current) return;
     if (checkoutStatus === 'success') {
       checkoutHandled.current = true;
+      posthog.capture('payment_completed', { type: 'subscription' });
       toast.success(t('subscriptionActivated'), {
         description: t('subscriptionActivatedDesc') });
       router.replace('/dashboard/settings/billing');

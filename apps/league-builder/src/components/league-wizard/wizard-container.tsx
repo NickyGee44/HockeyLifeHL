@@ -13,6 +13,7 @@ import { WizardProgressBar } from '../ui/wizard/wizard-progress-bar';
 import { WizardNavigation } from './wizard-navigation';
 import { WizardProgress } from './wizard-progress';
 import { Step9NextSteps } from './steps/step-9-next-steps';
+import { posthog } from '@/lib/posthog-client';
 
 const WIZARD_STEPS = [
   { number: 1, title: 'Organization', description: 'Company info' },
@@ -165,6 +166,7 @@ export function WizardContainer({
       }
 
       setIsSubmitting(false);
+      posthog.capture('league_created', { leagueId: result.data.leagueId, slug: result.data.slug });
       setCreatedLeague({
         leagueId: result.data.leagueId,
         slug: result.data.slug,
