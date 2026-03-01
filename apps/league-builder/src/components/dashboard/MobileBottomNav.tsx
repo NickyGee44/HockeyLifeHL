@@ -105,13 +105,13 @@ export function MobileBottomNav() {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <nav className="p-3 max-h-[60vh] overflow-y-auto space-y-3">
+        <nav className="p-3 max-h-[60vh] overflow-y-auto space-y-4">
           {moreLeagueItems.length > 0 && (
             <div>
               <p className="px-2 pb-1.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
                 {t('sectionLeague')}
               </p>
-              <div className="grid grid-cols-3 gap-1">
+              <div className="space-y-0.5">
                 {moreLeagueItems.map((item) => {
                   const active = isActive(item.href);
                   return (
@@ -120,14 +120,14 @@ export function MobileBottomNav() {
                       href={item.href}
                       onClick={toggleMobileMore}
                       className={cn(
-                        'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors',
+                        'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
                         active
                           ? 'bg-rink-500/10 text-rink-500'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                       )}
                     >
-                      <item.icon className="w-5 h-5" />
-                      <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
+                      <item.icon className="w-5 h-5 shrink-0" />
+                      <span className="text-sm font-medium">{item.label}</span>
                     </Link>
                   );
                 })}
@@ -139,7 +139,7 @@ export function MobileBottomNav() {
               <p className="px-2 pb-1.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
                 {t('sectionContent')}
               </p>
-              <div className="grid grid-cols-3 gap-1">
+              <div className="space-y-0.5">
                 {moreContentItems.map((item) => {
                   const active = isActive(item.href);
                   return (
@@ -148,14 +148,14 @@ export function MobileBottomNav() {
                       href={item.href}
                       onClick={toggleMobileMore}
                       className={cn(
-                        'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors',
+                        'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
                         active
                           ? 'bg-rink-500/10 text-rink-500'
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                       )}
                     >
-                      <item.icon className="w-5 h-5" />
-                      <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
+                      <item.icon className="w-5 h-5 shrink-0" />
+                      <span className="text-sm font-medium">{item.label}</span>
                     </Link>
                   );
                 })}
@@ -166,7 +166,7 @@ export function MobileBottomNav() {
             <p className="px-2 pb-1.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
               {t('sectionSettings')}
             </p>
-            <div className="grid grid-cols-3 gap-1">
+            <div className="space-y-0.5">
               {moreSettingsItems.map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -175,14 +175,14 @@ export function MobileBottomNav() {
                     href={item.href}
                     onClick={toggleMobileMore}
                     className={cn(
-                      'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors',
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
                       active
                         ? 'bg-rink-500/10 text-rink-500'
                         : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                     )}
                   >
-                    <item.icon className="w-5 h-5" />
-                    <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
+                    <item.icon className="w-5 h-5 shrink-0" />
+                    <span className="text-sm font-medium">{item.label}</span>
                   </Link>
                 );
               })}
@@ -208,7 +208,7 @@ export function MobileBottomNav() {
                   )}
                 >
                   <tab.icon className="w-5 h-5" />
-                  <span className="text-[10px] font-medium">{tab.label}</span>
+                  <span className="text-xs font-medium">{tab.label}</span>
                 </button>
               );
             }
@@ -226,7 +226,7 @@ export function MobileBottomNav() {
                 )}
               >
                 <tab.icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{tab.label}</span>
+                <span className="text-xs font-medium">{tab.label}</span>
               </Link>
             );
           })}
