@@ -12,6 +12,7 @@ import {
   Shield,
   ClipboardCheck,
   Loader2,
+  UserSearch,
 } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 
@@ -70,9 +71,17 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
     },
     {
       label: 'My Team',
-      href: `/${leagueSlug}/teams`,
+      href: currentTeam?.team?.slug
+        ? `/${leagueSlug}/teams/${currentTeam.team.slug}`
+        : `/${leagueSlug}/teams`,
       icon: Users,
       description: 'View team roster',
+    },
+    {
+      label: 'Find Players',
+      href: `/${leagueSlug}/players`,
+      icon: UserSearch,
+      description: 'Browse league players',
     },
     {
       label: 'Settings',
