@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -205,13 +205,12 @@ function BlockCard({ block, index, total, leagueId, onUpdate, onDelete, onMoveUp
   onUpdate: (b: ContentBlock) => void; onDelete: () => void; onMoveUp: () => void; onMoveDown: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const Icon = blockIcon(block.type);
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.04] overflow-hidden">
       <div className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none hover:bg-white/[0.03] transition-colors" onClick={() => setExpanded((v) => !v)}>
         <div className="p-1.5 rounded-md bg-neutral-800 text-neutral-400 flex-shrink-0">
-          <Icon className="w-3.5 h-3.5" />
+          {createElement(blockIcon(block.type), { className: 'w-3.5 h-3.5' })}
         </div>
         <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide w-14 flex-shrink-0">
           {block.type === 'heading' ? block.level : block.type}
@@ -376,7 +375,7 @@ function AiAssistantPanel({
             <div className="bg-neutral-900 border border-white/10 rounded-xl p-3 space-y-3">
               <p className="text-xs text-neutral-400">
                 Generated <span className="text-white font-medium">{result.blocks.length} blocks</span>
-                {result.title && <> with title <span className="text-rink-400 font-medium">"{result.title}"</span></>}
+                {result.title && <> with title <span className="text-rink-400 font-medium">&quot;{result.title}&quot;</span></>}
               </p>
               <div className="flex gap-2">
                 <button type="button" onClick={() => { onInsert(result.title, result.blocks); setResult(null); setPrompt(''); setOpen(false); }}

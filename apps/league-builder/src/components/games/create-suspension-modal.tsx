@@ -41,16 +41,16 @@ export function CreateSuspensionModal({
   const [players, setPlayers] = useState<PlayerOption[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
 
-  // Load players when team changes
+  // Load players when team changes — intentional synchronous reset when teamId dep changes
   useEffect(() => {
-    if (!teamId) {
-      setPlayers([]);
-      setPlayerId('');
-      return;
-    }
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setPlayers([]);
+    setPlayerId('');
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    if (!teamId) return;
 
     setLoadingPlayers(true);
-    setPlayerId('');
 
     const supabase = createClient();
     supabase
