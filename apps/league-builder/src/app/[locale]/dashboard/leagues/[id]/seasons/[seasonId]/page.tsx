@@ -24,6 +24,7 @@ import { SeasonFeeManager } from '@/components/payments/SeasonFeeManager';
 import { getSeasonFees } from '@/lib/payments/fee-actions';
 import { PlayoffBracketClient } from '@/components/playoffs';
 import { getPlayoffBracket } from '@/lib/actions/playoff-bracket';
+import { StatsExportButton } from '@/components/seasons/StatsExportButton';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -294,7 +295,17 @@ export default async function SeasonDetailPage({ params }: Props) {
 
         {/* Season Details */}
         <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Season Details</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-white">Season Details</h2>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-neutral-500 font-medium">Export Stats</span>
+              <StatsExportButton
+                leagueId={leagueId}
+                seasonId={seasonId}
+                seasonName={season.name}
+              />
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <DetailItem
               label="Registration Type"
