@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { GamesListClient } from './games-list-client';
+import { CreateSuspensionModal } from './create-suspension-modal';
 import type { Game } from '@/lib/actions/games';
 
 // ============================================================================
@@ -147,7 +148,12 @@ export function CompletedGamesTabs({
 
       {/* Suspensions Tab */}
       <TabsContent value="suspensions">
-        <SuspensionsSection suspensions={suspensions} />
+        <SuspensionsSection
+          suspensions={suspensions}
+          leagueId={leagueId}
+          teams={initialTeams}
+          seasons={initialSeasons}
+        />
       </TabsContent>
 
       {/* Referee Notes Tab */}
@@ -257,22 +263,49 @@ function SeverityBadge({ severity }: { severity: string }) {
 // SUSPENSIONS SECTION
 // ============================================================================
 
-function SuspensionsSection({ suspensions }: { suspensions: Suspension[] }) {
+function SuspensionsSection({
+  suspensions,
+  leagueId,
+  teams,
+  seasons,
+}: {
+  suspensions: Suspension[];
+  leagueId: string;
+  teams: Array<{ id: string; name: string; short_name: string | null }>;
+  seasons: Array<{ id: string; name: string }>;
+}) {
   const t = useTranslations('completedGames');
+
+  const header = (
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">Active & Recent Suspensions</h3>
+      <CreateSuspensionModal
+        leagueId={leagueId}
+        teams={teams.map((t) => ({ id: t.id, name: t.name }))}
+        seasons={seasons}
+        onSuccess={() => {/* revalidated server-side */}}
+      />
+    </div>
+  );
 
   if (suspensions.length === 0) {
     return (
-      <EmptyState
-        icon={<Ban className="w-12 h-12 text-red-500/50" />}
-        title={t('suspensions.emptyTitle')}
-        description={t('suspensions.emptyDescription')}
-      />
+      <>
+        {header}
+        <EmptyState
+          icon={<Ban className="w-12 h-12 text-red-500/50" />}
+          title={t('suspensions.emptyTitle')}
+          description={t('suspensions.emptyDescription')}
+        />
+      </>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {suspensions.map((suspension) => (
+    <>
+      {header}
+      <div className="space-y-3">
+        {suspensions.map((suspension) => (
         <div
           key={suspension.id}
           className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-4 hover:border-white/20 transition-colors"
@@ -308,7 +341,8 @@ function SuspensionsSection({ suspensions }: { suspensions: Suspension[] }) {
           </div>
         </div>
       ))}
-    </div>
+      </div>
+    </>
   );
 }
 
