@@ -75,7 +75,7 @@ export function useLeague(): UseLeagueReturn {
             .from('seasons')
             .select('id')
             .eq('league_id', data.id)
-            .eq('status', 'active')
+            .in('status', ['active', 'playoffs'])
             .order('start_date', { ascending: false })
             .limit(1)
             .single();

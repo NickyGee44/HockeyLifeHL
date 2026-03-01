@@ -149,8 +149,8 @@ export function getLeagueTheme(league: League): LeagueTheme {
 export async function getCurrentSeason(leagueId: string): Promise<Season | null> {
   const supabase = await createClient();
 
-  // Try statuses in priority order (Season status: upcoming | active | completed)
-  for (const status of ['active', 'upcoming', 'completed'] as const) {
+  // Try statuses in priority order (Season status: active | playoffs | upcoming | completed)
+  for (const status of ['active', 'playoffs', 'upcoming', 'completed'] as const) {
     const { data } = await supabase
       .from('seasons')
       .select('*')
