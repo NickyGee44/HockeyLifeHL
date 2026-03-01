@@ -25,6 +25,7 @@ import { getSeasonFees } from '@/lib/payments/fee-actions';
 import { PlayoffBracketClient } from '@/components/playoffs';
 import { getPlayoffBracket } from '@/lib/actions/playoff-bracket';
 import { StatsExportButton } from '@/components/seasons/StatsExportButton';
+import { SeasonStatusTransitionButton } from '@/components/seasons/SeasonStatusTransitionButton';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -154,7 +155,7 @@ export default async function SeasonDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={cn(
                   'px-3 py-1.5 text-sm font-semibold rounded-full border',
@@ -164,6 +165,12 @@ export default async function SeasonDetailPage({ params }: Props) {
                 {(season.status || 'draft').charAt(0).toUpperCase() +
                   (season.status || 'draft').slice(1)}
               </span>
+              {canEdit && (
+                <SeasonStatusTransitionButton
+                  seasonId={seasonId}
+                  currentStatus={season.status ?? 'draft'}
+                />
+              )}
               <Link
                 href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${seasonId}/edit`}
                 className={cn(

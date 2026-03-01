@@ -108,7 +108,8 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     }
     return false;
   });
-  const activeSeasonId = (seasons.find((season) => (season as any).status === 'active') as any)?.id ?? null;
+  const activeSeasonId = (seasons.find((season) => (season as any).status === 'active' || (season as any).status === 'playoffs') as any)?.id ?? null;
+  const isPlayoffSeason = seasons.some((season) => (season as any).status === 'playoffs');
 
   return (
     <LeagueThemeProvider theme={theme}>
@@ -126,6 +127,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                     leagueSlug={leagueSlug}
                     registrationOpen={registrationOpen}
                     visiblePages={(league as any).settings?.website?.visiblePages}
+                    isPlayoffSeason={isPlayoffSeason}
                   />
                   <main className="flex-1">{children}</main>
                   <SponsorFooterStrip sponsors={sponsors} />

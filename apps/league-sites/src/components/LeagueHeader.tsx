@@ -33,6 +33,7 @@ interface LeagueHeaderProps {
   leagueSlug: string;
   registrationOpen?: boolean;
   visiblePages?: Record<string, boolean>;
+  isPlayoffSeason?: boolean;
 }
 
 type DefaultNavItem = {
@@ -67,7 +68,7 @@ const navItems: DefaultNavItem[] = [
   { href: '/contact', label: 'Contact', icon: Mail },
 ];
 
-export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePages }: LeagueHeaderProps) {
+export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePages, isPlayoffSeason }: LeagueHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { isPreviewMode, theme } = usePreviewMode();
@@ -93,15 +94,15 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
         }))
     : [];
 
-  // Filter nav items based on visiblePages setting
+  // Filter nav items: respect visiblePages settings and season-phase gates.
+  // The playoffs tab is hidden unless the active season is in 'playoffs' status.
   const filteredNavItems: NavItem[] = hasCustomNav
     ? normalizedCustomNavItems
-    : visiblePages
-      ? navItems.filter((item) => {
-          const pageKey = item.href.replace('/', '');
-          return visiblePages[pageKey] !== false;
-        })
-      : navItems;
+    : navItems.filter((item) => {
+        const pageKey = item.href.replace('/', '');
+        if (pageKey === 'playoffs' && !isPlayoffSeason) return false;
+        return visiblePages ? visiblePages[pageKey] !== false : true;
+      });
 
   const logoUrl = isPreviewMode && theme?.logoUrl !== undefined ? theme.logoUrl : league.logo_url;
   const displayName = league.short_name || league.name;
