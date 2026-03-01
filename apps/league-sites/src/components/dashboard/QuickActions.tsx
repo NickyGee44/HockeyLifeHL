@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import {
+  Bell,
   Calendar,
   CreditCard,
   FileCheck,
@@ -88,6 +89,12 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
       href: `/${leagueSlug}/me/profile`,
       icon: Settings,
       description: 'Update your profile',
+    },
+    {
+      label: 'Notifications',
+      href: `/${leagueSlug}/me/notifications`,
+      icon: Bell,
+      description: 'Email & push preferences',
     },
   ];
 
