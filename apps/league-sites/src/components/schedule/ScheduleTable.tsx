@@ -215,6 +215,11 @@ function ScheduleTableRow({
             size="sm"
           />
         </div>
+        {game.game_type === 'playoff' && (
+          <span className="mt-1 inline-block px-1.5 py-0.5 text-[10px] font-semibold rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+            Playoff
+          </span>
+        )}
       </td>
 
       {/* Time / Score Column */}
@@ -328,6 +333,11 @@ function ScheduleCard({
           )}
         </div>
         <div className="flex items-center gap-2">
+          {game.game_type === 'playoff' && (
+            <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+              Playoff
+            </span>
+          )}
           {showDivision && divisionName && (
             <span
               className="text-[11px] font-bold px-2 py-0.5 rounded"

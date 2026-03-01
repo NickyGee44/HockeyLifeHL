@@ -151,6 +151,7 @@ export interface Game {
   status: 'scheduled' | 'in_progress' | 'completed' | 'pending_verification' | 'postponed' | 'cancelled';
   period: number | null;
   period_time: string | null;
+  game_type?: string | null;
   created_at: string;
   // Joined data
   home_team?: Team;
