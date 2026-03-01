@@ -179,6 +179,8 @@
     "events": "Events",
     "venues": "Venues",
     "leagueSettings": "League Settings",
+    "paymentTracking": "Payment Tracking",
+    "scorekeeperSchedule": "Scorekeeper Schedule",
     "schedule": "Schedule",
     "standings": "Standings",
     "completedGames": "Completed Games",

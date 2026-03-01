@@ -32,6 +32,8 @@ import {
   MapPin,
   Mail,
   PartyPopper,
+  DollarSign,
+  ClipboardList,
   Bug,
   Lock,
   Zap,
@@ -236,10 +238,26 @@ export default function HierarchicalSidebar({
             collapsed={sidebarCollapsed}
           />
           <NavLink
+            href={`${leagueBase}/payments`}
+            icon={DollarSign}
+            label={t('paymentTracking')}
+            isActive={isPathActive(`${leagueBase}/payments`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
             href={`${leagueBase}/staff`}
             icon={User}
             label={t('staff')}
             isActive={isPathActive(`${leagueBase}/staff`)}
+            collapsed={sidebarCollapsed}
+            locked={!isSubscribed}
+          />
+          <NavLink
+            href={`${leagueBase}/scorekeepers/schedule`}
+            icon={ClipboardList}
+            label={t('scorekeeperSchedule')}
+            isActive={isPathActive(`${leagueBase}/scorekeepers`)}
             collapsed={sidebarCollapsed}
             locked={!isSubscribed}
           />
