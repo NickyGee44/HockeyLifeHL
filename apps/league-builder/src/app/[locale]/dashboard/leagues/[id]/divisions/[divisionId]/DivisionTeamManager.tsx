@@ -8,7 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import {
   Users,
@@ -71,7 +71,7 @@ interface DivisionTeamManagerProps {
 export function DivisionTeamManager({
   division,
   leagueId,
-  locale,
+  locale: _locale,
   initialTeams,
   initialUnassignedTeams,
 }: DivisionTeamManagerProps) {
@@ -263,7 +263,7 @@ export function DivisionTeamManager({
 
                 <div className="flex items-center gap-2">
                   <Link
-                    href={`/${locale}/dashboard/teams/${team.id}`}
+                    href={`/dashboard/teams/${team.id}`}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
                   >
                     <Shield className="w-4 h-4" />

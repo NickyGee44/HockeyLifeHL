@@ -22,6 +22,8 @@ const DAYS_OF_WEEK = [
 interface RegistrationFormConfigFormProps {
   leagueId: string;
   initialConfig: RegistrationFormConfig;
+  suggestedDivisions?: string[];
+  suggestedVenues?: string[];
 }
 
 function TagInput({
@@ -102,6 +104,35 @@ function TagInput({
   );
 }
 
+function SuggestionChips({
+  suggestions,
+  existing,
+  onAdd,
+}: {
+  suggestions: string[];
+  existing: string[];
+  onAdd: (val: string) => void;
+}) {
+  const unused = suggestions.filter((s) => !existing.includes(s));
+  if (unused.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-2">
+      <span className="text-xs text-neutral-500 self-center">From your setup:</span>
+      {unused.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onAdd(s)}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border border-dashed border-neutral-600 text-neutral-400 hover:border-rink-500/50 hover:text-rink-400 transition-colors"
+        >
+          <Plus className="w-3 h-3" />
+          {s}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ToggleField({
   label,
   description,
@@ -137,6 +168,8 @@ function ToggleField({
 export function RegistrationFormConfigForm({
   leagueId,
   initialConfig,
+  suggestedDivisions = [],
+  suggestedVenues = [],
 }: RegistrationFormConfigFormProps) {
   const [levels, setLevels] = useState<string[]>(initialConfig.levels ?? []);
   const [locations, setLocations] = useState<string[]>(initialConfig.locations ?? []);
@@ -205,6 +238,11 @@ export function RegistrationFormConfigForm({
           placeholder="e.g. A Division, B Division, Recreational..."
           onChange={setLevels}
         />
+        <SuggestionChips
+          suggestions={suggestedDivisions}
+          existing={levels}
+          onAdd={(v) => setLevels((prev) => (prev.includes(v) ? prev : [...prev, v]))}
+        />
       </div>
 
       {/* Locations */}
@@ -216,6 +254,11 @@ export function RegistrationFormConfigForm({
           values={locations}
           placeholder="e.g. Memorial Arena, Barrie Molson Centre..."
           onChange={setLocations}
+        />
+        <SuggestionChips
+          suggestions={suggestedVenues}
+          existing={locations}
+          onAdd={(v) => setLocations((prev) => (prev.includes(v) ? prev : [...prev, v]))}
         />
       </div>
 

@@ -12,6 +12,8 @@ import {
   Clock,
   Loader2,
   AlertTriangle,
+  Settings,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -349,8 +351,15 @@ function TeamCardInner({
   };
 
   return (
-    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5 hover:border-white/20 transition-colors group">
-      <div className="flex items-start justify-between mb-4">
+    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5 hover:border-white/20 transition-colors group relative">
+      {/* Clickable overlay to navigate to team detail */}
+      <Link
+        href={`/dashboard/teams/${team.id}`}
+        className="absolute inset-0 rounded-xl z-0"
+        aria-label={`Manage ${team.name}`}
+      />
+
+      <div className="flex items-start justify-between mb-4 relative z-10">
         <div className="flex items-center gap-3">
           <div
             className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold"
@@ -377,11 +386,23 @@ function TeamCardInner({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-400">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-400 relative z-10">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/teams/${team.id}`}>
+                <Settings className="w-4 h-4 mr-2" />
+                Manage Team
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/teams/${team.id}?tab=roster`}>
+                <UserCheck className="w-4 h-4 mr-2" />
+                View Roster
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-500"
               onClick={() => onDelete(team)}
@@ -393,7 +414,7 @@ function TeamCardInner({
         </DropdownMenu>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between relative z-10">
         <span
           className={cn(
             'px-2.5 py-1 text-xs font-semibold rounded-full border',
@@ -402,7 +423,9 @@ function TeamCardInner({
         >
           {(team.status || 'active').charAt(0).toUpperCase() + (team.status || 'active').slice(1)}
         </span>
-
+        <span className="text-xs text-neutral-500 group-hover:text-rink-400 transition-colors">
+          Manage →
+        </span>
       </div>
     </div>
   );

@@ -58,6 +58,23 @@ export default async function RegistrationFormSettingsPage({ params }: Props) {
     },
   };
 
+  // Fetch existing divisions and venues so the form can offer one-click suggestions
+  const [{ data: divisionsData }, { data: venuesData }] = await Promise.all([
+    supabase
+      .from('divisions')
+      .select('name')
+      .eq('league_id', leagueId)
+      .order('name'),
+    (supabase as any)
+      .from('venues')
+      .select('name')
+      .eq('league_id', leagueId)
+      .order('name'),
+  ]);
+
+  const suggestedDivisions = (divisionsData ?? []).map((d: { name: string }) => d.name);
+  const suggestedVenues = (venuesData ?? []).map((v: { name: string }) => v.name);
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -84,7 +101,12 @@ export default async function RegistrationFormSettingsPage({ params }: Props) {
           </div>
         </div>
 
-        <RegistrationFormConfigForm leagueId={leagueId} initialConfig={initialConfig} />
+        <RegistrationFormConfigForm
+          leagueId={leagueId}
+          initialConfig={initialConfig}
+          suggestedDivisions={suggestedDivisions}
+          suggestedVenues={suggestedVenues}
+        />
       </div>
     </div>
   );

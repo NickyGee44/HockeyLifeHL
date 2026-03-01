@@ -177,14 +177,29 @@ export async function getTeam(teamId: string) {
       return { error: 'Team not found' };
     }
 
-    // Explicit authorization check: user must be org owner, captain, or platform admin
+    // Explicit authorization check: user must be org owner, league admin, captain, or platform admin
     const orgOwnerId = (team.leagues as any)?.organizations?.owner_user_id;
     const teamCaptainId = team.captain_id;
+    const leagueId = (team.leagues as any)?.id;
     const isPlatformAdmin = !!(userData.profile as any)?.is_platform_admin;
+
+    let isLeagueAdmin = false;
+    if (leagueId && orgOwnerId !== userData.user.id && teamCaptainId !== userData.user.id && !isPlatformAdmin) {
+      const { data: membership } = await supabase
+        .from('league_memberships')
+        .select('role')
+        .eq('league_id', leagueId)
+        .eq('user_id', userData.user.id)
+        .in('role', ['admin', 'owner'])
+        .maybeSingle();
+      isLeagueAdmin = !!membership;
+    }
+
     if (
       orgOwnerId !== userData.user.id &&
       teamCaptainId !== userData.user.id &&
-      !isPlatformAdmin
+      !isPlatformAdmin &&
+      !isLeagueAdmin
     ) {
       return { error: 'Team not found' };
     }
