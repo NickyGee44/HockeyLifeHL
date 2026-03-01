@@ -48,17 +48,18 @@ async function verifyCaptainRole(
     return { authorized: false, error: 'Not authenticated' };
   }
 
+  // .limit(1) avoids .single() throwing PGRST116 when captain has entries
+  // across multiple seasons for the same team.
   const { data: membership } = await supabase
     .from('team_rosters')
     .select('leadership_role')
     .eq('team_id', teamId)
     .eq('player_id', user.id)
-    .single();
+    .in('leadership_role', ['captain', 'alternate_captain'])
+    .limit(1)
+    .maybeSingle();
 
-  if (
-    !membership ||
-    !['captain', 'alternate_captain'].includes(membership.leadership_role || '')
-  ) {
+  if (!membership) {
     return { authorized: false, error: 'Not authorized' };
   }
 
@@ -78,9 +79,11 @@ export async function getCaptainTeamPayments(
     return { success: false, error: auth.error };
   }
 
-  const supabase = await createClient();
+  // Use service role so RLS doesn't block reading teammates' team_rosters
+  // entries or their profiles (auth client restricts both to auth.uid() only).
+  const supabase = createServiceRoleClient();
 
-  // Step 1: Fetch ALL active roster members (regardless of payment record)
+  // Step 1: Fetch active roster members for the current season.
   const { data: rosterData, error: rosterError } = await supabase
     .from('team_rosters')
     .select(
@@ -88,10 +91,11 @@ export async function getCaptainTeamPayments(
       player_id,
       jersey_number,
       position,
-      profile:profiles(id, full_name, email, avatar_url)
+      profile:profiles!team_rosters_player_id_fkey(id, full_name, email, avatar_url)
     `
     )
     .eq('team_id', teamId)
+    .eq('season_id', seasonId)
     .eq('status', 'active')
     .is('end_date', null);
 
@@ -100,7 +104,7 @@ export async function getCaptainTeamPayments(
     return { success: false, error: 'Failed to fetch team roster.' };
   }
 
-  const playerIds = (rosterData || []).map((r) => r.player_id);
+  const playerIds = (rosterData || []).map((r: any) => r.player_id as string);
 
   // Step 2: Fetch payment records for those players (may be empty)
   const paymentsMap = new Map<string, any>();
@@ -130,7 +134,7 @@ export async function getCaptainTeamPayments(
   }
 
   // Step 3: Merge — every roster player appears, payment data is null if missing
-  const result: CaptainPaymentPlayer[] = (rosterData || []).map((r) => {
+  const result: CaptainPaymentPlayer[] = (rosterData || []).map((r: any) => {
     const profile = Array.isArray(r.profile) ? r.profile[0] : (r.profile as any);
     const payment = paymentsMap.get(r.player_id);
     return {
@@ -288,13 +292,14 @@ export async function getCaptainPaymentSummary(
     return { success: false, error: auth.error };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
-  // Count roster members (source of truth for total players)
+  // Count active roster members for the current season
   const { count: rosterCount } = await supabase
     .from('team_rosters')
     .select('player_id', { count: 'exact', head: true })
     .eq('team_id', teamId)
+    .eq('season_id', seasonId)
     .eq('status', 'active')
     .is('end_date', null);
 
