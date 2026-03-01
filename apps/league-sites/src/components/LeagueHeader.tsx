@@ -15,6 +15,7 @@ import {
   Crown,
   Camera,
   Mail,
+  Shield,
   Menu,
   X,
   UserPlus,
@@ -50,6 +51,7 @@ type NavItem = {
 const navItems: DefaultNavItem[] = [
   { href: '/schedule', label: 'Schedule', icon: Calendar },
   { href: '/standings', label: 'Standings', icon: Trophy },
+  { href: '/playoffs', label: 'Playoffs', icon: Shield },
   { href: '/teams', label: 'Teams', icon: Users },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
   { href: '/news', label: 'News', icon: Newspaper },
