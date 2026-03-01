@@ -1074,11 +1074,12 @@ export async function addGoalEvent(data: {
 
     const { data: game } = await supabase
       .from('games')
-      .select('league_id')
+      .select('league_id, status')
       .eq('id', data.gameId)
       .single();
 
     if (!game) return { success: false, error: 'Game not found' };
+    if (game.status !== 'in_progress') return { success: false, error: 'Game is not in progress' };
 
     const clientEventId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -1114,11 +1115,21 @@ export async function addGoalEvent(data: {
       return { success: false, error: 'Failed to add goal' };
     }
 
-    // Update game score
-    await supabase.rpc('increment_game_score', {
-      p_game_id: data.gameId,
-      p_team_type: data.teamType,
-    });
+    // Recount non-deleted goals for each team and write the result — idempotent
+    const { data: goalCounts } = await supabase
+      .from('game_events')
+      .select('team_type')
+      .eq('game_id', data.gameId)
+      .eq('event_type', 'goal')
+      .is('deleted_at', null);
+
+    const homeScore = goalCounts?.filter((e: { team_type: string | null }) => e.team_type === 'home').length ?? 0;
+    const awayScore = goalCounts?.filter((e: { team_type: string | null }) => e.team_type === 'away').length ?? 0;
+
+    await supabase
+      .from('games')
+      .update({ home_score: homeScore, away_score: awayScore })
+      .eq('id', data.gameId);
 
     return { success: true, eventId: event.id };
   } catch (error) {
@@ -1146,11 +1157,12 @@ export async function addPenaltyEvent(data: {
 
     const { data: game } = await supabase
       .from('games')
-      .select('league_id')
+      .select('league_id, status')
       .eq('id', data.gameId)
       .single();
 
     if (!game) return { success: false, error: 'Game not found' };
+    if (game.status !== 'in_progress') return { success: false, error: 'Game is not in progress' };
 
     const clientEventId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -1207,11 +1219,12 @@ export async function addShotEvent(data: {
 
     const { data: game } = await supabase
       .from('games')
-      .select('league_id')
+      .select('league_id, status')
       .eq('id', data.gameId)
       .single();
 
     if (!game) return { success: false, error: 'Game not found' };
+    if (game.status !== 'in_progress') return { success: false, error: 'Game is not in progress' };
 
     const clientEventId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -1261,7 +1274,7 @@ export async function undoEvent(eventId: string): Promise<{
 
     const { data: event } = await supabase
       .from('game_events')
-      .select('game_id')
+      .select('game_id, event_type, team_type')
       .eq('id', eventId)
       .single();
 
@@ -1279,6 +1292,24 @@ export async function undoEvent(eventId: string): Promise<{
 
     if (error) {
       return { success: false, error: 'Failed to undo event' };
+    }
+
+    // If the undone event was a goal, recount and update home_score / away_score
+    if (event.event_type === 'goal') {
+      const { data: goalCounts } = await supabase
+        .from('game_events')
+        .select('team_type')
+        .eq('game_id', event.game_id)
+        .eq('event_type', 'goal')
+        .is('deleted_at', null);
+
+      const homeScore = goalCounts?.filter((e: { team_type: string | null }) => e.team_type === 'home').length ?? 0;
+      const awayScore = goalCounts?.filter((e: { team_type: string | null }) => e.team_type === 'away').length ?? 0;
+
+      await supabase
+        .from('games')
+        .update({ home_score: homeScore, away_score: awayScore })
+        .eq('id', event.game_id);
     }
 
     return { success: true };

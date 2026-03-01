@@ -42,28 +42,31 @@ export function GoalEntry({
   const [scorer, setScorer] = useState<PlayerData | null>(null);
   const [assist1, setAssist1] = useState<PlayerData | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const skaters = roster.filter(p => p.position !== 'Goalie');
 
   async function submitGoal(scorerPlayer: PlayerData, a1?: PlayerData | null, a2?: PlayerData | null) {
     if (isPending) return;
     setIsPending(true);
-    try {
-      await addGoalEvent({
-        gameId,
-        teamId,
-        teamType,
-        scorerId: scorerPlayer.id,
-        assist1Id: a1?.id,
-        assist2Id: a2?.id,
-        period,
-        gameTimeSeconds,
-        isPowerPlay,
-        isShortHanded,
-        isEmptyNet,
-      });
-    } catch (err) {
-      console.error('Failed to save goal:', err);
+    setSubmitError(null);
+    const result = await addGoalEvent({
+      gameId,
+      teamId,
+      teamType,
+      scorerId: scorerPlayer.id,
+      assist1Id: a1?.id,
+      assist2Id: a2?.id,
+      period,
+      gameTimeSeconds,
+      isPowerPlay,
+      isShortHanded,
+      isEmptyNet,
+    });
+    if (!result.success) {
+      setIsPending(false);
+      setSubmitError(result.error ?? 'Failed to save goal. Please try again.');
+      return;
     }
     onComplete();
   }
@@ -106,6 +109,33 @@ export function GoalEntry({
         <div className="relative bg-[var(--color-background)] rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150">
           <div className="text-2xl mb-2">&#127946;</div>
           <p className="font-semibold text-[var(--color-text-primary)]">Saving goal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitError) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+        <div className="relative bg-[var(--color-background)] rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150 max-w-sm mx-4">
+          <div className="text-2xl mb-2">&#9888;&#65039;</div>
+          <p className="font-semibold text-[var(--color-text-primary)] mb-1">Goal not saved</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">{submitError}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { setSubmitError(null); }}
+              className="flex-1 py-2 rounded-lg bg-[var(--league-primary,#d4af37)] text-sm font-semibold text-black"
+            >
+              Try again
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -85,6 +85,7 @@ export function PenaltyEntry({
   const [step, setStep] = useState<Step>('player');
   const [player, setPlayer] = useState<PlayerData | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const penalties = penaltyRules && penaltyRules.length > 0 ? penaltyRules : DEFAULT_PENALTIES;
 
@@ -106,19 +107,21 @@ export function PenaltyEntry({
   async function handlePenaltySelect(type: string, minutes: number) {
     if (!player || isPending) return;
     setIsPending(true);
-    try {
-      await addPenaltyEvent({
-        gameId,
-        teamId,
-        teamType,
-        playerId: player.id,
-        period,
-        gameTimeSeconds,
-        penaltyType: type,
-        penaltyMinutes: minutes,
-      });
-    } catch (err) {
-      console.error('Failed to save penalty:', err);
+    setSubmitError(null);
+    const result = await addPenaltyEvent({
+      gameId,
+      teamId,
+      teamType,
+      playerId: player.id,
+      period,
+      gameTimeSeconds,
+      penaltyType: type,
+      penaltyMinutes: minutes,
+    });
+    if (!result.success) {
+      setIsPending(false);
+      setSubmitError(result.error ?? 'Failed to save penalty. Please try again.');
+      return;
     }
     onComplete();
   }
@@ -133,6 +136,33 @@ export function PenaltyEntry({
         onClose={onCancel}
         title="Penalty - Select Player"
       />
+    );
+  }
+
+  if (submitError) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+        <div className="relative bg-[var(--color-background)] rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150 max-w-sm mx-4">
+          <div className="text-2xl mb-2">&#9888;&#65039;</div>
+          <p className="font-semibold text-[var(--color-text-primary)] mb-1">Penalty not saved</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">{submitError}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { setSubmitError(null); }}
+              className="flex-1 py-2 rounded-lg bg-[var(--league-primary,#d4af37)] text-sm font-semibold text-black"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 

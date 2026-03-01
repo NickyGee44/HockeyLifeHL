@@ -39,8 +39,8 @@ export function detectGWG(goals: GoalEvent[]): string | null {
     .filter(g => g.teamType === winningTeam)
     .sort((a, b) => {
       if (a.period !== b.period) return a.period - b.period;
-      // Higher gameTimeSeconds = earlier in period (countdown)
-      return (b.gameTimeSeconds ?? 0) - (a.gameTimeSeconds ?? 0);
+      // gameTimeSeconds is elapsed time (counts up) — sort ascending = earliest first
+      return (a.gameTimeSeconds ?? 0) - (b.gameTimeSeconds ?? 0);
     });
 
   const gwgIndex = losingTeamTotal; // 0-indexed, so this is the (losingTeamTotal+1)th goal
