@@ -16,7 +16,7 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Verify user has access to this team's league via league_memberships or org ownership
+  // Verify user has access to this team's league
   const { data: team } = await supabase
     .from('teams')
     .select('league_id')
@@ -27,25 +27,48 @@ export async function GET(
     return NextResponse.json({ error: 'Team not found' }, { status: 404 });
   }
 
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role')
-    .eq('league_id', team.league_id)
-    .eq('user_id', user.id)
-    .eq('status', 'active')
+  // Platform admins bypass all membership checks
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', user.id)
     .single();
 
-  if (!membership) {
-    // Fallback: check org ownership
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('organization_id, organizations(owner_user_id)')
-      .eq('id', team.league_id)
-      .single();
+  const isPlatformAdmin = !!(profile as any)?.is_platform_admin;
 
-    const org = league?.organizations as any;
-    if (!org || org.owner_user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  let membership: { role: string } | null = null;
+
+  if (!isPlatformAdmin) {
+    const { data: mem } = await supabase
+      .from('league_memberships')
+      .select('role')
+      .eq('league_id', team.league_id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!mem) {
+      // Fallback: check org ownership (separate queries, no nested embed)
+      const { data: league } = await supabase
+        .from('leagues')
+        .select('organization_id')
+        .eq('id', team.league_id)
+        .single();
+
+      let isOrgOwner = false;
+      if (league?.organization_id) {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('owner_user_id')
+          .eq('id', league.organization_id)
+          .single();
+        isOrgOwner = org?.owner_user_id === user.id;
+      }
+
+      if (!isOrgOwner) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    } else {
+      membership = mem;
     }
   }
 
