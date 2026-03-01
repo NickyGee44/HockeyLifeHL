@@ -247,8 +247,8 @@ export default function TeamSettingsClient({
         </div>
       </section>
 
-      {/* Branding Section */}
-      <section className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
+      {/* Branding Section — overflow-visible so color picker dropdown isn't clipped */}
+      <section className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-visible">
         <div className="p-6 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-rink-500/10">

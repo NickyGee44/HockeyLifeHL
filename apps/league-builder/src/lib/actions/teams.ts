@@ -367,7 +367,8 @@ export async function updateTeam(params: UpdateTeamParams) {
     return { error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  // Auth verified above — use service role so RLS doesn't block non-captain/non-member writes
+  const serviceClient = createServiceRoleClient();
 
   try {
     // Build update object
@@ -388,7 +389,7 @@ export async function updateTeam(params: UpdateTeamParams) {
 
     updateData.updated_at = new Date().toISOString();
 
-    const { data: team, error: updateError } = await supabase
+    const { data: team, error: updateError } = await serviceClient
       .from('teams')
       .update(updateData)
       .eq('id', teamId)
@@ -423,11 +424,12 @@ export async function deleteTeam(teamId: string) {
     return { error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  // Auth verified above — use service role so RLS doesn't block non-captain/non-member writes
+  const serviceClient = createServiceRoleClient();
 
   try {
-    // Check for active roster members
-    const { count: rosterCount } = await supabase
+    // Check for active roster members (service role ensures accurate count regardless of RLS)
+    const { count: rosterCount } = await serviceClient
       .from('team_rosters')
       .select('*', { count: 'exact', head: true })
       .eq('team_id', teamId)
@@ -438,7 +440,7 @@ export async function deleteTeam(teamId: string) {
     }
 
     // Set status to inactive instead of hard delete
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceClient
       .from('teams')
       .update({ status: 'inactive', updated_at: new Date().toISOString() })
       .eq('id', teamId);
@@ -471,12 +473,13 @@ export async function assignTeamCaptain(teamId: string, captainId: string | null
     return { error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  // Auth verified above — use service role so RLS doesn't block non-captain/non-member writes
+  const serviceClient = createServiceRoleClient();
 
   try {
     // If assigning a captain, verify they're on the roster
     if (captainId) {
-      const { data: rosterEntry } = await supabase
+      const { data: rosterEntry } = await serviceClient
         .from('team_rosters')
         .select('id')
         .eq('team_id', teamId)
@@ -489,7 +492,7 @@ export async function assignTeamCaptain(teamId: string, captainId: string | null
       }
     }
 
-    const { data: team, error: updateError } = await supabase
+    const { data: team, error: updateError } = await serviceClient
       .from('teams')
       .update({ captain_id: captainId, updated_at: new Date().toISOString() })
       .eq('id', teamId)
@@ -523,10 +526,11 @@ export async function updateTeamStatus(teamId: string, status: TeamStatus) {
     return { error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  // Auth verified above — use service role so RLS doesn't block non-captain/non-member writes
+  const serviceClient = createServiceRoleClient();
 
   try {
-    const { data: team, error: updateError } = await supabase
+    const { data: team, error: updateError } = await serviceClient
       .from('teams')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', teamId)
@@ -561,7 +565,8 @@ export async function uploadTeamLogo(teamId: string, file: File) {
     return { error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  // Auth verified above — use service role so RLS doesn't block non-captain/non-member writes
+  const serviceClient = createServiceRoleClient();
 
   try {
     // Validate file type
@@ -582,7 +587,7 @@ export async function uploadTeamLogo(teamId: string, file: File) {
     const path = `team-logos/${filename}`;
 
     // Upload to storage (use team-logos bucket as defined in migrations)
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await serviceClient.storage
       .from('team-logos')
       .upload(path, file, {
         cacheControl: '3600',
@@ -597,19 +602,19 @@ export async function uploadTeamLogo(teamId: string, file: File) {
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = serviceClient.storage
       .from('team-logos')
       .getPublicUrl(path);
 
     // Update team with new logo URL
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceClient
       .from('teams')
       .update({ logo_url: urlData.publicUrl, updated_at: new Date().toISOString() })
       .eq('id', teamId);
 
     if (updateError) {
       // Try to clean up uploaded file
-      await supabase.storage.from('team-logos').remove([path]);
+      await serviceClient.storage.from('team-logos').remove([path]);
       return { error: 'Failed to update team with logo URL' };
     }
 
