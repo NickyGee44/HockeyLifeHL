@@ -208,24 +208,11 @@ export function AddPlayerModalEnhanced({
                       'hover:border-rink-500/30'
                     )}
                   >
-                    {player.avatar_url ? (
-                      <img
-                        src={player.avatar_url}
-                        alt={player.full_name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-rink-500/10 flex items-center justify-center">
-                        <span className="text-sm font-medium text-rink-500">
-                          {player.full_name
-                            .split(' ')
-                            .map((n) => n[0])
-                            .join('')
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </span>
-                      </div>
-                    )}
+                    <img
+                      src={player.avatar_url || '/blank_player.png'}
+                      alt={player.full_name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
                     <div className="flex-1 text-left">
                       <p className="font-medium text-white">{player.full_name}</p>
                     </div>
@@ -279,17 +266,11 @@ export function AddPlayerModalEnhanced({
             {/* Selected Player Info */}
             {selectedPlayer && (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-rink-500/10 border border-white/10">
-                {selectedPlayer.avatar_url ? (
-                  <img
-                    src={selectedPlayer.avatar_url}
-                    alt={selectedPlayer.full_name}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-rink-500"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-rink-500/20 flex items-center justify-center ring-2 ring-rink-500">
-                    <Check className="w-5 h-5 text-rink-500" />
-                  </div>
-                )}
+                <img
+                  src={selectedPlayer.avatar_url || '/blank_player.png'}
+                  alt={selectedPlayer.full_name}
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-rink-500"
+                />
                 <div>
                   <p className="font-medium text-white">{selectedPlayer.full_name}</p>
                   <p className="text-sm text-rink-500">Selected for roster</p>

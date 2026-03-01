@@ -199,17 +199,11 @@ export default function CaptainPayments({ teamId }: CaptainPaymentsProps) {
                     <tr key={payment.id} className="hover:bg-neutral-800/50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          {payment.player?.avatar_url ? (
-                            <img
-                              src={payment.player.avatar_url}
-                              alt=""
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-xs font-bold text-neutral-300">
-                              {(payment.player?.full_name || '?').charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                          <img
+                            src={payment.player?.avatar_url || '/blank_player.png'}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
                           <div>
                             <div className="text-sm font-medium text-white">
                               {payment.player?.full_name || t('unknown')}

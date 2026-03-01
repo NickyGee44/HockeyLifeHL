@@ -45,22 +45,13 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             {/* Team Logo/Avatar */}
-            {team.logo_url ? (
-              <Image
-                src={team.logo_url}
-                alt={team.name}
-                className="w-12 h-12 rounded-xl object-cover"
-                width={48}
-                height={48}
-              />
-            ) : (
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {team.short_name.slice(0, 2).toUpperCase()}
-              </div>
-            )}
+            <Image
+              src={team.logo_url || '/blank_team.png'}
+              alt={team.name}
+              className="w-12 h-12 rounded-xl object-cover"
+              width={48}
+              height={48}
+            />
             <div>
               <h3 className="font-bold text-white group-hover:text-rink-500 transition-colors">
                 {team.name}

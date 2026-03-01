@@ -259,24 +259,11 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          {player.player.avatar_url ? (
-                            <img
-                              src={player.player.avatar_url}
-                              alt={player.player.full_name}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center">
-                              <span className="text-xs font-medium text-neutral-400">
-                                {player.player.full_name
-                                  .split(' ')
-                                  .map((n) => n[0])
-                                  .join('')
-                                  .toUpperCase()
-                                  .slice(0, 2)}
-                              </span>
-                            </div>
-                          )}
+                          <img
+                            src={player.player.avatar_url || '/blank_player.png'}
+                            alt={player.player.full_name}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
                           <p className="font-medium text-white">{player.player.full_name}</p>
                         </div>
                       </td>

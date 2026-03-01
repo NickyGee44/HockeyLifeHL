@@ -48,12 +48,8 @@ export function RefereeCard({
         )}
 
         {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-          {referee.photo_url ? (
-            <img src={referee.photo_url} alt={referee.name} className="w-10 h-10 rounded-full object-cover" />
-          ) : (
-            <User className="w-5 h-5 text-blue-500" />
-          )}
+        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+          <img src={referee.photo_url || '/blank_player.png'} alt={referee.name} className="w-10 h-10 rounded-full object-cover" />
         </div>
 
         {/* Info */}

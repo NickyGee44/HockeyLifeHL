@@ -405,16 +405,12 @@ function RegistrationRow({
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-neutral-700 overflow-hidden flex items-center justify-center flex-shrink-0">
-              {reg.photo_url ? (
-                <img
-                  src={reg.photo_url}
-                  alt={reg.player.full_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-5 h-5 text-neutral-400" />
-              )}
+            <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
+              <img
+                src={reg.photo_url || '/blank_player.png'}
+                alt={reg.player.full_name}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="min-w-0">
               <p className="text-white font-medium truncate">
@@ -701,12 +697,8 @@ function RegistrationMobileCard({
             className="mt-1 rounded border-neutral-600 bg-neutral-700 text-rink-500 focus:ring-rink-500"
           />
         )}
-        <div className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex items-center justify-center flex-shrink-0">
-          {reg.photo_url ? (
-            <img src={reg.photo_url} alt={reg.player.full_name} className="w-full h-full object-cover" />
-          ) : (
-            <User className="w-5 h-5 text-neutral-400" />
-          )}
+        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+          <img src={reg.photo_url || '/blank_player.png'} alt={reg.player.full_name} className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-white font-medium truncate">{reg.player.full_name}</p>

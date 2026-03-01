@@ -398,20 +398,14 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
               >
                 <div className="flex items-center gap-4">
                   {/* Photo */}
-                  <div className="w-12 h-12 rounded-full bg-neutral-800 overflow-hidden shrink-0">
-                    {member.photo_url ? (
-                      <Image
-                        src={member.photo_url}
-                        alt={member.name}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <UserCircle className="w-8 h-8 text-neutral-600" />
-                      </div>
-                    )}
+                  <div className="w-12 h-12 rounded-full overflow-hidden shrink-0">
+                    <Image
+                      src={member.photo_url || '/blank_player.png'}
+                      alt={member.name}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
 
                   {/* Info */}

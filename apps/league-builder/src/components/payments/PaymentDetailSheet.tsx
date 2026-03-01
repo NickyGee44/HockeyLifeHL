@@ -127,17 +127,11 @@ export function PaymentDetailSheet({
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
             {/* Player Info */}
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-rink-500/10 rounded-full flex items-center justify-center">
-                {payment.player.avatar_url ? (
-                  <img
-                    src={payment.player.avatar_url}
-                    alt=""
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <User className="w-6 h-6 text-rink-500" />
-                )}
-              </div>
+              <img
+                src={payment.player.avatar_url || '/blank_player.png'}
+                alt=""
+                className="w-12 h-12 rounded-full object-cover"
+              />
               <div>
                 <p className="text-lg font-semibold text-white">
                   {payment.player.full_name}
