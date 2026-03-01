@@ -157,12 +157,13 @@ export async function getTeam(teamId: string) {
   const supabase = createServiceRoleClient();
 
   try {
+    // Fetch the team with simple joins — no nested org embed to avoid PostgREST
+    // syntax ambiguity. We'll look up the org owner in a separate query if needed.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: team, error } = await (supabase
       .from('teams') as any)
       .select(`
         *,
-        leagues:teams_league_id_fkey(id, name, organization_id, organizations:leagues_organization_id_fkey(owner_user_id)),
         divisions:division_id (id, name),
         venues:home_venue_id (id, name, address),
         captain:teams_captain_id_fkey(id, full_name, email)
@@ -175,26 +176,40 @@ export async function getTeam(teamId: string) {
       return { error: 'Team not found' };
     }
 
-    // Explicit authorization check: user must be org owner/member, league admin, captain, or platform admin
-    // leagues may be returned as object or array depending on PostgREST cardinality detection
-    const leagueData = Array.isArray((team.leagues as any))
-      ? (team.leagues as any)[0]
-      : (team.leagues as any);
-    const orgOwnerId = leagueData?.organizations?.owner_user_id;
-    const organizationId = leagueData?.organization_id;
     const teamCaptainId = team.captain_id;
-    const leagueId = leagueData?.id;
+    const leagueId = team.league_id as string | null;
     const isPlatformAdmin = !!(userData.profile as any)?.is_platform_admin;
 
-    const isOrgOwner = !!orgOwnerId && orgOwnerId === userData.user.id;
     const isTeamCaptain = !!teamCaptainId && teamCaptainId === userData.user.id;
 
-    let isOrgMember = false;
-    let isLeagueAdmin = false;
+    // Platform admins and team captains bypass all further checks
+    if (!isPlatformAdmin && !isTeamCaptain) {
+      // Look up the league's organization to check org-level access
+      let orgOwnerId: string | null = null;
+      let organizationId: string | null = null;
 
-    if (!isOrgOwner && !isTeamCaptain && !isPlatformAdmin) {
-      // Check organization membership (covers org-level admins who aren't the owner)
+      if (leagueId) {
+        const { data: leagueRow } = await supabase
+          .from('leagues')
+          .select('organization_id')
+          .eq('id', leagueId)
+          .single();
+        organizationId = leagueRow?.organization_id ?? null;
+      }
+
       if (organizationId) {
+        const { data: orgRow } = await supabase
+          .from('organizations')
+          .select('owner_user_id')
+          .eq('id', organizationId)
+          .single();
+        orgOwnerId = orgRow?.owner_user_id ?? null;
+      }
+
+      const isOrgOwner = !!orgOwnerId && orgOwnerId === userData.user.id;
+
+      let isOrgMember = false;
+      if (!isOrgOwner && organizationId) {
         const { data: orgMembership } = await supabase
           .from('organization_members')
           .select('role')
@@ -205,8 +220,8 @@ export async function getTeam(teamId: string) {
         isOrgMember = !!orgMembership;
       }
 
-      // Check league-level membership
-      if (!isOrgMember && leagueId) {
+      let isLeagueAdmin = false;
+      if (!isOrgOwner && !isOrgMember && leagueId) {
         const { data: membership } = await supabase
           .from('league_memberships')
           .select('role')
@@ -216,14 +231,14 @@ export async function getTeam(teamId: string) {
           .maybeSingle();
         isLeagueAdmin = !!membership;
       }
-    }
 
-    if (!isOrgOwner && !isTeamCaptain && !isPlatformAdmin && !isOrgMember && !isLeagueAdmin) {
-      console.error(
-        `[getTeam] Auth denied for user ${userData.user.id} on team ${teamId}:`,
-        { orgOwnerId, organizationId, teamCaptainId, leagueId, isPlatformAdmin }
-      );
-      return { error: 'Team not found' };
+      if (!isOrgOwner && !isOrgMember && !isLeagueAdmin) {
+        console.error(
+          `[getTeam] Auth denied for user ${userData.user.id} on team ${teamId}:`,
+          { orgOwnerId, organizationId, leagueId, isPlatformAdmin }
+        );
+        return { error: 'Team not found' };
+      }
     }
 
     // Get roster count
