@@ -13,7 +13,7 @@
   "dependencies": {
     "@hockey-life/database": "workspace:*",
     "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.90.1"
+    "@supabase/supabase-js": "^2.98.0"
   },
   "devDependencies": {
     "@types/node": "^20",
