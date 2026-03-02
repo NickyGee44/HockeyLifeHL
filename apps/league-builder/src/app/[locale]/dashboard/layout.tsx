@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/lib/actions/auth';
 import { createClient } from '@/lib/supabase/server';
 import { hasPlatformSubscription } from '@/lib/utils/addon-helpers';
 import DashboardLayoutClient from '@/components/dashboard/DashboardLayoutClient';
+import { PostHogIdentifier } from '@/components/analytics/PostHogIdentifier';
 
 export default async function DashboardLayout({
   children,
@@ -38,8 +39,16 @@ export default async function DashboardLayout({
   const isSubscribed = orgId ? await hasPlatformSubscription(orgId) : false;
   const isPlatformAdmin = !!(userData.profile as any)?.is_platform_admin;
 
+  const profile = userData.profile as any;
+
   return (
-    <DashboardLayoutClient
+    <>
+      <PostHogIdentifier
+        userId={userData.user.id}
+        email={userData.user.email}
+        displayName={profile?.display_name || profile?.username}
+      />
+      <DashboardLayoutClient
       captainTeams={captainTeams}
       dashboardData={dashboardData}
       setupIssues={setupIssues}
@@ -48,5 +57,6 @@ export default async function DashboardLayout({
     >
       {children}
     </DashboardLayoutClient>
+    </>
   );
 }

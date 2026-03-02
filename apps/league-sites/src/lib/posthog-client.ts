@@ -9,7 +9,7 @@ export function initPostHog() {
 
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
-    person_profiles: 'identified_only',
+    person_profiles: 'always',
     capture_pageview: false,
   });
 }
