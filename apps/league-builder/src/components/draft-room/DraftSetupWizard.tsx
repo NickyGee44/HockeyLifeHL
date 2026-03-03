@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { setupDraft, setDraftOrder as saveDraftOrder } from '@/lib/actions/draft';
 import type { DraftSetupWizardProps, DraftSetupConfig } from './types';
@@ -186,7 +187,7 @@ export function DraftSetupWizard({
 
         if (!orderResult.success) {
           console.error('Failed to save draft order:', orderResult.error);
-          // Non-blocking: draft was created, order can be set later
+          toast.warning('Draft created, but the pick order could not be saved. You can re-randomize it in the draft room.');
         }
       }
 

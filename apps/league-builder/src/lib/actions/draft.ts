@@ -468,7 +468,7 @@ export async function addPlayersToDraftPool(
 
     const { data: inserted, error } = await supabase
       .from('draft_pool')
-      .insert(
+      .upsert(
         players.map((p, index) => ({
           draft_id: draftId,
           player_id: p.playerId,
@@ -477,7 +477,8 @@ export async function addPlayersToDraftPool(
           skill_level: p.skillLevel || null,
           auto_pick_rank: p.autoPickRank ?? index + 1,
           league_id: leagueId,
-        }))
+        })),
+        { onConflict: 'draft_id,player_id', ignoreDuplicates: true }
       )
       .select();
 

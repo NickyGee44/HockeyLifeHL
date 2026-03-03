@@ -414,7 +414,10 @@ export function DraftRoom({
               user_name: msg.user?.full_name || 'Unknown',
               team_name: msg.team?.name || null,
             };
-            setMessages((prev) => [...prev, newMessage]);
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
           }
         }
       )
