@@ -90,12 +90,25 @@ export default async function DraftPage({ params }: Props) {
       }
     }
   } else {
-    const { data: activeTeams } = await supabase
-      .from('teams')
-      .select('id, name')
+    // Only include teams that have at least one active roster entry in this season
+    const { data: seasonRosterRows } = await supabase
+      .from('team_rosters')
+      .select('team_id')
       .eq('league_id', leagueId)
-      .eq('status', 'active');
-    teams = activeTeams ?? [];
+      .eq('season_id', draftSeason.id)
+      .is('end_date', null);
+
+    const seasonTeamIds = [...new Set((seasonRosterRows ?? []).map((r) => r.team_id))];
+
+    if (seasonTeamIds.length > 0) {
+      const { data: seasonTeams } = await supabase
+        .from('teams')
+        .select('id, name')
+        .eq('league_id', leagueId)
+        .eq('status', 'active')
+        .in('id', seasonTeamIds);
+      teams = seasonTeams ?? [];
+    }
   }
 
   // Check if user is admin (owner) of this league
