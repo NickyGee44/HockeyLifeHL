@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -486,10 +486,11 @@ export async function removeStaffMember(staffId: string) {
  * Get current team roster (active players)
  */
 export async function getTeamRoster(teamId: string, seasonId: string) {
-  const supabase = await createClient();
+  // Use service role — auth is verified by the caller (API route)
+  const serviceClient = createServiceRoleClient();
 
   try {
-    const { data: roster, error } = await supabase
+    const { data: roster, error } = await serviceClient
       .rpc('get_team_roster', {
         p_team_id: teamId,
         p_season_id: seasonId,

@@ -135,7 +135,9 @@ export async function GET(
   }
 
   // No seasonId — return all active roster entries (end_date IS NULL)
-  const { data: roster, error: rosterError } = await supabase
+  // Use service role — auth already verified above; RLS would block platform admin reads
+  const serviceRoleForRoster = createServiceRoleClient();
+  const { data: roster, error: rosterError } = await serviceRoleForRoster
     .from('team_rosters')
     .select(`
       id,
