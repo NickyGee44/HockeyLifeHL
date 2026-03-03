@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/client';
 import { capturePaymentError } from '@/lib/sentry/payments';
+import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
 
 interface BillingPortalRequest {
   returnUrl: string;
@@ -27,6 +28,13 @@ export async function POST(request: NextRequest) {
     if (!returnUrl) {
       return NextResponse.json(
         { error: 'Missing required field: returnUrl' },
+        { status: 400 }
+      );
+    }
+
+    if (!isAllowedRedirectUrl(returnUrl)) {
+      return NextResponse.json(
+        { error: 'Invalid returnUrl: must be a URL on this platform' },
         { status: 400 }
       );
     }

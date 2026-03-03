@@ -15,7 +15,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { stripe } from '@/lib/stripe/client';
 import Stripe from 'stripe';
-import { sendPayoutFailureAlertEmail } from '@/lib/email/payment-emails';
+import {
+  sendPayoutFailureAlertEmail,
+  sendChargebackAlertEmail,
+  sendChargebackResolutionEmail,
+} from '@/lib/email/payment-emails';
 import {
   sendMerchantCapabilityActiveEmail } from '@/lib/email/subscription-emails';
 import {
@@ -548,6 +552,212 @@ async function handlePayoutFailed(
   }
 }
 
+/**
+ * Handle charge.dispute.created - Alert league admin of new chargeback
+ */
+async function handleDisputeCreated(
+  supabase: ReturnType<typeof createServiceClient>,
+  dispute: Stripe.Dispute,
+  eventId: string
+): Promise<void> {
+  const chargeId = dispute.charge as string;
+
+  // Look up the payment record by charge ID
+  const { data: payment, error: fetchError } = await supabase
+    .from('stripe_connect_payments')
+    .select('id, league_id, status')
+    .eq('stripe_charge_id', chargeId)
+    .single();
+
+  if (fetchError || !payment) {
+    console.warn(`[Connect Webhook] No payment record for charge ${chargeId} (dispute ${dispute.id})`);
+    return;
+  }
+
+  // Log event first (idempotency check)
+  const isNew = await logAuditEvent(supabase, payment.league_id, 'dispute_created', eventId, {
+    dispute_id: dispute.id,
+    charge_id: chargeId,
+    amount: dispute.amount,
+    reason: dispute.reason,
+    evidence_due_by: dispute.evidence_details?.due_by });
+
+  if (!isNew) {
+    logDuplicateEvent({ stripe_event_id: eventId, league_id: payment.league_id });
+    return;
+  }
+
+  // Update payment status to disputed
+  await supabase
+    .from('stripe_connect_payments')
+    .update({ status: 'disputed' })
+    .eq('id', payment.id);
+
+  logConnectAccountEvent({
+    stripe_event_id: eventId,
+    league_id: payment.league_id,
+    action: 'account_updated',
+    decision_path: 'dispute_created',
+    metadata: { dispute_id: dispute.id, charge_id: chargeId, amount_cents: dispute.amount } });
+
+  // Send chargeback alert email to league admin
+  try {
+    const { data: leagueOrg } = await supabase
+      .from('leagues')
+      .select('name, organization_id')
+      .eq('id', payment.league_id)
+      .single();
+
+    if (leagueOrg?.organization_id) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('owner_user_id')
+        .eq('id', leagueOrg.organization_id)
+        .single();
+
+      if (org?.owner_user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', org.owner_user_id)
+          .single();
+
+        if (profile?.email) {
+          const evidenceDueBy = dispute.evidence_details?.due_by
+            ? new Date(dispute.evidence_details.due_by * 1000).toLocaleDateString()
+            : null;
+
+          const emailResult = await sendChargebackAlertEmail({
+            to: profile.email,
+            adminName: profile.full_name || 'League Admin',
+            leagueName: leagueOrg.name,
+            playerName: 'Unknown',
+            playerEmail: '',
+            feeName: 'League payment',
+            disputeAmount: dispute.amount,
+            disputeReason: dispute.reason,
+            evidenceDueBy,
+            disputeId: dispute.id,
+            dashboardUrl: `https://dashboard.stripe.com/disputes/${dispute.id}` });
+
+          logNotificationSent({
+            stripe_event_id: eventId,
+            league_id: payment.league_id,
+            notification_type: 'dispute_created',
+            recipient_email: profile.email,
+            success: emailResult.success });
+        }
+      }
+    }
+  } catch (emailError) {
+    logWebhookError(emailError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'charge.dispute.created',
+      league_id: payment.league_id,
+      action: 'send_chargeback_alert_email',
+      error_type: 'notification_error' });
+  }
+}
+
+/**
+ * Handle charge.dispute.closed - Notify league admin of dispute resolution
+ */
+async function handleDisputeClosed(
+  supabase: ReturnType<typeof createServiceClient>,
+  dispute: Stripe.Dispute,
+  eventId: string
+): Promise<void> {
+  const chargeId = dispute.charge as string;
+
+  const { data: payment, error: fetchError } = await supabase
+    .from('stripe_connect_payments')
+    .select('id, league_id')
+    .eq('stripe_charge_id', chargeId)
+    .single();
+
+  if (fetchError || !payment) {
+    console.warn(`[Connect Webhook] No payment record for charge ${chargeId} (dispute ${dispute.id})`);
+    return;
+  }
+
+  // Log event first (idempotency check)
+  const isNew = await logAuditEvent(supabase, payment.league_id, 'dispute_closed', eventId, {
+    dispute_id: dispute.id,
+    charge_id: chargeId,
+    amount: dispute.amount,
+    status: dispute.status });
+
+  if (!isNew) {
+    logDuplicateEvent({ stripe_event_id: eventId, league_id: payment.league_id });
+    return;
+  }
+
+  // Update payment status based on outcome
+  const isWon = dispute.status === 'won';
+  const newStatus = isWon ? 'succeeded' : 'refunded';
+  await supabase
+    .from('stripe_connect_payments')
+    .update({ status: newStatus })
+    .eq('id', payment.id);
+
+  logConnectAccountEvent({
+    stripe_event_id: eventId,
+    league_id: payment.league_id,
+    action: 'account_updated',
+    decision_path: `dispute_${dispute.status}`,
+    metadata: { dispute_id: dispute.id, charge_id: chargeId, outcome: dispute.status } });
+
+  // Send resolution email to league admin
+  try {
+    const { data: leagueOrg } = await supabase
+      .from('leagues')
+      .select('name, organization_id')
+      .eq('id', payment.league_id)
+      .single();
+
+    if (leagueOrg?.organization_id) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('owner_user_id')
+        .eq('id', leagueOrg.organization_id)
+        .single();
+
+      if (org?.owner_user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', org.owner_user_id)
+          .single();
+
+        if (profile?.email) {
+          const emailResult = await sendChargebackResolutionEmail({
+            to: profile.email,
+            adminName: profile.full_name || 'League Admin',
+            leagueName: leagueOrg.name,
+            playerName: 'Unknown',
+            disputeAmount: dispute.amount,
+            outcome: isWon ? 'won' : 'lost',
+            disputeId: dispute.id });
+
+          logNotificationSent({
+            stripe_event_id: eventId,
+            league_id: payment.league_id,
+            notification_type: 'dispute_closed',
+            recipient_email: profile.email,
+            success: emailResult.success });
+        }
+      }
+    }
+  } catch (emailError) {
+    logWebhookError(emailError, {
+      stripe_event_id: eventId,
+      stripe_event_type: 'charge.dispute.closed',
+      league_id: payment.league_id,
+      action: 'send_chargeback_resolution_email',
+      error_type: 'notification_error' });
+  }
+}
+
 // ============================================================================
 // Main Webhook Handler
 // ============================================================================
@@ -637,6 +847,16 @@ export async function POST(request: NextRequest) {
           await withPaymentSpan('connect.payout_failed', spanContext, () =>
             handlePayoutFailed(supabase, event.data.object as Stripe.Payout, accountId, event.id));
         }
+        break;
+
+      case 'charge.dispute.created':
+        await withPaymentSpan('connect.dispute_created', spanContext, () =>
+          handleDisputeCreated(supabase, event.data.object as Stripe.Dispute, event.id));
+        break;
+
+      case 'charge.dispute.closed':
+        await withPaymentSpan('connect.dispute_closed', spanContext, () =>
+          handleDisputeClosed(supabase, event.data.object as Stripe.Dispute, event.id));
         break;
 
       default:

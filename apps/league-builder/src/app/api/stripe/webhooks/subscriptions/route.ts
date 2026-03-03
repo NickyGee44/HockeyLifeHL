@@ -1167,9 +1167,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, duplicate: true });
     }
 
-    // Retrieve full event from Stripe API to get timestamp
-    const fullEvent = await stripe.events.retrieve(event.id);
-    const eventTimestamp = fullEvent.created;
+    // Use timestamp from verified webhook payload (already present in constructEvent result)
+    const eventTimestamp = event.created;
 
     // Route to appropriate handler based on event type
     const spanContext = {
