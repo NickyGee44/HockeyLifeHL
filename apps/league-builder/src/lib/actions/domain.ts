@@ -463,48 +463,68 @@ export type DomainSearchResult = {
   premium: boolean;
 };
 
+// TLDs to check when searching — ordered by preference for hockey leagues
+const SEARCH_TLDS = ['.com', '.ca', '.net', '.hockey', '.org'];
+
 /**
- * Search available domains via Vercel's registrar API.
+ * Search available domains by generating TLD variants and checking each via
+ * Vercel's /v4/domains/status and /v4/domains/price endpoints in parallel.
+ * (Vercel has no bulk domain availability search endpoint.)
  */
 export async function searchDomains(
   query: string
 ): Promise<{ data?: DomainSearchResult[]; error?: string }> {
   const token = process.env.VERCEL_TOKEN;
-  if (!token) return { error: 'Vercel token not configured' };
-  if (!query || query.trim().length < 2) return { data: [] };
+  if (!token) return { error: 'Domain search not configured' };
+
+  const clean = query
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9.-]/g, '');
+
+  if (!clean || clean.length < 2) return { data: [] };
+
+  // Strip any existing TLD so we always check all variants
+  const base = clean.includes('.') ? clean.replace(/\.[^.]+$/, '') : clean;
+  const candidates = SEARCH_TLDS.map((tld) => base + tld);
 
   try {
-    const res = await fetch(
-      `https://api.vercel.com/v4/domains?limit=10&query=${encodeURIComponent(query.trim())}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      }
+    const checks = await Promise.allSettled(
+      candidates.map(async (name): Promise<DomainSearchResult> => {
+        const [statusRes, priceRes] = await Promise.allSettled([
+          fetch(
+            `https://api.vercel.com/v4/domains/status?name=${encodeURIComponent(name)}`,
+            { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
+          ),
+          fetch(
+            `https://api.vercel.com/v4/domains/price?name=${encodeURIComponent(name)}&type=new`,
+            { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
+          ),
+        ]);
+
+        const available =
+          statusRes.status === 'fulfilled' && statusRes.value.ok
+            ? ((await statusRes.value.json()) as { available?: boolean }).available ?? false
+            : false;
+
+        const price =
+          priceRes.status === 'fulfilled' && priceRes.value.ok
+            ? ((await priceRes.value.json()) as { price?: number }).price ?? 0
+            : 0;
+
+        return { name, available, price, premium: price > 50 };
+      })
     );
 
-    if (!res.ok) {
-      const body = await res.text();
-      console.error('[domain] searchDomains failed', { status: res.status, body });
-      return { error: 'Domain search failed' };
-    }
+    const data = checks
+      .filter((r): r is PromiseFulfilledResult<DomainSearchResult> => r.status === 'fulfilled')
+      .map((r) => r.value)
+      // Available domains first, then alphabetical by TLD
+      .sort((a, b) => Number(b.available) - Number(a.available));
 
-    const json = (await res.json()) as {
-      domains?: Array<{
-        name: string;
-        price?: number;
-        available?: boolean;
-        premium?: boolean;
-      }>;
-    };
-
-    const results: DomainSearchResult[] = (json.domains ?? []).map((d) => ({
-      name: d.name,
-      price: d.price ?? 0,
-      available: d.available ?? false,
-      premium: d.premium ?? false,
-    }));
-
-    return { data: results };
+    return { data };
   } catch (err) {
     console.error('[domain] searchDomains threw', err);
     return { error: 'Domain search failed' };
