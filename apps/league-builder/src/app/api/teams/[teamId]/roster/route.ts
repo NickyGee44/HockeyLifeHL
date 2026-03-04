@@ -28,7 +28,10 @@ export async function GET(
   }
 
   // Platform admins bypass all membership checks
-  const { data: profile } = await supabase
+  // Use service role to read is_platform_admin — RLS on profiles may hide this column
+  // from the user-scoped client depending on policy configuration.
+  const serviceRole = createServiceRoleClient();
+  const { data: profile } = await serviceRole
     .from('profiles')
     .select('is_platform_admin')
     .eq('id', user.id)
