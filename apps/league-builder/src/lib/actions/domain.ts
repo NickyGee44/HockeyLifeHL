@@ -465,6 +465,7 @@ export type DomainSearchResult = {
 
 /**
  * Search available domains via Vercel's registrar API.
+ * Checks status + price for common TLDs (.com, .ca, .net, .org, .io).
  */
 export async function searchDomains(
   query: string
@@ -474,37 +475,61 @@ export async function searchDomains(
   if (!query || query.trim().length < 2) return { data: [] };
 
   try {
-    const res = await fetch(
-      `https://api.vercel.com/v4/domains?limit=10&query=${encodeURIComponent(query.trim())}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      }
+    const cleaned = query.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+    // If user entered a full domain (has a dot), check just that one
+    // Otherwise, check common TLDs
+    const hasDot = cleaned.includes('.');
+    const domainsToCheck = hasDot
+      ? [cleaned]
+      : [
+          `${cleaned}.com`,
+          `${cleaned}.ca`,
+          `${cleaned}.net`,
+          `${cleaned}.org`,
+          `${cleaned}.io`,
+        ];
+
+    // Check availability and price in parallel
+    const checks = await Promise.all(
+      domainsToCheck.map(async (domain) => {
+        try {
+          const [statusRes, priceRes] = await Promise.all([
+            fetch(
+              `https://api.vercel.com/v4/domains/status?name=${encodeURIComponent(domain)}`,
+              { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
+            ),
+            fetch(
+              `https://api.vercel.com/v4/domains/price?name=${encodeURIComponent(domain)}`,
+              { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
+            ),
+          ]);
+
+          const statusJson = statusRes.ok
+            ? ((await statusRes.json()) as { available?: boolean })
+            : { available: false };
+          const priceJson = priceRes.ok
+            ? ((await priceRes.json()) as { price?: number; period?: number })
+            : { price: 0 };
+
+          return {
+            name: domain,
+            available: statusJson.available ?? false,
+            price: priceJson.price ?? 0,
+            premium: (priceJson.price ?? 0) > 50,
+          } satisfies DomainSearchResult;
+        } catch {
+          return {
+            name: domain,
+            available: false,
+            price: 0,
+            premium: false,
+          } satisfies DomainSearchResult;
+        }
+      })
     );
 
-    if (!res.ok) {
-      const body = await res.text();
-      console.error('[domain] searchDomains failed', { status: res.status, body });
-      return { error: 'Domain search failed' };
-    }
-
-    const json = (await res.json()) as {
-      domains?: Array<{
-        name: string;
-        price?: number;
-        available?: boolean;
-        premium?: boolean;
-      }>;
-    };
-
-    const results: DomainSearchResult[] = (json.domains ?? []).map((d) => ({
-      name: d.name,
-      price: d.price ?? 0,
-      available: d.available ?? false,
-      premium: d.premium ?? false,
-    }));
-
-    return { data: results };
+    return { data: checks };
   } catch (err) {
     console.error('[domain] searchDomains threw', err);
     return { error: 'Domain search failed' };
