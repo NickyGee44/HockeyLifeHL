@@ -220,8 +220,8 @@ export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelPr
         </div>
       </div>
 
-      {/* League scope selector */}
-      {(dashboardData?.organizations?.length ?? 0) > 0 && (
+      {/* League scope selector — also show for platform admins who have admin_leagues but no org */}
+      {((dashboardData?.organizations?.length ?? 0) > 0 || (dashboardData?.admin_leagues?.length ?? 0) > 0) && (
         <div className="border-b border-white/[0.06]">
           <LeagueScopeSelector dashboardData={dashboardData} collapsed={false} />
         </div>
