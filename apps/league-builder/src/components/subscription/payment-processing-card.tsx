@@ -1,7 +1,7 @@
 /**
  * Payment Processing Card Component
  *
- * Displays platform fee information (2.99% transaction fee model).
+ * Displays platform fee information (3.5% transaction fee model).
  */
 
 import { useTranslations } from 'next-intl';

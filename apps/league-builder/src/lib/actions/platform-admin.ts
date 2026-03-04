@@ -252,7 +252,7 @@ export async function getPlatformAdminData(): Promise<PlatformAdminData> {
   const recentGamesByLeague = new Map<string, number>();
   for (const g of recentGames) recentGamesByLeague.set(g.league_id, (recentGamesByLeague.get(g.league_id) ?? 0) + 1);
 
-  const PLATFORM_PRICE_CENTS = 29999;
+  const PLATFORM_PRICE_CENTS = 0;
   const ADDON_PRICE_CENTS = 1499;
 
   let totalMrr = 0;

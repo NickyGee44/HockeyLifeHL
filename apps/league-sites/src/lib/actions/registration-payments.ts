@@ -92,11 +92,11 @@ function generateIdempotencyKey(
 }
 
 // ============================================================================
-// Helper: Calculate Application Fee (2.99%)
+// Helper: Calculate Application Fee (3.5%)
 // ============================================================================
 
 function calculateApplicationFee(amountCents: number): number {
-  const feePercent = 2.99;
+  const feePercent = 3.5;
   const fee = Math.round((amountCents * feePercent) / 100);
 
   // Minimum fee: $0.50
@@ -193,7 +193,7 @@ export async function createRegistrationCheckout(
       return { success: false, error: 'No payment is due for this registration.' };
     }
 
-    // Calculate platform application fee (2.99%)
+    // Calculate platform application fee (3.5%)
     const applicationFee = calculateApplicationFee(amountOwed);
 
     // Get or create Stripe customer
@@ -396,7 +396,7 @@ export async function createEmbeddedCheckout(
       return { success: false, error: 'No payment is due for this registration.' };
     }
 
-    // Calculate platform application fee (2.99%)
+    // Calculate platform application fee (3.5%)
     const applicationFee = calculateApplicationFee(amountOwed);
 
     // Get or create Stripe customer

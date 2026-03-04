@@ -47,7 +47,7 @@ export function SubscriptionPlans({
               </CardDescription>
             </div>
             <div className="text-right">
-              <span className="text-4xl font-bold text-primary">$299.99</span>
+              <span className="text-4xl font-bold text-primary">$0</span>
               <span className="text-muted-foreground">/month</span>
             </div>
           </div>

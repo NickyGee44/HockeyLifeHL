@@ -3,7 +3,7 @@
  *
  * Creates a Stripe Checkout session for player registration fee payments.
  * Uses Stripe Connect to direct payments to the league's connected account
- * with the platform's application fee (2.99%).
+ * with the platform's application fee (3.5%).
  *
  * Security:
  * - Verifies user authentication
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate platform application fee (2.99%)
+    // Calculate platform application fee (3.5%)
     const applicationFeeCents = await calculateApplicationFee(checkoutAmountCents);
 
     const currentInstallment = playerPayment.current_installment ?? 0;

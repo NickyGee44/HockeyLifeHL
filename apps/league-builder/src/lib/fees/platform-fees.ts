@@ -7,7 +7,7 @@
  *
  * Revenue model:
  * - One-time setup fee ($4,999 CAD default) per league
- * - 2.99% processing fee (basis points: 299) on all player payments
+ * - 3.5% processing fee (basis points: 350) on all player payments
  * - Fee mode: pass to player (default) or absorb by league
  */
 
@@ -55,7 +55,7 @@ let cacheExpiresAt = 0;
 const leagueBillingCache = new Map<string, { config: LeagueBillingConfig; expiresAt: number }>();
 
 const DEFAULT_CONFIG: PlatformFeeConfig = {
-  processingFeePercent: 2.99,
+  processingFeePercent: 3.5,
   setupFeeCents: 499900,
   migrationFeeCents: 0,
   setupFeeLabel: 'League Setup Fee',
