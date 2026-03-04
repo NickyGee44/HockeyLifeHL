@@ -28,8 +28,20 @@ export function LeagueScopeSelector({ dashboardData, collapsed = false }: League
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Flatten orgs[].leagues[] into a single list
+  const isAdmin = !!(dashboardData?.admin_leagues && dashboardData.admin_leagues.length > 0);
+
+  // Platform admins see all leagues via admin_leagues; regular users see their org leagues
   const allLeagues: FlatLeague[] = React.useMemo(() => {
+    if (dashboardData?.admin_leagues && dashboardData.admin_leagues.length > 0) {
+      return dashboardData.admin_leagues.map((league) => ({
+        id: league.id,
+        name: league.name,
+        slug: league.slug,
+        status: league.status,
+        logo_url: league.logo_url,
+        primary_color: league.primary_color,
+      }));
+    }
     if (!dashboardData?.organizations) return [];
     return dashboardData.organizations.flatMap((org) =>
       org.leagues.map((league) => ({
@@ -63,7 +75,11 @@ export function LeagueScopeSelector({ dashboardData, collapsed = false }: League
 
   const selectedLeague = allLeagues.find((l) => l.id === selected.leagueId);
 
-  if (allLeagues.length === 0) return null;
+  // For platform admins navigating directly to a league URL, the league may not yet
+  // be in allLeagues (e.g., before admin_leagues loads). Show a loading state.
+  const displayLeague = selectedLeague ?? (selected.leagueId ? null : undefined);
+
+  if (allLeagues.length === 0 && !selected.leagueId) return null;
 
   // Single league — show static text
   if (allLeagues.length === 1) {
@@ -112,7 +128,7 @@ export function LeagueScopeSelector({ dashboardData, collapsed = false }: League
           collapsed && 'justify-center'
         )}
       >
-        {selectedLeague && (
+        {selectedLeague ? (
           <LeagueLogo
             logoUrl={selectedLeague.logo_url}
             leagueName={selectedLeague.name}
@@ -120,11 +136,16 @@ export function LeagueScopeSelector({ dashboardData, collapsed = false }: League
             size={collapsed ? 'xs' : 'sm'}
             shape="square"
           />
+        ) : displayLeague === null && (
+          <div className={cn(
+            'rounded-md bg-neutral-700 animate-pulse',
+            collapsed ? 'w-6 h-6' : 'w-8 h-8'
+          )} />
         )}
-        {!collapsed && selectedLeague && (
+        {!collapsed && (
           <>
             <span className="text-sm font-semibold text-white truncate flex-1 text-left">
-              {selectedLeague.name}
+              {selectedLeague ? selectedLeague.name : displayLeague === null ? t('loadingLeague') : ''}
             </span>
             <ChevronDown className={cn('w-4 h-4 text-neutral-500 transition-transform', isOpen && 'rotate-180')} />
           </>
@@ -138,7 +159,7 @@ export function LeagueScopeSelector({ dashboardData, collapsed = false }: League
         )}>
           <div className="px-3 py-1.5">
             <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-              {t('switchLeague')}
+              {isAdmin ? t('allLeaguesAdmin') : t('switchLeague')}
             </span>
           </div>
           {allLeagues.map((league) => (

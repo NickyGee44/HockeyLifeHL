@@ -42,6 +42,8 @@ export interface DashboardData {
     active_seasons: number;
     total_games_played: number;
   };
+  /** All leagues on the platform — only populated for platform admins */
+  admin_leagues?: LeagueSummary[];
 }
 
 /**
@@ -110,9 +112,29 @@ async function getDashboardData(userId: string): Promise<DashboardData | null> {
       raw.managed_leagues = [];
     }
 
+    // Platform admin: fetch all leagues and attach as admin_leagues
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('is_platform_admin')
+      .eq('id', userId)
+      .single();
+
+    if ((profileData as any)?.is_platform_admin === true) {
+      const { data: allLeaguesData } = await supabase
+        .from('leagues')
+        .select('id, name, slug, status, logo_url, primary_color, created_at')
+        .order('name', { ascending: true });
+
+      raw.admin_leagues = (allLeaguesData ?? []).map((l) => ({
+        ...l,
+        team_count: 0,
+        player_count: 0,
+      }));
+    }
+
     // Type assertion - the RPC function returns properly structured JSON
     // total_games_played is now computed directly inside the RPC function
-    return data as unknown as DashboardData;
+    return raw as unknown as DashboardData;
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error fetching dashboard data:', error);
