@@ -17,38 +17,116 @@ export interface PrintableGameSheetProps {
   season: { name: string };
   homeTeam: { name: string; roster: RosterPlayer[] };
   awayTeam: { name: string; roster: RosterPlayer[] };
+  /** Full URL to encode in QR code — typically the scorekeeper token URL */
+  qrCodeUrl?: string | null;
 }
 
-const GOAL_ROWS = 5;
-const PENALTY_ROWS = 6;
+// ─── design tokens ───────────────────────────────────────────────────────────
+const BORDER_HEAVY = '2pt solid #111';
+const BORDER_LIGHT = '0.75pt solid #ccc';
+const BORDER_MED   = '1pt solid #888';
 
+const GOAL_ROWS    = 10;
+const PENALTY_ROWS = 12;
+
+// 14 standardised penalty codes — must match what the OCR prompt expects
 const PENALTY_CODES = [
-  '1=Trip', '2=Hook', '3=Slash', '4=X-Chk', '5=Rough', '6=Hi-Stk', '7=Hold',
-  '8=Interf', '9=Board', '10=DG', '11=TMM', '12=UC', '13=Fight', '14=Misc',
+  ['1', 'Tripping'],    ['2', 'Hooking'],    ['3', 'Slashing'],
+  ['4', 'Cross-chk'],  ['5', 'Roughing'],   ['6', 'Hi-sticking'],
+  ['7', 'Holding'],    ['8', 'Interference'],['9', 'Boarding'],
+  ['10','Delay/Game'], ['11','Too Many Men'],['12','Unsportsmanlike'],
+  ['13','Fighting'],   ['14','Misconduct'],
 ];
 
+// ─── tiny helpers ─────────────────────────────────────────────────────────────
+function cell(w?: number | string, extra: React.CSSProperties = {}): React.CSSProperties {
+  return {
+    width: w,
+    border: BORDER_LIGHT,
+    padding: '1.5px 3px',
+    verticalAlign: 'middle',
+    textAlign: 'center',
+    ...extra,
+  };
+}
+
+function inputCell(w: number | string = 26): React.CSSProperties {
+  return {
+    width: w,
+    height: 18,
+    border: '1.5pt solid #333',
+    display: 'inline-block',
+    borderRadius: '2px',
+    verticalAlign: 'middle',
+  };
+}
+
+function sectionHeaderRow(label: string, colSpan: number) {
+  return (
+    <tr>
+      <th
+        colSpan={colSpan}
+        style={{
+          background: '#1a1a1a',
+          color: '#fff',
+          fontSize: '8pt',
+          fontWeight: 900,
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          padding: '3px 6px',
+          textAlign: 'left',
+        }}
+      >
+        {label}
+      </th>
+    </tr>
+  );
+}
+
+function colHead(label: string, w?: number | string, extra: React.CSSProperties = {}) {
+  return (
+    <th
+      style={{
+        background: '#e0e0e0',
+        fontSize: '6.5pt',
+        fontWeight: 800,
+        textTransform: 'uppercase',
+        letterSpacing: '0.04em',
+        padding: '2px 3px',
+        border: BORDER_MED,
+        textAlign: 'center',
+        width: w,
+        ...extra,
+      }}
+    >
+      {label}
+    </th>
+  );
+}
+
 function RosterColumn({ players }: { players: RosterPlayer[] }) {
-  const sorted = [...players].sort((a, b) => (a.jerseyNumber ?? 999) - (b.jerseyNumber ?? 999));
-  // Split into two columns for compactness
+  const sorted = [...players].sort(
+    (a, b) => (a.jerseyNumber ?? 999) - (b.jerseyNumber ?? 999),
+  );
   const half = Math.ceil(sorted.length / 2);
   const col1 = sorted.slice(0, half);
   const col2 = sorted.slice(half);
-  const rows = Math.max(col1.length, col2.length);
+  const rows = Math.max(col1.length, col2.length, 3);
 
   return (
-    <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
+    <div style={{ display: 'flex', gap: '3px' }}>
       {[col1, col2].map((col, ci) => (
-        <table key={ci} style={{ flex: 1, borderCollapse: 'collapse', fontSize: '7.5pt' }}>
+        <table key={ci} style={{ flex: 1, borderCollapse: 'collapse', fontSize: '7pt' }}>
           <tbody>
             {Array.from({ length: rows }).map((_, i) => {
               const p = col[i];
               return (
-                <tr key={i} style={{ borderBottom: '0.5pt solid #ccc' }}>
-                  <td style={{ width: '20px', fontWeight: 700, paddingRight: '3px', color: '#333', whiteSpace: 'nowrap' }}>
-                    {p ? `#${p.jerseyNumber ?? '?'}` : ''}
+                <tr key={i} style={{ borderBottom: '0.5pt solid #ddd', height: '13px' }}>
+                  <td style={{ width: 20, fontWeight: 700, paddingRight: 2, color: '#333', whiteSpace: 'nowrap' }}>
+                    {p ? `#${p.jerseyNumber ?? '–'}` : ''}
                   </td>
-                  <td style={{ color: '#333', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '80px' }}>
-                    {p ? (p.isGoalie ? `${p.fullName} (G)` : p.fullName) : ''}
+                  <td style={{ color: '#222', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: 72, paddingRight: 4 }}>
+                    {p ? `${p.fullName}${p.isGoalie ? ' (G)' : ''}` : ''}
                   </td>
                 </tr>
               );
@@ -60,369 +138,318 @@ function RosterColumn({ players }: { players: RosterPlayer[] }) {
   );
 }
 
-function TimeBox() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
-      <div style={inputBox(22)} />
-      <span style={{ fontSize: '9pt', fontWeight: 700, lineHeight: 1 }}>:</span>
-      <div style={inputBox(16)} />
-    </div>
-  );
-}
-
-function JerseyBox(width = 22) {
-  return <div style={inputBox(width)} />;
-}
-
-function inputBox(width: number, height = 18): React.CSSProperties {
-  return {
-    width,
-    height,
-    border: '1.5pt solid #111',
-    borderRadius: '2px',
-    display: 'inline-block',
-    flexShrink: 0,
-  };
-}
-
-function ColHeader({ labels }: { labels: string[] }) {
-  return (
-    <tr style={{ background: '#e8e8e8' }}>
-      {labels.map((l, i) => (
-        <td
-          key={i}
-          style={{
-            fontSize: '6.5pt',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.03em',
-            padding: '1px 3px',
-            color: '#444',
-            borderRight: '0.5pt solid #bbb',
-            textAlign: 'center',
-          }}
-        >
-          {l}
-        </td>
-      ))}
-    </tr>
-  );
-}
-
-function GoalRows() {
-  return (
-    <>
-      <ColHeader labels={['Time (MM:SS)', 'Scorer #', 'Assist 1 #', 'Assist 2 #']} />
-      {Array.from({ length: GOAL_ROWS }).map((_, i) => (
-        <tr key={i} style={{ borderBottom: '0.5pt solid #ddd', height: '20px' }}>
-          <td style={eventCell}>{TimeBox()}</td>
-          <td style={eventCell}>{JerseyBox()}</td>
-          <td style={eventCell}>{JerseyBox()}</td>
-          <td style={eventCell}>{JerseyBox()}</td>
-        </tr>
-      ))}
-    </>
-  );
-}
-
-function PenaltyRows() {
-  return (
-    <>
-      <ColHeader labels={['Time (MM:SS)', 'Player #', 'Code', 'Min']} />
-      {Array.from({ length: PENALTY_ROWS }).map((_, i) => (
-        <tr key={i} style={{ borderBottom: '0.5pt solid #ddd', height: '20px' }}>
-          <td style={eventCell}>{TimeBox()}</td>
-          <td style={eventCell}>{JerseyBox()}</td>
-          <td style={eventCell}>{JerseyBox(18)}</td>
-          <td style={eventCell}>{JerseyBox(16)}</td>
-        </tr>
-      ))}
-    </>
-  );
-}
-
-const eventCell: React.CSSProperties = {
-  padding: '1px 3px',
-  borderRight: '0.5pt solid #ddd',
-  verticalAlign: 'middle',
-};
-
-const periodBanner: React.CSSProperties = {
-  fontSize: '7.5pt',
-  fontWeight: 800,
-  textTransform: 'uppercase',
-  letterSpacing: '0.08em',
-  background: '#111',
-  color: '#fff',
-  padding: '2px 5px',
-  textAlign: 'center',
-};
-
-const sectionHeader: React.CSSProperties = {
-  fontSize: '9pt',
-  fontWeight: 900,
-  textTransform: 'uppercase',
-  letterSpacing: '0.1em',
-  background: '#333',
-  color: '#fff',
-  padding: '3px 6px',
-  textAlign: 'center',
-};
-
-const halfTableStyle: React.CSSProperties = {
-  flex: 1,
-  borderCollapse: 'collapse',
-  width: '100%',
-  tableLayout: 'fixed',
-};
-
-function PeriodSection({
-  label,
-  type,
-}: {
-  label: string;
-  type: 'goals' | 'penalties';
-}) {
-  return (
-    <>
-      {/* Period banner spanning both columns */}
-      <tr>
-        <td colSpan={2} style={periodBanner}>{label}</td>
-      </tr>
-      <tr>
-        {/* Home half */}
-        <td style={{ verticalAlign: 'top', borderRight: '2pt solid #333', padding: 0, width: '50%' }}>
-          <table style={halfTableStyle}>
-            <colgroup>
-              <col style={{ width: '30%' }} />
-              <col style={{ width: '24%' }} />
-              <col style={{ width: '23%' }} />
-              <col style={{ width: '23%' }} />
-            </colgroup>
-            <tbody>{type === 'goals' ? <GoalRows /> : <PenaltyRows />}</tbody>
-          </table>
-        </td>
-        {/* Away half */}
-        <td style={{ verticalAlign: 'top', padding: 0, width: '50%' }}>
-          <table style={halfTableStyle}>
-            <colgroup>
-              <col style={{ width: '30%' }} />
-              <col style={{ width: '24%' }} />
-              <col style={{ width: '23%' }} />
-              <col style={{ width: '23%' }} />
-            </colgroup>
-            <tbody>{type === 'goals' ? <GoalRows /> : <PenaltyRows />}</tbody>
-          </table>
-        </td>
-      </tr>
-    </>
-  );
-}
-
+// ─── Main component ───────────────────────────────────────────────────────────
 export function PrintableGameSheet({
   league,
   game,
   season,
   homeTeam,
   awayTeam,
+  qrCodeUrl,
 }: PrintableGameSheetProps) {
-  const periodLabels = [
-    'Period 1',
-    'Period 2',
-    'Period 3',
-    ...(game.periodCount > 3
-      ? Array.from({ length: game.periodCount - 3 }, (_, i) =>
-          i === 0 ? 'Overtime' : `OT${i + 1}`
-        )
-      : ['Overtime']),
-  ];
-
   const gameDate = game.scheduledAt
-    ? format(new Date(game.scheduledAt), 'EEEE, MMMM d, yyyy')
+    ? format(new Date(game.scheduledAt), 'EEEE, MMMM d, yyyy · h:mm a')
     : 'Date TBD';
-  const gameTime = game.scheduledAt
-    ? format(new Date(game.scheduledAt), 'h:mm a')
-    : '';
+
+  const qrSrc = qrCodeUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=90x90&format=png&margin=4&data=${encodeURIComponent(qrCodeUrl)}`
+    : null;
 
   return (
     <>
       <style>{`
-        @page {
-          size: letter portrait;
-          margin: 0.35in;
-        }
+        @page { size: letter portrait; margin: 0.35in; }
         @media print {
           .no-print { display: none !important; }
-          body { margin: 0; padding: 0; background: white; }
-          .sheet-root { box-shadow: none !important; padding: 0 !important; }
+          body { margin: 0; padding: 0; background: #fff; }
+          .gs-root { box-shadow: none !important; }
         }
-        .sheet-root * { box-sizing: border-box; }
+        .gs-root { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #111; }
+        .gs-root table { border-collapse: collapse; width: 100%; }
+        .gs-root td, .gs-root th { box-sizing: border-box; }
       `}</style>
 
       <div
-        className="sheet-root"
-        style={{
-          fontFamily: 'Arial, Helvetica, sans-serif',
-          fontSize: '9pt',
-          color: '#111',
-          background: '#fff',
-          width: '100%',
-          maxWidth: '780px',
-          margin: '0 auto',
-          padding: '12px',
-        }}
+        className="gs-root"
+        style={{ background: '#fff', maxWidth: 780, margin: '0 auto', padding: 10 }}
       >
-        {/* ── HEADER ── */}
-        <div
-          style={{
-            background: '#111',
-            color: '#fff',
-            padding: '8px 12px',
-            marginBottom: '6px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ fontWeight: 900, fontSize: '11pt', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            {league.name}
-          </div>
-          <div style={{ textAlign: 'center', fontSize: '8pt', color: '#ccc' }}>
-            <div>{gameDate}{gameTime ? ` · ${gameTime}` : ''}</div>
-            {game.location && <div>{game.location}</div>}
-            <div style={{ fontSize: '7pt', marginTop: '1px' }}>{season.name}</div>
-          </div>
-          <div style={{ fontSize: '7pt', color: '#aaa', textAlign: 'right' }}>
-            <div>{game.periodCount}×{game.periodLengthMinutes} min periods</div>
-            <div style={{ marginTop: '2px', border: '1pt solid #555', padding: '1px 4px' }}>OFFICIAL GAME SHEET</div>
-          </div>
-        </div>
-
-        {/* ── MATCHUP BAR ── */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '6px', border: '1.5pt solid #111' }}>
+        {/* ── HEADER ─────────────────────────────────────────────────────── */}
+        <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
           <tbody>
             <tr>
-              <td style={{ width: '50%', textAlign: 'center', padding: '5px 8px', borderRight: '2pt solid #111', background: '#f5f5f5' }}>
-                <div style={{ fontSize: '8pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666', marginBottom: '1px' }}>HOME</div>
-                <div style={{ fontSize: '12pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{homeTeam.name}</div>
+              <td style={{ background: '#111', color: '#fff', padding: '5px 10px', width: '38%' }}>
+                <div style={{ fontWeight: 900, fontSize: '11pt', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.2 }}>
+                  {league.name}
+                </div>
+                <div style={{ fontSize: '7pt', color: '#aaa', marginTop: 1 }}>{season.name}</div>
               </td>
-              <td style={{ width: '50%', textAlign: 'center', padding: '5px 8px', background: '#f5f5f5' }}>
-                <div style={{ fontSize: '8pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666', marginBottom: '1px' }}>AWAY</div>
-                <div style={{ fontSize: '12pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{awayTeam.name}</div>
+              <td style={{ textAlign: 'center', padding: '5px 8px', background: '#f5f5f5' }}>
+                <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#555', marginBottom: 1 }}>
+                  Official Game Sheet
+                </div>
+                <div style={{ fontSize: '8pt', fontWeight: 600 }}>{gameDate}</div>
+                {game.location && (
+                  <div style={{ fontSize: '7.5pt', color: '#666', marginTop: 1 }}>{game.location}</div>
+                )}
+              </td>
+              <td style={{ textAlign: 'right', padding: '5px 8px', width: '18%', background: '#f5f5f5', fontSize: '7pt', color: '#777', verticalAlign: 'top' }}>
+                <div>{game.periodCount} periods × {game.periodLengthMinutes} min</div>
               </td>
             </tr>
           </tbody>
         </table>
 
-        {/* ── ROSTER + PENALTY CODE LEGEND ── */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-          {/* Home roster */}
-          <div style={{ flex: 1, border: '1pt solid #bbb', padding: '4px' }}>
-            <div style={{ fontSize: '7pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#666', marginBottom: '3px', borderBottom: '0.5pt solid #bbb', paddingBottom: '2px' }}>
-              Home Roster
-            </div>
-            {homeTeam.roster.length > 0
-              ? <RosterColumn players={homeTeam.roster} />
-              : <div style={{ fontSize: '7.5pt', color: '#999', fontStyle: 'italic' }}>No roster on file</div>
-            }
-          </div>
+        {/* ── MATCHUP ────────────────────────────────────────────────────── */}
+        <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
+          <tbody>
+            <tr>
+              <td style={{ width: '49%', padding: '4px 10px', background: '#f8f8f8', borderRight: BORDER_HEAVY }}>
+                <div style={{ fontSize: '6.5pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#555' }}>Home Team</div>
+                <div style={{ fontSize: '13pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{homeTeam.name}</div>
+              </td>
+              <td style={{ width: '2%', textAlign: 'center', fontSize: '9pt', fontWeight: 900, color: '#999' }}>vs</td>
+              <td style={{ width: '49%', padding: '4px 10px', background: '#f8f8f8', textAlign: 'right' }}>
+                <div style={{ fontSize: '6.5pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#555' }}>Away Team</div>
+                <div style={{ fontSize: '13pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{awayTeam.name}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-          {/* Penalty code legend */}
-          <div style={{ width: '120px', border: '1.5pt solid #111', padding: '4px', flexShrink: 0 }}>
-            <div style={{ fontSize: '7pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', borderBottom: '1pt solid #111', paddingBottom: '2px', textAlign: 'center' }}>
-              Penalty Codes
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', fontSize: '7pt' }}>
-              {PENALTY_CODES.map((c) => (
-                <div key={c} style={{ padding: '0.5px 1px', color: '#222' }}>{c}</div>
+        {/* ── ROSTERS ────────────────────────────────────────────────────── */}
+        <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
+          <thead>
+            {sectionHeaderRow('Rosters', 2)}
+          </thead>
+          <tbody>
+            <tr>
+              {/* Home roster header */}
+              <th colSpan={1} style={{ width: '50%', fontSize: '7pt', fontWeight: 700, background: '#e8e8e8', padding: '2px 6px', borderRight: BORDER_HEAVY, textAlign: 'left', border: BORDER_MED }}>
+                {homeTeam.name}
+              </th>
+              <th colSpan={1} style={{ width: '50%', fontSize: '7pt', fontWeight: 700, background: '#e8e8e8', padding: '2px 6px', textAlign: 'left', border: BORDER_MED }}>
+                {awayTeam.name}
+              </th>
+            </tr>
+            <tr>
+              <td style={{ verticalAlign: 'top', padding: '3px 6px', borderRight: BORDER_HEAVY, width: '50%' }}>
+                {homeTeam.roster.length > 0
+                  ? <RosterColumn players={homeTeam.roster} />
+                  : <span style={{ fontSize: '7.5pt', color: '#999', fontStyle: 'italic' }}>No roster on file</span>
+                }
+              </td>
+              <td style={{ verticalAlign: 'top', padding: '3px 6px', width: '50%' }}>
+                {awayTeam.roster.length > 0
+                  ? <RosterColumn players={awayTeam.roster} />
+                  : <span style={{ fontSize: '7.5pt', color: '#999', fontStyle: 'italic' }}>No roster on file</span>
+                }
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* ── INSTRUCTIONS + PENALTY CODES + QR ──────────────────────────── */}
+        <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
+          <tbody>
+            <tr>
+              {/* Instructions */}
+              <td style={{ verticalAlign: 'top', padding: '5px 8px', borderRight: BORDER_HEAVY, width: qrSrc ? '55%' : '70%' }}>
+                <div style={{ fontSize: '7pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3, color: '#222' }}>
+                  How to Fill Out This Sheet
+                </div>
+                <div style={{ fontSize: '7pt', lineHeight: 1.55, color: '#333' }}>
+                  <div><b>Time:</b> write MM:SS — e.g. <b>14:32</b> = 14 min 32 sec into the period</div>
+                  <div><b>H/A:</b> write <b>H</b> for Home ({homeTeam.name}) or <b>A</b> for Away ({awayTeam.name})</div>
+                  <div><b>Goals:</b> scorer jersey #, then up to two assist jersey numbers</div>
+                  <div><b>Penalties → Code:</b> use the number from the legend (e.g. <b>1</b> = Tripping)</div>
+                  <div><b>Penalties → Min:</b> write <b>2</b>, <b>5</b>, <b>10</b>, or <b>M</b> (match penalty)</div>
+                  {qrSrc && (
+                    <div style={{ marginTop: 3, padding: '2px 5px', background: '#fffbe6', border: '0.75pt solid #f0c040', borderRadius: 3, fontSize: '6.5pt' }}>
+                      <b>→ Scan QR code</b> to open the scoring app for this game, then tap <i>Upload Sheet</i> to photo this sheet for auto-entry.
+                    </div>
+                  )}
+                </div>
+              </td>
+
+              {/* Penalty codes legend */}
+              <td style={{ verticalAlign: 'top', padding: '5px 8px', borderRight: qrSrc ? BORDER_HEAVY : undefined, width: qrSrc ? '30%' : '30%' }}>
+                <div style={{ fontSize: '7pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3, color: '#222' }}>
+                  Penalty Codes
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 6, rowGap: 0 }}>
+                  {PENALTY_CODES.map(([code, name]) => (
+                    <div key={code} style={{ fontSize: '6.5pt', lineHeight: 1.5, color: '#333' }}>
+                      <b>{code}</b> {name}
+                    </div>
+                  ))}
+                </div>
+              </td>
+
+              {/* QR Code */}
+              {qrSrc && (
+                <td style={{ verticalAlign: 'middle', textAlign: 'center', padding: '5px 8px', width: '15%' }}>
+                  <div style={{ fontSize: '6.5pt', color: '#555', marginBottom: 3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Scan to Score
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={qrSrc}
+                    alt="Scorekeeper QR Code"
+                    width={90}
+                    height={90}
+                    style={{ display: 'block', margin: '0 auto', border: '1pt solid #ddd' }}
+                  />
+                  <div style={{ fontSize: '6pt', color: '#888', marginTop: 2 }}>Opens scoring app</div>
+                </td>
+              )}
+            </tr>
+          </tbody>
+        </table>
+
+        {/* ── GOALS TABLE ─────────────────────────────────────────────────── */}
+        <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
+          <thead>
+            {sectionHeaderRow('Goals — enter one row per goal', 7)}
+            <tr>
+              {colHead('#', 18)}
+              {colHead('Per', 24)}
+              {colHead('Time MM:SS', 60)}
+              {colHead('H / A', 30)}
+              {colHead('Scorer #', 42)}
+              {colHead('Assist 1 #', 44)}
+              {colHead('Assist 2 #', 44)}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: GOAL_ROWS }).map((_, i) => (
+              <tr key={i} style={{ height: 20, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
+                <td style={cell(18, { fontSize: '7.5pt', color: '#aaa' })}>{i + 1}</td>
+                <td style={cell(24)}><div style={inputCell(20)} /></td>
+                <td style={cell(60)}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                    <div style={inputCell(22)} />
+                    <span style={{ fontSize: '9pt', fontWeight: 700, lineHeight: 1 }}>:</span>
+                    <div style={inputCell(18)} />
+                  </div>
+                </td>
+                <td style={cell(30)}><div style={inputCell(24)} /></td>
+                <td style={cell(42)}><div style={inputCell(36)} /></td>
+                <td style={cell(44)}><div style={inputCell(36)} /></td>
+                <td style={cell(44)}><div style={inputCell(36)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* ── PENALTIES TABLE ─────────────────────────────────────────────── */}
+        <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
+          <thead>
+            {sectionHeaderRow('Penalties — enter one row per penalty', 7)}
+            <tr>
+              {colHead('#', 18)}
+              {colHead('Per', 24)}
+              {colHead('Time MM:SS', 60)}
+              {colHead('H / A', 30)}
+              {colHead('Player #', 42)}
+              {colHead('Code (1–14)', 54)}
+              {colHead('Min', 36)}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: PENALTY_ROWS }).map((_, i) => (
+              <tr key={i} style={{ height: 20, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
+                <td style={cell(18, { fontSize: '7.5pt', color: '#aaa' })}>{i + 1}</td>
+                <td style={cell(24)}><div style={inputCell(20)} /></td>
+                <td style={cell(60)}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                    <div style={inputCell(22)} />
+                    <span style={{ fontSize: '9pt', fontWeight: 700, lineHeight: 1 }}>:</span>
+                    <div style={inputCell(18)} />
+                  </div>
+                </td>
+                <td style={cell(30)}><div style={inputCell(24)} /></td>
+                <td style={cell(42)}><div style={inputCell(36)} /></td>
+                <td style={cell(54)}><div style={inputCell(40)} /></td>
+                <td style={cell(36)}><div style={inputCell(28)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* ── SHOTS ON GOAL ───────────────────────────────────────────────── */}
+        <table style={{ marginBottom: 5, border: BORDER_HEAVY, width: '100%' }}>
+          <thead>
+            <tr>
+              {colHead('Shots on Goal', '20%', { textAlign: 'left', background: '#1a1a1a', color: '#fff', fontSize: '7pt' })}
+              {colHead('Period 1', '12%')}
+              {colHead('Period 2', '12%')}
+              {colHead('Period 3', '12%')}
+              {Array.from({ length: Math.max(0, game.periodCount - 3) }, (_, i) => (
+                colHead(i === 0 ? 'OT' : `OT${i + 1}`, '10%')
               ))}
-            </div>
-          </div>
-
-          {/* Away roster */}
-          <div style={{ flex: 1, border: '1pt solid #bbb', padding: '4px' }}>
-            <div style={{ fontSize: '7pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#666', marginBottom: '3px', borderBottom: '0.5pt solid #bbb', paddingBottom: '2px' }}>
-              Away Roster
-            </div>
-            {awayTeam.roster.length > 0
-              ? <RosterColumn players={awayTeam.roster} />
-              : <div style={{ fontSize: '7.5pt', color: '#999', fontStyle: 'italic' }}>No roster on file</div>
-            }
-          </div>
-        </div>
-
-        {/* ── GOALS SECTION ── */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5pt solid #111', marginBottom: '5px' }}>
-          <thead>
-            <tr>
-              <th colSpan={2} style={sectionHeader}>
-                ⚽ Goals &nbsp;·&nbsp; Left column = HOME &nbsp;|&nbsp; Right column = AWAY
-              </th>
+              {colHead('TOTAL', '14%', { fontWeight: 900 })}
             </tr>
           </thead>
           <tbody>
-            {periodLabels.map((label) => (
-              <PeriodSection key={label} label={label} type="goals" />
+            {[homeTeam.name, awayTeam.name].map((name) => (
+              <tr key={name} style={{ height: 22 }}>
+                <td style={cell('20%', { textAlign: 'left', fontWeight: 700, fontSize: '7.5pt', paddingLeft: 6 })}>
+                  {name}
+                </td>
+                {Array.from({ length: game.periodCount }).map((_, i) => (
+                  <td key={i} style={cell()}><div style={inputCell(32)} /></td>
+                ))}
+                {game.periodCount < 4 && (
+                  Array.from({ length: 4 - game.periodCount }).map((_, i) => (
+                    <td key={`ot-${i}`} style={cell()}><div style={{ ...inputCell(32), borderColor: '#ddd' }} /></td>
+                  ))
+                )}
+                <td style={cell('14%')}><div style={inputCell(40)} /></td>
+              </tr>
             ))}
           </tbody>
         </table>
 
-        {/* ── PENALTIES SECTION ── */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5pt solid #111', marginBottom: '6px' }}>
-          <thead>
-            <tr>
-              <th colSpan={2} style={sectionHeader}>
-                🚨 Penalties &nbsp;·&nbsp; Code = number from legend &nbsp;·&nbsp; Min = 2 / 5 / 10 / M
-              </th>
-            </tr>
-          </thead>
+        {/* ── FOOTER: SCORE + SIGNATURES ─────────────────────────────────── */}
+        <table style={{ border: BORDER_HEAVY }}>
           <tbody>
-            {periodLabels.map((label) => (
-              <PeriodSection key={label} label={label} type="penalties" />
-            ))}
-          </tbody>
-        </table>
-
-        {/* ── FOOTER: SCORE + SIGNATURES ── */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5pt solid #111' }}>
-          <tbody>
-            {/* Final score */}
-            <tr style={{ background: '#f5f5f5' }}>
-              <td colSpan={4} style={{ textAlign: 'center', padding: '5px', borderBottom: '1pt solid #bbb' }}>
-                <span style={{ fontSize: '8pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginRight: '8px' }}>Final Score</span>
-                <span style={{ fontSize: '8pt', marginRight: '4px' }}>{homeTeam.name}</span>
-                <div style={{ ...inputBox(30, 22), display: 'inline-block', verticalAlign: 'middle', marginRight: '4px' }} />
-                <span style={{ fontSize: '11pt', fontWeight: 900, marginRight: '4px' }}>—</span>
-                <div style={{ ...inputBox(30, 22), display: 'inline-block', verticalAlign: 'middle', marginRight: '4px' }} />
-                <span style={{ fontSize: '8pt' }}>{awayTeam.name}</span>
+            {/* Final score row */}
+            <tr style={{ background: '#f5f5f5', borderBottom: BORDER_MED }}>
+              <td colSpan={4} style={{ padding: '5px 10px', textAlign: 'center' }}>
+                <span style={{ fontSize: '8pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', marginRight: 10 }}>
+                  Final Score
+                </span>
+                <span style={{ fontSize: '8pt', marginRight: 5 }}>{homeTeam.name}</span>
+                <div style={{ ...inputCell(32), height: 22, display: 'inline-block', verticalAlign: 'middle', marginRight: 5 }} />
+                <span style={{ fontSize: '13pt', fontWeight: 900, marginRight: 5 }}>—</span>
+                <div style={{ ...inputCell(32), height: 22, display: 'inline-block', verticalAlign: 'middle', marginRight: 5 }} />
+                <span style={{ fontSize: '8pt', marginRight: 14 }}>{awayTeam.name}</span>
+                <span style={{ fontSize: '7.5pt', color: '#555', marginRight: 6 }}>OT?</span>
+                <div style={{ width: 14, height: 14, border: '1.5pt solid #333', display: 'inline-block', verticalAlign: 'middle', borderRadius: 2, marginRight: 12 }} />
+                <span style={{ fontSize: '7.5pt', color: '#555', marginRight: 6 }}>SO?</span>
+                <div style={{ width: 14, height: 14, border: '1.5pt solid #333', display: 'inline-block', verticalAlign: 'middle', borderRadius: 2 }} />
               </td>
             </tr>
-            {/* Signatures row */}
+            {/* Signature row */}
             <tr>
-              <td style={{ width: '25%', padding: '4px 6px', borderRight: '1pt solid #ccc' }}>
-                <div style={{ fontSize: '7pt', color: '#666', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Referee</div>
-                <div style={{ borderBottom: '1pt solid #999', height: '18px' }} />
-                <div style={{ borderBottom: '1pt solid #999', height: '18px', marginTop: '4px' }} />
-                <div style={{ fontSize: '6.5pt', color: '#999' }}>Signature / Printed name</div>
-              </td>
-              <td style={{ width: '25%', padding: '4px 6px', borderRight: '1pt solid #ccc' }}>
-                <div style={{ fontSize: '7pt', color: '#666', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Timekeeper / Linesman</div>
-                <div style={{ borderBottom: '1pt solid #999', height: '18px' }} />
-                <div style={{ borderBottom: '1pt solid #999', height: '18px', marginTop: '4px' }} />
-                <div style={{ fontSize: '6.5pt', color: '#999' }}>Signature / Printed name</div>
-              </td>
-              <td style={{ width: '25%', padding: '4px 6px', borderRight: '1pt solid #ccc' }}>
-                <div style={{ fontSize: '7pt', color: '#666', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Home Captain</div>
-                <div style={{ borderBottom: '1pt solid #999', height: '18px' }} />
-                <div style={{ borderBottom: '1pt solid #999', height: '18px', marginTop: '4px' }} />
-                <div style={{ fontSize: '6.5pt', color: '#999' }}>Signature / Printed name</div>
-              </td>
-              <td style={{ width: '25%', padding: '4px 6px' }}>
-                <div style={{ fontSize: '7pt', color: '#666', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Away Captain</div>
-                <div style={{ borderBottom: '1pt solid #999', height: '18px' }} />
-                <div style={{ borderBottom: '1pt solid #999', height: '18px', marginTop: '4px' }} />
-                <div style={{ fontSize: '6.5pt', color: '#999' }}>Signature / Printed name</div>
-              </td>
+              {[
+                ['Referee', true],
+                ['Timekeeper / Linesman', true],
+                ['Home Captain', true],
+                ['Away Captain', false],
+              ].map(([label, hasBorder]) => (
+                <td
+                  key={String(label)}
+                  style={{ width: '25%', padding: '4px 8px', borderRight: hasBorder ? BORDER_MED : undefined, verticalAlign: 'bottom' }}
+                >
+                  <div style={{ fontSize: '6.5pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#555', marginBottom: 2 }}>
+                    {String(label)}
+                  </div>
+                  <div style={{ borderBottom: '1pt solid #666', height: 18, marginBottom: 3 }} />
+                  <div style={{ borderBottom: '1pt solid #aaa', height: 18 }} />
+                  <div style={{ fontSize: '6pt', color: '#aaa', marginTop: 1 }}>Signature · Printed name</div>
+                </td>
+              ))}
             </tr>
           </tbody>
         </table>
