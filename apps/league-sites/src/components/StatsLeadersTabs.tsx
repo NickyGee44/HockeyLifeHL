@@ -107,6 +107,7 @@ export function StatsLeadersTabs({
       {/* Content */}
       <div className="card overflow-hidden">
         {filteredData.length > 0 ? (
+          <div className="overflow-x-auto">
           <table className="standings-table w-full">
             <thead>
               <tr>
@@ -211,6 +212,7 @@ export function StatsLeadersTabs({
               })}
             </tbody>
           </table>
+          </div>
         ) : isSearching ? (
           <div className="p-12 text-center">
             <Search className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-3" />

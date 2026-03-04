@@ -63,6 +63,7 @@ export function StandingsWidget({
 
   return (
     <div className="card overflow-hidden">
+      <div className="overflow-x-auto">
       <table ref={tableRef} className="standings-table">
         <thead>
           <tr>
@@ -145,6 +146,7 @@ export function StandingsWidget({
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -156,6 +158,7 @@ export function StandingsWidget({
 export function StandingsWidgetSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="card overflow-hidden">
+      <div className="overflow-x-auto">
       <table className="standings-table">
         <thead>
           <tr>
@@ -191,6 +194,7 @@ export function StandingsWidgetSkeleton({ rows = 5 }: { rows?: number }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

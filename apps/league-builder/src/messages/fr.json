@@ -202,6 +202,8 @@
     "more": "Plus",
     "logout": "Deconnexion",
     "switchLeague": "Changer de ligue",
+    "allLeaguesAdmin": "Toutes les ligues (Admin)",
+    "loadingLeague": "Chargement...",
     "changeSeason": "Changer de saison",
     "createLeague": "Creer une ligue",
     "searchPlaceholder": "Rechercher...",
