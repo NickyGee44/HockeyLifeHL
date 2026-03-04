@@ -219,7 +219,10 @@
     "leagueOverview": "League Overview",
     "seasons": "Seasons",
     "games": "Games",
-    "leagueBilling": "Payment Setup"
+    "leagueBilling": "Payment Setup",
+    "financials": "Financials",
+    "divisions": "Divisions",
+    "goaliePool": "Goalie Pool"
   },
   "commandPalette": {
     "searchPlaceholder": "Search pages and actions...",
