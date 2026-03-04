@@ -96,20 +96,21 @@ export default async function PrintSheetPage({ params }: Props) {
     fetchScorekeeperToken(),
   ]);
 
-  // Build league website base URL
-  const leagueSitesBase = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL
-    ?? 'https://beerleaguehockey.ca';
+  // Build scorekeeper URL for the QR code.
+  // League sites run as subdomains: {slug}.beerleaguehockey.ca
+  // If the league has a verified custom domain that takes precedence.
   const leagueSlug = (league as any).slug as string;
+  const baseDomain = process.env.NEXT_PUBLIC_SITES_BASE_DOMAIN ?? 'beerleaguehockey.ca';
   const customDomain = (league as any).custom_domain_verified
     ? ((league as any).custom_domain as string | null)
     : null;
   const leagueSiteOrigin = customDomain
     ? `https://${customDomain}`
-    : `${leagueSitesBase}`;
+    : `https://${leagueSlug}.${baseDomain}`;
 
   // QR code URL — scorekeeper token lands them directly into the game
   const qrCodeUrl = skToken
-    ? `${leagueSiteOrigin}/${leagueSlug}/scorekeeper?token=${skToken}`
+    ? `${leagueSiteOrigin}/scorekeeper?token=${skToken}`
     : null;
 
   const periodCount = (game as any).period_count ?? 3;
