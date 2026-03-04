@@ -50,7 +50,7 @@ export function PricingValueProp() {
               </div>
               <p className="text-neutral-400">
                 {t('pricing.fee')}{' '}
-                <span className="text-rink-400 font-semibold">2.99%</span>{' '}
+                <span className="text-rink-400 font-semibold">3.5%</span>{' '}
                 {t('pricing.feeContext')}
               </p>
             </div>

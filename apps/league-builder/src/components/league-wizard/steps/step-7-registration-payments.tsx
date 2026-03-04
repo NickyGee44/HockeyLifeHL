@@ -59,7 +59,7 @@ interface Step7RegistrationPaymentsProps {
   platformFeePercent?: number;
 }
 
-export function Step7RegistrationPayments({ platformFeePercent = 2.99 }: Step7RegistrationPaymentsProps) {
+export function Step7RegistrationPayments({ platformFeePercent = 3.5 }: Step7RegistrationPaymentsProps) {
   const PLATFORM_FEE_PERCENT = platformFeePercent;
   const {
     register,

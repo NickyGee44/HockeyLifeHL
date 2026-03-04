@@ -24,7 +24,7 @@ interface SubscriptionOverviewProps {
   platformFeePercent?: number;
 }
 
-export function SubscriptionOverview({ platformFeePercent = 2.99 }: SubscriptionOverviewProps) {
+export function SubscriptionOverview({ platformFeePercent = 3.5 }: SubscriptionOverviewProps) {
   const t = useTranslations('subscription');
   const [subscription, setSubscription] = useState<OrganizationSubscription | null>(null);
   const [loading, setLoading] = useState(true);

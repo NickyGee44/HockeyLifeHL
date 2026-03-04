@@ -37,7 +37,7 @@ type ActionResult<T = void> = Promise<
 const ADDON_PRICES: Record<AddonType, { envKey: string; amountCents: number; label: string }> = {
   platform_subscription: {
     envKey: 'STRIPE_PRICE_PLATFORM_MONTHLY',
-    amountCents: 29999, // $299.99
+    amountCents: 0, // $0
     label: 'Platform Monthly',
   },
   advanced_stats: {

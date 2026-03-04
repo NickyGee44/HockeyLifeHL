@@ -25,8 +25,8 @@ const ADDON_CONFIG: Record<
 > = {
   platform_subscription: {
     icon: '🏒',
-    priceLabel: '$299.99/mo',
-    amountCents: 29999,
+    priceLabel: '$0/mo',
+    amountCents: 0,
   },
   advanced_stats: {
     icon: '📊',

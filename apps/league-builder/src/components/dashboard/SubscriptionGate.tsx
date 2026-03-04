@@ -56,7 +56,7 @@ async function SubscriptionRequired() {
         </div>
 
         <div className="flex items-center justify-center gap-2 mb-4">
-          <span className="text-3xl font-black text-white">$299.99</span>
+          <span className="text-3xl font-black text-white">$0</span>
           <span className="text-neutral-500 text-sm">/mo</span>
         </div>
 

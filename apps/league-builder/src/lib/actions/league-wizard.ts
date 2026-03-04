@@ -671,7 +671,7 @@ export async function createLeague(
       // Platform subscription is always created
       addonsToCreate.push({
         addon_type: 'platform_subscription',
-        amount_cents: 29999, // $299.99
+        amount_cents: 0, // $0
       });
 
       if (data.enableAdvancedStats) {
