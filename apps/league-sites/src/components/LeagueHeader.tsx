@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -16,7 +16,6 @@ import {
   Camera,
   Mail,
   Shield,
-  Ban,
   MapPin,
   Menu,
   X,
@@ -68,9 +67,13 @@ const navItems: DefaultNavItem[] = [
   { href: '/contact', label: 'Contact', icon: Mail },
 ];
 
+const PRIMARY_DESKTOP_HREFS = new Set(['/schedule', '/standings', '/teams', '/stats']);
+
 export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePages, isPlayoffSeason }: LeagueHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const pathname = usePathname();
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const { isPreviewMode, theme } = usePreviewMode();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
   const customNavItems = (league as any).settings?.website?.navItems;
@@ -142,6 +145,38 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
     return pathname === path || pathname.startsWith(`${path}/`);
   };
 
+  const desktopPrimaryItems = hasCustomNav
+    ? filteredNavItems.slice(0, 4)
+    : filteredNavItems.filter((item) => PRIMARY_DESKTOP_HREFS.has(item.href));
+
+  const desktopMoreItems = hasCustomNav
+    ? filteredNavItems.slice(4)
+    : filteredNavItems.filter((item) => !PRIMARY_DESKTOP_HREFS.has(item.href));
+
+  const isMoreActive = desktopMoreItems.some((item) => isItemActive(item));
+
+  useEffect(() => {
+    setIsMoreMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      if (!moreMenuRef.current) return;
+      const target = event.target;
+      if (target instanceof Node && !moreMenuRef.current.contains(target)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, []);
+
   return (
     <header
       className="league-header sticky top-0 z-50 border-b border-[var(--header-border)] bg-[color-mix(in_srgb,var(--header-bg)_92%,transparent)] text-[var(--header-text)] backdrop-blur-xl"
@@ -178,10 +213,10 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
           {/* Nav — centered, scrollable overflow, icons hidden on desktop for density */}
           <div className="hidden flex-1 min-w-0 lg:block" data-testid="desktop-nav">
             <nav
-              className="flex items-center justify-center gap-0.5 overflow-x-auto"
+              className="flex items-center justify-center gap-0.5 overflow-x-visible"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-              {filteredNavItems.map((item) => {
+              {desktopPrimaryItems.map((item) => {
                 const active = isItemActive(item);
                 const href = getItemHref(item);
                 const baseClasses = `inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${
@@ -223,6 +258,77 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                   </Link>
                 );
               })}
+
+              {desktopMoreItems.length > 0 && (
+                <div className="relative shrink-0" ref={moreMenuRef}>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${
+                      isMoreActive || isMoreMenuOpen
+                        ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                        : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
+                    }`}
+                    aria-expanded={isMoreMenuOpen}
+                    aria-haspopup="menu"
+                    onClick={() => setIsMoreMenuOpen((open) => !open)}
+                  >
+                    More
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isMoreMenuOpen && (
+                    <div
+                      className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[180px] rounded-lg border border-[var(--header-border)] bg-[var(--header-bg)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+                      role="menu"
+                    >
+                      {desktopMoreItems.map((item) => {
+                        const active = isItemActive(item);
+                        const href = getItemHref(item);
+                        const itemClasses = `flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors ${
+                          active
+                            ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                            : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
+                        }`;
+
+                        const content = (
+                          <>
+                            {item.icon && <item.icon className="h-4 w-4 text-[var(--league-primary)]" />}
+                            {item.label}
+                          </>
+                        );
+
+                        if (item.isExternal) {
+                          return (
+                            <a
+                              key={`${item.label}-${item.href}`}
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={itemClasses}
+                              role="menuitem"
+                              onClick={() => setIsMoreMenuOpen(false)}
+                            >
+                              {content}
+                            </a>
+                          );
+                        }
+
+                        return (
+                          <Link
+                            key={`${item.label}-${item.href}`}
+                            href={href}
+                            className={itemClasses}
+                            role="menuitem"
+                            onClick={() => setIsMoreMenuOpen(false)}
+                          >
+                            {content}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </nav>
             {/* Hide webkit scrollbar */}
             <style jsx>{`nav::-webkit-scrollbar { display: none; }`}</style>
