@@ -166,6 +166,17 @@ TIME EXTRACTION:
 
 PENALTY TYPES (standardize to): Tripping, Hooking, Slashing, Cross-checking, Roughing, High-sticking, Holding, Interference, Boarding, Delay of game, Too many men, Unsportsmanlike conduct, Fighting, Misconduct
 
+STRUCTURED TEMPLATE (if this appears to be an official HockeyLife score sheet):
+- TWO-COLUMN LAYOUT: the sheet is split vertically — left column = HOME team, right column = AWAY team.
+  Use column position to determine teamType. Do NOT try to read a written "H" or "A".
+- NUMBERED PENALTY CODES: scorekeepers write a number 1–14 in the Code box:
+  1=Tripping, 2=Hooking, 3=Slashing, 4=Cross-checking, 5=Roughing, 6=High-sticking, 7=Holding,
+  8=Interference, 9=Boarding, 10=Delay of game, 11=Too many men, 12=Unsportsmanlike conduct,
+  13=Fighting, 14=Misconduct
+  If you see a 1–14 number in the penalty Code column, map it to the type name above.
+- TIME FORMAT: pre-printed ___:___ boxes — the number before the colon is minutes, after is seconds.
+If the sheet does NOT appear to be this structured template, use your standard handwriting rules above.
+
 Return ONLY valid JSON in this format:
 {
   "goals": [

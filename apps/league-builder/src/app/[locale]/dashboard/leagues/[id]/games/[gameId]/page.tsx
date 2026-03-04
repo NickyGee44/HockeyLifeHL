@@ -25,6 +25,7 @@ import {
   History,
   Trophy,
   AlertTriangle,
+  Printer,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -146,8 +147,17 @@ export default async function GameDetailPage({ params }: Props) {
               </h1>
             </div>
 
-            {/* Client component for actions */}
-            <GameDetailClient game={game} leagueId={leagueId} />
+            {/* Actions */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                href={`/${locale}/dashboard/leagues/${leagueId}/games/${gameId}/print-sheet`}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:border-neutral-500 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                Print Sheet
+              </Link>
+              <GameDetailClient game={game} leagueId={leagueId} />
+            </div>
           </div>
         </div>
 
