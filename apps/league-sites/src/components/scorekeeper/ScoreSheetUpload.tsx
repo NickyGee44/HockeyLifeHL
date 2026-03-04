@@ -33,6 +33,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
   const [extractedEvents, setExtractedEvents] = useState<ExtractedEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saveResult, setSaveResult] = useState<{ addedCount: number; errors: string[] } | null>(null);
+  const [scoresheetImageUrl, setScoresheetImageUrl] = useState<string | null>(null);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -94,6 +95,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
       const result = await response.json();
       const events = parseOcrAnalysisResult(result);
 
+      setScoresheetImageUrl((result as any).scoresheetImageUrl ?? null);
       setExtractedEvents(events);
       setState('review');
     } catch (err) {
@@ -309,6 +311,14 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
               </div>
             ) : (
               <>
+                {scoresheetImageUrl && (
+                  <div className="mb-3 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-400 flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    Scoresheet photo saved to game record
+                  </div>
+                )}
                 <p className="text-sm text-[var(--color-text-secondary)] mb-4">
                   Found {extractedEvents.length} event{extractedEvents.length !== 1 ? 's' : ''}. Review and remove any incorrect entries before saving.
                 </p>

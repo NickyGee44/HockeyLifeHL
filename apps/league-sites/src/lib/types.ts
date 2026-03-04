@@ -679,6 +679,7 @@ export interface GameSheetData {
   goals: GameSheetGoal[];
   penalties: GameSheetPenalty[];
   goalies: GameSheetGoalie[];
+  scoresheetImageUrl: string | null;
 }
 
 // =============================================================================

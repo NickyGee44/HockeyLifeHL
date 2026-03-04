@@ -6,8 +6,8 @@
  * URL: /en/print-sheet-demo (or /fr/print-sheet-demo)
  */
 import { setRequestLocale } from 'next-intl/server';
-import { PrintBar } from '@/components/games/PrintBar';
 import { PrintableGameSheet, type RosterPlayer } from '@/components/games/PrintableGameSheet';
+import { PrintButton } from '@/components/games/PrintButton';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -84,13 +84,7 @@ export default async function PrintSheetDemoPage({ params }: Props) {
             This is a demo game sheet with mock data — the real sheet is generated per-game with actual rosters and a live QR code.
           </span>
         </div>
-        {/* Reuse PrintBar's client button */}
-        <a
-          href="javascript:window.print()"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white text-neutral-950 text-sm font-semibold rounded-lg hover:bg-neutral-100 transition-colors"
-        >
-          Print / Save PDF
-        </a>
+        <PrintButton />
       </div>
 
       <PrintableGameSheet

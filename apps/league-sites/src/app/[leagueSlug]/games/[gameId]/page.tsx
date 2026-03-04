@@ -132,6 +132,27 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
             awayTeam={game.away_team}
             leagueSlug={leagueSlug}
           />
+          {gameSheet.scoresheetImageUrl && (
+            <div className="mt-8">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-[var(--color-text-secondary)] mb-3">
+                Official Scoresheet
+              </h3>
+              <a
+                href={gameSheet.scoresheetImageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block max-w-md rounded-xl overflow-hidden border border-[var(--color-border)] hover:border-[var(--color-border-muted)] transition-colors"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={gameSheet.scoresheetImageUrl}
+                  alt="Official game scoresheet"
+                  className="w-full h-auto"
+                />
+              </a>
+              <p className="mt-1.5 text-xs text-[var(--color-text-muted)]">Click to view full size</p>
+            </div>
+          )}
         </div>
       )}
 

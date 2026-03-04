@@ -119,9 +119,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert image to base64
+    // Convert image to base64 (needed for OCR)
     const arrayBuffer = await image.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+    // Upload image to storage BEFORE OCR so the photo is always saved even if analysis fails
+    const supabaseService = createServiceRoleClient();
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).slice(2, 8);
+    const ext = image.type === 'image/png' ? 'png' : 'jpg';
+    const storagePath = `${session.leagueId}/${session.gameId}/${timestamp}-${randomSuffix}.${ext}`;
+
+    let scoresheetImageUrl: string | null = null;
+    try {
+      const { error: uploadError } = await (supabaseService as any).storage
+        .from('game-scoresheets')
+        .upload(storagePath, arrayBuffer, { contentType: image.type, upsert: false });
+
+      if (!uploadError) {
+        const { data: urlData } = (supabaseService as any).storage
+          .from('game-scoresheets')
+          .getPublicUrl(storagePath);
+        scoresheetImageUrl = urlData?.publicUrl ?? null;
+
+        if (scoresheetImageUrl) {
+          await (supabaseService as any)
+            .from('game_scoresheets')
+            .insert({
+              game_id: session.gameId,
+              league_id: session.leagueId,
+              image_url: scoresheetImageUrl,
+              storage_path: storagePath,
+            });
+        }
+      }
+    } catch {
+      // Storage failure is non-fatal — OCR still runs
+      console.warn('Scoresheet storage upload failed (non-fatal)');
+    }
 
     // Build roster reference for the prompt
     const homeRosterText = homeRoster
@@ -251,6 +286,7 @@ Return ONLY valid JSON in this format:
     return NextResponse.json({
       goals: asArray<OcrGoalResponse>(payload.goals),
       penalties: asArray<OcrPenaltyResponse>(payload.penalties),
+      scoresheetImageUrl,
     });
   } catch (error) {
     console.error('Score sheet analysis error:', error);

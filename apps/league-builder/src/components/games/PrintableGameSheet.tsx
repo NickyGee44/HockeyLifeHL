@@ -26,8 +26,8 @@ const BORDER_HEAVY = '2pt solid #111';
 const BORDER_LIGHT = '0.75pt solid #ccc';
 const BORDER_MED   = '1pt solid #888';
 
-const GOAL_ROWS    = 10;
-const PENALTY_ROWS = 12;
+const GOAL_ROWS    = 8;
+const PENALTY_ROWS = 10;
 
 // 14 standardised penalty codes — must match what the OCR prompt expects
 const PENALTY_CODES = [
@@ -53,7 +53,7 @@ function cell(w?: number | string, extra: React.CSSProperties = {}): React.CSSPr
 function inputCell(w: number | string = 26): React.CSSProperties {
   return {
     width: w,
-    height: 18,
+    height: 15,
     border: '1.5pt solid #333',
     display: 'inline-block',
     borderRadius: '2px',
@@ -165,7 +165,7 @@ export function PrintableGameSheet({
           .gs-root { box-shadow: none !important; }
         }
         .gs-root { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #111; }
-        .gs-root table { border-collapse: collapse; width: 100%; }
+        .gs-root table { border-collapse: collapse; width: 100%; page-break-inside: avoid; }
         .gs-root td, .gs-root th { box-sizing: border-box; }
       `}</style>
 
@@ -322,7 +322,7 @@ export function PrintableGameSheet({
           </thead>
           <tbody>
             {Array.from({ length: GOAL_ROWS }).map((_, i) => (
-              <tr key={i} style={{ height: 20, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
+              <tr key={i} style={{ height: 17, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
                 <td style={cell(18, { fontSize: '7.5pt', color: '#aaa' })}>{i + 1}</td>
                 <td style={cell(24)}><div style={inputCell(20)} /></td>
                 <td style={cell(60)}>
@@ -357,7 +357,7 @@ export function PrintableGameSheet({
           </thead>
           <tbody>
             {Array.from({ length: PENALTY_ROWS }).map((_, i) => (
-              <tr key={i} style={{ height: 20, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
+              <tr key={i} style={{ height: 17, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
                 <td style={cell(18, { fontSize: '7.5pt', color: '#aaa' })}>{i + 1}</td>
                 <td style={cell(24)}><div style={inputCell(20)} /></td>
                 <td style={cell(60)}>

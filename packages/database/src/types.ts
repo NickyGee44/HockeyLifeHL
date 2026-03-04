@@ -2817,6 +2817,62 @@ export type Database = {
           },
         ]
       }
+      game_scoresheets: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          image_url: string
+          league_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          image_url: string
+          league_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          image_url?: string
+          league_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_scoresheets_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_scoresheets_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_scoresheets_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_scoresheets_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_stat_entry_log: {
         Row: {
           action: string

@@ -2802,7 +2802,18 @@ export async function getGameSheet(gameId: string): Promise<GameSheetData | null
     };
   });
 
-  return { game, goals, penalties, goalies };
+  // Fetch most recent scoresheet photo for this game
+  const { data: scoresheetRow } = await supabase
+    .from('game_scoresheets' as any)
+    .select('image_url')
+    .eq('game_id', gameId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const scoresheetImageUrl: string | null = (scoresheetRow as any)?.image_url ?? null;
+
+  return { game, goals, penalties, goalies, scoresheetImageUrl };
 }
 
 // ========== GAME PLAYER STATS (BOX SCORE) ==========
