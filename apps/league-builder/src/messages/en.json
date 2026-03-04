@@ -82,7 +82,7 @@
     "pricing": {
       "badge": "Simple Pricing",
       "headline": "Everything you need to run your league.",
-      "subheadline": "$299.99/mo for hosting, maintenance, and all core features — plus a 2.99% transaction fee when you process payments.",
+      "subheadline": "$0/mo for hosting, maintenance, and all core features — plus a 3.5% transaction fee when you process payments.",
       "fee": "Only",
       "feeContext": "on payment processing (min $0.50/transaction)",
       "benefit1": "Unlimited teams and players",
@@ -100,7 +100,7 @@
       "addon2Price": "$14.99/mo",
       "addon2Description": "Auto-generated game recaps, weekly roundups, and player spotlights",
       "addon3Name": "Platform Pro",
-      "addon3Price": "$299.99/mo",
+      "addon3Price": "$0/mo",
       "addon3Description": "Priority support, custom branding, and advanced admin tools"
     },
     "finalCta": {
@@ -971,7 +971,7 @@
     "title": "Billing",
     "description": "Manage your billing and payment processing",
     "platformFree": "Platform Monthly",
-    "platformFreeDescription": "$299.99/mo — hosting, maintenance, and all core features included.",
+    "platformFreeDescription": "$0/mo — hosting, maintenance, and all core features included.",
     "included": {
       "unlimitedTeams": "Unlimited teams and players",
       "leagueWebsite": "Full-featured league website included",
@@ -1066,7 +1066,7 @@
       "startSetup": "Start Setup",
       "continueSetup": "Continue Setup",
       "stripeDashboard": "Stripe Dashboard",
-      "platformFeeNotice": "A 2.99% platform fee applies to all transactions",
+      "platformFeeNotice": "A 3.5% platform fee applies to all transactions",
       "status": {
         "notStarted": "Not Started",
         "pending": "Pending",
@@ -3065,7 +3065,7 @@
       "config": {
         "platform_subscription": {
           "name": "Platform Monthly",
-          "price": "$299.99/mo",
+          "price": "$0/mo",
           "description": "Priority support, custom branding, and advanced admin tools"
         },
         "advanced_stats": {

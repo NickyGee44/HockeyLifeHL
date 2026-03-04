@@ -136,7 +136,7 @@ export function PremiumUpgradeCard({
         {/* Pricing */}
         <div className="mb-6">
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-black text-white">$299.99</span>
+            <span className="text-4xl font-black text-white">$0</span>
             <span className="text-neutral-500">{t('perMonth')}</span>
           </div>
         </div>

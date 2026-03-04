@@ -15,7 +15,7 @@ import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
 
 // Pricing constants
-const PLATFORM_BASE_PRICE = 299.99;
+const PLATFORM_BASE_PRICE = 0;
 const ADDON_INDIVIDUAL_PRICE = 14.99;
 const ADDON_BUNDLE_PRICE = 24.99;
 
@@ -55,7 +55,7 @@ export function Step6Addons() {
                       Hosting & Maintenance
                     </h4>
                     <span className="text-lg font-bold">
-                      $299.99
+                      $0
                       <span className="text-sm font-normal text-muted-foreground">
                         /mo
                       </span>
@@ -297,7 +297,7 @@ export function Step6Addons() {
                 <div className="bg-muted/50 p-3 rounded-lg flex items-start gap-2">
                   <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                   <p className="text-xs text-muted-foreground">
-                    Plus 2.99% transaction fee on player payments (registration
+                    Plus 3.5% transaction fee on player payments (registration
                     fees, etc.)
                   </p>
                 </div>

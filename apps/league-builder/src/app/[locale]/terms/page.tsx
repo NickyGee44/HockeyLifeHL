@@ -99,7 +99,7 @@ export default function TermsOfServicePage() {
               5. Pricing and Payment
             </h2>
             <p className="text-neutral-300 mb-4">
-              <strong className="text-rink-500">Transaction Fee:</strong> When you process payments through Beer League Hockey (e.g., player registration fees), a 2.99% platform fee is applied to each transaction. This is separate from Stripe&apos;s own card processing fees.
+              <strong className="text-rink-500">Transaction Fee:</strong> When you process payments through Beer League Hockey (e.g., player registration fees), a 3.5% platform fee is applied to each transaction. This is separate from Stripe&apos;s own card processing fees.
             </p>
             <p className="text-neutral-300 mb-4">
               <strong className="text-rink-500">Payment Processing:</strong> All payments are processed securely through Stripe Connect. League administrators receive funds directly to their connected Stripe account.

@@ -32,7 +32,7 @@ function centsToDollars(cents: number): string {
 }
 
 // Pricing constants
-const PLATFORM_BASE_PRICE = 299.99;
+const PLATFORM_BASE_PRICE = 0;
 const ADDON_INDIVIDUAL_PRICE = 14.99;
 
 export function Step8Review() {

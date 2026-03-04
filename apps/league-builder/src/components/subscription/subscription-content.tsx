@@ -2,9 +2,9 @@
  * Subscription Content Component
  *
  * Displays the billing & subscription management page:
- * - Current Plan: Platform Monthly ($299.99/mo) — the only plan (no free tier)
+ * - Current Plan: Platform Monthly ($0/mo) — the only plan (no free tier)
  * - Add-on cards grid (Advanced Stats, AI News Writer)
- * - Payment processing info (2.99% fee)
+ * - Payment processing info (3.5% fee)
  * - Premium services (custom domain, data import)
  *
  * Handles all subscription states and checkout flows.
@@ -152,7 +152,7 @@ export function SubscriptionContent({
           <div className="flex items-center gap-3">
             <div className="text-right">
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-white">$299.99</span>
+                <span className="text-3xl font-black text-white">$0</span>
                 <span className="text-neutral-500 text-sm">{t('perMonth')}</span>
               </div>
             </div>

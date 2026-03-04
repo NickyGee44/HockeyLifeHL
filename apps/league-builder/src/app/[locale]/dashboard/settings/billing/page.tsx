@@ -5,7 +5,7 @@
  * Displays:
  * - Plan management (free tier + premium upgrade CTA)
  * - Add-on cards (Advanced Stats, AI News Writer)
- * - Payment processing info (2.99% fee)
+ * - Payment processing info (3.5% fee)
  * - Per-league Stripe Connect billing links
  * - Premium services (custom domain, data import)
  *

@@ -2,8 +2,8 @@
  * Subscription Types for Platform (Organization-level billing)
  *
  * Beer League Hockey pricing model:
- * - Platform Monthly: $299.99/mo — hosting, maintenance, all core features
- * - 2.99% processing fee on all player payments (configurable per league)
+ * - Platform Monthly: $0/mo — hosting, maintenance, all core features
+ * - 3.5% processing fee on all player payments (configurable per league)
  * - Optional add-ons: Advanced Stats ($14.99/mo), AI News ($14.99/mo)
  * - Premium services: Custom domain, data import (contact for quote)
  *
@@ -39,7 +39,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, {
 }> = {
   free: {
     name: 'Platform Monthly',
-    price: 29999,
+    price: 0,
     interval: 'month',
     features: [
       'Unlimited leagues',

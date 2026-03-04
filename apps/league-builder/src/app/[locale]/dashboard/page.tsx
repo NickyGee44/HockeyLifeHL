@@ -137,7 +137,7 @@ export default async function DashboardPage({ params }: Props) {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-neutral-400">{t('dashboard.platformFee')}</span>
-                <span className="text-xs font-medium text-white">2.99%</span>
+                <span className="text-xs font-medium text-white">3.5%</span>
               </div>
               <div className="pt-2 border-t border-white/[0.06]">
                 <Link

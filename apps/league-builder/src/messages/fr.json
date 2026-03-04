@@ -82,7 +82,7 @@
     "pricing": {
       "badge": "Tarification simple",
       "headline": "Tout ce dont vous avez besoin pour gerer votre ligue.",
-      "subheadline": "299,99 $/mois pour l'hebergement, la maintenance et toutes les fonctionnalites — plus 2,99 % de frais de transaction sur les paiements.",
+      "subheadline": "0 $/mois pour l'hebergement, la maintenance et toutes les fonctionnalites — plus 3,5 % de frais de transaction sur les paiements.",
       "fee": "Seulement",
       "feeContext": "sur le traitement des paiements (min 0,50 $/transaction)",
       "benefit1": "Equipes et joueurs illimites",
@@ -100,7 +100,7 @@
       "addon2Price": "14,99 $/mois",
       "addon2Description": "Comptes rendus de matchs automatises, bilans hebdomadaires et profils de joueurs",
       "addon3Name": "Plateforme Pro",
-      "addon3Price": "299,99 $/mois",
+      "addon3Price": "0 $/mois",
       "addon3Description": "Support prioritaire, image de marque personnalisee et outils d'administration avances"
     },
     "finalCta": {
@@ -971,7 +971,7 @@
     "title": "Facturation",
     "description": "Gerez votre facturation et le traitement des paiements",
     "platformFree": "Plateforme mensuelle",
-    "platformFreeDescription": "299,99 $/mois — hebergement, maintenance et toutes les fonctionnalites incluses.",
+    "platformFreeDescription": "0 $/mois — hebergement, maintenance et toutes les fonctionnalites incluses.",
     "included": {
       "unlimitedTeams": "Equipes et joueurs illimites",
       "leagueWebsite": "Site web de ligue complet inclus",
@@ -1066,7 +1066,7 @@
       "startSetup": "Commencer la configuration",
       "continueSetup": "Continuer la configuration",
       "stripeDashboard": "Tableau de bord Stripe",
-      "platformFeeNotice": "Des frais de plateforme de 2,99 % s'appliquent a toutes les transactions",
+      "platformFeeNotice": "Des frais de plateforme de 3,5 % s'appliquent a toutes les transactions",
       "status": {
         "notStarted": "Non commence",
         "pending": "En attente",
@@ -3065,7 +3065,7 @@
       "config": {
         "platform_subscription": {
           "name": "Plateforme mensuelle",
-          "price": "299,99 $/mois",
+          "price": "0 $/mois",
           "description": "Support prioritaire, branding personnalise et outils d'administration avances"
         },
         "advanced_stats": {
