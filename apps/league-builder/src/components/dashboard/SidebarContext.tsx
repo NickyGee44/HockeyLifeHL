@@ -8,6 +8,16 @@ interface SelectedContext {
   seasonId: string | null;
 }
 
+export type NavSection =
+  | 'dashboard'
+  | 'seasons'
+  | 'teams'
+  | 'schedule'
+  | 'players'
+  | 'financials'
+  | 'content'
+  | 'settings';
+
 interface SidebarContextValue {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
@@ -21,6 +31,12 @@ interface SidebarContextValue {
   toggleMobileNav: () => void;
   isMobileMoreOpen: boolean;
   toggleMobileMore: () => void;
+  // Icon rail state
+  activeSection: NavSection | null;
+  setActiveSection: (section: NavSection | null) => void;
+  isSecondaryPinned: boolean;
+  setIsSecondaryPinned: (pinned: boolean) => void;
+  toggleSecondaryPin: () => void;
 }
 
 const SidebarContext = React.createContext<SidebarContextValue | undefined>(undefined);
@@ -52,6 +68,8 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   });
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = React.useState(false);
+  const [activeSection, setActiveSection] = React.useState<NavSection | null>(null);
+  const [isSecondaryPinned, setIsSecondaryPinned] = React.useState(true);
 
   // Auto-collapse sidebar on screens below lg (1024px)
   React.useEffect(() => {
@@ -118,6 +136,10 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     setIsMobileMoreOpen((prev) => !prev);
   }, []);
 
+  const toggleSecondaryPin = React.useCallback(() => {
+    setIsSecondaryPinned((prev) => !prev);
+  }, []);
+
   const value = React.useMemo(
     () => ({
       isCollapsed,
@@ -130,6 +152,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       toggleMobileNav,
       isMobileMoreOpen,
       toggleMobileMore,
+      activeSection,
+      setActiveSection,
+      isSecondaryPinned,
+      setIsSecondaryPinned,
+      toggleSecondaryPin,
     }),
     [
       isCollapsed,
@@ -141,6 +168,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       toggleMobileNav,
       isMobileMoreOpen,
       toggleMobileMore,
+      activeSection,
+      isSecondaryPinned,
+      toggleSecondaryPin,
     ]
   );
 

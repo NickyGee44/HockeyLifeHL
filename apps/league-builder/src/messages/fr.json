@@ -219,7 +219,10 @@
     "leagueOverview": "Aperçu de la ligue",
     "seasons": "Saisons",
     "games": "Matchs",
-    "leagueBilling": "Configuration des paiements"
+    "leagueBilling": "Configuration des paiements",
+    "financials": "Finances",
+    "divisions": "Divisions",
+    "goaliePool": "Bassin de gardiens"
   },
   "commandPalette": {
     "searchPlaceholder": "Rechercher des pages et actions...",
