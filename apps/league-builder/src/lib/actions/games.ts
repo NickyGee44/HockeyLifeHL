@@ -307,16 +307,9 @@ export async function getGame(gameId: string): Promise<ActionResult<Game>> {
       return { success: false, error: 'Game not found or access denied' };
     }
 
-    // Verify user has access to this game's league BEFORE fetching full data
-    const { data: membership } = await serviceClient
-      .from('league_memberships')
-      .select('role')
-      .eq('league_id', gameRef.league_id)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single();
-
-    if (!membership) {
+    // Verify access to this game's league BEFORE fetching full data
+    const auth = await verifyLeagueAdmin(gameRef.league_id);
+    if (!auth || auth.userId !== user.id) {
       return { success: false, error: 'Game not found or access denied' };
     }
 
