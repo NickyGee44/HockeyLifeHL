@@ -62,6 +62,8 @@ export interface StandingsTableProps {
   className?: string;
   /** Render a custom logo element (e.g. next/image). If not provided, uses <img>. */
   renderLogo?: (team: StandingsTeam) => React.ReactNode;
+  /** Optional team destination URL for clickable team cells. */
+  getTeamHref?: (team: StandingsTeam) => string | undefined;
   /** Custom empty state message */
   emptyMessage?: string;
 }
@@ -117,6 +119,7 @@ export function StandingsTable({
   searchTerm = '',
   className,
   renderLogo,
+  getTeamHref,
   emptyMessage,
 }: StandingsTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('pts');
@@ -195,6 +198,7 @@ export function StandingsTable({
         return team.rank;
       }
       case 'team': {
+        const teamHref = getTeamHref?.(team);
         const logo = renderLogo
           ? renderLogo(team)
           : team.logoUrl
@@ -213,12 +217,22 @@ export function StandingsTable({
               )
               : null;
 
-        return (
+        const content = (
           <div className="flex items-center gap-2 min-w-0">
             {logo}
             <span className="font-medium truncate">{team.name}</span>
           </div>
         );
+
+        if (teamHref) {
+          return (
+            <a href={teamHref} className="group block hover:opacity-85 transition-opacity">
+              {content}
+            </a>
+          );
+        }
+
+        return content;
       }
       case 'gp': return team.gamesPlayed;
       case 'w': return team.wins;

@@ -10,12 +10,14 @@ interface StandingsWithSearchProps {
   standings: TeamStanding[];
   divisions: Division[];
   standingsByDivision: Record<string, TeamStanding[]>;
+  leagueSlug: string;
 }
 
 export function StandingsWithSearch({
   standings,
   divisions,
   standingsByDivision,
+  leagueSlug,
 }: StandingsWithSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const { selectedDivisionId, setDivision } = useDivisionFilter();
@@ -61,7 +63,7 @@ export function StandingsWithSearch({
 
       {/* Standings Table */}
       <div className="card overflow-hidden">
-        <StandingsTable standings={currentStandings} searchTerm={searchTerm} />
+        <StandingsTable standings={currentStandings} searchTerm={searchTerm} leagueSlug={leagueSlug} />
       </div>
 
       {/* No results message */}

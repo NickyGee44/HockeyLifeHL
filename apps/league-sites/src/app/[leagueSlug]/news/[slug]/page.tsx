@@ -84,8 +84,25 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             {article.author && (
               <div className="flex items-center gap-1.5">
                 <User className="w-4 h-4" />
-                <span>{article.author.full_name}</span>
+                {article.author_id ? (
+                  <Link
+                    href={`/${leagueSlug}/players/${article.author_id}`}
+                    className="hover:text-[var(--league-primary)] transition-colors"
+                  >
+                    {article.author.full_name}
+                  </Link>
+                ) : (
+                  <span>{article.author.full_name}</span>
+                )}
               </div>
+            )}
+            {article.game_id && (
+              <Link
+                href={`/${leagueSlug}/games/${article.game_id}`}
+                className="hover:text-[var(--league-primary)] transition-colors"
+              >
+                Related Game
+              </Link>
             )}
           </div>
 

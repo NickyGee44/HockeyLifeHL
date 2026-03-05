@@ -75,6 +75,7 @@ export default async function StandingsPage({ params, searchParams }: StandingsP
           standings={standings}
           divisions={divisions}
           standingsByDivision={standingsByDivision}
+          leagueSlug={leagueSlug}
         />
       ) : (
         <div className="card p-12 text-center">

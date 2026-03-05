@@ -9,6 +9,7 @@ import type { TeamStanding } from '@/lib/types';
 interface StandingsTableProps {
   standings: TeamStanding[];
   searchTerm?: string;
+  leagueSlug?: string;
 }
 
 function toStandingsTeam(team: TeamStanding, index: number): StandingsTeam {
@@ -41,7 +42,7 @@ function TeamLogo({ team }: { team: StandingsTeam }) {
   );
 }
 
-export function StandingsTable({ standings, searchTerm = '' }: StandingsTableProps) {
+export function StandingsTable({ standings, searchTerm = '', leagueSlug }: StandingsTableProps) {
   const mapped = useMemo(
     () => standings.map((t, i) => toStandingsTeam(t, i)),
     [standings],
@@ -54,6 +55,7 @@ export function StandingsTable({ standings, searchTerm = '' }: StandingsTablePro
       showOvertimeLosses
       searchTerm={searchTerm}
       renderLogo={(team) => <TeamLogo team={team} />}
+      getTeamHref={(team) => leagueSlug ? `/${leagueSlug}/teams/id/${team.id}` : undefined}
     />
   );
 }
