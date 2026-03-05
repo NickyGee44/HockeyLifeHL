@@ -26,8 +26,8 @@ const BORDER_HEAVY = '2pt solid #111';
 const BORDER_LIGHT = '0.75pt solid #ccc';
 const BORDER_MED   = '1pt solid #888';
 
-const GOAL_ROWS    = 8;
-const PENALTY_ROWS = 10;
+const GOAL_ROWS    = 12;
+const PENALTY_ROWS = 8;
 
 // 14 standardised penalty codes — must match what the OCR prompt expects
 const PENALTY_CODES = [

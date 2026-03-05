@@ -455,7 +455,8 @@ export async function recalculateGameStats(gameId: string): Promise<ActionResult
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Call the recalculation function
+    // Preferred RPC recalculation path
+    let usedFallback = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: rpcError } = await (serviceClient as any).rpc('recalculate_game_stats_from_events', {
       p_game_id: gameId,
@@ -463,7 +464,54 @@ export async function recalculateGameStats(gameId: string): Promise<ActionResult
 
     if (rpcError) {
       console.error('Recalculate game stats RPC error:', rpcError);
-      return { success: false, error: 'Failed to recalculate stats' };
+      usedFallback = true;
+
+      // Fallback: recompute only the game score directly from active goal events.
+      // This prevents hard-failure when RPCs drift across environments.
+      const [{ count: homeGoals }, { count: awayGoals }] = await Promise.all([
+        serviceClient
+          .from('game_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('game_id', gameId)
+          .eq('event_type', 'goal')
+          .eq('team_type', 'home')
+          .is('deleted_at', null),
+        serviceClient
+          .from('game_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('game_id', gameId)
+          .eq('event_type', 'goal')
+          .eq('team_type', 'away')
+          .is('deleted_at', null),
+      ]);
+
+      const homeScore = homeGoals ?? 0;
+      const awayScore = awayGoals ?? 0;
+
+      const { error: scoreUpdateError } = await serviceClient
+        .from('games')
+        .update({
+          home_score: homeScore,
+          away_score: awayScore,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', gameId);
+
+      if (scoreUpdateError) {
+        return { success: false, error: 'Failed to recalculate stats (fallback update failed)' };
+      }
+
+      // Best-effort season-wide stat refresh for environments where this RPC exists.
+      if (game.season_id) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (serviceClient as any).rpc('recalculate_all_season_stats', {
+            p_season_id: game.season_id,
+          });
+        } catch (seasonRecalcError) {
+          console.warn('Season stats recalc RPC unavailable or failed:', seasonRecalcError);
+        }
+      }
     }
 
     // Get updated scores
@@ -484,6 +532,7 @@ export async function recalculateGameStats(gameId: string): Promise<ActionResult
       new_data: {
         home_score: updatedGame?.home_score,
         away_score: updatedGame?.away_score,
+        used_fallback: usedFallback,
       } as any,
       reason: 'Stats recalculated after correction',
     });
