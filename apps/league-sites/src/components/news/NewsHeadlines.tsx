@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Newspaper, Calendar, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
+import { featureFlags } from '@/lib/config/feature-flags';
 
 interface NewsHeadlinesProps {
   articles: NewsArticle[];
@@ -15,6 +16,8 @@ function formatDate(dateStr: string) {
 }
 
 export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
+  const showFallback = featureFlags.enableHomepageNewsFallback;
+
   return (
     <div className="flex h-full w-full flex-col rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_50%,transparent)] p-5 backdrop-blur-xl md:p-6 lg:p-8">
       <div className="mb-4 flex items-center justify-between">
@@ -61,14 +64,15 @@ export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
               </Link>
             ))}
           </div>
-        ) : (
+        ) : showFallback ? (
           <div className="h-full rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-5 text-center md:px-5 md:py-6">
             <p className="text-sm font-semibold text-[var(--color-text-primary)]">No News Yet</p>
             <p className="mt-1 text-xs text-[var(--color-text-secondary)] md:text-sm">
               League updates and announcements will appear here once published.
             </p>
           </div>
-        )}
+        ) : null
+        }
       </div>
 
       <Link
