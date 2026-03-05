@@ -26,8 +26,8 @@ const BORDER_HEAVY = '2pt solid #111';
 const BORDER_LIGHT = '0.75pt solid #ccc';
 const BORDER_MED   = '1pt solid #888';
 
-const GOAL_ROWS    = 16;
-const PENALTY_ROWS = 6;
+const GOAL_ROWS    = 20;
+const PENALTY_ROWS = 20;
 
 // 14 standardised penalty codes — must match what the OCR prompt expects
 const PENALTY_CODES = [
@@ -167,12 +167,32 @@ export function PrintableGameSheet({
         .gs-root { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #111; }
         .gs-root table { border-collapse: collapse; width: 100%; page-break-inside: avoid; }
         .gs-root td, .gs-root th { box-sizing: border-box; }
+        .gs-watermark {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .gs-watermark img {
+          width: 46%;
+          height: auto;
+          opacity: 0.3;
+        }
+        .gs-content { position: relative; z-index: 1; }
       `}</style>
 
       <div
         className="gs-root"
-        style={{ background: '#fff', maxWidth: 1120, margin: '0 auto', padding: 8 }}
+        style={{ background: '#fff', maxWidth: 1120, margin: '0 auto', padding: 8, position: 'relative', overflow: 'hidden' }}
       >
+        <div className="gs-watermark" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="" />
+        </div>
+        <div className="gs-content">
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
           <tbody>
@@ -455,6 +475,7 @@ export function PrintableGameSheet({
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </>
   );
