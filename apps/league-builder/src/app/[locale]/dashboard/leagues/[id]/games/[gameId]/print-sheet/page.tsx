@@ -5,6 +5,7 @@ import { getGame } from '@/lib/actions/games';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { PrintBar } from '@/components/games/PrintBar';
 import { PrintableGameSheet, type RosterPlayer } from '@/components/games/PrintableGameSheet';
+import { randomBytes } from 'crypto';
 
 type Props = {
   params: Promise<{ locale: string; id: string; gameId: string }>;
@@ -13,6 +14,18 @@ type Props = {
 export const metadata = {
   title: 'Print Game Sheet',
 };
+
+function generateScorekeeperToken(): string {
+  const bytes = randomBytes(24);
+  const token = bytes
+    .toString('base64')
+    .replace(/[^A-Z0-9]/gi, '')
+    .toUpperCase()
+    .substring(0, 16);
+
+  if (token.length < 16) return generateScorekeeperToken();
+  return token;
+}
 
 export default async function PrintSheetPage({ params }: Props) {
   const { locale, id: leagueId, gameId } = await params;
@@ -67,22 +80,75 @@ export default async function PrintSheetPage({ params }: Props) {
     }));
   };
 
-  const fetchScorekeeperToken = async (): Promise<string | null> => {
-    const { data } = await (serviceClient as any)
+  const getOrCreateScorekeeperToken = async (): Promise<string | null> => {
+    const nowIso = new Date().toISOString();
+    const { data: existing } = await (serviceClient as any)
       .from('scorekeeper_sessions')
       .select('token')
       .eq('game_id', gameId)
       .eq('is_active', true)
+      .gt('expires_at', nowIso)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    return (data?.token as string) ?? null;
+
+    if (existing?.token) {
+      return existing.token as string;
+    }
+
+    let token = generateScorekeeperToken();
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+      const { data: tokenExists } = await (serviceClient as any)
+        .from('scorekeeper_sessions')
+        .select('id')
+        .eq('token', token)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (!tokenExists) break;
+      token = generateScorekeeperToken();
+      attempts++;
+    }
+
+    if (attempts >= maxAttempts) {
+      console.error('Failed to generate unique scorekeeper token for print sheet');
+      return null;
+    }
+
+    const now = new Date();
+    const minimumExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const gameTime = new Date(game.scheduled_at);
+    const gameBasedExpiry = new Date(gameTime.getTime() + 48 * 60 * 60 * 1000);
+    const expiresAt = gameBasedExpiry > minimumExpiry ? gameBasedExpiry : minimumExpiry;
+
+    const { error: insertError } = await (serviceClient as any)
+      .from('scorekeeper_sessions')
+      .insert({
+        game_id: gameId,
+        league_id: leagueId,
+        token,
+        expires_at: expiresAt.toISOString(),
+        created_by: user.id,
+        session_type: 'single',
+        is_active: true,
+      });
+
+    if (insertError) {
+      console.error('Failed to create scorekeeper token for print sheet', insertError);
+      return null;
+    }
+
+    return token;
   };
 
   const [homeRoster, awayRoster, skToken] = await Promise.all([
     fetchRoster(game.home_team_id),
     fetchRoster(game.away_team_id),
-    fetchScorekeeperToken(),
+    getOrCreateScorekeeperToken(),
   ]);
 
   // Build scorekeeper URL for the QR code.

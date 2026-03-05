@@ -26,8 +26,8 @@ const BORDER_HEAVY = '2pt solid #111';
 const BORDER_LIGHT = '0.75pt solid #ccc';
 const BORDER_MED   = '1pt solid #888';
 
-const GOAL_ROWS    = 12;
-const PENALTY_ROWS = 8;
+const GOAL_ROWS    = 16;
+const PENALTY_ROWS = 6;
 
 // 14 standardised penalty codes — must match what the OCR prompt expects
 const PENALTY_CODES = [
@@ -158,7 +158,7 @@ export function PrintableGameSheet({
   return (
     <>
       <style>{`
-        @page { size: letter portrait; margin: 0.35in; }
+        @page { size: letter landscape; margin: 0.25in; }
         @media print {
           .no-print { display: none !important; }
           body { margin: 0; padding: 0; background: #fff; }
@@ -171,7 +171,7 @@ export function PrintableGameSheet({
 
       <div
         className="gs-root"
-        style={{ background: '#fff', maxWidth: 780, margin: '0 auto', padding: 10 }}
+        style={{ background: '#fff', maxWidth: 1120, margin: '0 auto', padding: 8 }}
       >
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
@@ -306,75 +306,77 @@ export function PrintableGameSheet({
           </tbody>
         </table>
 
-        {/* ── GOALS TABLE ─────────────────────────────────────────────────── */}
-        <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
-          <thead>
-            {sectionHeaderRow('Goals — enter one row per goal', 7)}
-            <tr>
-              {colHead('#', 18)}
-              {colHead('Per', 24)}
-              {colHead('Time MM:SS', 60)}
-              {colHead('H / A', 30)}
-              {colHead('Scorer #', 42)}
-              {colHead('Assist 1 #', 44)}
-              {colHead('Assist 2 #', 44)}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: GOAL_ROWS }).map((_, i) => (
-              <tr key={i} style={{ height: 17, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
-                <td style={cell(18, { fontSize: '7.5pt', color: '#aaa' })}>{i + 1}</td>
-                <td style={cell(24)}><div style={inputCell(20)} /></td>
-                <td style={cell(60)}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                    <div style={inputCell(22)} />
-                    <span style={{ fontSize: '9pt', fontWeight: 700, lineHeight: 1 }}>:</span>
-                    <div style={inputCell(18)} />
-                  </div>
-                </td>
-                <td style={cell(30)}><div style={inputCell(24)} /></td>
-                <td style={cell(42)}><div style={inputCell(36)} /></td>
-                <td style={cell(44)}><div style={inputCell(36)} /></td>
-                <td style={cell(44)}><div style={inputCell(36)} /></td>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 5 }}>
+          {/* ── GOALS TABLE ───────────────────────────────────────────────── */}
+          <table style={{ border: BORDER_HEAVY }}>
+            <thead>
+              {sectionHeaderRow('Goals — enter one row per goal', 7)}
+              <tr>
+                {colHead('#', 18)}
+                {colHead('Per', 24)}
+                {colHead('Time MM:SS', 60)}
+                {colHead('H / A', 30)}
+                {colHead('Scorer #', 42)}
+                {colHead('Assist 1 #', 44)}
+                {colHead('Assist 2 #', 44)}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {Array.from({ length: GOAL_ROWS }).map((_, i) => (
+                <tr key={i} style={{ height: 17, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
+                  <td style={cell(18, { fontSize: '7.5pt', color: '#aaa' })}>{i + 1}</td>
+                  <td style={cell(24)}><div style={inputCell(20)} /></td>
+                  <td style={cell(60)}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                      <div style={inputCell(22)} />
+                      <span style={{ fontSize: '9pt', fontWeight: 700, lineHeight: 1 }}>:</span>
+                      <div style={inputCell(18)} />
+                    </div>
+                  </td>
+                  <td style={cell(30)}><div style={inputCell(24)} /></td>
+                  <td style={cell(42)}><div style={inputCell(36)} /></td>
+                  <td style={cell(44)}><div style={inputCell(36)} /></td>
+                  <td style={cell(44)}><div style={inputCell(36)} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {/* ── PENALTIES TABLE ─────────────────────────────────────────────── */}
-        <table style={{ marginBottom: 5, border: BORDER_HEAVY }}>
-          <thead>
-            {sectionHeaderRow('Penalties — enter one row per penalty', 7)}
-            <tr>
-              {colHead('#', 18)}
-              {colHead('Per', 24)}
-              {colHead('Time MM:SS', 60)}
-              {colHead('H / A', 30)}
-              {colHead('Player #', 42)}
-              {colHead('Code (1–14)', 54)}
-              {colHead('Min', 36)}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: PENALTY_ROWS }).map((_, i) => (
-              <tr key={i} style={{ height: 17, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
-                <td style={cell(18, { fontSize: '7.5pt', color: '#aaa' })}>{i + 1}</td>
-                <td style={cell(24)}><div style={inputCell(20)} /></td>
-                <td style={cell(60)}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                    <div style={inputCell(22)} />
-                    <span style={{ fontSize: '9pt', fontWeight: 700, lineHeight: 1 }}>:</span>
-                    <div style={inputCell(18)} />
-                  </div>
-                </td>
-                <td style={cell(30)}><div style={inputCell(24)} /></td>
-                <td style={cell(42)}><div style={inputCell(36)} /></td>
-                <td style={cell(54)}><div style={inputCell(40)} /></td>
-                <td style={cell(36)}><div style={inputCell(28)} /></td>
+          {/* ── PENALTIES TABLE ───────────────────────────────────────────── */}
+          <table style={{ border: BORDER_HEAVY }}>
+            <thead>
+              {sectionHeaderRow('Penalties — enter one row per penalty', 7)}
+              <tr>
+                {colHead('#', 18)}
+                {colHead('Per', 24)}
+                {colHead('Time MM:SS', 60)}
+                {colHead('H / A', 30)}
+                {colHead('Player #', 42)}
+                {colHead('Code (1–14)', 54)}
+                {colHead('Min', 36)}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {Array.from({ length: PENALTY_ROWS }).map((_, i) => (
+                <tr key={i} style={{ height: 17, background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
+                  <td style={cell(18, { fontSize: '7.5pt', color: '#aaa' })}>{i + 1}</td>
+                  <td style={cell(24)}><div style={inputCell(20)} /></td>
+                  <td style={cell(60)}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                      <div style={inputCell(22)} />
+                      <span style={{ fontSize: '9pt', fontWeight: 700, lineHeight: 1 }}>:</span>
+                      <div style={inputCell(18)} />
+                    </div>
+                  </td>
+                  <td style={cell(30)}><div style={inputCell(24)} /></td>
+                  <td style={cell(42)}><div style={inputCell(36)} /></td>
+                  <td style={cell(54)}><div style={inputCell(40)} /></td>
+                  <td style={cell(36)}><div style={inputCell(28)} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* ── SHOTS ON GOAL ───────────────────────────────────────────────── */}
         <table style={{ marginBottom: 5, border: BORDER_HEAVY, width: '100%' }}>
