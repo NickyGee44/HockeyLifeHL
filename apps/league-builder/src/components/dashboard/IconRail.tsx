@@ -18,6 +18,8 @@ import {
   Trophy,
   Shield,
   Zap,
+  ChevronRight,
+  PanelLeftClose,
 } from 'lucide-react';
 import { signOut } from '@/lib/actions/auth';
 import { useSidebar, type NavSection } from './SidebarContext';
@@ -47,6 +49,8 @@ export function IconRail({ captainTeams, isPlatformAdmin, isOrgOwner }: IconRail
     activeSection,
     setActiveSection,
     isSecondaryPinned,
+    isCollapsed,
+    toggle,
     selected,
   } = useSidebar();
 
@@ -77,12 +81,21 @@ export function IconRail({ captainTeams, isPlatformAdmin, isOrgOwner }: IconRail
     }
   };
 
-  // If no active section set yet but we have a current one from URL, set it
-  React.useEffect(() => {
-    if (activeSection === null && currentSection) {
-      setActiveSection(currentSection);
-    }
-  }, [currentSection]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (isCollapsed) {
+    return (
+      <div className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex w-4 bg-neutral-950/95 border-r border-white/10">
+        <button
+          type="button"
+          onClick={toggle}
+          className="mt-4 mx-auto w-3 h-10 rounded-full text-neutral-500 hover:text-white hover:bg-neutral-800 transition-colors flex items-center justify-center"
+          aria-label="Expand sidebar"
+          title="Expand sidebar"
+        >
+          <ChevronRight className="w-3 h-3" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex flex-col w-16 bg-neutral-950 border-r border-white/10">
@@ -90,6 +103,8 @@ export function IconRail({ captainTeams, isPlatformAdmin, isOrgOwner }: IconRail
       <Link
         href="/dashboard"
         className="flex items-center justify-center h-16 border-b border-white/10 hover:bg-neutral-800/50 transition-colors"
+        title="Dashboard home"
+        aria-label="Dashboard home"
       >
         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-rink-500 to-arena-500 flex items-center justify-center">
           <Trophy className="w-5 h-5 text-black" />
@@ -107,6 +122,7 @@ export function IconRail({ captainTeams, isPlatformAdmin, isOrgOwner }: IconRail
             <button
               key={section.id}
               onClick={() => handleSectionClick(section.id)}
+              type="button"
               className={cn(
                 'relative w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 group',
                 isActive
@@ -115,18 +131,17 @@ export function IconRail({ captainTeams, isPlatformAdmin, isOrgOwner }: IconRail
                   ? 'bg-neutral-800 text-white'
                   : 'text-neutral-500 hover:text-white hover:bg-neutral-800/50'
               )}
+              aria-label={section.label}
+              title={section.label}
             >
               {/* Active indicator bar */}
               {isActive && (
                 <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-rink-500" />
               )}
               <Icon className="w-5 h-5" />
-              {/* Tooltip — only show when secondary panel is closed */}
-              {!isSecondaryPinned && (
-                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-neutral-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[60] shadow-lg border border-white/10">
-                  {section.label}
-                </div>
-              )}
+              <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-neutral-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[60] shadow-lg border border-white/10">
+                {section.label}
+              </div>
             </button>
           );
         })}
@@ -147,6 +162,8 @@ export function IconRail({ captainTeams, isPlatformAdmin, isOrgOwner }: IconRail
                       ? 'bg-rink-500/15 text-rink-500'
                       : 'text-neutral-500 hover:text-white hover:bg-neutral-800/50'
                   )}
+                  title={team.short_name}
+                  aria-label={`Captain team ${team.short_name}`}
                 >
                   {isActive && (
                     <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-rink-500" />
@@ -176,6 +193,8 @@ export function IconRail({ captainTeams, isPlatformAdmin, isOrgOwner }: IconRail
                   ? 'bg-arena-500/15 text-arena-400'
                   : 'text-neutral-500 hover:text-arena-400 hover:bg-arena-500/10'
               )}
+              title="Admin"
+              aria-label="Admin"
             >
               <Zap className="w-5 h-5" />
               <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-neutral-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[60] shadow-lg border border-white/10">
@@ -188,10 +207,24 @@ export function IconRail({ captainTeams, isPlatformAdmin, isOrgOwner }: IconRail
 
       {/* Logout */}
       <div className="p-2 border-t border-white/10">
+        <button
+          type="button"
+          onClick={toggle}
+          className="w-12 h-10 flex items-center justify-center rounded-xl text-neutral-500 hover:text-white hover:bg-neutral-800/50 transition-colors group relative mx-auto mb-2"
+          aria-label="Collapse sidebar"
+          title="Collapse sidebar"
+        >
+          <PanelLeftClose className="w-4 h-4" />
+          <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-neutral-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[60] shadow-lg border border-white/10">
+            Collapse sidebar
+          </div>
+        </button>
         <form action={signOut}>
           <button
             type="submit"
             className="w-12 h-12 flex items-center justify-center rounded-xl text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors group relative mx-auto"
+            aria-label="Sign Out"
+            title="Sign Out"
           >
             <LogOut className="w-5 h-5" />
             <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-neutral-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[60] shadow-lg border border-white/10">

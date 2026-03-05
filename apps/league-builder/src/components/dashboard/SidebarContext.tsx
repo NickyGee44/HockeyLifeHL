@@ -69,7 +69,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = React.useState(false);
   const [activeSection, setActiveSection] = React.useState<NavSection | null>(null);
-  const [isSecondaryPinned, setIsSecondaryPinned] = React.useState(true);
+  const [isSecondaryPinned, setIsSecondaryPinned] = React.useState(false);
 
   // Auto-collapse sidebar on screens below lg (1024px)
   React.useEffect(() => {

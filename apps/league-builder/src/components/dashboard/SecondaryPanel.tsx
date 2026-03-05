@@ -66,6 +66,7 @@ export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelPr
     setActiveSection,
     isSecondaryPinned,
     toggleSecondaryPin,
+    isCollapsed,
     selected,
     isMobileNavOpen,
     toggleMobileNav,
@@ -185,7 +186,7 @@ export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelPr
   }), [t, hasLeague, leagueBase, isSubscribed]);
 
   const currentData = activeSection ? sectionItems[activeSection] : null;
-  const isVisible = activeSection !== null && (isSecondaryPinned || activeSection !== null);
+  const isVisible = !isCollapsed && activeSection !== null;
 
   if (!isVisible || !currentData) return null;
 

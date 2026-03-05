@@ -33,10 +33,10 @@ function DashboardContent({
   setupIssues: LeagueSetupIssue[];
   dashboardData: DashboardData | null;
 }) {
-  const { activeSection, isSecondaryPinned } = useSidebar();
+  const { activeSection, isCollapsed } = useSidebar();
 
   // Icon rail = 64px (w-16). Secondary panel = 240px (w-60). Total when pinned = 304px.
-  const hasSecondary = activeSection !== null && isSecondaryPinned;
+  const hasSecondary = !isCollapsed && activeSection !== null;
 
   return (
     <main
@@ -44,8 +44,8 @@ function DashboardContent({
         'transition-all duration-200 ease-in-out aurora-bg min-h-screen',
         // Mobile: no left margin, top padding for header, bottom padding for nav
         'pt-14 pb-20 md:pt-0 md:pb-0',
-        // Desktop: icon rail (64px) + optional secondary panel (240px)
-        hasSecondary ? 'md:ml-[304px]' : 'md:ml-16'
+        // Desktop: collapsed = no sidebar width, expanded icon rail (64px) + optional secondary panel (240px)
+        isCollapsed ? 'md:ml-0' : hasSecondary ? 'md:ml-[304px]' : 'md:ml-16'
       )}
     >
       {setupIssues.length > 0 && (
