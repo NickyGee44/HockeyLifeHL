@@ -49,6 +49,11 @@ async function getCurrentUser(): Promise<{ id: string; email: string } | null> {
   return user ? { id: user.id, email: user.email || '' } : null;
 }
 
+function getPlayerPaymentPortalUrl(paymentId: string): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  return `${appUrl.replace(/\/$/, '')}/payments/${paymentId}`;
+}
+
 // ============================================================================
 // Helper: Verify League Admin Access
 // ============================================================================
@@ -953,8 +958,7 @@ export async function sendPaymentReminder(
     // Import email function dynamically to avoid circular dependencies
     const { sendPaymentReminderEmail } = await import('@/lib/email/payment-emails');
 
-    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const paymentUrl = `${SITE_URL}/dashboard/payments?payment=${paymentId}`;
+    const paymentUrl = getPlayerPaymentPortalUrl(paymentId);
 
     // Send reminder email
     const emailResult = await sendPaymentReminderEmail({
@@ -1358,7 +1362,7 @@ export async function sendBulkPaymentReminders(
       }
 
       try {
-        const paymentUrl = `${SITE_URL}/dashboard/payments?payment=${payment.id}`;
+        const paymentUrl = getPlayerPaymentPortalUrl(payment.id);
 
         const emailResult = await sendPaymentReminderEmail({
           to: player.email,

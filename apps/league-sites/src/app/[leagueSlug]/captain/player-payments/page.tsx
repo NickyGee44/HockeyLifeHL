@@ -66,7 +66,7 @@ export default function PlayerPaymentsPage({ params }: PlayerPaymentsPageProps) 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
+  const isCaptain = currentTeam?.is_captain;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -118,7 +118,7 @@ export default function PlayerPaymentsPage({ params }: PlayerPaymentsPageProps) 
             Captain Access Required
           </h2>
           <p className="text-[var(--color-text-secondary)] mb-4">
-            Only team captains and alternates can view player payments.
+            Only the assigned team captain can view player payments.
           </p>
           <Link
             href={`/${leagueSlug}/me`}

@@ -1,7 +1,7 @@
 'use server';
 
-import { createAuthClient as createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyTeamCaptainAccess } from './team-captain-access';
 
 // ============================================================================
 // Types
@@ -35,35 +35,13 @@ export interface CaptainPaymentSummary {
 // Helper: Verify Captain Access
 // ============================================================================
 
-async function verifyCaptainRole(
-  teamId: string
-): Promise<{ authorized: boolean; userId?: string; error?: string }> {
-  const supabase = await createClient();
+async function verifyCaptainRole(teamId: string) {
+  return verifyTeamCaptainAccess(teamId);
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { authorized: false, error: 'Not authenticated' };
-  }
-
-  // .limit(1) avoids .single() throwing PGRST116 when captain has entries
-  // across multiple seasons for the same team.
-  const { data: membership } = await supabase
-    .from('team_rosters')
-    .select('leadership_role')
-    .eq('team_id', teamId)
-    .eq('player_id', user.id)
-    .in('leadership_role', ['captain', 'alternate_captain'])
-    .limit(1)
-    .maybeSingle();
-
-  if (!membership) {
-    return { authorized: false, error: 'Not authorized' };
-  }
-
-  return { authorized: true, userId: user.id };
+function getPlayerPaymentPortalUrl(paymentId: string): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  return `${appUrl.replace(/\/$/, '')}/payments/${paymentId}`;
 }
 
 // ============================================================================
@@ -169,7 +147,7 @@ export async function sendCaptainPaymentReminder(
     return { success: false, error: auth.error };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch the payment and verify it belongs to this team
   const { data: payment, error: fetchError } = await supabase
@@ -231,9 +209,7 @@ export async function sendCaptainPaymentReminder(
   const amountDue = (payment.total_amount_cents ?? 0) - (payment.amount_paid_cents ?? 0);
   const reminderNumber = (payment.reminder_sent_count || 0) + 1;
   const isUrgent = reminderNumber >= 3;
-
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
-  const paymentUrl = `${SITE_URL}/dashboard/payments?payment=${paymentId}`;
+  const paymentUrl = getPlayerPaymentPortalUrl(paymentId);
 
   const subject = `${isUrgent ? '[Urgent] ' : ''}Payment Reminder - ${seasonFee?.name || 'Season Fee'}`;
   const html = buildReminderEmailHtml({

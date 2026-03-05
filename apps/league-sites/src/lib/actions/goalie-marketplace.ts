@@ -2,6 +2,7 @@
 'use server';
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyTeamCaptainAccess } from './team-captain-access';
 
 type ActionResult<T = unknown> = Promise<
   | { success: true; data: T }
@@ -140,26 +141,9 @@ export async function createGoalieRequest(
   data: { skillLevelNeeded?: string; compensation?: string; notes?: string }
 ): Promise<{ success: boolean; data?: { goaliesNotified: number }; error?: string }> {
   try {
-    // Auth + captain role check
-    const { createAuthClient } = await import('@/lib/supabase/server');
-    const authClient = await createAuthClient();
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-    if (!user) return { success: false, error: 'Not authenticated' };
-
-    const { data: membership } = await authClient
-      .from('team_rosters')
-      .select('leadership_role')
-      .eq('team_id', teamId)
-      .eq('player_id', user.id)
-      .single();
-
-    if (
-      !membership ||
-      !['captain', 'alternate_captain'].includes(membership.leadership_role || '')
-    ) {
-      return { success: false, error: 'Captain role required' };
+    const auth = await verifyTeamCaptainAccess(teamId);
+    if (!auth.authorized || !auth.userId) {
+      return { success: false, error: auth.error || 'Captain role required' };
     }
 
     const supabase = createServiceRoleClient();
@@ -200,7 +184,7 @@ export async function createGoalieRequest(
         game_id: gameId,
         team_id: teamId,
         league_id: game.league_id,
-        requested_by: user.id,
+        requested_by: auth.userId,
         skill_level_needed: data.skillLevelNeeded || 'intermediate',
         compensation: data.compensation || null,
         notes: data.notes || null,
