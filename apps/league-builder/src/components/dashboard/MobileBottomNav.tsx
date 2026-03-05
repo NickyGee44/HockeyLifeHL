@@ -36,14 +36,22 @@ import {
 } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 
+function extractLeagueIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i);
+  return match ? match[1] : null;
+}
+
 export function MobileBottomNav() {
   const t = useTranslations('navigation');
   const locale = useLocale();
   const pathname = usePathname();
   const { selected, isMobileMoreOpen, toggleMobileMore } = useSidebar();
 
-  const leagueBase = selected.leagueId
-    ? `/dashboard/leagues/${selected.leagueId}`
+  const pathLeagueId = extractLeagueIdFromPath(pathname);
+  const effectiveLeagueId = pathLeagueId ?? selected.leagueId;
+
+  const leagueBase = effectiveLeagueId
+    ? `/dashboard/leagues/${effectiveLeagueId}`
     : '/dashboard';
 
   const isActive = (href: string) => {
@@ -54,7 +62,7 @@ export function MobileBottomNav() {
     return pathname.startsWith(localizedPath);
   };
 
-  const hasLeague = !!selected.leagueId;
+  const hasLeague = !!effectiveLeagueId;
 
   const primaryTabs = [
     { label: t('overview'), href: '/dashboard', icon: Home },

@@ -5,6 +5,7 @@ import { Command } from 'cmdk';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useSidebar } from './SidebarContext';
+import { usePathname } from 'next/navigation';
 import {
   Home,
   Calendar,
@@ -29,10 +30,17 @@ export function CommandPalette() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
   const t = useTranslations('commandPalette');
+  const pathname = usePathname();
   const { selected } = useSidebar();
 
-  const leagueBase = selected.leagueId
-    ? `/dashboard/leagues/${selected.leagueId}`
+  const pathLeagueId = React.useMemo(() => {
+    const match = pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i);
+    return match ? match[1] : null;
+  }, [pathname]);
+  const effectiveLeagueId = pathLeagueId ?? selected.leagueId;
+
+  const leagueBase = effectiveLeagueId
+    ? `/dashboard/leagues/${effectiveLeagueId}`
     : '/dashboard';
 
   // Global keyboard shortcut
@@ -73,7 +81,7 @@ export function CommandPalette() {
       { label: t('pages.gallery'), icon: Image, href: `${leagueBase}/gallery` },
       { label: t('pages.draftRoom'), icon: Dices, href: `${leagueBase}/draft` },
     ],
-    [t, leagueBase, selected.leagueId]
+    [t, leagueBase, effectiveLeagueId]
   );
 
   const actions = React.useMemo(

@@ -57,6 +57,11 @@ interface NavItem {
   comingSoon?: boolean;
 }
 
+function extractLeagueIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i);
+  return match ? match[1] : null;
+}
+
 export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelProps) {
   const t = useTranslations('navigation');
   const locale = useLocale();
@@ -72,11 +77,14 @@ export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelPr
     toggleMobileNav,
   } = useSidebar();
 
-  const leagueBase = selected.leagueId
-    ? `/dashboard/leagues/${selected.leagueId}`
+  const pathLeagueId = extractLeagueIdFromPath(pathname);
+  const effectiveLeagueId = pathLeagueId ?? selected.leagueId;
+
+  const leagueBase = effectiveLeagueId
+    ? `/dashboard/leagues/${effectiveLeagueId}`
     : '/dashboard';
 
-  const hasLeague = !!selected.leagueId;
+  const hasLeague = !!effectiveLeagueId;
 
   const isPathActive = (href: string) => {
     const localizedPath = `/${locale}${href}`;
