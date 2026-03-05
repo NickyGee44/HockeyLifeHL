@@ -132,25 +132,30 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
             awayTeam={game.away_team}
             leagueSlug={leagueSlug}
           />
-          {gameSheet.scoresheetImageUrl && (
+          {gameSheet.scoresheetImageUrls.length > 0 && (
             <div className="mt-8">
               <h3 className="text-sm font-semibold uppercase tracking-widest text-[var(--color-text-secondary)] mb-3">
                 Official Scoresheet
               </h3>
-              <a
-                href={gameSheet.scoresheetImageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block max-w-md rounded-xl overflow-hidden border border-[var(--color-border)] hover:border-[var(--color-border-muted)] transition-colors"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={gameSheet.scoresheetImageUrl}
-                  alt="Official game scoresheet"
-                  className="w-full h-auto"
-                />
-              </a>
-              <p className="mt-1.5 text-xs text-[var(--color-text-muted)]">Click to view full size</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
+                {gameSheet.scoresheetImageUrls.map((url, idx) => (
+                  <a
+                    key={`${url}-${idx}`}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-xl overflow-hidden border border-[var(--color-border)] hover:border-[var(--color-border-muted)] transition-colors"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`Official game scoresheet page ${idx + 1}`}
+                      className="w-full h-auto"
+                    />
+                  </a>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-[var(--color-text-muted)]">Click any page to view full size</p>
             </div>
           )}
         </div>

@@ -680,6 +680,7 @@ export interface GameSheetData {
   penalties: GameSheetPenalty[];
   goalies: GameSheetGoalie[];
   scoresheetImageUrl: string | null;
+  scoresheetImageUrls: string[];
 }
 
 // =============================================================================

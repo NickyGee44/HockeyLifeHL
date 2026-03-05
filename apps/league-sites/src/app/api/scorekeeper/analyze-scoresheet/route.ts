@@ -31,6 +31,30 @@ function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
+function eventKeyGoal(goal: OcrGoalResponse): string {
+  return [
+    goal.period ?? 0,
+    goal.timeMinutes ?? 0,
+    goal.timeSeconds ?? 0,
+    goal.teamType ?? '',
+    goal.scorerJersey ?? 0,
+    goal.assist1Jersey ?? 0,
+    goal.assist2Jersey ?? 0,
+  ].join('|');
+}
+
+function eventKeyPenalty(penalty: OcrPenaltyResponse): string {
+  return [
+    penalty.period ?? 0,
+    penalty.timeMinutes ?? 0,
+    penalty.timeSeconds ?? 0,
+    penalty.teamType ?? '',
+    penalty.playerJersey ?? 0,
+    penalty.type ?? '',
+    penalty.minutes ?? 0,
+  ].join('|');
+}
+
 async function verifySessionFromCookie(): Promise<{
   sessionId: string;
   gameId: string;
@@ -84,26 +108,53 @@ export async function POST(request: NextRequest) {
 
     // Parse form data
     const formData = await request.formData();
-    const image = formData.get('image') as File | null;
+    const imagesFromArray = formData
+      .getAll('images')
+      .filter((item): item is File => item instanceof File);
+    const singleImage = formData.get('image');
+    const images = [...imagesFromArray];
+    if (images.length === 0 && singleImage instanceof File) {
+      images.push(singleImage);
+    }
     const gameId = formData.get('gameId') as string | null;
     const homeTeamName = formData.get('homeTeamName') as string | null;
     const awayTeamName = formData.get('awayTeamName') as string | null;
     const homeRosterJson = formData.get('homeRoster') as string | null;
     const awayRosterJson = formData.get('awayRoster') as string | null;
 
-    if (!image || !gameId || !homeTeamName || !awayTeamName) {
+    if (images.length === 0 || !gameId || !homeTeamName || !awayTeamName) {
       return NextResponse.json(
-        { error: 'Missing required fields: image, gameId, homeTeamName, awayTeamName' },
+        { error: 'Missing required fields: images/image, gameId, homeTeamName, awayTeamName' },
+        { status: 400 }
+      );
+    }
+    if (gameId !== session.gameId) {
+      return NextResponse.json(
+        { error: 'Game ID does not match active scorekeeper session' },
+        { status: 403 }
+      );
+    }
+
+    if (images.length > 8) {
+      return NextResponse.json(
+        { error: 'You can upload up to 8 scoresheet images per submission' },
         { status: 400 }
       );
     }
 
-    // Validate file size (10MB)
-    if (image.size > 10 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'Image must be under 10MB' },
-        { status: 400 }
-      );
+    for (const image of images) {
+      if (!image.type.startsWith('image/')) {
+        return NextResponse.json(
+          { error: 'All files must be image files' },
+          { status: 400 }
+        );
+      }
+      if (image.size > 10 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: 'Each image must be under 10MB' },
+          { status: 400 }
+        );
+      }
     }
 
     // Parse rosters
@@ -119,43 +170,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert image to base64 (needed for OCR)
-    const arrayBuffer = await image.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
-
-    // Upload image to storage BEFORE OCR so the photo is always saved even if analysis fails
+    // Upload each image to storage BEFORE OCR so photos are preserved even if analysis fails
     const supabaseService = createServiceRoleClient();
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).slice(2, 8);
-    const ext = image.type === 'image/png' ? 'png' : 'jpg';
-    const storagePath = `${session.leagueId}/${session.gameId}/${timestamp}-${randomSuffix}.${ext}`;
+    const imagePayloads: Array<{ file: File; base64: string }> = [];
+    const scoresheetImageUrls: string[] = [];
 
-    let scoresheetImageUrl: string | null = null;
-    try {
-      const { error: uploadError } = await (supabaseService as any).storage
-        .from('game-scoresheets')
-        .upload(storagePath, arrayBuffer, { contentType: image.type, upsert: false });
+    for (const image of images) {
+      const arrayBuffer = await image.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      imagePayloads.push({ file: image, base64 });
 
-      if (!uploadError) {
-        const { data: urlData } = (supabaseService as any).storage
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).slice(2, 8);
+      const ext = image.type === 'image/png' ? 'png' : 'jpg';
+      const storagePath = `${session.leagueId}/${session.gameId}/${timestamp}-${randomSuffix}.${ext}`;
+
+      try {
+        const { error: uploadError } = await (supabaseService as any).storage
           .from('game-scoresheets')
-          .getPublicUrl(storagePath);
-        scoresheetImageUrl = urlData?.publicUrl ?? null;
+          .upload(storagePath, arrayBuffer, { contentType: image.type, upsert: false });
 
-        if (scoresheetImageUrl) {
-          await (supabaseService as any)
-            .from('game_scoresheets')
-            .insert({
-              game_id: session.gameId,
-              league_id: session.leagueId,
-              image_url: scoresheetImageUrl,
-              storage_path: storagePath,
-            });
+        if (!uploadError) {
+          const { data: urlData } = (supabaseService as any).storage
+            .from('game-scoresheets')
+            .getPublicUrl(storagePath);
+          const scoresheetImageUrl = urlData?.publicUrl ?? null;
+
+          if (scoresheetImageUrl) {
+            scoresheetImageUrls.push(scoresheetImageUrl);
+            await (supabaseService as any)
+              .from('game_scoresheets')
+              .insert({
+                game_id: session.gameId,
+                league_id: session.leagueId,
+                image_url: scoresheetImageUrl,
+                storage_path: storagePath,
+              });
+          }
         }
+      } catch {
+        console.warn('Scoresheet storage upload failed (non-fatal)');
       }
-    } catch {
-      // Storage failure is non-fatal — OCR still runs
-      console.warn('Scoresheet storage upload failed (non-fatal)');
     }
 
     // Build roster reference for the prompt
@@ -242,51 +297,73 @@ Return ONLY valid JSON in this format:
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: { url: `data:${image.type};base64,${base64}` },
-            },
-          ],
-        },
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: 4096,
-    });
+    const mergedGoals: OcrGoalResponse[] = [];
+    const mergedPenalties: OcrPenaltyResponse[] = [];
+    const seenGoals = new Set<string>();
+    const seenPenalties = new Set<string>();
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      return NextResponse.json(
-        { error: 'No response from AI analysis' },
-        { status: 500 }
-      );
+    for (let i = 0; i < imagePayloads.length; i += 1) {
+      const current = imagePayloads[i];
+      const perImagePrompt = `${prompt}\n\nThis is photo ${i + 1} of ${imagePayloads.length}. Extract only what is visible in this photo.`;
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: perImagePrompt },
+              {
+                type: 'image_url',
+                image_url: { url: `data:${current.file.type};base64,${current.base64}` },
+              },
+            ],
+          },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 4096,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        continue;
+      }
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        continue;
+      }
+
+      const payload = (parsed ?? {}) as {
+        goals?: OcrGoalResponse[];
+        penalties?: OcrPenaltyResponse[];
+      };
+
+      for (const goal of asArray<OcrGoalResponse>(payload.goals)) {
+        const key = eventKeyGoal(goal);
+        if (!seenGoals.has(key)) {
+          seenGoals.add(key);
+          mergedGoals.push(goal);
+        }
+      }
+
+      for (const penalty of asArray<OcrPenaltyResponse>(payload.penalties)) {
+        const key = eventKeyPenalty(penalty);
+        if (!seenPenalties.has(key)) {
+          seenPenalties.add(key);
+          mergedPenalties.push(penalty);
+        }
+      }
     }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      return NextResponse.json(
-        { error: 'Invalid JSON returned by AI analysis' },
-        { status: 502 }
-      );
-    }
-
-    const payload = (parsed ?? {}) as {
-      goals?: OcrGoalResponse[];
-      penalties?: OcrPenaltyResponse[];
-    };
 
     return NextResponse.json({
-      goals: asArray<OcrGoalResponse>(payload.goals),
-      penalties: asArray<OcrPenaltyResponse>(payload.penalties),
-      scoresheetImageUrl,
+      goals: mergedGoals,
+      penalties: mergedPenalties,
+      scoresheetImageUrl: scoresheetImageUrls[0] ?? null,
+      scoresheetImageUrls,
+      analyzedImageCount: imagePayloads.length,
+      savedImageCount: scoresheetImageUrls.length,
     });
   } catch (error) {
     console.error('Score sheet analysis error:', error);

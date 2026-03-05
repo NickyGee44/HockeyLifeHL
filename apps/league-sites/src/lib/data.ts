@@ -2802,18 +2802,20 @@ export async function getGameSheet(gameId: string): Promise<GameSheetData | null
     };
   });
 
-  // Fetch most recent scoresheet photo for this game
-  const { data: scoresheetRow } = await supabase
+  // Fetch scoresheet photos for this game (most recent first)
+  const { data: scoresheetRows } = await supabase
     .from('game_scoresheets' as any)
     .select('image_url')
     .eq('game_id', gameId)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(8);
 
-  const scoresheetImageUrl: string | null = (scoresheetRow as any)?.image_url ?? null;
+  const scoresheetImageUrls: string[] = (scoresheetRows || [])
+    .map((row: any) => (typeof row?.image_url === 'string' ? row.image_url : null))
+    .filter((url: string | null): url is string => !!url);
+  const scoresheetImageUrl: string | null = scoresheetImageUrls[0] ?? null;
 
-  return { game, goals, penalties, goalies, scoresheetImageUrl };
+  return { game, goals, penalties, goalies, scoresheetImageUrl, scoresheetImageUrls };
 }
 
 // ========== GAME PLAYER STATS (BOX SCORE) ==========

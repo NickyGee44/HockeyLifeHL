@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { GameData, PlayerData } from '@/lib/actions/scorekeeper';
 import { batchAddEvents } from '@/lib/actions/scorekeeper';
 import {
@@ -25,47 +25,75 @@ export type ExtractedEvent = OcrEvent;
 type UploadState = 'select' | 'preview' | 'analyzing' | 'review' | 'saving';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILES = 8;
 
 export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreSheetUploadProps) {
   const [state, setState] = useState<UploadState>('select');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [extractedEvents, setExtractedEvents] = useState<ExtractedEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saveResult, setSaveResult] = useState<{ addedCount: number; errors: string[] } | null>(null);
-  const [scoresheetImageUrl, setScoresheetImageUrl] = useState<string | null>(null);
+  const [scoresheetImageUrls, setScoresheetImageUrls] = useState<string[]>([]);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  function handleFileSelect(file: File | null) {
-    if (!file) return;
+  useEffect(() => {
+    return () => {
+      for (const url of previewUrls) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [previewUrls]);
 
-    if (file.size > MAX_FILE_SIZE) {
-      setError('Image must be under 10MB');
-      return;
+  function handleFilesSelect(files: FileList | File[] | null, append = false) {
+    if (!files || files.length === 0) return;
+
+    const incoming = Array.from(files);
+    const validFiles: File[] = [];
+
+    for (const file of incoming) {
+      if (file.size > MAX_FILE_SIZE) {
+        setError('Each image must be under 10MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        setError('Please select image files only');
+        return;
+      }
+      validFiles.push(file);
     }
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
-      return;
+    const nextFiles = append ? [...selectedFiles, ...validFiles] : validFiles;
+    const cappedFiles = nextFiles.slice(0, MAX_FILES);
+    if (nextFiles.length > MAX_FILES) {
+      setError(`Only the first ${MAX_FILES} images were selected`);
+    } else {
+      setError(null);
     }
 
-    setError(null);
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    for (const url of previewUrls) {
+      URL.revokeObjectURL(url);
+    }
+
+    const nextPreviewUrls = cappedFiles.map((file) => URL.createObjectURL(file));
+    setSelectedFiles(cappedFiles);
+    setPreviewUrls(nextPreviewUrls);
     setState('preview');
   }
 
   async function handleAnalyze() {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
 
     setState('analyzing');
     setError(null);
 
     try {
       const formData = new FormData();
-      formData.append('image', selectedFile);
+      for (const file of selectedFiles) {
+        formData.append('images', file);
+      }
       formData.append('gameId', gameId);
       formData.append('homeTeamName', game.homeTeam.name);
       formData.append('awayTeamName', game.awayTeam.name);
@@ -95,7 +123,10 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
       const result = await response.json();
       const events = parseOcrAnalysisResult(result);
 
-      setScoresheetImageUrl((result as any).scoresheetImageUrl ?? null);
+      const urls = Array.isArray((result as any).scoresheetImageUrls)
+        ? (result as any).scoresheetImageUrls.filter((v: unknown): v is string => typeof v === 'string')
+        : ((result as any).scoresheetImageUrl ? [(result as any).scoresheetImageUrl as string] : []);
+      setScoresheetImageUrls(urls);
       setExtractedEvents(events);
       setState('review');
     } catch (err) {
@@ -173,9 +204,12 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
   }
 
   function handleBack() {
-    setSelectedFile(null);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
+    setSelectedFiles([]);
+    for (const url of previewUrls) {
+      URL.revokeObjectURL(url);
+    }
+    setPreviewUrls([]);
+    setScoresheetImageUrls([]);
     setError(null);
     setState('select');
   }
@@ -234,36 +268,34 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
                 </button>
               </div>
 
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
-              />
-              <input
-                ref={galleryInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
-              />
             </div>
           </div>
         )}
 
         {/* PREVIEW state */}
-        {state === 'preview' && previewUrl && (
+        {state === 'preview' && previewUrls.length > 0 && (
           <div className="flex flex-col items-center gap-4 max-w-sm mx-auto">
             <div className="w-full rounded-xl overflow-hidden border border-[var(--color-border)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={previewUrl}
+                src={previewUrls[0]}
                 alt="Score sheet preview"
                 className="w-full h-auto"
               />
             </div>
+            {previewUrls.length > 1 && (
+              <div className="w-full grid grid-cols-4 gap-2">
+                {previewUrls.map((url, idx) => (
+                  <div key={url} className="rounded-md overflow-hidden border border-[var(--color-border)] aspect-square">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Score sheet preview ${idx + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-[var(--color-text-secondary)] self-start">
+              {selectedFiles.length} image{selectedFiles.length !== 1 ? 's' : ''} selected
+            </p>
             <div className="flex gap-3 w-full">
               <button
                 onClick={handleBack}
@@ -272,10 +304,16 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
                 Back
               </button>
               <button
+                onClick={() => galleryInputRef.current?.click()}
+                className="flex-1 py-3 rounded-xl bg-[var(--color-surface)] text-[var(--color-text-primary)] font-medium border border-[var(--color-border)] transition-all hover:bg-[var(--color-surface-hover)] active:scale-95"
+              >
+                Add Photos
+              </button>
+              <button
                 onClick={handleAnalyze}
                 className="flex-1 py-3 rounded-xl bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] font-semibold transition-all hover:opacity-90 active:scale-95"
               >
-                Analyze Score Sheet
+                Analyze Score Sheet{selectedFiles.length > 1 ? 's' : ''}
               </button>
             </div>
           </div>
@@ -311,12 +349,12 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
               </div>
             ) : (
               <>
-                {scoresheetImageUrl && (
+                {scoresheetImageUrls.length > 0 && (
                   <div className="mb-3 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-400 flex items-center gap-2">
                     <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
-                    Scoresheet photo saved to game record
+                    Saved {scoresheetImageUrls.length} scoresheet photo{scoresheetImageUrls.length !== 1 ? 's' : ''} to game record
                   </div>
                 )}
                 <p className="text-sm text-[var(--color-text-secondary)] mb-4">
@@ -404,6 +442,29 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
             )}
           </div>
         )}
+
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            handleFilesSelect(e.target.files, true);
+            e.currentTarget.value = '';
+          }}
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            handleFilesSelect(e.target.files, true);
+            e.currentTarget.value = '';
+          }}
+        />
       </div>
     </div>
   );
