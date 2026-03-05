@@ -11,6 +11,7 @@ import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getGames, getTeamsForLeague, getSeasonsForLeague } from '@/lib/actions/games';
+import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { CompletedGamesTabs } from '@/components/games';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, CheckCircle2, Plus } from 'lucide-react';
@@ -57,26 +58,9 @@ export default async function CompletedGamesPage({ params }: Props) {
     notFound();
   }
 
-  // Verify user is owner or admin of this league
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role, status')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .single();
-
-  // Check if they're the creator
-  const { data: leagueCreator } = await supabase
-    .from('leagues')
-    .select('created_by')
-    .eq('id', leagueId)
-    .single();
-
-  const isCreator = leagueCreator?.created_by === user.id;
-  const isAuthorized =
-    isCreator || (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
-
-  if (!isAuthorized) {
+  // Verify access via shared policy (org owner, league owner/admin, or platform admin)
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
     nextRedirect(`/${locale}/dashboard?error=unauthorized`);
   }
 

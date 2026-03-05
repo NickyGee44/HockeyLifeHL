@@ -118,19 +118,43 @@ async function verifyLeagueAdmin(leagueId: string): Promise<{ userId: string } |
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return null;
 
+  // Check active league membership with owner/admin role
   const { data: membership } = await supabase
     .from('league_memberships')
     .select('role')
     .eq('league_id', leagueId)
     .eq('user_id', user.id)
     .eq('status', 'active')
-    .single();
+    .maybeSingle();
 
-  if (!membership || !['owner', 'admin'].includes(membership.role)) {
-    return null;
+  if (membership && ['owner', 'admin'].includes(membership.role)) {
+    return { userId: user.id };
   }
 
-  return { userId: user.id };
+  // Check league creator and organization owner fallback
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('created_by, organizations(owner_user_id)')
+    .eq('id', leagueId)
+    .maybeSingle();
+
+  const org = (league as any)?.organizations as { owner_user_id?: string } | null | undefined;
+  if ((league as any)?.created_by === user.id || org?.owner_user_id === user.id) {
+    return { userId: user.id };
+  }
+
+  // Platform admin fallback
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if ((profile as any)?.is_platform_admin === true) {
+    return { userId: user.id };
+  }
+
+  return null;
 }
 
 // ==============================================================================

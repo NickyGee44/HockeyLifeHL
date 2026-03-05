@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getGame, getGameAuditLog } from '@/lib/actions/games';
 import { getLeagueReferees } from '@/lib/actions/referee-management';
 import { getGoalieRequests } from '@/lib/actions/goalie-marketplace';
+import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { cn } from '@hockey-life/ui';
 import { StatusBadge } from '@/components/games';
 import { GameDetailClient } from '@/components/dashboard/leagues/game-detail-client';
@@ -66,19 +67,9 @@ export default async function GameDetailPage({ params }: Props) {
     notFound();
   }
 
-  // Verify user is owner or admin of this league
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role, status')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .single();
-
-  const isCreator = league.created_by === user.id;
-  const isAuthorized =
-    isCreator || (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
-
-  if (!isAuthorized) {
+  // Verify access via shared policy (org owner, league owner/admin, or platform admin)
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
     nextRedirect(`/${locale}/dashboard?error=unauthorized`);
   }
 
