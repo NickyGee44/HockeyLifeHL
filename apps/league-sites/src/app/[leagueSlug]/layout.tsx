@@ -119,7 +119,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
           <BugReportProvider leagueId={league.id} seasonId={activeSeasonId}>
             <SubscriptionProvider isSubscribed={isSubscribed}>
               <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
-                <div className={`relative z-[1] min-h-screen flex flex-col ${templateClass}`}>
+                <div className={`relative z-[1] min-h-screen flex flex-col overflow-x-clip ${templateClass}`}>
                   {(league as any).settings?.website?.showGameTicker !== false && (
                     <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
                   )}

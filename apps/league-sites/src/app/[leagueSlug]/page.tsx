@@ -113,7 +113,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
     .slice(0, 3);
 
-  const hasNews = newsArticles.length > 0;
   const hasEvents = upcomingEvents.length > 0;
   const hasAwards = awards.length > 0;
   const hasAlbums = albums.length > 0;
@@ -197,17 +196,13 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       {/* Division filter URL sync */}
       <DivisionUrlSync pagePath={`/${leagueSlug}`} />
 
-      {/* 1. Hero + News Side-by-Side (news on right when articles exist) */}
-      {hasNews ? (
-        <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
-          <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
-          <div className="relative flex items-stretch border-b border-l-0 lg:border-l border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_60%,transparent)] backdrop-blur-md p-3 md:p-4 lg:p-5">
-            <NewsHeadlines articles={newsArticles} leagueSlug={leagueSlug} />
-          </div>
-        </div>
-      ) : (
+      {/* 1. Hero + News Side-by-Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
         <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
-      )}
+        <div className="relative flex items-stretch border-b border-l-0 lg:border-l border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_60%,transparent)] backdrop-blur-md p-3 md:p-4 lg:p-5">
+          <NewsHeadlines articles={newsArticles} leagueSlug={leagueSlug} />
+        </div>
+      </div>
 
       {/* 3. Sponsor Banner */}
       <div className="mt-8">

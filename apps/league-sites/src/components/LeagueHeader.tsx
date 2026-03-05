@@ -191,17 +191,17 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
       <div className="mx-auto w-full px-4 sm:px-6">
         <div className="flex h-[64px] items-center gap-3">
           {/* Logo — fixed left */}
-          <Link href={`/${leagueSlug}`} className="group relative z-10 flex shrink-0 items-center gap-3 -my-2 md:-my-7">
+          <Link href={`/${leagueSlug}`} className="group relative z-10 flex shrink-0 items-center gap-2 py-1">
             {logoUrl ? (
               <Image
                 src={logoUrl}
                 alt={`${league.name} logo`}
                 width={120}
                 height={120}
-                className="h-[80px] w-[80px] md:h-[120px] md:w-[120px] rounded-xl object-contain drop-shadow-lg"
+                className="h-12 w-12 rounded-xl object-contain drop-shadow-lg sm:h-14 sm:w-14 md:h-16 md:w-16 lg:h-[72px] lg:w-[72px]"
               />
             ) : (
-              <div className="flex h-[80px] w-[80px] md:h-[120px] md:w-[120px] items-center justify-center rounded-xl bg-[var(--league-primary)] text-2xl md:text-3xl font-black text-[var(--color-accent-text)] drop-shadow-lg">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--league-primary)] text-lg font-black text-[var(--color-accent-text)] drop-shadow-lg sm:h-14 sm:w-14 sm:text-xl md:h-16 md:w-16 md:text-2xl lg:h-[72px] lg:w-[72px]">
                 {initials.slice(0, 3)}
               </div>
             )}
