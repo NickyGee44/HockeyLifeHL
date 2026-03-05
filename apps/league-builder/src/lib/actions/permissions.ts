@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { Team } from './teams';
+import { isUserPlatformAdmin } from '@/lib/auth/platform-admin';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -192,13 +193,8 @@ export async function verifyCaptainOrAdminAccess(teamId: string): Promise<Extend
     }
 
     // Step 4: Fallback check for platform admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_platform_admin')
-      .eq('id', user.id)
-      .single();
-
-    if ((profile as any)?.is_platform_admin === true) {
+    const isPlatformAdmin = await isUserPlatformAdmin(user.id);
+    if (isPlatformAdmin) {
       return {
         authorized: true,
         accessType: 'league_admin',
@@ -369,13 +365,8 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
     }
 
     // Check 3: Platform admin fallback
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('is_platform_admin')
-      .eq('id', user.id)
-      .single();
-
-    if ((adminProfile as any)?.is_platform_admin === true) {
+    const isPlatformAdmin = await isUserPlatformAdmin(user.id);
+    if (isPlatformAdmin) {
       return {
         authorized: true,
         organizationId: league.organization_id ?? undefined

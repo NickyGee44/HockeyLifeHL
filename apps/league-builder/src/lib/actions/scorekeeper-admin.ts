@@ -3,19 +3,14 @@
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendScorekeeperAssignmentEmail } from '@/lib/email/scorekeeper-emails';
 import { randomBytes } from 'crypto';
+import { isUserPlatformAdmin } from '@/lib/auth/platform-admin';
 
 /**
  * Check if the current user is a platform admin.
  * Used as fallback when league membership check fails.
  */
 async function checkPlatformAdmin(userId: string): Promise<boolean> {
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', userId)
-    .single();
-  return (profile as any)?.is_platform_admin === true;
+  return isUserPlatformAdmin(userId);
 }
 
 function getLeagueSiteOrigin(league: {

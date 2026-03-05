@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isUserPlatformAdmin } from '@/lib/auth/platform-admin';
 
 export async function GET(
   _request: NextRequest,
@@ -33,13 +34,8 @@ export async function GET(
 
     const org = league?.organizations as { owner_user_id?: string } | null;
     if (!org || org.owner_user_id !== user.id) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_platform_admin')
-        .eq('id', user.id)
-        .single();
-
-      if (!(profile as { is_platform_admin?: boolean } | null)?.is_platform_admin) {
+      const isPlatformAdmin = await isUserPlatformAdmin(user.id);
+      if (!isPlatformAdmin) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }

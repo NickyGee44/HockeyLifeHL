@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { featureFlags } from '@/lib/config/feature-flags';
+import { isUserPlatformAdmin } from '@/lib/auth/platform-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,13 +19,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .single();
-
-  if (!(profile as { is_platform_admin?: boolean } | null)?.is_platform_admin) {
+  const isPlatformAdmin = await isUserPlatformAdmin(user.id);
+  if (!isPlatformAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
