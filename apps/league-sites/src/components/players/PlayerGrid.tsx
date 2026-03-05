@@ -106,18 +106,23 @@ function PlayerCard({
         <div className="flex items-center gap-2 mt-1">
           {player.team && (
             <>
-              {player.team.logo && (
-                <Image
-                  src={player.team.logo}
-                  alt={player.team.name}
-                  width={32}
-                  height={32}
-                  className="rounded"
-                />
-              )}
-              <span className="text-xs text-[var(--color-text-secondary)] truncate">
-                {player.team.name}
-              </span>
+              <Link
+                href={`/${leagueSlug}/teams/${player.team.slug}`}
+                className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
+              >
+                {player.team.logo && (
+                  <Image
+                    src={player.team.logo}
+                    alt={player.team.name}
+                    width={32}
+                    height={32}
+                    className="rounded"
+                  />
+                )}
+                <span className="text-xs text-[var(--color-text-secondary)] truncate">
+                  {player.team.name}
+                </span>
+              </Link>
             </>
           )}
         </div>

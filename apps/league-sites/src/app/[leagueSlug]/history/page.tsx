@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { SubscriptionWall } from '@/components/shared';
 import {
   getLeagueBySlug,
@@ -161,7 +162,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     });
 
   // Dynasty tracker: count titles per team
-  const titleCounts = new Map<string, { name: string; count: number }>();
+  const titleCounts = new Map<string, { teamId: string; name: string; count: number }>();
   for (const season of seasonsWithChampions) {
     if (season.champion) {
       const existing = titleCounts.get(season.champion.team_id);
@@ -169,6 +170,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
         existing.count += 1;
       } else {
         titleCounts.set(season.champion.team_id, {
+          teamId: season.champion.team_id,
           name: season.champion.team_name,
           count: 1,
         });
@@ -238,7 +240,12 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-[var(--color-text-primary)] truncate">{dynasty.name}</h4>
+                    <Link
+                      href={`/${leagueSlug}/teams/id/${dynasty.teamId}`}
+                      className="font-bold text-[var(--color-text-primary)] truncate block hover:text-[var(--league-primary)] transition-colors"
+                    >
+                      {dynasty.name}
+                    </Link>
                     <p className="text-sm text-[var(--color-text-secondary)]">
                       {dynasty.count} {dynasty.count === 1 ? 'title' : 'titles'}
                     </p>
@@ -259,9 +266,42 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
           <section>
             <SectionHeader icon={<Star className="w-5 h-5 text-amber-400" />} title="All-Time Leaders" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <ExpandableLeaderBoard title="Points Leaders" icon={<Target className="w-4 h-4 text-[var(--league-primary)]" />} leaders={pointsLeaders.map((p) => ({ name: p.player_name, value: p.points, team: p.team_name }))} />
-              <ExpandableLeaderBoard title="Goals Leaders" icon={<Target className="w-4 h-4 text-red-400" />} leaders={goalsLeaders.map((p) => ({ name: p.player_name, value: p.goals, team: p.team_name }))} />
-              <ExpandableLeaderBoard title="Assists Leaders" icon={<Target className="w-4 h-4 text-blue-400" />} leaders={assistsLeaders.map((p) => ({ name: p.player_name, value: p.assists, team: p.team_name }))} />
+              <ExpandableLeaderBoard
+                title="Points Leaders"
+                icon={<Target className="w-4 h-4 text-[var(--league-primary)]" />}
+                leagueSlug={leagueSlug}
+                leaders={pointsLeaders.map((p) => ({
+                  name: p.player_name,
+                  value: p.points,
+                  team: p.team_name,
+                  playerId: p.player_id,
+                  teamId: p.team_id,
+                }))}
+              />
+              <ExpandableLeaderBoard
+                title="Goals Leaders"
+                icon={<Target className="w-4 h-4 text-red-400" />}
+                leagueSlug={leagueSlug}
+                leaders={goalsLeaders.map((p) => ({
+                  name: p.player_name,
+                  value: p.goals,
+                  team: p.team_name,
+                  playerId: p.player_id,
+                  teamId: p.team_id,
+                }))}
+              />
+              <ExpandableLeaderBoard
+                title="Assists Leaders"
+                icon={<Target className="w-4 h-4 text-blue-400" />}
+                leagueSlug={leagueSlug}
+                leaders={assistsLeaders.map((p) => ({
+                  name: p.player_name,
+                  value: p.assists,
+                  team: p.team_name,
+                  playerId: p.player_id,
+                  teamId: p.team_id,
+                }))}
+              />
             </div>
           </section>
         )}
@@ -270,7 +310,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
         {goalieLeaders.length > 0 && (
           <section>
             <SectionHeader icon={<Shield className="w-5 h-5 text-blue-400" />} title="Goalie Legends" />
-            <ExpandableGoalieLeaderBoard leaders={goalieLeaders} />
+            <ExpandableGoalieLeaderBoard leaders={goalieLeaders} leagueSlug={leagueSlug} />
           </section>
         )}
 
@@ -297,11 +337,29 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                           <p className="text-xs text-amber-400 font-semibold uppercase tracking-wider">
                             {award.award_name}
                           </p>
-                          <p className="font-bold text-[var(--color-text-primary)] truncate">
-                            {award.player?.full_name || 'TBD'}
-                          </p>
+                          {award.player_id ? (
+                            <Link
+                              href={`/${leagueSlug}/players/${award.player_id}`}
+                              className="font-bold text-[var(--color-text-primary)] truncate block hover:text-[var(--league-primary)] transition-colors"
+                            >
+                              {award.player?.full_name || 'TBD'}
+                            </Link>
+                          ) : (
+                            <p className="font-bold text-[var(--color-text-primary)] truncate">
+                              {award.player?.full_name || 'TBD'}
+                            </p>
+                          )}
                           {award.team?.name && (
-                            <p className="text-xs text-[var(--color-text-muted)]">{award.team.name}</p>
+                            award.team_id ? (
+                              <Link
+                                href={`/${leagueSlug}/teams/id/${award.team_id}`}
+                                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--league-primary)] transition-colors"
+                              >
+                                {award.team.name}
+                              </Link>
+                            ) : (
+                              <p className="text-xs text-[var(--color-text-muted)]">{award.team.name}</p>
+                            )
                           )}
                         </div>
                       </div>
@@ -368,5 +426,3 @@ function StatCard({
     </div>
   );
 }
-
-

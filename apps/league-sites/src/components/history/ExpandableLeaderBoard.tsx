@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const INITIAL_COUNT = 5;
@@ -9,16 +10,20 @@ interface Leader {
   name: string;
   value: number;
   team: string;
+  playerId?: string | null;
+  teamId?: string | null;
 }
 
 export function ExpandableLeaderBoard({
   title,
   icon,
   leaders,
+  leagueSlug,
 }: {
   title: string;
   icon: React.ReactNode;
   leaders: Leader[];
+  leagueSlug: string;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -40,8 +45,26 @@ export function ExpandableLeaderBoard({
               {index + 1}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-[var(--color-text-primary)] truncate">{leader.name}</p>
-              <p className="text-xs text-[var(--color-text-muted)] truncate">{leader.team}</p>
+              {leader.playerId ? (
+                <Link
+                  href={`/${leagueSlug}/players/${leader.playerId}`}
+                  className="font-semibold text-sm text-[var(--color-text-primary)] truncate block hover:text-[var(--league-primary)] transition-colors"
+                >
+                  {leader.name}
+                </Link>
+              ) : (
+                <p className="font-semibold text-sm text-[var(--color-text-primary)] truncate">{leader.name}</p>
+              )}
+              {leader.teamId ? (
+                <Link
+                  href={`/${leagueSlug}/teams/id/${leader.teamId}`}
+                  className="text-xs text-[var(--color-text-muted)] truncate block hover:text-[var(--league-primary)] transition-colors"
+                >
+                  {leader.team}
+                </Link>
+              ) : (
+                <p className="text-xs text-[var(--color-text-muted)] truncate">{leader.team}</p>
+              )}
             </div>
             <span className="text-sm font-bold text-[var(--color-text-primary)] tabular-nums">{leader.value}</span>
           </div>
@@ -66,6 +89,7 @@ export function ExpandableLeaderBoard({
 interface GoalieLeader {
   player_id: string;
   player_name: string;
+  team_id?: string;
   team_name?: string;
   wins: number;
   save_percentage: number | null;
@@ -74,8 +98,10 @@ interface GoalieLeader {
 
 export function ExpandableGoalieLeaderBoard({
   leaders,
+  leagueSlug,
 }: {
   leaders: GoalieLeader[];
+  leagueSlug: string;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -109,9 +135,23 @@ export function ExpandableGoalieLeaderBoard({
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <p className="font-semibold text-[var(--color-text-primary)]">{goalie.player_name}</p>
+                  <Link
+                    href={`/${leagueSlug}/players/${goalie.player_id}`}
+                    className="font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] transition-colors"
+                  >
+                    {goalie.player_name}
+                  </Link>
                   {goalie.team_name && (
-                    <p className="text-xs text-[var(--color-text-muted)]">{goalie.team_name}</p>
+                    goalie.team_id ? (
+                      <Link
+                        href={`/${leagueSlug}/teams/id/${goalie.team_id}`}
+                        className="text-xs text-[var(--color-text-muted)] block hover:text-[var(--league-primary)] transition-colors"
+                      >
+                        {goalie.team_name}
+                      </Link>
+                    ) : (
+                      <p className="text-xs text-[var(--color-text-muted)]">{goalie.team_name}</p>
+                    )
                   )}
                 </td>
                 <td className="px-4 py-3 text-right font-semibold text-[var(--color-text-primary)]">{goalie.wins}</td>

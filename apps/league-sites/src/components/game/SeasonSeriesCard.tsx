@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { format } from 'date-fns';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { TeamWithStats, SeasonSeriesGame } from '@/lib/types';
@@ -7,6 +8,7 @@ interface SeasonSeriesCardProps {
   games: SeasonSeriesGame[];
   homeTeam: TeamWithStats;
   awayTeam: TeamWithStats;
+  leagueSlug: string;
 }
 
 /**
@@ -18,6 +20,7 @@ export function SeasonSeriesCard({
   games,
   homeTeam,
   awayTeam,
+  leagueSlug,
 }: SeasonSeriesCardProps) {
   // Calculate series record
   const { teamAWins, teamBWins, ties } = calculateSeriesRecord(
@@ -97,6 +100,7 @@ export function SeasonSeriesCard({
                 awayTeam={awayTeam}
                 homePrimary={homePrimary}
                 awayPrimary={awayPrimary}
+                leagueSlug={leagueSlug}
               />
             ))}
           </div>
@@ -116,6 +120,7 @@ interface GameResultRowProps {
   awayTeam: TeamWithStats;
   homePrimary: string;
   awayPrimary: string;
+  leagueSlug: string;
 }
 
 function GameResultRow({
@@ -124,6 +129,7 @@ function GameResultRow({
   awayTeam,
   homePrimary,
   awayPrimary,
+  leagueSlug,
 }: GameResultRowProps) {
   const gameDate = new Date(game.scheduled_at);
 
@@ -142,7 +148,10 @@ function GameResultRow({
   const isTie = homeScore === awayScore;
 
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--color-surface-hover)]">
+    <Link
+      href={`/${leagueSlug}/games/${game.id}`}
+      className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-border-muted)] transition-colors"
+    >
       <div className="text-xs text-[var(--color-text-muted)]">
         {format(gameDate, 'MMM d')}
       </div>
@@ -188,7 +197,7 @@ function GameResultRow({
           <span style={{ color: gameAwayColor }}>W</span>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
 

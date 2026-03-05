@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { TeamWithStats, TeamSeasonStats } from '@/lib/types';
 import { BarChart3 } from 'lucide-react';
@@ -7,6 +8,7 @@ interface TeamStatsComparisonProps {
   awayTeam: TeamWithStats;
   homeStats: TeamSeasonStats | null;
   awayStats: TeamSeasonStats | null;
+  leagueSlug: string;
 }
 
 interface StatRowProps {
@@ -28,6 +30,7 @@ export function TeamStatsComparison({
   awayTeam,
   homeStats,
   awayStats,
+  leagueSlug,
 }: TeamStatsComparisonProps) {
   // Parse team colors
   const awayColors = awayTeam.colors?.split(',') || [];
@@ -67,7 +70,10 @@ export function TeamStatsComparison({
       <div className="p-4">
         {/* Team Headers */}
         <div className="flex justify-between items-center mb-4 pb-4 border-b border-[var(--color-border)]">
-          <div className="flex items-center gap-2">
+          <Link
+            href={`/${leagueSlug}/teams/${awayTeam.slug}`}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
             <TeamLogo
               logoUrl={awayTeam.logo}
               teamName={awayTeam.name}
@@ -77,11 +83,14 @@ export function TeamStatsComparison({
             <span className="font-semibold text-xs truncate max-w-[60px]">
               {awayTeam.name.substring(0, 3).toUpperCase()}
             </span>
-          </div>
+          </Link>
           <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wide">
             Stats
           </span>
-          <div className="flex items-center gap-2">
+          <Link
+            href={`/${leagueSlug}/teams/${homeTeam.slug}`}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
             <span className="font-semibold text-xs truncate max-w-[60px]">
               {homeTeam.name.substring(0, 3).toUpperCase()}
             </span>
@@ -91,7 +100,7 @@ export function TeamStatsComparison({
               teamColor={homePrimary}
               size="sm"
             />
-          </div>
+          </Link>
         </div>
 
         {/* Stats Rows */}

@@ -182,7 +182,16 @@ export function StatsLeadersTabs({
                       </div>
                     </td>
                     <td className="text-[var(--color-text-secondary)]">
-                      {player.team_name}
+                      {player.team_id ? (
+                        <Link
+                          href={`/${leagueSlug}/teams/id/${player.team_id}`}
+                          className="hover:text-[var(--league-primary)] transition-colors"
+                        >
+                          {player.team_name}
+                        </Link>
+                      ) : (
+                        player.team_name
+                      )}
                     </td>
                     <td className="text-center">{player.games_played}</td>
                     <td className="text-center">{player.goals}</td>

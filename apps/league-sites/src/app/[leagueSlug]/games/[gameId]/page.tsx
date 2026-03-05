@@ -251,6 +251,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
               games={seasonSeries}
               homeTeam={game.home_team}
               awayTeam={game.away_team}
+              leagueSlug={leagueSlug}
             />
 
             {/* Team Stats Comparison (Advanced Stats addon) */}
@@ -260,6 +261,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
                 awayTeam={game.away_team}
                 homeStats={homeStats}
                 awayStats={awayStats}
+                leagueSlug={leagueSlug}
               />
             )}
           </div>
