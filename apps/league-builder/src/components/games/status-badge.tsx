@@ -53,7 +53,7 @@ export function StatusBadge({
   showIcon = true,
   size = 'md',
 }: StatusBadgeProps) {
-  const t = useTranslations('games');
+  const t = useTranslations('schedule');
   const styles = statusStyles[status];
   const sizes = sizeConfig[size];
   const Icon = styles.icon;
