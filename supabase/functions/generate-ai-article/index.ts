@@ -227,7 +227,11 @@ async function handleWeeklyWrapAll(supabase: any) {
           dedupQuery = existing?.filter((e: any) => e.division_id === division.id);
         }
 
-        if (dedupQuery && dedupQuery.length > 0 && dedupQuery[0].status === 'completed') {
+        if (
+          dedupQuery &&
+          dedupQuery.length > 0 &&
+          ['pending', 'generating', 'completed'].includes(dedupQuery[0].status)
+        ) {
           results.push({ league_id: league.id, division_id: division.id, skipped: true });
           continue;
         }
@@ -243,7 +247,7 @@ async function handleWeeklyWrapAll(supabase: any) {
         }
 
         // Create log entry
-        await supabase.from('ai_generation_log').insert({
+        const { error: logInsertError } = await supabase.from('ai_generation_log').insert({
           league_id: league.id,
           season_id: weeklyData.season_id,
           division_id: division.id,
@@ -251,6 +255,17 @@ async function handleWeeklyWrapAll(supabase: any) {
           week_start_date: weekStartDate,
           status: 'generating',
         });
+
+        // Concurrent run safety: unique index can reject duplicate log rows for same weekly scope.
+        // In that case, skip generation to avoid duplicate weekly_wrap articles.
+        if (logInsertError) {
+          const isUniqueViolation = (logInsertError as any)?.code === '23505';
+          if (isUniqueViolation) {
+            results.push({ league_id: league.id, division_id: division.id, skipped: true, reason: 'already generating' });
+            continue;
+          }
+          throw logInsertError;
+        }
 
         const startTime = Date.now();
 
