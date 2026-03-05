@@ -135,8 +135,8 @@ export function StatCorrectionModal({
       teamId: teamIdForType,
       teamType: newTeamType,
       playerId: newPlayerId,
-      assist1PlayerId: newEventType === 'goal' && newAssist1 ? newAssist1 : undefined,
-      assist2PlayerId: newEventType === 'goal' && newAssist2 ? newAssist2 : undefined,
+      assist1PlayerId: newEventType === 'goal' && newAssist1 && newAssist1 !== 'none' ? newAssist1 : undefined,
+      assist2PlayerId: newEventType === 'goal' && newAssist2 && newAssist2 !== 'none' ? newAssist2 : undefined,
       penaltyType: newEventType === 'penalty' ? newPenaltyType : undefined,
       penaltyMinutes: newEventType === 'penalty' ? parseInt(newPenaltyMinutes) : undefined,
       isPowerPlay: newEventType === 'goal' ? newIsPowerPlay : undefined,
@@ -414,7 +414,7 @@ export function StatCorrectionModal({
                           <SelectContent className="bg-neutral-800 border-white/10 max-h-48">
                             <SelectItem value="none">{t('none')}</SelectItem>
                             {teamRoster
-                              .filter((p) => p.id !== newPlayerId && p.id !== newAssist1)
+                              .filter((p) => p.id !== newPlayerId && (newAssist1 === 'none' || p.id !== newAssist1))
                               .sort((a, b) => a.jersey_number - b.jersey_number)
                               .map((p) => (
                                 <SelectItem key={p.id} value={p.id}>

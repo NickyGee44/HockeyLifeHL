@@ -36,7 +36,8 @@ export function GameOfficialsPanel({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('referee');
-  const [selectedPreset, setSelectedPreset] = useState('');
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   const loadOfficials = () => {
@@ -44,6 +45,9 @@ export function GameOfficialsPanel({
       const result = await getGameOfficials(gameId);
       if (result.success && result.data) {
         setOfficials(result.data);
+        setError(null);
+      } else {
+        setError(result.error || 'Failed to load game officials');
       }
     });
   };
@@ -55,7 +59,8 @@ export function GameOfficialsPanel({
   }, [gameId]);
 
   const handleAdd = () => {
-    const name = selectedPreset || newName.trim();
+    const selectedPreset = availableReferees.find((r) => r.id === selectedPresetId);
+    const name = selectedPreset?.name || newName.trim();
     if (!name) return;
 
     startTransition(async () => {
@@ -69,8 +74,11 @@ export function GameOfficialsPanel({
       if (result.success) {
         loadOfficials();
         setNewName('');
-        setSelectedPreset('');
+        setSelectedPresetId('');
         setShowAddForm(false);
+        setError(null);
+      } else {
+        setError(result.error || 'Failed to assign official');
       }
     });
   };
@@ -84,6 +92,9 @@ export function GameOfficialsPanel({
 
       if (result.success) {
         setOfficials((prev) => prev.filter((o) => o.id !== officialId));
+        setError(null);
+      } else {
+        setError(result.error || 'Failed to remove official');
       }
     });
   };
@@ -151,6 +162,12 @@ export function GameOfficialsPanel({
         </div>
       )}
 
+      {error && (
+        <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          {error}
+        </div>
+      )}
+
       {/* Add form */}
       {showAddForm && (
         <div className="p-3 rounded-lg bg-neutral-800/50 border border-white/[0.06] space-y-3 mt-3">
@@ -158,13 +175,13 @@ export function GameOfficialsPanel({
           {availableReferees.length > 0 && (
             <div>
               <label className="text-xs text-neutral-400 mb-1 block">Quick Pick</label>
-              <Select value={selectedPreset} onValueChange={(v) => { setSelectedPreset(v); setNewName(''); }}>
+              <Select value={selectedPresetId} onValueChange={(v) => { setSelectedPresetId(v); setNewName(''); }}>
                 <SelectTrigger className="bg-neutral-900 border-white/10 text-white text-sm">
                   <SelectValue placeholder="Select from league referees" />
                 </SelectTrigger>
                 <SelectContent className="bg-neutral-800 border-white/10">
                   {availableReferees.map((ref) => (
-                    <SelectItem key={ref.id} value={ref.name} className="text-white">
+                    <SelectItem key={ref.id} value={ref.id} className="text-white">
                       {ref.name}
                     </SelectItem>
                   ))}
@@ -182,7 +199,7 @@ export function GameOfficialsPanel({
           <Input
             placeholder="Official name"
             value={newName}
-            onChange={(e) => { setNewName(e.target.value); setSelectedPreset(''); }}
+            onChange={(e) => { setNewName(e.target.value); setSelectedPresetId(''); }}
             className="bg-neutral-900 border-white/10 text-white text-sm"
           />
 
@@ -201,7 +218,7 @@ export function GameOfficialsPanel({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setShowAddForm(false); setNewName(''); setSelectedPreset(''); }}
+              onClick={() => { setShowAddForm(false); setNewName(''); setSelectedPresetId(''); }}
               className="text-neutral-400 text-xs"
             >
               Cancel
@@ -209,7 +226,7 @@ export function GameOfficialsPanel({
             <Button
               size="sm"
               onClick={handleAdd}
-              disabled={isPending || (!newName.trim() && !selectedPreset)}
+              disabled={isPending || (!newName.trim() && !selectedPresetId)}
               className="bg-blue-500 text-white hover:bg-blue-600 text-xs"
             >
               {isPending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}

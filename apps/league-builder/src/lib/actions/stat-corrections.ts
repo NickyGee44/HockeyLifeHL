@@ -63,11 +63,12 @@ async function verifyLeagueAdmin(leagueId: string): Promise<{ userId: string } |
 
   const { data: league } = await supabase
     .from('leagues')
-    .select('created_by')
+    .select('created_by, organizations(owner_user_id)')
     .eq('id', leagueId)
-    .single();
+    .maybeSingle();
 
-  if (league?.created_by === user.id) {
+  const org = (league as any)?.organizations as { owner_user_id?: string } | null | undefined;
+  if ((league as any)?.created_by === user.id || org?.owner_user_id === user.id) {
     return { userId: user.id };
   }
 
@@ -77,13 +78,23 @@ async function verifyLeagueAdmin(leagueId: string): Promise<{ userId: string } |
     .eq('league_id', leagueId)
     .eq('user_id', user.id)
     .eq('status', 'active')
-    .single();
+    .maybeSingle();
 
-  if (!membership || !['owner', 'admin'].includes(membership.role)) {
-    return null;
+  if (membership && ['owner', 'admin'].includes(membership.role)) {
+    return { userId: user.id };
   }
 
-  return { userId: user.id };
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if ((profile as any)?.is_platform_admin === true) {
+    return { userId: user.id };
+  }
+
+  return null;
 }
 
 // ==============================================================================
@@ -157,17 +168,26 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
     }
 
     // Get rosters for both teams
-    const { data: rosters } = await serviceClient
+    let rosterQuery = serviceClient
       .from('team_rosters')
       .select(`
         player_id,
         jersey_number,
         team_id,
+        season_id,
+        end_date,
         position,
         profiles!team_rosters_player_id_fkey(full_name)
       `)
       .in('team_id', [game.home_team_id, game.away_team_id])
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .is('end_date', null);
+
+    if (game.season_id) {
+      rosterQuery = rosterQuery.eq('season_id', game.season_id);
+    }
+
+    const { data: rosters } = await rosterQuery;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const jerseyMap = new Map(
@@ -200,7 +220,7 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formattedRosters: RosterPlayer[] = (rosters || []).map((r: any) => ({
       id: r.player_id,
-      full_name: r.profiles?.full_name || 'Unknown',
+      full_name: (Array.isArray(r.profiles) ? r.profiles[0]?.full_name : r.profiles?.full_name) || 'Unknown',
       jersey_number: r.jersey_number ?? 0,
       team_id: r.team_id,
       position: r.position || 'Forward',

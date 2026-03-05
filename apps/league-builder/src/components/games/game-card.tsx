@@ -3,6 +3,7 @@
 import { cn } from '@hockey-life/ui';
 import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
+import { usePathname } from 'next/navigation';
 import type { Game } from '@/lib/actions/games';
 import { StatusBadge, StatusDot } from './status-badge';
 import { Calendar, MapPin, Trophy, Edit, X, UserPlus } from 'lucide-react';
@@ -19,6 +20,7 @@ interface GameCardProps {
   onCancel?: () => void;
   onAssignScorekeeper?: () => void;
   onClick?: () => void;
+  leagueId?: string;
 }
 
 export function GameCard({
@@ -27,11 +29,15 @@ export function GameCard({
   onSelect,
   showCheckbox = false,
   className,
+  leagueId,
 }: GameCardProps) {
   const t = useTranslations('games');
+  const pathname = usePathname();
   const isCompleted = game.status === 'completed';
   const homeTeam = game.home_team;
   const awayTeam = game.away_team;
+  const resolvedLeagueId = leagueId ?? pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i)?.[1] ?? null;
+  const gameHref = resolvedLeagueId ? `/dashboard/leagues/${resolvedLeagueId}/games/${game.id}` : `/dashboard/games/${game.id}`;
 
   return (
     <div
@@ -65,7 +71,7 @@ export function GameCard({
 
       {/* Teams and Score */}
       <Link
-        href={`/dashboard/games/${game.id}`}
+        href={gameHref}
         className="block p-4 hover:bg-neutral-800/30 transition-colors"
       >
         <div className="flex items-center justify-between gap-4">
@@ -201,10 +207,14 @@ export function GameCardCompact({
   onCancel,
   onAssignScorekeeper,
   onClick,
+  leagueId,
 }: GameCardProps) {
   const t = useTranslations('games');
+  const pathname = usePathname();
   const homeTeam = game.home_team;
   const awayTeam = game.away_team;
+  const resolvedLeagueId = leagueId ?? pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i)?.[1] ?? null;
+  const gameHref = resolvedLeagueId ? `/dashboard/leagues/${resolvedLeagueId}/games/${game.id}` : `/dashboard/games/${game.id}`;
 
   return (
     <div
@@ -309,7 +319,7 @@ export function GameCardCompact({
           </button>
         ) : (
           <Link
-            href={`/dashboard/games/${game.id}`}
+            href={gameHref}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
               'bg-rink-500/10 text-rink-500 hover:bg-rink-500/20'

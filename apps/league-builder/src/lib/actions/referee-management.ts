@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { verifyLeagueOwnerAccess } from './permissions';
 
@@ -102,7 +102,28 @@ export async function getGameOfficials(gameId: string): Promise<{
   data?: GameOfficial[];
   error?: string;
 }> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
+  const userClient = await createClient();
+
+  const { data: gameRef, error: gameRefError } = await (supabase as any)
+    .from('games')
+    .select('league_id')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (gameRefError || !gameRef?.league_id) {
+    return { success: false, error: 'Game not found' };
+  }
+
+  const { data: { user }, error: authError } = await userClient.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const access = await verifyLeagueOwnerAccess(gameRef.league_id);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
 
   const { data, error } = await (supabase
     .from('game_officials') as any)
@@ -183,7 +204,19 @@ export async function assignRefereeToGame(params: {
     return { success: false, error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
+
+  // Verify the game belongs to the selected league
+  const { data: gameRef } = await (supabase as any)
+    .from('games')
+    .select('id')
+    .eq('id', params.gameId)
+    .eq('league_id', params.leagueId)
+    .maybeSingle();
+
+  if (!gameRef) {
+    return { success: false, error: 'Game not found for this league' };
+  }
 
   // Check if this referee is already assigned to this game
   const { data: existing } = await (supabase
@@ -229,7 +262,29 @@ export async function removeRefereeFromGame(params: {
     return { success: false, error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
+
+  // Verify assignment belongs to this league before deletion
+  const { data: official } = await (supabase as any)
+    .from('game_officials')
+    .select('id, game_id')
+    .eq('id', params.officialId)
+    .maybeSingle();
+
+  if (!official?.game_id) {
+    return { success: false, error: 'Official assignment not found' };
+  }
+
+  const { data: gameRef } = await (supabase as any)
+    .from('games')
+    .select('id')
+    .eq('id', official.game_id)
+    .eq('league_id', params.leagueId)
+    .maybeSingle();
+
+  if (!gameRef) {
+    return { success: false, error: 'Assignment does not belong to this league' };
+  }
 
   const { error } = await (supabase
     .from('game_officials') as any)
@@ -259,11 +314,23 @@ export async function bulkAssignRefereeToGames(params: {
     return { success: false, assigned: 0, skipped: 0, error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   let assigned = 0;
   let skipped = 0;
 
+  // Restrict bulk operations to games in this league
+  const { data: leagueGames } = await (supabase as any)
+    .from('games')
+    .select('id')
+    .eq('league_id', params.leagueId)
+    .in('id', params.gameIds);
+  const leagueGameIds = new Set((leagueGames || []).map((g: any) => g.id));
+
   for (const gameId of params.gameIds) {
+    if (!leagueGameIds.has(gameId)) {
+      skipped++;
+      continue;
+    }
     // Check for existing assignment
     const { data: existing } = await (supabase
       .from('game_officials') as any)
