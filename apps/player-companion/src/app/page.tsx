@@ -195,11 +195,13 @@ export default function HomePage() {
           </h1>
         </div>
         <button
+          type="button"
+          aria-label="Refresh dashboard"
           onClick={handleRefresh}
           disabled={isRefreshing}
           className={cn(
             'p-2 rounded-full bg-neutral-850 border border-gold-500/20',
-            'active:scale-95 transition-all',
+            'active:scale-95 transition-[transform,opacity]',
             isRefreshing && 'opacity-50'
           )}
         >

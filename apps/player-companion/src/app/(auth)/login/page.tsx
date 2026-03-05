@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
@@ -57,7 +58,10 @@ export default function LoginPage() {
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="w-full max-w-[360px] space-y-4">
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <div
+            className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
+            aria-live="polite"
+          >
             {error}
           </div>
         )}
@@ -68,11 +72,13 @@ export default function LoginPage() {
           </label>
           <input
             id="email"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
+            spellCheck={false}
             className={cn(
               'w-full px-4 py-3 rounded-xl',
               'bg-neutral-850 border border-gold-500/20 text-white',
@@ -89,6 +95,7 @@ export default function LoginPage() {
           </label>
           <input
             id="password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -110,21 +117,21 @@ export default function LoginPage() {
           className={cn(
             'w-full py-3 rounded-xl font-semibold text-base',
             'bg-gradient-to-r from-gold-500 to-gold-600 text-black',
-            'hover:shadow-lg hover:shadow-gold-500/20 transition-all',
+            'hover:shadow-lg hover:shadow-gold-500/20 transition-[box-shadow,transform,opacity]',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             'active:scale-[0.98]'
           )}
         >
-          {isLoading ? 'Signing in...' : 'Sign In'}
+          {isLoading ? 'Signing in…' : 'Sign In'}
         </button>
 
         <div className="text-center pt-4">
-          <a
+          <Link
             href="/forgot-password"
             className="text-sm text-gold-500 hover:text-gold-400 transition-colors"
           >
             Forgot your password?
-          </a>
+          </Link>
         </div>
       </form>
 

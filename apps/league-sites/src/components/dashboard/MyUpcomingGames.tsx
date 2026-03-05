@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Calendar,
@@ -40,6 +40,22 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
   const [showAllGames, setShowAllGames] = useState(false);
   const [bulkWeek, setBulkWeek] = useState<string | null>(null);
+  const locale = useMemo(
+    () => (typeof navigator !== 'undefined' ? navigator.languages?.[0] ?? navigator.language : undefined),
+    []
+  );
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { weekday: 'short', month: 'short', day: 'numeric' }),
+    [locale]
+  );
+  const timeFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }),
+    [locale]
+  );
+  const relativeDayFormatter = useMemo(
+    () => new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }),
+    [locale]
+  );
 
   const weekGroups = useWeekGroupedGames(games);
 
@@ -153,27 +169,22 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round(
+      (startOfDate.getTime() - startOfToday.getTime()) / (24 * 60 * 60 * 1000)
+    );
 
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+    if (diffDays === 0 || diffDays === 1) {
+      const relativeLabel = relativeDayFormatter.format(diffDays, 'day');
+      return relativeLabel.charAt(0).toUpperCase() + relativeLabel.slice(1);
     }
-    if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
-    }
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
+
+    return dateFormatter.format(date);
   };
 
   const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    return timeFormatter.format(new Date(dateStr));
   };
 
   if (!teamId) {

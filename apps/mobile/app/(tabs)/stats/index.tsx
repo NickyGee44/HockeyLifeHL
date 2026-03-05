@@ -61,7 +61,7 @@ export default function MyStatsScreen() {
       }
     >
       {/* Header */}
-      <View className="px-5 pt-16 pb-2">
+      <View className="px-5 pt-4 pb-2">
         <Text variant="h1">My Stats</Text>
       </View>
 

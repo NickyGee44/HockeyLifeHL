@@ -112,12 +112,14 @@ function LoginForm() {
             id="email"
             name="email"
             required
+            autoComplete="email"
+            spellCheck={false}
             className={cn(
               'w-full px-4 py-3 rounded-xl',
               'bg-neutral-800 border border-neutral-700',
               'text-white placeholder:text-neutral-500',
               'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent',
-              'transition-all'
+              'transition-[border-color,box-shadow]'
             )}
             placeholder="you@example.com"
           />
@@ -143,25 +145,26 @@ function LoginForm() {
             id="password"
             name="password"
             required
+            autoComplete="current-password"
             className={cn(
               'w-full px-4 py-3 rounded-xl',
               'bg-neutral-800 border border-neutral-700',
               'text-white placeholder:text-neutral-500',
               'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent',
-              'transition-all'
+              'transition-[border-color,box-shadow]'
             )}
             placeholder="********"
           />
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3" aria-live="polite">
             <p className="text-sm text-red-400">{error}</p>
           </div>
         )}
 
         {warning && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3" aria-live="polite">
             <p className="text-sm text-amber-400">{warning}</p>
           </div>
         )}
@@ -174,7 +177,7 @@ function LoginForm() {
             'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
             'hover:shadow-lg hover:shadow-rink-500/20',
             'disabled:opacity-50 disabled:cursor-not-allowed',
-            'transition-all flex items-center justify-center gap-2'
+            'transition-[box-shadow,opacity] flex items-center justify-center gap-2'
           )}
         >
           {loading ? (

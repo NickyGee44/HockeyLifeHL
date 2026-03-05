@@ -103,7 +103,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView className="flex-1 bg-neutral-950" contentContainerStyle={{ paddingBottom: 32 }}>
-      <View className="px-5 pt-16 pb-4 flex-row items-center">
+      <View className="px-5 pt-4 pb-4 flex-row items-center">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color="#a3a3a3" />
         </Pressable>

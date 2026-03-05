@@ -68,7 +68,7 @@ export default function MyScheduleScreen() {
 
   return (
     <View className="flex-1 bg-neutral-950">
-      <View className="px-5 pt-16 pb-4 flex-row items-center justify-between">
+      <View className="px-5 pt-4 pb-4 flex-row items-center justify-between">
         <Text variant="h1">My Schedule</Text>
         {tab === 'upcoming' && upcoming && upcoming.length > 0 && (
           <Pressable onPress={handleExportAll} hitSlop={8}>

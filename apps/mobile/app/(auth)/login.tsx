@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/lib/auth/provider';
 
 const styles = StyleSheet.create({
@@ -95,100 +96,137 @@ export default function LoginScreen() {
 
   if (magicLinkSent) {
     return (
-      <View cssInterop={false} style={[styles.container, { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }]}>
-        <RNText cssInterop={false} style={[styles.title, { fontSize: 24 }]}>Check your email</RNText>
-        <RNText cssInterop={false} style={styles.magicText}>
-          We sent a login link to {email}. Click the link to sign in.
-        </RNText>
-        <Pressable
+      <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
+        <View
           cssInterop={false}
-          style={styles.outlineButton}
-          onPress={() => {
-            setMagicLinkSent(false);
-            setMode('password');
-          }}
+          style={[styles.container, { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }]}
         >
-          <RNText cssInterop={false} style={styles.outlineButtonText}>Back to login</RNText>
-        </Pressable>
-      </View>
+          <RNText cssInterop={false} style={[styles.title, { fontSize: 24 }]}>Check your email</RNText>
+          <RNText cssInterop={false} style={styles.magicText}>
+            We sent a login link to {email}. Click the link to sign in.
+          </RNText>
+          <Pressable
+            cssInterop={false}
+            style={styles.outlineButton}
+            accessibilityRole="button"
+            accessibilityLabel="Back to the login form"
+            onPress={() => {
+              setMagicLinkSent(false);
+              setMode('password');
+            }}
+          >
+            <RNText cssInterop={false} style={styles.outlineButtonText}>Back to login</RNText>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      cssInterop={false}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: '#ff0000' }}
-    >
-      <View cssInterop={false} style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 24, backgroundColor: '#0a0a0a' }}>
-        {/* Logo area */}
-        <View cssInterop={false} style={styles.logoArea}>
-          <RNText cssInterop={false} style={{ color: '#D4AF37', fontSize: 28, fontWeight: 'bold' }}>HockeyLifeHL TEST</RNText>
-          <RNText cssInterop={false} style={{ color: '#737373', fontSize: 14, marginTop: 8 }}>Sign in to your account</RNText>
-        </View>
-
-        {/* Form */}
-        <View cssInterop={false} style={styles.form}>
-          <View cssInterop={false}>
-            <RNText cssInterop={false} style={styles.label}>Email</RNText>
-            <TextInput
-              cssInterop={false}
-              style={styles.input}
-              placeholder="you@example.com"
-              placeholderTextColor="#525252"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-            />
+    <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
+      <KeyboardAvoidingView
+        cssInterop={false}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <View cssInterop={false} style={styles.center}>
+          {/* Logo area */}
+          <View cssInterop={false} style={styles.logoArea}>
+            <RNText cssInterop={false} style={{ color: '#D4AF37', fontSize: 28, fontWeight: 'bold' }}>HockeyLifeHL</RNText>
+            <RNText cssInterop={false} style={{ color: '#737373', fontSize: 14, marginTop: 8 }}>Sign in to your account</RNText>
           </View>
 
-          {mode === 'password' && (
+          {/* Form */}
+          <View cssInterop={false} style={styles.form}>
             <View cssInterop={false}>
-              <RNText cssInterop={false} style={styles.label}>Password</RNText>
+              <RNText cssInterop={false} style={styles.label}>Email</RNText>
               <TextInput
                 cssInterop={false}
                 style={styles.input}
-                placeholder="Your password"
+                placeholder="you@example.com"
                 placeholderTextColor="#525252"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="password"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                autoComplete="email"
+                textContentType="emailAddress"
+                accessibilityLabel="Email address"
               />
             </View>
-          )}
 
-          {error && <RNText cssInterop={false} style={styles.errorText}>{error}</RNText>}
+            {mode === 'password' && (
+              <View cssInterop={false}>
+                <RNText cssInterop={false} style={styles.label}>Password</RNText>
+                <TextInput
+                  cssInterop={false}
+                  style={styles.input}
+                  placeholder="Your password"
+                  placeholderTextColor="#525252"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoComplete="current-password"
+                  textContentType="password"
+                  accessibilityLabel="Password"
+                />
+              </View>
+            )}
 
-          <Pressable cssInterop={false} style={styles.button} onPress={handleSignIn} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#0a0a0a" />
-            ) : (
-              <RNText cssInterop={false} style={styles.buttonText}>
-                {mode === 'magic-link' ? 'Send magic link' : 'Sign in'}
+            {error && (
+              <RNText cssInterop={false} style={styles.errorText} accessibilityLiveRegion="polite">
+                {error}
               </RNText>
             )}
-          </Pressable>
 
-          <Pressable
-            cssInterop={false}
-            style={styles.link}
-            onPress={() => setMode(mode === 'password' ? 'magic-link' : 'password')}
-          >
-            <RNText cssInterop={false} style={styles.linkText}>
-              {mode === 'password' ? 'Sign in with magic link instead' : 'Sign in with password instead'}
-            </RNText>
-          </Pressable>
-
-          {mode === 'password' && (
-            <Pressable cssInterop={false} style={styles.link} onPress={() => router.push('/(auth)/forgot-password')}>
-              <RNText cssInterop={false} style={styles.forgotText}>Forgot password?</RNText>
+            <Pressable
+              cssInterop={false}
+              style={styles.button}
+              accessibilityRole="button"
+              accessibilityLabel={mode === 'magic-link' ? 'Send magic link' : 'Sign in'}
+              onPress={handleSignIn}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#0a0a0a" />
+              ) : (
+                <RNText cssInterop={false} style={styles.buttonText}>
+                  {mode === 'magic-link' ? 'Send magic link' : 'Sign in'}
+                </RNText>
+              )}
             </Pressable>
-          )}
+
+            <Pressable
+              cssInterop={false}
+              style={styles.link}
+              accessibilityRole="button"
+              accessibilityLabel={
+                mode === 'password'
+                  ? 'Switch to magic link sign in'
+                  : 'Switch to password sign in'
+              }
+              onPress={() => setMode(mode === 'password' ? 'magic-link' : 'password')}
+            >
+              <RNText cssInterop={false} style={styles.linkText}>
+                {mode === 'password' ? 'Sign in with magic link instead' : 'Sign in with password instead'}
+              </RNText>
+            </Pressable>
+
+            {mode === 'password' && (
+              <Pressable
+                cssInterop={false}
+                style={styles.link}
+                accessibilityRole="button"
+                accessibilityLabel="Open forgot password"
+                onPress={() => router.push('/(auth)/forgot-password')}
+              >
+                <RNText cssInterop={false} style={styles.forgotText}>Forgot password?</RNText>
+              </Pressable>
+            )}
+          </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
