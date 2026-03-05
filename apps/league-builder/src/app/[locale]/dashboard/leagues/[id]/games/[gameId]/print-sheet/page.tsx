@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getGame } from '@/lib/actions/games';
+import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { PrintBar } from '@/components/games/PrintBar';
 import { PrintableGameSheet, type RosterPlayer } from '@/components/games/PrintableGameSheet';
 
@@ -24,7 +25,7 @@ export default async function PrintSheetPage({ params }: Props) {
     redirect(`/${locale}/login`);
   }
 
-  // Authorization — owner or admin only
+  // Authorization
   const { data: league } = await supabase
     .from('leagues')
     .select('id, name, logo_url, slug, custom_domain, custom_domain_verified, created_by')
@@ -33,20 +34,8 @@ export default async function PrintSheetPage({ params }: Props) {
 
   if (!league) notFound();
 
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role, status')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .single();
-
-  const isAuthorized =
-    (league as any).created_by === user.id ||
-    (membership &&
-      ['owner', 'admin'].includes(membership.role) &&
-      membership.status === 'active');
-
-  if (!isAuthorized) {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
     redirect(`/${locale}/dashboard?error=unauthorized`);
   }
 
