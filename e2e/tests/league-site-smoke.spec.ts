@@ -188,9 +188,16 @@ test.describe('League Site Smoke Tests', () => {
       });
       expect(positionStyle).toBe('sticky');
 
-      // Scroll down the page significantly
-      await page.evaluate(() => window.scrollBy(0, 500));
-      await page.waitForTimeout(300);
+      // Scroll down instantly (site CSS enables smooth scrolling by default).
+      // Force instant behavior here to avoid race conditions in sticky assertions.
+      await page.evaluate(() => {
+        const root = document.documentElement;
+        const previous = root.style.scrollBehavior;
+        root.style.scrollBehavior = 'auto';
+        window.scrollBy(0, 500);
+        root.style.scrollBehavior = previous;
+      });
+      await page.waitForFunction(() => window.scrollY >= 450);
 
       // Header should still be visible (sticky)
       await expect(header).toBeVisible();

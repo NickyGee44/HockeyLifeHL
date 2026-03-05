@@ -3,7 +3,6 @@
 import { cn } from '@hockey-life/ui';
 import { useTranslations } from 'next-intl';
 import { UserCheck, Clock } from 'lucide-react';
-import { usePathname } from 'next/navigation';
 
 interface ScorekeeperBadgeProps {
   assigned: boolean;
@@ -62,23 +61,23 @@ export function ScorekeeperBadge({
 
 export function ScorekeeperAssignmentInfo({
   token,
+  accessLink,
   expiresAt,
   accessCount,
   lastAccessedAt,
   className,
 }: {
   token: string;
+  accessLink?: string;
   expiresAt: string;
   accessCount: number;
   lastAccessedAt: string | null;
   className?: string;
 }) {
   const isExpired = new Date(expiresAt) < new Date();
-  const pathname = usePathname();
-  const firstSegment = pathname.split('/').filter(Boolean)[0];
-  const locale = firstSegment === 'fr' ? 'fr' : 'en';
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  const accessLink = `${siteUrl}/${locale}/scorekeeper?token=${token}`;
+  const resolvedAccessLink =
+    accessLink ||
+    `${process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca'}/scorekeeper?token=${token}`;
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -116,12 +115,12 @@ export function ScorekeeperAssignmentInfo({
         <div className="flex items-center gap-2">
           <input
             type="text"
-            value={accessLink}
+            value={resolvedAccessLink}
             readOnly
             className="flex-1 px-3 py-2 text-xs font-mono bg-neutral-900/50 border border-white/[0.06] rounded-lg text-neutral-400"
           />
           <button
-            onClick={() => navigator.clipboard.writeText(accessLink)}
+            onClick={() => navigator.clipboard.writeText(resolvedAccessLink)}
             className="px-3 py-2 text-xs font-medium text-rink-500 hover:bg-rink-500/10 rounded-lg transition-colors"
           >
             Copy

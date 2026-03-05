@@ -5,6 +5,12 @@ import type { PlayerData } from '@/lib/actions/scorekeeper';
 import { addShotEvent } from '@/lib/actions/scorekeeper';
 import { PlayerPicker } from './PlayerPicker';
 
+function isGoaliePosition(position: string | null | undefined): boolean {
+  if (!position) return false;
+  const normalized = position.trim().toLowerCase();
+  return normalized === 'goalie' || normalized === 'g';
+}
+
 interface ShotEntryProps {
   gameId: string;
   /** The team whose goalie made the save (defending team) */
@@ -41,6 +47,7 @@ export function ShotEntry({
     goalies.length === 1 ? goalies[0] : null
   );
   const [isPending, setIsPending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // If only one goalie, skip to shooter selection
   if (step === 'goalie' && goalies.length === 1 && !goalie) {
@@ -61,8 +68,9 @@ export function ShotEntry({
       return;
     }
     setIsPending(true);
+    setSubmitError(null);
     try {
-      await addShotEvent({
+      const result = await addShotEvent({
         gameId,
         teamId: defendingTeamId,
         teamType: defendingTeamType,
@@ -71,8 +79,16 @@ export function ShotEntry({
         period,
         gameTimeSeconds,
       });
+      if (!result.success) {
+        setSubmitError(result.error || 'Failed to save shot. Please try again.');
+        setIsPending(false);
+        return;
+      }
     } catch (err) {
       console.error('Failed to save shot:', err);
+      setSubmitError('Failed to save shot. Please try again.');
+      setIsPending(false);
+      return;
     }
     onComplete();
   }
@@ -86,8 +102,9 @@ export function ShotEntry({
       return;
     }
     setIsPending(true);
+    setSubmitError(null);
     try {
-      await addShotEvent({
+      const result = await addShotEvent({
         gameId,
         teamId: defendingTeamId,
         teamType: defendingTeamType,
@@ -95,10 +112,45 @@ export function ShotEntry({
         period,
         gameTimeSeconds,
       });
+      if (!result.success) {
+        setSubmitError(result.error || 'Failed to save shot. Please try again.');
+        setIsPending(false);
+        return;
+      }
     } catch (err) {
       console.error('Failed to save shot:', err);
+      setSubmitError('Failed to save shot. Please try again.');
+      setIsPending(false);
+      return;
     }
     onComplete();
+  }
+
+  if (submitError) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+        <div className="relative bg-[var(--color-background)] rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150 max-w-sm mx-4">
+          <div className="text-2xl mb-2">&#9888;&#65039;</div>
+          <p className="font-semibold text-[var(--color-text-primary)] mb-1">Save not recorded</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">{submitError}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => setSubmitError(null)}
+              className="flex-1 py-2 rounded-lg bg-[var(--league-primary,#d4af37)] text-sm font-semibold text-black"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (step === 'goalie' && goalies.length > 1) {
@@ -115,7 +167,7 @@ export function ShotEntry({
   }
 
   // Shooter selection (optional) — uses skip button inside PlayerPicker
-  const skaters = shootingRoster.filter(p => p.position !== 'Goalie');
+  const skaters = shootingRoster.filter(p => !isGoaliePosition(p.position));
 
   return (
     <PlayerPicker

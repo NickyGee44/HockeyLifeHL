@@ -247,7 +247,7 @@ export function AssignScorekeeperModal({
                 </Button>
               </div>
               <p className="text-xs text-neutral-500">
-                6-character code valid for 24 hours. Share this with your scorekeeper.
+                16-character code valid for 24 hours. Share this with your scorekeeper.
               </p>
             </div>
 

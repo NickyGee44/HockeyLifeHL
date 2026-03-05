@@ -878,7 +878,7 @@ export async function saveScorekeeperNotes(
 }
 
 /**
- * Lightweight refetch of game events — no session verification.
+ * Lightweight refetch of game events.
  * Used by the scoring interface to refresh after recording events.
  */
 export async function refreshGameEvents(gameId: string): Promise<{
@@ -889,6 +889,8 @@ export async function refreshGameEvents(gameId: string): Promise<{
   error?: string;
 }> {
   try {
+    await verifyActiveSession(gameId);
+
     const supabase = createServiceRoleClient();
 
     const { data: events, error } = await supabase

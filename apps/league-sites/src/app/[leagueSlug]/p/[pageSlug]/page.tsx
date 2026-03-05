@@ -9,13 +9,14 @@ interface CustomPageRouteProps {
 
 type HeadingBlock = {
   type: 'heading';
-  level?: 1 | 2 | 3;
+  level?: 1 | 2 | 3 | 'h1' | 'h2' | 'h3';
   text?: string;
 };
 
 type TextBlock = {
   type: 'text';
   content?: string;
+  text?: string;
 };
 
 type ImageBlock = {
@@ -41,13 +42,20 @@ type ExternalLinkBlock = {
   url?: string;
 };
 
+type LinkBlock = {
+  type: 'link';
+  label?: string;
+  url?: string;
+};
+
 type ContentBlock =
   | HeadingBlock
   | TextBlock
   | ImageBlock
   | DividerBlock
   | CalloutBlock
-  | ExternalLinkBlock;
+  | ExternalLinkBlock
+  | LinkBlock;
 
 type CustomPage = {
   title?: string;
@@ -75,8 +83,15 @@ function sanitizeContent(content: string | undefined): string {
 function renderHeading(block: HeadingBlock, key: string) {
   const text = block.text?.trim();
   if (!text) return null;
+  const level = block.level === 'h1'
+    ? 1
+    : block.level === 'h2'
+      ? 2
+      : block.level === 'h3'
+        ? 3
+        : block.level;
 
-  if (block.level === 2) {
+  if (level === 2) {
     return (
       <h2 key={key} className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)] leading-tight">
         {text}
@@ -84,7 +99,7 @@ function renderHeading(block: HeadingBlock, key: string) {
     );
   }
 
-  if (block.level === 3) {
+  if (level === 3) {
     return (
       <h3 key={key} className="text-xl md:text-2xl font-bold text-[var(--color-text-primary)] leading-tight">
         {text}
@@ -125,15 +140,28 @@ function renderBlock(block: ContentBlock, index: number) {
   }
 
   if (block.type === 'text') {
-    const html = sanitizeContent(block.content);
-    if (!html) return null;
+    const rawHtml = typeof block.content === 'string' ? block.content : '';
+    const plainText = typeof block.text === 'string' ? block.text.trim() : '';
+
+    if (rawHtml.trim()) {
+      const html = sanitizeContent(rawHtml);
+      if (!html) return null;
+
+      return (
+        <div
+          key={key}
+          className="prose max-w-none prose-headings:text-[var(--color-text-primary)] prose-p:text-[var(--color-text-secondary)] prose-li:text-[var(--color-text-secondary)] prose-strong:text-[var(--color-text-primary)] prose-a:text-[var(--league-primary)]"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      );
+    }
+
+    if (!plainText) return null;
 
     return (
-      <div
-        key={key}
-        className="prose max-w-none prose-headings:text-[var(--color-text-primary)] prose-p:text-[var(--color-text-secondary)] prose-li:text-[var(--color-text-secondary)] prose-strong:text-[var(--color-text-primary)] prose-a:text-[var(--league-primary)]"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <p key={key} className="whitespace-pre-wrap leading-relaxed text-[var(--color-text-secondary)]">
+        {plainText}
+      </p>
     );
   }
 
@@ -158,7 +186,7 @@ function renderBlock(block: ContentBlock, index: number) {
     return renderCallout(block, key);
   }
 
-  if (block.type === 'external_link') {
+  if (block.type === 'external_link' || block.type === 'link') {
     if (!block.url || !block.label) return null;
 
     return (

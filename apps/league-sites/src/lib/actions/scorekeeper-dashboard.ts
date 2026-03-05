@@ -235,12 +235,14 @@ export async function getScorekeeperDashboard(): Promise<{
         requesting_sk:league_scorekeepers!scorekeeper_swap_requests_requesting_scorekeeper_id_fkey(id, display_name),
         accepting_sk:league_scorekeepers!scorekeeper_swap_requests_accepting_scorekeeper_id_fkey(id, display_name),
         games!inner(
+          league_id,
           scheduled_at,
           home_team:teams!games_home_team_id_fkey(name),
           away_team:teams!games_away_team_id_fkey(name)
         )
       `)
       .eq('status', 'pending')
+      .eq('games.league_id', leagueId)
       .neq('requesting_scorekeeper_id', leagueScorekeeperId);
 
     const formatSwap = (s: any): SwapRequestData => ({

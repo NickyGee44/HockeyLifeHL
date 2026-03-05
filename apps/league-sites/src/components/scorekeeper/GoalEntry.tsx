@@ -5,6 +5,12 @@ import type { PlayerData } from '@/lib/actions/scorekeeper';
 import { addGoalEvent } from '@/lib/actions/scorekeeper';
 import { PlayerPicker } from './PlayerPicker';
 
+function isGoaliePosition(position: string | null | undefined): boolean {
+  if (!position) return false;
+  const normalized = position.trim().toLowerCase();
+  return normalized === 'goalie' || normalized === 'g';
+}
+
 interface GoalEntryProps {
   gameId: string;
   teamId: string;
@@ -44,7 +50,7 @@ export function GoalEntry({
   const [isPending, setIsPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const skaters = roster.filter(p => p.position !== 'Goalie');
+  const skaters = roster.filter(p => !isGoaliePosition(p.position));
 
   async function submitGoal(scorerPlayer: PlayerData, a1?: PlayerData | null, a2?: PlayerData | null) {
     if (isPending) return;

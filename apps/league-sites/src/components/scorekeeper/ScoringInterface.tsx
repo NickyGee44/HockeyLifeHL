@@ -19,6 +19,12 @@ import { ScoreSheetUpload } from './ScoreSheetUpload';
 import { GameSummaryModal } from './GameSummaryModal';
 import { SyncStatusBanner } from './SyncStatusBanner';
 
+function isGoaliePosition(position: string | null | undefined): boolean {
+  if (!position) return false;
+  const normalized = position.trim().toLowerCase();
+  return normalized === 'goalie' || normalized === 'g';
+}
+
 interface ScoringInterfaceProps {
   game: GameData;
   events: GameEventData[];
@@ -76,6 +82,7 @@ export function ScoringInterface({
   const [expiredPenaltyIds, setExpiredPenaltyIds] = useState<Set<string>>(new Set());
   const [shotMode, setShotMode] = useState<'simple' | 'advanced'>('simple');
   const [eventsCollapsed, setEventsCollapsed] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Lift game timer into ScoringInterface for live time values
   const handleTimerSync = useCallback(
@@ -196,17 +203,25 @@ export function ScoringInterface({
   async function handleGoaliePull(teamType: 'home' | 'away') {
     const result = await toggleGoaliePull(game.id, teamType);
     if (result.success) {
+      setActionError(null);
       setGame(prev => ({
         ...prev,
         homeGoaliePulled: teamType === 'home' ? (result.pulled ?? false) : prev.homeGoaliePulled,
         awayGoaliePulled: teamType === 'away' ? (result.pulled ?? false) : prev.awayGoaliePulled,
       }));
+      return;
     }
+    setActionError(result.error || 'Failed to update goalie state');
   }
 
   async function handleStartGame() {
-    await updateGameStatus(game.id, 'in_progress');
-    setGame(prev => ({ ...prev, status: 'in_progress' }));
+    const result = await updateGameStatus(game.id, 'in_progress');
+    if (result.success) {
+      setActionError(null);
+      setGame(prev => ({ ...prev, status: 'in_progress' }));
+      return;
+    }
+    setActionError(result.error || 'Failed to start game');
   }
 
   // Determine auto-flags for current goal entry (live timer values)
@@ -228,7 +243,7 @@ export function ScoringInterface({
   ) => {
     try {
       const { addShotEvent } = await import('@/lib/actions/scorekeeper');
-      await addShotEvent({
+      const result = await addShotEvent({
         gameId: game.id,
         teamId: defendingTeamId,
         teamType: defendingTeamType,
@@ -236,9 +251,15 @@ export function ScoringInterface({
         period: timer.currentPeriod,
         gameTimeSeconds: timer.timeRemaining,
       });
+      if (!result.success) {
+        setActionError(result.error || 'Failed to record save');
+        return;
+      }
+      setActionError(null);
       refreshData();
     } catch (err) {
       console.error('Quick save failed:', err);
+      setActionError('Failed to record save');
     }
   }, [game.id, timer.currentPeriod, timer.timeRemaining, refreshData]);
 
@@ -263,6 +284,11 @@ export function ScoringInterface({
       {/* Sync Status */}
       <div className="px-4 pt-2">
         <SyncStatusBanner />
+        {actionError && (
+          <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            {actionError}
+          </div>
+        )}
       </div>
 
       {/* Top Bar: Back + Multi-game nav */}
@@ -334,7 +360,7 @@ export function ScoringInterface({
             goaliePulled={game.homeGoaliePulled}
             shotMode={shotMode}
             saves={events.filter(e => e.eventType === 'save' && e.teamType === 'home' && !e.deletedAt).length}
-            disabled={game.status === 'completed'}
+            disabled={game.status !== 'in_progress'}
             onGoal={() => { setSelectedTeam('home'); setActiveEntry({ type: 'goal', teamType: 'home' }); }}
             onPenalty={() => { setSelectedTeam('home'); setActiveEntry({ type: 'penalty', teamType: 'home' }); }}
             onShot={shotMode === 'advanced' ? () => { setSelectedTeam('home'); setActiveEntry({ type: 'shot', teamType: 'home' }); } : undefined}
@@ -363,7 +389,7 @@ export function ScoringInterface({
             goaliePulled={game.awayGoaliePulled}
             shotMode={shotMode}
             saves={events.filter(e => e.eventType === 'save' && e.teamType === 'away' && !e.deletedAt).length}
-            disabled={game.status === 'completed'}
+            disabled={game.status !== 'in_progress'}
             onGoal={() => { setSelectedTeam('away'); setActiveEntry({ type: 'goal', teamType: 'away' }); }}
             onPenalty={() => { setSelectedTeam('away'); setActiveEntry({ type: 'penalty', teamType: 'away' }); }}
             onShot={shotMode === 'advanced' ? () => { setSelectedTeam('away'); setActiveEntry({ type: 'shot', teamType: 'away' }); } : undefined}
@@ -537,7 +563,7 @@ export function ScoringInterface({
           gameId={game.id}
           defendingTeamId={opposingTeam.id}
           defendingTeamType={selectedTeam === 'home' ? 'away' : 'home'}
-          goalies={opposingTeam.roster.filter(p => p.position === 'Goalie')}
+          goalies={opposingTeam.roster.filter(p => isGoaliePosition(p.position))}
           shootingRoster={activeTeam!.roster}
           shootingTeamName={activeTeam!.name}
           shootingTeamColor={activeTeam!.primaryColor}
@@ -874,7 +900,7 @@ function TeamPanel({
   onGoaliePull: () => void;
 }) {
   const color = team.primaryColor || 'var(--league-primary, #d4af37)';
-  const goalies = team.roster.filter(p => p.position === 'Goalie');
+  const goalies = team.roster.filter(p => isGoaliePosition(p.position));
 
   return (
     <div

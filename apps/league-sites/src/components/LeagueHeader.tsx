@@ -210,6 +210,10 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
             </span>
           </Link>
 
+          <span className="hidden xl:inline-flex shrink-0 rounded-full border border-[var(--header-border)] bg-[var(--header-surface)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--header-text-secondary)]">
+            Official League Site
+          </span>
+
           {/* Nav — centered, scrollable overflow, icons hidden on desktop for density */}
           <div className="hidden flex-1 min-w-0 lg:block" data-testid="desktop-nav">
             <nav

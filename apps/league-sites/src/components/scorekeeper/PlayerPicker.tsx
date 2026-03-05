@@ -4,6 +4,12 @@ import { useMemo } from 'react';
 import Image from 'next/image';
 import type { PlayerData } from '@/lib/actions/scorekeeper';
 
+function isGoaliePosition(position: string | null | undefined): boolean {
+  if (!position) return false;
+  const normalized = position.trim().toLowerCase();
+  return normalized === 'goalie' || normalized === 'g';
+}
+
 interface PlayerPickerProps {
   players: PlayerData[];
   teamName: string;
@@ -36,7 +42,7 @@ export function PlayerPicker({
 }: PlayerPickerProps) {
   const sortedPlayers = useMemo(() => {
     const list = goaliesOnly
-      ? players.filter(p => p.position === 'Goalie')
+      ? players.filter(p => isGoaliePosition(p.position))
       : players;
 
     return [...list].sort((a, b) => a.jerseyNumber - b.jerseyNumber);
@@ -155,7 +161,7 @@ export function PlayerPicker({
                   {/* Position + Captain badges */}
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-[var(--color-text-secondary)]">
-                      {player.position === 'Goalie' ? 'G' : player.position === 'Defense' ? 'D' : 'F'}
+                      {isGoaliePosition(player.position) ? 'G' : player.position === 'Defense' ? 'D' : 'F'}
                     </span>
                     {player.isCaptain && (
                       <span className="text-[10px] font-bold text-yellow-500">C</span>

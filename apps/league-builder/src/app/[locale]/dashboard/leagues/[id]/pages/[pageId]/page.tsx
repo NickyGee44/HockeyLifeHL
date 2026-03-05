@@ -65,6 +65,17 @@ function slugify(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
 }
 
+function getLeagueSiteUrl(leagueSlug: string, pageSlug: string): string {
+  const explicitBase = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL;
+  if (explicitBase) {
+    const base = explicitBase.endsWith('/') ? explicitBase.slice(0, -1) : explicitBase;
+    return `${base}/${leagueSlug}/p/${pageSlug}`;
+  }
+
+  const sitesBaseDomain = process.env.NEXT_PUBLIC_SITES_BASE_DOMAIN || 'beerleaguehockey.ca';
+  return `https://${leagueSlug}.${sitesBaseDomain}/p/${pageSlug}`;
+}
+
 function createBlock(type: BlockType): ContentBlock {
   const id = createId();
   switch (type) {
@@ -773,7 +784,7 @@ export default function CustomPageEditorPage() {
                 <Switch checked={isPublished} onCheckedChange={setIsPublished} />
               </div>
               {leagueTheme?.slug && slugify(slug || title) && (
-                <a href={`/${leagueTheme.slug}/p/${slugify(slug || title)}`} target="_blank" rel="noopener noreferrer"
+                <a href={getLeagueSiteUrl(leagueTheme.slug, slugify(slug || title))} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-xs text-rink-400 hover:text-rink-300 transition-colors">
                   Open live page ↗
                 </a>

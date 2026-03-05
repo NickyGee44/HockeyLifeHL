@@ -3,7 +3,6 @@
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendScorekeeperAssignmentEmail } from '@/lib/email/scorekeeper-emails';
 import { randomBytes } from 'crypto';
-import { headers } from 'next/headers';
 
 /**
  * Check if the current user is a platform admin.
@@ -19,18 +18,16 @@ async function checkPlatformAdmin(userId: string): Promise<boolean> {
   return (profile as any)?.is_platform_admin === true;
 }
 
-const SUPPORTED_LOCALES = new Set(['en', 'fr']);
-
-function getLocaleFromReferer(referer: string | null): string {
-  if (!referer) return 'en';
-
-  try {
-    const pathname = new URL(referer).pathname;
-    const firstSegment = pathname.split('/').filter(Boolean)[0];
-    return SUPPORTED_LOCALES.has(firstSegment) ? firstSegment : 'en';
-  } catch {
-    return 'en';
-  }
+function getLeagueSiteOrigin(league: {
+  slug?: string | null;
+  custom_domain?: string | null;
+  custom_domain_verified?: boolean | null;
+}): string {
+  const baseDomain = process.env.NEXT_PUBLIC_SITES_BASE_DOMAIN || 'beerleaguehockey.ca';
+  const customDomain = league.custom_domain_verified ? league.custom_domain : null;
+  if (customDomain) return `https://${customDomain}`;
+  if (!league.slug) return process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
+  return `https://${league.slug}.${baseDomain}`;
 }
 
 /**
@@ -103,11 +100,9 @@ export async function assignScorekeeperToGame(params: {
           id,
           name,
           created_by,
-          league_memberships!inner(
-            user_id,
-            role,
-            status
-          )
+          slug,
+          custom_domain,
+          custom_domain_verified
         )
       `)
       .eq('id', params.gameId)
@@ -120,10 +115,15 @@ export async function assignScorekeeperToGame(params: {
     // Verify user has permission (owner or admin)
     const league = game.leagues as any;
     const isCreator = league.created_by === user.id;
-    const membership = (league.league_memberships as any[]).find((m) => m.user_id === user.id);
-    const isAuthorized =
-      isCreator ||
-      (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role, status')
+      .eq('league_id', game.league_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    const isAuthorized = isCreator || (membership && ['owner', 'admin'].includes(membership.role));
 
     if (!isAuthorized) {
       // Fallback: platform admins get owner-level access to all leagues
@@ -160,6 +160,55 @@ export async function assignScorekeeperToGame(params: {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
+    // Revoke any previous active sessions for this game before issuing a fresh token.
+    await serviceClient
+      .from('scorekeeper_sessions')
+      .update({
+        is_active: false,
+        deactivated_at: new Date().toISOString(),
+        deactivated_by: user.id,
+        deactivation_reason: 'Reassigned by admin',
+      })
+      .eq('game_id', params.gameId)
+      .eq('is_active', true);
+
+    // Best-effort resolution: if this email matches a league scorekeeper profile,
+    // write both assignment + session ownership fields for downstream dashboards.
+    const normalizedEmail = params.scorekeeperEmail.trim().toLowerCase();
+
+    const { data: matchedLeagueScorekeeper } = await serviceClient
+      .from('league_scorekeepers')
+      .select('id, scorekeeper_id')
+      .eq('league_id', game.league_id)
+      .eq('is_active', true)
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
+
+    let resolvedScorekeeperId = (matchedLeagueScorekeeper as any)?.scorekeeper_id as string | undefined;
+    let resolvedLeagueScorekeeperId = (matchedLeagueScorekeeper as any)?.id as string | undefined;
+
+    // Fallback: direct profile match by email (useful when league_scorekeepers row is missing)
+    if (!resolvedScorekeeperId) {
+      const { data: profileByEmail } = await serviceClient
+        .from('profiles')
+        .select('id')
+        .ilike('email', normalizedEmail)
+        .maybeSingle();
+
+      resolvedScorekeeperId = (profileByEmail as any)?.id as string | undefined;
+
+      if (resolvedScorekeeperId && !resolvedLeagueScorekeeperId) {
+        const { data: leagueScorekeeperByProfile } = await serviceClient
+          .from('league_scorekeepers')
+          .select('id')
+          .eq('league_id', game.league_id)
+          .eq('scorekeeper_id', resolvedScorekeeperId)
+          .eq('is_active', true)
+          .maybeSingle();
+        resolvedLeagueScorekeeperId = (leagueScorekeeperByProfile as any)?.id as string | undefined;
+      }
+    }
+
     // Create scorekeeper session using service role client (bypasses RLS)
     const { data: session, error: sessionError } = await serviceClient
       .from('scorekeeper_sessions')
@@ -169,6 +218,9 @@ export async function assignScorekeeperToGame(params: {
         token,
         expires_at: expiresAt.toISOString(),
         created_by: user.id,
+        scorekeeper_id: resolvedScorekeeperId ?? null,
+        league_scorekeeper_id: resolvedLeagueScorekeeperId ?? null,
+        session_type: 'single',
         is_active: true,
       })
       .select('id')
@@ -179,42 +231,73 @@ export async function assignScorekeeperToGame(params: {
       return { success: false, error: 'Failed to create scorekeeper session' };
     }
 
-    // Generate locale-aware access link
-    const requestHeaders = await headers();
-    const locale = getLocaleFromReferer(requestHeaders.get('referer'));
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const accessLink = `${siteUrl}/${locale}/scorekeeper?token=${token}`;
+    // Keep assignment table in sync for schedule/admin views when a profile is resolvable.
+    if (resolvedScorekeeperId) {
+      const { data: existingAssignment } = await serviceClient
+        .from('game_scorekeeper_assignments')
+        .select('id')
+        .eq('game_id', params.gameId)
+        .maybeSingle();
+
+      if (existingAssignment?.id) {
+        await serviceClient
+          .from('game_scorekeeper_assignments')
+          .update({
+            scorekeeper_id: resolvedScorekeeperId,
+            assigned_by: user.id,
+            assigned_at: new Date().toISOString(),
+          })
+          .eq('id', existingAssignment.id);
+      } else {
+        await serviceClient
+          .from('game_scorekeeper_assignments')
+          .insert({
+            game_id: params.gameId,
+            league_id: game.league_id,
+            scorekeeper_id: resolvedScorekeeperId,
+            assigned_by: user.id,
+            assigned_at: new Date().toISOString(),
+          });
+      }
+    }
+
+    // Scorekeeper app lives on league sites (subdomain/custom domain), not locale-prefixed builder routes.
+    const accessLink = `${getLeagueSiteOrigin(league)}/scorekeeper?token=${token}`;
 
     // Send email if requested
     if (params.sendEmail && params.scorekeeperEmail) {
       const homeTeam = game.home_team as { id: string; name: string };
       const awayTeam = game.away_team as { id: string; name: string };
 
-      await sendScorekeeperAssignmentEmail({
-        to: params.scorekeeperEmail,
-        scorekeeperName: params.scorekeeperName || 'Scorekeeper',
-        leagueName: league.name,
-        homeTeamName: homeTeam.name,
-        awayTeamName: awayTeam.name,
-        gameDate: new Date(game.scheduled_at).toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }),
-        gameTime: new Date(game.scheduled_at).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-        }),
-        token,
-        accessLink,
-        expiresAt: expiresAt.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-        }),
-      });
+      try {
+        await sendScorekeeperAssignmentEmail({
+          to: params.scorekeeperEmail,
+          scorekeeperName: params.scorekeeperName || 'Scorekeeper',
+          leagueName: league.name,
+          homeTeamName: homeTeam.name,
+          awayTeamName: awayTeam.name,
+          gameDate: new Date(game.scheduled_at).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+          gameTime: new Date(game.scheduled_at).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          }),
+          token,
+          accessLink,
+          expiresAt: expiresAt.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          }),
+        });
+      } catch (emailError) {
+        console.error('Scorekeeper assignment email failed:', emailError);
+      }
     }
 
     return {
@@ -270,12 +353,7 @@ export async function getScorekeeperAssignments(leagueId: string): Promise<{
       .from('leagues')
       .select(`
         id,
-        created_by,
-        league_memberships!inner(
-          user_id,
-          role,
-          status
-        )
+        created_by
       `)
       .eq('id', leagueId)
       .single();
@@ -284,11 +362,16 @@ export async function getScorekeeperAssignments(leagueId: string): Promise<{
       return { success: false, error: 'League not found' };
     }
 
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role, status')
+      .eq('league_id', leagueId)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
     const isCreator = (league as any).created_by === user.id;
-    const membership = ((league as any).league_memberships as any[]).find((m) => m.user_id === user.id);
-    const isAuthorized =
-      isCreator ||
-      (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
+    const isAuthorized = isCreator || (membership && ['owner', 'admin'].includes(membership.role));
 
     if (!isAuthorized) {
       // Fallback: platform admins get owner-level access to all leagues
@@ -389,12 +472,7 @@ export async function getGameScorekeeperAssignment(gameId: string): Promise<{
         league_id,
         leagues!inner(
           id,
-          created_by,
-          league_memberships!inner(
-            user_id,
-            role,
-            status
-          )
+          created_by
         )
       `)
       .eq('id', gameId)
@@ -405,11 +483,16 @@ export async function getGameScorekeeperAssignment(gameId: string): Promise<{
     }
 
     const league = game.leagues as any;
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role, status')
+      .eq('league_id', game.league_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
     const isCreator = league.created_by === user.id;
-    const membership = (league.league_memberships as any[]).find((m) => m.user_id === user.id);
-    const isAuthorized =
-      isCreator ||
-      (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
+    const isAuthorized = isCreator || (membership && ['owner', 'admin'].includes(membership.role));
 
     if (!isAuthorized) {
       // Fallback: platform admins get owner-level access to all leagues

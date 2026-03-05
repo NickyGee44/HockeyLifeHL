@@ -3,6 +3,7 @@
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/client';
 import { getStripeErrorMessage } from '@/lib/stripe/client';
+import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
 
 // ============================================================================
 // Types
@@ -142,6 +143,10 @@ export async function createAddonCheckout(
   cancelUrl: string
 ): ActionResult<{ url: string }> {
   try {
+    if (!isAllowedRedirectUrl(successUrl) || !isAllowedRedirectUrl(cancelUrl)) {
+      return { success: false, error: 'Invalid redirect URL.' };
+    }
+
     const result = await verifyOrgOwnerAccess(orgId);
     if ('error' in result) {
       return { success: false, error: result.error };

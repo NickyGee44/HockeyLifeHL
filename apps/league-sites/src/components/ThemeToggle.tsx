@@ -12,6 +12,15 @@ export function ThemeToggle() {
     queueMicrotask(() => setMounted(true));
   }, []);
 
+  useEffect(() => {
+    if (!mounted) return;
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    if (resolvedTheme === 'light' || resolvedTheme === 'dark') {
+      root.classList.add(resolvedTheme);
+    }
+  }, [mounted, resolvedTheme]);
+
   if (!mounted) {
     return (
       <div className="h-9 w-9 rounded-lg border border-[var(--color-border)] bg-transparent" />
