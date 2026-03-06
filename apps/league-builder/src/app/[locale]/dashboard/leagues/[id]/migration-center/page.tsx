@@ -1,9 +1,11 @@
 import { getCurrentUser } from '@/lib/actions/auth';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import { getLeagueMigrationRequests } from '@/lib/actions/migration-requests';
 import { getMigrationFee } from '@/lib/fees/platform-fees';
 import { createClient } from '@/lib/supabase/server';
 import { cn } from '@hockey-life/ui';
 import { Link } from '@/i18n/navigation';
+import { MigrationRequestIntake } from '@/components/migration/MigrationRequestIntake';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import {
@@ -37,8 +39,6 @@ type SeasonSnapshot = {
   end_date: string | null;
   schedule_generated: boolean | null;
 };
-
-const SUPPORT_EMAIL = 'support@beerleaguehockey.ca';
 
 export default async function LeagueMigrationCenterPage({ params }: Props) {
   const awaited = await params;
@@ -124,7 +124,8 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
     0
   );
   const statsRecordCount = (playerStatsCount ?? 0) + (goalieStatsCount ?? 0);
-  const supportHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Historic Data Import - ${league.name}`)}`;
+  const migrationRequestsResult = await getLeagueMigrationRequests(leagueId);
+  const migrationRequests = migrationRequestsResult.success ? migrationRequestsResult.data : [];
 
   const tracks = [
     {
@@ -147,8 +148,8 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
       summary: `${playerStatsCount ?? 0} skater rows, ${goalieStatsCount ?? 0} goalie rows, ${awardsCount ?? 0} awards`,
       description:
         'Career stats, season records, and award history are real data models in the platform, but they still need a dedicated migration workflow.',
-      href: supportHref,
-      cta: 'Request assisted import',
+      href: `/${locale}/dashboard/leagues/${leagueId}/migration-center#migration-intake`,
+      cta: 'Open migration intake',
       detail: 'Prepare season totals, award winners, championships, and legacy player IDs if you have them.',
     },
     {
@@ -303,10 +304,10 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
               <div className="rounded-[26px] border border-cyan-400/20 bg-black/20 p-5 backdrop-blur-sm">
                 <div className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
                   <CreditCard className="w-4 h-4 text-cyan-300" />
-                  Assisted Historical Import
+                  In-App Migration Intake
                 </div>
                 <p className="text-sm text-neutral-300 leading-6">
-                  Full legacy stats, records, news backfills, and large media libraries still need an assisted migration path. The self-serve tools below cover structure and current-season data.
+                  Full legacy stats, records, news backfills, and large media libraries still need an assisted migration path. The intake form below keeps that request structured, visible, and tied to the league.
                 </p>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 mt-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
@@ -321,16 +322,22 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
                   </p>
                 </div>
                 <a
-                  href={supportHref}
+                  href="#migration-intake"
                   className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-200 transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-400/15"
                 >
-                  Request assisted migration
+                  Open migration intake
                   <ArrowRight className="w-4 h-4" />
                 </a>
               </div>
             </div>
           </div>
         </div>
+
+        <MigrationRequestIntake
+          leagueId={leagueId}
+          locale={locale}
+          requests={migrationRequests}
+        />
 
         <section className="space-y-4">
           <div>
@@ -443,10 +450,10 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
               </div>
             </div>
             <a
-              href={supportHref}
+              href="#migration-intake"
               className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-0.5 hover:border-amber-200/40 hover:bg-amber-300/15"
             >
-              Email migration support
+              Open migration intake
               <ArrowRight className="w-4 h-4" />
             </a>
           </div>
