@@ -5,10 +5,14 @@
  * 1. Platform defaults from `platform_fee_config` table (global)
  * 2. Per-league overrides from `league_billing_settings` table
  *
- * Revenue model:
- * - One-time setup fee ($4,999 CAD default) per league
- * - 3.5% processing fee (basis points: 350) on all player payments
+ * Revenue model (ratified 2026-03-02):
+ * - Tiered pricing based on team count and gross registration fees
+ * - Small     (<10 teams AND <$50K fees):  $299/season flat
+ * - Standard  (10–99 teams OR $50K–$499K): 3.5% of gross reg fees, $250/mo floor
+ * - Large     (100–499 teams):             3.25% + 2-year contract, $500/mo floor
+ * - Enterprise (500+ teams OR $2M+ fees):  2.75–3.0% negotiated, multi-year
  * - Fee mode: pass to player (default) or absorb by league
+ * - Referral discount: 0.25% per referral, max 0.75% off, floor 2.75%
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
@@ -27,6 +31,7 @@ export interface PlatformFeeConfig {
 
 export type SetupFeeStatus = 'unbilled' | 'invoiced' | 'paid' | 'waived';
 export type PlatformFeeMode = 'pass_to_player' | 'absorb_by_league';
+export type PricingTier = 'small' | 'standard' | 'large' | 'enterprise';
 
 export interface LeagueBillingConfig {
   leagueId: string;
@@ -41,6 +46,116 @@ export interface LeagueBillingConfig {
   stripeAccountStatus: string | null;
   payoutsEnabled: boolean;
   chargesEnabled: boolean;
+  pricingTier: PricingTier;
+  monthlyFloorCents: number;
+  contractTermMonths: number;
+  referralDiscountBps: number;
+  flatSeasonFeeCents: number;
+}
+
+// ============================================================================
+// Tier Constants
+// ============================================================================
+
+/** Thresholds that determine which pricing tier a league falls into. */
+export const TIER_THRESHOLDS = {
+  /** Max teams (exclusive) to qualify for Small tier */
+  SMALL_MAX_TEAMS: 10,
+  /** Max gross fees in cents (exclusive) to qualify for Small tier */
+  SMALL_MAX_FEES_CENTS: 5_000_000, // $50,000
+  /** Min teams (inclusive) to qualify for Large tier */
+  LARGE_MIN_TEAMS: 100,
+  /** Min teams (inclusive) to qualify for Enterprise tier */
+  ENTERPRISE_MIN_TEAMS: 500,
+  /** Min gross fees in cents (inclusive) to qualify for Enterprise tier */
+  ENTERPRISE_MIN_FEES_CENTS: 200_000_000, // $2,000,000
+} as const;
+
+/** Rate in basis points per tier (100 bps = 1%). Enterprise is the lower bound. */
+export const TIER_RATE_BPS: Record<PricingTier, number> = {
+  small: 0,       // flat fee — no % rate
+  standard: 350,  // 3.5%
+  large: 325,     // 3.25%
+  enterprise: 275, // 2.75% floor (negotiated up to 3.0%)
+};
+
+/** Monthly floor in cents per tier. 0 = no floor. */
+export const TIER_MONTHLY_FLOOR_CENTS: Record<PricingTier, number> = {
+  small: 0,
+  standard: 25_000,   // $250/mo
+  large: 50_000,      // $500/mo
+  enterprise: -1,     // negotiated — -1 signals "contact sales"
+};
+
+/** Default contract term in months per tier. 0 = none. */
+export const TIER_CONTRACT_MONTHS: Record<PricingTier, number> = {
+  small: 0,
+  standard: 12,
+  large: 24,
+  enterprise: 36, // multi-year baseline
+};
+
+/** Flat season fee in cents (only used for Small tier). */
+export const SMALL_TIER_FLAT_FEE_CENTS = 29_900; // $299 CAD
+
+// ============================================================================
+// Tier Determination & Helpers
+// ============================================================================
+
+/**
+ * Determine which pricing tier applies to a league.
+ * Tier is locked at registration open and based on expected team count
+ * and total gross registration fees processed through BLH.
+ *
+ * Evaluation order: enterprise → large → standard → small.
+ * Meeting *either* criterion for a higher tier bumps the league up.
+ */
+export function determinePricingTier(
+  teamCount: number,
+  totalFeesCents: number
+): PricingTier {
+  const { ENTERPRISE_MIN_TEAMS, ENTERPRISE_MIN_FEES_CENTS, LARGE_MIN_TEAMS, SMALL_MAX_TEAMS, SMALL_MAX_FEES_CENTS } =
+    TIER_THRESHOLDS;
+
+  if (teamCount >= ENTERPRISE_MIN_TEAMS || totalFeesCents >= ENTERPRISE_MIN_FEES_CENTS) {
+    return 'enterprise';
+  }
+  if (teamCount >= LARGE_MIN_TEAMS) {
+    return 'large';
+  }
+  if (teamCount < SMALL_MAX_TEAMS && totalFeesCents < SMALL_MAX_FEES_CENTS) {
+    return 'small';
+  }
+  return 'standard';
+}
+
+/**
+ * Get the platform fee rate in basis points for a given tier.
+ * For enterprise tiers, returns the floor rate (275 bps = 2.75%).
+ * Small tier returns 0 — it uses a flat season fee instead.
+ */
+export function getTierRate(tier: PricingTier): number {
+  return TIER_RATE_BPS[tier];
+}
+
+/**
+ * Get the monthly floor in cents for a given tier.
+ * Returns -1 for enterprise (negotiated — caller should treat as "contact sales").
+ * Returns 0 for small (no monthly floor).
+ */
+export function getMonthlyFloorCents(tier: PricingTier): number {
+  return TIER_MONTHLY_FLOOR_CENTS[tier];
+}
+
+/**
+ * Calculate the effective fee rate in bps after applying referral discounts.
+ * Capped at 75 bps total discount; effective floor is 275 bps (2.75%).
+ */
+export function getEffectiveRateBps(tier: PricingTier, referralDiscountBps: number): number {
+  const base = TIER_RATE_BPS[tier];
+  if (base === 0) return 0; // small tier: flat fee, no percentage
+  const discount = Math.min(referralDiscountBps, 75);
+  return Math.max(base - discount, 275);
 }
 
 // ============================================================================
@@ -56,7 +171,7 @@ const leagueBillingCache = new Map<string, { config: LeagueBillingConfig; expire
 
 const DEFAULT_CONFIG: PlatformFeeConfig = {
   processingFeePercent: 3.5,
-  setupFeeCents: 499900,
+  setupFeeCents: 0,
   migrationFeeCents: 0,
   setupFeeLabel: 'League Setup Fee',
   migrationFeeLabel: 'Historic Data Import',
@@ -138,6 +253,11 @@ export async function getLeagueBillingConfig(leagueId: string): Promise<LeagueBi
         stripeAccountStatus: null,
         payoutsEnabled: false,
         chargesEnabled: false,
+        pricingTier: 'standard',
+        monthlyFloorCents: TIER_MONTHLY_FLOOR_CENTS.standard,
+        contractTermMonths: TIER_CONTRACT_MONTHS.standard,
+        referralDiscountBps: 0,
+        flatSeasonFeeCents: 0,
       };
     }
 
@@ -155,6 +275,13 @@ export async function getLeagueBillingConfig(leagueId: string): Promise<LeagueBi
       stripeAccountStatus: row.stripe_account_status,
       payoutsEnabled: row.payouts_enabled,
       chargesEnabled: row.charges_enabled,
+      // New tier columns added in 20260306_tiered_pricing migration.
+      // Cast via `any` until /sync-types regenerates the RPC return type.
+      pricingTier: ((row as any).pricing_tier ?? 'standard') as PricingTier,
+      monthlyFloorCents: (row as any).monthly_floor_cents ?? TIER_MONTHLY_FLOOR_CENTS.standard,
+      contractTermMonths: (row as any).contract_term_months ?? TIER_CONTRACT_MONTHS.standard,
+      referralDiscountBps: (row as any).referral_discount_bps ?? 0,
+      flatSeasonFeeCents: (row as any).flat_season_fee_cents ?? 0,
     };
 
     leagueBillingCache.set(leagueId, { config, expiresAt: now + CACHE_TTL_MS });
@@ -175,6 +302,11 @@ export async function getLeagueBillingConfig(leagueId: string): Promise<LeagueBi
       stripeAccountStatus: null,
       payoutsEnabled: false,
       chargesEnabled: false,
+      pricingTier: 'standard',
+      monthlyFloorCents: TIER_MONTHLY_FLOOR_CENTS.standard,
+      contractTermMonths: TIER_CONTRACT_MONTHS.standard,
+      referralDiscountBps: 0,
+      flatSeasonFeeCents: 0,
     };
   }
 }
