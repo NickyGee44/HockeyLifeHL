@@ -47,46 +47,16 @@ export async function previewPlayoffSeeding(
     return { success: false, error: 'No standings data available yet — games need to be played first.' };
   }
 
-  const useDivisionPlayoffs = config?.use_division_playoffs ?? false;
-  const perDivisionCount = config?.playoff_teams_per_division ?? null;
   const totalLimit = config?.playoff_teams_total ?? Math.min(8, standings.length);
-
-  let playoffTeams: PreviewTeam[];
-
-  if (useDivisionPlayoffs && perDivisionCount) {
-    // Group by division, take top N per division, then re-sort by points for overall seeding
-    const byDivision: Record<string, typeof standings> = {};
-    for (const row of standings) {
-      const divId = row.division_id ?? '__none__';
-      if (!byDivision[divId]) byDivision[divId] = [];
-      byDivision[divId].push(row);
-    }
-    const picked: typeof standings = [];
-    for (const divTeams of Object.values(byDivision)) {
-      picked.push(...divTeams.slice(0, perDivisionCount));
-    }
-    // Re-sort combined pool by points desc
-    picked.sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-    playoffTeams = picked.slice(0, totalLimit).map((row, idx) => ({
-      teamId: row.team_id,
-      teamName: row.team_name,
-      logoUrl: row.team_logo,
-      points: row.points,
-      rank: idx + 1,
-      divisionId: row.division_id ?? null,
-      divisionName: row.division_name ?? null,
-    }));
-  } else {
-    playoffTeams = standings.slice(0, totalLimit).map((row, idx) => ({
-      teamId: row.team_id,
-      teamName: row.team_name,
-      logoUrl: row.team_logo,
-      points: row.points,
-      rank: idx + 1,
-      divisionId: row.division_id ?? null,
-      divisionName: row.division_name ?? null,
-    }));
-  }
+  const playoffTeams = standings.slice(0, totalLimit).map((row, idx) => ({
+    teamId: row.team_id,
+    teamName: row.team_name,
+    logoUrl: row.team_logo,
+    points: row.points,
+    rank: idx + 1,
+    divisionId: row.division_id ?? null,
+    divisionName: row.division_name ?? null,
+  }));
 
   if (playoffTeams.length < 2) {
     return { success: false, error: 'Need at least 2 teams with standings to preview seeding.' };
@@ -113,7 +83,7 @@ export async function previewPlayoffSeeding(
       totalRounds,
       playoffTeamCount: playoffTeams.length,
       firstRound,
-      useDivisionPlayoffs,
+      useDivisionPlayoffs: false,
     },
   };
 }

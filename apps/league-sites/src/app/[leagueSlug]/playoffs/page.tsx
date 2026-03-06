@@ -84,19 +84,19 @@ function TeamRow({
   isWinner: boolean;
   isBye: boolean;
 }) {
+  if (isBye) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 opacity-40">
+        <span className="text-xs text-[var(--color-text-secondary)] italic">BYE</span>
+      </div>
+    );
+  }
+
   if (!name) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 opacity-30">
         <div className="w-6 h-6 rounded-full bg-white/10" />
         <span className="text-sm text-[var(--color-text-secondary)]">TBD</span>
-      </div>
-    );
-  }
-
-  if (isBye) {
-    return (
-      <div className="flex items-center gap-2 px-3 py-2 opacity-40">
-        <span className="text-xs text-[var(--color-text-secondary)] italic">BYE</span>
       </div>
     );
   }
@@ -149,7 +149,7 @@ function SeriesCard({ series, totalRounds }: { series: PlayoffSeries; totalRound
       }`}
     >
       <TeamRow
-        name={series.high_seed?.name ?? (isByeHigh ? null : null)}
+        name={series.high_seed?.name ?? null}
         logoUrl={series.high_seed?.logo_url}
         wins={series.high_seed_wins}
         isWinner={isCompleted && series.winner_id === series.high_seed_id}
@@ -238,7 +238,7 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
           <div
             className="mb-8 p-5 rounded-2xl border flex items-center gap-4"
             style={{
-              background: 'linear-gradient(135deg, var(--league-primary)/10, transparent)',
+              backgroundColor: 'color-mix(in srgb, var(--league-primary) 12%, transparent)',
               borderColor: 'var(--league-primary)',
             }}
           >
