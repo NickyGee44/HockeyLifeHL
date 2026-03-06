@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
 import { Trophy, Crown } from 'lucide-react';
 import type { Metadata } from 'next';
-import { getLeagueBySlug, getSeasons, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getSeasons, getCurrentSeason, getStandings } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { SeasonSelector } from '@/components/SeasonSelector';
-import { SeedPreviewButton } from '@/components/playoffs/SeedPreviewButton';
+import { PlayoffPreviewPanel } from '@/components/playoffs/PlayoffPreviewPanel';
+import { buildPlayoffPreviewContext, type PlayoffPreviewContext } from '@/lib/playoffs/preview';
 
 interface PlayoffsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -61,6 +62,13 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
 
   if (error || !data) return [];
   return data as unknown as PlayoffSeries[];
+}
+
+async function getPlayoffPreviewContextData(
+  leagueId: string,
+  seasonId: string,
+): Promise<PlayoffPreviewContext> {
+  return buildPlayoffPreviewContext(await getStandings(leagueId, seasonId));
 }
 
 function getRoundLabel(round: number, totalRounds: number): string {
@@ -183,7 +191,12 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
     ? seasons.find((s) => s.id === seasonParam) ?? defaultSeason
     : defaultSeason;
 
-  const series = activeSeason ? await getPlayoffBracket(league.id, activeSeason.id) : [];
+  const [series, previewContext] = activeSeason
+    ? await Promise.all([
+        getPlayoffBracket(league.id, activeSeason.id),
+        getPlayoffPreviewContextData(league.id, activeSeason.id),
+      ])
+    : [[], null];
 
   const hasBracket = series.length > 0;
   const totalRounds = hasBracket ? Math.max(...series.map((s) => s.round_number)) : 0;
@@ -210,13 +223,6 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
               Playoff Bracket
             </h1>
-            {activeSeason && (
-              <SeedPreviewButton
-                leagueId={league.id}
-                seasonId={activeSeason.id}
-                seasonName={activeSeason.name}
-              />
-            )}
           </div>
           <p className="text-[var(--color-text-secondary)]">{league.name}</p>
         </div>
@@ -231,6 +237,15 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
               basePath="playoffs"
             />
           </div>
+        )}
+
+        {activeSeason && previewContext && (
+          <PlayoffPreviewPanel
+            leagueId={league.id}
+            seasonId={activeSeason.id}
+            seasonName={activeSeason.name}
+            previewContext={previewContext}
+          />
         )}
 
         {/* Champion banner */}
@@ -293,17 +308,8 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
               Playoff bracket not yet generated
             </p>
             <p className="text-sm text-[var(--color-text-secondary)] opacity-60 mt-1">
-              Check back when the playoffs begin.
+              Check back when the official bracket is generated.
             </p>
-            {activeSeason && (
-              <div className="mt-4">
-                <SeedPreviewButton
-                  leagueId={league.id}
-                  seasonId={activeSeason.id}
-                  seasonName={activeSeason.name}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
