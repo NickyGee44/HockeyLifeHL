@@ -88,8 +88,9 @@ export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelPr
   const hasLeague = !!effectiveLeagueId;
 
   const isPathActive = (href: string) => {
-    const localizedPath = `/${locale}${href}`;
-    if (href === '/dashboard') {
+    const hrefPath = href.split('?')[0];
+    const localizedPath = `/${locale}${hrefPath}`;
+    if (hrefPath === '/dashboard') {
       return pathname === localizedPath || pathname === `/${locale}/tableau-de-bord`;
     }
     return pathname.startsWith(localizedPath);
@@ -190,7 +191,7 @@ export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelPr
         { href: '/dashboard/company', icon: Building2, label: t('companyProfile') },
         { href: '/dashboard/settings/members', icon: Users, label: t('members') },
         { href: '/dashboard/settings', icon: Settings, label: t('settings') },
-        { href: '#website-editor', icon: Palette, label: t('websiteEditor'), comingSoon: true },
+        { href: hasLeague ? `/website-editor?league=${effectiveLeagueId}` : '/website-editor', icon: Palette, label: t('websiteEditor') },
       ],
     },
   }), [t, hasLeague, leagueBase, isSubscribed]);

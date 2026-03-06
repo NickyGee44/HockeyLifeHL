@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/server';
 import { hasPlatformSubscription } from '@/lib/utils/addon-helpers';
 import DashboardLayoutClient from '@/components/dashboard/DashboardLayoutClient';
 import { PostHogIdentifier } from '@/components/analytics/PostHogIdentifier';
+import { getPlatformOwnerView } from '@/lib/auth/platform-owner-view';
+import PlatformOwnerViewBanner from '@/components/admin/PlatformOwnerViewBanner';
 
 export default async function DashboardLayout({
   children,
@@ -38,6 +40,7 @@ export default async function DashboardLayout({
   const orgId = dashboardData?.organizations?.[0]?.id;
   const isSubscribed = orgId ? await hasPlatformSubscription(orgId) : false;
   const isPlatformAdmin = !!(userData.profile as any)?.is_platform_admin;
+  const ownerView = isPlatformAdmin ? await getPlatformOwnerView() : null;
 
   const profile = userData.profile as any;
 
@@ -49,14 +52,15 @@ export default async function DashboardLayout({
         displayName={profile?.display_name || profile?.username}
       />
       <DashboardLayoutClient
-      captainTeams={captainTeams}
-      dashboardData={dashboardData}
-      setupIssues={setupIssues}
-      isSubscribed={isSubscribed}
-      isPlatformAdmin={isPlatformAdmin}
-    >
-      {children}
-    </DashboardLayoutClient>
+        captainTeams={captainTeams}
+        dashboardData={dashboardData}
+        setupIssues={setupIssues}
+        isSubscribed={isSubscribed}
+        isPlatformAdmin={isPlatformAdmin}
+        topBanner={<PlatformOwnerViewBanner locale={locale} ownerView={ownerView} />}
+      >
+        {children}
+      </DashboardLayoutClient>
     </>
   );
 }

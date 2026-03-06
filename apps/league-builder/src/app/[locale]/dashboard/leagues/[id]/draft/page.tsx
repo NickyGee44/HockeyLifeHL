@@ -1,10 +1,9 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/actions/auth';
 import { DraftDashboard } from '@/components/dashboard/leagues/draft-dashboard';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -15,13 +14,8 @@ export default async function DraftPage({ params }: Props) {
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
-  const userData = await getCurrentUser();
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const userId = userData!.user!.id;
-  const supabase = await createClient();
+  const { supabase, access, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
+  const userId = userData.user.id;
 
   // Get league with seasons and teams
   const { data: league, error } = await supabase
@@ -117,9 +111,12 @@ export default async function DraftPage({ params }: Props) {
     .select('role')
     .eq('league_id', leagueId)
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
-  const isAdmin = membership?.role === 'owner' || membership?.role === 'admin';
+  const isAdmin =
+    access.accessType === 'platform_admin' ||
+    membership?.role === 'owner' ||
+    membership?.role === 'admin';
 
   // Get user's team (if captain)
   // team_members table is not in generated types yet

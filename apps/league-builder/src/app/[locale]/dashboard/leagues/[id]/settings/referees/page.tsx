@@ -8,11 +8,11 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
 import { getLeagueReferees } from '@/lib/actions/referee-management';
 import { RefereeManagementClient } from '@/components/referees';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Shield } from 'lucide-react';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 export const metadata = {
   title: 'Referees | League Settings',
@@ -28,42 +28,17 @@ export default async function LeagueRefereesPage({ params }: Props) {
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
-  // Check authentication
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    nextRedirect(`/${locale}/login?redirect=/${locale}/dashboard/leagues/${leagueId}/settings/referees`);
-  }
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   // Get league details
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
-    .select('id, name, primary_color, created_by')
+    .select('id, name, primary_color')
     .eq('id', leagueId)
     .single();
 
   if (leagueError || !league) {
     notFound();
-  }
-
-  // Verify user is owner or admin of this league
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role, status')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .single();
-
-  const isCreator = league.created_by === user.id;
-  const isAuthorized =
-    isCreator || (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active');
-
-  if (!isAuthorized) {
-    nextRedirect(`/${locale}/dashboard?error=unauthorized`);
   }
 
   // Fetch initial data

@@ -2,12 +2,25 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { verifyLeagueOwnerAccess } from './permissions';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 export type LogoActionResult<T = any> =
   | { success: true; data: T }
   | { success: false; error: string };
+
+async function ensureLeagueBrandingAccess(leagueId: string): Promise<LogoActionResult<void>> {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return {
+      success: false,
+      error: access.error || 'Not authorized to update this league',
+    };
+  }
+
+  return { success: true, data: undefined };
+}
 
 // ==============================================================================
 // WIZARD LOGO UPLOAD (Before League Creation)
@@ -174,30 +187,19 @@ export async function uploadLeagueLogo(
   }
 
   try {
-    // Verify user owns this league (through organization)
+    const access = await ensureLeagueBrandingAccess(leagueId);
+    if (!access.success) {
+      return access;
+    }
+
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
-      .select('id, logo_url, organization_id')
+      .select('id, logo_url')
       .eq('id', leagueId)
       .single();
 
     if (leagueError || !league) {
       return { success: false, error: 'League not found' };
-    }
-
-    // Fetch organization separately to check ownership (avoid FK join RLS issues)
-    if (league.organization_id) {
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('owner_user_id')
-        .eq('id', league.organization_id)
-        .single();
-
-      if (org?.owner_user_id !== user.id) {
-        return { success: false, error: 'Not authorized to update this league' };
-      }
-    } else {
-      return { success: false, error: 'League has no organization' };
     }
 
     // Validate file type
@@ -321,30 +323,19 @@ export async function deleteLeagueLogo(leagueId: string): Promise<LogoActionResu
   }
 
   try {
-    // Verify user owns this league (through organization)
+    const access = await ensureLeagueBrandingAccess(leagueId);
+    if (!access.success) {
+      return access;
+    }
+
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
-      .select('id, logo_url, organization_id')
+      .select('id, logo_url')
       .eq('id', leagueId)
       .single();
 
     if (leagueError || !league) {
       return { success: false, error: 'League not found' };
-    }
-
-    // Fetch organization separately to check ownership (avoid FK join RLS issues)
-    if (league.organization_id) {
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('owner_user_id')
-        .eq('id', league.organization_id)
-        .single();
-
-      if (org?.owner_user_id !== user.id) {
-        return { success: false, error: 'Not authorized to update this league' };
-      }
-    } else {
-      return { success: false, error: 'League has no organization' };
     }
 
     // Delete logo from storage if exists
@@ -462,30 +453,19 @@ export async function uploadLeagueBanner(
   }
 
   try {
-    // Verify user owns this league (through organization)
+    const access = await ensureLeagueBrandingAccess(leagueId);
+    if (!access.success) {
+      return access;
+    }
+
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
-      .select('id, organization_id')
+      .select('id')
       .eq('id', leagueId)
       .single();
 
     if (leagueError || !league) {
       return { success: false, error: 'League not found' };
-    }
-
-    // Fetch organization separately to check ownership
-    if (league.organization_id) {
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('owner_user_id')
-        .eq('id', league.organization_id)
-        .single();
-
-      if (org?.owner_user_id !== user.id) {
-        return { success: false, error: 'Not authorized to update this league' };
-      }
-    } else {
-      return { success: false, error: 'League has no organization' };
     }
 
     // Validate file
@@ -594,29 +574,19 @@ export async function deleteLeagueBanner(leagueId: string): Promise<LogoActionRe
   }
 
   try {
-    // Verify user owns this league
+    const access = await ensureLeagueBrandingAccess(leagueId);
+    if (!access.success) {
+      return access;
+    }
+
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
-      .select('id, banner_url, organization_id')
+      .select('id, banner_url')
       .eq('id', leagueId)
       .single();
 
     if (leagueError || !league) {
       return { success: false, error: 'League not found' };
-    }
-
-    if (league.organization_id) {
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('owner_user_id')
-        .eq('id', league.organization_id)
-        .single();
-
-      if (org?.owner_user_id !== user.id) {
-        return { success: false, error: 'Not authorized to update this league' };
-      }
-    } else {
-      return { success: false, error: 'League has no organization' };
     }
 
     // Delete banner from storage if exists
@@ -705,30 +675,19 @@ export async function uploadLeagueFavicon(
   }
 
   try {
-    // Verify user owns this league (through organization)
+    const access = await ensureLeagueBrandingAccess(leagueId);
+    if (!access.success) {
+      return access;
+    }
+
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
-      .select('id, organization_id')
+      .select('id')
       .eq('id', leagueId)
       .single();
 
     if (leagueError || !league) {
       return { success: false, error: 'League not found' };
-    }
-
-    // Fetch organization separately to check ownership
-    if (league.organization_id) {
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('owner_user_id')
-        .eq('id', league.organization_id)
-        .single();
-
-      if (org?.owner_user_id !== user.id) {
-        return { success: false, error: 'Not authorized to update this league' };
-      }
-    } else {
-      return { success: false, error: 'League has no organization' };
     }
 
     // Validate file size (max 1MB for favicons)
@@ -838,29 +797,19 @@ export async function deleteLeagueFavicon(leagueId: string): Promise<LogoActionR
   }
 
   try {
-    // Verify user owns this league
+    const access = await ensureLeagueBrandingAccess(leagueId);
+    if (!access.success) {
+      return access;
+    }
+
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
-      .select('id, favicon_url, organization_id')
+      .select('id, favicon_url')
       .eq('id', leagueId)
       .single();
 
     if (leagueError || !league) {
       return { success: false, error: 'League not found' };
-    }
-
-    if (league.organization_id) {
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('owner_user_id')
-        .eq('id', league.organization_id)
-        .single();
-
-      if (org?.owner_user_id !== user.id) {
-        return { success: false, error: 'Not authorized to update this league' };
-      }
-    } else {
-      return { success: false, error: 'League has no organization' };
     }
 
     // Delete favicon from storage if exists

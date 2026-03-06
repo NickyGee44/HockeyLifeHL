@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useEditor } from '../EditorContext';
 import type { PreviewThemePayload } from '../types';
+import { getWebsiteEditorPreviewOrigin } from '@/lib/website-editor/preview';
 
 /**
  * Must be called exactly ONCE in EditorShell.
@@ -13,16 +14,12 @@ import type { PreviewThemePayload } from '../types';
  * the preview can do a complete state replacement (no partial merging).
  */
 export function usePreviewMessaging() {
-  const { state, setPreviewReady, previewBaseUrl, iframeRef } = useEditor();
+  const { state, setPreviewReady, previewUrl, iframeRef } = useEditor();
   const versionRef = useRef(0);
 
   const previewOrigin = useMemo(() => {
-    try {
-      return new URL(previewBaseUrl).origin;
-    } catch {
-      return null;
-    }
-  }, [previewBaseUrl]);
+    return getWebsiteEditorPreviewOrigin(previewUrl);
+  }, [previewUrl]);
 
   // Listen for PREVIEW_READY from iframe
   useEffect(() => {

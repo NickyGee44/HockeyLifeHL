@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { verifyLeagueOwnerAccess } from './permissions';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -498,20 +499,9 @@ export async function updateLeagueBranding(formData: {
   }
 
   try {
-    // Get league and verify ownership through organization
-    const { data: league, error: leagueError } = await supabase
-      .from('leagues')
-      .select('id, organization_id, organizations!inner(owner_user_id)')
-      .eq('id', formData.leagueId)
-      .single();
-
-    if (leagueError || !league) {
-      return { error: 'League not found' };
-    }
-
-    const orgOwner = (league.organizations as any)?.owner_user_id;
-    if (orgOwner !== user.id) {
-      return { error: 'Not authorized to update this league' };
+    const access = await verifyLeagueOwnerAccess(formData.leagueId);
+    if (!access.authorized) {
+      return { error: access.error || 'Not authorized to update this league' };
     }
 
     // Build update object

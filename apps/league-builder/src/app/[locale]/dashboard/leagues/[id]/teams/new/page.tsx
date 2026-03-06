@@ -1,12 +1,10 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { redirect } from '@/i18n/navigation';
-import { getCurrentUser } from '@/lib/actions/auth';
 import { getLeagueDivisions, getLeagueVenues } from '@/lib/actions/teams';
 import { Link } from '@/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { TeamCreationWizard } from '@/components/teams';
-import { createClient } from '@/lib/supabase/server';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 export const metadata = {
   title: 'Create Team | Beer League Hockey',
@@ -25,30 +23,16 @@ export default async function NewTeamPage({
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
-  const userData = await getCurrentUser();
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-    return null;
-  }
-
-  const supabase = await createClient();
-  const { user } = userData;
-
-  // Verify league access
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
-    .select('id, name, organization_id, organizations!inner(owner_user_id)')
+    .select('id, name')
     .eq('id', leagueId)
     .single();
 
   if (leagueError || !league) {
     notFound();
-  }
-
-  const orgOwnerId = (league.organizations as any).owner_user_id;
-  if (orgOwnerId !== user.id) {
-    redirect({ href: '/dashboard', locale });
   }
 
   // Get divisions and venues for the league

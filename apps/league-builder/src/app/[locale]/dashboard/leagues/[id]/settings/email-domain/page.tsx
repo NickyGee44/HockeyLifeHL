@@ -1,11 +1,10 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/actions/auth';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { EmailSenderDomainSettings } from '@/components/notifications/EmailSenderDomainSettings';
 import { getLeagueEmailDomain } from '@/lib/actions/email-sender-domain';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -16,12 +15,7 @@ export default async function EmailDomainSettingsPage({ params }: Props) {
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
-  const userData = await getCurrentUser();
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const supabase = await createClient();
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   const { data: league, error: leagueError } = await supabase
     .from('leagues')

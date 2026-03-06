@@ -28,7 +28,7 @@ export interface AuthorizationResult {
  * Extended authorization result with access type
  */
 export interface ExtendedAuthorizationResult extends AuthorizationResult {
-  accessType?: 'captain' | 'org_owner' | 'league_admin';
+  accessType?: 'captain' | 'org_owner' | 'league_admin' | 'platform_admin';
   team?: Team;
   organizationId?: string;
 }
@@ -197,7 +197,7 @@ export async function verifyCaptainOrAdminAccess(teamId: string): Promise<Extend
     if (isPlatformAdmin) {
       return {
         authorized: true,
-        accessType: 'league_admin',
+        accessType: 'platform_admin',
         team: team as Team
       };
     }
@@ -314,6 +314,7 @@ export async function canApproveJoinRequests(teamId: string): Promise<boolean> {
 export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
   authorized: boolean;
   organizationId?: string;
+  accessType?: 'org_owner' | 'league_admin' | 'platform_admin';
   error?: string;
 }> {
   const supabase = await createClient();
@@ -343,7 +344,8 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
     if (org?.owner_user_id === user.id) {
       return {
         authorized: true,
-        organizationId: league.organization_id ?? undefined
+        organizationId: league.organization_id ?? undefined,
+        accessType: 'org_owner',
       };
     }
 
@@ -360,7 +362,8 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
     if (membership) {
       return {
         authorized: true,
-        organizationId: league.organization_id ?? undefined
+        organizationId: league.organization_id ?? undefined,
+        accessType: 'league_admin',
       };
     }
 
@@ -369,7 +372,8 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
     if (isPlatformAdmin) {
       return {
         authorized: true,
-        organizationId: league.organization_id ?? undefined
+        organizationId: league.organization_id ?? undefined,
+        accessType: 'platform_admin',
       };
     }
 
@@ -393,7 +397,7 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
  * @param teamId - UUID of the team
  * @returns Role type or null if no access
  */
-export async function getUserTeamRole(teamId: string): Promise<'captain' | 'org_owner' | 'league_admin' | null> {
+export async function getUserTeamRole(teamId: string): Promise<'captain' | 'org_owner' | 'league_admin' | 'platform_admin' | null> {
   const access = await verifyCaptainOrAdminAccess(teamId);
   return access.authorized ? (access.accessType || null) : null;
 }

@@ -2,7 +2,6 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
 import {
   getDivisionBalance,
   getPlayerRatings,
@@ -14,6 +13,7 @@ import {
   RecalculateButton,
   TeamRatingsCard,
 } from '@/components/ratings';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -23,14 +23,7 @@ export default async function LeagueRatingsPage({ params }: Props) {
   const { locale, id: leagueId } = await params;
   setRequestLocale(locale);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    nextRedirect(`/${locale}/login?redirect=/${locale}/dashboard/leagues/${leagueId}/ratings`);
-  }
+  const { supabase, access, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   const [{ data: league }, { data: season }, { data: membership }] = await Promise.all([
     supabase
@@ -49,7 +42,7 @@ export default async function LeagueRatingsPage({ params }: Props) {
       .from('league_memberships')
       .select('role, status')
       .eq('league_id', leagueId)
-      .eq('user_id', user.id)
+      .eq('user_id', userData.user.id)
       .eq('status', 'active')
       .maybeSingle(),
   ]);
@@ -83,7 +76,7 @@ export default async function LeagueRatingsPage({ params }: Props) {
     divisionName: row.division_id ? (divisionNameById.get(row.division_id) || 'Unassigned') : 'Unassigned',
   }));
 
-  const isOwner = membership?.role === 'owner';
+  const isOwner = access.accessType === 'platform_admin' || membership?.role === 'owner';
 
   return (
     <div className="min-h-screen bg-neutral-950">

@@ -22,16 +22,19 @@ interface DashboardLayoutClientProps {
   setupIssues: LeagueSetupIssue[];
   isSubscribed: boolean;
   isPlatformAdmin: boolean;
+  topBanner?: React.ReactNode;
 }
 
 function DashboardContent({
   children,
   setupIssues,
   dashboardData,
+  topBanner,
 }: {
   children: React.ReactNode;
   setupIssues: LeagueSetupIssue[];
   dashboardData: DashboardData | null;
+  topBanner?: React.ReactNode;
 }) {
   const { activeSection, isCollapsed } = useSidebar();
 
@@ -48,6 +51,7 @@ function DashboardContent({
         isCollapsed ? 'md:ml-0' : hasSecondary ? 'md:ml-[304px]' : 'md:ml-16'
       )}
     >
+      {topBanner}
       {setupIssues.length > 0 && (
         <div className="px-4 sm:px-6 lg:px-8 pt-4">
           <SetupBanner issues={setupIssues} />
@@ -66,6 +70,7 @@ export default function DashboardLayoutClient({
   setupIssues,
   isSubscribed,
   isPlatformAdmin,
+  topBanner,
 }: DashboardLayoutClientProps) {
   return (
     <SidebarProvider>
@@ -81,7 +86,13 @@ export default function DashboardLayoutClient({
           isPlatformAdmin={isPlatformAdmin}
         />
 
-        <DashboardContent setupIssues={setupIssues} dashboardData={dashboardData}>{children}</DashboardContent>
+        <DashboardContent
+          setupIssues={setupIssues}
+          dashboardData={dashboardData}
+          topBanner={topBanner}
+        >
+          {children}
+        </DashboardContent>
 
         {/* Mobile bottom nav — visible on mobile only */}
         <MobileBottomNav />

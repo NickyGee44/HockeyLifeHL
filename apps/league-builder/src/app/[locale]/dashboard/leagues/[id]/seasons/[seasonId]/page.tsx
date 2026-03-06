@@ -6,7 +6,6 @@
 
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import {
@@ -26,6 +25,7 @@ import { PlayoffBracketClient } from '@/components/playoffs';
 import { getPlayoffBracket } from '@/lib/actions/playoff-bracket';
 import { StatsExportButton } from '@/components/seasons/StatsExportButton';
 import { SeasonStatusTransitionButton } from '@/components/seasons/SeasonStatusTransitionButton';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -37,14 +37,7 @@ export default async function SeasonDetailPage({ params }: Props) {
   const { locale, id: leagueId, seasonId } = awaited;
   setRequestLocale(locale);
 
-  const supabase = await createClient();
-
-  // Get current user
-  const {
-    data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    nextRedirect(`/${locale}/login`);
-  }
+  const { supabase, access, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   // Get season with league info
   const { data: season, error: seasonError } = await supabase
@@ -102,10 +95,13 @@ export default async function SeasonDetailPage({ params }: Props) {
     .from('league_memberships')
     .select('role')
     .eq('league_id', leagueId)
-    .eq('user_id', user!.id)
+    .eq('user_id', userData.user.id)
     .maybeSingle();
 
-  const canEdit = membership?.role === 'owner' || membership?.role === 'admin';
+  const canEdit =
+    access.accessType === 'platform_admin' ||
+    membership?.role === 'owner' ||
+    membership?.role === 'admin';
 
   const statusColors: Record<string, string> = {
     active: 'bg-green-500/10 text-green-500 border-green-500/30',

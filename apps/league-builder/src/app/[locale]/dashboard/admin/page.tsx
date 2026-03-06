@@ -13,6 +13,7 @@ import {
   Database,
 } from 'lucide-react';
 import Link from 'next/link';
+import PlatformOwnerViewButton from '@/components/admin/PlatformOwnerViewButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -242,12 +243,19 @@ export default async function PlatformAdminPage() {
                     )}
                   </div>
                   {org.primary_league_id && (
-                    <Link
-                      href={`/dashboard/leagues/${org.primary_league_id}`}
-                      className="inline-flex items-center gap-1 text-xs text-rink-400 hover:text-rink-300 transition-colors"
-                    >
-                      Admin <ExternalLink className="w-3 h-3" />
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <PlatformOwnerViewButton
+                        leagueId={org.primary_league_id}
+                        locale={locale}
+                        className="inline-flex items-center gap-1 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:border-cyan-300/40 hover:bg-cyan-400/15"
+                      />
+                      <Link
+                        href={`/dashboard/leagues/${org.primary_league_id}`}
+                        className="inline-flex items-center gap-1 text-xs text-rink-400 hover:text-rink-300 transition-colors"
+                      >
+                        Admin <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>

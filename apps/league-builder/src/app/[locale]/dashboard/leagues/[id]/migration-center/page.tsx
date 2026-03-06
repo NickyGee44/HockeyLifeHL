@@ -16,12 +16,10 @@ import {
   BarChart3,
   Calendar,
   CheckCircle2,
-  CreditCard,
   Database,
   FileText,
   Image,
   Newspaper,
-  Trophy,
   Upload,
   Users,
 } from 'lucide-react';
@@ -129,28 +127,28 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
 
   const tracks = [
     {
-      title: 'League structure',
+      title: 'League setup',
       icon: <Users className="w-5 h-5" />,
       tone: teamsCount || divisionsCount || seasonList.length ? 'active' : 'empty',
       summary: `${teamsCount ?? 0} teams, ${divisionsCount ?? 0} divisions, ${seasonList.length} seasons`,
       description:
-        'This is the self-serve foundation. Teams, divisions, seasons, and schedules are already managed inside the builder.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/teams?tool=import-teams`,
-      cta: 'Import teams CSV',
+        'This is the easiest place to start. Teams, divisions, seasons, and schedules already have working tools inside the builder.',
+      href: `/dashboard/leagues/${leagueId}/teams?tool=import-teams`,
+      cta: 'Start with teams',
       detail: currentSeason
-        ? `${currentSeason.name} is the current working season.`
-        : 'Create a season to unlock player and schedule import.',
+        ? `${currentSeason.name} is the best starting point for current-season imports.`
+        : 'Create a season first, then import teams, players, and the schedule.',
     },
     {
-      title: 'Stats and records',
+      title: 'Stats, champions, and awards',
       icon: <Database className="w-5 h-5" />,
       tone: statsRecordCount > 0 || (awardsCount ?? 0) > 0 ? 'active' : 'assisted',
       summary: `${playerStatsCount ?? 0} skater rows, ${goalieStatsCount ?? 0} goalie rows, ${awardsCount ?? 0} awards`,
       description:
-        'Career stats, season records, and award history are real data models in the platform, but they still need a dedicated migration workflow.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/migration-center#migration-intake`,
-      cta: 'Open migration intake',
-      detail: 'Prepare season totals, award winners, championships, and legacy player IDs if you have them.',
+        'Older stats, champions, award winners, and record books are best handled through a migration request. You do not need to clean everything up first.',
+      href: `/dashboard/leagues/${leagueId}/migration-center#migration-intake`,
+      cta: 'Request help with history',
+      detail: 'Share whatever you have: spreadsheets, PDFs, exported reports, or a link to the old site.',
     },
     {
       title: 'News archive',
@@ -158,109 +156,145 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
       tone: articleCount > 0 ? 'active' : 'assisted',
       summary: `${articleCount} articles, ${publishedArticles} published`,
       description:
-        'League news is live today. You can create new articles now, while bulk backfills from legacy websites are still an assisted migration task.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/news`,
+        'You can write new articles today. If you want years of old stories moved over, that is part of the assisted migration flow.',
+      href: `/dashboard/leagues/${leagueId}/news`,
       cta: 'Open news workspace',
-      detail: 'Source exports with title, slug, publish date, body, excerpt, and hero image URLs are ideal.',
+      detail: 'A site link, export, or spreadsheet with titles and publish dates is enough for us to review.',
     },
     {
-      title: 'Media archive',
+      title: 'Photos and media',
       icon: <Image className="w-5 h-5" />,
       tone: albumCount > 0 || photoCount > 0 ? 'active' : 'assisted',
       summary: `${albumCount} albums, ${photoCount} photos`,
       description:
-        'Gallery management already exists. Large historical photo and video libraries still need a dedicated ingestion path and source-file prep.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/gallery`,
+        'Gallery tools already exist. Large photo and video libraries from the old site are still best handled as a guided migration.',
+      href: `/dashboard/leagues/${leagueId}/gallery`,
       cta: 'Open gallery workspace',
-      detail: 'Organize legacy media by season or album before uploading or handing off for assisted migration.',
+      detail: 'If you can group folders by season or event, the move will go faster, but it does not need to be perfect.',
     },
   ] as const;
 
   const selfServeActions = [
     {
-      title: 'Import teams CSV',
-      description: 'Open the team importer with the current template and preview flow.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/teams?tool=import-teams`,
+      title: 'Import teams',
+      description: 'Upload teams, divisions, and captain emails with the existing template.',
+      href: `/dashboard/leagues/${leagueId}/teams?tool=import-teams`,
       icon: <Upload className="w-5 h-5" />,
     },
     {
-      title: 'Import players CSV',
+      title: 'Import players',
       description: currentSeason
         ? `Bulk import players into ${currentSeason.name}.`
         : 'Create a season first, then use player import from registrations.',
       href: currentSeason
-        ? `/${locale}/dashboard/leagues/${leagueId}/registrations?season=${currentSeason.id}&tool=import-players`
-        : `/${locale}/dashboard/leagues/${leagueId}/seasons/new`,
+        ? `/dashboard/leagues/${leagueId}/registrations?season=${currentSeason.id}&tool=import-players`
+        : `/dashboard/leagues/${leagueId}/seasons/new`,
       icon: <Users className="w-5 h-5" />,
       disabled: !currentSeason,
     },
     {
-      title: 'Import schedule CSV',
+      title: 'Import schedule',
       description: currentSeason
         ? 'Open the schedule importer directly inside season schedule tools.'
         : 'Create a season first, then import or generate the schedule.',
       href: currentSeason
-        ? `/${locale}/dashboard/leagues/${leagueId}/schedule?season=${currentSeason.id}&tool=import-schedule`
-        : `/${locale}/dashboard/leagues/${leagueId}/seasons/new`,
+        ? `/dashboard/leagues/${leagueId}/schedule?season=${currentSeason.id}&tool=import-schedule`
+        : `/dashboard/leagues/${leagueId}/seasons/new`,
       icon: <Calendar className="w-5 h-5" />,
       disabled: !currentSeason,
     },
     {
-      title: 'Manage awards history',
-      description: 'Set up awards and past winners while full records migration is still assisted.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/awards`,
+      title: 'Set up awards',
+      description: 'Create awards now and use this as the home for past winners.',
+      href: `/dashboard/leagues/${leagueId}/awards`,
       icon: <Award className="w-5 h-5" />,
     },
     {
-      title: 'Open news workspace',
-      description: 'Create articles now and use this as the destination for archived news backfills.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/news`,
+      title: 'Write news now',
+      description: 'Start publishing right away while older stories are reviewed for import.',
+      href: `/dashboard/leagues/${leagueId}/news`,
       icon: <Newspaper className="w-5 h-5" />,
     },
     {
-      title: 'Open gallery workspace',
-      description: 'Set up albums now so historical photos and videos have a clean home.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/gallery`,
+      title: 'Set up photo albums',
+      description: 'Create albums now so old photos and videos have a clear destination.',
+      href: `/dashboard/leagues/${leagueId}/gallery`,
       icon: <Image className="w-5 h-5" />,
     },
   ];
 
   const prepBundles = [
     {
-      title: 'Stats and records bundle',
+      title: 'Stats and records',
       items: [
-        'Player season totals or game-level stat exports',
-        'Goalie season totals, shutouts, and minutes played',
+        'Player or goalie stat exports by season if you have them',
         'Championship winners, standings, and award history',
-        'Legacy player IDs or profile mapping if available',
+        'Any player IDs or roster mapping files from the old system',
+        'PDFs or screenshots are still useful if exports do not exist',
       ],
     },
     {
-      title: 'News archive bundle',
+      title: 'News archive',
       items: [
-        'Article title, slug, publish date, excerpt, and body',
-        'Hero image URLs or original uploads',
-        'Author attribution if you want to preserve it',
-        'A redirect list from old URLs if SEO matters',
+        'A site link or export with story titles and publish dates',
+        'Article body, excerpts, and any author names you want to keep',
+        'Hero images or links to where those images live',
+        'Old URLs if you want redirects preserved',
       ],
     },
     {
-      title: 'Media bundle',
+      title: 'Photos and media',
       items: [
-        'Organize photos into album folders by season or event',
-        'Keep captions or descriptions in a CSV or spreadsheet',
-        'Export creation dates if they matter for ordering',
-        'Separate highlight videos from still-photo albums',
+        'Folders grouped by season, tournament, or event if possible',
+        'Captions, dates, or descriptions in any spreadsheet you already have',
+        'Separate videos from photo albums when you can',
+        'Shared-drive or cloud-storage links are fine',
       ],
     },
   ];
+
+  const startHereSteps = [
+    {
+      title: '1. Move the basics first',
+      description: 'Use the self-serve tools for teams, players, and schedules.',
+      icon: <Upload className="w-4 h-4" />,
+    },
+    {
+      title: '2. Request help with old history',
+      description: 'Use the short intake form for stats, champions, news, and media archives.',
+      icon: <Database className="w-4 h-4" />,
+    },
+    {
+      title: '3. Track everything here',
+      description: 'The page keeps your latest request status and updates in one place.',
+      icon: <CheckCircle2 className="w-4 h-4" />,
+    },
+  ] as const;
+
+  const assistedAreas = [
+    {
+      title: 'Older stats and record books',
+      description:
+        'If your old site has player totals, goalie totals, champions, or award winners, include them in the request and we will review the source format.',
+    },
+    {
+      title: 'Years of past news stories',
+      description:
+        'New articles are self-serve. Moving years of old posts with dates, slugs, and images still needs a guided backfill.',
+    },
+    {
+      title: 'Large photo and video libraries',
+      description:
+        'If you have old season folders, event galleries, or mixed archives, we will help organize the move into albums.',
+    },
+  ] as const;
 
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <div className="space-y-4">
           <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}`}
+            href={`/dashboard/leagues/${leagueId}`}
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -282,13 +316,13 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
                   />
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300/80 mb-3">
-                      Migration Center
+                      Historical Data
                     </p>
                     <h1 className="text-3xl sm:text-[2.6rem] leading-tight font-black text-white tracking-tight">
-                      {league.name}
+                      Bring your old league history into {league.name}
                     </h1>
                     <p className="text-neutral-300 mt-3 max-w-3xl leading-7">
-                      Centralize the self-serve import tools, see what historical data is already present, and route the remaining legacy migration work into one place.
+                      Use the working import tools for teams, players, and schedules. If you need older stats, champions, articles, or galleries moved over too, this page keeps that process simple and visible.
                     </p>
                   </div>
                 </div>
@@ -303,29 +337,39 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
 
               <div className="rounded-[26px] border border-cyan-400/20 bg-black/20 p-5 backdrop-blur-sm">
                 <div className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
-                  <CreditCard className="w-4 h-4 text-cyan-300" />
-                  In-App Migration Intake
+                  <BarChart3 className="w-4 h-4 text-cyan-300" />
+                  How this works
                 </div>
-                <p className="text-sm text-neutral-300 leading-6">
-                  Full legacy stats, records, news backfills, and large media libraries still need an assisted migration path. The intake form below keeps that request structured, visible, and tied to the league.
-                </p>
+                <div className="space-y-3">
+                  {startHereSteps.map((step) => (
+                    <div key={step.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-200">
+                          {step.icon}
+                        </span>
+                        {step.title}
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-neutral-300">{step.description}</p>
+                    </div>
+                  ))}
+                </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 mt-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                    Current Service Pricing
+                    Assisted Migration Pricing
                   </p>
                   <p className="mt-2 text-2xl font-black text-white">
                     {formatMoney(migrationFee.cents)}
                   </p>
                   <p className="text-sm text-neutral-400 mt-1">{migrationFee.label}</p>
                   <p className="text-xs text-neutral-500 mt-2">
-                    One-time service for historical import scope. Larger or messier archives still need a custom quote.
+                    This is the usual starting point for historical import work. Larger or messier archives may still need a custom quote after review.
                   </p>
                 </div>
                 <a
                   href="#migration-intake"
                   className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-200 transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-400/15"
                 >
-                  Open migration intake
+                  Start the request
                   <ArrowRight className="w-4 h-4" />
                 </a>
               </div>
@@ -341,9 +385,9 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
 
         <section className="space-y-4">
           <div>
-            <h2 className="text-xl font-bold text-white">Migration Tracks</h2>
+            <h2 className="text-xl font-bold text-white">Best path for each part of your history</h2>
             <p className="text-sm text-neutral-400 mt-1">
-              Each track shows what is already loaded in the platform and where the remaining migration work should go.
+              We checked what already exists in this league and mapped each area to the easiest next step.
             </p>
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
@@ -356,9 +400,9 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
         <section className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
-              <h2 className="text-xl font-bold text-white">Available Right Now</h2>
+              <h2 className="text-xl font-bold text-white">Do these yourself today</h2>
               <p className="text-sm text-neutral-400 mt-1">
-                These actions use the current self-serve workflows already live in the builder.
+                These are the fastest working actions already live in the builder.
               </p>
             </div>
             {currentSeason && (
@@ -402,10 +446,10 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
           <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
             <div className="flex items-center gap-2 text-white mb-4">
               <FileText className="w-5 h-5 text-rink-300" />
-              <h2 className="text-xl font-bold">Source Prep Bundles</h2>
+              <h2 className="text-xl font-bold">Helpful files to gather</h2>
             </div>
             <p className="text-sm text-neutral-400 mb-5">
-              If you want the assisted migration to move quickly, these are the source exports and files worth gathering first.
+              You do not need a perfect export. These are just the most useful files to share if you already have them.
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               {prepBundles.map((bundle) => (
@@ -427,33 +471,21 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
           <div className="rounded-[28px] border border-amber-400/20 bg-[linear-gradient(160deg,rgba(245,158,11,0.14),rgba(255,255,255,0.03))] p-6 backdrop-blur-xl">
             <div className="flex items-center gap-2 text-white mb-4">
               <AlertCircle className="w-5 h-5 text-amber-300" />
-              <h2 className="text-xl font-bold">Still Assisted</h2>
+              <h2 className="text-xl font-bold">We will handle these with you</h2>
             </div>
             <div className="space-y-4 text-sm text-neutral-200">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="font-semibold text-white">Historical stats and records</p>
-                <p className="text-neutral-300 mt-2 leading-6">
-                  There is still no owner-facing bulk importer for legacy `player_stats`, `goalie_stats`, championships, or all-time records. Use assisted migration for this data.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="font-semibold text-white">Archive news backfills</p>
-                <p className="text-neutral-300 mt-2 leading-6">
-                  Creating new articles is self-serve. Importing years of legacy stories with dates, slugs, and media is still an assisted backfill.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="font-semibold text-white">Large media libraries</p>
-                <p className="text-neutral-300 mt-2 leading-6">
-                  Albums and uploads exist, but bulk loading large historical photo/video archives still needs planning around folder structure, captions, and storage limits.
-                </p>
-              </div>
+              {assistedAreas.map((area) => (
+                <div key={area.title} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="font-semibold text-white">{area.title}</p>
+                  <p className="text-neutral-300 mt-2 leading-6">{area.description}</p>
+                </div>
+              ))}
             </div>
             <a
               href="#migration-intake"
               className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-0.5 hover:border-amber-200/40 hover:bg-amber-300/15"
             >
-              Open migration intake
+              Ask for migration help
               <ArrowRight className="w-4 h-4" />
             </a>
           </div>
@@ -511,9 +543,9 @@ function MigrationTrackCard({
   } as const;
 
   const badgeLabels = {
-    active: 'Live data detected',
-    assisted: 'Needs assisted migration',
-    empty: 'Ready to start',
+    active: 'Already has data',
+    assisted: 'Best with help',
+    empty: 'Ready to import',
   } as const;
 
   return (
@@ -535,7 +567,7 @@ function MigrationTrackCard({
       <p className="text-sm text-neutral-400 leading-6">{description}</p>
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 mt-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500 mb-2">
-          What to prepare
+          Best next step
         </p>
         <p className="text-sm text-neutral-300 leading-6">{detail}</p>
       </div>

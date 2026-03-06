@@ -1,19 +1,17 @@
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
 import { getRegistrationDetails } from '@/lib/actions/player-registration';
 import { RegistrationDetailClient } from '@/components/dashboard/leagues/registration-detail-client';
 import { ArrowLeft } from 'lucide-react';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string; registrationId: string }>;
   searchParams?: Promise<{ [key: string]: string }>;
 };
 
-async function getLeagueTeams(leagueId: string) {
-  const supabase = await createClient();
-
+async function getLeagueTeams(supabase: any, leagueId: string) {
   const { data: teams } = await supabase
     .from('teams')
     .select('id, name')
@@ -29,10 +27,11 @@ export default async function RegistrationDetailPage({
   const awaited = await params;
   const { locale, id: leagueId, registrationId } = awaited;
   setRequestLocale(locale);
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   const [registrationResult, teams] = await Promise.all([
     getRegistrationDetails(registrationId),
-    getLeagueTeams(leagueId),
+    getLeagueTeams(supabase, leagueId),
   ]);
 
   if (!registrationResult.success || !registrationResult.data) {

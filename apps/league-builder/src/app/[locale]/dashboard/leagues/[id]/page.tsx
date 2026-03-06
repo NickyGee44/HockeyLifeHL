@@ -1,7 +1,5 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/actions/auth';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import {
@@ -23,6 +21,7 @@ import {
   Database,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -35,12 +34,7 @@ export default async function LeagueDetailPage({ params }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations('leagues');
-  const userData = await getCurrentUser();
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const supabase = await createClient();
+  const { supabase, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   // Get league details
   const { data: league, error } = await supabase
@@ -273,7 +267,7 @@ export default async function LeagueDetailPage({ params }: Props) {
             highlight
           />
           <QuickActionButton
-            href={`/${locale}/website-editor`}
+            href={`/${locale}/website-editor?league=${leagueId}`}
             icon={<Globe className="w-5 h-5" />}
             title={t('websiteEditor')}
             description={t('websiteEditorDescription')}
