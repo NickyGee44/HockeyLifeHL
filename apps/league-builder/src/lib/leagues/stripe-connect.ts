@@ -16,7 +16,13 @@
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
-import { calculateApplicationFeeFromConfig } from '@/lib/fees/platform-fees';
+import {
+  calculateApplicationFeeFromConfig,
+  getLeagueBillingConfig,
+  saveFloorSubscription,
+  TIER_MONTHLY_FLOOR_CENTS,
+} from '@/lib/fees/platform-fees';
+import type { PricingTier } from '@/lib/fees/platform-fees';
 
 // ============================================================================
 // Platform Fee Configuration (DB-driven)
@@ -291,9 +297,19 @@ export async function createPaymentIntent(
     metadata = {},
   } = params;
 
-  // Calculate platform fee from DB config
-  const { fee: applicationFee, percent: feePercent } =
-    await calculateApplicationFeeFromConfig(amountCents);
+  // Calculate platform fee using per-league tier and effective bps.
+  // Small-tier leagues pay a flat $299/season invoice instead of per-transaction fees.
+  // Referral discounts are pre-baked into platform_fee_bps by assignLeaguePricingTier.
+  const billing = await getLeagueBillingConfig(leagueId);
+  let applicationFee: number;
+  let feePercent: number;
+  if (billing.pricingTier === 'small') {
+    applicationFee = 0;
+    feePercent = 0;
+  } else {
+    applicationFee = Math.round((amountCents * billing.platformFeeBps) / 10000);
+    feePercent = billing.platformFeePercent;
+  }
 
   // Idempotency key based on unique transaction parameters
   const idempotencyKey = generateIdempotencyKey('create_payment_intent', {
@@ -477,6 +493,106 @@ export async function getPayoutInfo(
       method: payout.method,
     })),
   };
+}
+
+// ============================================================================
+// Monthly Floor Subscriptions
+// ============================================================================
+
+export interface FloorSubscriptionParams {
+  leagueId: string;
+  tier: Extract<PricingTier, 'standard' | 'large'>;
+  leagueName: string;
+  /** Existing Stripe billing customer ID if one was previously created. */
+  existingCustomerId?: string | null;
+  ownerEmail?: string;
+}
+
+export interface FloorSubscriptionResult {
+  subscriptionId: string;
+  customerId: string;
+  productId: string;
+}
+
+/**
+ * Create a Stripe Subscription on the BLH platform account to bill the league
+ * the monthly floor amount (Standard: $250/mo CAD, Large: $500/mo CAD).
+ *
+ * The floor is credited against the season % invoice at registration close.
+ * Call `saveFloorSubscription` after this to persist the IDs.
+ *
+ * @param params - Floor subscription parameters
+ * @returns IDs of the created subscription, customer, and product
+ */
+export async function createFloorSubscription(
+  params: FloorSubscriptionParams
+): Promise<FloorSubscriptionResult> {
+  const { leagueId, tier, leagueName, existingCustomerId, ownerEmail } = params;
+
+  const floorCents = TIER_MONTHLY_FLOOR_CENTS[tier]; // 25000 or 50000
+  const tierLabel = tier === 'standard' ? 'Standard' : 'Large';
+  const productName = `BLH Platform Floor — ${tierLabel}`;
+
+  // ── Get or create the Stripe billing customer (platform account, not Connect) ──
+  let customerId = existingCustomerId ?? null;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      name: leagueName,
+      ...(ownerEmail ? { email: ownerEmail } : {}),
+      metadata: { league_id: leagueId, platform: 'beerleaguehockey', floor_tier: tier },
+    });
+    customerId = customer.id;
+  }
+
+  // ── Create a product for this floor tier ──────────────────────────────────
+  const product = await stripe.products.create({
+    name: productName,
+    metadata: { platform: 'beerleaguehockey', floor_tier: tier },
+  });
+
+  // ── Create a recurring price ──────────────────────────────────────────────
+  const price = await stripe.prices.create({
+    product: product.id,
+    unit_amount: floorCents,
+    currency: 'cad',
+    recurring: { interval: 'month' },
+  });
+
+  // ── Create the subscription ───────────────────────────────────────────────
+  const idempotencyKey = generateIdempotencyKey('create_floor_subscription', {
+    league_id: leagueId,
+    tier,
+  });
+
+  const subscription = await stripe.subscriptions.create(
+    {
+      customer: customerId,
+      items: [{ price: price.id }],
+      metadata: { league_id: leagueId, platform: 'beerleaguehockey', floor_tier: tier },
+    },
+    { idempotencyKey }
+  );
+
+  // Persist the IDs to the DB
+  await saveFloorSubscription(leagueId, {
+    floorStripeSubscriptionId: subscription.id,
+    floorStripeProductId: product.id,
+    stripeBillingCustomerId: customerId,
+  });
+
+  return {
+    subscriptionId: subscription.id,
+    customerId,
+    productId: product.id,
+  };
+}
+
+/**
+ * Cancel a league's floor subscription (e.g. on tier downgrade or churn).
+ * Sets cancel_at_period_end so the league isn't charged for the next cycle.
+ */
+export async function cancelFloorSubscription(subscriptionId: string): Promise<void> {
+  await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
 }
 
 // ============================================================================
