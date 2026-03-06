@@ -15,14 +15,14 @@ import { ImportTeamsButton } from '@/components/teams/ImportTeamsButton';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; tool?: string }>;
 };
 
 export default async function LeagueTeamsPage({ params, searchParams }: Props) {
   const awaited = await params;
   const awaitedSearch = await searchParams;
   const { locale, id: leagueId } = awaited;
-  const { tab } = awaitedSearch;
+  const { tab, tool } = awaitedSearch;
   setRequestLocale(locale);
 
   const userData = await getCurrentUser();
@@ -140,7 +140,10 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
             <div className="flex items-center gap-2">
               <TeamEmailBlast leagueId={leagueId} leagueName={league.name} />
               <RosterExportButton leagueId={leagueId} seasonId={currentSeason?.id} label="Export All Contacts" />
-              <ImportTeamsButton leagueId={leagueId} />
+              <ImportTeamsButton
+                leagueId={leagueId}
+                defaultOpen={tool === 'import-teams'}
+              />
               <Link
                 href={`/dashboard/leagues/${leagueId}/teams/new`}
                 className={cn(

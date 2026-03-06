@@ -1,17 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ImportTeamsModal } from './ImportTeamsModal';
 
 interface ImportTeamsButtonProps {
   leagueId: string;
+  defaultOpen?: boolean;
 }
 
-export function ImportTeamsButton({ leagueId }: ImportTeamsButtonProps) {
-  const [open, setOpen] = useState(false);
+export function ImportTeamsButton({ leagueId, defaultOpen = false }: ImportTeamsButtonProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const router = useRouter();
+
+  useEffect(() => {
+    if (defaultOpen) {
+      setOpen(true);
+    }
+  }, [defaultOpen]);
 
   return (
     <>

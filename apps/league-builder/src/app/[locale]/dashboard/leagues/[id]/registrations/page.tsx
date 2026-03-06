@@ -27,6 +27,7 @@ type Props = {
     season?: string;
     search?: string;
     page?: string;
+    tool?: string;
   }>;
 };
 
@@ -76,6 +77,7 @@ export default async function RegistrationsPage({
   const seasonId = resolvedSearchParams.season;
   const search = resolvedSearchParams.search;
   const page = parseInt(resolvedSearchParams.page || '1', 10);
+  const tool = resolvedSearchParams.tool;
   const limit = 20;
   const offset = (page - 1) * limit;
 
@@ -124,7 +126,11 @@ export default async function RegistrationsPage({
           <p className="text-neutral-400">{league.name}</p>
         </div>
         {activeSeason && (
-          <ImportPlayersButton leagueId={leagueId} seasonId={activeSeason.id} />
+          <ImportPlayersButton
+            leagueId={leagueId}
+            seasonId={activeSeason.id}
+            defaultOpen={tool === 'import-players'}
+          />
         )}
       </div>
 
