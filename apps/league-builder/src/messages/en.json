@@ -3140,6 +3140,8 @@
       "customDomainDesc": "Use your own domain with SSL certificate included.",
       "customPricing": "Custom Pricing",
       "custom": "Custom",
+      "referralNote": "Referral program: 0.25% off per qualified referral (min 10 teams), capped at 0.75% off, floor 2.75%.",
+      "premiumServices": "Premium Services",
       "features": {
         "unlimitedLeagues": "Unlimited leagues",
         "unlimitedTeams": "Unlimited teams & players",
@@ -3151,6 +3153,39 @@
         "publicWebsite": "Public league website",
         "emailNotifications": "Email notifications",
         "analyticsDashboard": "Analytics dashboard"
+      },
+      "tiers": {
+        "small": "Small",
+        "standard": "Standard",
+        "large": "Large",
+        "enterprise": "Enterprise",
+        "smallCriteria": "Fewer than 10 teams and under $50K in registration fees",
+        "standardCriteria": "10–99 teams or $50K–$499K in registration fees",
+        "largeCriteria": "100–499 teams",
+        "enterpriseCriteria": "500+ teams or $2M+ in registration fees",
+        "mostCommon": "Most common",
+        "perSeason": "/ season flat",
+        "ofGrossReg": "of gross registration fees",
+        "negotiated": "negotiated",
+        "noMonthlyFloor": "No monthly floor",
+        "negotiatedFloor": "Negotiated monthly floor",
+        "floor": "monthly floor",
+        "noContract": "No contract",
+        "annualContract": "Annual contract",
+        "twoYearContract": "2-year contract",
+        "multiYear": "Multi-year contract"
+      },
+      "calculator": {
+        "title": "Estimate Your Tier",
+        "description": "Enter your expected team count and estimated registration fees to see which tier applies.",
+        "teamCount": "Number of teams",
+        "estimatedFees": "Estimated registration fees (CAD)",
+        "yourTier": "Your pricing tier",
+        "tier": "Tier",
+        "estimatedPlatformCost": "Estimated platform cost",
+        "contactSales": "Contact sales",
+        "floorNote": "Subject to monthly minimum — floor is credited against your season invoice.",
+        "enterValues": "Enter your team count or estimated fees above to calculate your tier."
       }
     },
     "upgradePlanModal": {

@@ -3140,6 +3140,8 @@
       "customDomainDesc": "Utilisez votre propre domaine avec certificat SSL inclus.",
       "customPricing": "Tarification personnalisee",
       "custom": "Sur mesure",
+      "referralNote": "Programme de parrainage : 0,25% de reduction par parrainage qualifie (min. 10 equipes), plafonne a 0,75% de reduction, plancher a 2,75%.",
+      "premiumServices": "Services premium",
       "features": {
         "unlimitedLeagues": "Ligues illimitees",
         "unlimitedTeams": "Equipes et joueurs illimites",
@@ -3151,6 +3153,39 @@
         "publicWebsite": "Site web de ligue public",
         "emailNotifications": "Notifications par courriel",
         "analyticsDashboard": "Tableau de bord analytique"
+      },
+      "tiers": {
+        "small": "Petite",
+        "standard": "Standard",
+        "large": "Grande",
+        "enterprise": "Entreprise",
+        "smallCriteria": "Moins de 10 equipes et moins de 50 000 $ en frais d'inscription",
+        "standardCriteria": "10 a 99 equipes ou 50 000 $ a 499 000 $ en frais d'inscription",
+        "largeCriteria": "100 a 499 equipes",
+        "enterpriseCriteria": "500 equipes ou plus ou 2 M$ ou plus en frais d'inscription",
+        "mostCommon": "La plus courante",
+        "perSeason": "/ saison forfaitaire",
+        "ofGrossReg": "des frais d'inscription bruts",
+        "negotiated": "negocie",
+        "noMonthlyFloor": "Aucun plancher mensuel",
+        "negotiatedFloor": "Plancher mensuel negocie",
+        "floor": "plancher mensuel",
+        "noContract": "Sans contrat",
+        "annualContract": "Contrat annuel",
+        "twoYearContract": "Contrat de 2 ans",
+        "multiYear": "Contrat pluriannuel"
+      },
+      "calculator": {
+        "title": "Estimez votre palier",
+        "description": "Entrez le nombre d'equipes prevu et les frais d'inscription estimes pour voir quel palier s'applique.",
+        "teamCount": "Nombre d'equipes",
+        "estimatedFees": "Frais d'inscription estimes (CAD)",
+        "yourTier": "Votre palier tarifaire",
+        "tier": "Palier",
+        "estimatedPlatformCost": "Cout estime de la plateforme",
+        "contactSales": "Contacter les ventes",
+        "floorNote": "Sous reserve du minimum mensuel - le plancher est credite sur votre facture de saison.",
+        "enterValues": "Entrez le nombre d'equipes ou les frais estimes ci-dessus pour calculer votre palier."
       }
     },
     "upgradePlanModal": {
