@@ -1166,7 +1166,19 @@
       "netEarnings": "Gains nets",
       "transactions": "Transactions",
       "platformFees": "Frais de plateforme",
-      "platformFeeNotice": "Des frais de plateforme de {percent} % sont appliques a toutes les transactions. Ces frais sont separes des frais de traitement de carte Stripe. Vous pouvez configurer si ces frais sont passes aux joueurs ou absorbes par la ligue dans vos parametres de facturation."
+      "platformFeeNotice": "Des frais de plateforme de {percent} % sont appliques a toutes les transactions. Ces frais sont separes des frais de traitement de carte Stripe. Vous pouvez configurer si ces frais sont passes aux joueurs ou absorbes par la ligue dans vos parametres de facturation.",
+      "tierTitle": "Niveau tarifaire",
+      "tierDescription": "Votre niveau est verrouille a l'ouverture des inscriptions en fonction du nombre d'equipes et des frais bruts.",
+      "tier": "Niveau",
+      "effectiveRate": "Taux effectif",
+      "monthlyFloor": "Plancher mensuel",
+      "floorSubscription": "Abonnement plancher",
+      "flatSeasonFee": "{amount}/saison fixe",
+      "none": "Aucun",
+      "active": "Actif",
+      "notApplicable": "S/O",
+      "referralDiscount": "Rabais de parrainage de {discount} % applique",
+      "adminNote": "Les administrateurs de la plateforme peuvent modifier le niveau via le panneau d'administration."
     },
     "payout": {
       "title": "Solde et virements",

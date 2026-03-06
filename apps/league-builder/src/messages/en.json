@@ -1166,7 +1166,19 @@
       "netEarnings": "Net Earnings",
       "transactions": "Transactions",
       "platformFees": "Platform Fees",
-      "platformFeeNotice": "A {percent}% platform fee is applied to all transactions. This fee is separate from Stripe's card processing fees. You can configure whether this fee is passed to players or absorbed by the league in your billing settings."
+      "platformFeeNotice": "A {percent}% platform fee is applied to all transactions. This fee is separate from Stripe's card processing fees. You can configure whether this fee is passed to players or absorbed by the league in your billing settings.",
+      "tierTitle": "Pricing Tier",
+      "tierDescription": "Your tier is locked at registration open based on team count and gross fees.",
+      "tier": "Tier",
+      "effectiveRate": "Effective Rate",
+      "monthlyFloor": "Monthly Floor",
+      "floorSubscription": "Floor Subscription",
+      "flatSeasonFee": "{amount}/season flat",
+      "none": "None",
+      "active": "Active",
+      "notApplicable": "N/A",
+      "referralDiscount": "{discount}% referral discount applied",
+      "adminNote": "Platform admins can override tier via the admin panel."
     },
     "payout": {
       "title": "Balance & Payouts",
