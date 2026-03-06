@@ -7522,6 +7522,7 @@ export type Database = {
       playoff_series: {
         Row: {
           created_at: string
+          division_id: string | null
           high_seed_id: string | null
           high_seed_wins: number
           id: string
@@ -7536,6 +7537,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          division_id?: string | null
           high_seed_id?: string | null
           high_seed_wins?: number
           id?: string
@@ -7550,6 +7552,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          division_id?: string | null
           high_seed_id?: string | null
           high_seed_wins?: number
           id?: string
@@ -7563,6 +7566,13 @@ export type Database = {
           winner_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "playoff_series_division_id_fkey"
+            columns: ["division_id"]
+            isOneToOne: false
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "playoff_series_high_seed_id_fkey"
             columns: ["high_seed_id"]

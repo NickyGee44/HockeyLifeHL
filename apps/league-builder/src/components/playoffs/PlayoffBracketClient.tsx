@@ -33,6 +33,62 @@ function getRoundLabel(round: number, totalRounds: number): string {
   return ROUND_LABELS[round] ?? `Round ${round}`;
 }
 
+type BracketSection = {
+  key: string;
+  divisionId: string | null;
+  divisionName: string | null;
+  rounds: number;
+  roundNumbers: number[];
+  seriesByRound: Record<number, PlayoffSeries[]>;
+  champion: PlayoffSeries | null;
+};
+
+function groupBracketSections(series: PlayoffSeries[]): BracketSection[] {
+  const sections = new Map<string, BracketSection>();
+
+  for (const entry of series) {
+    const key = entry.division_id ?? 'overall';
+    const existing = sections.get(key) ?? {
+      key,
+      divisionId: entry.division_id ?? null,
+      divisionName: entry.division_name ?? null,
+      rounds: 0,
+      roundNumbers: [],
+      seriesByRound: {},
+      champion: null,
+    };
+
+    existing.rounds = Math.max(existing.rounds, entry.round_number);
+    if (!existing.seriesByRound[entry.round_number]) {
+      existing.seriesByRound[entry.round_number] = [];
+      existing.roundNumbers.push(entry.round_number);
+    }
+
+    existing.seriesByRound[entry.round_number].push(entry);
+    sections.set(key, existing);
+  }
+
+  return [...sections.values()]
+    .map((section) => {
+      for (const round of Object.keys(section.seriesByRound).map(Number)) {
+        section.seriesByRound[round].sort((a, b) => a.series_number - b.series_number);
+      }
+
+      section.roundNumbers.sort((a, b) => a - b);
+      section.champion = section.seriesByRound[section.rounds]?.find(
+        (entry) => entry.status === 'completed' && entry.winner_id,
+      ) ?? null;
+
+      return section;
+    })
+    .sort((a, b) => {
+      if (!a.divisionName && !b.divisionName) return 0;
+      if (!a.divisionName) return -1;
+      if (!b.divisionName) return 1;
+      return a.divisionName.localeCompare(b.divisionName);
+    });
+}
+
 function SeriesCard({
   series,
   leagueId,
@@ -344,22 +400,9 @@ export function PlayoffBracketClient({
     );
   }
 
-  // Group series by round
-  const seriesByRound: Record<number, PlayoffSeries[]> = {};
-  for (const s of bracket.series) {
-    if (!seriesByRound[s.round_number]) seriesByRound[s.round_number] = [];
-    seriesByRound[s.round_number].push(s);
-    seriesByRound[s.round_number].sort((a, b) => a.series_number - b.series_number);
-  }
-
-  const roundNumbers = Object.keys(seriesByRound)
-    .map(Number)
-    .sort((a, b) => a - b);
-
-  // Check for champion
-  const champion = bracket.series.find(
-    (s) => s.round_number === bracket.rounds && s.status === 'completed' && s.winner_id
-  );
+  const sections = groupBracketSections(bracket.series);
+  const hasDivisionSections = sections.filter((section) => section.divisionId).length > 0;
+  const multipleSections = sections.length > 1;
 
   return (
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
@@ -370,7 +413,9 @@ export function PlayoffBracketClient({
             <Trophy className="w-5 h-5 text-purple-400" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Playoff Bracket</h2>
+            <h2 className="text-lg font-bold text-white">
+              {multipleSections ? 'Playoff Brackets' : 'Playoff Bracket'}
+            </h2>
             <p className="text-xs text-neutral-500 capitalize">
               {bracket.format.replace(/_/g, ' ')} format
             </p>
@@ -392,19 +437,25 @@ export function PlayoffBracketClient({
                 Regenerating...
               </>
             ) : (
-              'Regenerate Bracket'
+              multipleSections ? 'Regenerate Brackets' : 'Regenerate Bracket'
             )}
           </button>
         )}
       </div>
 
-      {/* Champion banner */}
-      {champion && champion.winner_name && (
+      {hasDivisionSections && (
+        <div className="mb-6 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-neutral-300">
+          Each division now has its own official bracket. Regenerating will rebuild every division from the current standings.
+        </div>
+      )}
+
+      {/* Overall champion banner only for one-bracket seasons */}
+      {!multipleSections && sections[0]?.champion?.winner_name && (
         <div className="mb-6 flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
           <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
           <div>
             <p className="text-xs text-amber-500 font-medium uppercase tracking-wider">Champion</p>
-            <p className="text-lg font-black text-amber-400">{champion.winner_name}</p>
+            <p className="text-lg font-black text-amber-400">{sections[0].champion?.winner_name}</p>
           </div>
         </div>
       )}
@@ -414,57 +465,87 @@ export function PlayoffBracketClient({
         <p className="text-red-400 text-sm mb-4 bg-red-500/10 rounded-lg px-4 py-2">{error}</p>
       )}
 
-      {/* Bracket grid */}
-      <div className="overflow-x-auto">
-        <div className="flex items-start gap-2 min-w-max pb-2">
-          {roundNumbers.map((round, roundIdx) => {
-            const roundSeries = seriesByRound[round];
-            const label = getRoundLabel(round, bracket.rounds);
-            const isLast = roundIdx === roundNumbers.length - 1;
-
-            return (
-              <div key={round} className="flex items-start gap-2">
-                {/* Round column */}
-                <div className="flex flex-col gap-2">
-                  {/* Round label */}
-                  <div className="text-center mb-2">
-                    <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                      {label}
-                    </span>
-                  </div>
-
-                  {/* Series cards with vertical centering based on round */}
-                  <div
-                    className="flex flex-col"
-                    style={{
-                      gap: `${Math.pow(2, roundIdx) * 8 + 8}px`,
-                    }}
-                  >
-                    {roundSeries.map((s) => (
-                      <SeriesCard
-                        key={s.id}
-                        series={s}
-                        leagueId={leagueId}
-                        seasonId={seasonId}
-                        canEdit={canEdit}
-                        onRecordWin={handleRecordWin}
-                        onScheduleGame={handleScheduleGame}
-                        isPending={isPending}
-                      />
-                    ))}
-                  </div>
+      <div className="space-y-6">
+        {sections.map((section) => (
+          <div
+            key={section.key}
+            className={cn(
+              'rounded-2xl border border-white/10 bg-black/20 p-4',
+              multipleSections && 'border-white/12',
+            )}
+          >
+            {(multipleSections || section.divisionName) && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                    {section.divisionName ? 'Division playoff bracket' : 'Bracket'}
+                  </p>
+                  <h3 className="mt-1 text-xl font-bold text-white">
+                    {section.divisionName ?? 'Overall bracket'}
+                  </h3>
                 </div>
-
-                {/* Connector arrow between rounds */}
-                {!isLast && (
-                  <div className="flex items-center self-center mt-6">
-                    <ChevronRight className="w-5 h-5 text-neutral-700" />
+                {section.champion?.winner_name && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-right">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-500">
+                      Champion
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-amber-300">
+                      {section.champion.winner_name}
+                    </p>
                   </div>
                 )}
               </div>
-            );
-          })}
-        </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <div className="flex items-start gap-2 min-w-max pb-2">
+                {section.roundNumbers.map((round, roundIdx) => {
+                  const roundSeries = section.seriesByRound[round];
+                  const label = getRoundLabel(round, section.rounds);
+                  const isLast = roundIdx === section.roundNumbers.length - 1;
+
+                  return (
+                    <div key={`${section.key}-${round}`} className="flex items-start gap-2">
+                      <div className="flex flex-col gap-2">
+                        <div className="text-center mb-2">
+                          <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                            {label}
+                          </span>
+                        </div>
+
+                        <div
+                          className="flex flex-col"
+                          style={{
+                            gap: `${Math.pow(2, roundIdx) * 8 + 8}px`,
+                          }}
+                        >
+                          {roundSeries.map((entry) => (
+                            <SeriesCard
+                              key={entry.id}
+                              series={entry}
+                              leagueId={leagueId}
+                              seasonId={seasonId}
+                              canEdit={canEdit}
+                              onRecordWin={handleRecordWin}
+                              onScheduleGame={handleScheduleGame}
+                              isPending={isPending}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {!isLast && (
+                        <div className="flex items-center self-center mt-6">
+                          <ChevronRight className="w-5 h-5 text-neutral-700" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Legend */}
