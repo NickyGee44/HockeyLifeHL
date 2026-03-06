@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getPlatformAdminData } from '@/lib/actions/platform-admin';
+import { getPlatformMigrationQueue } from '@/lib/actions/platform-migration-admin';
 import { BypassToggle } from './BypassToggle';
 import {
   Building2, Users, Trophy, BarChart3, DollarSign,
@@ -9,6 +10,7 @@ import {
   TrendingUp, Gamepad2, Calendar, Bug, Sparkles,
   AlertTriangle, AlertCircle, Info, UserPlus,
   CreditCard, RefreshCw, XCircle, WifiOff,
+  Database,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -76,11 +78,15 @@ export default async function PlatformAdminPage() {
     redirect(`/${locale}/dashboard`);
   }
 
-  const { orgs, totals, bugs, ai, financials } = await getPlatformAdminData();
+  const [{ orgs, totals, bugs, ai, financials }, migrationQueue] = await Promise.all([
+    getPlatformAdminData(),
+    getPlatformMigrationQueue(),
+  ]);
 
   // Separate active (bypass/subscribed) from others
   const activeOrgs = orgs.filter(o => o.league_count > 0 && (o.bypass_subscription_gate || o.has_platform_subscription));
   const totalOpenBugs = bugs.open_critical + bugs.open_high + bugs.open_medium + bugs.open_low;
+  const migrationSummary = migrationQueue.success ? migrationQueue.data : null;
 
   const keyStats = [
     {
@@ -125,6 +131,67 @@ export default async function PlatformAdminPage() {
           </div>
         ))}
       </div>
+
+      {migrationSummary && (
+        <div>
+          <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Database className="w-3.5 h-3.5" /> Migration Ops
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              href={`/${locale}/dashboard/admin/migrations`}
+              className="rounded-2xl border border-cyan-400/15 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.12),_transparent_38%),linear-gradient(155deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 hover:border-cyan-300/25 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-100/80">Migration Queue</p>
+                  <p className="mt-3 text-3xl font-black text-white">{migrationSummary.activeCount}</p>
+                  <p className="mt-1 text-sm text-neutral-300">active requests</p>
+                </div>
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-200">
+                  <Database className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {[
+                  { label: 'Submitted', value: migrationSummary.summary.submitted + migrationSummary.summary.reviewing },
+                  { label: 'Quoted', value: migrationSummary.summary.quoted + migrationSummary.summary.scheduled },
+                  { label: 'Complete', value: migrationSummary.summary.completed },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl bg-black/20 px-3 py-2">
+                    <p className="text-lg font-bold text-white">{item.value}</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-cyan-100">
+                Open migration queue
+                <ExternalLink className="w-4 h-4" />
+              </div>
+            </Link>
+
+            <div className="md:col-span-2 rounded-2xl border border-white/[0.07] bg-neutral-900 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">Ops posture</p>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: 'Draft', value: migrationSummary.summary.draft },
+                  { label: 'In Progress', value: migrationSummary.summary.in_progress },
+                  { label: 'Cancelled', value: migrationSummary.summary.cancelled },
+                  { label: 'Total', value: migrationSummary.requests.length },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border border-white/[0.06] bg-black/20 p-4">
+                    <p className="text-2xl font-black text-white">{item.value}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-neutral-500">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-sm text-neutral-400">
+                This queue is now the internal control point for review, quoting, scheduling, and completion of historical league migrations.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Active Leagues */}
       {activeOrgs.length > 0 && (

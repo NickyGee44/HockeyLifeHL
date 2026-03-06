@@ -53,7 +53,7 @@ export default function LeaguesScreen() {
 
   return (
     <View className="flex-1 bg-neutral-950">
-      <View className="px-5 pt-16 pb-4">
+      <View className="px-5 pt-4 pb-4">
         <Text variant="h1">Leagues</Text>
       </View>
 

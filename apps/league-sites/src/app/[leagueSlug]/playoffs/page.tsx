@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { getLeagueBySlug, getSeasons, getCurrentSeason } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { SeasonSelector } from '@/components/SeasonSelector';
+import { SeedPreviewButton } from '@/components/playoffs/SeedPreviewButton';
 
 interface PlayoffsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -83,19 +84,19 @@ function TeamRow({
   isWinner: boolean;
   isBye: boolean;
 }) {
+  if (isBye) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 opacity-40">
+        <span className="text-xs text-[var(--color-text-secondary)] italic">BYE</span>
+      </div>
+    );
+  }
+
   if (!name) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 opacity-30">
         <div className="w-6 h-6 rounded-full bg-white/10" />
         <span className="text-sm text-[var(--color-text-secondary)]">TBD</span>
-      </div>
-    );
-  }
-
-  if (isBye) {
-    return (
-      <div className="flex items-center gap-2 px-3 py-2 opacity-40">
-        <span className="text-xs text-[var(--color-text-secondary)] italic">BYE</span>
       </div>
     );
   }
@@ -148,7 +149,7 @@ function SeriesCard({ series, totalRounds }: { series: PlayoffSeries; totalRound
       }`}
     >
       <TeamRow
-        name={series.high_seed?.name ?? (isByeHigh ? null : null)}
+        name={series.high_seed?.name ?? null}
         logoUrl={series.high_seed?.logo_url}
         wins={series.high_seed_wins}
         isWinner={isCompleted && series.winner_id === series.high_seed_id}
@@ -209,6 +210,13 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
               Playoff Bracket
             </h1>
+            {activeSeason && (
+              <SeedPreviewButton
+                leagueId={league.id}
+                seasonId={activeSeason.id}
+                seasonName={activeSeason.name}
+              />
+            )}
           </div>
           <p className="text-[var(--color-text-secondary)]">{league.name}</p>
         </div>
@@ -230,7 +238,7 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
           <div
             className="mb-8 p-5 rounded-2xl border flex items-center gap-4"
             style={{
-              background: 'linear-gradient(135deg, var(--league-primary)/10, transparent)',
+              backgroundColor: 'color-mix(in srgb, var(--league-primary) 12%, transparent)',
               borderColor: 'var(--league-primary)',
             }}
           >
@@ -287,6 +295,15 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             <p className="text-sm text-[var(--color-text-secondary)] opacity-60 mt-1">
               Check back when the playoffs begin.
             </p>
+            {activeSeason && (
+              <div className="mt-4">
+                <SeedPreviewButton
+                  leagueId={league.id}
+                  seasonId={activeSeason.id}
+                  seasonName={activeSeason.name}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

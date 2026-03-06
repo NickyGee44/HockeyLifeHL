@@ -40,7 +40,7 @@ export default function HomeScreen() {
       }
     >
       {/* Header */}
-      <View className="px-5 pt-16 pb-4">
+      <View className="px-5 pt-4 pb-4">
         <Text variant="caption" className="text-gold-500 mb-1">
           Welcome back
         </Text>

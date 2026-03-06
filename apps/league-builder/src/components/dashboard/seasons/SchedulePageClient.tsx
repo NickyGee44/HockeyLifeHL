@@ -44,6 +44,7 @@ interface SchedulePageClientProps {
   startDate: Date;
   endDate: Date;
   hasExistingSchedule: boolean;
+  defaultImportOpen?: boolean;
 }
 
 type ViewMode = 'calendar' | 'list';
@@ -103,6 +104,7 @@ export function SchedulePageClient({
   startDate,
   endDate,
   hasExistingSchedule,
+  defaultImportOpen = false,
 }: SchedulePageClientProps) {
   const router = useRouter();
   const [showWizard, setShowWizard] = useState(false);
@@ -116,7 +118,7 @@ export function SchedulePageClient({
   const [showGameDetail, setShowGameDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [showImportModal, setShowImportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(defaultImportOpen);
 
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
 

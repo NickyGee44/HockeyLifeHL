@@ -138,7 +138,7 @@ export default function JoinTeamScreen() {
 
   return (
     <View className="flex-1 bg-neutral-950">
-      <View className="px-5 pt-16 pb-4">
+      <View className="px-5 pt-4 pb-4">
         <Pressable onPress={() => router.back()} className="mb-3" hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color="#a3a3a3" />
         </Pressable>

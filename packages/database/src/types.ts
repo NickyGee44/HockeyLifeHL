@@ -4263,14 +4263,19 @@ export type Database = {
       league_billing_settings: {
         Row: {
           charges_enabled: boolean
+          contract_term_months: number
           created_at: string
           created_by: string | null
           details_submitted: boolean
+          flat_season_fee_cents: number
           id: string
           league_id: string
+          monthly_floor_cents: number
           payouts_enabled: boolean
           platform_fee_bps: number
           platform_fee_mode: string
+          pricing_tier: "small" | "standard" | "large" | "enterprise"
+          referral_discount_bps: number
           setup_fee_amount_cents: number
           setup_fee_currency: string
           setup_fee_paid_at: string | null
@@ -4286,14 +4291,19 @@ export type Database = {
         }
         Insert: {
           charges_enabled?: boolean
+          contract_term_months?: number
           created_at?: string
           created_by?: string | null
           details_submitted?: boolean
+          flat_season_fee_cents?: number
           id?: string
           league_id: string
+          monthly_floor_cents?: number
           payouts_enabled?: boolean
           platform_fee_bps?: number
           platform_fee_mode?: string
+          pricing_tier?: "small" | "standard" | "large" | "enterprise"
+          referral_discount_bps?: number
           setup_fee_amount_cents?: number
           setup_fee_currency?: string
           setup_fee_paid_at?: string | null
@@ -4309,14 +4319,19 @@ export type Database = {
         }
         Update: {
           charges_enabled?: boolean
+          contract_term_months?: number
           created_at?: string
           created_by?: string | null
           details_submitted?: boolean
+          flat_season_fee_cents?: number
           id?: string
           league_id?: string
+          monthly_floor_cents?: number
           payouts_enabled?: boolean
           platform_fee_bps?: number
           platform_fee_mode?: string
+          pricing_tier?: "small" | "standard" | "large" | "enterprise"
+          referral_discount_bps?: number
           setup_fee_amount_cents?: number
           setup_fee_currency?: string
           setup_fee_paid_at?: string | null
@@ -12801,10 +12816,15 @@ export type Database = {
         Args: { p_league_id: string }
         Returns: {
           charges_enabled: boolean
+          contract_term_months: number
+          flat_season_fee_cents: number
           league_id: string
+          monthly_floor_cents: number
           payouts_enabled: boolean
           platform_fee_bps: number
           platform_fee_mode: string
+          pricing_tier: "small" | "standard" | "large" | "enterprise"
+          referral_discount_bps: number
           setup_fee_amount_cents: number
           setup_fee_currency: string
           setup_fee_paid_at: string
@@ -14023,6 +14043,7 @@ export const Constants = {
         "late_fee",
         "adjustment",
       ],
+      pricing_tier: ["small", "standard", "large", "enterprise"],
       player_payment_status: [
         "pending",
         "processing",

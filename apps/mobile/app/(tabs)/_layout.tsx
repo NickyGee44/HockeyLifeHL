@@ -1,11 +1,13 @@
 import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/lib/auth/provider';
 import { LoadingScreen } from '@hockey-life/ui-native';
 
 export default function TabLayout() {
   const { session, isLoading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -19,14 +21,19 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        sceneStyle: {
+          backgroundColor: '#0a0a0a',
+          paddingTop: insets.top,
+        },
         tabBarStyle: {
           backgroundColor: '#0a0a0a',
           borderTopColor: '#262626',
           borderTopWidth: 1,
-          height: 88,
-          paddingBottom: 28,
+          height: 60 + Math.max(insets.bottom, 12),
+          paddingBottom: Math.max(insets.bottom, 12),
           paddingTop: 8,
         },
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: '#D4AF37',
         tabBarInactiveTintColor: '#737373',
         tabBarLabelStyle: {

@@ -11,11 +11,15 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CreditCard, Loader2, ExternalLink, Calendar, DollarSign } from 'lucide-react';
 import { createCheckoutSession } from '@/lib/payments/payment-actions';
-import type { PlayerPayment, SeasonFee, PaymentPlanType } from '@/lib/payments/types';
+import type { PlayerPayment, PaymentPlanType } from '@/lib/payments/types';
 
 interface CheckoutButtonProps {
   playerPayment: PlayerPayment;
-  seasonFee: SeasonFee;
+  seasonFee: {
+    id: string;
+    name: string;
+    amount_cents: number;
+  };
   successUrl: string;
   cancelUrl: string;
   className?: string;

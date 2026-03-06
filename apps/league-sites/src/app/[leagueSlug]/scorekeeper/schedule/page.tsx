@@ -3,6 +3,8 @@ import { getScorekeeperSession } from '@/lib/actions/scorekeeper';
 import { getScorekeeperSchedule } from '@/lib/actions/scorekeeper-dashboard';
 import { ScorekeeperScheduleView } from '@/components/scorekeeper/ScorekeeperScheduleView';
 
+export const dynamic = 'force-dynamic';
+
 interface SchedulePageProps {
   params: Promise<{ leagueSlug: string }>;
 }

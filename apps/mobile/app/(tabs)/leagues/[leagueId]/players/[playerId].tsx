@@ -48,7 +48,7 @@ export default function PlayerProfileScreen() {
   return (
     <ScrollView className="flex-1 bg-neutral-950" contentContainerStyle={{ paddingBottom: 32 }}>
       {/* Header */}
-      <View className="px-5 pt-16 pb-6">
+      <View className="px-5 pt-4 pb-6">
         <Pressable onPress={() => router.back()} className="mb-4" hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color="#a3a3a3" />
         </Pressable>

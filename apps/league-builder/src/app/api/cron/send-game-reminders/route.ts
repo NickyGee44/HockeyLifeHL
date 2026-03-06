@@ -62,6 +62,29 @@ export async function GET(request: NextRequest) {
     let totalFailed = 0;
 
     for (const game of games as any[]) {
+      const claimTimestamp = new Date().toISOString();
+      const { data: claimedGame, error: claimError } = await supabase
+        .from('games')
+        .update({ reminder_sent_at: claimTimestamp })
+        .eq('id', game.id)
+        .is('reminder_sent_at', null)
+        .select('id')
+        .maybeSingle();
+
+      if (claimError) {
+        console.warn(
+          '[cron/send-game-reminders] Failed to claim game reminder lock:',
+          game.id,
+          claimError.message
+        );
+        continue;
+      }
+
+      if (!claimedGame) {
+        // Another run claimed this game first.
+        continue;
+      }
+
       const homeTeam = game.home_team;
       const awayTeam = game.away_team;
       const league = game.league;
@@ -179,11 +202,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Mark game as reminder-sent to prevent duplicates
-      await supabase
-        .from('games')
-        .update({ reminder_sent_at: now.toISOString() })
-        .eq('id', game.id);
+      // reminder_sent_at is set during the claim step to prevent duplicate sends
     }
 
     console.log(`[cron/send-game-reminders] Processed ${games.length} games, sent ${totalSent}, failed ${totalFailed}`);

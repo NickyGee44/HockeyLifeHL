@@ -48,7 +48,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView className="flex-1 bg-neutral-950" contentContainerStyle={{ paddingBottom: 32 }}>
       {/* Header */}
-      <View className="items-center pt-16 pb-6 px-5">
+      <View className="items-center pt-4 pb-6 px-5">
         <Avatar uri={profile?.avatar_url} name={profile?.full_name} size="xl" />
         <Text variant="h1" className="mt-4">
           {profile?.full_name || 'Player'}

@@ -40,7 +40,7 @@ export default function SignupPage() {
     'bg-neutral-800 border border-neutral-700',
     'text-white placeholder:text-neutral-500',
     'focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent',
-    'transition-all'
+    'transition-[border-color,box-shadow]'
   );
 
   return (
@@ -89,6 +89,7 @@ export default function SignupPage() {
             id="fullName"
             name="fullName"
             required
+            autoComplete="name"
             className={inputClasses}
             placeholder={t('auth.fullNamePlaceholder')}
           />
@@ -106,6 +107,8 @@ export default function SignupPage() {
             id="email"
             name="email"
             required
+            autoComplete="email"
+            spellCheck={false}
             className={inputClasses}
             placeholder="you@example.com"
           />
@@ -124,6 +127,7 @@ export default function SignupPage() {
             name="password"
             required
             minLength={8}
+            autoComplete="new-password"
             className={inputClasses}
             placeholder="••••••••"
           />
@@ -151,6 +155,7 @@ export default function SignupPage() {
             id="organizationName"
             name="organizationName"
             required
+            autoComplete="organization"
             className={inputClasses}
             placeholder={t('auth.companyNamePlaceholder')}
           />
@@ -213,7 +218,7 @@ export default function SignupPage() {
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3" aria-live="polite">
             <p className="text-sm text-red-400">{error}</p>
           </div>
         )}
@@ -226,7 +231,7 @@ export default function SignupPage() {
             'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
             'hover:shadow-lg hover:shadow-rink-500/20',
             'disabled:opacity-50 disabled:cursor-not-allowed',
-            'transition-all flex items-center justify-center gap-2'
+            'transition-[box-shadow,opacity] flex items-center justify-center gap-2'
           )}
         >
           {loading ? (

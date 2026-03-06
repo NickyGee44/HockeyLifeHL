@@ -30,6 +30,13 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [selectedId, setSelectedId] = useState<string>(champions[champions.length - 1]?.id || '');
+  const longDateFormatter = useRef(
+    new Intl.DateTimeFormat(undefined, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  );
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -119,19 +126,19 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
         {canScrollLeft && (
           <button
             onClick={() => scrollToItem('left')}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-all duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
             aria-label="Scroll left"
           >
-            <ChevronLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
+            <ChevronLeft aria-hidden="true" className="w-5 h-5 text-[var(--color-text-secondary)]" />
           </button>
         )}
         {canScrollRight && (
           <button
             onClick={() => scrollToItem('right')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-all duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
             aria-label="Scroll right"
           >
-            <ChevronRight className="w-5 h-5 text-[var(--color-text-secondary)]" />
+            <ChevronRight aria-hidden="true" className="w-5 h-5 text-[var(--color-text-secondary)]" />
           </button>
         )}
 
@@ -149,7 +156,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
                 else itemRefs.current.delete(champ.id);
               }}
               onClick={() => handleSelect(champ.id)}
-              className={`group relative flex-shrink-0 w-[260px] snap-start rounded-xl border overflow-hidden transition-all duration-200 text-left ${
+              className={`group relative flex-shrink-0 w-[260px] snap-start rounded-xl border overflow-hidden transition-[background-color,border-color,transform] duration-200 text-left ${
                 selected.id === champ.id
                   ? 'border-amber-500/60 ring-2 ring-amber-500/20 bg-amber-500/5 scale-[1.02]'
                   : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-amber-500/30 hover:bg-amber-500/5'
@@ -161,6 +168,10 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
                   <img
                     src={champ.photo}
                     alt={`${champ.teamName || champ.year} Champions`}
+                    width={416}
+                    height={176}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : champ.teamLogo ? (
@@ -168,6 +179,10 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
                     <img
                       src={champ.teamLogo}
                       alt={champ.teamName}
+                      width={80}
+                      height={80}
+                      loading="lazy"
+                      decoding="async"
                       className="w-20 h-20 object-contain"
                     />
                   </div>
@@ -216,6 +231,10 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
               <img
                 src={selected.photo}
                 alt={`${selected.teamName || selected.year} Champions`}
+                width={1440}
+                height={960}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-transparent to-transparent" />
@@ -260,7 +279,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
                 <span className="font-semibold text-[var(--color-text-primary)]">{selected.finalGame.awayTeam}</span>
               </div>
               <p className="text-xs text-[var(--color-text-muted)] text-center mt-2">
-                {new Date(selected.finalGame.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                {longDateFormatter.current.format(new Date(selected.finalGame.date))}
               </p>
             </div>
           )}

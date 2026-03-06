@@ -17,7 +17,7 @@ import {
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
-  searchParams: Promise<{ season?: string }>;
+  searchParams: Promise<{ season?: string; tool?: string }>;
 };
 
 async function getSeasonScheduleData(supabase: any, seasonId: string) {
@@ -79,7 +79,7 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
   const awaited = await params;
   const awaitedSearch = await searchParams;
   const { locale, id: leagueId } = awaited;
-  const { season: seasonParam } = awaitedSearch;
+  const { season: seasonParam, tool } = awaitedSearch;
   setRequestLocale(locale);
 
   const userData = await getCurrentUser();
@@ -264,6 +264,7 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
                 startDate={new Date(seasonData.season.start_date ?? FALLBACK_DATE)}
                 endDate={new Date(seasonData.season.end_date ?? FALLBACK_DATE)}
                 hasExistingSchedule={seasonData.season.schedule_generated ?? false}
+                defaultImportOpen={tool === 'import-schedule'}
               />
             </Suspense>
           </div>
