@@ -2,6 +2,10 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import {
+  buildGeneratedPlayoffScopes,
+  type PlayoffStandingRow,
+} from '@/lib/playoffs/bracket-generation';
 import { revalidatePath } from 'next/cache';
 
 type ActionResult<T = void> =
@@ -9,6 +13,8 @@ type ActionResult<T = void> =
   | { success: false; error: string };
 
 export interface PlayoffSeries {
+  division_id: string | null;
+  division_name: string | null;
   id: string;
   round_number: number;
   series_number: number;
@@ -30,6 +36,78 @@ export interface PlayoffBracket {
   rounds: number;
 }
 
+const OVERALL_BRACKET_KEY = 'overall';
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+// Supabase query builders use different concrete types, so this stays loose.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyDivisionScope(query: any, divisionId: string | null) {
+  return divisionId ? query.eq('division_id', divisionId) : query.is('division_id', null);
+}
+
+async function getDivisionNameMap(
+  supabase: SupabaseServerClient,
+  divisionIds: string[],
+) {
+  if (divisionIds.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const { data: divisions } = await supabase
+    .from('divisions')
+    .select('id, name')
+    .in('id', divisionIds);
+
+  return new Map((divisions ?? []).map((division) => [division.id, division.name]));
+}
+
+async function finalizeSeasonIfReady(
+  supabase: SupabaseServerClient,
+  seasonId: string,
+) {
+  const { count: incompleteCount, error: incompleteError } = await supabase
+    .from('playoff_series')
+    .select('id', { count: 'exact', head: true })
+    .eq('season_id', seasonId)
+    .neq('status', 'completed');
+
+  if (incompleteError || (incompleteCount ?? 0) > 0) {
+    return;
+  }
+
+  const { data: completedSeries, error: completedError } = await supabase
+    .from('playoff_series')
+    .select('division_id, round_number, winner_id')
+    .eq('season_id', seasonId)
+    .eq('status', 'completed')
+    .order('round_number', { ascending: false });
+
+  if (completedError || !completedSeries || completedSeries.length === 0) {
+    return;
+  }
+
+  const championsByScope = new Map<string, string | null>();
+  for (const row of completedSeries) {
+    const scopeKey = row.division_id ?? OVERALL_BRACKET_KEY;
+    if (!championsByScope.has(scopeKey)) {
+      championsByScope.set(scopeKey, row.winner_id);
+    }
+  }
+
+  const championTeamId = championsByScope.size === 1
+    ? [...championsByScope.values()][0] ?? null
+    : null;
+
+  await supabase
+    .from('seasons')
+    .update({
+      champion_team_id: championTeamId,
+      status: 'completed',
+    })
+    .eq('id', seasonId);
+}
+
 export async function getPlayoffBracket(
   leagueId: string,
   seasonId: string
@@ -49,7 +127,7 @@ export async function getPlayoffBracket(
   const { data: seriesRows, error } = await supabase
     .from('playoff_series')
     .select(`
-      id, round_number, series_number,
+      id, division_id, round_number, series_number,
       high_seed_id, low_seed_id,
       high_seed_wins, low_seed_wins,
       winner_id, status,
@@ -67,8 +145,17 @@ export async function getPlayoffBracket(
     return { success: true, data: null };
   }
 
+  const divisionIds = [...new Set(
+    seriesRows
+      .map((row) => row.division_id)
+      .filter((value): value is string => Boolean(value)),
+  )];
+  const divisionNameById = await getDivisionNameMap(supabase, divisionIds);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const series: PlayoffSeries[] = seriesRows.map((row: any) => ({
+    division_id: row.division_id ?? null,
+    division_name: row.division_id ? divisionNameById.get(row.division_id) ?? null : null,
     id: row.id,
     round_number: row.round_number,
     series_number: row.series_number,
@@ -107,7 +194,11 @@ export async function generatePlayoffBracket(
   // Get season + standings config
   const [seasonResult, configResult] = await Promise.all([
     supabase.from('seasons').select('playoff_format, status').eq('id', seasonId).single(),
-    supabase.from('standings_config').select('playoff_teams_total').eq('season_id', seasonId).maybeSingle(),
+    supabase
+      .from('standings_config')
+      .select('playoff_teams_total, playoff_teams_per_division, use_division_playoffs')
+      .eq('season_id', seasonId)
+      .maybeSingle(),
   ]);
 
   if (!seasonResult.data) return { success: false, error: 'Season not found' };
@@ -128,63 +219,34 @@ export async function generatePlayoffBracket(
     return { success: false, error: 'No standings data available. Make sure games have been played.' };
   }
 
-  const playoffCount = configResult.data?.playoff_teams_total ?? Math.min(8, standings.length);
-  const playoffTeams = standings.slice(0, playoffCount);
+  const generationResult = buildGeneratedPlayoffScopes(
+    standings as PlayoffStandingRow[],
+    {
+      playoffTeamsTotal: configResult.data?.playoff_teams_total,
+      playoffTeamsPerDivision: configResult.data?.playoff_teams_per_division,
+      useDivisionPlayoffs: configResult.data?.use_division_playoffs,
+    },
+  );
 
-  if (playoffTeams.length < 2) {
-    return { success: false, error: 'Need at least 2 teams for playoffs' };
+  if (!generationResult.success) {
+    return { success: false, error: generationResult.error };
   }
 
-  // Round up to next power of 2 for bracket size
-  const bracketSize = Math.pow(2, Math.ceil(Math.log2(playoffTeams.length)));
-  const totalRounds = Math.log2(bracketSize);
-
-  // Create Round 1 matchups: 1 vs N, 2 vs N-1, etc.
-  const seriesToInsert: {
-    league_id: string;
-    season_id: string;
-    round_number: number;
-    series_number: number;
-    high_seed_id: string | null;
-    low_seed_id: string | null;
-    status: string;
-  }[] = [];
-
-  const firstRoundMatchups = bracketSize / 2;
-  for (let i = 0; i < firstRoundMatchups; i++) {
-    const highSeedIndex = i;
-    const lowSeedIndex = bracketSize - 1 - i;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const highSeedTeam = (playoffTeams as any[])[highSeedIndex];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const lowSeedTeam = (playoffTeams as any[])[lowSeedIndex];
-
-    seriesToInsert.push({
+  const seriesToInsert = generationResult.data.flatMap((scope) =>
+    scope.series.map((series) => ({
       league_id: leagueId,
       season_id: seasonId,
-      round_number: 1,
-      series_number: i + 1,
-      high_seed_id: highSeedTeam?.team_id ?? null,
-      low_seed_id: lowSeedTeam?.team_id ?? null,
-      status: highSeedTeam && lowSeedTeam ? 'pending' : 'completed',
-    });
-  }
-
-  // Create placeholder series for subsequent rounds
-  for (let round = 2; round <= totalRounds; round++) {
-    const seriesInRound = Math.pow(2, totalRounds - round);
-    for (let s = 1; s <= seriesInRound; s++) {
-      seriesToInsert.push({
-        league_id: leagueId,
-        season_id: seasonId,
-        round_number: round,
-        series_number: s,
-        high_seed_id: null,
-        low_seed_id: null,
-        status: 'pending',
-      });
-    }
-  }
+      division_id: scope.divisionId,
+      round_number: series.round_number,
+      series_number: series.series_number,
+      high_seed_id: series.high_seed_id,
+      low_seed_id: series.low_seed_id,
+      high_seed_wins: series.high_seed_wins,
+      low_seed_wins: series.low_seed_wins,
+      winner_id: series.winner_id,
+      status: series.status,
+    })),
+  );
 
   const { error: insertError } = await supabase.from('playoff_series').insert(seriesToInsert);
   if (insertError) return { success: false, error: `Failed to create bracket: ${insertError.message}` };
@@ -249,13 +311,16 @@ export async function recordSeriesWin(
     const nextRound = series.round_number + 1;
     const nextSeriesNumber = Math.ceil(series.series_number / 2);
 
-    const { data: nextSeries } = await supabase
+    let nextSeriesQuery = supabase
       .from('playoff_series')
       .select('*')
       .eq('season_id', seasonId)
       .eq('round_number', nextRound)
-      .eq('series_number', nextSeriesNumber)
-      .maybeSingle();
+      .eq('series_number', nextSeriesNumber);
+
+    nextSeriesQuery = applyDivisionScope(nextSeriesQuery, series.division_id);
+
+    const { data: nextSeries } = await nextSeriesQuery.maybeSingle();
 
     if (nextSeries) {
       // Odd series number → high seed slot, even → low seed slot
@@ -266,21 +331,7 @@ export async function recordSeriesWin(
         .eq('id', nextSeries.id);
     }
 
-    // Check if this was the championship (no next round)
-    const { data: nextRoundCheck } = await supabase
-      .from('playoff_series')
-      .select('id')
-      .eq('season_id', seasonId)
-      .eq('round_number', nextRound)
-      .limit(1);
-
-    if (!nextRoundCheck || nextRoundCheck.length === 0) {
-      // Champion! Mark season complete
-      await supabase
-        .from('seasons')
-        .update({ champion_team_id: winnerId, status: 'completed' })
-        .eq('id', seasonId);
-    }
+    await finalizeSeasonIfReady(supabase, seasonId);
   }
 
   revalidatePath(`/dashboard/leagues/${leagueId}/seasons/${seasonId}`);
@@ -323,6 +374,7 @@ export async function schedulePlayoffGame(
       season_id: seasonId,
       home_team_id: series.high_seed_id,
       away_team_id: series.low_seed_id,
+      division_id: series.division_id ?? null,
       scheduled_at: scheduledAt,
       location: location || null,
       game_type: 'playoff',

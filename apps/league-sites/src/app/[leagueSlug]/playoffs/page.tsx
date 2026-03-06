@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
 import { Trophy, Crown } from 'lucide-react';
 import type { Metadata } from 'next';
-import { getLeagueBySlug, getSeasons, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getSeasons, getCurrentSeason, getStandings } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { SeasonSelector } from '@/components/SeasonSelector';
-import { SeedPreviewButton } from '@/components/playoffs/SeedPreviewButton';
+import { PlayoffPreviewPanel } from '@/components/playoffs/PlayoffPreviewPanel';
+import { buildPlayoffPreviewContext, type PlayoffPreviewContext } from '@/lib/playoffs/preview';
 
 interface PlayoffsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -26,6 +27,8 @@ export async function generateMetadata({
 }
 
 interface PlayoffSeries {
+  division_id: string | null;
+  division_name: string | null;
   id: string;
   round_number: number;
   series_number: number;
@@ -46,7 +49,7 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
   const { data, error } = await supabase
     .from('playoff_series')
     .select(`
-      id, round_number, series_number,
+      id, division_id, round_number, series_number,
       high_seed_id, low_seed_id,
       high_seed_wins, low_seed_wins,
       winner_id, status,
@@ -60,7 +63,36 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
     .order('series_number');
 
   if (error || !data) return [];
-  return data as unknown as PlayoffSeries[];
+
+  const divisionIds = [...new Set(
+    data
+      .map((row: any) => row.division_id)
+      .filter((value: string | null | undefined): value is string => Boolean(value)),
+  )];
+
+  const divisionNameById = new Map<string, string>();
+  if (divisionIds.length > 0) {
+    const { data: divisions } = await supabase
+      .from('divisions')
+      .select('id, name')
+      .in('id', divisionIds);
+
+    for (const division of divisions ?? []) {
+      divisionNameById.set(division.id, division.name);
+    }
+  }
+
+  return (data as any[]).map((row) => ({
+    ...row,
+    division_name: row.division_id ? divisionNameById.get(row.division_id) ?? null : null,
+  })) as PlayoffSeries[];
+}
+
+async function getPlayoffPreviewContextData(
+  leagueId: string,
+  seasonId: string,
+): Promise<PlayoffPreviewContext> {
+  return buildPlayoffPreviewContext(await getStandings(leagueId, seasonId));
 }
 
 function getRoundLabel(round: number, totalRounds: number): string {
@@ -167,6 +199,61 @@ function SeriesCard({ series, totalRounds }: { series: PlayoffSeries; totalRound
   );
 }
 
+type PlayoffSection = {
+  key: string;
+  divisionId: string | null;
+  divisionName: string | null;
+  rounds: number;
+  roundNumbers: number[];
+  seriesByRound: Record<number, PlayoffSeries[]>;
+  champion: PlayoffSeries | null;
+};
+
+function groupPlayoffSections(series: PlayoffSeries[]): PlayoffSection[] {
+  const sections = new Map<string, PlayoffSection>();
+
+  for (const entry of series) {
+    const key = entry.division_id ?? 'overall';
+    const section = sections.get(key) ?? {
+      key,
+      divisionId: entry.division_id ?? null,
+      divisionName: entry.division_name ?? null,
+      rounds: 0,
+      roundNumbers: [],
+      seriesByRound: {},
+      champion: null,
+    };
+
+    section.rounds = Math.max(section.rounds, entry.round_number);
+    if (!section.seriesByRound[entry.round_number]) {
+      section.seriesByRound[entry.round_number] = [];
+      section.roundNumbers.push(entry.round_number);
+    }
+    section.seriesByRound[entry.round_number].push(entry);
+    sections.set(key, section);
+  }
+
+  return [...sections.values()]
+    .map((section) => {
+      for (const round of Object.keys(section.seriesByRound).map(Number)) {
+        section.seriesByRound[round].sort((a, b) => a.series_number - b.series_number);
+      }
+
+      section.roundNumbers.sort((a, b) => a - b);
+      section.champion = section.seriesByRound[section.rounds]?.find(
+        (entry) => entry.status === 'completed' && entry.winner_id,
+      ) ?? null;
+
+      return section;
+    })
+    .sort((a, b) => {
+      if (!a.divisionName && !b.divisionName) return 0;
+      if (!a.divisionName) return -1;
+      if (!b.divisionName) return 1;
+      return a.divisionName.localeCompare(b.divisionName);
+    });
+}
+
 export default async function PlayoffsPage({ params, searchParams }: PlayoffsPageProps) {
   const { leagueSlug } = await params;
   const { season: seasonParam } = await searchParams;
@@ -183,21 +270,19 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
     ? seasons.find((s) => s.id === seasonParam) ?? defaultSeason
     : defaultSeason;
 
-  const series = activeSeason ? await getPlayoffBracket(league.id, activeSeason.id) : [];
+  const [series, previewContext] = activeSeason
+    ? await Promise.all([
+        getPlayoffBracket(league.id, activeSeason.id),
+        getPlayoffPreviewContextData(league.id, activeSeason.id),
+      ])
+    : [[], null];
 
   const hasBracket = series.length > 0;
-  const totalRounds = hasBracket ? Math.max(...series.map((s) => s.round_number)) : 0;
-
-  // Group by round
-  const byRound: Record<number, PlayoffSeries[]> = {};
-  for (const s of series) {
-    if (!byRound[s.round_number]) byRound[s.round_number] = [];
-    byRound[s.round_number].push(s);
-  }
-
-  // Find champion (winner of final series)
-  const finalSeries = hasBracket ? series.find((s) => s.round_number === totalRounds && s.status === 'completed') : null;
-  const champion = finalSeries?.winner ?? null;
+  const sections = hasBracket ? groupPlayoffSections(series) : [];
+  const multipleSections = sections.length > 1;
+  const champion = !multipleSections
+    ? sections[0]?.champion?.winner ?? null
+    : null;
 
   return (
     <main className="min-h-screen bg-[var(--color-background)]">
@@ -210,13 +295,6 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
               Playoff Bracket
             </h1>
-            {activeSeason && (
-              <SeedPreviewButton
-                leagueId={league.id}
-                seasonId={activeSeason.id}
-                seasonName={activeSeason.name}
-              />
-            )}
           </div>
           <p className="text-[var(--color-text-secondary)]">{league.name}</p>
         </div>
@@ -231,6 +309,15 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
               basePath="playoffs"
             />
           </div>
+        )}
+
+        {activeSeason && previewContext && (
+          <PlayoffPreviewPanel
+            leagueId={league.id}
+            seasonId={activeSeason.id}
+            seasonName={activeSeason.name}
+            previewContext={previewContext}
+          />
         )}
 
         {/* Champion banner */}
@@ -252,39 +339,75 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
           </div>
         )}
 
+        {multipleSections && (
+          <div className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {sections.map((section) => (
+              <div
+                key={section.key}
+                className="rounded-2xl border border-white/10 bg-[var(--color-surface)] p-5"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)] opacity-70">
+                  Division Champion
+                </p>
+                <h2 className="mt-2 text-xl font-black text-[var(--color-text-primary)]">
+                  {section.divisionName ?? 'Overall bracket'}
+                </h2>
+                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                  {section.champion?.winner?.name ?? 'Still in progress'}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Bracket */}
         {hasBracket ? (
-          <div className="overflow-x-auto">
-            <div className="flex gap-8 min-w-max pb-4">
-              {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => {
-                const roundSeries = byRound[round] ?? [];
-                return (
-                  <div key={round} className="flex flex-col">
-                    {/* Round label */}
-                    <div className="mb-4 text-center">
-                      <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">
-                        {getRoundLabel(round, totalRounds)}
-                      </span>
-                    </div>
-
-                    {/* Series in this round — vertically spaced to suggest bracket alignment */}
-                    <div
-                      className="flex flex-col"
-                      style={{ gap: `${Math.pow(2, round - 1) * 0.5}rem` }}
-                    >
-                      {roundSeries.map((s) => (
-                        <div
-                          key={s.id}
-                          style={{ marginTop: round > 1 ? `${Math.pow(2, round - 2) * 0.5}rem` : 0 }}
-                        >
-                          <SeriesCard series={s} totalRounds={totalRounds} />
-                        </div>
-                      ))}
-                    </div>
+          <div className="space-y-8">
+            {sections.map((section) => (
+              <section key={section.key}>
+                {(multipleSections || section.divisionName) && (
+                  <div className="mb-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)] opacity-70">
+                      Official Bracket
+                    </p>
+                    <h2 className="mt-1 text-2xl font-black text-[var(--color-text-primary)]">
+                      {section.divisionName ?? 'Overall bracket'}
+                    </h2>
                   </div>
-                );
-              })}
-            </div>
+                )}
+
+                <div className="overflow-x-auto">
+                  <div className="flex gap-8 min-w-max pb-4">
+                    {section.roundNumbers.map((round) => {
+                      const roundSeries = section.seriesByRound[round] ?? [];
+                      return (
+                        <div key={`${section.key}-${round}`} className="flex flex-col">
+                          <div className="mb-4 text-center">
+                            <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">
+                              {getRoundLabel(round, section.rounds)}
+                            </span>
+                          </div>
+
+                          <div
+                            className="flex flex-col"
+                            style={{ gap: `${Math.pow(2, round - 1) * 0.5}rem` }}
+                          >
+                            {roundSeries.map((entry) => (
+                              <div
+                                key={entry.id}
+                                style={{ marginTop: round > 1 ? `${Math.pow(2, round - 2) * 0.5}rem` : 0 }}
+                              >
+                                <SeriesCard series={entry} totalRounds={section.rounds} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+            ))}
           </div>
         ) : (
           <div className="py-20 text-center">
@@ -293,17 +416,8 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
               Playoff bracket not yet generated
             </p>
             <p className="text-sm text-[var(--color-text-secondary)] opacity-60 mt-1">
-              Check back when the playoffs begin.
+              Check back when the official bracket is generated.
             </p>
-            {activeSeason && (
-              <div className="mt-4">
-                <SeedPreviewButton
-                  leagueId={league.id}
-                  seasonId={activeSeason.id}
-                  seasonName={activeSeason.name}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
