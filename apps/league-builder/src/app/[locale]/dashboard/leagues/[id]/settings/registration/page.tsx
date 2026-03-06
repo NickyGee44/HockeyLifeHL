@@ -1,11 +1,10 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/actions/auth';
 import Link from 'next/link';
 import { ArrowLeft, ClipboardList } from 'lucide-react';
 import { RegistrationFormConfigForm } from './RegistrationFormConfigForm';
 import type { RegistrationFormConfig } from '@/lib/actions/league-settings';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -29,12 +28,7 @@ export default async function RegistrationFormSettingsPage({ params }: Props) {
   const { locale, id: leagueId } = await params;
   setRequestLocale(locale);
 
-  const userData = await getCurrentUser();
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const supabase = await createClient();
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   const { data: leagueRaw, error } = await (supabase as any)
     .from('leagues')

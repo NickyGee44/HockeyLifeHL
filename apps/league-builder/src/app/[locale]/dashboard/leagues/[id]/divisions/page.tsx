@@ -1,11 +1,10 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/actions/auth';
 import { getDivisions } from '@/lib/actions/divisions';
 import Link from 'next/link';
 import { ArrowLeft, Trophy, Users, LayoutGrid, Activity } from 'lucide-react';
 import { DivisionList, DivisionBalancePanel } from '@/components/divisions';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -16,12 +15,7 @@ export default async function LeagueDivisionsPage({ params }: Props) {
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
-  const userData = await getCurrentUser();
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const supabase = await createClient();
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   // Get league details
   const { data: league, error: leagueError } = await supabase

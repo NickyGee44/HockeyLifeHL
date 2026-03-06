@@ -3,6 +3,7 @@
 import { useEditor } from '../EditorContext';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import { buildWebsiteEditorPreviewUrl } from '@/lib/website-editor/preview';
 
 const SEO_TITLE_MAX = 60;
 const META_DESCRIPTION_MAX = 160;
@@ -18,7 +19,7 @@ export function SeoPanel() {
 
   const previewUrl = useMemo(() => {
     const slug = selectedLeague?.slug ?? 'your-league';
-    return `${previewBaseUrl}/${slug}`;
+    return buildWebsiteEditorPreviewUrl(previewBaseUrl, slug).replace('?preview=true', '');
   }, [selectedLeague, previewBaseUrl]);
 
   const displayTitle =

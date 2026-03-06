@@ -6,8 +6,8 @@
 
 import { setRequestLocale } from 'next-intl/server';
 import { redirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import NewSeasonWizard from './wizard-client';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,16 +19,7 @@ export default async function NewSeasonPage({ params }: Props) {
   const { locale, id: leagueId } = await params;
   setRequestLocale(locale);
 
-  // Check authentication
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    redirect(`/${locale}/login`);
-  }
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   // Get league details
   const { data: league, error: leagueError } = await supabase

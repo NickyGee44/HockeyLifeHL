@@ -42,27 +42,27 @@ export const MIGRATION_SCOPE_META: Record<
 > = {
   teams: {
     label: 'Teams',
-    description: 'Historical teams, divisions, and structure cleanup.',
+    description: 'Teams, divisions, and league structure from the old system.',
   },
   players: {
     label: 'Players',
-    description: 'Legacy roster, registration, and player directory imports.',
+    description: 'Player lists, rosters, and registration history.',
   },
   schedule: {
     label: 'Schedule',
-    description: 'Past schedules, results, and season framework setup.',
+    description: 'Past schedules, results, and season setup.',
   },
   stats_records: {
     label: 'Stats and records',
-    description: 'Career totals, awards, champions, and record books.',
+    description: 'Stats, champions, award winners, and record books.',
   },
   news_archive: {
     label: 'News archive',
-    description: 'Historic articles, publish dates, slugs, and SEO-sensitive content.',
+    description: 'Past articles, publish dates, and story URLs.',
   },
   media_archive: {
     label: 'Media archive',
-    description: 'Photo albums, captions, galleries, and legacy media libraries.',
+    description: 'Photo albums, captions, galleries, and stored media.',
   },
 };
 

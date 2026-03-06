@@ -2,10 +2,9 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { getCurrentUser } from '@/lib/actions/auth';
-import { createClient } from '@/lib/supabase/server';
 import { getGoaliePool } from '@/lib/actions/goalie-marketplace';
 import { GoaliePoolManagementClient } from '@/components/goalie-marketplace';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -16,12 +15,7 @@ export default async function GoaliePoolSettingsPage({ params }: Props) {
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
-  const user = await getCurrentUser();
-  if (!user) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const supabase = await createClient();
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
     .select('id, name')

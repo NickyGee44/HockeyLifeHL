@@ -1,10 +1,9 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/actions/auth';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { AlbumDetailClient } from '@/components/gallery/AlbumDetailClient';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string; albumId: string }>;
@@ -15,12 +14,7 @@ export default async function AlbumDetailPage({ params }: Props) {
   const { locale, id: leagueId, albumId } = awaited;
   setRequestLocale(locale);
 
-  const userData = await getCurrentUser();
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const supabase = await createClient();
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   const { data: league } = await supabase
     .from('leagues')

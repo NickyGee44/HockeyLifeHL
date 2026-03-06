@@ -3,12 +3,11 @@ import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus } from 'lucide-react';
 
-import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/actions/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DeletePageButton } from './DeletePageButton';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -19,12 +18,7 @@ export default async function CustomPagesListPage({ params }: Props) {
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
-  const userData = await getCurrentUser();
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const supabase = await createClient();
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   const [{ data: league, error: leagueError }, { data: pages, error: pagesError }] = await Promise.all([
     supabase.from('leagues').select('id, name').eq('id', leagueId).single(),

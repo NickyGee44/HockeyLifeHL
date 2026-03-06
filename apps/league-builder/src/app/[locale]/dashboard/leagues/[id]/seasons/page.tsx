@@ -6,12 +6,12 @@
 
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Calendar, Plus } from 'lucide-react';
 import { getLeagueSeasons } from '@/lib/actions/seasons';
 import { SeasonsTable } from '@/components/seasons/SeasonsTable';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -22,15 +22,7 @@ export default async function SeasonsPage({ params }: Props) {
   const { locale, id: leagueId } = awaited;
   setRequestLocale(locale);
 
-  const supabase = await createClient();
-
-  // Auth check
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    nextRedirect(`/${locale}/login`);
-  }
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   // Get league info
   const { data: league, error: leagueError } = await supabase

@@ -2,7 +2,6 @@ import { setRequestLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
 import {
   getPendingRegistrations,
   getRegistrationSummary,
@@ -18,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ImportPlayersButton } from '@/components/players/ImportPlayersButton';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -31,9 +31,7 @@ type Props = {
   }>;
 };
 
-async function getLeague(id: string) {
-  const supabase = await createClient();
-
+async function getLeague(supabase: any, id: string) {
   const { data: league, error } = await supabase
     .from('leagues')
     .select(`
@@ -64,8 +62,9 @@ export default async function RegistrationsPage({
   setRequestLocale(locale);
 
   const resolvedSearchParams = await searchParams;
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
-  const league = await getLeague(leagueId);
+  const league = await getLeague(supabase, leagueId);
 
   if (!league) {
     notFound();

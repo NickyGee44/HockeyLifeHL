@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
+import { getPlatformOwnerView } from '@/lib/auth/platform-owner-view';
 import {
   Plus,
   Settings,
@@ -87,6 +88,15 @@ export default async function DashboardPage({ params }: Props) {
   }
 
   const { user, profile } = userData;
+  if (profile?.is_platform_admin) {
+    const ownerView = await getPlatformOwnerView();
+    if (ownerView) {
+      redirect(`/${locale}/dashboard/leagues/${ownerView.leagueId}`);
+    }
+
+    redirect(`/${locale}/dashboard/admin`);
+  }
+
   const [dashboardData, staffData] = await Promise.all([
     getCachedDashboardData(),
     getStaffDashboardData(),
@@ -158,8 +168,8 @@ export default async function DashboardPage({ params }: Props) {
         memberRole,
         currentSeason,
         seasonCount: seasons.length,
-        nextAction: getLeagueNextAction({ league, currentSeason, locale }),
-        migrationActions: getLeagueMigrationActions({ league, currentSeason, locale }),
+        nextAction: getLeagueNextAction({ league, currentSeason }),
+        migrationActions: getLeagueMigrationActions({ league, currentSeason }),
       } satisfies LeagueCommandDeckItem;
     })
     .sort(sortLeagueCommandDeck);
@@ -740,35 +750,35 @@ function OwnerLeagueCommandCard({
 
         <div className="flex flex-wrap gap-2 border-t border-white/[0.08] pt-4">
           <Link
-            href={`/${locale}/dashboard/leagues/${league.id}/migration-center`}
+            href={`/dashboard/leagues/${league.id}/migration-center`}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
           >
             <Database className="w-3.5 h-3.5" />
             Migration Center
           </Link>
           <Link
-            href={`/${locale}/dashboard/leagues/${league.id}`}
+            href={`/dashboard/leagues/${league.id}`}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
           >
             <BarChart3 className="w-3.5 h-3.5" />
             League Overview
           </Link>
           <Link
-            href={`/${locale}/dashboard/leagues/${league.id}/payments`}
+            href={`/dashboard/leagues/${league.id}/payments`}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
           >
             <CreditCard className="w-3.5 h-3.5" />
             Payments
           </Link>
           <Link
-            href={`/${locale}/dashboard/leagues/${league.id}/settings`}
+            href={`/dashboard/leagues/${league.id}/settings`}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
           >
             <Settings className="w-3.5 h-3.5" />
             Settings
           </Link>
           <Link
-            href={`/${locale}/website-editor`}
+            href={`/website-editor?league=${league.id}`}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
           >
             <Globe className="w-3.5 h-3.5" />
@@ -812,16 +822,14 @@ function pickOperationalSeason(seasons: LeagueSeasonSnapshot[]): LeagueSeasonSna
 function getLeagueNextAction({
   league,
   currentSeason,
-  locale,
 }: {
   league: LeagueSummary;
   currentSeason: LeagueSeasonSnapshot | null;
-  locale: string;
 }) {
   if (league.status === 'draft') {
     return {
       label: 'Continue league setup',
-      href: `/${locale}/dashboard/leagues/${league.id}`,
+      href: `/dashboard/leagues/${league.id}`,
       tone: 'warning' as const,
     };
   }
@@ -829,7 +837,7 @@ function getLeagueNextAction({
   if (league.team_count === 0) {
     return {
       label: 'Import teams or add them manually',
-      href: `/${locale}/dashboard/leagues/${league.id}/teams?tool=import-teams`,
+      href: `/dashboard/leagues/${league.id}/teams?tool=import-teams`,
       tone: 'warning' as const,
     };
   }
@@ -837,7 +845,7 @@ function getLeagueNextAction({
   if (!currentSeason) {
     return {
       label: 'Create the first season for this league',
-      href: `/${locale}/dashboard/leagues/${league.id}/seasons/new`,
+      href: `/dashboard/leagues/${league.id}/seasons/new`,
       tone: 'warning' as const,
     };
   }
@@ -845,7 +853,7 @@ function getLeagueNextAction({
   if (league.player_count === 0) {
     return {
       label: 'Import players into the current season',
-      href: `/${locale}/dashboard/leagues/${league.id}/registrations?season=${currentSeason.id}&tool=import-players`,
+      href: `/dashboard/leagues/${league.id}/registrations?season=${currentSeason.id}&tool=import-players`,
       tone: 'warning' as const,
     };
   }
@@ -853,14 +861,14 @@ function getLeagueNextAction({
   if (!currentSeason.schedule_generated) {
     return {
       label: 'Import or build the schedule',
-      href: `/${locale}/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}&tool=import-schedule`,
+      href: `/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}&tool=import-schedule`,
       tone: 'primary' as const,
     };
   }
 
   return {
     label: 'Open the league workspace',
-    href: `/${locale}/dashboard/leagues/${league.id}`,
+    href: `/dashboard/leagues/${league.id}`,
     tone: 'neutral' as const,
   };
 }
@@ -868,30 +876,28 @@ function getLeagueNextAction({
 function getLeagueMigrationActions({
   league,
   currentSeason,
-  locale,
 }: {
   league: LeagueSummary;
   currentSeason: LeagueSeasonSnapshot | null;
-  locale: string;
 }): LeagueCommandAction[] {
   return [
     {
       label: 'Migration center',
-      href: `/${locale}/dashboard/leagues/${league.id}/migration-center`,
+      href: `/dashboard/leagues/${league.id}/migration-center`,
       description: 'See stats, records, news, and media migration readiness.',
       icon: <Database className="w-4 h-4" />,
     },
     {
       label: 'Import teams CSV',
-      href: `/${locale}/dashboard/leagues/${league.id}/teams?tool=import-teams`,
+      href: `/dashboard/leagues/${league.id}/teams?tool=import-teams`,
       description: 'Upload teams, divisions, and captain emails from a template.',
       icon: <Upload className="w-4 h-4" />,
     },
     {
       label: 'Import players CSV',
       href: currentSeason
-        ? `/${locale}/dashboard/leagues/${league.id}/registrations?season=${currentSeason.id}&tool=import-players`
-        : `/${locale}/dashboard/leagues/${league.id}/seasons/new`,
+        ? `/dashboard/leagues/${league.id}/registrations?season=${currentSeason.id}&tool=import-players`
+        : `/dashboard/leagues/${league.id}/seasons/new`,
       description: currentSeason
         ? `Bulk import players into ${currentSeason.name}.`
         : 'Create a season first to unlock player import.',
@@ -901,8 +907,8 @@ function getLeagueMigrationActions({
     {
       label: 'Import schedule CSV',
       href: currentSeason
-        ? `/${locale}/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}&tool=import-schedule`
-        : `/${locale}/dashboard/leagues/${league.id}/seasons/new`,
+        ? `/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}&tool=import-schedule`
+        : `/dashboard/leagues/${league.id}/seasons/new`,
       description: currentSeason
         ? 'Open schedule import with template download and preview.'
         : 'Create a season first to unlock schedule import.',
@@ -912,8 +918,8 @@ function getLeagueMigrationActions({
     {
       label: 'Review schedule tools',
       href: currentSeason
-        ? `/${locale}/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}`
-        : `/${locale}/dashboard/leagues/${league.id}/schedule`,
+        ? `/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}`
+        : `/dashboard/leagues/${league.id}/schedule`,
       description: 'Templates, generator, and bulk schedule operations live here.',
       icon: <Database className="w-4 h-4" />,
     },

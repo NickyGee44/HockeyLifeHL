@@ -58,6 +58,24 @@ const STATUS_BADGE_STYLES: Record<LeagueMigrationRequestStatus, string> = {
   cancelled: 'border-rose-400/25 bg-rose-400/10 text-rose-100',
 };
 
+const REQUEST_STEPS = [
+  {
+    title: 'Choose the parts you want moved',
+    description: 'Pick any mix of teams, players, schedules, stats, news, or media.',
+    icon: <Database className="h-4 w-4" />,
+  },
+  {
+    title: 'Share whatever you already have',
+    description: 'A website link, shared folder, spreadsheet, or rough notes are enough to start.',
+    icon: <Link2 className="h-4 w-4" />,
+  },
+  {
+    title: 'Track the request here',
+    description: 'You will see the current status and any updates from our team on this page.',
+    icon: <Clock3 className="h-4 w-4" />,
+  },
+] as const;
+
 function createFormState(request?: LeagueMigrationRequest | null): FormState {
   return {
     scope: request?.scope ?? [],
@@ -120,7 +138,7 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
   const draftDisabled = isPending || (!!activeRequest && !editableRequest);
   const statusMessage = activeRequest
     ? MIGRATION_STATUS_META[activeRequest.status].description
-    : 'No migration request is active yet. Save a draft or submit one when your source files are ready.';
+    : 'No request is active yet. Save a draft now or send one when you are ready.';
 
   function toggleScope(scope: LeagueMigrationScope) {
     setFormState((current) => {
@@ -180,16 +198,30 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
               <Sparkles className="h-3.5 w-3.5" />
               Migration Intake
             </div>
-            <h2 className="mt-4 text-2xl font-black tracking-tight text-white">Keep the request in the dashboard</h2>
+            <h2 className="mt-4 text-2xl font-black tracking-tight text-white">Tell us what you want moved</h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-300">
-              Capture scope, source system, launch timing, and archive links here. The latest active request stays visible on this page instead of disappearing into email.
+              You do not need perfect exports to get started. Send whatever links, folders, spreadsheets, or notes you already have, and we will review the scope from there.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">Tracks selected</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">Areas selected</p>
             <p className="mt-2 text-3xl font-black text-white">{selectedScopeCount}</p>
-            <p className="text-sm text-neutral-400">Choose every legacy area you want us to touch.</p>
+            <p className="text-sm text-neutral-400">Choose every part of the old league site you want help moving.</p>
           </div>
+        </div>
+
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {REQUEST_STEPS.map((step) => (
+            <div key={step.title} className="rounded-[22px] border border-white/10 bg-black/20 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-200">
+                  {step.icon}
+                </span>
+                {step.title}
+              </div>
+              <p className="mt-2 text-sm leading-6 text-neutral-400">{step.description}</p>
+            </div>
+          ))}
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -234,24 +266,24 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <FormField
-            label="Source platform or vendor"
+            label="Where your old data lives"
             htmlFor="migration-source-system"
-            hint="Examples: LeagueApps, SportsEngine, old WordPress site, Dropbox photo archive"
+            hint="Examples: SportsEngine, LeagueApps, an old website, Google Drive, Dropbox"
           >
             <Input
               id="migration-source-system"
               value={formState.sourceSystem}
               onChange={(event) => setFormState((current) => ({ ...current, sourceSystem: event.target.value }))}
-              placeholder="Legacy website, registrar, stat system, or storage source"
+              placeholder="Old website, registrar, stat system, or storage folder"
               className="border-white/10 bg-black/20 text-white placeholder:text-neutral-500"
               disabled={!!activeRequest && !editableRequest}
             />
           </FormField>
 
           <FormField
-            label="Legacy site or export link"
+            label="Best link to start from"
             htmlFor="migration-source-url"
-            hint="Paste the old league site, a shared folder, or the best starting URL"
+            hint="Paste the old league site, a shared folder, or any link that helps us find the source data"
           >
             <Input
               id="migration-source-url"
@@ -265,9 +297,9 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
           </FormField>
 
           <FormField
-            label="Desired launch date"
+            label="When do you want this ready?"
             htmlFor="migration-launch-date"
-            hint="Use this if the historical data needs to be ready by a specific site launch or registration deadline"
+            hint="Use this if the history needs to be live by a launch date, opener, or registration deadline"
           >
             <Input
               id="migration-launch-date"
@@ -280,9 +312,9 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
           </FormField>
 
           <FormField
-            label="Estimated rows or files"
+            label="Rough amount of content"
             htmlFor="migration-estimated-count"
-            hint="Use your best estimate across records, stories, or media files"
+            hint="A rough count is enough. Think rows, articles, photos, or files."
           >
             <Input
               id="migration-estimated-count"
@@ -300,9 +332,9 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
 
         <div className="mt-5 grid gap-5">
           <FormField
-            label="Archive links or export bundle"
+            label="Links to folders or exports"
             htmlFor="migration-asset-links"
-            hint="One URL per line. Include shared drives, spreadsheets, zipped exports, or media folders."
+            hint="One URL per line. Shared drives, spreadsheets, zipped exports, and media folders all work."
           >
             <Textarea
               id="migration-asset-links"
@@ -316,9 +348,9 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
           </FormField>
 
           <FormField
-            label="Notes for ops"
+            label="Anything we should know?"
             htmlFor="migration-notes"
-            hint="Call out missing seasons, SEO-sensitive slugs, player ID mapping, or anything messy."
+            hint="Mention missing seasons, unusual file formats, old URLs you care about, or anything else that might help."
           >
             <Textarea
               id="migration-notes"
@@ -349,7 +381,7 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
                 )}
               >
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileStack className="h-4 w-4" />}
-                Save draft
+                Save for later
               </button>
             )}
             <button
@@ -363,7 +395,7 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
               )}
             >
               {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-              {editableRequest?.status === 'submitted' ? 'Save submitted request' : 'Submit request'}
+              {editableRequest?.status === 'submitted' ? 'Update request' : 'Send request'}
             </button>
           </div>
         </div>
@@ -375,10 +407,10 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
             <div>
               <div className="flex items-center gap-2 text-white">
                 <Clock3 className="h-5 w-5 text-cyan-300" />
-                <h3 className="text-xl font-bold">Current request status</h3>
+                <h3 className="text-xl font-bold">Where this request stands</h3>
               </div>
               <p className="mt-2 text-sm leading-6 text-neutral-400">
-                The latest active request stays here so the league owner always has a single source of truth.
+                The latest active request stays here so the league always has one clear place to check progress.
               </p>
             </div>
             {activeRequest ? (
@@ -397,7 +429,7 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 p-4">
                 <div className="flex flex-wrap items-center gap-2 text-white">
                   <Database className="h-4 w-4 text-cyan-200" />
-                  <span className="font-semibold">Active migration request</span>
+                  <span className="font-semibold">Open migration request</span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {activeRequest.scope.map((scope) => (
@@ -410,14 +442,14 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
                   ))}
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <StatusDatum icon={<Calendar className="h-4 w-4" />} label="Submitted" value={formatDateTime(activeRequest.submitted_at) ?? 'Not submitted yet'} />
-                  <StatusDatum icon={<Flag className="h-4 w-4" />} label="Target launch" value={formatDate(activeRequest.desired_launch_date) ?? 'No date set'} />
-                  <StatusDatum icon={<FileStack className="h-4 w-4" />} label="Estimated volume" value={activeRequest.estimated_item_count ? `${activeRequest.estimated_item_count.toLocaleString()} items` : 'Not provided'} />
-                  <StatusDatum icon={<Link2 className="h-4 w-4" />} label="Archive links" value={activeRequest.asset_links.length ? `${activeRequest.asset_links.length} attached` : 'None attached'} />
+                  <StatusDatum icon={<Calendar className="h-4 w-4" />} label="Sent to us" value={formatDateTime(activeRequest.submitted_at) ?? 'Not submitted yet'} />
+                  <StatusDatum icon={<Flag className="h-4 w-4" />} label="Target go-live" value={formatDate(activeRequest.desired_launch_date) ?? 'No date set'} />
+                  <StatusDatum icon={<FileStack className="h-4 w-4" />} label="Approx. size" value={activeRequest.estimated_item_count ? `${activeRequest.estimated_item_count.toLocaleString()} items` : 'Not provided'} />
+                  <StatusDatum icon={<Link2 className="h-4 w-4" />} label="Links shared" value={activeRequest.asset_links.length ? `${activeRequest.asset_links.length} attached` : 'None attached'} />
                 </div>
                 {activeRequest.admin_notes && (
                   <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">Ops notes</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">Update from our team</p>
                     <p className="mt-2 text-sm leading-6 text-neutral-300">{activeRequest.admin_notes}</p>
                   </div>
                 )}
@@ -425,9 +457,9 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
             </div>
           ) : (
             <div className="mt-5 rounded-2xl border border-dashed border-white/10 bg-black/20 p-5">
-              <p className="text-sm font-semibold text-white">No active request</p>
+              <p className="text-sm font-semibold text-white">No open request yet</p>
               <p className="mt-2 text-sm leading-6 text-neutral-400">
-                Start with the intake form to keep historical migration planning tied to the league instead of buried in email threads.
+                Start with the short form on the left. The request will stay tied to this league instead of getting lost in email threads.
               </p>
             </div>
           )}
@@ -436,10 +468,10 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
         <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
           <div className="flex items-center gap-2 text-white">
             <History className="h-5 w-5 text-rink-300" />
-            <h3 className="text-xl font-bold">Request history</h3>
+            <h3 className="text-xl font-bold">Past requests</h3>
           </div>
           <p className="mt-2 text-sm leading-6 text-neutral-400">
-            Every submission stays visible here so owners can see what was requested, when it moved, and what scope was included.
+            Every submission stays visible here so owners can see what was requested and when it moved.
           </p>
 
           <div className="mt-5 space-y-3">
@@ -490,8 +522,8 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
                   </div>
                   {(request.source_system || request.source_url || request.notes) && (
                     <div className="mt-4 grid gap-3 text-sm text-neutral-300 md:grid-cols-2">
-                      <HistoryDatum label="Source system" value={request.source_system || 'Not provided'} />
-                      <HistoryDatum label="Source URL" value={request.source_url || 'Not provided'} isLink={Boolean(request.source_url)} />
+                      <HistoryDatum label="Original platform" value={request.source_system || 'Not provided'} />
+                      <HistoryDatum label="Starting link" value={request.source_url || 'Not provided'} isLink={Boolean(request.source_url)} />
                     </div>
                   )}
                   {request.notes && (

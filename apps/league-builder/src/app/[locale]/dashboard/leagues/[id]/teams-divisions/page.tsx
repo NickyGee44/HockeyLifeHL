@@ -1,12 +1,12 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/actions/auth';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getDivisions } from '@/lib/actions/divisions';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { TeamsDivisionsClient } from './teams-divisions-client';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -20,12 +20,7 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
   const { tab } = awaitedSearch;
   setRequestLocale(locale);
 
-  const userData = await getCurrentUser();
-  if (!userData) {
-    nextRedirect(`/${locale}/login`);
-  }
-
-  const supabase = await createClient();
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
   const serviceClient = createServiceRoleClient();
 
   // Get league details

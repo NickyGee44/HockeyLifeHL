@@ -6,10 +6,10 @@
 
 import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { ArrowLeft, Edit } from 'lucide-react';
 import { EditSeasonForm } from '@/components/dashboard/leagues/EditSeasonForm';
+import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -21,14 +21,7 @@ export default async function EditSeasonPage({ params }: Props) {
   const { locale, id: leagueId, seasonId } = awaited;
   setRequestLocale(locale);
 
-  const supabase = await createClient();
-
-  // Get current user
-  const {
-    data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    nextRedirect(`/${locale}/login`);
-  }
+  const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
   // Get season with league info
   const { data: season, error: seasonError } = await supabase

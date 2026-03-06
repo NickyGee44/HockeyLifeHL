@@ -12,6 +12,20 @@ export const metadata = {
   description: 'Customize your league website with live preview',
 };
 
+function mergeUniqueLeagues(...leagueGroups: LeagueEditorData[][]): LeagueEditorData[] {
+  const leaguesById = new Map<string, LeagueEditorData>();
+
+  for (const group of leagueGroups) {
+    for (const league of group) {
+      if (!leaguesById.has(league.id)) {
+        leaguesById.set(league.id, league);
+      }
+    }
+  }
+
+  return [...leaguesById.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 type Props = {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ league?: string }>;
@@ -30,20 +44,15 @@ export default async function WebsiteEditorPage({ params, searchParams }: Props)
   }
 
   const organizations = await getUserOrganizations();
-  const organization = organizations[0];
-
-  let leagues: LeagueEditorData[] = [];
-
-  if (organization) {
-    const leaguesResult = await getOrganizationLeagues(organization.id);
-    leagues = (leaguesResult.success ? (leaguesResult.data || []) : []) as LeagueEditorData[];
-  }
-
-  // Fallback: fetch via league_memberships if no org-linked leagues
-  if (leagues.length === 0) {
-    const membershipResult = await getUserLeaguesViaMembership();
-    leagues = (membershipResult.success ? (membershipResult.data || []) : []) as LeagueEditorData[];
-  }
+  const organizationResults = await Promise.all(
+    organizations.map((organization) => getOrganizationLeagues(organization.id))
+  );
+  const organizationLeagues = organizationResults.flatMap((result) =>
+    result.success ? ((result.data || []) as LeagueEditorData[]) : []
+  );
+  const membershipResult = await getUserLeaguesViaMembership();
+  const membershipLeagues = (membershipResult.success ? (membershipResult.data || []) : []) as LeagueEditorData[];
+  const leagues = mergeUniqueLeagues(organizationLeagues, membershipLeagues);
 
   if (leagues.length === 0) {
     redirect({ href: '/dashboard/leagues/new', locale });
@@ -60,7 +69,7 @@ export default async function WebsiteEditorPage({ params, searchParams }: Props)
 
   return (
     <WebsiteEditorClient
-      organizationId={organization?.id ?? ''}
+      organizationId={organizations[0]?.id ?? ''}
       leagues={leagues}
       previewBaseUrl={previewBaseUrl}
       initialLeagueId={initialLeagueId}
