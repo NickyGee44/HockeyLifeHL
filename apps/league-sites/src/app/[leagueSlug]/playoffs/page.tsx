@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { getLeagueBySlug, getSeasons, getCurrentSeason } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { SeasonSelector } from '@/components/SeasonSelector';
+import { SeedPreviewButton } from '@/components/playoffs/SeedPreviewButton';
 
 interface PlayoffsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -209,6 +210,13 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
               Playoff Bracket
             </h1>
+            {activeSeason && (
+              <SeedPreviewButton
+                leagueId={league.id}
+                seasonId={activeSeason.id}
+                seasonName={activeSeason.name}
+              />
+            )}
           </div>
           <p className="text-[var(--color-text-secondary)]">{league.name}</p>
         </div>
@@ -287,6 +295,15 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             <p className="text-sm text-[var(--color-text-secondary)] opacity-60 mt-1">
               Check back when the playoffs begin.
             </p>
+            {activeSeason && (
+              <div className="mt-4">
+                <SeedPreviewButton
+                  leagueId={league.id}
+                  seasonId={activeSeason.id}
+                  seasonName={activeSeason.name}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
