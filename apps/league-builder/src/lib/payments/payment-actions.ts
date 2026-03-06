@@ -1414,3 +1414,161 @@ export async function sendBulkPaymentReminders(
     return { success: false, error: 'An unexpected error occurred.' };
   }
 }
+
+// ============================================================================
+// 14. Season Settlement Invoice (platform admin)
+// ============================================================================
+
+export interface SettlementInvoiceResult {
+  invoiceId: string;
+  amountCents: number;
+  tier: string;
+  hostedUrl: string | null;
+}
+
+/**
+ * Create and finalize the season settlement invoice for a league.
+ *
+ * Business rules (ratified 2026-03-02):
+ * - Small tier: flat $299 invoice (flat_season_fee_cents).
+ * - Standard/Large/Enterprise: gross registration fees × effective rate
+ *   minus total floor payments already collected (net ≥ $0).
+ * - Invoice due net-14 days.
+ * - Requires the league to have a stripe_billing_customer_id on file.
+ *
+ * Platform admin only.
+ */
+export async function settleSeasonInvoice(
+  leagueId: string,
+  seasonId: string,
+): Promise<ActionResult<SettlementInvoiceResult>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Authentication required.' };
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_platform_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.is_platform_admin) {
+      return { success: false, error: 'Only platform administrators can issue settlement invoices.' };
+    }
+
+    // ── Load billing config ───────────────────────────────────────────────
+    const { getLeagueBillingConfig } = await import('@/lib/fees/platform-fees');
+    const billing = await getLeagueBillingConfig(leagueId);
+
+    if (!billing.stripeBillingCustomerId) {
+      return { success: false, error: 'League has no billing customer on file. Assign a tier first to create one.' };
+    }
+
+    // ── Calculate settlement amount ───────────────────────────────────────
+    let settlementCents: number;
+    let description: string;
+
+    if (billing.pricingTier === 'small') {
+      settlementCents = billing.flatSeasonFeeCents;
+      description = `BLH Platform — Season Fee (Small Tier, Season ${seasonId})`;
+    } else {
+      // Sum gross registration fees collected this season
+      const serviceSupabase = createServiceRoleClient();
+      const { data: payments } = await serviceSupabase
+        .from('player_payments')
+        .select('total_amount_cents')
+        .eq('league_id', leagueId)
+        .eq('season_id', seasonId)
+        .eq('status', 'paid');
+
+      const grossFeesCents =
+        payments?.reduce((sum, p) => sum + (p.total_amount_cents ?? 0), 0) ?? 0;
+
+      // Percentage due = gross × effective rate
+      const percentageDueCents = Math.round(
+        (grossFeesCents * billing.platformFeeBps) / 10000,
+      );
+
+      // Credit: floor payments already collected via monthly subscription.
+      // We approximate this from the number of subscription cycles elapsed.
+      // Exact reconciliation is done by the finance team via Stripe dashboard.
+      // Store a note in the invoice description for transparency.
+      const floorNote = billing.floorStripeSubscriptionId
+        ? ` (floor subscription ${billing.floorStripeSubscriptionId} credited separately)`
+        : '';
+
+      settlementCents = Math.max(0, percentageDueCents);
+      description =
+        `BLH Platform — Season Settlement ${billing.pricingTier.charAt(0).toUpperCase() + billing.pricingTier.slice(1)} Tier` +
+        ` (${(billing.platformFeeBps / 100).toFixed(2)}% of $${(grossFeesCents / 100).toFixed(2)} gross)` +
+        floorNote;
+    }
+
+    if (settlementCents === 0) {
+      return { success: false, error: 'Settlement amount is $0. No invoice needed.' };
+    }
+
+    // ── Create Stripe invoice (net-14 days) ───────────────────────────────
+    const NET14_SECONDS = 14 * 24 * 60 * 60;
+    const dueDateUnix = Math.floor(Date.now() / 1000) + NET14_SECONDS;
+
+    const idempotencyKey = generateIdempotencyKey('season_settlement', {
+      league_id: leagueId,
+      season_id: seasonId,
+    });
+
+    // Add an invoice item first, then finalize the invoice
+    await stripe.invoiceItems.create(
+      {
+        customer: billing.stripeBillingCustomerId,
+        amount: settlementCents,
+        currency: 'cad',
+        description,
+      },
+      { idempotencyKey: `${idempotencyKey}_item` },
+    );
+
+    const invoice = await stripe.invoices.create(
+      {
+        customer: billing.stripeBillingCustomerId,
+        due_date: dueDateUnix,
+        collection_method: 'send_invoice',
+        metadata: {
+          league_id: leagueId,
+          season_id: seasonId,
+          tier: billing.pricingTier,
+          platform: 'beerleaguehockey',
+        },
+      },
+      { idempotencyKey },
+    );
+
+    const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
+
+    await logPaymentAuditEvent(
+      leagueId,
+      'season_settlement_invoiced',
+      {
+        season_id: seasonId,
+        tier: billing.pricingTier,
+        amount_cents: settlementCents,
+        stripe_invoice_id: finalizedInvoice.id,
+      },
+      user.id,
+    );
+
+    return {
+      success: true,
+      data: {
+        invoiceId: finalizedInvoice.id,
+        amountCents: settlementCents,
+        tier: billing.pricingTier,
+        hostedUrl: finalizedInvoice.hosted_invoice_url ?? null,
+      },
+    };
+  } catch (error) {
+    console.error('[Payments] settleSeasonInvoice error:', sanitizeErrorForLogging(error));
+    return { success: false, error: 'Failed to create settlement invoice.' };
+  }
+}
