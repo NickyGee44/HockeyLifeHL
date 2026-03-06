@@ -275,13 +275,11 @@ export async function getLeagueBillingConfig(leagueId: string): Promise<LeagueBi
       stripeAccountStatus: row.stripe_account_status,
       payoutsEnabled: row.payouts_enabled,
       chargesEnabled: row.charges_enabled,
-      // New tier columns added in 20260306_tiered_pricing migration.
-      // Cast via `any` until /sync-types regenerates the RPC return type.
-      pricingTier: ((row as any).pricing_tier ?? 'standard') as PricingTier,
-      monthlyFloorCents: (row as any).monthly_floor_cents ?? TIER_MONTHLY_FLOOR_CENTS.standard,
-      contractTermMonths: (row as any).contract_term_months ?? TIER_CONTRACT_MONTHS.standard,
-      referralDiscountBps: (row as any).referral_discount_bps ?? 0,
-      flatSeasonFeeCents: (row as any).flat_season_fee_cents ?? 0,
+      pricingTier: (row.pricing_tier ?? 'standard') as PricingTier,
+      monthlyFloorCents: row.monthly_floor_cents ?? TIER_MONTHLY_FLOOR_CENTS.standard,
+      contractTermMonths: row.contract_term_months ?? TIER_CONTRACT_MONTHS.standard,
+      referralDiscountBps: row.referral_discount_bps ?? 0,
+      flatSeasonFeeCents: row.flat_season_fee_cents ?? 0,
     };
 
     leagueBillingCache.set(leagueId, { config, expiresAt: now + CACHE_TTL_MS });
