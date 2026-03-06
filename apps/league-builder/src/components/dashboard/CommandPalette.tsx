@@ -24,6 +24,7 @@ import {
   Bug,
   Plus,
   Search,
+  Database,
 } from 'lucide-react';
 
 export function CommandPalette() {
@@ -66,6 +67,7 @@ export function CommandPalette() {
   const pages = React.useMemo(
     () => [
       { label: t('pages.overview'), icon: Home, href: '/dashboard' },
+      ...(effectiveLeagueId ? [{ label: 'Migration Center', icon: Database, href: `${leagueBase}/migration-center` }] : []),
       { label: t('pages.schedule'), icon: Calendar, href: `${leagueBase}/schedule` },
       { label: t('pages.teamsAndDivisions'), icon: Users, href: `${leagueBase}/teams` },
       { label: t('pages.standings'), icon: Trophy, href: `${leagueBase}/games` },

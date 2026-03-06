@@ -740,6 +740,13 @@ function OwnerLeagueCommandCard({
 
         <div className="flex flex-wrap gap-2 border-t border-white/[0.08] pt-4">
           <Link
+            href={`/${locale}/dashboard/leagues/${league.id}/migration-center`}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+          >
+            <Database className="w-3.5 h-3.5" />
+            Migration Center
+          </Link>
+          <Link
             href={`/${locale}/dashboard/leagues/${league.id}`}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
           >
@@ -868,6 +875,12 @@ function getLeagueMigrationActions({
   locale: string;
 }): LeagueCommandAction[] {
   return [
+    {
+      label: 'Migration center',
+      href: `/${locale}/dashboard/leagues/${league.id}/migration-center`,
+      description: 'See stats, records, news, and media migration readiness.',
+      icon: <Database className="w-4 h-4" />,
+    },
     {
       label: 'Import teams CSV',
       href: `/${locale}/dashboard/leagues/${league.id}/teams?tool=import-teams`,

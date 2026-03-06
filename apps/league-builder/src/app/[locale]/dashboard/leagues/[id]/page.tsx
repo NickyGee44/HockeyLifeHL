@@ -20,6 +20,7 @@ import {
   Newspaper,
   Handshake,
   Shuffle,
+  Database,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 
@@ -263,6 +264,13 @@ export default async function LeagueDetailPage({ params }: Props) {
             icon={<Calendar className="w-5 h-5" />}
             title={t('schedule')}
             description={t('scheduleDescription')}
+          />
+          <QuickActionButton
+            href={`/${locale}/dashboard/leagues/${leagueId}/migration-center`}
+            icon={<Database className="w-5 h-5" />}
+            title="Migration Center"
+            description="Track legacy stats, records, news, and media migration."
+            highlight
           />
           <QuickActionButton
             href={`/${locale}/website-editor`}

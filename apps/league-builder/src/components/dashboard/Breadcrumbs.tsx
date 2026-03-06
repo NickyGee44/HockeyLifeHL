@@ -85,7 +85,11 @@ export function Breadcrumbs({ dashboardData }: BreadcrumbsProps) {
     }
 
     const labelKey = segmentLabels[seg];
-    const label = labelKey ? t(labelKey) : seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ');
+    const label = seg === 'migration-center'
+      ? 'Migration Center'
+      : labelKey
+        ? t(labelKey)
+        : seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ');
     crumbs.push({ label, href: pathSoFar });
   }
 

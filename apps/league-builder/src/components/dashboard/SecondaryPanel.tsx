@@ -33,6 +33,7 @@ import {
   Bug,
   ClipboardList,
   BarChart3,
+  Database,
   Lock,
   PinOff,
   Pin,
@@ -106,6 +107,7 @@ export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelPr
       items: [
         { href: '/dashboard', icon: Home, label: t('overview') },
         ...(hasLeague ? [{ href: leagueBase, icon: Home, label: t('leagueOverview') }] : []),
+        ...(hasLeague ? [{ href: `${leagueBase}/migration-center`, icon: Database, label: 'Migration Center' }] : []),
       ],
     },
     seasons: {
