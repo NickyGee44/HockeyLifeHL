@@ -5,14 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { clearPlatformOwnerView, setPlatformOwnerView } from '@/lib/auth/platform-owner-view';
-
-function normalizeTargetPath(target: string | null | undefined, fallback: string): string {
-  if (!target || typeof target !== 'string') {
-    return fallback;
-  }
-
-  return target.startsWith('/') ? target : fallback;
-}
+import { normalizePlatformOwnerViewTarget } from '@/lib/auth/platform-owner-view-routing';
 
 async function assertPlatformAdmin() {
   const userData = await getCurrentUser();
@@ -21,13 +14,19 @@ async function assertPlatformAdmin() {
   }
 }
 
-export async function startPlatformOwnerView(formData: FormData) {
+export async function activatePlatformOwnerView({
+  leagueId,
+  locale,
+  redirectTo,
+}: {
+  leagueId: string;
+  locale: string;
+  redirectTo?: string | null;
+}) {
   await assertPlatformAdmin();
 
-  const leagueId = String(formData.get('leagueId') || '');
-  const locale = String(formData.get('locale') || 'en');
-  const target = normalizeTargetPath(
-    formData.get('redirectTo')?.toString(),
+  const target = normalizePlatformOwnerViewTarget(
+    redirectTo,
     `/dashboard/leagues/${leagueId}`
   );
 
@@ -49,9 +48,22 @@ export async function startPlatformOwnerView(formData: FormData) {
   await setPlatformOwnerView(leagueId);
   revalidatePath(`/${locale}/dashboard`);
   revalidatePath(`/${locale}/dashboard/admin`);
+  revalidatePath(`/${locale}/dashboard/admin/migrations`);
+  revalidatePath(`/${locale}/dashboard/leagues`);
   revalidatePath(`/${locale}/dashboard/leagues/${leagueId}`);
+  revalidatePath(`/${locale}/dashboard/leagues/${leagueId}/migration-center`);
 
-  redirect(`/${locale}${target}`);
+  return `/${locale}${target}`;
+}
+
+export async function startPlatformOwnerView(formData: FormData) {
+  const target = await activatePlatformOwnerView({
+    leagueId: String(formData.get('leagueId') || ''),
+    locale: String(formData.get('locale') || 'en'),
+    redirectTo: formData.get('redirectTo')?.toString(),
+  });
+
+  redirect(target);
 }
 
 export async function stopPlatformOwnerView(formData: FormData) {
@@ -62,6 +74,8 @@ export async function stopPlatformOwnerView(formData: FormData) {
   await clearPlatformOwnerView();
   revalidatePath(`/${locale}/dashboard`);
   revalidatePath(`/${locale}/dashboard/admin`);
+  revalidatePath(`/${locale}/dashboard/admin/migrations`);
+  revalidatePath(`/${locale}/dashboard/leagues`);
 
   redirect(`/${locale}/dashboard/admin`);
 }
