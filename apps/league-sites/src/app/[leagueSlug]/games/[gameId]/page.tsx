@@ -16,7 +16,9 @@ import {
   getGamePlayerStats,
   hasAdvancedStatsAddon,
 } from '@/lib/data';
+import { getPublishedGameTeamLineups } from '@/lib/actions/game-lineups';
 import { GamePreviewHeader } from '@/components/game/GamePreviewHeader';
+import { GameLineupsSection } from '@/components/game/GameLineupsSection';
 import { PlayerStatsComparison } from '@/components/game/PlayerStatsComparison';
 import { SeasonSeriesCard } from '@/components/game/SeasonSeriesCard';
 import { TeamStatsComparison } from '@/components/game/TeamStatsComparison';
@@ -83,6 +85,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
     gameRecap,
     gameSheet,
     gamePlayerStats,
+    publishedLineups,
   ] = await Promise.all([
     getSeasonSeries(game.home_team.id, game.away_team.id, game.season_id),
     getFutureMatchups(game.home_team.id, game.away_team.id, game.season_id),
@@ -95,6 +98,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
     getGameRecap(gameId),
     isCompleted ? getGameSheet(gameId) : Promise.resolve(null),
     isCompleted ? getGamePlayerStats(gameId) : Promise.resolve([]),
+    getPublishedGameTeamLineups(gameId),
   ]);
 
   // Parse team colors for future matchups
@@ -114,6 +118,14 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
         leagueSlug={leagueSlug}
         timezone={league.timezone || 'America/Toronto'}
       />
+
+      {publishedLineups.length > 0 && (
+        <GameLineupsSection
+          lineups={publishedLineups}
+          homeTeamId={game.home_team.id}
+          awayTeamId={game.away_team.id}
+        />
+      )}
 
       {/* AI Game Recap */}
       {gameRecap && isCompleted && (

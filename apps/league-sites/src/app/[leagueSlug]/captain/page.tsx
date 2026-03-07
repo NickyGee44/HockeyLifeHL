@@ -38,6 +38,14 @@ interface TeamStats {
   division_rank: number | null;
 }
 
+interface UpcomingLineupGame {
+  id: string;
+  scheduled_at: string;
+  location: string | null;
+  status: string;
+  opponentName: string;
+}
+
 export default function CaptainPage({ params }: CaptainPageProps) {
   const { leagueSlug } = use(params);
   const { league } = useLeague();
@@ -45,6 +53,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
+  const [nextLineupGame, setNextLineupGame] = useState<UpcomingLineupGame | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [subInviteGameId, setSubInviteGameId] = useState<string | null>(null);
 
@@ -107,13 +116,57 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         }
       }
 
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+
+      let nextGameQuery = supabase
+        .from('games')
+        .select(`
+          id,
+          scheduled_at,
+          location,
+          status,
+          home_team_id,
+          away_team_id,
+          home_team:teams!games_home_team_id_fkey(name),
+          away_team:teams!games_away_team_id_fkey(name)
+        `)
+        .eq('league_id', currentTeam.team.league_id)
+        .or(`home_team_id.eq.${currentTeam.team_id},away_team_id.eq.${currentTeam.team_id}`)
+        .in('status', ['scheduled', 'in_progress'])
+        .gte('scheduled_at', startOfToday.toISOString())
+        .order('scheduled_at', { ascending: true })
+        .limit(1);
+
+      if (league?.current_season_id) {
+        nextGameQuery = nextGameQuery.eq('season_id', league.current_season_id);
+      }
+
+      const { data: nextGameData } = await nextGameQuery;
+      const nextGame = nextGameData?.[0];
+
+      if (nextGame) {
+        const rawOpponent = nextGame.home_team_id === currentTeam.team_id ? nextGame.away_team : nextGame.home_team;
+        const opponent = Array.isArray(rawOpponent) ? rawOpponent[0] : rawOpponent;
+
+        setNextLineupGame({
+          id: nextGame.id,
+          scheduled_at: nextGame.scheduled_at,
+          location: nextGame.location ?? null,
+          status: nextGame.status,
+          opponentName: opponent?.name ?? 'Opponent',
+        });
+      } else {
+        setNextLineupGame(null);
+      }
+
       setIsLoading(false);
     };
 
     if (!profileLoading) {
       fetchData();
     }
-  }, [currentTeam, isCaptain, profileLoading, fetchRosterData]);
+  }, [currentTeam, isCaptain, profileLoading, fetchRosterData, league]);
 
   if (profileLoading || isLoading) {
     return (
@@ -220,6 +273,63 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         />
       </div>
 
+      <div className="mb-8">
+        {nextLineupGame ? (
+          <Link
+            href={`/${leagueSlug}/captain/lineups/${nextLineupGame.id}`}
+            className="block rounded-3xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(34,211,238,0.16),rgba(15,23,42,0.92))] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.28)] transition-transform hover:-translate-y-0.5"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/80">
+                  Tonight&apos;s Lineup
+                </p>
+                <h2 className="mt-3 text-2xl font-bold text-white">
+                  Build your card for {nextLineupGame.opponentName}
+                </h2>
+                <p className="mt-2 text-sm text-cyan-50/80">
+                  Drag skaters onto the ice, publish the lineup, and share it to the room before puck drop.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-cyan-50/85">
+                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                    {new Intl.DateTimeFormat(undefined, {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    }).format(new Date(nextLineupGame.scheduled_at))}
+                  </span>
+                  {nextLineupGame.location && (
+                    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                      {nextLineupGame.location}
+                    </span>
+                  )}
+                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                    {nextLineupGame.status === 'in_progress' ? 'Live now' : 'Upcoming'}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white">
+                Open lineup studio
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
+              Tonight&apos;s Lineup
+            </p>
+            <h2 className="mt-3 text-xl font-bold text-[var(--color-text-primary)]">
+              No current game ready for lineup setup
+            </h2>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+              As soon as your next scheduled game is available, you&apos;ll be able to build and publish a lineup card here.
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Roster Manager (editable roster + join requests) */}
       <RosterManager
         teamId={currentTeam.team_id}
@@ -252,6 +362,21 @@ export default function CaptainPage({ params }: CaptainPageProps) {
 
       {/* Quick Actions */}
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {nextLineupGame && (
+          <Link
+            href={`/${leagueSlug}/captain/lineups/${nextLineupGame.id}`}
+            className="flex items-center gap-4 p-4 bg-cyan-500/10 border border-cyan-400/20 rounded-xl hover:bg-cyan-500/20 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-lg bg-cyan-400/20 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-cyan-200" />
+            </div>
+            <div>
+              <p className="font-medium text-cyan-100">Lineup Studio</p>
+              <p className="text-sm text-cyan-100/75">Set game-day positions</p>
+            </div>
+          </Link>
+        )}
+
         <Link
           href={`/${leagueSlug}/captain/duties`}
           className="flex items-center gap-4 p-4 bg-[var(--league-primary)]/10 border border-[var(--league-primary)]/20 rounded-xl hover:bg-[var(--league-primary)]/20 transition-colors"
