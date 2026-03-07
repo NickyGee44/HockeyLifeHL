@@ -562,6 +562,14 @@ export default function CheckinPage() {
               {/* Captain Actions */}
               {isCaptain && (
                 <div className="px-4 pb-4 flex items-center flex-wrap gap-3">
+                  <Link
+                    href={`/${leagueSlug}/captain/lineups/${currentGame.id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--league-primary)]/10 text-[var(--league-primary)] hover:bg-[var(--league-primary)]/20 transition-colors border border-[var(--league-primary)]/20"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Lineup Studio
+                  </Link>
+
                   <button
                     onClick={() => setShowSubModal(true)}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:bg-[var(--league-primary)]/10 hover:text-[var(--league-primary)] transition-colors border border-[var(--color-border)]"
