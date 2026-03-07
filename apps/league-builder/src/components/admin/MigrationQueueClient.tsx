@@ -2,13 +2,14 @@
 
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { cn } from '@hockey-life/ui';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Link } from '@/i18n/navigation';
 import { updatePlatformMigrationRequest, type PlatformMigrationQueueRequest } from '@/lib/actions/platform-migration-admin';
+import { buildPlatformOwnerViewHref } from '@/lib/auth/platform-owner-view-routing';
 import {
   MIGRATION_REQUEST_STATUS_OPTIONS,
   MIGRATION_SCOPE_META,
@@ -32,8 +33,8 @@ import {
 } from 'lucide-react';
 
 type Props = {
-  locale: string;
   requests: PlatformMigrationQueueRequest[];
+  activeOwnerViewLeagueId?: string | null;
 };
 
 type FilterValue = 'all' | LeagueMigrationRequestStatus;
@@ -118,7 +119,10 @@ function summarize(request: PlatformMigrationQueueRequest) {
     .toLowerCase();
 }
 
-export function MigrationQueueClient({ locale, requests }: Props) {
+export function MigrationQueueClient({
+  requests,
+  activeOwnerViewLeagueId = null,
+}: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterValue>('all');
   const [query, setQuery] = useState('');
@@ -281,53 +285,83 @@ export function MigrationQueueClient({ locale, requests }: Props) {
               </div>
             ) : (
               filteredRequests.map((request) => (
-                <button
+                <div
                   key={request.id}
-                  type="button"
-                  onClick={() => setSelectedId(request.id)}
                   className={cn(
-                    'w-full rounded-[24px] border p-4 text-left transition-[border-color,background-color,transform]',
+                    'rounded-[24px] border p-4 transition-[border-color,background-color,transform]',
                     selectedRequest?.id === request.id
                       ? 'border-cyan-300/35 bg-cyan-400/10'
                       : 'border-white/10 bg-black/20 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.04]'
                   )}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={cn('rounded-full border px-2.5 py-1 text-[11px] font-semibold', STATUS_STYLES[request.status])}>
-                          {MIGRATION_STATUS_META[request.status].label}
-                        </span>
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">
-                          {formatDateTime(request.created_at)}
-                        </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(request.id)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={cn('rounded-full border px-2.5 py-1 text-[11px] font-semibold', STATUS_STYLES[request.status])}>
+                            {MIGRATION_STATUS_META[request.status].label}
+                          </span>
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                            {formatDateTime(request.created_at)}
+                          </span>
+                        </div>
+                        <p className="mt-3 truncate text-lg font-bold text-white">{request.league_name}</p>
+                        <p className="mt-1 truncate text-sm text-neutral-400">
+                          {request.organization_name ?? 'No organization'}
+                          {request.requester_name ? ` · ${request.requester_name}` : ''}
+                        </p>
                       </div>
-                      <p className="mt-3 truncate text-lg font-bold text-white">{request.league_name}</p>
-                      <p className="mt-1 truncate text-sm text-neutral-400">
-                        {request.organization_name ?? 'No organization'}
-                        {request.requester_name ? ` · ${request.requester_name}` : ''}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-neutral-300">
-                      {request.scope.length} track{request.scope.length === 1 ? '' : 's'}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {request.scope.map((scope) => (
-                      <span
-                        key={scope}
-                        className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-neutral-300"
-                      >
-                        {MIGRATION_SCOPE_META[scope].label}
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-neutral-300">
+                        {request.scope.length} track{request.scope.length === 1 ? '' : 's'}
                       </span>
-                    ))}
-                  </div>
+                    </div>
 
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-neutral-400">
-                    {request.notes || 'No owner notes were included with this request.'}
-                  </p>
-                </button>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {request.scope.map((scope) => (
+                        <span
+                          key={scope}
+                          className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-neutral-300"
+                        >
+                          {MIGRATION_SCOPE_META[scope].label}
+                        </span>
+                      ))}
+                    </div>
+
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-neutral-400">
+                      {request.notes || 'No owner notes were included with this request.'}
+                    </p>
+                  </button>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-4">
+                    <p className="text-xs text-neutral-500">
+                      {request.requester_email || 'No requester email on file'}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {activeOwnerViewLeagueId === request.league_id && (
+                        <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">
+                          Active owner view
+                        </span>
+                      )}
+                      <Link
+                        href={buildPlatformOwnerViewHref({
+                          leagueId: request.league_id,
+                          redirectTo: `/dashboard/leagues/${request.league_id}/migration-center`,
+                        })}
+                        onClick={(event) => event.stopPropagation()}
+                        className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:border-cyan-200/35 hover:bg-cyan-400/15"
+                      >
+                        {activeOwnerViewLeagueId === request.league_id
+                          ? 'Continue owner view'
+                          : 'View owner setup'}
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
               ))
             )}
           </div>
@@ -354,17 +388,22 @@ export function MigrationQueueClient({ locale, requests }: Props) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    href={`/${locale}/dashboard/leagues/${selectedRequest.league_id}`}
+                    href={`/dashboard/leagues/${selectedRequest.league_id}`}
                     className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white hover:border-white/20 hover:bg-white/[0.06]"
                   >
                     League dashboard
                     <ExternalLink className="h-4 w-4" />
                   </Link>
                   <Link
-                    href={`/${locale}/dashboard/leagues/${selectedRequest.league_id}/migration-center`}
+                    href={buildPlatformOwnerViewHref({
+                      leagueId: selectedRequest.league_id,
+                      redirectTo: `/dashboard/leagues/${selectedRequest.league_id}/migration-center`,
+                    })}
                     className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 hover:border-cyan-200/35 hover:bg-cyan-400/15"
                   >
-                    Owner view
+                    {activeOwnerViewLeagueId === selectedRequest.league_id
+                      ? 'Continue owner view'
+                      : 'View owner setup'}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>

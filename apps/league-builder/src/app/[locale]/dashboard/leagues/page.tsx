@@ -3,6 +3,8 @@ import { getCachedDashboardData } from '@/lib/actions/dashboard';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
+import { getPlatformOwnerView } from '@/lib/auth/platform-owner-view';
+import { buildPlatformOwnerViewHref } from '@/lib/auth/platform-owner-view-routing';
 import { cn } from '@hockey-life/ui';
 import {
   Plus,
@@ -12,6 +14,7 @@ import {
   ArrowLeft,
   Settings,
   CreditCard,
+  Shield,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 
@@ -41,16 +44,44 @@ export default async function LeaguesPage({ params }: Props) {
     redirect(`/${locale}/login`);
   }
 
-  const { organizations } = dashboardData;
+  const { organizations, managed_leagues = [], admin_leagues = [] } = dashboardData;
+  const isPlatformAdmin = !!userData.profile?.is_platform_admin;
+  const ownerView = isPlatformAdmin ? await getPlatformOwnerView() : null;
 
-  // Flatten leagues from all organizations
-  const allLeagues = organizations.flatMap((org) =>
-    org.leagues.map((league) => ({
-      ...league,
-      organizationName: org.name,
-      organizationId: org.id,
-    }))
+  const organizationNameByLeagueId = new Map(
+    organizations.flatMap((org) => org.leagues.map((league) => [league.id, org.name] as const))
   );
+
+  const allLeagues = (() => {
+    if (isPlatformAdmin && admin_leagues.length > 0) {
+      return admin_leagues.map((league) => ({
+        ...league,
+        organizationName: organizationNameByLeagueId.get(league.id) ?? t('platformAccess'),
+      }));
+    }
+
+    const seen = new Set<string>();
+    const merged = [
+      ...organizations.flatMap((org) =>
+        org.leagues.map((league) => ({
+          ...league,
+          organizationName: org.name,
+        }))
+      ),
+      ...managed_leagues.map((league) => ({
+        ...league,
+        organizationName: organizationNameByLeagueId.get(league.id) ?? t('leagueAdminAccess'),
+      })),
+    ].filter((league) => {
+      if (seen.has(league.id)) {
+        return false;
+      }
+      seen.add(league.id);
+      return true;
+    });
+
+    return merged.sort((left, right) => left.name.localeCompare(right.name));
+  })();
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -69,7 +100,7 @@ export default async function LeaguesPage({ params }: Props) {
               {t('yourLeagues')}
             </h1>
             <p className="text-neutral-400 mt-2">
-              {t('yourLeaguesDescription')}
+              {isPlatformAdmin ? t('platformAdminDescription') : t('yourLeaguesDescription')}
             </p>
           </div>
           <Link
@@ -110,7 +141,13 @@ export default async function LeaguesPage({ params }: Props) {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {allLeagues.map((league) => (
-              <LeagueCard key={league.id} league={league} t={t} />
+              <LeagueCard
+                key={league.id}
+                league={league}
+                t={t}
+                isPlatformAdmin={isPlatformAdmin}
+                isOwnerViewActive={ownerView?.leagueId === league.id}
+              />
             ))}
 
             {/* Add New League Card */}
@@ -138,7 +175,30 @@ export default async function LeaguesPage({ params }: Props) {
   );
 }
 
-function LeagueCard({ league, t }: { league: any; t: any }) {
+function formatCreatedDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
+function LeagueCard({
+  league,
+  t,
+  isPlatformAdmin,
+  isOwnerViewActive,
+}: {
+  league: any;
+  t: any;
+  isPlatformAdmin: boolean;
+  isOwnerViewActive: boolean;
+}) {
   return (
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden hover:border-white/20 transition-all group">
       {/* League Header with Color */}
@@ -181,22 +241,41 @@ function LeagueCard({ league, t }: { league: any; t: any }) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-5 py-4 border-y border-white/[0.06]">
-          <div>
-            <div className="flex items-center gap-2 text-neutral-500 mb-1">
-              <Users className="w-4 h-4" />
-              <span className="text-xs">{t('teams')}</span>
+        {isPlatformAdmin ? (
+          <div className="grid grid-cols-2 gap-4 mb-5 py-4 border-y border-white/[0.06]">
+            <div>
+              <div className="flex items-center gap-2 text-neutral-500 mb-1">
+                <Shield className="w-4 h-4" />
+                <span className="text-xs">{t('accessMode')}</span>
+              </div>
+              <p className="text-sm font-bold text-white">{league.organizationName}</p>
             </div>
-            <p className="text-xl font-bold text-white">{league.team_count}</p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 text-neutral-500 mb-1">
-              <Calendar className="w-4 h-4" />
-              <span className="text-xs">{t('players')}</span>
+            <div>
+              <div className="flex items-center gap-2 text-neutral-500 mb-1">
+                <Calendar className="w-4 h-4" />
+                <span className="text-xs">{t('created')}</span>
+              </div>
+              <p className="text-sm font-bold text-white">{formatCreatedDate(league.created_at)}</p>
             </div>
-            <p className="text-xl font-bold text-white">{league.player_count}</p>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 mb-5 py-4 border-y border-white/[0.06]">
+            <div>
+              <div className="flex items-center gap-2 text-neutral-500 mb-1">
+                <Users className="w-4 h-4" />
+                <span className="text-xs">{t('teams')}</span>
+              </div>
+              <p className="text-xl font-bold text-white">{league.team_count}</p>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-neutral-500 mb-1">
+                <Calendar className="w-4 h-4" />
+                <span className="text-xs">{t('players')}</span>
+              </div>
+              <p className="text-xl font-bold text-white">{league.player_count}</p>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-2">
@@ -210,17 +289,34 @@ function LeagueCard({ league, t }: { league: any; t: any }) {
           >
             {t('manageLeague')}
           </Link>
-          <Link
-            href={`/dashboard/leagues/${league.id}/billing`}
-            className={cn(
-              'inline-flex items-center justify-center p-2.5 rounded-xl',
-              'bg-neutral-800 text-neutral-400',
-              'hover:bg-neutral-700 hover:text-white transition-colors'
-            )}
-            title={t('leagueBilling')}
-          >
-            <CreditCard className="w-4 h-4" />
-          </Link>
+          {isPlatformAdmin ? (
+            <Link
+              href={buildPlatformOwnerViewHref({
+                leagueId: league.id,
+                redirectTo: `/dashboard/leagues/${league.id}`,
+              })}
+              className={cn(
+                'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium',
+                isOwnerViewActive
+                  ? 'bg-cyan-400/15 text-cyan-100 border border-cyan-300/30'
+                  : 'bg-cyan-400/10 text-cyan-100 border border-cyan-300/20 hover:bg-cyan-400/15'
+              )}
+            >
+              {isOwnerViewActive ? t('continueOwnerView') : t('viewOwnerSetup')}
+            </Link>
+          ) : (
+            <Link
+              href={`/dashboard/leagues/${league.id}/billing`}
+              className={cn(
+                'inline-flex items-center justify-center p-2.5 rounded-xl',
+                'bg-neutral-800 text-neutral-400',
+                'hover:bg-neutral-700 hover:text-white transition-colors'
+              )}
+              title={t('leagueBilling')}
+            >
+              <CreditCard className="w-4 h-4" />
+            </Link>
+          )}
           <Link
             href={`/dashboard/leagues/${league.id}/settings`}
             className={cn(
@@ -233,6 +329,9 @@ function LeagueCard({ league, t }: { league: any; t: any }) {
             <Settings className="w-4 h-4" />
           </Link>
         </div>
+        {isPlatformAdmin && isOwnerViewActive && (
+          <p className="mt-3 text-xs font-semibold text-cyan-200">{t('ownerViewActive')}</p>
+        )}
       </div>
     </div>
   );

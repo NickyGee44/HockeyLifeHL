@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getPlatformMigrationQueue } from '@/lib/actions/platform-migration-admin';
 import { MigrationQueueClient } from '@/components/admin/MigrationQueueClient';
+import { getPlatformOwnerView } from '@/lib/auth/platform-owner-view';
 import { Database, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -19,7 +20,11 @@ export default async function PlatformMigrationQueuePage({ params }: Props) {
     redirect(`/${locale}/dashboard`);
   }
 
-  const queueResult = await getPlatformMigrationQueue();
+  const [queueResult, ownerView] = await Promise.all([
+    getPlatformMigrationQueue(),
+    getPlatformOwnerView(),
+  ]);
+
   if (!queueResult.success) {
     throw new Error(queueResult.error);
   }
@@ -54,8 +59,8 @@ export default async function PlatformMigrationQueuePage({ params }: Props) {
       </div>
 
       <MigrationQueueClient
-        locale={locale}
         requests={queueResult.data.requests}
+        activeOwnerViewLeagueId={ownerView?.leagueId ?? null}
       />
     </div>
   );
