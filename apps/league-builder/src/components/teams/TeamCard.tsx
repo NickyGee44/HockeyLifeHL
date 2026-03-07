@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
 import { Users, Settings, MoreVertical, Crown, Shield } from 'lucide-react';

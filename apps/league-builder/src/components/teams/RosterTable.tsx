@@ -32,7 +32,7 @@ interface RosterPlayer {
     id: string;
     full_name: string;
     avatar_url?: string | null;
-  };
+  } | null;
   rating_grade?: string | null;
   rating_percentile?: number | null;
 }
@@ -160,9 +160,9 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
 
   // Sort roster: Goalies first, then Defense, then Forwards, then by jersey number
   const sortedRoster = [...roster].sort((a, b) => {
-    const positionOrder: Record<string, number> = { Goalie: 0, Defense: 1, Forward: 2 };
-    const posA = positionOrder[a.position] ?? 3;
-    const posB = positionOrder[b.position] ?? 3;
+    const positionOrder: Record<string, number> = { goalie: 0, defense: 1, forward: 2 };
+    const posA = positionOrder[a.position.toLowerCase()] ?? 3;
+    const posB = positionOrder[b.position.toLowerCase()] ?? 3;
 
     if (posA !== posB) return posA - posB;
     return a.jersey_number - b.jersey_number;
@@ -170,9 +170,9 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
 
   // Group by position
   const groupedRoster = {
-    Goalie: sortedRoster.filter((p) => p.position === 'Goalie'),
-    Defense: sortedRoster.filter((p) => p.position === 'Defense'),
-    Forward: sortedRoster.filter((p) => p.position === 'Forward') };
+    Goalie: sortedRoster.filter((p) => p.position.toLowerCase() === 'goalie'),
+    Defense: sortedRoster.filter((p) => p.position.toLowerCase() === 'defense'),
+    Forward: sortedRoster.filter((p) => p.position.toLowerCase() === 'forward') };
 
   if (loading) {
     return (
@@ -242,8 +242,12 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-700/50">
-                  {players.map((player) => (
-                    <tr key={player.id} className="hover:bg-neutral-700/30 transition-colors">
+                  {players.map((player) => {
+                    const playerName = player.player?.full_name || 'Unknown Player';
+                    const avatarUrl = player.player?.avatar_url || '/blank_player.png';
+
+                    return (
+                      <tr key={player.id} className="hover:bg-neutral-700/30 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <span className="text-xl font-bold text-white">
@@ -260,11 +264,11 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
-                            src={player.player.avatar_url || '/blank_player.png'}
-                            alt={player.player.full_name}
+                            src={avatarUrl}
+                            alt={playerName}
                             className="w-8 h-8 rounded-full object-cover"
                           />
-                          <p className="font-medium text-white">{player.player.full_name}</p>
+                          <p className="font-medium text-white">{playerName}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -324,8 +328,9 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
                           )}
                         </div>
                       </td>
-                    </tr>
-                  ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -339,7 +344,7 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
           <DialogHeader>
             <DialogTitle className="text-white">Edit Player</DialogTitle>
             <DialogDescription className="text-neutral-400">
-              Update {editingPlayer?.player.full_name}&apos;s roster information
+              Update {editingPlayer?.player?.full_name || 'this player'}&apos;s roster information
             </DialogDescription>
           </DialogHeader>
 
@@ -360,7 +365,7 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
           <DialogHeader>
             <DialogTitle className="text-white">Remove Player</DialogTitle>
             <DialogDescription className="text-neutral-400">
-              Are you sure you want to remove {removingPlayer?.player.full_name} from the roster?
+              Are you sure you want to remove {removingPlayer?.player?.full_name || 'this player'} from the roster?
             </DialogDescription>
           </DialogHeader>
 

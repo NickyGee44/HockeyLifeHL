@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addPlayerToRoster, getTeamRoster } from '@/lib/actions/roster';
+import { addPlayerToRoster } from '@/lib/actions/roster';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+
+function normalizeRosterRows(rows: any[] | null | undefined) {
+  return (rows || []).map((row: any) => ({
+    ...row,
+    player: Array.isArray(row.player) ? row.player[0] ?? null : row.player ?? null,
+  }));
+}
 
 export async function GET(
   request: NextRequest,
@@ -78,69 +85,9 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const seasonId = searchParams.get('seasonId');
 
-  // If seasonId provided, use the RPC-based roster fetch
-  if (seasonId) {
-    const result = await getTeamRoster(teamId, seasonId);
-
-    if (result.error) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 400 }
-      );
-    }
-
-    const { data: season } = await supabase
-      .from('seasons')
-      .select('registration_type')
-      .eq('id', seasonId)
-      .eq('league_id', team.league_id)
-      .maybeSingle();
-
-    const canSeeRatings =
-      membership?.role === 'owner' ||
-      membership?.role === 'admin' ||
-      (membership?.role === 'captain' && season?.registration_type === 'draft');
-
-    if (!canSeeRatings || !Array.isArray(result.data) || result.data.length === 0) {
-      return NextResponse.json(result.data);
-    }
-
-    const playerIds = result.data
-      .map((row: any) => row.player_id)
-      .filter((id: unknown): id is string => typeof id === 'string');
-
-    if (playerIds.length === 0) {
-      return NextResponse.json(result.data);
-    }
-
-    const service = createServiceRoleClient();
-    const { data: ratings } = await service
-      .from('player_ratings' as any)
-      .select('player_id, rating, overall_percentile' as any)
-      .eq('league_id', team.league_id)
-      .eq('season_id', seasonId)
-      .in('player_id', playerIds);
-
-    const ratingByPlayerId = new Map(
-      (ratings ?? []).map((row: any) => [row.player_id, { rating: row.rating, overall: row.overall_percentile }])
-    );
-
-    const withRatings = result.data.map((row: any) => {
-      const rating = ratingByPlayerId.get(row.player_id);
-      return {
-        ...row,
-        rating_grade: rating?.rating ?? null,
-        rating_percentile: rating?.overall ?? null,
-      };
-    });
-
-    return NextResponse.json(withRatings);
-  }
-
-  // No seasonId — return all active roster entries (end_date IS NULL)
   // Use service role — auth already verified above; RLS would block platform admin reads
   const serviceRoleForRoster = createServiceRoleClient();
-  const { data: roster, error: rosterError } = await serviceRoleForRoster
+  let rosterQuery = serviceRoleForRoster
     .from('team_rosters')
     .select(`
       id,
@@ -150,7 +97,7 @@ export async function GET(
       status,
       leadership_role,
       start_date,
-      player:players!team_rosters_player_id_fkey (
+      player:profiles!team_rosters_player_id_fkey (
         id,
         full_name,
         avatar_url
@@ -160,6 +107,12 @@ export async function GET(
     .is('end_date', null)
     .order('jersey_number');
 
+  if (seasonId) {
+    rosterQuery = rosterQuery.eq('season_id', seasonId);
+  }
+
+  const { data: rosterRows, error: rosterError } = await rosterQuery;
+
   if (rosterError) {
     console.error('Error fetching active roster:', rosterError.message);
     return NextResponse.json(
@@ -168,7 +121,58 @@ export async function GET(
     );
   }
 
-  return NextResponse.json(roster || []);
+  const roster = normalizeRosterRows(rosterRows);
+
+  if (!seasonId || roster.length === 0) {
+    return NextResponse.json(roster);
+  }
+
+  const { data: season } = await supabase
+    .from('seasons')
+    .select('registration_type')
+    .eq('id', seasonId)
+    .eq('league_id', team.league_id)
+    .maybeSingle();
+
+  const canSeeRatings =
+    isPlatformAdmin ||
+    membership?.role === 'owner' ||
+    membership?.role === 'admin' ||
+    (membership?.role === 'captain' && season?.registration_type === 'draft');
+
+  if (!canSeeRatings) {
+    return NextResponse.json(roster);
+  }
+
+  const playerIds = roster
+    .map((row: any) => row.player_id)
+    .filter((id: unknown): id is string => typeof id === 'string');
+
+  if (playerIds.length === 0) {
+    return NextResponse.json(roster);
+  }
+
+  const { data: ratings } = await serviceRoleForRoster
+    .from('player_ratings' as any)
+    .select('player_id, rating, overall_percentile' as any)
+    .eq('league_id', team.league_id)
+    .eq('season_id', seasonId)
+    .in('player_id', playerIds);
+
+  const ratingByPlayerId = new Map(
+    (ratings ?? []).map((row: any) => [row.player_id, { rating: row.rating, overall: row.overall_percentile }])
+  );
+
+  const withRatings = roster.map((row: any) => {
+    const rating = ratingByPlayerId.get(row.player_id);
+    return {
+      ...row,
+      rating_grade: rating?.rating ?? null,
+      rating_percentile: rating?.overall ?? null,
+    };
+  });
+
+  return NextResponse.json(withRatings);
 }
 
 export async function POST(
