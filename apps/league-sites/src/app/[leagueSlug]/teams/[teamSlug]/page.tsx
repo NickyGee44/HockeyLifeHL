@@ -139,19 +139,13 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 <span className="text-sm font-semibold text-amber-500">Team Captain</span>
               </div>
               <div className="flex items-center gap-3">
-                {captain.profile?.avatar_url ? (
-                  <Image
-                    src={captain.profile.avatar_url}
-                    alt={captain.profile?.full_name || 'Captain'}
-                    width={48}
-                    height={48}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-[var(--league-primary)] flex items-center justify-center text-lg font-bold text-[var(--color-accent-text)]">
-                    {(captain.profile?.full_name || 'C').charAt(0)}
-                  </div>
-                )}
+                <Image
+                  src={captain.profile?.avatar_url || '/blank_player.png'}
+                  alt={captain.profile?.full_name || 'Captain'}
+                  width={48}
+                  height={48}
+                  className="rounded-full object-cover"
+                />
                 <div>
                   <p className="font-semibold">{captain.profile?.full_name || 'Unknown'}</p>
                   <p className="text-sm text-[var(--color-text-secondary)]">#{captain.jersey_number}</p>
@@ -356,19 +350,13 @@ function RosterTab({
                   <td className="py-3 px-4">{player.jersey_number ?? '-'}</td>
                   <td className="py-3 px-4">
                     <Link href={`/${leagueSlug}/players/${player.player_id}`} className="group flex items-center gap-3 min-w-0">
-                      {player.profile?.avatar_url ? (
-                        <Image
-                          src={player.profile.avatar_url}
-                          alt={fullName}
-                          width={36}
-                          height={36}
-                          className="rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-[var(--league-primary)] text-[var(--color-accent-text)] flex items-center justify-center text-sm font-bold">
-                          {fullName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      <Image
+                        src={player.profile?.avatar_url || '/blank_player.png'}
+                        alt={fullName}
+                        width={36}
+                        height={36}
+                        className="rounded-full object-cover"
+                      />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium truncate group-hover:text-[var(--league-primary)] transition-colors">
@@ -702,4 +690,3 @@ function GameRow({
     </Link>
   );
 }
-
