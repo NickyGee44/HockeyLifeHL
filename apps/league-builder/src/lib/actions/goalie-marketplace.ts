@@ -17,6 +17,9 @@ export type ActionResult<T = unknown> =
 export type GoalieSkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 export type GoalieStatus = 'active' | 'inactive' | 'blacklisted' | 'pending';
 export type GoalieRequestStatus = 'open' | 'filled' | 'cancelled' | 'expired';
+export type GoaliePoolSource = 'pool' | 'roster';
+
+const ROSTER_GOALIE_ID_PREFIX = 'roster:';
 
 export interface GoaliePoolItem {
   id: string;
@@ -36,6 +39,10 @@ export interface GoaliePoolItem {
   updated_at: string;
   average_rating?: number;
   rating_count?: number;
+  source?: GoaliePoolSource;
+  read_only?: boolean;
+  player_id?: string | null;
+  team_name?: string | null;
 }
 
 export interface GoalieRequestItem {
@@ -88,6 +95,178 @@ interface RateGoalieInput {
   stars: number;
   tags?: string[];
   private_note?: string;
+}
+
+function isRosterGoalieId(goalieId: string): boolean {
+  return goalieId.startsWith(ROSTER_GOALIE_ID_PREFIX);
+}
+
+function normalizeGoalieEmail(email: string | null | undefined): string | null {
+  if (!email) return null;
+  const normalized = email.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+async function getCurrentGoalieSeasonIds(leagueId: string): Promise<string[]> {
+  const serviceClient = createServiceRoleClient();
+  const { data: activeSeasons } = await serviceClient
+    .from('seasons')
+    .select('id')
+    .eq('league_id', leagueId)
+    .in('status', ['active', 'playoffs']);
+
+  if (activeSeasons && activeSeasons.length > 0) {
+    return activeSeasons.map((season: { id: string }) => season.id);
+  }
+
+  const { data: latestSeason } = await serviceClient
+    .from('seasons')
+    .select('id')
+    .eq('league_id', leagueId)
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return latestSeason?.id ? [latestSeason.id] : [];
+}
+
+async function getRosterGoaliesForLeague(leagueId: string): Promise<GoaliePoolItem[]> {
+  const seasonIds = await getCurrentGoalieSeasonIds(leagueId);
+  if (seasonIds.length === 0) {
+    return [];
+  }
+
+  const serviceClient = createServiceRoleClient();
+  const { data: rosterRows } = await (serviceClient as any)
+    .from('team_rosters' as any)
+    .select(`
+      team_id,
+      player_id,
+      start_date,
+      player:profiles!team_rosters_player_id_fkey(
+        id,
+        full_name,
+        email,
+        phone
+      )
+    `)
+    .eq('league_id', leagueId)
+    .in('season_id', seasonIds)
+    .eq('status', 'active')
+    .is('end_date', null)
+    .ilike('position', 'goalie')
+    .order('start_date', { ascending: false });
+
+  if (!rosterRows || rosterRows.length === 0) {
+    return [];
+  }
+
+  const teamIds = [...new Set(rosterRows.map((row: any) => row.team_id).filter(Boolean))];
+  const { data: teams } = teamIds.length
+    ? await serviceClient
+        .from('teams')
+        .select('id, name')
+        .in('id', teamIds)
+    : { data: [] };
+
+  const teamNameById = new Map(
+    (teams || []).map((team: { id: string; name: string }) => [team.id, team.name])
+  );
+
+  const rosterGoalies = new Map<string, GoaliePoolItem>();
+
+  for (const row of rosterRows) {
+    const player = Array.isArray(row.player) ? row.player[0] : row.player;
+    if (!player?.id || rosterGoalies.has(player.id)) {
+      continue;
+    }
+
+    const timestamp = row.start_date || new Date().toISOString();
+    rosterGoalies.set(player.id, {
+      id: `${ROSTER_GOALIE_ID_PREFIX}${player.id}`,
+      league_id: leagueId,
+      name: player.full_name || 'Unnamed goalie',
+      email: player.email || '',
+      phone: player.phone ?? null,
+      skill_level: null,
+      availability: {},
+      has_full_gear: true,
+      rate_per_game: 0,
+      preferred_arenas: [],
+      status: 'active',
+      verification_token: '',
+      registered_via: 'import',
+      created_at: timestamp,
+      updated_at: timestamp,
+      average_rating: 0,
+      rating_count: 0,
+      source: 'roster',
+      read_only: true,
+      player_id: player.id,
+      team_name: teamNameById.get(row.team_id) ?? null,
+    });
+  }
+
+  return Array.from(rosterGoalies.values());
+}
+
+function mergeGoaliePoolItems({
+  poolGoalies,
+  rosterGoalies,
+  filters,
+}: {
+  poolGoalies: GoaliePoolItem[];
+  rosterGoalies: GoaliePoolItem[];
+  filters?: GoalieFilters;
+}): GoaliePoolItem[] {
+  const normalizedPoolGoalies = poolGoalies.map((goalie) => ({
+    ...goalie,
+    source: 'pool' as const,
+    read_only: false,
+    player_id: goalie.player_id ?? null,
+    team_name: goalie.team_name ?? null,
+  }));
+
+  const shouldIncludeRosterGoalies =
+    !filters?.skillLevel && (!filters?.status || filters.status === 'active');
+
+  if (!shouldIncludeRosterGoalies) {
+    return normalizedPoolGoalies.sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  const seenEmails = new Set(
+    normalizedPoolGoalies
+      .map((goalie) => normalizeGoalieEmail(goalie.email))
+      .filter((email): email is string => Boolean(email))
+  );
+  const seenNames = new Set(
+    normalizedPoolGoalies.map((goalie) => goalie.name.trim().toLowerCase())
+  );
+
+  const merged = [...normalizedPoolGoalies];
+
+  for (const goalie of rosterGoalies) {
+    const email = normalizeGoalieEmail(goalie.email);
+    const nameKey = goalie.name.trim().toLowerCase();
+
+    if ((email && seenEmails.has(email)) || seenNames.has(nameKey)) {
+      continue;
+    }
+
+    if (email) {
+      seenEmails.add(email);
+    }
+    seenNames.add(nameKey);
+    merged.push(goalie);
+  }
+
+  return merged.sort((left, right) => {
+    if (left.source !== right.source) {
+      return left.source === 'pool' ? -1 : 1;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
 }
 
 function getPublicSiteUrl(): string {
@@ -160,17 +339,14 @@ export async function getGoaliePool(leagueId: string, filters?: GoalieFilters): 
     const { data, error } = await query;
     if (error) return { success: false, error: error.message };
 
-    const goalies = (data || []) as GoaliePoolItem[];
-
-    if (!goalies.length) {
-      return { success: true, data: [] };
-    }
-
-    const goalieIds = goalies.map(g => g.id);
-    const { data: ratings } = await (supabase as any)
-      .from('goalie_ratings' as any)
-      .select('goalie_id, stars')
-      .in('goalie_id', goalieIds);
+    const poolGoalies = (data || []) as GoaliePoolItem[];
+    const goalieIds = poolGoalies.map((goalie) => goalie.id);
+    const { data: ratings } = goalieIds.length
+      ? await (supabase as any)
+          .from('goalie_ratings' as any)
+          .select('goalie_id, stars')
+          .in('goalie_id', goalieIds)
+      : { data: [] };
 
     const ratingsByGoalie = new Map<string, { total: number; count: number }>();
     for (const rating of ratings || []) {
@@ -181,15 +357,27 @@ export async function getGoaliePool(leagueId: string, filters?: GoalieFilters): 
       ratingsByGoalie.set(goalieId, current);
     }
 
+    const ratedPoolGoalies = poolGoalies.map((goalie) => {
+      const agg = ratingsByGoalie.get(goalie.id);
+      return {
+        ...goalie,
+        average_rating: agg ? Number((agg.total / agg.count).toFixed(2)) : 0,
+        rating_count: agg?.count || 0,
+        source: 'pool' as const,
+        read_only: false,
+        player_id: null,
+        team_name: null,
+      };
+    });
+
+    const rosterGoalies = await getRosterGoaliesForLeague(leagueId);
+
     return {
       success: true,
-      data: goalies.map(goalie => {
-        const agg = ratingsByGoalie.get(goalie.id);
-        return {
-          ...goalie,
-          average_rating: agg ? Number((agg.total / agg.count).toFixed(2)) : 0,
-          rating_count: agg?.count || 0,
-        };
+      data: mergeGoaliePoolItems({
+        poolGoalies: ratedPoolGoalies,
+        rosterGoalies,
+        filters,
       }),
     };
   } catch (error) {
@@ -239,6 +427,9 @@ export async function updateGoalie(goalieId: string, updates: Partial<AddGoalieI
   try {
     const userId = await getCurrentUserId();
     if (!userId) return { success: false, error: 'Unauthorized' };
+    if (isRosterGoalieId(goalieId)) {
+      return { success: false, error: 'Roster goalies are read-only here' };
+    }
 
     const supabase = await createClient();
     const { data: existing } = await (supabase as any)
@@ -275,6 +466,9 @@ export async function removeGoalie(goalieId: string): Promise<ActionResult<{ id:
   try {
     const userId = await getCurrentUserId();
     if (!userId) return { success: false, error: 'Unauthorized' };
+    if (isRosterGoalieId(goalieId)) {
+      return { success: false, error: 'Roster goalies cannot be removed from this view' };
+    }
 
     const supabase = await createClient();
     const { data: existing } = await (supabase as any)
@@ -483,6 +677,10 @@ export async function getGoalieRatings(goalieId: string): Promise<ActionResult<A
   rated_by: string;
 }>>> {
   try {
+    if (isRosterGoalieId(goalieId)) {
+      return { success: true, data: [] };
+    }
+
     const userId = await getCurrentUserId();
     if (!userId) return { success: false, error: 'Unauthorized' };
 

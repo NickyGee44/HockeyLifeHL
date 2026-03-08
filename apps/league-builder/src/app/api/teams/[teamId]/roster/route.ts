@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addPlayerToRoster } from '@/lib/actions/roster';
+import { verifyCaptainOrAdminAccess } from '@/lib/actions/permissions';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
@@ -23,65 +24,15 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Verify user has access to this team's league
-  const { data: team } = await supabase
-    .from('teams')
-    .select('league_id')
-    .eq('id', teamId)
-    .single();
-
-  if (!team) {
-    return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+  const access = await verifyCaptainOrAdminAccess(teamId);
+  if (!access.authorized || !access.team) {
+    return NextResponse.json(
+      { error: access.error || 'Forbidden' },
+      { status: 403 }
+    );
   }
 
-  // Platform admins bypass all membership checks
-  // Use service role to read is_platform_admin — RLS on profiles may hide this column
-  // from the user-scoped client depending on policy configuration.
-  const serviceRole = createServiceRoleClient();
-  const { data: profile } = await serviceRole
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .single();
-
-  const isPlatformAdmin = !!(profile as any)?.is_platform_admin;
-
-  let membership: { role: string } | null = null;
-
-  if (!isPlatformAdmin) {
-    const { data: mem } = await supabase
-      .from('league_memberships')
-      .select('role')
-      .eq('league_id', team.league_id)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!mem) {
-      // Fallback: check org ownership (separate queries, no nested embed)
-      const { data: league } = await supabase
-        .from('leagues')
-        .select('organization_id')
-        .eq('id', team.league_id)
-        .single();
-
-      let isOrgOwner = false;
-      if (league?.organization_id) {
-        const { data: org } = await supabase
-          .from('organizations')
-          .select('owner_user_id')
-          .eq('id', league.organization_id)
-          .single();
-        isOrgOwner = org?.owner_user_id === user.id;
-      }
-
-      if (!isOrgOwner) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    } else {
-      membership = mem;
-    }
-  }
-
+  const leagueId = access.team.league_id;
   const { searchParams } = new URL(request.url);
   const seasonId = searchParams.get('seasonId');
 
@@ -131,14 +82,14 @@ export async function GET(
     .from('seasons')
     .select('registration_type')
     .eq('id', seasonId)
-    .eq('league_id', team.league_id)
+    .eq('league_id', leagueId)
     .maybeSingle();
 
   const canSeeRatings =
-    isPlatformAdmin ||
-    membership?.role === 'owner' ||
-    membership?.role === 'admin' ||
-    (membership?.role === 'captain' && season?.registration_type === 'draft');
+    access.accessType === 'platform_admin' ||
+    access.accessType === 'org_owner' ||
+    access.accessType === 'league_admin' ||
+    (access.accessType === 'captain' && season?.registration_type === 'draft');
 
   if (!canSeeRatings) {
     return NextResponse.json(roster);
@@ -155,7 +106,7 @@ export async function GET(
   const { data: ratings } = await serviceRoleForRoster
     .from('player_ratings' as any)
     .select('player_id, rating, overall_percentile' as any)
-    .eq('league_id', team.league_id)
+    .eq('league_id', leagueId)
     .eq('season_id', seasonId)
     .in('player_id', playerIds);
 

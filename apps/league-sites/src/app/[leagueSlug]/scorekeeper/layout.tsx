@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ScorekeeperChromeMode } from '@/components/scorekeeper/ScorekeeperChromeMode';
 
 export const metadata: Metadata = {
   title: 'Scorekeeper - Beer League Hockey',
@@ -17,6 +18,7 @@ export default function ScorekeeperLayout({
 }) {
   return (
     <div className="min-h-screen bg-[var(--color-background)]">
+      <ScorekeeperChromeMode />
       {children}
     </div>
   );

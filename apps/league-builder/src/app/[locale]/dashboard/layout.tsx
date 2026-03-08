@@ -57,6 +57,7 @@ export default async function DashboardLayout({
         setupIssues={setupIssues}
         isSubscribed={isSubscribed}
         isPlatformAdmin={isPlatformAdmin}
+        ownerViewLeagueId={ownerView?.leagueId ?? null}
         topBanner={<PlatformOwnerViewBanner locale={locale} ownerView={ownerView} />}
       >
         {children}

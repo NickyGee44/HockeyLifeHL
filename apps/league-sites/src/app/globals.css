@@ -1835,3 +1835,11 @@ body::after {
     opacity: 1;
   }
 }
+
+html[data-scorekeeper-mode='true'] .league-site-chrome {
+  display: none !important;
+}
+
+html[data-scorekeeper-mode='true'] .league-site-main {
+  min-height: 100vh;
+}

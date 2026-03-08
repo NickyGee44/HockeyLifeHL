@@ -30,6 +30,12 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
   const primaryColor = team.primary_color || '#22D3EE';
   const secondaryColor = team.secondary_color || '#0a0a0a';
   const rosterPercent = (team.roster_count / maxRoster) * 100;
+  const teamHref = leagueId
+    ? `/dashboard/teams/${team.id}?leagueId=${leagueId}`
+    : `/dashboard/teams/${team.id}`;
+  const teamSettingsHref = leagueId
+    ? `/dashboard/teams/${team.id}/settings?leagueId=${leagueId}`
+    : `/dashboard/teams/${team.id}/settings`;
 
   return (
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden hover:border-white/20 transition-all group">
@@ -157,7 +163,7 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
         {/* Actions */}
         <div className="flex items-center gap-2 pt-4 border-t border-white/[0.06]">
           <Link
-            href={`/dashboard/teams/${team.id}`}
+            href={teamHref}
             className={cn(
               'flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl',
               'bg-rink-500/10 text-rink-500 border border-rink-500/30',
@@ -167,7 +173,7 @@ export function TeamCard({ team, leagueId, showLeague = false, onSettingsClick }
             Manage Team
           </Link>
           <Link
-            href={`/dashboard/teams/${team.id}/settings`}
+            href={teamSettingsHref}
             className={cn(
               'inline-flex items-center justify-center p-2.5 rounded-xl',
               'bg-neutral-800 text-neutral-400',

@@ -11,6 +11,7 @@ interface HierarchicalSidebarProps {
   captainTeams: CaptainTeamOverview[];
   isSubscribed: boolean;
   isPlatformAdmin: boolean;
+  ownerViewLeagueId?: string | null;
 }
 
 export default function HierarchicalSidebar({
@@ -18,6 +19,7 @@ export default function HierarchicalSidebar({
   captainTeams,
   isSubscribed,
   isPlatformAdmin,
+  ownerViewLeagueId = null,
 }: HierarchicalSidebarProps) {
   const isOrgOwner = (dashboardData?.organizations?.length ?? 0) > 0;
 
@@ -31,6 +33,7 @@ export default function HierarchicalSidebar({
       <SecondaryPanel
         dashboardData={dashboardData}
         isSubscribed={isSubscribed}
+        ownerViewLeagueId={ownerViewLeagueId}
       />
     </>
   );

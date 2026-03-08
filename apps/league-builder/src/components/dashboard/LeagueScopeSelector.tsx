@@ -1,16 +1,22 @@
 'use client';
 
 import * as React from 'react';
-import { useTranslations } from 'next-intl';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
 import { ChevronDown, Check } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import type { DashboardData } from '@/lib/actions/dashboard';
+import {
+  buildLeagueScopedDashboardTarget,
+  buildPlatformOwnerViewHref,
+} from '@/lib/auth/platform-owner-view-routing';
 
 interface LeagueScopeSelectorProps {
   dashboardData: DashboardData | null;
   collapsed?: boolean;
+  ownerViewLeagueId?: string | null;
 }
 
 interface FlatLeague {
@@ -22,8 +28,16 @@ interface FlatLeague {
   primary_color: string | null;
 }
 
-export function LeagueScopeSelector({ dashboardData, collapsed = false }: LeagueScopeSelectorProps) {
+export function LeagueScopeSelector({
+  dashboardData,
+  collapsed = false,
+  ownerViewLeagueId = null,
+}: LeagueScopeSelectorProps) {
   const t = useTranslations('navigation');
+  const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { selected, setSelectedLeague } = useSidebar();
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
@@ -58,9 +72,12 @@ export function LeagueScopeSelector({ dashboardData, collapsed = false }: League
   // Auto-select first league with active status, or first league overall
   React.useEffect(() => {
     if (selected.leagueId || allLeagues.length === 0) return;
+    const ownerViewLeague = ownerViewLeagueId
+      ? allLeagues.find((league) => league.id === ownerViewLeagueId)
+      : null;
     const activeLeague = allLeagues.find((l) => l.status === 'active');
-    setSelectedLeague(activeLeague?.id || allLeagues[0].id);
-  }, [allLeagues, selected.leagueId, setSelectedLeague]);
+    setSelectedLeague(ownerViewLeague?.id || activeLeague?.id || allLeagues[0].id);
+  }, [allLeagues, ownerViewLeagueId, selected.leagueId, setSelectedLeague]);
 
   // Close dropdown on outside click
   React.useEffect(() => {
@@ -118,6 +135,36 @@ export function LeagueScopeSelector({ dashboardData, collapsed = false }: League
   }
 
   // Multiple leagues — show dropdown
+  const search = searchParams?.toString() || '';
+
+  const handleLeagueSelect = (leagueId: string) => {
+    setSelectedLeague(leagueId);
+    setIsOpen(false);
+
+    if (leagueId === selected.leagueId) {
+      return;
+    }
+
+    if (ownerViewLeagueId) {
+      const redirectTo = buildLeagueScopedDashboardTarget({
+        pathname,
+        search,
+        leagueId,
+      });
+      router.push(`/${locale}${buildPlatformOwnerViewHref({ leagueId, redirectTo })}`);
+      return;
+    }
+
+    if (pathname.includes('/dashboard/leagues/')) {
+      const target = buildLeagueScopedDashboardTarget({
+        pathname,
+        search,
+        leagueId,
+      });
+      router.push(`/${locale}${target}`);
+    }
+  };
+
   return (
     <div className={cn('px-3 py-3', collapsed && 'px-1')} ref={dropdownRef}>
       <button
@@ -165,10 +212,7 @@ export function LeagueScopeSelector({ dashboardData, collapsed = false }: League
           {allLeagues.map((league) => (
             <button
               key={league.id}
-              onClick={() => {
-                setSelectedLeague(league.id);
-                setIsOpen(false);
-              }}
+              onClick={() => handleLeagueSelect(league.id)}
               className={cn(
                 'flex items-center gap-2.5 w-full px-3 py-2 text-left transition-colors hover:bg-neutral-700',
                 league.id === selected.leagueId ? 'text-rink-500' : 'text-neutral-300'
