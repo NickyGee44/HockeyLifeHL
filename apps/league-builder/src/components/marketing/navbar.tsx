@@ -37,8 +37,8 @@ export function Navbar() {
             <nav className="hidden md:flex items-center gap-8">
                 {[
                     { label: 'Platform', href: '#platform' },
-                    { label: 'For Players', href: '#for-players' },
-                    { label: 'League Websites', href: '#league-websites' },
+                    { label: 'Why BLH', href: '#replace' },
+                    { label: 'Migration', href: '#migration' },
                     { label: 'Pricing', href: '#pricing' }
                 ].map((link) => (
                     <a
@@ -53,7 +53,7 @@ export function Navbar() {
 
             <div className="flex-shrink-0">
                 <Link
-                    href="/signup"
+                    href="/book-demo"
                     className="group relative inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold overflow-hidden rounded-full bg-surface-solid border border-border text-text-primary hover:border-accent hover:text-accent-foreground hover:scale-[1.03] transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] shadow-sm hover:shadow-glow-sm"
                 >
                     <span className="relative z-10">Book a Demo</span>

@@ -123,9 +123,9 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        heading: ['"Barlow Condensed"', 'sans-serif'],
-        drama: ['"Cormorant Garamond"', 'serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
+        heading: ['var(--font-heading)', '"Barlow Condensed"', 'sans-serif'],
+        drama: ['var(--font-drama)', '"Cormorant Garamond"', 'serif'],
+        mono: ['var(--font-mono)', '"IBM Plex Mono"', 'monospace'],
       },
       boxShadow: {
         'glow-sm': '0 0 20px rgba(34,211,238,0.10)',

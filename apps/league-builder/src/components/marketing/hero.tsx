@@ -58,17 +58,17 @@ export function Hero() {
             <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pb-24 md:pb-32">
                 <div className="max-w-3xl space-y-6">
                     <h1 className="hero-element font-heading text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white leading-[0.9]">
-                        BEER LEAGUE DESERVES <br className="hidden md:block" />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-ice to-steel">BIG LEAGUE SOFTWARE.</span>
+                        THE OPERATING SYSTEM <br className="hidden md:block" />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-ice to-steel">FOR BEER LEAGUE HOCKEY.</span>
                     </h1>
 
                     <p className="hero-element text-lg md:text-xl text-neutral-300 max-w-xl font-medium leading-relaxed">
-                        Run registrations, payments, schedules, standings, stats, and public league sites in one modern system built for beer hockey.
+                        BLH gives commissioners one place to run registrations, payments, schedules, standings, stats, and public league websites without spreadsheets, payment chasing, or admin chaos.
                     </p>
 
                     <div className="hero-element flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
                         <Link
-                            href="/signup"
+                            href="/book-demo"
                             className="group relative inline-flex items-center justify-center px-8 py-4 text-base font-semibold overflow-hidden rounded-full bg-white text-[#0B1420] hover:scale-[1.03] transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] shadow-glow-sm hover:shadow-glow"
                         >
                             <span className="relative z-10">Book a Demo</span>
@@ -78,12 +78,19 @@ export function Hero() {
                             href="#platform"
                             className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white border border-white/20 rounded-full hover:bg-white/10 hover:-translate-y-[1px] transition-all duration-300"
                         >
-                            See the Platform
+                            See How It Works
                         </a>
                     </div>
 
+                    <p className="hero-element text-sm font-medium text-neutral-400">
+                        Running an existing league?{' '}
+                        <a href="#migration" className="text-ice underline decoration-white/30 underline-offset-4 transition-colors hover:text-white">
+                            Plan your migration.
+                        </a>
+                    </p>
+
                     <div className="hero-element flex flex-wrap gap-2 pt-8">
-                        {['Registrations', 'Payments', 'Schedules', 'Stats', 'League Websites'].map((chip) => (
+                        {['Registrations', 'Payments', 'Schedules', 'Standings', 'Public Websites'].map((chip) => (
                             <span
                                 key={chip}
                                 className="px-3 py-1 text-xs font-mono text-neutral-400 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm"

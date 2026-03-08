@@ -38,11 +38,11 @@ export function Features() {
             <div className="max-w-6xl mx-auto px-6">
                 <div className="mb-20 text-center max-w-3xl mx-auto space-y-4">
                     <h2 className="font-heading text-4xl md:text-5xl font-bold tracking-tight text-white uppercase">
-                        Built for operators.<br />
-                        <span className="text-accent">Loved by players.</span>
+                        One platform for the work <br />
+                        <span className="text-accent">that actually runs a league.</span>
                     </h2>
                     <p className="text-lg text-neutral-400">
-                        Real software to replace your patchwork of spreadsheets, cash apps, and group chats.
+                        BLH connects the commissioner workflow, the player experience, and the public league website in one system built for beer league hockey.
                     </p>
                 </div>
 
@@ -81,26 +81,26 @@ function FeatureCard1() {
                 <div className="absolute inset-x-4 inset-y-8 flex flex-col gap-2 perspective-[1000px]">
                     <div className="stack-item bg-neutral-900 border border-white/10 rounded-lg p-3 flex items-center gap-3 transform rotate-x-12 shrink-0">
                         <Users size={16} className="text-accent" />
-                        <div className="flex-1 h-2 bg-white/10 rounded-full" />
+                        <span className="flex-1 text-xs font-mono text-white/80">Registrations</span>
                         <div className="w-8 h-2 bg-accent/20 rounded-full" />
                     </div>
                     <div className="stack-item bg-neutral-900 border border-white/10 rounded-lg p-3 flex items-center gap-3 transform rotate-x-12 -mt-4 opacity-80 shrink-0">
                         <Calendar size={16} className="text-ice" />
-                        <div className="flex-1 h-2 bg-white/10 rounded-full" />
+                        <span className="flex-1 text-xs font-mono text-white/70">Schedules</span>
                         <div className="w-12 h-2 bg-white/20 rounded-full" />
                     </div>
                     <div className="stack-item bg-neutral-900 border border-white/10 rounded-lg p-3 flex items-center gap-3 transform rotate-x-12 -mt-4 opacity-60 shrink-0">
                         <Banknote size={16} className="text-rink-red" />
-                        <div className="flex-1 h-2 bg-white/10 rounded-full" />
+                        <span className="flex-1 text-xs font-mono text-white/60">Payments</span>
                         <div className="w-10 h-2 bg-rink-red/20 rounded-full" />
                     </div>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-background-sunken via-transparent to-transparent z-10" />
             </div>
             <div className="space-y-3 mt-auto">
-                <h3 className="text-xl font-bold text-white tracking-tight">Commissioner Control</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">Commissioner Operations</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed font-medium">
-                    Run your league without spreadsheet chaos. Manage rosters, rebuild schedules, and track every payment from one command center.
+                    Run registrations, teams, schedules, and payment tracking from one commissioner command center instead of scattered spreadsheets and inbox follow-up.
                 </p>
             </div>
         </div>
@@ -110,10 +110,10 @@ function FeatureCard1() {
 // Card 2: Live League Feed (Typewriter Mechanic)
 function FeatureCard2() {
     const feedItems = [
-        { text: "Schedule released for Sunday Div", time: "2m ago" },
-        { text: "Payment received: Wolves (14/15)", time: "1hr ago" },
-        { text: "Score: Bears 4, Thunder 2", time: "Sat, 10:30pm" },
-        { text: "Roster request approved", time: "Sat, 8:15pm" }
+        { text: "Sunday division schedule updated", time: "2m ago" },
+        { text: "Payment received: Lakeside HC", time: "1hr ago" },
+        { text: "Result posted: Wolves 4, Bears 2", time: "Sat, 10:30pm" },
+        { text: "Standings refreshed after Friday games", time: "Sat, 8:15pm" }
     ];
 
     return (
@@ -121,7 +121,7 @@ function FeatureCard2() {
             <div className="mb-6 h-48 bg-background-sunken rounded-2xl border border-white/5 overflow-hidden flex flex-col p-4 relative">
                 <div className="flex items-center gap-2 mb-4">
                     <Activity size={14} className="text-accent animate-pulse" />
-                    <span className="text-xs font-mono text-neutral-500 uppercase tracking-wider">Live Activity Feed</span>
+                    <span className="text-xs font-mono text-neutral-500 uppercase tracking-wider">League Activity</span>
                 </div>
                 <div className="space-y-3 relative z-10 flex-1 overflow-hidden">
                     {feedItems.map((item, i) => (
@@ -137,9 +137,9 @@ function FeatureCard2() {
                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background-sunken to-transparent z-20" />
             </div>
             <div className="space-y-3 mt-auto">
-                <h3 className="text-xl font-bold text-white tracking-tight">The Player Experience</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">Player Experience</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed font-medium">
-                    Give players a polished experience they actually use. Live standings, personalized schedules, and automated game reminders.
+                    Give players one place for schedules, standings, stats, reminders, and payment status so league information stops living in side chats.
                 </p>
             </div>
         </div>
@@ -159,7 +159,7 @@ function FeatureCard3() {
                     <div className="flex items-center justify-between p-3 rounded-lg border border-accent/20 bg-accent/5 backdrop-blur-sm group-hover:bg-accent/10 transition-colors">
                         <div className="flex items-center gap-3">
                             <ShieldCheck size={16} className="text-accent" />
-                            <span className="text-xs font-mono text-white">Setup Branding</span>
+                            <span className="text-xs font-mono text-white">Brand the Site</span>
                         </div>
                         <ArrowRight size={14} className="text-neutral-500" />
                     </div>
@@ -175,15 +175,15 @@ function FeatureCard3() {
                     <div className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/[0.02] backdrop-blur-sm ml-8">
                         <div className="flex items-center gap-3">
                             <Grid3x3 size={16} className="text-white/40" />
-                            <span className="text-xs font-mono text-white/40">Publish Website</span>
+                            <span className="text-xs font-mono text-white/40">Publish Schedules + Stats</span>
                         </div>
                     </div>
                 </div>
             </div>
             <div className="space-y-3 mt-auto">
-                <h3 className="text-xl font-bold text-white tracking-tight">Fast League Launch</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">Public League Website</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed font-medium">
-                    Launch branded public league websites fast. Claim your URL, customize your theme, and start accepting team registrations in minutes.
+                    Publish a branded public league website with schedules, standings, stats, sponsors, and registration entry points without a custom build.
                 </p>
             </div>
         </div>

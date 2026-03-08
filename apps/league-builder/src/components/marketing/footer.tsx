@@ -15,7 +15,7 @@ export function Footer() {
                             BLH
                         </Link>
                         <p className="text-neutral-400 font-medium max-w-xs leading-relaxed">
-                            Modern hockey league management for registrations, payments, schedules, stats, and branded league websites.
+                            Commissioner-first software for registrations, payments, schedules, stats, and public league websites in beer league hockey.
                         </p>
                         <div className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/10 w-fit">
                             <span className="relative flex h-2.5 w-2.5">
@@ -27,13 +27,13 @@ export function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="font-mono text-xs uppercase text-neutral-500 mb-6 tracking-widest">Platform</h4>
+                        <h4 className="font-mono text-xs uppercase text-neutral-500 mb-6 tracking-widest">Explore</h4>
                         <ul className="space-y-4 text-sm font-medium text-neutral-400">
-                            <li><a href="#platform" className="hover:text-white transition-colors">For Operators</a></li>
-                            <li><a href="#for-players" className="hover:text-white transition-colors">For Players</a></li>
-                            <li><a href="#league-websites" className="hover:text-white transition-colors">League Websites</a></li>
+                            <li><a href="#platform" className="hover:text-white transition-colors">Platform</a></li>
+                            <li><a href="#replace" className="hover:text-white transition-colors">What BLH Replaces</a></li>
+                            <li><a href="#migration" className="hover:text-white transition-colors">Migration</a></li>
                             <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-                            <li><Link href="/signup" className="hover:text-accent transition-colors">Book a Demo</Link></li>
+                            <li><Link href="/book-demo" className="hover:text-accent transition-colors">Book a Demo</Link></li>
                         </ul>
                     </div>
 
@@ -50,7 +50,7 @@ export function Footer() {
                 <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-xs font-mono text-neutral-500">
                     <p>© {currentYear} BeerLeagueHockey.ca. All rights reserved.</p>
                     <div className="flex gap-4 mt-4 md:mt-0">
-                        <span>Built for the game.</span>
+                        <span>Built for beer league hockey.</span>
                     </div>
                 </div>
 

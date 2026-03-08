@@ -72,6 +72,7 @@ export function Philosophy() {
 
     return (
         <section
+            id="replace"
             ref={containerRef}
             className="relative w-full py-40 md:py-56 bg-deep-black overflow-hidden flex items-center justify-center"
         >
@@ -86,23 +87,25 @@ export function Philosophy() {
             {/* Content */}
             <div className="relative z-10 w-full max-w-5xl mx-auto px-6">
                 <div className="max-w-4xl mx-auto space-y-20 text-center md:text-left">
+                    <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent text-center md:text-left">
+                        What BLH Replaces
+                    </p>
 
                     <h2
                         ref={textRef1}
                         className="font-sans text-2xl md:text-4xl text-neutral-400 font-medium leading-tight tracking-tight"
                     >
-                        {splitText("Most league software focuses on admin chores, stale tables, and patchwork workflows.")}
+                        {splitText("Most beer league hockey operators are still juggling spreadsheets, payment reminders, schedule edits, stale league websites, and scattered stats.")}
                     </h2>
 
                     <h3
                         ref={textRef2}
                         className="font-sans text-3xl md:text-6xl text-white font-medium leading-tight tracking-tight"
                     >
-                        {splitText("We focus on making your league feel")}
+                        {splitText("BLH replaces the patchwork with")}
                         <br className="hidden md:block" />
-                        <span className="font-drama italic text-5xl md:text-8xl text-accent font-light leading-[0.8] tracking-tight pr-2">organized</span>{splitText(",")}
-                        <span className="font-drama italic text-5xl md:text-8xl text-ice font-light leading-[0.8] tracking-tight px-2">credible</span>{splitText(", and")}
-                        <span className="font-drama italic text-5xl md:text-8xl text-white font-light leading-[0.8] tracking-tight pl-2">alive.</span>
+                        <span className="inline-block mr-[0.25em] text-accent">one commissioner-first system</span>
+                        {splitText("for registrations, payments, schedules, standings, stats, and public league websites.")}
                     </h3>
 
                 </div>
