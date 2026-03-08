@@ -9,6 +9,8 @@ const HOME_COPY = {
     brand: 'Beer League Hockey',
     hero: {
       eyebrow: 'The operating system for adult hockey leagues',
+      brandLabel: 'Beer League Hockey',
+      brandSublabel: 'League Builder',
       headline: 'Run your league',
       headlineAccent: 'from registration to playoffs.',
       subheadline:
@@ -19,6 +21,7 @@ const HOME_COPY = {
       login: 'Log in',
       signup: 'Sign up',
       statusLabel: 'Live',
+      panelTitle: 'Website, operations, payments, and game night in one system',
       proof: [
         'Migration center and assisted imports are live',
         'Website editor and public league sites ship together',
@@ -221,6 +224,8 @@ const HOME_COPY = {
     brand: 'Beer League Hockey',
     hero: {
       eyebrow: 'Le systeme d exploitation pour les ligues de hockey adulte',
+      brandLabel: 'Beer League Hockey',
+      brandSublabel: 'League Builder',
       headline: 'Gerez votre ligue',
       headlineAccent: 'de l inscription aux series.',
       subheadline:
@@ -231,6 +236,7 @@ const HOME_COPY = {
       login: 'Connexion',
       signup: 'S inscrire',
       statusLabel: 'En ligne',
+      panelTitle: 'Site web, operations, paiements et soir de match dans un seul systeme',
       proof: [
         'Le centre de migration et les imports assistes sont deja en ligne',
         'L editeur de site et le site public sont livres ensemble',

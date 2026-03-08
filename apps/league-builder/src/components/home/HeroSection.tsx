@@ -59,8 +59,29 @@ export function HeroSection() {
       </nav>
 
       <div className="relative z-10 flex min-h-[calc(100vh-84px)] items-center px-6 pb-16 pt-10 lg:px-12 lg:pb-20">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-end">
+        <div className="mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] lg:items-end">
           <div className="max-w-4xl">
+            <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <div className="relative flex h-24 w-24 items-center justify-center rounded-[1.75rem] border border-white/15 bg-white/10 p-4 backdrop-blur-md shadow-[0_20px_80px_rgba(2,6,23,0.35)] sm:h-28 sm:w-28">
+                <Image
+                  src="/logo.png"
+                  alt={copy.brand}
+                  width={112}
+                  height={112}
+                  className="h-full w-full object-contain drop-shadow-2xl"
+                  priority
+                />
+              </div>
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-rink-200">
+                  {copy.hero.brandLabel}
+                </p>
+                <p className="mt-2 text-sm text-neutral-300 sm:text-base">
+                  {copy.hero.brandSublabel}
+                </p>
+              </div>
+            </div>
+
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-neutral-200 backdrop-blur-sm sm:text-sm">
               <span className="h-2 w-2 rounded-full bg-rink-400" />
               {copy.hero.eyebrow}
@@ -107,7 +128,7 @@ export function HeroSection() {
             <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-rink-300">{copy.proof.eyebrow}</p>
-                <h2 className="mt-1 text-xl font-semibold text-white">{copy.proof.headline}</h2>
+                <h2 className="mt-1 max-w-sm text-xl font-semibold text-white">{copy.hero.panelTitle}</h2>
               </div>
               <div className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                 {copy.hero.statusLabel}
