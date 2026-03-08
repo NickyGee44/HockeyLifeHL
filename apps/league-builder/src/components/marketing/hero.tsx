@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import Image from 'next/image';
+import { Link } from '@/i18n/navigation';
 
 export function Hero() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -19,7 +19,7 @@ export function Hero() {
                 delay: 0.2,
             });
 
-            // Subtle scale in for the background image
+            // Subtle scale in for the background video wrapper
             gsap.from('.hero-bg', {
                 scale: 1.05,
                 duration: 2.5,
@@ -37,14 +37,16 @@ export function Hero() {
         >
             {/* Background Image & Overlays */}
             <div className="absolute inset-0 z-0 overflow-hidden bg-[#05080d]">
-                <div className="hero-bg absolute inset-0 w-full h-full opacity-60">
-                    <Image
-                        src="https://images.unsplash.com/photo-1543881665-d069c9dc6e8a?q=80&w=2938&auto=format&fit=crop"
-                        alt="Cold empty hockey arena at night"
-                        fill
-                        className="object-cover object-center"
-                        priority
-                    />
+                <div className="hero-bg absolute inset-0 w-full h-full opacity-50">
+                    <video
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="absolute inset-0 h-full w-full object-cover object-center"
+                    >
+                        <source src="/hero-video.mp4" type="video/mp4" />
+                    </video>
                 </div>
 
                 {/* Gradients to push focus to bottom left */}
@@ -65,12 +67,12 @@ export function Hero() {
                     </p>
 
                     <div className="hero-element flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
-                        <a
-                            href="/book-demo"
+                        <Link
+                            href="/signup"
                             className="group relative inline-flex items-center justify-center px-8 py-4 text-base font-semibold overflow-hidden rounded-full bg-white text-[#0B1420] hover:scale-[1.03] transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] shadow-glow-sm hover:shadow-glow"
                         >
                             <span className="relative z-10">Book a Demo</span>
-                        </a>
+                        </Link>
 
                         <a
                             href="#platform"

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { FileSpreadsheet, Users, Calendar, Banknote, ShieldCheck, Mail, Activity, ArrowRight, Grid3x3 } from 'lucide-react';
+import { Users, Calendar, Banknote, ShieldCheck, Activity, ArrowRight, Grid3x3 } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -31,6 +31,7 @@ export function Features() {
 
     return (
         <section
+            id="platform"
             ref={containerRef}
             className="relative w-full py-32 bg-background-elevated border-t border-white/5"
         >

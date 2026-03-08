@@ -1,61 +1,53 @@
-'use client';
+import { Barlow_Condensed, Cormorant_Garamond, IBM_Plex_Mono } from 'next/font/google';
+import { Navbar } from '@/components/marketing/navbar';
+import { Hero } from '@/components/marketing/hero';
+import { Features } from '@/components/marketing/features';
+import { Philosophy } from '@/components/marketing/philosophy';
+import { Protocol } from '@/components/marketing/protocol';
+import { AudienceSplit } from '@/components/marketing/audience-split';
+import { CallToAction } from '@/components/marketing/cta';
+import { Footer } from '@/components/marketing/footer';
 
-import { Suspense } from 'react';
-import {
-  HeroSection,
-  TrustIndicators,
-  ThreePillars,
-  ProductModules,
-  PricingValueProp,
-  FinalCTA,
-  Footer,
-} from '@/components/home';
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-heading',
+});
 
-// Loading fallback for below-fold sections
-function SectionSkeleton() {
-  return (
-    <div className="py-24 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="h-8 w-64 bg-neutral-800 rounded animate-pulse mx-auto mb-8" />
-        <div className="grid md:grid-cols-3 gap-8">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 bg-neutral-800/50 rounded-2xl animate-pulse" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-drama',
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-mono',
+});
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-neutral-950">
-      {/* Hero - Always loaded first */}
-      <HeroSection />
+    <main className={`${barlowCondensed.variable} ${cormorant.variable} ${mono.variable} font-sans relative min-h-screen bg-background text-foreground overflow-x-hidden pt-24 md:pt-0`}>
+      {/* Global CSS Noise Overlay */}
+      <div className="noise-overlay" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" preserveAspectRatio="none">
+          <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#noiseFilter)" opacity="0.4" />
+        </svg>
+      </div>
 
-      {/* Trust Indicators */}
-      <TrustIndicators />
-
-      {/* Three Pillars */}
-      <Suspense fallback={<SectionSkeleton />}>
-        <ThreePillars />
-      </Suspense>
-
-      {/* Product Modules */}
-      <Suspense fallback={<SectionSkeleton />}>
-        <ProductModules />
-      </Suspense>
-
-      {/* Pricing Value Prop */}
-      <Suspense fallback={<SectionSkeleton />}>
-        <PricingValueProp />
-      </Suspense>
-
-      {/* Final CTA */}
-      <FinalCTA />
-
-      {/* Footer */}
+      <Navbar />
+      <Hero />
+      <Features />
+      <Philosophy />
+      <Protocol />
+      <AudienceSplit />
+      <CallToAction />
       <Footer />
-    </div>
+    </main>
   );
 }

@@ -2,7 +2,7 @@
 
 export function AudienceSplit() {
     return (
-        <section className="relative w-full py-32 bg-[#0B0E14] border-y border-white/5">
+        <section id="for-players" className="relative w-full py-32 bg-[#0B0E14] border-y border-white/5">
             <div className="max-w-6xl mx-auto px-6">
 
                 <div className="text-center mb-20">

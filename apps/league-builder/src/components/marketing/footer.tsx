@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
@@ -29,11 +29,11 @@ export function Footer() {
                     <div>
                         <h4 className="font-mono text-xs uppercase text-neutral-500 mb-6 tracking-widest">Platform</h4>
                         <ul className="space-y-4 text-sm font-medium text-neutral-400">
-                            <li><Link href="/platform" className="hover:text-white transition-colors">For Operators</Link></li>
-                            <li><Link href="/for-players" className="hover:text-white transition-colors">For Players</Link></li>
-                            <li><Link href="/league-websites" className="hover:text-white transition-colors">League Websites</Link></li>
-                            <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                            <li><Link href="/book-demo" className="hover:text-accent transition-colors">Book a Demo</Link></li>
+                            <li><a href="#platform" className="hover:text-white transition-colors">For Operators</a></li>
+                            <li><a href="#for-players" className="hover:text-white transition-colors">For Players</a></li>
+                            <li><a href="#league-websites" className="hover:text-white transition-colors">League Websites</a></li>
+                            <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+                            <li><Link href="/signup" className="hover:text-accent transition-colors">Book a Demo</Link></li>
                         </ul>
                     </div>
 
@@ -42,7 +42,7 @@ export function Footer() {
                         <ul className="space-y-4 text-sm font-medium text-neutral-400">
                             <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
                             <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-                            <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+                            <li><a href="mailto:support@beerleaguehockey.ca" className="hover:text-white transition-colors">Contact</a></li>
                         </ul>
                     </div>
                 </div>

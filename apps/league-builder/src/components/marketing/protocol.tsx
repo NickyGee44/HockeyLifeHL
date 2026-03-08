@@ -82,6 +82,7 @@ export function Protocol() {
 
     return (
         <section
+            id="league-websites"
             ref={containerRef}
             className="relative w-full bg-background pt-32 pb-64"
         >
