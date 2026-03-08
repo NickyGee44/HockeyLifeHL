@@ -33,12 +33,12 @@ export function Features() {
         <section
             id="platform"
             ref={containerRef}
-            className="relative w-full py-32 bg-background-elevated border-t border-white/5"
+            className="relative w-full py-20 md:py-32 bg-background-elevated border-t border-white/5"
         >
             <div className="max-w-6xl mx-auto px-6">
                 <div className="mb-20 text-center max-w-3xl mx-auto space-y-4">
-                    <h2 className="font-heading text-4xl md:text-5xl font-bold tracking-tight text-white uppercase">
-                        One platform for the work <br />
+                    <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white uppercase">
+                        One platform for the work <br className="hidden md:block" />
                         <span className="text-accent">that actually runs a league.</span>
                     </h2>
                     <p className="text-lg text-neutral-400">

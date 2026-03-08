@@ -74,7 +74,7 @@ export function Philosophy() {
         <section
             id="replace"
             ref={containerRef}
-            className="relative w-full py-40 md:py-56 bg-deep-black overflow-hidden flex items-center justify-center"
+            className="relative w-full py-24 md:py-56 bg-deep-black overflow-hidden flex items-center justify-center"
         >
             {/* Background Texture */}
             <div className="absolute inset-0 z-0 opacity-20 mix-blend-screen pointer-events-none">
@@ -93,14 +93,14 @@ export function Philosophy() {
 
                     <h2
                         ref={textRef1}
-                        className="font-sans text-2xl md:text-4xl text-neutral-400 font-medium leading-tight tracking-tight"
+                        className="font-sans text-xl sm:text-2xl md:text-4xl text-neutral-400 font-medium leading-relaxed md:leading-tight tracking-tight"
                     >
                         {splitText("Most beer league hockey operators are still juggling spreadsheets, payment reminders, schedule edits, stale league websites, and scattered stats.")}
                     </h2>
 
                     <h3
                         ref={textRef2}
-                        className="font-sans text-3xl md:text-6xl text-white font-medium leading-tight tracking-tight"
+                        className="font-sans text-2xl sm:text-3xl md:text-6xl text-white font-medium leading-tight tracking-tight"
                     >
                         {splitText("BLH replaces the patchwork with")}
                         <br className="hidden md:block" />

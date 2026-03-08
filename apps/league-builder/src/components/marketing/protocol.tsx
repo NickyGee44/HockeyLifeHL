@@ -84,10 +84,10 @@ export function Protocol() {
         <section
             id="league-websites"
             ref={containerRef}
-            className="relative w-full bg-background pt-32 pb-64"
+            className="relative w-full bg-background pt-24 pb-32 md:pt-32 md:pb-64"
         >
-            <div className="text-center mb-24 sticky top-12 z-10 px-6">
-                <h2 className="font-heading text-4xl md:text-6xl font-bold tracking-tight text-white uppercase">
+            <div className="text-center mb-16 md:mb-24 sticky top-12 md:top-24 z-10 px-6">
+                <h2 className="font-heading text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white uppercase mt-12 md:mt-0">
                     From Signup <span className="text-neutral-500">to</span> Opening Night
                 </h2>
             </div>
@@ -96,22 +96,24 @@ export function Protocol() {
                 {protocolSteps.map((step, idx) => (
                     <div
                         key={step.step}
-                        className="protocol-card w-full h-[60vh] min-h-[400px] mb-20 last:mb-0 flex items-center justify-center"
+                        className="protocol-card w-full h-[auto] py-12 md:py-0 md:h-[60vh] min-h-[450px] md:min-h-[400px] mb-8 md:mb-20 last:mb-0 flex items-center justify-center"
                     >
-                        <div className={`w-full h-full surface-premium rounded-[3rem] p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 border ${step.color} shadow-2xl`}>
+                        <div className={`w-full h-full surface-premium rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 flex flex-col-reverse md:flex-row items-center gap-8 md:gap-12 border ${step.color} shadow-2xl overflow-hidden`}>
 
-                            <div className="flex-1 space-y-6 text-center md:text-left">
-                                <div className="inline-block px-4 py-1 rounded-full border border-white/10 bg-white/5 text-sm font-mono text-white/60 mb-4">
+                            <div className="flex-1 space-y-4 md:space-y-6 text-center md:text-left flex flex-col items-center md:items-start">
+                                <div className="inline-block px-4 py-1 rounded-full border border-white/10 bg-white/5 text-xs md:text-sm font-mono text-white/60 mb-2 md:mb-4">
                                     Phase {step.step}
                                 </div>
-                                <h3 className="text-3xl md:text-5xl font-bold text-white tracking-tight">{step.title}</h3>
-                                <p className="text-lg text-neutral-400 font-medium leading-relaxed max-w-lg">
+                                <h3 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white tracking-tight">{step.title}</h3>
+                                <p className="text-base md:text-lg text-neutral-400 font-medium leading-relaxed max-w-lg">
                                     {step.description}
                                 </p>
                             </div>
 
-                            <div className="w-48 h-48 rounded-[2rem] bg-neutral-900 border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
-                                {step.icon}
+                            <div className="w-24 h-24 md:w-48 md:h-48 rounded-2xl md:rounded-[2rem] bg-neutral-900 border border-white/10 flex items-center justify-center shrink-0 shadow-inner mt-4 md:mt-0">
+                                <div className="scale-75 md:scale-100 flex items-center justify-center w-full h-full">
+                                    {step.icon}
+                                </div>
                             </div>
 
                         </div>

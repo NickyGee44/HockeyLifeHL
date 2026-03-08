@@ -4,12 +4,12 @@ import { Link } from '@/i18n/navigation';
 
 export function CallToAction() {
     return (
-        <section id="pricing" className="relative w-full py-32 bg-background border-t border-white/5 overflow-hidden">
+        <section id="pricing" className="relative w-full py-20 md:py-32 bg-background border-t border-white/5 overflow-hidden">
             {/* Background Lights */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/10 blur-[120px] rounded-full pointer-events-none" />
 
             <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-                <h2 className="font-heading text-5xl md:text-7xl font-bold tracking-tight text-white uppercase mb-6">
+                <h2 className="font-heading text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-white uppercase mb-6">
                     Pricing that matches <br className="hidden md:block" />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-ice to-steel">how your league actually operates.</span>
                 </h2>
@@ -47,16 +47,16 @@ export function CallToAction() {
                     If you&apos;re launching a new league or moving an existing one, BLH will recommend the right commercial model based on how your league actually operates.
                 </p>
 
-                <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                <div className="flex flex-col items-stretch md:items-center justify-center gap-4 sm:flex-row max-w-md mx-auto sm:max-w-none">
                     <Link
                         href="/book-demo"
-                        className="group relative inline-flex items-center justify-center px-10 py-5 text-lg font-semibold overflow-hidden rounded-full bg-white text-[#0B1420] hover:scale-[1.03] transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] shadow-glow-sm hover:shadow-glow"
+                        className="group relative inline-flex items-center justify-center px-6 py-4 md:px-10 md:py-5 text-base md:text-lg font-semibold overflow-hidden rounded-full bg-white text-[#0B1420] hover:scale-[1.03] transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] shadow-glow-sm hover:shadow-glow w-full sm:w-auto"
                     >
                         <span className="relative z-10">Book a Demo</span>
                     </Link>
                     <Link
                         href="/book-demo"
-                        className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-10 py-5 text-lg font-semibold text-white transition-all duration-300 hover:-translate-y-[1px] hover:bg-white/10"
+                        className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-4 md:px-10 md:py-5 text-base md:text-lg font-semibold text-white transition-all duration-300 hover:-translate-y-[1px] hover:bg-white/10 w-full sm:w-auto"
                     >
                         Plan Your Migration
                     </Link>
