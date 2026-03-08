@@ -68,6 +68,10 @@ const config: Config = {
           900: '#0f172a',
           950: '#070A0F', // Ice Black
         },
+        ice: '#EAF3F8',
+        steel: '#6E7C89',
+        'deep-black': '#05080D',
+        'rink-red': '#D94A38',
         // Semantic CSS variable colors
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -114,9 +118,14 @@ const config: Config = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        '2xl': '2rem',
+        '3xl': '3rem',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        heading: ['"Barlow Condensed"', 'sans-serif'],
+        drama: ['"Cormorant Garamond"', 'serif'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
       },
       boxShadow: {
         'glow-sm': '0 0 20px rgba(34,211,238,0.10)',
