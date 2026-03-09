@@ -42,7 +42,7 @@ export function Features() {
                         <span className="text-accent">that actually runs a league.</span>
                     </h2>
                     <p className="text-lg text-neutral-400">
-                        BLH connects the commissioner workflow, the player experience, and the public league website in one system built for beer league hockey.
+                        Everything you need to command your operations and engage your players, all in one cohesive system.
                     </p>
                 </div>
 
@@ -100,7 +100,7 @@ function FeatureCard1() {
             <div className="space-y-3 mt-auto">
                 <h3 className="text-xl font-bold text-white tracking-tight">Commissioner Operations</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed font-medium">
-                    Run registrations, teams, schedules, and payment tracking from one commissioner command center instead of scattered spreadsheets and inbox follow-up.
+                    Control team building, scheduling, and payment tracking from a central command center. Stop living in spreadsheets and scattered email threads.
                 </p>
             </div>
         </div>
@@ -139,7 +139,7 @@ function FeatureCard2() {
             <div className="space-y-3 mt-auto">
                 <h3 className="text-xl font-bold text-white tracking-tight">Player Experience</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed font-medium">
-                    Give players one place for schedules, standings, stats, reminders, and payment status so league information stops living in side chats.
+                    Players get a unified feed for their schedules, stats, standings, and payment status so league rules and updates stop rotting in side chats.
                 </p>
             </div>
         </div>
@@ -183,7 +183,7 @@ function FeatureCard3() {
             <div className="space-y-3 mt-auto">
                 <h3 className="text-xl font-bold text-white tracking-tight">Public League Website</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed font-medium">
-                    Publish a branded public league website with schedules, standings, stats, sponsors, and registration entry points without a custom build.
+                    Launch a premium, branded league site automatically populated with your schedules, standings, stats, and sponsor placements. No coding required.
                 </p>
             </div>
         </div>

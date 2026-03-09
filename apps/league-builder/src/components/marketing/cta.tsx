@@ -49,16 +49,16 @@ export function CallToAction() {
 
                 <div className="flex flex-col items-stretch md:items-center justify-center gap-4 sm:flex-row max-w-md mx-auto sm:max-w-none">
                     <Link
-                        href="/book-demo"
+                        href="/register"
                         className="group relative inline-flex items-center justify-center px-6 py-4 md:px-10 md:py-5 text-base md:text-lg font-semibold overflow-hidden rounded-full bg-white text-[#0B1420] hover:scale-[1.03] transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] shadow-glow-sm hover:shadow-glow w-full sm:w-auto"
                     >
-                        <span className="relative z-10">Book a Demo</span>
+                        <span className="relative z-10">Create Your League</span>
                     </Link>
                     <Link
-                        href="/book-demo"
+                        href="/contact"
                         className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-4 md:px-10 md:py-5 text-base md:text-lg font-semibold text-white transition-all duration-300 hover:-translate-y-[1px] hover:bg-white/10 w-full sm:w-auto"
                     >
-                        Plan Your Migration
+                        Talk to Sales
                     </Link>
                 </div>
             </div>

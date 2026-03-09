@@ -10,7 +10,7 @@ export function AudienceSplit() {
                         Why commissioners <span className="text-accent">switch to BLH.</span>
                     </h2>
                     <p className="mt-4 text-lg text-neutral-400 max-w-2xl mx-auto font-medium">
-                        Commissioners buy BLH to reduce admin chaos. Players keep using it because schedules, standings, stats, and payments finally live in one place.
+                        Built for the admins who run the show. Designed for the players on the ice.
                     </p>
                 </div>
 
@@ -20,25 +20,25 @@ export function AudienceSplit() {
                     <div className="surface-premium p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] flex flex-col border border-accent/20">
                         <div className="mb-6 md:mb-8">
                             <span className="text-[10px] md:text-xs font-mono text-accent uppercase tracking-widest">For Commissioners</span>
-                            <h3 className="text-2xl md:text-3xl font-bold text-white mt-2">Reduce weekly admin follow-up</h3>
+                            <h3 className="text-2xl md:text-3xl font-bold text-white mt-2">End the admin chaos</h3>
                         </div>
 
                         <ul className="space-y-6 flex-1 text-neutral-300 font-medium">
                             <li className="flex gap-4">
                                 <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5"><div className="w-2 h-2 rounded-full bg-accent" /></div>
-                                <span>Collect and track fees without chasing everyone manually</span>
+                                <span>Track fees without manually chasing anyone down</span>
                             </li>
                             <li className="flex gap-4">
                                 <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5"><div className="w-2 h-2 rounded-full bg-accent" /></div>
-                                <span>Make schedule changes from one system, not spreadsheets and side chats</span>
+                                <span>Manage schedules centrally, not in group chats</span>
                             </li>
                             <li className="flex gap-4">
                                 <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5"><div className="w-2 h-2 rounded-full bg-accent" /></div>
-                                <span>Keep your public league site current without duplicate data entry</span>
+                                <span>Auto-update standings and stats directly from the scoresheet</span>
                             </li>
                             <li className="flex gap-4">
                                 <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5"><div className="w-2 h-2 rounded-full bg-accent" /></div>
-                                <span>Give captains, staff, and players one source of truth for the season</span>
+                                <span>Give captains and staff one undisputed source of truth</span>
                             </li>
                         </ul>
                     </div>
@@ -47,25 +47,25 @@ export function AudienceSplit() {
                     <div className="surface-premium p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] flex flex-col border border-ice/20 bg-gradient-to-br from-white/[0.02] to-transparent">
                         <div className="mb-6 md:mb-8">
                             <span className="text-[10px] md:text-xs font-mono text-ice uppercase tracking-widest">For Players</span>
-                            <h3 className="text-2xl md:text-3xl font-bold text-white mt-2">Give players a league they actually use</h3>
+                            <h3 className="text-2xl md:text-3xl font-bold text-white mt-2">A league they actually use</h3>
                         </div>
 
                         <ul className="space-y-6 flex-1 text-neutral-300 font-medium">
                             <li className="flex gap-4">
                                 <div className="w-6 h-6 rounded-full bg-ice/20 flex items-center justify-center shrink-0 mt-0.5"><div className="w-2 h-2 rounded-full bg-ice" /></div>
-                                <span>Check schedules, standings, and stats without digging through chats</span>
+                                <span>Find schedules and standings without digging through emails</span>
                             </li>
                             <li className="flex gap-4">
                                 <div className="w-6 h-6 rounded-full bg-ice/20 flex items-center justify-center shrink-0 mt-0.5"><div className="w-2 h-2 rounded-full bg-ice" /></div>
-                                <span>See payment status and league updates in one place</span>
+                                <span>Check payment caps and personal balances instantly</span>
                             </li>
                             <li className="flex gap-4">
                                 <div className="w-6 h-6 rounded-full bg-ice/20 flex items-center justify-center shrink-0 mt-0.5"><div className="w-2 h-2 rounded-full bg-ice" /></div>
-                                <span>Get cleaner reminders before game night</span>
+                                <span>Get clean, automated reminders before game night</span>
                             </li>
                             <li className="flex gap-4">
                                 <div className="w-6 h-6 rounded-full bg-ice/20 flex items-center justify-center shrink-0 mt-0.5"><div className="w-2 h-2 rounded-full bg-ice" /></div>
-                                <span>Use a public league site that actually feels current</span>
+                                <span>Enjoy a website that feels modern and updates instantly</span>
                             </li>
                         </ul>
                     </div>

@@ -63,15 +63,15 @@ export function Hero() {
                     </h1>
 
                     <p className="hero-element text-base sm:text-lg md:text-xl text-neutral-300 max-w-xl font-medium leading-relaxed">
-                        BLH gives commissioners one place to run registrations, payments, schedules, standings, stats, and public league websites without spreadsheets, payment chasing, or admin chaos.
+                        Run registrations, payments, schedules, stats, and websites from one dashboard. No spreadsheets. No admin chaos.
                     </p>
 
                     <div className="hero-element flex flex-col w-full sm:w-auto sm:flex-row items-stretch sm:items-center gap-4 pt-4 md:pt-6">
                         <Link
-                            href="/book-demo"
+                            href="/register"
                             className="group relative inline-flex items-center justify-center px-8 py-3.5 md:py-4 text-sm md:text-base font-semibold overflow-hidden rounded-full bg-white text-[#0B1420] hover:scale-[1.03] transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] shadow-glow-sm hover:shadow-glow w-full sm:w-auto"
                         >
-                            <span className="relative z-10">Book a Demo</span>
+                            <span className="relative z-10">Create Your League</span>
                         </Link>
 
                         <a
@@ -83,10 +83,10 @@ export function Hero() {
                     </div>
 
                     <p className="hero-element text-sm font-medium text-neutral-400">
-                        Running an existing league?{' '}
-                        <a href="#migration" className="text-ice underline decoration-white/30 underline-offset-4 transition-colors hover:text-white">
-                            Plan your migration.
-                        </a>
+                        Running a large existing league?{' '}
+                        <Link href="/contact" className="text-ice underline decoration-white/30 underline-offset-4 transition-colors hover:text-white">
+                            Talk to us about full-service migration.
+                        </Link>
                     </p>
 
                     <div className="hero-element flex flex-wrap gap-2 pt-4 md:pt-8">

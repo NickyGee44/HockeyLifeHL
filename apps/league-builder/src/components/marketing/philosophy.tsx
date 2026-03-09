@@ -93,19 +93,18 @@ export function Philosophy() {
 
                     <h2
                         ref={textRef1}
-                        className="font-sans text-xl sm:text-2xl md:text-4xl text-neutral-400 font-medium leading-relaxed md:leading-tight tracking-tight"
+                        className="font-sans text-xl sm:text-2xl md:text-3xl text-neutral-400 font-medium leading-relaxed md:leading-tight tracking-tight"
                     >
-                        {splitText("Most beer league hockey operators are still juggling spreadsheets, payment reminders, schedule edits, stale league websites, and scattered stats.")}
+                        {splitText("Stop juggling spreadsheets, scattered payment apps, and messy group chats.")}
                     </h2>
 
                     <h3
                         ref={textRef2}
                         className="font-sans text-2xl sm:text-3xl md:text-6xl text-white font-medium leading-tight tracking-tight"
                     >
-                        {splitText("BLH replaces the patchwork with")}
+                        {splitText("Run your entire league from a")}
                         <br className="hidden md:block" />
-                        <span className="inline-block mr-[0.25em] text-accent">one commissioner-first system</span>
-                        {splitText("for registrations, payments, schedules, standings, stats, and public league websites.")}
+                        <span className="inline-block mr-[0.25em] text-accent">single, purpose-built platform.</span>
                     </h3>
 
                 </div>
