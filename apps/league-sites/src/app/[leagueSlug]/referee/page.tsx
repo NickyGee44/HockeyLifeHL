@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation';
 import { TokenEntryPage } from '@/components/referee/TokenEntryPage';
+import { getRefereeSession } from '@/lib/actions/referee';
 
 interface RefereePageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -12,12 +14,11 @@ export default async function RefereePage({
   const { leagueSlug } = await params;
   const { token } = await searchParams;
 
-  // TODO: Check for existing referee session (ref_session cookie)
-  // When referee session logic is wired up, check session and redirect:
-  // const sessionResult = await getRefereeSession();
-  // if (sessionResult.success && sessionResult.session) {
-  //   redirect(`/${leagueSlug}/referee/dashboard`);
-  // }
+  // Check for existing referee session — redirect if already authenticated
+  const sessionResult = await getRefereeSession();
+  if (sessionResult.success && sessionResult.session) {
+    redirect(`/${leagueSlug}/referee/dashboard`);
+  }
 
   // No valid session: show token entry
   return <TokenEntryPage leagueSlug={leagueSlug} initialToken={token} />;

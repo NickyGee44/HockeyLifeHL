@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { validateRefereeToken } from '@/lib/actions/referee';
 
 interface TokenEntryPageProps {
   leagueSlug: string;
@@ -35,14 +36,15 @@ export function TokenEntryPage({ leagueSlug, initialToken }: TokenEntryPageProps
 
     setError(null);
     startTransition(async () => {
-      // TODO: Wire up validateRefereeToken server action
-      // For now, redirect to dashboard on any non-empty token
-      // This will be replaced with actual token validation in Phase 1 task #8
       try {
-        // Placeholder — validate against referee_sessions table
-        router.push(`/${leagueSlug}/referee/dashboard`);
+        const result = await validateRefereeToken(token.trim());
+        if (result.success) {
+          router.push(`/${leagueSlug}/referee/dashboard`);
+        } else {
+          setError(result.error || 'Invalid token');
+        }
       } catch {
-        setError('Invalid token');
+        setError('Failed to validate token');
       }
     });
   }
