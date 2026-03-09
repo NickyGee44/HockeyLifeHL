@@ -33,7 +33,7 @@ export function Hero() {
     return (
         <section
             ref={containerRef}
-            className="relative w-full h-[100dvh] min-h-[600px] flex justify-start items-center md:items-end overflow-hidden bg-background pt-24 pb-8 md:pt-0"
+            className="relative w-full h-[100dvh] min-h-[600px] flex justify-start items-end overflow-hidden bg-background pt-36 pb-12 md:pt-0 md:pb-0"
         >
             {/* Background Image & Overlays */}
             <div className="absolute inset-0 z-0 overflow-hidden bg-[#05080d]">
