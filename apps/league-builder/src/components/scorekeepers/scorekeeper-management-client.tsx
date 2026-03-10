@@ -6,12 +6,14 @@ import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   getLeagueScorekepers,
   removeScorekeeperFromLeague,
   exportScorekepers,
   type LeagueScorekeeper,
 } from '@/lib/actions/scorekeeper-management';
+import { sendAvailabilityRequest } from '@/lib/actions/staffing-availability';
 import { ScorekeepersList } from './scorekeepers-list';
 import { AddScorekeeperModal } from './add-scorekeeper-modal';
 import { EditScorekeeperModal } from './edit-scorekeeper-modal';
@@ -164,6 +166,24 @@ export function ScorekeeperManagementClient({
     setShowBulkAssignModal(true);
   };
 
+  const handleRequestAvailability = (scorekeeper: LeagueScorekeeper) => {
+    startTransition(async () => {
+      const result = await sendAvailabilityRequest({
+        leagueId,
+        targetType: 'scorekeeper',
+        targetId: scorekeeper.id,
+        locale,
+      });
+
+      if (!result.success) {
+        toast.error(result.error || 'Failed to send availability request.');
+        return;
+      }
+
+      toast.success(`Availability request sent to ${scorekeeper.display_name || scorekeeper.email || 'scorekeeper'}.`);
+    });
+  };
+
   // Edit success handler
   const handleEditSuccess = (updated: LeagueScorekeeper) => {
     setScorekepers((prev) =>
@@ -243,6 +263,10 @@ export function ScorekeeperManagementClient({
         </Button>
       </div>
 
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-neutral-400">
+        Weekly availability now powers the scheduler. Send each scorekeeper the availability request once, then use auto-assign to fill upcoming games from the submitted schedule.
+      </div>
+
       {/* Bulk actions for selected */}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 p-3 bg-neutral-800/50 rounded-lg border border-white/10">
@@ -278,6 +302,7 @@ export function ScorekeeperManagementClient({
         onEdit={setEditScorekeeper}
         onRemove={setRemoveScorekeeper}
         onAssignGames={handleAssignGames}
+        onRequestAvailability={handleRequestAvailability}
         onRefresh={refreshScorekepers}
         isLoading={isPending}
       />

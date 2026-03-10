@@ -8,11 +8,12 @@ import {
 import { cn } from '@hockey-life/ui';
 import type { VenueFull, VenueCsvRow, AvailabilityCsvRow, BlackoutCsvRow } from '@/lib/actions/venues';
 import { deleteVenue, importVenuesFromCsv, importAvailabilityFromCsv, importBlackoutsFromCsv } from '@/lib/actions/venues';
-import { deleteVenueAvailability, deleteVenueBlackoutDate } from '@/lib/schedule/actions';
+import { deleteVenueAvailability, deleteVenueBlackoutDate, saveVenueAvailability } from '@/lib/schedule/actions';
 import type { VenueAvailability, VenueBlackoutDate } from '@/lib/schedule/types';
 import { VenueForm } from './VenueForm';
 import { AvailabilityForm } from './AvailabilityForm';
 import { BlackoutForm } from './BlackoutForm';
+import { WeeklyAvailabilityMatrix, type WeeklyAvailabilityMatrixSlot } from './WeeklyAvailabilityMatrix';
 
 // ============================================================================
 // CSV download helper
@@ -187,6 +188,82 @@ export function VenuesSettingsClient({
   const handleAvailAdded = (slot: VenueAvailability) => {
     setAvailability((prev) => [...prev, slot]);
     setShowAvailForm(false);
+  };
+
+  const handleMatrixAvailAdd = async (slot: {
+    venueId: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    maxGames: number | null;
+  }) => {
+    const exists = availability.some((entry) =>
+      entry.venueId === slot.venueId &&
+      entry.dayOfWeek === slot.dayOfWeek &&
+      entry.startTime === slot.startTime &&
+      entry.endTime === slot.endTime
+    );
+
+    if (exists) {
+      return;
+    }
+
+    const result = await saveVenueAvailability(leagueId, slot.venueId, {
+      leagueId,
+      venueId: slot.venueId,
+      dayOfWeek: slot.dayOfWeek,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      isAvailable: true,
+      maxGames: slot.maxGames,
+      seasonId: null,
+      notes: null,
+    } as Omit<VenueAvailability, 'id'>);
+
+    if (result.success && result.availability) {
+      setAvailability((previous) => [...previous, result.availability!]);
+    }
+  };
+
+  const handleCopySlotToOtherVenues = async (slot: WeeklyAvailabilityMatrixSlot) => {
+    const copied: VenueAvailability[] = [];
+
+    for (const venue of venues) {
+      if (venue.id === slot.venueId) {
+        continue;
+      }
+
+      const exists = availability.some((entry) =>
+        entry.venueId === venue.id &&
+        entry.dayOfWeek === slot.dayOfWeek &&
+        entry.startTime === slot.startTime &&
+        entry.endTime === slot.endTime
+      );
+
+      if (exists) {
+        continue;
+      }
+
+      const result = await saveVenueAvailability(leagueId, venue.id, {
+        leagueId,
+        venueId: venue.id,
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isAvailable: true,
+        maxGames: slot.maxGames ?? null,
+        seasonId: null,
+        notes: null,
+      } as Omit<VenueAvailability, 'id'>);
+
+      if (result.success && result.availability) {
+        copied.push(result.availability);
+      }
+    }
+
+    if (copied.length > 0) {
+      setAvailability((previous) => [...previous, ...copied]);
+    }
   };
 
   const handleDeleteAvail = async (id: string) => {
@@ -558,6 +635,26 @@ export function VenuesSettingsClient({
                   onCancel={() => setShowAvailForm(false)}
                 />
               )}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white">Weekly venue matrix</p>
+                    <p className="text-xs text-neutral-500">
+                      Add a slot directly inside any venue/day cell, then use copy to push that same day and time to the other venues.
+                    </p>
+                  </div>
+                </div>
+                <WeeklyAvailabilityMatrix
+                  venues={scheduleVenueFilter === 'all'
+                    ? venues
+                    : venues.filter((venue) => venue.id === scheduleVenueFilter)}
+                  slots={filteredAvailability}
+                  onAddSlot={handleMatrixAvailAdd}
+                  onDeleteSlot={handleDeleteAvail}
+                  onCopySlotToOtherVenues={handleCopySlotToOtherVenues}
+                />
+              </div>
 
               {/* Slots grouped by day */}
               {filteredAvailability.length === 0 ? (

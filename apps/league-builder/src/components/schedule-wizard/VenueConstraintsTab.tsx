@@ -15,6 +15,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Plus, Trash2, MapPin, Calendar, Clock, AlertTriangle, Upload, CheckCircle2, XCircle } from 'lucide-react';
 import type { Team, Venue, VenueAvailability, VenueBlackoutDate, AdditionalIceSlot } from '@/lib/schedule/types';
+import { WeeklyAvailabilityMatrix, type WeeklyAvailabilityMatrixSlot } from '@/components/venues/WeeklyAvailabilityMatrix';
 
 // ============================================================================
 // TYPES
@@ -192,6 +193,43 @@ export function VenueConstraintsTab({
     [leagueId, seasonId, venueAvailability, onVenueAvailabilityChange]
   );
 
+  const addAvailabilityFromMatrix = useCallback(
+    async (slot: {
+      venueId: string;
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+      maxGames: number | null;
+    }) => {
+      const exists = venueAvailability.some((entry) =>
+        entry.venueId === slot.venueId &&
+        entry.dayOfWeek === slot.dayOfWeek &&
+        entry.startTime === slot.startTime &&
+        entry.endTime === slot.endTime
+      );
+
+      if (exists) {
+        return;
+      }
+
+      const newSlot: VenueAvailability = {
+        id: `temp-${Date.now()}-${slot.venueId}-${slot.dayOfWeek}`,
+        leagueId,
+        venueId: slot.venueId,
+        seasonId,
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isAvailable: true,
+        maxGames: slot.maxGames,
+        notes: null,
+      };
+
+      onVenueAvailabilityChange([...venueAvailability, newSlot]);
+    },
+    [leagueId, onVenueAvailabilityChange, seasonId, venueAvailability]
+  );
+
   // Remove availability slot
   const removeAvailabilitySlot = useCallback(
     (slotId: string) => {
@@ -208,6 +246,47 @@ export function VenueConstraintsTab({
       );
     },
     [venueAvailability, onVenueAvailabilityChange]
+  );
+
+  const copySlotToOtherVenues = useCallback(
+    async (slot: WeeklyAvailabilityMatrixSlot) => {
+      const additions: VenueAvailability[] = [];
+
+      for (const venue of venues) {
+        if (venue.id === slot.venueId) {
+          continue;
+        }
+
+        const exists = venueAvailability.some((entry) =>
+          entry.venueId === venue.id &&
+          entry.dayOfWeek === slot.dayOfWeek &&
+          entry.startTime === slot.startTime &&
+          entry.endTime === slot.endTime
+        );
+
+        if (exists) {
+          continue;
+        }
+
+        additions.push({
+          id: `temp-${Date.now()}-${venue.id}-${slot.dayOfWeek}-${slot.startTime}`,
+          leagueId,
+          venueId: venue.id,
+          seasonId,
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          isAvailable: true,
+          maxGames: slot.maxGames ?? null,
+          notes: null,
+        });
+      }
+
+      if (additions.length > 0) {
+        onVenueAvailabilityChange([...venueAvailability, ...additions]);
+      }
+    },
+    [leagueId, onVenueAvailabilityChange, seasonId, venueAvailability, venues]
   );
 
   // Add blackout date
@@ -387,6 +466,22 @@ export function VenueConstraintsTab({
         <p className="text-sm text-neutral-400 mb-4">
           Define when each venue is available for scheduling games.
         </p>
+
+        {venues.length > 0 && (
+          <div className="mb-4 space-y-2">
+            <p className="text-sm font-medium text-white">Weekly availability matrix</p>
+            <p className="text-xs text-neutral-500">
+              Add slots directly in the venue/day grid, then copy that same day and time to the other venues when the rink schedule repeats.
+            </p>
+            <WeeklyAvailabilityMatrix
+              venues={venues.map((venue) => ({ id: venue.id, name: venue.name }))}
+              slots={venueAvailability}
+              onAddSlot={addAvailabilityFromMatrix}
+              onDeleteSlot={async (slotId) => removeAvailabilitySlot(slotId)}
+              onCopySlotToOtherVenues={copySlotToOtherVenues}
+            />
+          </div>
+        )}
 
         <div className="space-y-3">
           {venues.map((venue) => {

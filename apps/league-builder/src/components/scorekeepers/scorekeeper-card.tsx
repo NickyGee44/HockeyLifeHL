@@ -20,6 +20,7 @@ interface ScorekeeperCardProps {
   onEdit?: () => void;
   onRemove?: () => void;
   onAssignGames?: () => void;
+  onRequestAvailability?: () => void;
 }
 
 export function ScorekeeperCard({
@@ -29,6 +30,7 @@ export function ScorekeeperCard({
   onEdit,
   onRemove,
   onAssignGames,
+  onRequestAvailability,
 }: ScorekeeperCardProps) {
   const t = useTranslations('scorekeepers.card');
   const displayName = scorekeeper.display_name || scorekeeper.profile?.full_name || 'Unknown';
@@ -87,6 +89,11 @@ export function ScorekeeperCard({
             <span>
               {t('completed', { count: scorekeeper.completed_assignments || 0 })}
             </span>
+            <span className={scorekeeper.availability_window_count > 0 ? 'text-green-400' : 'text-amber-400'}>
+              {scorekeeper.availability_window_count > 0
+                ? `${scorekeeper.availability_window_count} availability slot${scorekeeper.availability_window_count === 1 ? '' : 's'}`
+                : 'No availability submitted'}
+            </span>
             {scorekeeper.hourly_rate && (
               <span className="text-rink-500">
                 ${scorekeeper.hourly_rate}/hr
@@ -135,6 +142,15 @@ export function ScorekeeperCard({
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   {t('remove')}
+                </DropdownMenuItem>
+              )}
+              {onRequestAvailability && (
+                <DropdownMenuItem
+                  onClick={onRequestAvailability}
+                  className="text-white hover:bg-neutral-800 cursor-pointer"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Request availability
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

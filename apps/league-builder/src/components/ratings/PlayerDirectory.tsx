@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { PlayerDetailPanel } from './PlayerDetailPanel';
+import { RatingsHelpTooltip } from './RatingsHelpTooltip';
+import { PLAYER_TABLE_COLUMN_HELP } from '@/lib/ratings';
 
 type PlayerRow = {
   playerId: string;
@@ -85,13 +87,48 @@ export function PlayerDirectory({ leagueId, rows }: PlayerDirectoryProps) {
               <th className="text-left p-3">Name</th>
               <th className="text-left p-3">Team</th>
               <th className="text-left p-3">Division</th>
-              <th className="text-left p-3">Grade</th>
-              <th className="text-right p-3">GP</th>
-              <th className="text-right p-3">Pts</th>
-              <th className="text-right p-3">+/-</th>
-              <th className="text-right p-3">SV%</th>
-              <th className="text-right p-3">GAA</th>
-              <th className="text-right p-3">Overall %</th>
+              <th className="p-3 text-left">
+                <div className="flex items-center gap-1">
+                  Grade
+                  <RatingsHelpTooltip label="Grade" description={PLAYER_TABLE_COLUMN_HELP.grade} />
+                </div>
+              </th>
+              <th className="p-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  GP
+                  <RatingsHelpTooltip label="Games played" description={PLAYER_TABLE_COLUMN_HELP.gp} />
+                </div>
+              </th>
+              <th className="p-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  Pts
+                  <RatingsHelpTooltip label="Points" description={PLAYER_TABLE_COLUMN_HELP.pts} />
+                </div>
+              </th>
+              <th className="p-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  +/-
+                  <RatingsHelpTooltip label="Plus/minus" description={PLAYER_TABLE_COLUMN_HELP.plusMinus} />
+                </div>
+              </th>
+              <th className="p-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  SV%
+                  <RatingsHelpTooltip label="Save percentage" description={PLAYER_TABLE_COLUMN_HELP.savePct} />
+                </div>
+              </th>
+              <th className="p-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  GAA
+                  <RatingsHelpTooltip label="Goals against average" description={PLAYER_TABLE_COLUMN_HELP.gaa} />
+                </div>
+              </th>
+              <th className="p-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  Overall %
+                  <RatingsHelpTooltip label="Overall percentile" description={PLAYER_TABLE_COLUMN_HELP.overall} />
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>

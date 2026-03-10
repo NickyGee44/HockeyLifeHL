@@ -4,7 +4,7 @@ import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { LeagueReferee } from '@/lib/actions/referee-management';
-import { User, Mail, Calendar, Edit, Trash2, MoreVertical, Phone } from 'lucide-react';
+import { Mail, Calendar, Edit, Trash2, MoreVertical, Phone } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ interface RefereeCardProps {
   onEdit?: () => void;
   onRemove?: () => void;
   onAssignGames?: () => void;
+  onRequestAvailability?: () => void;
 }
 
 export function RefereeCard({
@@ -28,6 +29,7 @@ export function RefereeCard({
   onEdit,
   onRemove,
   onAssignGames,
+  onRequestAvailability,
 }: RefereeCardProps) {
   return (
     <div
@@ -88,6 +90,20 @@ export function RefereeCard({
               <Calendar className="w-3 h-3" />
               {referee.total_assignments} game{referee.total_assignments !== 1 ? 's' : ''} assigned
             </span>
+            <span className={referee.availability_window_count > 0 ? 'text-green-400' : 'text-amber-400'}>
+              {referee.availability_window_count > 0
+                ? `${referee.availability_window_count} availability slot${referee.availability_window_count === 1 ? '' : 's'}`
+                : 'No availability submitted'}
+            </span>
+            <span>
+              {referee.can_referee && referee.can_linesman
+                ? 'Referee + linesman'
+                : referee.can_linesman
+                  ? 'Linesman only'
+                  : referee.can_referee
+                    ? 'Referee only'
+                    : 'No officiating role enabled'}
+            </span>
           </div>
         </div>
 
@@ -131,6 +147,15 @@ export function RefereeCard({
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Remove
+                </DropdownMenuItem>
+              )}
+              {onRequestAvailability && (
+                <DropdownMenuItem
+                  onClick={onRequestAvailability}
+                  className="text-white hover:bg-neutral-800 cursor-pointer"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Request availability
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
