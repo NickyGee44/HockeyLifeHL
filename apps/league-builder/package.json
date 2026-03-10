@@ -14,6 +14,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@hockey-life/database": "workspace:*",
     "@hockey-life/ui": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
@@ -42,6 +43,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.29.2",
+    "gsap": "^3.14.2",
     "isomorphic-dompurify": "^2.35.0",
     "lucide-react": "^0.562.0",
     "next": "16.1.5",

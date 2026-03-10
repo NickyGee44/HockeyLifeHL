@@ -447,10 +447,7 @@ export function ScoringInterface({
       {/* Event Timeline — Collapsible */}
       <div className="flex-1 overflow-y-auto">
         {/* Collapsible Header */}
-        <button
-          onClick={() => setEventsCollapsed(prev => !prev)}
-          className="flex items-center justify-between w-full px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50 hover:bg-[var(--color-surface)] transition-colors"
-        >
+        <div className="flex items-center justify-between w-full px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-[var(--color-text-primary)] uppercase tracking-wide">
               Events
@@ -464,6 +461,7 @@ export function ScoringInterface({
             {!eventsCollapsed && (
               <div className="flex items-center gap-1">
                 <button
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); setActivePeriodTab('all'); }}
                   className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
                     activePeriodTab === 'all'
@@ -476,6 +474,7 @@ export function ScoringInterface({
                 {Array.from({ length: game.periodCount }, (_, i) => i + 1).map(p => (
                   <button
                     key={p}
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); setActivePeriodTab(p); }}
                     className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
                       activePeriodTab === p
@@ -488,14 +487,22 @@ export function ScoringInterface({
                 ))}
               </div>
             )}
-            <svg
-              className={`w-4 h-4 text-[var(--color-text-secondary)] transition-transform ${eventsCollapsed ? '' : 'rotate-180'}`}
-              fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+            <button
+              type="button"
+              onClick={() => setEventsCollapsed(prev => !prev)}
+              className="rounded-lg p-1 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]"
+              aria-expanded={!eventsCollapsed}
+              aria-label={eventsCollapsed ? 'Expand events' : 'Collapse events'}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-            </svg>
+              <svg
+                className={`w-4 h-4 transition-transform ${eventsCollapsed ? '' : 'rotate-180'}`}
+                fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
           </div>
-        </button>
+        </div>
 
         {/* Events List */}
         {!eventsCollapsed && (

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   removePlayerFromRoster,
-  updateJerseyNumber,
-  updatePlayerStatus,
-  assignCaptain,
 } from '@/lib/actions/roster';
-import { createClient } from '@/lib/supabase/server';
+import { verifyCaptainOrAdminAccess } from '@/lib/actions/permissions';
+import { revalidatePath } from 'next/cache';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function PATCH(
   request: NextRequest,
@@ -21,7 +20,28 @@ export async function PATCH(
   const { rosterId, teamId } = await params;
 
   try {
+    const access = await verifyCaptainOrAdminAccess(teamId);
+    if (!access.authorized) {
+      return NextResponse.json(
+        { error: access.error || 'Not authorized' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
+    const serviceClient = createServiceRoleClient();
+    const { data: currentRoster, error: currentRosterError } = await serviceClient
+      .from('team_rosters')
+      .select('id, team_id, league_id, player_id, season_id, leadership_role')
+      .eq('id', rosterId)
+      .single();
+
+    if (currentRosterError || !currentRoster || currentRoster.team_id !== teamId) {
+      return NextResponse.json(
+        { error: 'Roster entry not found' },
+        { status: 404 }
+      );
+    }
 
     // Accept both camelCase and snake_case field names
     const jerseyNumber = body.jerseyNumber ?? body.jersey_number;
@@ -78,7 +98,8 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      updateFields.leadership_role = leadershipRole || null;
+      updateFields.leadership_role =
+        leadershipRole === 'alternate' ? 'alternate_captain' : leadershipRole || null;
     }
 
     if (Object.keys(updateFields).length === 0) {
@@ -88,8 +109,27 @@ export async function PATCH(
       );
     }
 
-    // Perform a single update on the roster entry
-    const { data: updated, error: updateError } = await supabase
+    if (Object.prototype.hasOwnProperty.call(updateFields, 'leadership_role') && updateFields.leadership_role === 'captain') {
+      const { error: clearCaptainError } = await serviceClient
+        .from('team_rosters')
+        .update({ leadership_role: null })
+        .eq('team_id', teamId)
+        .eq('season_id', currentRoster.season_id)
+        .eq('leadership_role', 'captain')
+        .is('end_date', null)
+        .neq('id', rosterId);
+
+      if (clearCaptainError) {
+        console.error('Error clearing existing captain role:', clearCaptainError);
+        return NextResponse.json(
+          { error: 'Failed to update captain assignment' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Perform the roster update with service role after explicit auth verification.
+    const { data: updated, error: updateError } = await serviceClient
       .from('team_rosters')
       .update(updateFields)
       .eq('id', rosterId)
@@ -103,6 +143,44 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    if (Object.prototype.hasOwnProperty.call(updateFields, 'leadership_role')) {
+      let nextCaptainId: string | null = null;
+
+      if (updateFields.leadership_role === 'captain') {
+        nextCaptainId = currentRoster.player_id;
+      } else {
+        const { data: nextCaptain } = await serviceClient
+          .from('team_rosters')
+          .select('player_id')
+          .eq('team_id', teamId)
+          .eq('season_id', currentRoster.season_id)
+          .eq('leadership_role', 'captain')
+          .is('end_date', null)
+          .maybeSingle();
+
+        nextCaptainId = nextCaptain?.player_id ?? null;
+      }
+
+      const { error: teamUpdateError } = await serviceClient
+        .from('teams')
+        .update({ captain_id: nextCaptainId, updated_at: new Date().toISOString() })
+        .eq('id', teamId);
+
+      if (teamUpdateError) {
+        console.error('Error syncing team captain:', teamUpdateError);
+        return NextResponse.json(
+          { error: 'Failed to sync team captain' },
+          { status: 400 }
+        );
+      }
+    }
+
+    revalidatePath(`/dashboard/teams/${teamId}`);
+    revalidatePath(`/dashboard/teams/${teamId}/settings`);
+    revalidatePath('/dashboard/teams');
+    revalidatePath(`/dashboard/leagues/${currentRoster.league_id}/teams`);
+    revalidatePath(`/dashboard/leagues/${currentRoster.league_id}/teams-divisions`);
 
     return NextResponse.json(updated);
   } catch (error) {

@@ -15,6 +15,7 @@ interface RefereesListProps {
   onEdit: (referee: LeagueReferee) => void;
   onRemove: (referee: LeagueReferee) => void;
   onAssignGames: (referee: LeagueReferee) => void;
+  onRequestAvailability: (referee: LeagueReferee) => void;
   onRefresh: () => void;
   isLoading: boolean;
 }
@@ -27,6 +28,7 @@ export function RefereesList({
   onEdit,
   onRemove,
   onAssignGames,
+  onRequestAvailability,
   onRefresh,
   isLoading,
 }: RefereesListProps) {
@@ -117,6 +119,7 @@ export function RefereesList({
               onEdit={() => onEdit(referee)}
               onRemove={() => onRemove(referee)}
               onAssignGames={() => onAssignGames(referee)}
+              onRequestAvailability={() => onRequestAvailability(referee)}
             />
           ))}
         </div>

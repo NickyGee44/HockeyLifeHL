@@ -1,21 +1,24 @@
 'use client';
 
 import { useState, useCallback, useTransition } from 'react';
-import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   getLeagueReferees,
   type LeagueReferee,
 } from '@/lib/actions/referee-management';
 import { deleteStaffMember } from '@/lib/actions/staff';
+import { sendAvailabilityRequest } from '@/lib/actions/staffing-availability';
 import { RefereesList } from './referees-list';
 import { AssignRefereeModal } from './assign-referee-modal';
+import { AutoAssignRefereesModal } from './auto-assign-referees-modal';
 import {
   Calendar,
   Trash2,
   Loader2,
   Info,
+  Wand2,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -56,6 +59,7 @@ export function RefereeManagementClient({
 
   // Modal states
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showAutoAssignModal, setShowAutoAssignModal] = useState(false);
   const [assignForReferee, setAssignForReferee] = useState<LeagueReferee | null>(null);
   const [removeReferee, setRemoveReferee] = useState<LeagueReferee | null>(null);
   const [showBulkRemoveConfirm, setShowBulkRemoveConfirm] = useState(false);
@@ -127,6 +131,29 @@ export function RefereeManagementClient({
     setShowAssignModal(true);
   };
 
+  const handleRequestAvailability = (referee: LeagueReferee) => {
+    if (!referee.league_referee_id) {
+      toast.error('Add an email address for this referee in the staff directory first.');
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await sendAvailabilityRequest({
+        leagueId,
+        targetType: 'referee',
+        targetId: referee.league_referee_id!,
+        locale,
+      });
+
+      if (!result.success) {
+        toast.error(result.error || 'Failed to send availability request.');
+        return;
+      }
+
+      toast.success(`Availability request sent to ${referee.email || referee.name}.`);
+    });
+  };
+
   const handleEdit = (_referee: LeagueReferee) => {
     // Navigate to staff settings to edit — referees are edited via the staff management page
     window.location.href = `/${locale}/dashboard/leagues/${leagueId}/staff`;
@@ -140,8 +167,8 @@ export function RefereeManagementClient({
         <div className="text-sm text-neutral-300">
           <p className="font-medium text-blue-400 mb-1">Referee Roster</p>
           <p className="text-neutral-400">
-            Referees are managed via the Staff directory. Staff members with a &quot;Referee&quot; role title appear here.
-            Assign them to games to track officiating assignments.
+            Referees are managed via the Staff directory. Staff members with a &quot;Referee&quot; role title appear here,
+            can submit weekly availability, and can then be auto-assigned to games as referees or linesmen.
           </p>
         </div>
       </div>
@@ -158,6 +185,15 @@ export function RefereeManagementClient({
         >
           <Calendar className="w-4 h-4 mr-2" />
           Assign to Games
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={() => setShowAutoAssignModal(true)}
+          className="border-blue-500/30 text-blue-500 hover:bg-blue-500/10"
+        >
+          <Wand2 className="w-4 h-4 mr-2" />
+          Auto-Assign
         </Button>
 
         <div className="flex-1" />
@@ -208,6 +244,7 @@ export function RefereeManagementClient({
         onEdit={handleEdit}
         onRemove={setRemoveReferee}
         onAssignGames={handleAssignGames}
+        onRequestAvailability={handleRequestAvailability}
         onRefresh={refreshReferees}
         isLoading={isPending}
       />
@@ -224,6 +261,14 @@ export function RefereeManagementClient({
           setShowAssignModal(open);
           if (!open) setAssignForReferee(null);
         }}
+        onSuccess={refreshReferees}
+      />
+
+      <AutoAssignRefereesModal
+        leagueId={leagueId}
+        seasons={seasons}
+        open={showAutoAssignModal}
+        onOpenChange={setShowAutoAssignModal}
         onSuccess={refreshReferees}
       />
 

@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -124,7 +125,7 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
     .order('scheduled_at')
     .limit(10);
 
-  const activeSeason = league.seasons?.find((s: any) => s.status === 'active');
+  const activeSeason = pickOperationalSeason((league.seasons as any[]) ?? []);
 
   // If a specific season is selected via ?season= param, show the season schedule management view
   if (seasonParam) {
@@ -316,7 +317,7 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
                   className={cn(
                     'flex items-center justify-between p-5 rounded-xl transition-all',
                     'bg-white/[0.04] border border-white/10 hover:border-rink-500/50',
-                    season.status === 'active' && 'border-rink-500/30 bg-rink-500/5'
+                    activeSeason?.id === season.id && 'border-rink-500/30 bg-rink-500/5'
                   )}
                 >
                   <div>
@@ -332,6 +333,8 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
                         'px-2.5 py-1 text-xs font-semibold rounded-full border',
                         season.status === 'active'
                           ? 'bg-green-500/10 text-green-500 border-green-500/30'
+                          : season.status === 'playoffs'
+                            ? 'bg-purple-500/10 text-purple-500 border-purple-500/30'
                           : 'bg-neutral-800 text-neutral-400 border-neutral-700'
                       )}
                     >

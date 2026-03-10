@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ImportPlayersButton } from '@/components/players/ImportPlayersButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -110,9 +111,10 @@ export default async function RegistrationsPage({
   }));
 
   // Resolve active season for player import (prefer URL param, then active status)
-  const activeSeason = seasons.find((s: any) =>
-    seasonId ? s.id === seasonId : (league.seasons as any[]).find((ls: any) => ls.id === s.id)?.status === 'active'
-  ) ?? seasons[0];
+  const activeSeason =
+    seasons.find((s: any) => (seasonId ? s.id === seasonId : false)) ??
+    pickOperationalSeason((league.seasons as any[]) ?? []) ??
+    seasons[0];
 
   return (
     <div className="space-y-6">

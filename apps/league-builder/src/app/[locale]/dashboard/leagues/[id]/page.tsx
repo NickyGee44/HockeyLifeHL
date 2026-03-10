@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -74,9 +75,7 @@ export default async function LeagueDetailPage({ params }: Props) {
     .eq('league_id', leagueId);
 
   // Pending action counts — all run in parallel
-  const currentSeason = league.seasons?.find(
-    (s: any) => s.status === 'active' || s.status === 'registration'
-  ) ?? league.seasons?.[0] ?? null;
+  const currentSeason = pickOperationalSeason((league.seasons as any[]) ?? []);
 
   const [
     { count: pendingRegistrations },

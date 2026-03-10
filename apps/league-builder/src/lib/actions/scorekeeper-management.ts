@@ -2,6 +2,13 @@
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { getScorekeeperAvailabilityMetadata } from './staffing-availability';
+import {
+  selectBestCandidateForGame,
+  type StaffingAssignment,
+  type StaffingAvailabilityWindow,
+  type StaffingCandidate,
+} from '@/lib/staffing/scheduler';
 
 // ==============================================================================
 // CONSTANTS
@@ -66,6 +73,7 @@ export interface LeagueScorekeeper {
   display_name: string | null;
   phone: string | null;
   is_active: boolean;
+  availability_window_count: number;
   // Joined data from profiles table
   profile?: {
     id: string;
@@ -192,10 +200,16 @@ export async function getLeagueScorekepers(
       return { success: false, error: sanitizeError(error, 'getLeagueScorekepers') };
     }
 
+    const availabilityCountByScorekeeperId = await getScorekeeperAvailabilityMetadata(leagueId);
+    const scorekeepers = ((data || []) as LeagueScorekeeper[]).map((row) => ({
+      ...row,
+      availability_window_count: availabilityCountByScorekeeperId.get(row.scorekeeper_id) || 0,
+    }));
+
     return {
       success: true,
       data: {
-        scorekeepers: (data || []) as LeagueScorekeeper[],
+        scorekeepers,
         total: count || 0,
       },
     };
@@ -763,25 +777,27 @@ export async function autoAssignScorekepers(params: {
       return { success: false, error: 'No games found matching the criteria' };
     }
 
-    // Get existing assignments to check for conflicts
+    // Pull all current league assignments so partial runs still respect same-night conflicts.
     const { data: existingAssignments } = await supabase
       .from('game_scorekeeper_assignments')
-      .select('game_id, scorekeeper_id')
-      .eq('league_id', leagueId)
-      .in('game_id', games.map(g => g.id));
+      .select('game_id, scorekeeper_id, game:games!inner(id, scheduled_at, league_id)')
+      .eq('games.league_id' as any, leagueId);
 
+    const selectedGameIds = new Set(games.map((game) => game.id));
     const existingMap = new Map(
-      (existingAssignments || []).map(a => [a.game_id, a.scorekeeper_id])
+      (existingAssignments || [])
+        .filter((assignment: any) => selectedGameIds.has(assignment.game_id))
+        .map((assignment: any) => [assignment.game_id, assignment.scorekeeper_id])
     );
 
-    // Track assignments for round-robin using actual total_assignments column
-    const scorekeeperAssignments = new Map<string, number>();
-    scorekeepers.forEach(sk => {
-      scorekeeperAssignments.set(sk.scorekeeper_id, (sk as any).total_assignments || 0);
-    });
-
-    // Track conflicts (same scorekeeper at same time)
-    const timeslotAssignments = new Map<string, string>(); // time -> scorekeeper_id
+    const scorekeeperIds = scorekeepers.map((scorekeeper) => scorekeeper.scorekeeper_id);
+    const { data: availabilityRows } = scorekeeperIds.length > 0
+      ? await supabase
+          .from('scorekeeper_availability')
+          .select('scorekeeper_id, day_of_week, start_time, end_time, availability_type')
+          .eq('league_id', leagueId)
+          .in('scorekeeper_id', scorekeeperIds)
+      : { data: [] as any[] };
 
     const result: AutoAssignResult = {
       gamesProcessed: games.length,
@@ -791,6 +807,50 @@ export async function autoAssignScorekepers(params: {
       assignments: [],
       skipped: [],
     };
+
+    const plannedAssignments: StaffingAssignment[] = (existingAssignments || [])
+      .flatMap((assignment: any) => {
+        const scheduledAt = assignment.game?.scheduled_at;
+        if (!scheduledAt || !assignment.scorekeeper_id) {
+          return [];
+        }
+
+        return [{
+          gameId: assignment.game_id,
+          assignmentKey: assignment.scorekeeper_id,
+          scheduledAt,
+        }];
+      });
+
+    const removePlannedAssignmentsForGame = (gameId: string) => {
+      for (let index = plannedAssignments.length - 1; index >= 0; index--) {
+        if (plannedAssignments[index]?.gameId === gameId) {
+          plannedAssignments.splice(index, 1);
+        }
+      }
+    };
+
+    const availabilityWindowsByScorekeeperId = new Map<string, StaffingAvailabilityWindow[]>();
+    for (const row of availabilityRows || []) {
+      const existing = availabilityWindowsByScorekeeperId.get(row.scorekeeper_id) || [];
+      existing.push({
+        dayOfWeek: row.day_of_week ?? null,
+        startTime: new Date(row.start_time).toISOString().slice(11, 16),
+        endTime: new Date(row.end_time).toISOString().slice(11, 16),
+        availabilityType: row.availability_type,
+        isRecurring: true,
+      });
+      availabilityWindowsByScorekeeperId.set(row.scorekeeper_id, existing);
+    }
+
+    const candidates: StaffingCandidate[] = scorekeepers.map((scorekeeper: any) => ({
+      assignmentKey: scorekeeper.scorekeeper_id,
+      displayName: scorekeeper.display_name || scorekeeper.email || 'Scorekeeper',
+      totalAssignments: scorekeeper.total_assignments || 0,
+      maxAssignmentsPerWeek: scorekeeper.max_games_per_week,
+      preferredDays: Array.isArray(scorekeeper.preferred_days) ? scorekeeper.preferred_days : [],
+      availabilityWindows: availabilityWindowsByScorekeeperId.get(scorekeeper.scorekeeper_id) || [],
+    }));
 
     for (const game of games) {
       // Skip if already assigned and not overwriting
@@ -803,65 +863,36 @@ export async function autoAssignScorekepers(params: {
         continue;
       }
 
-      // Find available scorekeeper based on strategy
-      let selectedScorekeeper: typeof scorekeepers[0] | null = null;
-      const gameTime = new Date(game.scheduled_at).toISOString();
+      if (options.overwriteExisting && existingMap.has(game.id)) {
+        removePlannedAssignmentsForGame(game.id);
+      }
 
-      // Sort scorekeepers by assignment count for round-robin
-      const sortedScorekeppers = [...scorekeepers].sort((a, b) => {
-        const aCount = scorekeeperAssignments.get(a.scorekeeper_id) || 0;
-        const bCount = scorekeeperAssignments.get(b.scorekeeper_id) || 0;
-        return aCount - bCount;
+      const selection = selectBestCandidateForGame({
+        candidates,
+        existingAssignments: plannedAssignments,
+        scheduledAt: game.scheduled_at,
+        strategy: options.strategy,
       });
 
-      for (const sk of sortedScorekeppers) {
-        // Check for time conflict
-        if (timeslotAssignments.has(gameTime) && timeslotAssignments.get(gameTime) === sk.scorekeeper_id) {
-          result.conflictsDetected++;
-          continue;
-        }
-
-        // Check max games per week limit
-        const skMaxGames = (sk as any).max_games_per_week;
-        if (skMaxGames && skMaxGames > 0) {
-          const weekStart = new Date(game.scheduled_at);
-          weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-          const weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekEnd.getDate() + 7);
-          const weekGames = games.filter(g => {
-            const gDate = new Date(g.scheduled_at);
-            return gDate >= weekStart && gDate < weekEnd;
-          });
-          const weekAssignments = weekGames.filter(g =>
-            result.assignments.some(a => a.gameId === g.id && a.scorekeeperId === sk.scorekeeper_id)
-          ).length;
-          if (weekAssignments >= skMaxGames) {
-            continue;
-          }
-        }
-
-        // Check preferred days
-        const skPreferredDays = (sk as any).preferred_days;
-        if (skPreferredDays && Array.isArray(skPreferredDays) && skPreferredDays.length > 0) {
-          const gameDay = new Date(game.scheduled_at).getDay();
-          if (!skPreferredDays.includes(gameDay)) {
-            // Skip to next if there are other options, but remember this one as fallback
-            if (!selectedScorekeeper) {
-              selectedScorekeeper = sk;
-            }
-            continue;
-          }
-        }
-
-        selectedScorekeeper = sk;
-        break;
+      if (!selection.candidate) {
+        result.gamesSkipped++;
+        result.conflictsDetected++;
+        result.skipped.push({
+          gameId: game.id,
+          reason: selection.reason,
+        });
+        continue;
       }
+
+      const selectedScorekeeper = scorekeepers.find(
+        (scorekeeper) => scorekeeper.scorekeeper_id === selection.candidate.assignmentKey
+      );
 
       if (!selectedScorekeeper) {
         result.gamesSkipped++;
         result.skipped.push({
           gameId: game.id,
-          reason: 'No available scorekeeper found',
+          reason: 'Selected scorekeeper record could not be resolved.',
         });
         continue;
       }
@@ -895,12 +926,14 @@ export async function autoAssignScorekepers(params: {
         continue;
       }
 
-      // Update tracking
-      timeslotAssignments.set(gameTime, selectedScorekeeper.scorekeeper_id);
-      scorekeeperAssignments.set(
-        selectedScorekeeper.scorekeeper_id,
-        (scorekeeperAssignments.get(selectedScorekeeper.scorekeeper_id) || 0) + 1
-      );
+      removePlannedAssignmentsForGame(game.id);
+      existingMap.set(game.id, selectedScorekeeper.scorekeeper_id);
+      plannedAssignments.push({
+        gameId: game.id,
+        assignmentKey: selectedScorekeeper.scorekeeper_id,
+        scheduledAt: game.scheduled_at,
+      });
+      selection.candidate.totalAssignments += 1;
 
       result.gamesAssigned++;
       result.assignments.push({

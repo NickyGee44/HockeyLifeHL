@@ -11,6 +11,7 @@ const ICON_MAP = {
   billing_incomplete: CreditCard,
   no_teams: Users,
   no_season: Calendar,
+  next_season: Calendar,
 } as const;
 
 const COLOR_MAP = {
@@ -18,6 +19,7 @@ const COLOR_MAP = {
   billing_incomplete: 'from-red-500/20 via-red-500/10 to-transparent border-red-500/30',
   no_teams: 'from-orange-500/20 via-orange-500/10 to-transparent border-orange-500/30',
   no_season: 'from-orange-500/20 via-orange-500/10 to-transparent border-orange-500/30',
+  next_season: 'from-purple-500/20 via-purple-500/10 to-transparent border-purple-500/30',
 } as const;
 
 const ICON_COLOR_MAP = {
@@ -25,6 +27,7 @@ const ICON_COLOR_MAP = {
   billing_incomplete: 'text-red-500',
   no_teams: 'text-orange-500',
   no_season: 'text-orange-500',
+  next_season: 'text-purple-400',
 } as const;
 
 interface SetupBannerProps {
@@ -42,7 +45,7 @@ export function SetupBanner({ issues }: SetupBannerProps) {
 
   // Billing issues are highest priority, then draft, then others
   const sortedIssues = [...visibleIssues].sort((a, b) => {
-    const priority = { billing_incomplete: 0, draft: 1, no_teams: 2, no_season: 3 };
+    const priority = { billing_incomplete: 0, draft: 1, no_teams: 2, next_season: 3, no_season: 4 };
     return priority[a.type] - priority[b.type];
   });
 
@@ -82,6 +85,8 @@ export function SetupBanner({ issues }: SetupBannerProps) {
                       ? 'text-red-400 hover:text-red-300'
                       : issue.type === 'draft'
                         ? 'text-yellow-400 hover:text-yellow-300'
+                        : issue.type === 'next_season'
+                          ? 'text-purple-300 hover:text-purple-200'
                         : 'text-orange-400 hover:text-orange-300'
                   )}
                 >

@@ -22,6 +22,7 @@ interface DashboardLayoutClientProps {
   setupIssues: LeagueSetupIssue[];
   isSubscribed: boolean;
   isPlatformAdmin: boolean;
+  ownerViewLeagueId?: string | null;
   topBanner?: React.ReactNode;
 }
 
@@ -70,6 +71,7 @@ export default function DashboardLayoutClient({
   setupIssues,
   isSubscribed,
   isPlatformAdmin,
+  ownerViewLeagueId = null,
   topBanner,
 }: DashboardLayoutClientProps) {
   return (
@@ -84,6 +86,7 @@ export default function DashboardLayoutClient({
           captainTeams={captainTeams}
           isSubscribed={isSubscribed}
           isPlatformAdmin={isPlatformAdmin}
+          ownerViewLeagueId={ownerViewLeagueId}
         />
 
         <DashboardContent

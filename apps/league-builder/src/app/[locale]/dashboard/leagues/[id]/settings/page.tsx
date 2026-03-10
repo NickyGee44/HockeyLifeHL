@@ -97,7 +97,7 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       title: 'Custom Domain',
       description: 'Set up your own domain for the league website',
       icon: 'Globe',
-      href: `/${locale}/dashboard/settings/domains` },
+      href: `/${locale}/dashboard/settings/domains?league=${leagueId}` },
     {
       title: 'Staff & Permissions',
       description: 'Manage league administrators and roles',
@@ -110,7 +110,7 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
       href: `/${locale}/dashboard/settings/notifications` },
     {
       title: 'Billing & Subscriptions',
-      description: 'Plan, add-ons, and payment processing',
+      description: 'Platform billing and payment processing',
       icon: 'Receipt',
       href: `/${locale}/dashboard/settings/billing` },
     {

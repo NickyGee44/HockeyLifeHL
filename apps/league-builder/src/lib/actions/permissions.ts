@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { Team } from './teams';
 import { isUserPlatformAdmin } from '@/lib/auth/platform-admin';
 
@@ -55,6 +55,7 @@ export interface CaptainAccessResult extends AuthorizationResult {
  */
 export async function verifyCaptainAccess(teamId: string): Promise<CaptainAccessResult> {
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -64,7 +65,7 @@ export async function verifyCaptainAccess(teamId: string): Promise<CaptainAccess
   try {
     // SECURITY: Use indexed lookup (idx_teams_captain_team_lookup)
     // This query can be satisfied by index-only scan
-    const { data: team, error } = await supabase
+    const { data: team, error } = await serviceClient
       .from('teams')
       .select('*')
       .eq('id', teamId)
@@ -118,6 +119,7 @@ export async function verifyCaptainAccess(teamId: string): Promise<CaptainAccess
  */
 export async function verifyCaptainOrAdminAccess(teamId: string): Promise<ExtendedAuthorizationResult> {
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -136,7 +138,7 @@ export async function verifyCaptainOrAdminAccess(teamId: string): Promise<Extend
     }
 
     // Step 2: Check organization owner access (fetch separately to avoid FK join RLS issues)
-    const { data: team, error: teamError } = await supabase
+    const { data: team, error: teamError } = await serviceClient
       .from('teams')
       .select('*')
       .eq('id', teamId)
@@ -150,14 +152,22 @@ export async function verifyCaptainOrAdminAccess(teamId: string): Promise<Extend
     }
 
     // Fetch league and organization separately
-    const { data: league } = await supabase
+    const { data: league } = await serviceClient
       .from('leagues')
-      .select('id, organization_id')
+      .select('id, organization_id, owner_id, created_by')
       .eq('id', team.league_id)
       .single();
 
+    if (league && (league.owner_id === user.id || league.created_by === user.id)) {
+      return {
+        authorized: true,
+        accessType: 'league_admin',
+        team: team as Team,
+      };
+    }
+
     if (league?.organization_id) {
-      const { data: org } = await supabase
+      const { data: org } = await serviceClient
         .from('organizations')
         .select('owner_user_id')
         .eq('id', league.organization_id)
@@ -175,7 +185,7 @@ export async function verifyCaptainOrAdminAccess(teamId: string): Promise<Extend
     }
 
     // Step 3: Check league admin access
-    const { data: leagueMembership } = await supabase
+    const { data: leagueMembership } = await serviceClient
       .from('league_memberships')
       .select('role')
       .eq('user_id', user.id)
@@ -318,6 +328,7 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
   error?: string;
 }> {
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -326,9 +337,9 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
 
   try {
     // Fetch league (without !inner so it doesn't fail if no org)
-    const { data: league, error } = await supabase
+    const { data: league, error } = await serviceClient
       .from('leagues')
-      .select('id, organization_id, organizations(owner_user_id)')
+      .select('id, organization_id, owner_id, created_by')
       .eq('id', leagueId)
       .single();
 
@@ -339,18 +350,34 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
       return { authorized: false, error: 'League not found' };
     }
 
-    // Check 1: Organization owner
-    const org = league.organizations as any;
-    if (org?.owner_user_id === user.id) {
+    // Check 1: Direct league ownership
+    if (league.owner_id === user.id || league.created_by === user.id) {
       return {
         authorized: true,
         organizationId: league.organization_id ?? undefined,
-        accessType: 'org_owner',
+        accessType: 'league_admin',
       };
     }
 
-    // Check 2: League membership (owner or admin role)
-    const { data: membership } = await supabase
+    // Check 2: Organization owner
+    if (league.organization_id) {
+      const { data: org } = await serviceClient
+        .from('organizations')
+        .select('owner_user_id')
+        .eq('id', league.organization_id)
+        .maybeSingle();
+
+      if (org?.owner_user_id === user.id) {
+        return {
+          authorized: true,
+          organizationId: league.organization_id ?? undefined,
+          accessType: 'org_owner',
+        };
+      }
+    }
+
+    // Check 3: League membership (owner or admin role)
+    const { data: membership } = await serviceClient
       .from('league_memberships')
       .select('role')
       .eq('user_id', user.id)
@@ -367,7 +394,7 @@ export async function verifyLeagueOwnerAccess(leagueId: string): Promise<{
       };
     }
 
-    // Check 3: Platform admin fallback
+    // Check 4: Platform admin fallback
     const isPlatformAdmin = await isUserPlatformAdmin(user.id);
     if (isPlatformAdmin) {
       return {

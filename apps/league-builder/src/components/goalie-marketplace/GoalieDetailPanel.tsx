@@ -14,6 +14,10 @@ export function GoalieDetailPanel({ goalie }: GoalieDetailPanelProps) {
   useEffect(() => {
     const load = async () => {
       if (!goalie) return;
+      if (goalie.source === 'roster') {
+        setRatings([]);
+        return;
+      }
       const result = await getGoalieRatings(goalie.id);
       if (result.success) {
         setRatings(result.data as Array<{ id: string; stars: number; tags: string[]; private_note: string | null; created_at: string }>);
@@ -35,6 +39,11 @@ export function GoalieDetailPanel({ goalie }: GoalieDetailPanelProps) {
       <div>
         <h3 className="text-xl font-bold text-white">{goalie.name}</h3>
         <p className="text-neutral-400 text-sm">{goalie.email} {goalie.phone ? `• ${goalie.phone}` : ''}</p>
+        {goalie.source === 'roster' && (
+          <p className="text-xs text-cyan-300 mt-1">
+            Current league goalie{goalie.team_name ? ` for ${goalie.team_name}` : ''}. This entry comes from the live roster.
+          </p>
+        )}
       </div>
       <div className="text-sm text-neutral-300">
         Skill: <span className="capitalize">{goalie.skill_level || 'intermediate'}</span> • Rate: ${Number(goalie.rate_per_game || 0).toFixed(2)}
@@ -43,6 +52,11 @@ export function GoalieDetailPanel({ goalie }: GoalieDetailPanelProps) {
       <div className="pt-2 border-t border-white/10">
         <h4 className="text-sm font-semibold text-neutral-300 mb-2">Rating History</h4>
         <div className="space-y-3 max-h-80 overflow-auto">
+          {goalie.source === 'roster' && (
+            <p className="text-xs text-neutral-500">
+              Ratings are only stored for dedicated goalie-pool entries.
+            </p>
+          )}
           {ratings.map((rating) => (
             <div key={rating.id} className="rounded-lg bg-neutral-900/50 border border-white/10 p-3">
               <div className="flex items-center gap-1 text-amber-400 mb-1">

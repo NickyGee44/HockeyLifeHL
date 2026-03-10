@@ -67,6 +67,10 @@ export function ThemePanel() {
       </div>
 
       {/* Color pickers */}
+      <div className="rounded-lg border border-white/10 bg-neutral-900/50 p-3 text-xs text-neutral-400">
+        Primary drives buttons and accents. Secondary now drives the site surfaces and background tint in both light and dark visitor modes, so navy, baby blue, or other brand-safe colors carry through more consistently.
+      </div>
+
       <ColorInput
         label={t('primaryColor')}
         description={t('primaryDescription')}

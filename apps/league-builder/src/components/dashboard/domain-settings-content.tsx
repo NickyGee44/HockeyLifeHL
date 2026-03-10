@@ -36,9 +36,15 @@ interface Organization {
 
 interface DomainSettingsContentProps {
   organization: Organization;
+  selectedLeague?: {
+    id: string;
+    name: string;
+    slug: string;
+    subdomain?: string | null;
+  } | null;
 }
 
-export function DomainSettingsContent({ organization }: DomainSettingsContentProps) {
+export function DomainSettingsContent({ organization, selectedLeague }: DomainSettingsContentProps) {
   const [copied, setCopied] = useState<string | null>(null);
   const [customDomain, setCustomDomainValue] = useState(organization.custom_domain || '');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -54,8 +60,9 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
   const isActiveSubscriber = ['active', 'trialing'].includes(organization.subscription_status ?? '');
   const hasCustomDomainAccess = !!organization.custom_domain || isActiveSubscriber;
 
-  // Subdomain URL
-  const subdomainUrl = `${organization.slug}.beerleaguehockey.ca`;
+  // Use the selected league slug/subdomain rather than the organization slug.
+  const leagueSubdomain = selectedLeague?.subdomain || selectedLeague?.slug || organization.slug;
+  const subdomainUrl = `${leagueSubdomain}.beerleaguehockey.ca`;
 
   const handleCopy = async (text: string, label: string) => {
     try {
@@ -143,7 +150,9 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
                 Your League Subdomain
               </CardTitle>
               <CardDescription className="text-neutral-400">
-                Your league is accessible at this free subdomain
+                {selectedLeague
+                  ? `${selectedLeague.name} is accessible at this free subdomain`
+                  : 'Your league is accessible at this free subdomain'}
               </CardDescription>
             </div>
             <Badge className="bg-green-600/20 text-green-400 border-green-500/30">
@@ -191,8 +200,8 @@ export function DomainSettingsContent({ organization }: DomainSettingsContentPro
           </div>
 
           <div className="text-sm text-neutral-400">
-            Your subdomain is automatically generated based on your organization slug.
-            To change it, update your organization slug in the Profile settings.
+            This public address is based on your league slug and is available immediately.
+            If you want to use your own branded domain, connect it below.
           </div>
         </CardContent>
       </Card>

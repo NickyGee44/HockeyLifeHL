@@ -221,7 +221,7 @@ export function EditorProvider({ children, organizationId, leagues, previewBaseU
 
   const selectedLeague = state.leagues.find((l) => l.id === state.selectedLeagueId);
   const previewUrl = selectedLeague
-    ? buildWebsiteEditorPreviewUrl(previewBaseUrl, selectedLeague.slug)
+    ? buildWebsiteEditorPreviewUrl(previewBaseUrl, selectedLeague.subdomain || selectedLeague.slug)
     : '';
 
   return (

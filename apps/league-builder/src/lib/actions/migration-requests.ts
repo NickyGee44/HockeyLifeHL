@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from './permissions';
 import {
   ACTIVE_MIGRATION_REQUEST_STATUSES,
@@ -132,7 +132,7 @@ function revalidateMigrationPaths(locale: string, leagueId: string) {
 }
 
 async function getEditableRequest(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: { from: (...args: any[]) => any },
   leagueId: string,
   requestId?: string
 ): Promise<ActionResult<LeagueMigrationRequest | null>> {
@@ -183,7 +183,7 @@ export async function getLeagueMigrationRequests(
     return { success: false, error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const db = supabase as any;
   const { data, error } = await db
     .from('league_migration_requests')
@@ -212,15 +212,15 @@ export async function upsertLeagueMigrationRequest(
     return normalized;
   }
 
-  const supabase = await createClient();
-  const db = supabase as any;
-  const { data: authData } = await supabase.auth.getUser();
+  const authClient = await createClient();
+  const db = createServiceRoleClient() as any;
+  const { data: authData } = await authClient.auth.getUser();
   const user = authData.user;
   if (!user) {
     return { success: false, error: 'Not authenticated' };
   }
 
-  const existingResult = await getEditableRequest(supabase, input.leagueId, input.requestId);
+  const existingResult = await getEditableRequest(db, input.leagueId, input.requestId);
   if (!existingResult.success) {
     return existingResult;
   }
@@ -320,8 +320,7 @@ export async function updateLeagueMigrationRequestStatus(
     return { success: false, error: 'Invalid migration request status.' };
   }
 
-  const supabase = await createClient();
-  const db = supabase as any;
+  const db = createServiceRoleClient() as any;
   const timestamps: Record<string, string | null> = {};
   const now = new Date().toISOString();
 

@@ -1,9 +1,14 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import {
+  hasDraftSeason,
+  isOperationalSeasonStatus,
+  pickOperationalSeason,
+} from '@/lib/seasons/operational';
 
 export interface LeagueSetupIssue {
-  type: 'draft' | 'no_teams' | 'no_season' | 'billing_incomplete';
+  type: 'draft' | 'no_teams' | 'no_season' | 'billing_incomplete' | 'next_season';
   leagueId: string;
   leagueName: string;
   message: string;
@@ -115,14 +120,16 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
       });
     }
 
-    // 4. No active season
-    const { count: seasonCount } = await supabase
+    // 4. Current season / next season readiness
+    const { data: seasons } = await supabase
       .from('seasons')
-      .select('id', { count: 'exact', head: true })
+      .select('id, status, start_date, end_date, created_at')
       .eq('league_id', league.id)
-      .in('status', ['active', 'draft']);
+      .order('start_date', { ascending: false });
 
-    if (seasonCount === 0) {
+    const currentSeason = pickOperationalSeason(seasons ?? []);
+
+    if (!currentSeason || !isOperationalSeasonStatus(currentSeason.status)) {
       issues.push({
         type: 'no_season',
         leagueId: league.id,
@@ -130,6 +137,18 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
         message: 'No active season found. Create a season to start scheduling games.',
         actionUrl: `/dashboard/leagues/${league.id}?tab=seasons`,
         actionLabel: 'Create Season',
+      });
+    } else if (
+      currentSeason.status === 'playoffs' &&
+      !hasDraftSeason(seasons ?? [], { excludeSeasonId: currentSeason.id })
+    ) {
+      issues.push({
+        type: 'next_season',
+        leagueId: league.id,
+        leagueName: league.name,
+        message: 'Playoffs are underway. Create the next season now so registration and scheduling can start early.',
+        actionUrl: `/dashboard/leagues/${league.id}/seasons/new`,
+        actionLabel: 'Create Next Season',
       });
     }
   }

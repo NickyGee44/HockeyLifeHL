@@ -189,6 +189,13 @@ export default function StaffDashboardPanel({ data }: { data: StaffDashboardData
           <ClipboardList className="w-5 h-5 text-rink-500" />
           My Assignments
         </h2>
+        <Link
+          href="/dashboard/staffing/availability"
+          className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-neutral-300 transition-colors hover:bg-white/[0.04] hover:text-white"
+        >
+          <Calendar className="h-4 w-4" />
+          Set Availability
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

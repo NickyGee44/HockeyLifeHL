@@ -381,7 +381,7 @@ export async function getOrganizationLeagues(organizationId: string) {
     // Get leagues for this organization (include all statuses — callers need drafts too)
     const { data: leagues, error: leaguesError } = await supabase
       .from('leagues')
-      .select('id, name, slug, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings')
+      .select('id, organization_id, name, slug, subdomain, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings')
       .eq('organization_id', organizationId)
       .order('name');
 
@@ -416,7 +416,7 @@ export async function getUserLeaguesViaMembership() {
   try {
     const { data: memberships, error: membershipError } = await supabase
       .from('league_memberships')
-      .select('league:leagues(id, name, slug, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings)')
+      .select('league:leagues(id, organization_id, name, slug, subdomain, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings)')
       .eq('user_id', user.id)
       .in('role', ['owner', 'admin']);
 

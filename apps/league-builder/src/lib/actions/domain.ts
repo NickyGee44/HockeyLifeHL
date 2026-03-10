@@ -1,9 +1,10 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import dns from 'dns';
 import { promisify } from 'util';
+import { isUserPlatformAdmin } from '@/lib/auth/platform-admin';
 
 const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
@@ -21,6 +22,96 @@ export type DomainVerificationResult = {
 // Vercel DNS targets
 const VERCEL_CNAME = 'cname.vercel-dns.com';
 const VERCEL_IPS = ['76.76.21.21', '76.76.21.142', '76.76.21.164', '76.223.126.88'];
+
+type ManagedOrganization = {
+  id: string;
+  name: string;
+  slug: string;
+  owner_user_id: string | null;
+  custom_domain: string | null;
+  custom_domain_verified: boolean | null;
+  subscription_tier?: string | null;
+  subscription_status?: string | null;
+};
+
+async function getOrganizationDomainAccess(organizationId: string): Promise<{
+  userId?: string;
+  organization?: ManagedOrganization;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  const serviceClient = createServiceRoleClient();
+  const { data: organization, error: orgError } = await serviceClient
+    .from('organizations')
+    .select('id, name, slug, owner_user_id, custom_domain, custom_domain_verified, subscription_tier, subscription_status')
+    .eq('id', organizationId)
+    .maybeSingle();
+
+  if (orgError || !organization) {
+    return { error: 'Organization not found' };
+  }
+
+  if (organization.owner_user_id === user.id) {
+    return { userId: user.id, organization: organization as ManagedOrganization };
+  }
+
+  const { data: orgMembership } = await serviceClient
+    .from('organization_members')
+    .select('role')
+    .eq('organization_id', organizationId)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .in('role', ['owner', 'admin'])
+    .maybeSingle();
+
+  if (orgMembership) {
+    return { userId: user.id, organization: organization as ManagedOrganization };
+  }
+
+  const { data: ownedLeague } = await serviceClient
+    .from('leagues')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .or(`owner_id.eq.${user.id},created_by.eq.${user.id}`)
+    .limit(1)
+    .maybeSingle();
+
+  if (ownedLeague) {
+    return { userId: user.id, organization: organization as ManagedOrganization };
+  }
+
+  const { data: leagueMembership } = await (serviceClient as any)
+    .from('league_memberships')
+    .select('league_id, leagues!inner(organization_id)')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .in('role', ['owner', 'admin'])
+    .eq('leagues.organization_id', organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  if (leagueMembership) {
+    return { userId: user.id, organization: organization as ManagedOrganization };
+  }
+
+  if (await isUserPlatformAdmin(user.id)) {
+    return { userId: user.id, organization: organization as ManagedOrganization };
+  }
+
+  return { error: 'Only league owners and organization admins can manage domains' };
+}
+
+function hasCustomDomainAccess(organization: ManagedOrganization) {
+  return ['active', 'trialing'].includes(organization.subscription_status ?? '') || Boolean(organization.custom_domain);
+}
 
 // ---------------------------------------------------------------------------
 // Vercel API helpers
@@ -117,28 +208,12 @@ async function deregisterVercelDomain(domain: string): Promise<void> {
  * Get domain configuration for an organization
  */
 export async function getOrganizationDomain(organizationId: string) {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Not authenticated' };
+  const access = await getOrganizationDomainAccess(organizationId);
+  if (access.error || !access.organization) {
+    return { error: access.error || 'Failed to fetch organization' };
   }
 
-  const { data: org, error } = await supabase
-    .from('organizations')
-    .select('id, name, slug, custom_domain, custom_domain_verified')
-    .eq('id', organizationId)
-    .single();
-
-  if (error) {
-    if (isDevelopment) {
-      console.error('Error fetching organization domain:', error);
-    }
-    return { error: 'Failed to fetch organization' };
-  }
-
-  return { data: org };
+  return { data: access.organization };
 }
 
 /**
@@ -148,34 +223,16 @@ export async function setCustomDomain(
   organizationId: string,
   domain: string
 ): Promise<DomainVerificationResult> {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Not authenticated' };
+  const access = await getOrganizationDomainAccess(organizationId);
+  if (access.error || !access.organization) {
+    return { error: access.error || 'Organization not found' };
   }
 
-  // Check organization ownership
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .select('owner_user_id, subscription_tier')
-    .eq('id', organizationId)
-    .single();
-
-  if (orgError || !org) {
-    return { error: 'Organization not found' };
+  if (!hasCustomDomainAccess(access.organization)) {
+    return { error: 'Custom domains are available with an active platform subscription.' };
   }
 
-  if (org.owner_user_id !== user.id) {
-    return { error: 'Only the organization owner can manage domains' };
-  }
-
-  // Check subscription tier - enterprise-only licensing
-  const tier = (org as Record<string, unknown>).subscription_tier as string || 'enterprise';
-  if (tier !== 'enterprise') {
-    return { error: 'Custom domains require an Enterprise subscription. Please contact sales.' };
-  }
+  const serviceClient = createServiceRoleClient();
 
   // Validate and clean domain
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
@@ -197,7 +254,7 @@ export async function setCustomDomain(
   }
 
   // Check if domain is already in use by another organization
-  const { data: existingOrg } = await supabase
+  const { data: existingOrg } = await serviceClient
     .from('organizations')
     .select('id, name')
     .eq('custom_domain', cleanDomain)
@@ -212,7 +269,7 @@ export async function setCustomDomain(
   }
 
   // Set the custom domain (unverified)
-  const { error: updateError } = await supabase
+  const { error: updateError } = await serviceClient
     .from('organizations')
     .update({
       custom_domain: cleanDomain,
@@ -247,30 +304,12 @@ export async function setCustomDomain(
 export async function verifyCustomDomain(
   organizationId: string
 ): Promise<DomainVerificationResult> {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Not authenticated' };
+  const access = await getOrganizationDomainAccess(organizationId);
+  if (access.error || !access.organization) {
+    return { error: access.error || 'Organization not found' };
   }
 
-  // Get organization with custom domain
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .select('id, owner_user_id, custom_domain, custom_domain_verified')
-    .eq('id', organizationId)
-    .single();
-
-  if (orgError || !org) {
-    return { error: 'Organization not found' };
-  }
-
-  if (org.owner_user_id !== user.id) {
-    return { error: 'Only the organization owner can verify domains' };
-  }
-
-  const customDomain = (org as Record<string, unknown>).custom_domain as string | null;
+  const customDomain = access.organization.custom_domain;
   if (!customDomain) {
     return { error: 'No custom domain configured' };
   }
@@ -288,7 +327,8 @@ export async function verifyCustomDomain(
   }
 
   // DNS verification passed — update database
-  const { error: updateError } = await supabase
+  const serviceClient = createServiceRoleClient();
+  const { error: updateError } = await serviceClient
     .from('organizations')
     .update({
       custom_domain_verified: true,
@@ -325,33 +365,16 @@ export async function verifyCustomDomain(
 export async function removeCustomDomain(
   organizationId: string
 ): Promise<DomainVerificationResult> {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Not authenticated' };
+  const access = await getOrganizationDomainAccess(organizationId);
+  if (access.error || !access.organization) {
+    return { error: access.error || 'Organization not found' };
   }
 
-  // Check organization ownership — also fetch custom_domain so we can deregister from Vercel
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .select('owner_user_id, custom_domain')
-    .eq('id', organizationId)
-    .single();
-
-  if (orgError || !org) {
-    return { error: 'Organization not found' };
-  }
-
-  if (org.owner_user_id !== user.id) {
-    return { error: 'Only the organization owner can manage domains' };
-  }
-
-  const customDomain = (org as Record<string, unknown>).custom_domain as string | null;
+  const customDomain = access.organization.custom_domain;
+  const serviceClient = createServiceRoleClient();
 
   // Remove custom domain from DB
-  const { error: updateError } = await supabase
+  const { error: updateError } = await serviceClient
     .from('organizations')
     .update({
       custom_domain: null,
@@ -539,21 +562,14 @@ export async function purchaseDomain(
   organizationId: string,
   domain: string
 ): Promise<{ success?: boolean; error?: string; domain?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
+  const access = await getOrganizationDomainAccess(organizationId);
+  if (access.error || !access.organization) {
+    return { error: access.error || 'Organization not found' };
+  }
 
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .select('owner_user_id')
-    .eq('id', organizationId)
-    .single();
-
-  if (orgError || !org) return { error: 'Organization not found' };
-  if (org.owner_user_id !== user.id)
-    return { error: 'Only the organization owner can purchase domains' };
+  if (!hasCustomDomainAccess(access.organization)) {
+    return { error: 'Custom domains are available with an active platform subscription.' };
+  }
 
   const token = process.env.VERCEL_TOKEN;
   if (!token) return { error: 'Vercel token not configured' };

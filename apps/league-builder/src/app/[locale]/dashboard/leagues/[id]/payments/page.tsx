@@ -6,6 +6,7 @@ import {
   getLeaguePlayerPayments,
   getPaymentSummary,
 } from '@/lib/payments/payment-actions';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 import { PaymentDashboard } from './PaymentDashboard';
 
 type Props = {
@@ -85,7 +86,7 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
   // Determine which season to show (default to most recent active)
   const activeSeason =
     seasons?.find((s) => s.id === selectedSeasonId) ||
-    seasons?.find((s) => s.status === 'active') ||
+    pickOperationalSeason(seasons ?? []) ||
     seasons?.[0];
 
   let payments: any[] = [];

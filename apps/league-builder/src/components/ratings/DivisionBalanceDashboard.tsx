@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import type { DivisionBalanceResult } from '@/lib/ratings';
+import { DIVISION_BALANCE_HELP } from '@/lib/ratings';
+import { RatingsHelpTooltip } from './RatingsHelpTooltip';
 
 interface DivisionBalanceDashboardProps {
   balance: DivisionBalanceResult;
@@ -17,6 +19,9 @@ export function DivisionBalanceDashboard({ balance }: DivisionBalanceDashboardPr
           <p className="text-sm text-neutral-400">Balance Score</p>
           <p className="text-2xl font-bold text-white">{balance.balanceScore.toFixed(1)} / 100</p>
         </div>
+        <p className="max-w-md text-right text-xs leading-5 text-neutral-500">
+          Recommendations now require both a clear mismatch in the current division and a believable fit in the adjacent division.
+        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -24,7 +29,16 @@ export function DivisionBalanceDashboard({ balance }: DivisionBalanceDashboardPr
           <div key={division.divisionId || 'unassigned'} className="bg-white/[0.04] border border-white/10 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-white font-semibold">{division.divisionName}</h3>
-              <span className="text-xs text-neutral-400">μ {division.mean.toFixed(1)} | σ {division.stdDev.toFixed(1)}</span>
+              <span className="flex items-center gap-2 text-xs text-neutral-400">
+                <span className="flex items-center gap-1">
+                  μ {division.mean.toFixed(1)}
+                  <RatingsHelpTooltip label="Division mean" description={DIVISION_BALANCE_HELP.mean} />
+                </span>
+                <span className="flex items-center gap-1">
+                  σ {division.stdDev.toFixed(1)}
+                  <RatingsHelpTooltip label="Division spread" description={DIVISION_BALANCE_HELP.stdDev} />
+                </span>
+              </span>
             </div>
             <div className="space-y-2">
               {division.teams.map((team) => (
@@ -46,7 +60,10 @@ export function DivisionBalanceDashboard({ balance }: DivisionBalanceDashboardPr
       </div>
 
       <div className="bg-white/[0.04] border border-white/10 rounded-xl p-4">
-        <h3 className="text-white font-semibold mb-3">Recommendations</h3>
+        <div className="mb-3 flex items-center gap-2">
+          <h3 className="text-white font-semibold">Recommendations</h3>
+          <RatingsHelpTooltip label="Recommendation rules" description={DIVISION_BALANCE_HELP.recommendations} />
+        </div>
         {balance.recommendations.filter((rec) => !dismissedIds.has(rec.teamId)).length === 0 ? (
           <p className="text-sm text-neutral-400">No active recommendations.</p>
         ) : (
