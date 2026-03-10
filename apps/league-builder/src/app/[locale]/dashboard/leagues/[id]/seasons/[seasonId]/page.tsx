@@ -89,6 +89,9 @@ export default async function SeasonDetailPage({ params }: Props) {
   // Get playoff bracket data
   const bracketResult = await getPlayoffBracket(leagueId, seasonId);
   const initialBracket = bracketResult.success ? bracketResult.data : null;
+  const initialFeeCollectionModel =
+    ((season as Record<string, unknown>).fee_collection_model as 'individual' | 'team' | 'hybrid' | undefined) ??
+    'individual';
 
   // Check if user is owner/admin of this league
   const { data: membership } = await supabase
@@ -285,6 +288,7 @@ export default async function SeasonDetailPage({ params }: Props) {
             seasonId={seasonId}
             seasonName={season.name}
             initialFees={seasonFees}
+            initialFeeCollectionModel={initialFeeCollectionModel}
           />
         </div>
 

@@ -38,6 +38,7 @@ import {
   type UnpaidPlayer,
 } from '@/lib/actions/team-billing';
 import type { ConnectAccountInfo } from '@/lib/leagues/stripe-connect';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 
 interface EmbeddedBillingDashboardProps {
   leagueId: string;
@@ -103,14 +104,13 @@ export function EmbeddedBillingDashboard({
       const supabase = createClient();
       const { data: seasons } = await supabase
         .from('seasons')
-        .select('id, name, status')
+        .select('id, name, status, start_date, end_date, created_at')
         .eq('league_id', leagueId)
-        .in('status', ['active', 'draft'])
         .order('start_date', { ascending: false })
-        .limit(1);
+        .limit(10);
 
-      const season = seasons?.[0] || null;
-      setActiveSeason(season);
+      const season = pickOperationalSeason(seasons ?? []);
+      setActiveSeason(season ? { id: season.id, name: season.name } : null);
 
       // Load team/player data if we have a season
       if (season) {

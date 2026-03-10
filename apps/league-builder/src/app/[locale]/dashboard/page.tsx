@@ -26,6 +26,11 @@ import {
 import { cn } from '@hockey-life/ui';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import StaffDashboardPanel from '@/components/staff/StaffDashboardPanel';
+import {
+  hasDraftSeason,
+  isOperationalSeasonStatus,
+  pickOperationalSeason,
+} from '@/lib/seasons/operational';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -168,7 +173,7 @@ export default async function DashboardPage({ params }: Props) {
         memberRole,
         currentSeason,
         seasonCount: seasons.length,
-        nextAction: getLeagueNextAction({ league, currentSeason }),
+        nextAction: getLeagueNextAction({ league, currentSeason, seasons }),
         migrationActions: getLeagueMigrationActions({ league, currentSeason }),
       } satisfies LeagueCommandDeckItem;
     })
@@ -632,8 +637,10 @@ function OwnerLeagueCommandCard({
               </h3>
               <p className="text-sm text-neutral-400 mt-1">
                 {league.currentSeason
-                  ? `${league.currentSeason.name} is the current operating season.`
-                  : 'No active season selected yet.'}
+                  ? league.currentSeason.status === 'playoffs'
+                    ? `${league.currentSeason.name} is currently in playoffs.`
+                    : `${league.currentSeason.name} is the current operating season.`
+                  : 'No current season selected yet.'}
               </p>
             </div>
           </div>
@@ -673,9 +680,11 @@ function OwnerLeagueCommandCard({
                   </span>
                 </div>
                 <p className="text-sm text-neutral-400 leading-6">
-                  {league.currentSeason.schedule_generated
-                    ? 'Schedule tools are active for this season.'
-                    : 'Schedule has not been generated yet. You can import CSV or build it with templates.'}
+                  {league.currentSeason.status === 'playoffs'
+                    ? 'Playoffs are underway for this season. Create the next season now so registration and scheduling can start early.'
+                    : league.currentSeason.schedule_generated
+                      ? 'Schedule tools are active for this season.'
+                      : 'Schedule has not been generated yet. You can import CSV or build it with templates.'}
                 </p>
               </>
             ) : (
@@ -799,32 +808,14 @@ function InfoTile({ label, value }: { label: string; value: number }) {
   );
 }
 
-function pickOperationalSeason(seasons: LeagueSeasonSnapshot[]): LeagueSeasonSnapshot | null {
-  if (seasons.length === 0) return null;
-
-  const priority: Record<string, number> = {
-    active: 0,
-    registration: 1,
-    draft: 2,
-    completed: 3,
-    archived: 4,
-  };
-
-  return [...seasons].sort((a, b) => {
-    const priorityDelta = (priority[a.status ?? ''] ?? 99) - (priority[b.status ?? ''] ?? 99);
-    if (priorityDelta !== 0) return priorityDelta;
-    const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
-    const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
-    return bDate - aDate;
-  })[0] ?? null;
-}
-
 function getLeagueNextAction({
   league,
   currentSeason,
+  seasons,
 }: {
   league: LeagueSummary;
   currentSeason: LeagueSeasonSnapshot | null;
+  seasons: LeagueSeasonSnapshot[];
 }) {
   if (league.status === 'draft') {
     return {
@@ -847,6 +838,25 @@ function getLeagueNextAction({
       label: 'Create the first season for this league',
       href: `/dashboard/leagues/${league.id}/seasons/new`,
       tone: 'warning' as const,
+    };
+  }
+
+  if (!isOperationalSeasonStatus(currentSeason.status)) {
+    return {
+      label: 'Create the next season for this league',
+      href: `/dashboard/leagues/${league.id}/seasons/new`,
+      tone: 'warning' as const,
+    };
+  }
+
+  if (
+    currentSeason.status === 'playoffs' &&
+    !hasDraftSeason(seasons, { excludeSeasonId: currentSeason.id })
+  ) {
+    return {
+      label: 'Create the next season before playoffs end',
+      href: `/dashboard/leagues/${league.id}/seasons/new`,
+      tone: 'primary' as const,
     };
   }
 
@@ -932,6 +942,7 @@ function sortLeagueCommandDeck(a: LeagueCommandDeckItem, b: LeagueCommandDeckIte
     if (!league.currentSeason) return 1;
     if (league.teamCount === 0) return 2;
     if (league.playerCount === 0) return 3;
+    if (league.currentSeason.status === 'playoffs') return 4;
     if (!league.currentSeason.schedule_generated) return 4;
     return 5;
   };
@@ -947,6 +958,8 @@ function formatSeasonStatus(status: string | null) {
       return 'Registration';
     case 'active':
       return 'Active';
+    case 'playoffs':
+      return 'Playoffs';
     case 'draft':
       return 'Draft';
     case 'completed':
@@ -964,6 +977,8 @@ function getSeasonStatusClasses(status: string | null) {
       return 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300';
     case 'draft':
       return 'border-amber-500/30 bg-amber-500/10 text-amber-300';
+    case 'playoffs':
+      return 'border-purple-500/30 bg-purple-500/10 text-purple-300';
     case 'completed':
       return 'border-white/10 bg-white/[0.05] text-neutral-300';
     default:

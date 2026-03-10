@@ -272,12 +272,22 @@ export function SeasonFeeManager({
 
   const handleFeeCollectionModelChange = async (value: string) => {
     const model = value as FeeCollectionModel;
+    const previousModel = feeCollectionModel;
     setFeeCollectionModel(model);
-    const result = await updateSeasonFeeCollectionModel(leagueId, seasonId, model);
-    if (!result.success) {
-      // Revert on failure
-      setFeeCollectionModel(feeCollectionModel);
-      alert(result.error);
+    setIsLoading(true);
+    try {
+      const result = await updateSeasonFeeCollectionModel(leagueId, seasonId, model);
+
+      if (!result.success) {
+        // Revert on failure
+        setFeeCollectionModel(previousModel);
+        alert(result.error);
+      }
+    } catch {
+      setFeeCollectionModel(previousModel);
+      alert('Failed to update fee collection model.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -297,7 +307,11 @@ export function SeasonFeeManager({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={feeCollectionModel} onValueChange={handleFeeCollectionModelChange}>
+          <Select
+            value={feeCollectionModel}
+            onValueChange={handleFeeCollectionModelChange}
+            disabled={isLoading}
+          >
             <SelectTrigger className="w-full md:w-80">
               <SelectValue />
             </SelectTrigger>

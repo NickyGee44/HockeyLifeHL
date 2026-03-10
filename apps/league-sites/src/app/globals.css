@@ -187,43 +187,43 @@ body::after {
    ----------------------------------------------------------------------------- */
 
 [data-theme='dark'][data-league-template='dark'] {
-  --color-background: #080b12;
-  --color-background-elevated: #101726;
-  --color-background-sunken: #040710;
-  --color-surface: #151f31;
-  --color-surface-hover: #1b2a41;
-  --color-surface-active: #223350;
-  --color-border: color-mix(in srgb, var(--league-primary) 22%, #2a3344);
+  --color-background: color-mix(in srgb, var(--league-secondary) 34%, #050a14);
+  --color-background-elevated: color-mix(in srgb, var(--league-secondary) 48%, #0f1828);
+  --color-background-sunken: color-mix(in srgb, var(--league-secondary) 22%, #03060d);
+  --color-surface: color-mix(in srgb, var(--league-secondary) 56%, #142033);
+  --color-surface-hover: color-mix(in srgb, var(--league-secondary) 62%, #17263d);
+  --color-surface-active: color-mix(in srgb, var(--league-secondary) 70%, #1c2f4d);
+  --color-border: color-mix(in srgb, var(--league-primary) 22%, color-mix(in srgb, var(--league-secondary) 36%, #2a3344));
   --color-border-muted: rgba(255, 255, 255, 0.08);
-  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 38%, #31435e);
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 38%, color-mix(in srgb, var(--league-secondary) 44%, #31435e));
   --glass-opacity: 70%;
   --glass-border-opacity: 55%;
 }
 
 [data-theme='dark'][data-league-template='light'] {
-  --color-background: #0a0f1a;
-  --color-background-elevated: #141b2e;
-  --color-background-sunken: #060a14;
-  --color-surface: #1a2338;
-  --color-surface-hover: #212d46;
-  --color-surface-active: #283654;
-  --color-border: color-mix(in srgb, var(--league-primary) 18%, #2a3650);
+  --color-background: color-mix(in srgb, var(--league-secondary) 28%, #07101d);
+  --color-background-elevated: color-mix(in srgb, var(--league-secondary) 42%, #121d31);
+  --color-background-sunken: color-mix(in srgb, var(--league-secondary) 18%, #040912);
+  --color-surface: color-mix(in srgb, var(--league-secondary) 50%, #18243b);
+  --color-surface-hover: color-mix(in srgb, var(--league-secondary) 58%, #20304a);
+  --color-surface-active: color-mix(in srgb, var(--league-secondary) 66%, #283b5a);
+  --color-border: color-mix(in srgb, var(--league-primary) 18%, color-mix(in srgb, var(--league-secondary) 28%, #2a3650));
   --color-border-muted: rgba(255, 255, 255, 0.08);
-  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 34%, #3a4d70);
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 34%, color-mix(in srgb, var(--league-secondary) 36%, #3a4d70));
   --glass-opacity: 70%;
   --glass-border-opacity: 55%;
 }
 
 [data-theme='dark'][data-league-template='custom'] {
-  --color-background: #0f0a1f;
-  --color-background-elevated: #1a1234;
-  --color-background-sunken: #08061a;
-  --color-surface: #23184a;
-  --color-surface-hover: #2d2160;
-  --color-surface-active: #362870;
-  --color-border: color-mix(in srgb, var(--league-primary) 30%, #382866);
+  --color-background: color-mix(in srgb, var(--league-secondary) 34%, #0a0817);
+  --color-background-elevated: color-mix(in srgb, var(--league-secondary) 48%, #16112d);
+  --color-background-sunken: color-mix(in srgb, var(--league-secondary) 24%, #070512);
+  --color-surface: color-mix(in srgb, var(--league-secondary) 58%, #201847);
+  --color-surface-hover: color-mix(in srgb, var(--league-secondary) 66%, #2a2059);
+  --color-surface-active: color-mix(in srgb, var(--league-secondary) 74%, #33286b);
+  --color-border: color-mix(in srgb, var(--league-primary) 30%, color-mix(in srgb, var(--league-secondary) 40%, #382866));
   --color-border-muted: rgba(255, 255, 255, 0.08);
-  --color-border-emphasis: color-mix(in srgb, var(--league-accent) 45%, #4a3491);
+  --color-border-emphasis: color-mix(in srgb, var(--league-accent) 45%, color-mix(in srgb, var(--league-secondary) 44%, #4a3491));
   --league-glow-color: color-mix(in srgb, var(--league-accent) 28%, transparent);
   --glass-opacity: 68%;
   --glass-border-opacity: 50%;
@@ -235,15 +235,15 @@ body::after {
    ----------------------------------------------------------------------------- */
 
 [data-theme='light'][data-league-template='dark'] {
-  --color-background: #f0f3f8;
+  --color-background: color-mix(in srgb, var(--league-secondary) 8%, #ffffff);
   --color-background-elevated: #ffffff;
-  --color-background-sunken: #e8ecf4;
+  --color-background-sunken: color-mix(in srgb, var(--league-secondary) 12%, #f2f5fb);
   --color-surface: #ffffff;
-  --color-surface-hover: #edf1f8;
-  --color-surface-active: #e2e8f2;
-  --color-border: color-mix(in srgb, var(--league-primary) 15%, #d0d8e6);
-  --color-border-muted: #e8ecf4;
-  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 30%, #b8c4d8);
+  --color-surface-hover: color-mix(in srgb, var(--league-secondary) 10%, #f7f9fd);
+  --color-surface-active: color-mix(in srgb, var(--league-secondary) 14%, #eef2f8);
+  --color-border: color-mix(in srgb, var(--league-primary) 15%, color-mix(in srgb, var(--league-secondary) 10%, #d0d8e6));
+  --color-border-muted: color-mix(in srgb, var(--league-secondary) 10%, #ecf0f7);
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 30%, color-mix(in srgb, var(--league-secondary) 14%, #b8c4d8));
   --color-text-primary: #0f1724;
   --color-text-secondary: #3d4f6a;
   --color-text-muted: #7888a0;
@@ -253,15 +253,15 @@ body::after {
 }
 
 [data-theme='light'][data-league-template='light'] {
-  --color-background: #f4f7ff;
+  --color-background: color-mix(in srgb, var(--league-secondary) 12%, #ffffff);
   --color-background-elevated: #ffffff;
-  --color-background-sunken: #eaeffc;
+  --color-background-sunken: color-mix(in srgb, var(--league-secondary) 16%, #f4f7ff);
   --color-surface: #ffffff;
-  --color-surface-hover: #eef2ff;
-  --color-surface-active: #e2e9fc;
-  --color-border: color-mix(in srgb, var(--league-primary) 18%, #d8def2);
-  --color-border-muted: #edf0fa;
-  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 34%, #bcc8e6);
+  --color-surface-hover: color-mix(in srgb, var(--league-secondary) 12%, #f7f9ff);
+  --color-surface-active: color-mix(in srgb, var(--league-secondary) 18%, #eef3ff);
+  --color-border: color-mix(in srgb, var(--league-primary) 18%, color-mix(in srgb, var(--league-secondary) 14%, #d8def2));
+  --color-border-muted: color-mix(in srgb, var(--league-secondary) 12%, #edf0fa);
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary) 34%, color-mix(in srgb, var(--league-secondary) 18%, #bcc8e6));
   --color-text-primary: #10182b;
   --color-text-secondary: #445072;
   --color-text-muted: #657092;
@@ -271,15 +271,15 @@ body::after {
 }
 
 [data-theme='light'][data-league-template='custom'] {
-  --color-background: #f5f2fa;
+  --color-background: color-mix(in srgb, var(--league-secondary) 10%, #ffffff);
   --color-background-elevated: #ffffff;
-  --color-background-sunken: #ece8f4;
+  --color-background-sunken: color-mix(in srgb, var(--league-secondary) 14%, #f7f3fb);
   --color-surface: #ffffff;
-  --color-surface-hover: #f0ecf8;
-  --color-surface-active: #e6e0f2;
-  --color-border: color-mix(in srgb, var(--league-primary) 18%, #d4cce6);
-  --color-border-muted: #ece8f4;
-  --color-border-emphasis: color-mix(in srgb, var(--league-accent) 35%, #c0b4da);
+  --color-surface-hover: color-mix(in srgb, var(--league-secondary) 11%, #f8f4fb);
+  --color-surface-active: color-mix(in srgb, var(--league-secondary) 16%, #efe8f7);
+  --color-border: color-mix(in srgb, var(--league-primary) 18%, color-mix(in srgb, var(--league-secondary) 12%, #d4cce6));
+  --color-border-muted: color-mix(in srgb, var(--league-secondary) 12%, #ece8f4);
+  --color-border-emphasis: color-mix(in srgb, var(--league-accent) 35%, color-mix(in srgb, var(--league-secondary) 18%, #c0b4da));
   --color-text-primary: #1a1230;
   --color-text-secondary: #4e3d72;
   --color-text-muted: #7a6a96;

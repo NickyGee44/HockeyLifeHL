@@ -12,9 +12,11 @@ import { createClient } from '@/lib/supabase/server';
 import { getGame, getGameAuditLog } from '@/lib/actions/games';
 import { getLeagueReferees } from '@/lib/actions/referee-management';
 import { getGoalieRequests } from '@/lib/actions/goalie-marketplace';
+import { getReplacementInviteCandidates } from '@/lib/actions/replacement-team-invites';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { cn } from '@hockey-life/ui';
 import { StatusBadge } from '@/components/games';
+import { InviteReplacementTeamButton } from '@/components/games/InviteReplacementTeamButton';
 import { GameDetailClient } from '@/components/dashboard/leagues/game-detail-client';
 import { GameOfficialsPanel } from '@/components/referees';
 import { GoalieRequestStatus, RequestGoalieButton } from '@/components/goalie-marketplace';
@@ -87,14 +89,16 @@ export default async function GameDetailPage({ params }: Props) {
   }
 
   // Get audit log and available referees
-  const [auditResult, refereesResult] = await Promise.all([
+  const [auditResult, refereesResult, replacementInviteResult] = await Promise.all([
     getGameAuditLog(gameId),
     getLeagueReferees(leagueId),
+    getReplacementInviteCandidates(gameId),
   ]);
   const auditLog = auditResult.success ? auditResult.data : [];
   const availableReferees = (refereesResult.success && refereesResult.data)
     ? refereesResult.data.referees.filter((r) => r.is_active).map((r) => ({ id: r.id, name: r.name }))
     : [];
+  const replacementInviteSummary = replacementInviteResult.success ? replacementInviteResult.data : null;
 
   // Determine if the viewer can request a goalie for one of the teams in this game
   const [captainTeamsResult, goalieRequestsResult] = await Promise.all([
@@ -140,6 +144,9 @@ export default async function GameDetailPage({ params }: Props) {
 
             {/* Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
+              {replacementInviteSummary && !['completed', 'in_progress'].includes(game.status) ? (
+                <InviteReplacementTeamButton locale={locale} summary={replacementInviteSummary} />
+              ) : null}
               <Link
                 href={`/${locale}/dashboard/leagues/${leagueId}/games/${gameId}/print-sheet`}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:border-neutral-500 transition-colors"

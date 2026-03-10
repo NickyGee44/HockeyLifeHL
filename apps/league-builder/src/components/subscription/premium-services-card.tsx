@@ -1,45 +1,55 @@
-/**
- * Premium Services Card Component
- *
- * Contact-based services (custom domain, historic data import).
- */
+import { Globe, Mail, Sparkles } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 
-import { useTranslations } from 'next-intl';
-import { Mail } from 'lucide-react';
+interface PremiumServicesCardProps {
+  domainsHref: string;
+}
 
-export function PremiumServicesCard() {
-  const t = useTranslations('subscription.premiumServices');
+export function PremiumServicesCard({ domainsHref }: PremiumServicesCardProps) {
   return (
-    <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-6">
-      <h2 className="text-lg font-bold text-white mb-4">{t('title')}</h2>
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Custom Domain */}
-        <div className="bg-neutral-800/50 rounded-xl p-4">
-          <h3 className="font-medium text-white mb-2">{t('customDomain')}</h3>
-          <p className="text-sm text-neutral-400 mb-3">
-            {t('customDomainDesc')}
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+      <div className="mb-4 flex items-start gap-4">
+        <div className="rounded-xl bg-rink-500/10 p-3">
+          <Sparkles className="h-6 w-6 text-rink-500" />
+        </div>
+        <div>
+          <h2 className="mb-1 text-lg font-bold text-white">Launch and migration help</h2>
+          <p className="text-sm text-neutral-400">
+            Domain setup is self-serve in the league builder. Historic imports and special rollout work still start with a scoped migration request.
           </p>
-          <a
-            href="mailto:support@beerleaguehockey.ca?subject=Custom Domain Inquiry"
-            className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1 transition-colors"
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl bg-neutral-800/50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-white">
+            <Globe className="h-4 w-4 text-rink-500" />
+            <h3 className="font-medium">Custom domain</h3>
+          </div>
+          <p className="mb-3 text-sm text-neutral-400">
+            Connect or buy your league domain from the built-in wizard. No separate quote is required.
+          </p>
+          <Link
+            href={domainsHref}
+            className="inline-flex items-center gap-1 text-sm text-rink-500 transition-colors hover:text-rink-400"
           >
-            <Mail className="w-4 h-4" />
-            {t('requestQuote')}
-          </a>
+            Open domain settings
+          </Link>
         </div>
 
-        {/* Historic Data Import */}
-        <div className="bg-neutral-800/50 rounded-xl p-4">
-          <h3 className="font-medium text-white mb-2">{t('historicDataImport')}</h3>
-          <p className="text-sm text-neutral-400 mb-3">
-            {t('historicDataImportDesc')}
+        <div className="rounded-xl bg-neutral-800/50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-white">
+            <Mail className="h-4 w-4 text-rink-500" />
+            <h3 className="font-medium">Historic data import</h3>
+          </div>
+          <p className="mb-3 text-sm text-neutral-400">
+            Need standings history, stats, champions, or archived content moved over? We scope that as part of migration support.
           </p>
           <a
             href="mailto:support@beerleaguehockey.ca?subject=Historic Data Import Inquiry"
-            className="text-sm text-rink-500 hover:text-rink-400 flex items-center gap-1 transition-colors"
+            className="inline-flex items-center gap-1 text-sm text-rink-500 transition-colors hover:text-rink-400"
           >
-            <Mail className="w-4 h-4" />
-            {t('requestQuote')}
+            Contact support
           </a>
         </div>
       </div>

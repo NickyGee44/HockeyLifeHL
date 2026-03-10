@@ -4,6 +4,15 @@
  * Exports all schedule generation functionality.
  */
 
+import {
+  applyByeWeeks,
+  generateDivisionAwareMatchups,
+  generateRoundRobinMatchups,
+  generateSchedule,
+  generateScheduleEnhanced,
+  rescheduleGame,
+} from './generator';
+
 // Types
 export type {
   Team,
@@ -36,8 +45,20 @@ export {
   generateSchedule,
   generateScheduleEnhanced,
   generateRoundRobinMatchups,
+  generateDivisionAwareMatchups,
+  applyByeWeeks,
   rescheduleGame,
 } from './generator';
+
+// Straightforward facade for callers that just need the core generator surface.
+export const scheduleGenerator = {
+  preview: generateSchedule,
+  generate: generateScheduleEnhanced,
+  buildRoundRobin: generateRoundRobinMatchups,
+  buildDivisionMatchups: generateDivisionAwareMatchups,
+  addByeWeeks: applyByeWeeks,
+  reschedule: rescheduleGame,
+} as const;
 
 // Server actions
 export {

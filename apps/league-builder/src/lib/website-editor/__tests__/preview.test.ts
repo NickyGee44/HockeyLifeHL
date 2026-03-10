@@ -17,6 +17,12 @@ describe('website editor preview helpers', () => {
     );
   });
 
+  it('normalizes www hosts before building subdomain previews', () => {
+    expect(buildWebsiteEditorPreviewUrl('https://www.beerleaguehockey.ca', 'bmhl')).toBe(
+      'https://bmhl.beerleaguehockey.ca/?preview=true'
+    );
+  });
+
   it('derives the true origin from the final preview URL', () => {
     expect(
       getWebsiteEditorPreviewOrigin('https://beer-league.beerleaguehockey.ca/?preview=true')

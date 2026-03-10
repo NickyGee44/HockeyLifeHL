@@ -3,19 +3,15 @@
  *
  * Merged billing + subscription management into a single page.
  * Displays:
- * - Plan management (free tier + premium upgrade CTA)
- * - Add-on cards (Advanced Stats, AI News Writer)
- * - Payment processing info (3.5% fee)
+ * - Platform subscription summary
+ * - Payment processing guidance
  * - Per-league Stripe Connect billing links
- * - Premium services (custom domain, data import)
- *
- * Handles checkout flows via query params (checkout=success/cancelled, addon_activated).
+ * - Domain and migration guidance
  */
 
 import { setRequestLocale } from 'next-intl/server';
 import { redirect } from '@/i18n/navigation';
 import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
-import { getOrgAddons } from '@/lib/actions/addons';
 import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
 import { createClient } from '@/lib/supabase/server';
 import { SubscriptionContent } from '@/components/subscription/subscription-content';
@@ -25,12 +21,10 @@ export const dynamic = 'force-dynamic';
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function BillingSettingsPage({ params, searchParams }: Props) {
+export default async function BillingSettingsPage({ params }: Props) {
   const { locale } = await params;
-  const search = await searchParams;
 
   setRequestLocale(locale);
 
@@ -52,10 +46,6 @@ export default async function BillingSettingsPage({ params, searchParams }: Prop
 
   // Get platform fee config
   const feeConfig = await getPlatformFeeConfig();
-
-  // Get organization add-ons
-  const addonsResult = await getOrgAddons(organization.id);
-  const addons = addonsResult.success ? addonsResult.data : [];
 
   // Get leagues for per-league billing links
   const supabase = await createClient();
@@ -89,18 +79,18 @@ export default async function BillingSettingsPage({ params, searchParams }: Prop
       <div>
         <h1 className="text-2xl font-bold text-neutral-100 mb-2">Billing & Subscriptions</h1>
         <p className="text-neutral-400">
-          Manage your plan, add-ons, and payment processing for your leagues.
+          Manage your platform billing, payment processing, and rollout settings for your leagues.
         </p>
       </div>
 
-      {/* Plan Management + Add-ons + Payment Processing + Premium Services */}
+      {/* Platform subscription + payment processing + domain / migration guidance */}
       <SubscriptionContent
-        orgId={organization.id}
+        organizationName={organization.name}
         stripeCustomerId={organization.stripe_customer_id || null}
         platformFeePercent={feeConfig.processingFeePercent}
-        initialAddons={addons}
-        checkoutStatus={search.checkout as string | undefined}
-        addonActivated={search.addon_activated as string | undefined}
+        subscriptionStatus={organization.subscription_status || null}
+        subscriptionTier={organization.subscription_tier || null}
+        domainsHref={`/${locale}/dashboard/settings/domains`}
       />
 
       {/* Per-League Billing Links */}

@@ -421,17 +421,34 @@ export async function updateSeasonFeeCollectionModel(
       return { success: false, error: access.error };
     }
 
-    const supabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
 
-    const { error } = await (supabase
+    const { data: season, error } = await (serviceSupabase
       .from('seasons') as any)
-      .update({ fee_collection_model: feeCollectionModel })
+      .update({
+        fee_collection_model: feeCollectionModel,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', seasonId)
-      .eq('league_id', leagueId);
+      .eq('league_id', leagueId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       console.error('[Payments] Update fee collection model error:', sanitizeErrorForLogging(error));
+
+      if (error.message?.includes('fee_collection_model')) {
+        return {
+          success: false,
+          error: 'Fee collection model is not available in this environment yet.',
+        };
+      }
+
       return { success: false, error: 'Failed to update fee collection model.' };
+    }
+
+    if (!season) {
+      return { success: false, error: 'Season not found.' };
     }
 
     await logPaymentAuditEvent(leagueId, 'fee_collection_model_updated', {
@@ -439,7 +456,10 @@ export async function updateSeasonFeeCollectionModel(
       fee_collection_model: feeCollectionModel,
     }, access.userId);
 
-    revalidatePath(`/dashboard/leagues/${leagueId}/fees`);
+    revalidatePath(`/dashboard/leagues/${leagueId}`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/seasons`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/seasons/${seasonId}`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/payments`);
     return { success: true, data: undefined };
   } catch (error) {
     console.error('[Payments] Unexpected error in updateSeasonFeeCollectionModel:', sanitizeErrorForLogging(error));
