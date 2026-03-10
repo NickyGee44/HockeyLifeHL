@@ -6,18 +6,19 @@
  *
  * Security:
  * - Verifies user authentication
- * - Validates organization ownership
+ * - Validates organization-management access
  * - Uses server-side Stripe SDK
  * - Includes success/cancel URLs
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { stripe, getPriceIdByTier } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
 import type { SubscriptionTier } from '@/lib/types/subscription';
 import { capturePaymentError } from '@/lib/sentry/payments';
 import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
+import { getPrimaryManagedOrganization } from '@/lib/organizations/access';
 
 interface CheckoutSessionRequest {
   tier: SubscriptionTier;
@@ -66,23 +67,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's organization
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('owner_user_id', user.id)
-      .single();
-
-    if (orgError || !org) {
+    const org = await getPrimaryManagedOrganization();
+    if (!org) {
       return NextResponse.json(
         { error: 'Organization not found' },
         { status: 404 }
       );
-    }
-
-    // Verify ownership
-    if (org.owner_user_id !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Get price ID for tier
@@ -92,6 +82,14 @@ export async function POST(request: NextRequest) {
     let customerId = org.stripe_customer_id;
 
     if (!customerId) {
+      const customerMetadata: Record<string, string> = {
+        organization_id: org.id,
+      };
+
+      if (org.owner_user_id) {
+        customerMetadata.owner_user_id = org.owner_user_id;
+      }
+
       // Create new customer
       const customerIdempotencyKey = generateIdempotencyKey('create_customer', {
         organization_id: org.id,
@@ -100,12 +98,9 @@ export async function POST(request: NextRequest) {
 
       const customer = await stripe.customers.create(
         {
-          name: org.name,
+          name: typeof org.name === 'string' ? org.name : undefined,
           email: user.email,
-          metadata: {
-            organization_id: org.id,
-            owner_user_id: org.owner_user_id,
-          },
+          metadata: customerMetadata,
         },
         {
           idempotencyKey: customerIdempotencyKey,
@@ -115,7 +110,8 @@ export async function POST(request: NextRequest) {
       customerId = customer.id;
 
       // Update organization with customer ID
-      await supabase
+      const serviceClient = createServiceRoleClient();
+      await serviceClient
         .from('organizations')
         .update({ stripe_customer_id: customerId })
         .eq('id', org.id);

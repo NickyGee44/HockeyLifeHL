@@ -101,6 +101,10 @@ export default async function RegistrationsPage({
     ? registrationsResult.data?.total || 0
     : 0;
   const summary = summaryResult.success ? summaryResult.data : null;
+  const loadErrors = [
+    !registrationsResult.success ? registrationsResult.error : null,
+    !summaryResult.success ? summaryResult.error : null,
+  ].filter(Boolean) as string[];
 
   const totalPages = Math.ceil(total / limit);
 
@@ -136,6 +140,24 @@ export default async function RegistrationsPage({
       </div>
 
       {/* Stats Cards */}
+      {loadErrors.length > 0 && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-amber-400" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-300">
+                We couldn&apos;t fully load registrations.
+              </p>
+              {loadErrors.map((error) => (
+                <p key={error} className="text-sm text-amber-100/90">
+                  {error}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard

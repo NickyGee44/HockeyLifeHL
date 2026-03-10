@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { updateLeagueBranding } from '@/lib/actions/organization';
 import { useEditor } from '../EditorContext';
+import { normalizeHexColor } from '@/lib/website-editor/theme-palette';
+import { DEFAULT_COLORS } from '../constants';
 
 export function useEditorSave() {
   const { state, setSaving, markClean } = useEditor();
@@ -15,6 +17,10 @@ export function useEditorSave() {
     setSaving(true);
 
     try {
+      const primaryColor = normalizeHexColor(state.primaryColor, DEFAULT_COLORS.primary);
+      const secondaryColor = normalizeHexColor(state.secondaryColor, DEFAULT_COLORS.secondary);
+      const accentColor = normalizeHexColor(state.accentColor, DEFAULT_COLORS.accent);
+
       const websiteSettings = {
         themePreset: state.themePreset,
         socialFacebook: state.socialFacebook,
@@ -33,9 +39,9 @@ export function useEditorSave() {
         leagueId: state.selectedLeagueId,
 
         // Theme
-        primaryColor: state.primaryColor,
-        secondaryColor: state.secondaryColor,
-        accentColor: state.accentColor,
+        primaryColor,
+        secondaryColor,
+        accentColor,
         fontFamily: state.fontFamily,
 
         // Images

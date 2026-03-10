@@ -14,13 +14,15 @@ import {
 } from 'lucide-react';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getSeasonParticipationTeamIds } from '@/lib/seasons/team-participation';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
   searchParams: Promise<{ season?: string; tool?: string }>;
 };
 
-async function getSeasonScheduleData(supabase: any, seasonId: string) {
+async function getSeasonScheduleData(supabase: any, serviceClient: any, seasonId: string) {
   const { data: season, error } = await supabase
     .from('seasons')
     .select('*')
@@ -29,13 +31,11 @@ async function getSeasonScheduleData(supabase: any, seasonId: string) {
 
   if (error || !season) return null;
 
-  // Only include teams with active rosters in this specific season
-  const { data: seasonRosters } = await supabase
-    .from('team_rosters')
-    .select('team_id')
-    .eq('season_id', seasonId)
-    .eq('status', 'active');
-  const seasonTeamIds = [...new Set((seasonRosters ?? []).map((r: any) => r.team_id))];
+  const seasonTeamIds = await getSeasonParticipationTeamIds(
+    serviceClient,
+    season.league_id,
+    seasonId
+  );
 
   const { data: teams } = seasonTeamIds.length > 0
     ? await supabase
@@ -83,6 +83,7 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
   setRequestLocale(locale);
 
   const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
+  const serviceClient = createServiceRoleClient();
 
   // Get league details with seasons
   const { data: league, error: leagueError } = await supabase
@@ -129,7 +130,7 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
 
   // If a specific season is selected via ?season= param, show the season schedule management view
   if (seasonParam) {
-    const seasonData = await getSeasonScheduleData(supabase, seasonParam);
+    const seasonData = await getSeasonScheduleData(supabase, serviceClient, seasonParam);
     if (seasonData) {
       const FALLBACK_DATE = '1970-01-01T00:00:00.000Z';
       return (

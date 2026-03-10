@@ -269,6 +269,9 @@ export default async function RegisterPage({
         content: DEFAULT_WAIVER_CONTENT,
         version: 'v1',
         content_hash: '',
+        document_url: null,
+        document_name: null,
+        document_mime_type: null,
       };
 
   // Get available teams
@@ -307,6 +310,9 @@ export default async function RegisterPage({
             waiverContent={waiver.content}
             waiverVersion={waiver.version}
             waiverContentHash={waiver.content_hash}
+            waiverDocumentUrl={waiver.document_url}
+            waiverDocumentName={waiver.document_name}
+            waiverDocumentMimeType={waiver.document_mime_type}
           >
             {/* Render appropriate step based on URL */}
             {currentStep === 1 && <Step1RegistrationType />}

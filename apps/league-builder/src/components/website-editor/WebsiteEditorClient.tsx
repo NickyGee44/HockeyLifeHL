@@ -1,9 +1,7 @@
 'use client';
 
-import { useCallback } from 'react';
 import type { LeagueEditorData } from './types';
 import { EditorProvider, useEditor } from './EditorContext';
-import { usePreviewMessaging } from './hooks/usePreviewMessaging';
 import { useUnsavedChanges } from './hooks/useUnsavedChanges';
 import { EditorHeader } from './EditorHeader';
 import { EditorSidebar } from './EditorSidebar';
@@ -32,21 +30,10 @@ interface WebsiteEditorClientProps {
 // ---------------------------------------------------------------------------
 
 function EditorShell() {
-  const { state, setPreviewReady, iframeRef, previewUrl } = useEditor();
-
-  // Single instantiation of preview messaging (sends theme via postMessage)
-  usePreviewMessaging();
+  const { state } = useEditor();
 
   // Beforeunload guard
   useUnsavedChanges();
-
-  // Refresh handler - resets preview readiness and reloads the iframe
-  const handleRefreshPreview = useCallback(() => {
-    setPreviewReady(false);
-    if (iframeRef.current) {
-      iframeRef.current.src = previewUrl;
-    }
-  }, [setPreviewReady, iframeRef, previewUrl]);
 
   const panels: Record<string, React.ReactNode> = {
     theme: <ThemePanel />,
@@ -60,7 +47,7 @@ function EditorShell() {
 
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col">
-      <EditorHeader onRefreshPreview={handleRefreshPreview} />
+      <EditorHeader />
 
       <div className="flex-1 flex overflow-hidden">
         <EditorSidebar panels={panels} />

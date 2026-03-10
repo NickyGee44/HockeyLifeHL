@@ -5008,6 +5008,9 @@ export type Database = {
           content_hash: string
           created_at: string | null
           created_by: string | null
+          document_mime_type: string | null
+          document_name: string | null
+          document_url: string | null
           id: string
           is_active: boolean | null
           league_id: string
@@ -5020,6 +5023,9 @@ export type Database = {
           content_hash: string
           created_at?: string | null
           created_by?: string | null
+          document_mime_type?: string | null
+          document_name?: string | null
+          document_url?: string | null
           id?: string
           is_active?: boolean | null
           league_id: string
@@ -5032,6 +5038,9 @@ export type Database = {
           content_hash?: string
           created_at?: string | null
           created_by?: string | null
+          document_mime_type?: string | null
+          document_name?: string | null
+          document_url?: string | null
           id?: string
           is_active?: boolean | null
           league_id?: string

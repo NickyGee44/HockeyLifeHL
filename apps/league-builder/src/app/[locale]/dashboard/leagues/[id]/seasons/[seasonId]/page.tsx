@@ -25,7 +25,13 @@ import { PlayoffBracketClient } from '@/components/playoffs';
 import { getPlayoffBracket } from '@/lib/actions/playoff-bracket';
 import { StatsExportButton } from '@/components/seasons/StatsExportButton';
 import { SeasonStatusTransitionButton } from '@/components/seasons/SeasonStatusTransitionButton';
+import { ImportSeasonTeamsButton } from '@/components/seasons/ImportSeasonTeamsButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  getSeasonParticipationTeamIds,
+  getSeasonParticipationTeams,
+} from '@/lib/seasons/team-participation';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -38,6 +44,7 @@ export default async function SeasonDetailPage({ params }: Props) {
   setRequestLocale(locale);
 
   const { supabase, access, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
+  const serviceClient = createServiceRoleClient();
 
   // Get season with league info
   const { data: season, error: seasonError } = await supabase
@@ -61,12 +68,36 @@ export default async function SeasonDetailPage({ params }: Props) {
     notFound();
   }
 
-  // Get teams count for this season (teams linked to the league)
-  const { count: teamsCount } = await supabase
-    .from('teams')
-    .select('*', { count: 'exact', head: true })
-    .eq('league_id', leagueId)
-    .eq('status', 'active');
+  const [
+    seasonTeamIds,
+    previousSeason,
+  ] = await Promise.all([
+    getSeasonParticipationTeamIds(serviceClient, leagueId, seasonId),
+    (async () => {
+      let query = serviceClient
+        .from('seasons')
+        .select('id, name, start_date')
+        .eq('league_id', leagueId)
+        .neq('id', seasonId)
+        .order('start_date', { ascending: false })
+        .limit(1);
+
+      if (season.start_date) {
+        query = query.lt('start_date', season.start_date);
+      }
+
+      const { data } = await query.maybeSingle();
+      return data;
+    })(),
+  ]);
+
+  const previousSeasonTeams = previousSeason
+    ? await getSeasonParticipationTeams(serviceClient, leagueId, previousSeason.id)
+    : [];
+  const importableTeams = previousSeasonTeams.filter(
+    (team) => !seasonTeamIds.includes(team.id)
+  );
+  const teamsCount = seasonTeamIds.length;
 
   // Get games count for this season
   const { count: gamesCount } = await supabase
@@ -103,6 +134,8 @@ export default async function SeasonDetailPage({ params }: Props) {
 
   const canEdit =
     access.accessType === 'platform_admin' ||
+    access.accessType === 'org_owner' ||
+    access.accessType === 'league_admin' ||
     membership?.role === 'owner' ||
     membership?.role === 'admin';
 
@@ -172,6 +205,19 @@ export default async function SeasonDetailPage({ params }: Props) {
                   currentStatus={season.status ?? 'draft'}
                 />
               )}
+              {canEdit && previousSeason && importableTeams.length > 0 && (
+                <ImportSeasonTeamsButton
+                  leagueId={leagueId}
+                  seasonId={seasonId}
+                  sourceSeasonId={previousSeason.id}
+                  sourceSeasonName={previousSeason.name}
+                  teams={importableTeams.map((team) => ({
+                    id: team.id,
+                    name: team.name,
+                    short_name: team.short_name,
+                  }))}
+                />
+              )}
               <Link
                 href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${seasonId}/edit`}
                 className={cn(
@@ -230,7 +276,7 @@ export default async function SeasonDetailPage({ params }: Props) {
         {/* Main Actions */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
           <ActionCard
-            href={`/${locale}/dashboard/seasons/${seasonId}/schedule`}
+            href={`/${locale}/dashboard/leagues/${leagueId}/schedule?season=${seasonId}`}
             icon={<Calendar className="w-6 h-6" />}
             title="Schedule Management"
             description="Generate and manage the game schedule"

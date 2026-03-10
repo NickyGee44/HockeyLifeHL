@@ -7,6 +7,7 @@ import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { TeamsDivisionsClient } from './teams-divisions-client';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { getSeasonParticipationTeamIds } from '@/lib/seasons/team-participation';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -45,17 +46,16 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
     .limit(1)
     .maybeSingle();
 
-  // Get team IDs that have active roster entries in the current season
+  // Get season team IDs from participation markers, registrations, rosters, or games
   let seasonTeamIds: string[] | null = null;
   if (currentSeason) {
-    const { data: rosterRows } = await serviceClient
-      .from('team_rosters')
-      .select('team_id')
-      .eq('league_id', leagueId)
-      .eq('season_id', currentSeason.id)
-      .eq('status', 'active');
-    if (rosterRows && rosterRows.length > 0) {
-      seasonTeamIds = [...new Set(rosterRows.map((r: any) => r.team_id as string))];
+    const teamIds = await getSeasonParticipationTeamIds(
+      serviceClient,
+      leagueId,
+      currentSeason.id
+    );
+    if (teamIds.length > 0) {
+      seasonTeamIds = teamIds;
     }
   }
 

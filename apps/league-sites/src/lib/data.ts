@@ -39,6 +39,7 @@ import type {
   GamePlayerStats,
   PlayerBadge,
 } from './types';
+import { getBalancedLeagueColors } from './theme-palette';
 
 // Default brand colors from BRAND-KIT.md
 const DEFAULT_PRIMARY = '#D4AF37';
@@ -125,11 +126,17 @@ export async function getLeagueBySlug(slug: string): Promise<League | null> {
  */
 export function getLeagueTheme(league: League): LeagueTheme {
   const templateVariant = getThemePreset(league);
-
-  return {
+  const colors = getBalancedLeagueColors({
     primaryColor: league.primary_color || DEFAULT_PRIMARY,
     secondaryColor: league.secondary_color || DEFAULT_SECONDARY,
     accentColor: league.accent_color || league.primary_color || DEFAULT_ACCENT,
+    themePreset: templateVariant,
+  });
+
+  return {
+    primaryColor: colors.primaryColor,
+    secondaryColor: colors.secondaryColor,
+    accentColor: colors.accentColor,
     logoUrl: league.logo_url,
     bannerUrl: league.banner_url,
     fontFamily: league.settings?.website?.themePreset === 'light'

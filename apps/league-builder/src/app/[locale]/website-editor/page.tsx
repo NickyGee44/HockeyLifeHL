@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Website Editor | Beer League Hockey',
-  description: 'Customize your league website with live preview',
+  description: 'Customize your league website with a wireframe preview and publish changes to your live league site.',
 };
 
 function mergeUniqueLeagues(...leagueGroups: LeagueEditorData[][]): LeagueEditorData[] {

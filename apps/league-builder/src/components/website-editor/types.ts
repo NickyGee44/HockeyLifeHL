@@ -109,7 +109,6 @@ export interface EditorState {
   viewportSize: ViewportSize;
   isSidebarCollapsed: boolean;
   isSaving: boolean;
-  isPreviewReady: boolean;
 }
 
 /**

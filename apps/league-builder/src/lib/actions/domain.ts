@@ -4,7 +4,7 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import dns from 'dns';
 import { promisify } from 'util';
-import { isUserPlatformAdmin } from '@/lib/auth/platform-admin';
+import { verifyOrganizationAccess } from '@/lib/organizations/access';
 
 const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
@@ -39,74 +39,15 @@ async function getOrganizationDomainAccess(organizationId: string): Promise<{
   organization?: ManagedOrganization;
   error?: string;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Not authenticated' };
+  const access = await verifyOrganizationAccess(organizationId, { requireManagement: true });
+  if (!access.authorized || !access.organization || !access.userId) {
+    return { error: access.error || 'Only league owners and organization admins can manage domains' };
   }
 
-  const serviceClient = createServiceRoleClient();
-  const { data: organization, error: orgError } = await serviceClient
-    .from('organizations')
-    .select('id, name, slug, owner_user_id, custom_domain, custom_domain_verified, subscription_tier, subscription_status')
-    .eq('id', organizationId)
-    .maybeSingle();
-
-  if (orgError || !organization) {
-    return { error: 'Organization not found' };
-  }
-
-  if (organization.owner_user_id === user.id) {
-    return { userId: user.id, organization: organization as ManagedOrganization };
-  }
-
-  const { data: orgMembership } = await serviceClient
-    .from('organization_members')
-    .select('role')
-    .eq('organization_id', organizationId)
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .in('role', ['owner', 'admin'])
-    .maybeSingle();
-
-  if (orgMembership) {
-    return { userId: user.id, organization: organization as ManagedOrganization };
-  }
-
-  const { data: ownedLeague } = await serviceClient
-    .from('leagues')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .or(`owner_id.eq.${user.id},created_by.eq.${user.id}`)
-    .limit(1)
-    .maybeSingle();
-
-  if (ownedLeague) {
-    return { userId: user.id, organization: organization as ManagedOrganization };
-  }
-
-  const { data: leagueMembership } = await (serviceClient as any)
-    .from('league_memberships')
-    .select('league_id, leagues!inner(organization_id)')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .in('role', ['owner', 'admin'])
-    .eq('leagues.organization_id', organizationId)
-    .limit(1)
-    .maybeSingle();
-
-  if (leagueMembership) {
-    return { userId: user.id, organization: organization as ManagedOrganization };
-  }
-
-  if (await isUserPlatformAdmin(user.id)) {
-    return { userId: user.id, organization: organization as ManagedOrganization };
-  }
-
-  return { error: 'Only league owners and organization admins can manage domains' };
+  return {
+    userId: access.userId,
+    organization: access.organization as ManagedOrganization,
+  };
 }
 
 function hasCustomDomainAccess(organization: ManagedOrganization) {

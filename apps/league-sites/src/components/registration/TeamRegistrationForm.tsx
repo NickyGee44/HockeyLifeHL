@@ -8,6 +8,7 @@ import {
   submitTeamRegistration,
   type LeagueFormConfig,
 } from '@/lib/actions/registration';
+import { WaiverDocumentPanel } from './WaiverDocumentPanel';
 
 interface TeamRegistrationFormProps {
   leagueId: string;
@@ -17,6 +18,9 @@ interface TeamRegistrationFormProps {
   seasonName: string;
   waiverContent: string;
   waiverVersion: string;
+  waiverDocumentUrl?: string | null;
+  waiverDocumentName?: string | null;
+  waiverDocumentMimeType?: string | null;
   leagueFormConfig: LeagueFormConfig;
 }
 
@@ -42,6 +46,9 @@ export function TeamRegistrationForm({
   seasonName,
   waiverContent,
   waiverVersion,
+  waiverDocumentUrl,
+  waiverDocumentName,
+  waiverDocumentMimeType,
   leagueFormConfig,
 }: TeamRegistrationFormProps) {
   const { user } = useUser();
@@ -407,6 +414,14 @@ export function TeamRegistrationForm({
           <p className="text-sm text-[var(--color-text-secondary)] mb-4">
             Please read the full waiver below, then scroll to the bottom to accept.
           </p>
+
+          <div className="mb-4">
+            <WaiverDocumentPanel
+              documentUrl={waiverDocumentUrl}
+              documentName={waiverDocumentName}
+              documentMimeType={waiverDocumentMimeType}
+            />
+          </div>
 
           <div
             onScroll={handleWaiverScroll}

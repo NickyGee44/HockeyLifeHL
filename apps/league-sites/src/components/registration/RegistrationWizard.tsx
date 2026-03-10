@@ -39,6 +39,9 @@ interface RegistrationWizardProps {
   waiverContent: string;
   waiverVersion: string;
   waiverContentHash: string;
+  waiverDocumentUrl?: string | null;
+  waiverDocumentName?: string | null;
+  waiverDocumentMimeType?: string | null;
   initialData: RegistrationDraftData | null;
   leagueFormConfig: LeagueFormConfig;
 }
@@ -67,6 +70,9 @@ export function RegistrationWizard({
   waiverContent,
   waiverVersion: _waiverVersion,
   waiverContentHash,
+  waiverDocumentUrl,
+  waiverDocumentName,
+  waiverDocumentMimeType,
   initialData,
   leagueFormConfig,
 }: RegistrationWizardProps) {
@@ -368,13 +374,16 @@ export function RegistrationWizard({
             onUpdate={updateFormData}
           />
         )}
-        {currentStep === 4 && (
-          <StepWaiver
-            formData={formData}
-            waiverContent={waiverContent}
-            onUpdate={updateFormData}
-          />
-        )}
+          {currentStep === 4 && (
+            <StepWaiver
+              formData={formData}
+              waiverContent={waiverContent}
+              waiverDocumentUrl={waiverDocumentUrl}
+              waiverDocumentName={waiverDocumentName}
+              waiverDocumentMimeType={waiverDocumentMimeType}
+              onUpdate={updateFormData}
+            />
+          )}
         {currentStep === 5 && registrationFee > 0 && (
           <StepPayment
             formData={formData}

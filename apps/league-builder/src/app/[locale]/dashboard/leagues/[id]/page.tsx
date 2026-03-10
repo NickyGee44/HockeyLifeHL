@@ -21,6 +21,7 @@ import {
   Database,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
+import { AnnouncementComposerButton } from '@/components/news/AnnouncementComposerButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 
@@ -145,7 +146,8 @@ export default async function LeagueDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <AnnouncementComposerButton leagueId={leagueId} leagueName={league.name} />
               <span
                 className={cn(
                   'px-3 py-1.5 text-sm font-semibold rounded-full',

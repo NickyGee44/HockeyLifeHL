@@ -11,6 +11,8 @@ import { RosterExportButton } from '@/components/teams/RosterExportButton';
 import { TeamEmailBlast } from '@/components/teams/TeamEmailBlast';
 import { ImportTeamsButton } from '@/components/teams/ImportTeamsButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getSeasonParticipationTeamIds } from '@/lib/seasons/team-participation';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -25,6 +27,7 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
   setRequestLocale(locale);
 
   const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
+  const serviceClient = createServiceRoleClient();
 
   // Get league details
   const { data: league, error: leagueError } = await supabase
@@ -38,12 +41,12 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
     notFound();
   }
 
-  // Get current season to filter teams
+  // Get current operational season to filter teams when season participation exists
   const { data: currentSeason } = await supabase
     .from('seasons')
     .select('id')
     .eq('league_id', leagueId)
-    .eq('status', 'active')
+    .in('status', ['active', 'playoffs'])
     .order('start_date', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -70,15 +73,13 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
     .order('name');
 
   if (currentSeason?.id) {
-    const { data: rosterTeams } = await supabase
-      .from('team_rosters')
-      .select('team_id')
-      .eq('league_id', leagueId)
-      .eq('season_id', currentSeason.id)
-      .is('end_date', null);
+    const teamIds = await getSeasonParticipationTeamIds(
+      serviceClient,
+      leagueId,
+      currentSeason.id
+    );
 
-    if (rosterTeams && rosterTeams.length > 0) {
-      const teamIds = [...new Set(rosterTeams.map(r => r.team_id))];
+    if (teamIds.length > 0) {
       teamsQuery = teamsQuery.in('id', teamIds);
     }
   }
