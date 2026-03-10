@@ -21,6 +21,9 @@ export interface WaiverModalProps {
   content: string;
   version: string;
   contentHash: string;
+  documentUrl?: string | null;
+  documentName?: string | null;
+  documentMimeType?: string | null;
   leagueName?: string;
   className?: string;
   /** When true, hides signature panel and shows a simple "I agree" button */
@@ -37,6 +40,9 @@ export function WaiverModal({
   content,
   version,
   contentHash,
+  documentUrl,
+  documentName,
+  documentMimeType,
   leagueName,
   className,
   simplified,
@@ -95,6 +101,12 @@ export function WaiverModal({
   };
 
   const canSign = hasScrolledToBottom && signatureData && signedName.trim().length >= 2;
+  const showPdfPreview = !!documentUrl && (
+    documentMimeType === 'application/pdf' || /\.pdf($|\?)/i.test(documentUrl)
+  );
+  const showImagePreview = !!documentUrl && (
+    !!documentMimeType?.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(documentUrl)
+  );
 
   if (!isOpen) return null;
 
@@ -146,6 +158,49 @@ export function WaiverModal({
               onScroll={handleScroll}
               className="flex-1 overflow-y-auto p-6 prose prose-invert max-w-none"
             >
+              {documentUrl && (
+                <div className="not-prose mb-6 rounded-xl border border-neutral-700 bg-neutral-800/60 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-white">
+                        {documentName || 'Uploaded waiver document'}
+                      </p>
+                      <p className="text-xs text-neutral-400">
+                        Review the uploaded document before accepting the waiver.
+                      </p>
+                    </div>
+                    <a
+                      href={documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-lg border border-neutral-600 px-3 py-2 text-sm text-white transition-colors hover:bg-neutral-700"
+                    >
+                      Open document
+                    </a>
+                  </div>
+
+                  {showPdfPreview && (
+                    <div className="mt-4 overflow-hidden rounded-lg border border-neutral-700 bg-white">
+                      <iframe
+                        src={documentUrl}
+                        title={documentName || 'Waiver document'}
+                        className="h-[420px] w-full"
+                      />
+                    </div>
+                  )}
+
+                  {showImagePreview && (
+                    <div className="mt-4 overflow-hidden rounded-lg border border-neutral-700 bg-white p-2">
+                      <img
+                        src={documentUrl}
+                        alt={documentName || 'Waiver document'}
+                        className="max-h-[420px] w-full rounded object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Render markdown-like content */}
               <div
                 className="text-neutral-300 leading-relaxed"

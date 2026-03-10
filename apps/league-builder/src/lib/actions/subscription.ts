@@ -5,7 +5,7 @@
  * Includes: create, upgrade, downgrade, cancel, reactivate, update payment method, billing portal.
  *
  * Security:
- * - All actions verify user ownership of organization
+ * - All actions verify organization-management access
  * - Uses service role for database updates (bypasses RLS)
  * - Stripe operations use server-side SDK only
  * - No card data touches our servers (PCI compliant)
@@ -17,9 +17,10 @@
 
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { stripe, getPriceIdByTier, getStripeErrorMessage } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
+import { getPrimaryManagedOrganization } from '@/lib/organizations/access';
 import type {
   OrganizationSubscription,
   SubscriptionCheckoutResult,
@@ -62,36 +63,8 @@ interface Organization {
 // ============================================================================
 
 async function getUserOrganization(): Promise<Organization | null> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error: userError } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return null;
-  }
-
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .select('*')
-    .eq('owner_user_id', user.id)
-    .single();
-
-  if (orgError || !org) {
-    return null;
-  }
-
-  // SECURITY: Double-check ownership after fetch
-  if (org.owner_user_id !== user.id) {
-    console.error('[SECURITY] Organization ownership mismatch detected', {
-      organizationId: org.id,
-      claimedOwner: org.owner_user_id,
-      currentUser: user.id });
-    return null;
-  }
-
-  return org as Organization;
+  const organization = await getPrimaryManagedOrganization();
+  return organization ? (organization as unknown as Organization) : null;
 }
 
 // ============================================================================
@@ -110,7 +83,7 @@ async function logSubscriptionEvent(params: {
   metadata?: Record<string, unknown>;
   createdBy?: string;
 }): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   const { error } = await supabase.rpc('log_organization_subscription_event', {
     p_organization_id: params.organizationId,
@@ -137,7 +110,7 @@ async function checkTrialEligibility(
   customerId: string | null,
   userId: string
 ): Promise<{ eligible: boolean; reason?: string }> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Check if customer already exists and has had a trial
   if (customerId) {
@@ -321,7 +294,7 @@ export async function createOrganizationSubscription(
       customerId = customer.id;
 
       // Update organization with customer ID
-      const supabase = await createClient();
+      const supabase = createServiceRoleClient();
       await supabase
         .from('organizations')
         .update({ stripe_customer_id: customerId })
@@ -406,7 +379,7 @@ export async function createOrganizationSubscription(
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
     // Update organization
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     await supabase
       .from('organizations')
       .update({
@@ -516,7 +489,7 @@ export async function upgradeSubscription(
     );
 
     // SECURITY: Update organization with optimistic locking
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { data: updateResult, error: updateError } = await supabase
       .from('organizations')
       .update({
@@ -614,7 +587,7 @@ export async function downgradeSubscription(
       : new Date();
 
     // SECURITY: Update with optimistic locking check
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { data: updateResult, error: updateError } = await supabase
       .from('organizations')
       .update({
@@ -691,7 +664,7 @@ export async function cancelSubscription(
       effectiveDate = new Date();
 
       // SECURITY: Update organization with optimistic locking
-      const supabase = await createClient();
+      const supabase = createServiceRoleClient();
       const { data: updateResult, error: updateError } = await supabase
         .from('organizations')
         .update({
@@ -737,7 +710,7 @@ export async function cancelSubscription(
         : new Date();
 
       // SECURITY: Update organization with optimistic locking
-      const supabase = await createClient();
+      const supabase = createServiceRoleClient();
       const { data: updateResult, error: updateError } = await supabase
         .from('organizations')
         .update({
@@ -816,7 +789,7 @@ export async function reactivateSubscription(): ActionResult<void> {
     );
 
     // SECURITY: Update organization with optimistic locking
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { data: updateResult, error: updateError } = await supabase
       .from('organizations')
       .update({
@@ -927,7 +900,7 @@ export async function updatePaymentMethod(
     const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
 
     // Update organization
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     await supabase
       .from('organizations')
       .update({

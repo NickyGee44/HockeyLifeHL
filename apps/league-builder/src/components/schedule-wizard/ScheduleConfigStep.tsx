@@ -10,6 +10,7 @@
 import { cn } from '@hockey-life/ui/lib/utils';
 import { Calendar, CalendarOff, Clock, MapPin, Users, Repeat, Trophy, Info, GitBranch, Percent, Hash, Snowflake } from 'lucide-react';
 import type { ScheduleConfig, ScheduleTemplate, Team, Venue } from '@/lib/schedule/types';
+import { getStandardHolidayGroupsInRange, toLocalDateString as toLocalDateStr } from '@/lib/schedule/holidays';
 
 // ============================================================================
 // TYPES
@@ -69,11 +70,6 @@ const PLAYOFF_FORMATS = [
 // COMPONENT
 // ============================================================================
 
-/** Format a Date as YYYY-MM-DD using local (not UTC) components. */
-function toLocalDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 /** Count available game-day slots between two dates for the given day-of-week set, skipping any skipDates. */
 function countAvailableSlots(start: Date, end: Date, gameDays: number[], skipDates?: string[]): number {
   let count = 0;
@@ -87,87 +83,6 @@ function countAvailableSlots(start: Date, end: Date, gameDays: number[], skipDat
     current.setDate(current.getDate() + 1);
   }
   return count;
-}
-
-// ============================================================================
-// HOLIDAY UTILITIES
-// ============================================================================
-
-/** Meeus/Jones/Butcher Easter algorithm — returns Easter Sunday for a given year. */
-function computeEaster(year: number): Date {
-  const a = year % 19;
-  const b = Math.floor(year / 100);
-  const c = year % 100;
-  const d = Math.floor(b / 4);
-  const e = b % 4;
-  const f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3);
-  const h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4);
-  const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
-  const day = ((h + l - 7 * m + 114) % 31) + 1;
-  return new Date(year, month, day);
-}
-
-/** Returns the nth occurrence of a weekday (0=Sun…6=Sat) in a given month. */
-function nthWeekdayOfMonth(year: number, month: number, weekday: number, n: number): Date {
-  const first = new Date(year, month, 1);
-  const diff = (weekday - first.getDay() + 7) % 7;
-  return new Date(year, month, 1 + diff + (n - 1) * 7);
-}
-
-/** Returns the last occurrence of a weekday on or before the given day of month. */
-function lastWeekdayOnOrBefore(year: number, month: number, day: number, weekday: number): Date {
-  const ref = new Date(year, month, day);
-  const back = (ref.getDay() - weekday + 7) % 7;
-  return new Date(year, month, day - back);
-}
-
-interface HolidayDef {
-  id: string;
-  label: string;
-  compute: (year: number) => Date[];
-}
-
-const HOCKEY_HOLIDAYS: HolidayDef[] = [
-  { id: 'new_years_day',    label: "New Year's Day (Jan 1)",           compute: (y) => [new Date(y, 0, 1)] },
-  { id: 'good_friday',      label: 'Good Friday',                      compute: (y) => { const e = computeEaster(y); return [new Date(y, e.getMonth(), e.getDate() - 2)]; } },
-  { id: 'easter_sunday',    label: 'Easter Sunday',                    compute: (y) => [computeEaster(y)] },
-  { id: 'victoria_day',     label: 'Victoria Day (Mon before May 25)', compute: (y) => [lastWeekdayOnOrBefore(y, 4, 24, 1)] },
-  { id: 'canada_day',       label: 'Canada Day (Jul 1)',               compute: (y) => [new Date(y, 6, 1)] },
-  { id: 'civic_holiday',    label: 'Civic Holiday (1st Mon of Aug)',   compute: (y) => [nthWeekdayOfMonth(y, 7, 1, 1)] },
-  { id: 'labour_day',       label: 'Labour Day (1st Mon of Sep)',      compute: (y) => [nthWeekdayOfMonth(y, 8, 1, 1)] },
-  { id: 'thanksgiving_ca',  label: 'Thanksgiving (2nd Mon of Oct)',    compute: (y) => [nthWeekdayOfMonth(y, 9, 1, 2)] },
-  { id: 'remembrance_day',  label: 'Remembrance Day (Nov 11)',         compute: (y) => [new Date(y, 10, 11)] },
-  { id: 'christmas_eve',    label: 'Christmas Eve (Dec 24)',           compute: (y) => [new Date(y, 11, 24)] },
-  { id: 'christmas_day',    label: 'Christmas Day (Dec 25)',           compute: (y) => [new Date(y, 11, 25)] },
-  { id: 'boxing_day',       label: 'Boxing Day (Dec 26)',              compute: (y) => [new Date(y, 11, 26)] },
-  { id: 'new_years_eve',    label: "New Year's Eve (Dec 31)",          compute: (y) => [new Date(y, 11, 31)] },
-];
-
-/** Returns holidays that fall within [startDate, endDate], grouped by holiday definition. */
-function getHolidaysInRange(
-  startDate: Date,
-  endDate: Date
-): { id: string; label: string; dates: string[] }[] {
-  const startYear = startDate.getFullYear();
-  const endYear = endDate.getFullYear();
-  const startStr = toLocalDateStr(startDate);
-  const endStr = toLocalDateStr(endDate);
-
-  return HOCKEY_HOLIDAYS.flatMap((h) => {
-    const dates: string[] = [];
-    for (let y = startYear; y <= endYear; y++) {
-      for (const d of h.compute(y)) {
-        const ds = toLocalDateStr(d);
-        if (ds >= startStr && ds <= endStr) dates.push(ds);
-      }
-    }
-    return dates.length > 0 ? [{ id: h.id, label: h.label, dates }] : [];
-  });
 }
 
 export function ScheduleConfigStep({
@@ -211,7 +126,7 @@ export function ScheduleConfigStep({
     : 0;
 
   // Holidays detected in the date range
-  const detectedHolidays = getHolidaysInRange(config.startDate, config.endDate);
+  const detectedHolidays = getStandardHolidayGroupsInRange(config.startDate, config.endDate);
 
   const toggleGameDay = (day: number) => {
     setConfig((prev) => ({

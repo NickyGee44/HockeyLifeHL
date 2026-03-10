@@ -62,6 +62,13 @@ export const scheduleGenerator = {
 
 // Server actions
 export {
+  getStandardHolidayDatesInRange,
+  getStandardHolidayGroupsInRange,
+  STANDARD_HOLIDAYS,
+  toLocalDateString,
+} from './holidays';
+
+export {
   // Templates
   getScheduleTemplates,
   createScheduleTemplate,
@@ -76,6 +83,7 @@ export {
   // Venue Blackouts
   getVenueBlackoutDates,
   addVenueBlackoutDate,
+  addStandardHolidayBlackouts,
   deleteVenueBlackoutDate,
   // Team Preferences
   getTeamSchedulePreferences,

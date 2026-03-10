@@ -40,6 +40,9 @@ export interface RegistrationWizardContainerProps {
   waiverContent?: string;
   waiverVersion?: string;
   waiverContentHash?: string;
+  waiverDocumentUrl?: string | null;
+  waiverDocumentName?: string | null;
+  waiverDocumentMimeType?: string | null;
   children: React.ReactNode;
 }
 
@@ -54,6 +57,9 @@ export function RegistrationWizardContainer({
   waiverContent = '',
   waiverVersion = 'v1',
   waiverContentHash = '',
+  waiverDocumentUrl = null,
+  waiverDocumentName = null,
+  waiverDocumentMimeType = null,
   children,
 }: RegistrationWizardContainerProps) {
   const router = useRouter();
@@ -283,6 +289,9 @@ export function RegistrationWizardContainer({
     waiverContent,
     waiverVersion,
     waiverContentHash,
+    waiverDocumentUrl,
+    waiverDocumentName,
+    waiverDocumentMimeType,
     currentStep: validStep,
   };
 
@@ -347,6 +356,9 @@ export interface RegistrationContextValue {
   waiverContent: string;
   waiverVersion: string;
   waiverContentHash: string;
+  waiverDocumentUrl: string | null;
+  waiverDocumentName: string | null;
+  waiverDocumentMimeType: string | null;
   currentStep: number;
 }
 

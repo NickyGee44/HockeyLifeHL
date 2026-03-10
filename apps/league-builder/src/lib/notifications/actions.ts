@@ -208,6 +208,27 @@ async function resolveLeagueFromEmail(leagueId: string): Promise<string | undefi
   return undefined; // fall back to platform default in sendEmail()
 }
 
+type AnnouncementLeagueBranding = {
+  name: string;
+  logo_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  accent_color: string | null;
+};
+
+async function getAnnouncementLeagueBranding(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  leagueId: string
+): Promise<AnnouncementLeagueBranding | null> {
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('name, logo_url, primary_color, secondary_color, accent_color')
+    .eq('id', leagueId)
+    .single();
+
+  return (league as AnnouncementLeagueBranding | null) ?? null;
+}
+
 // =============================================================================
 // Helper: Check user preferences before sending
 // =============================================================================
@@ -500,11 +521,7 @@ export async function sendLeagueAnnouncement(params: {
     .single();
 
   // Get league details
-  const { data: league } = await supabase
-    .from('leagues')
-    .select('name')
-    .eq('id', params.leagueId)
-    .single();
+  const league = await getAnnouncementLeagueBranding(supabase, params.leagueId);
 
   if (!league) {
     return { success: false, error: 'League not found' };
@@ -578,6 +595,10 @@ export async function sendLeagueAnnouncement(params: {
         ? getUnsubscribeUrl(recipient.data.unsubscribeToken, 'game_updates')
         : undefined,
       leagueName: league.name,
+      leagueLogo: league.logo_url,
+      primaryColor: league.primary_color,
+      secondaryColor: league.secondary_color,
+      accentColor: league.accent_color,
     }),
     {
       from: customFrom,
@@ -1051,11 +1072,11 @@ export async function renderAnnouncementPreview(params: {
     .eq('id', user.id)
     .single();
 
-  const { data: league } = await supabase
-    .from('leagues')
-    .select('name')
-    .eq('id', params.leagueId)
-    .single();
+  const league = await getAnnouncementLeagueBranding(supabase, params.leagueId);
+
+  if (!league) {
+    return { html: '', error: 'League not found' };
+  }
 
   const sanitizedContent = sanitizeAnnouncementContent(params.content);
 
@@ -1069,7 +1090,11 @@ export async function renderAnnouncementPreview(params: {
     actionButtonText: params.actionButtonText,
     actionButtonUrl: params.actionButtonUrl,
     dashboardUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca',
-    leagueName: league?.name || 'Your League',
+    leagueName: league.name,
+    leagueLogo: league.logo_url,
+    primaryColor: league.primary_color,
+    secondaryColor: league.secondary_color,
+    accentColor: league.accent_color,
   });
 
   return { html };

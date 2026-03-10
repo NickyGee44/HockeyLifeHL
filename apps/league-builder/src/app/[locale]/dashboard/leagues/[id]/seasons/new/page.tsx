@@ -5,9 +5,11 @@
  */
 
 import { setRequestLocale } from 'next-intl/server';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import NewSeasonWizard from './wizard-client';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getSeasonParticipationTeams } from '@/lib/seasons/team-participation';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +22,7 @@ export default async function NewSeasonPage({ params }: Props) {
   setRequestLocale(locale);
 
   const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
+  const serviceClient = createServiceRoleClient();
 
   // Get league details
   const { data: league, error: leagueError } = await supabase
@@ -33,21 +36,29 @@ export default async function NewSeasonPage({ params }: Props) {
   }
 
   // Get previous season (if any)
-  const { data: previousSeason } = await supabase
+  const { data: previousSeason } = await serviceClient
     .from('seasons')
     .select('id, name, start_date, end_date')
     .eq('league_id', leagueId)
     .order('end_date', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  // Get teams in the league
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('id, name, short_name, logo_url, primary_color')
-    .eq('league_id', leagueId)
-    .eq('status', 'active')
-    .order('name');
+  const previousSeasonTeams = previousSeason
+    ? await getSeasonParticipationTeams(serviceClient, leagueId, previousSeason.id)
+    : [];
+
+  const teams =
+    previousSeasonTeams.length > 0
+      ? previousSeasonTeams
+      : (
+          await serviceClient
+            .from('teams')
+            .select('id, name, short_name, logo_url, primary_color, secondary_color, division_id, home_venue_id, status')
+            .eq('league_id', leagueId)
+            .eq('status', 'active')
+            .order('name')
+        ).data || [];
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -56,7 +67,7 @@ export default async function NewSeasonPage({ params }: Props) {
           leagueId={leagueId}
           leagueName={league.name}
           previousSeason={previousSeason}
-          teams={teams || []}
+          teams={teams}
           locale={locale}
         />
       </div>

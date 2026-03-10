@@ -43,12 +43,33 @@ interface PlayoffSeries {
   winner: { name: string } | null;
 }
 
+const PLAYOFF_SERIES_DIVISION_ID_MISSING =
+  "Could not find the 'division_id' column of 'playoff_series' in the schema cache";
+
+function isMissingPlayoffSeriesDivisionScopeError(
+  error: { message?: string | null } | null | undefined,
+) {
+  return error?.message?.includes(PLAYOFF_SERIES_DIVISION_ID_MISSING) ?? false;
+}
+
+async function hasPlayoffSeriesDivisionScope(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { error } = await supabase
+    .from('playoff_series')
+    .select('id, division_id')
+    .limit(1);
+
+  if (isMissingPlayoffSeriesDivisionScopeError(error)) {
+    return false;
+  }
+
+  return true;
+}
+
 async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<PlayoffSeries[]> {
   const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('playoff_series')
-    .select(`
+  const divisionScopeEnabled = await hasPlayoffSeriesDivisionScope(supabase);
+  const seriesSelect = divisionScopeEnabled
+    ? `
       id, division_id, round_number, series_number,
       high_seed_id, low_seed_id,
       high_seed_wins, low_seed_wins,
@@ -56,7 +77,22 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
       high_seed:teams!playoff_series_high_seed_id_fkey(name, logo_url),
       low_seed:teams!playoff_series_low_seed_id_fkey(name, logo_url),
       winner:teams!playoff_series_winner_id_fkey(name)
-    `)
+    `
+    : `
+      id, round_number, series_number,
+      high_seed_id, low_seed_id,
+      high_seed_wins, low_seed_wins,
+      winner_id, status,
+      high_seed:teams!playoff_series_high_seed_id_fkey(name, logo_url),
+      low_seed:teams!playoff_series_low_seed_id_fkey(name, logo_url),
+      winner:teams!playoff_series_winner_id_fkey(name)
+    `;
+
+  // The selected shape changes when older environments still lack division_id.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playoffSeriesTable: any = supabase.from('playoff_series');
+  const { data, error } = await playoffSeriesTable
+    .select(seriesSelect)
     .eq('league_id', leagueId)
     .eq('season_id', seasonId)
     .order('round_number')
@@ -64,11 +100,14 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
 
   if (error || !data) return [];
 
-  const divisionIds = [...new Set(
-    data
-      .map((row: any) => row.division_id)
-      .filter((value: string | null | undefined): value is string => Boolean(value)),
-  )];
+  const dataRows = data as Array<{ division_id?: string | null }>;
+  const divisionIds = divisionScopeEnabled
+    ? [...new Set(
+      dataRows
+        .map((row: any) => row.division_id)
+        .filter((value: string | null | undefined): value is string => Boolean(value)),
+    )]
+    : [];
 
   const divisionNameById = new Map<string, string>();
   if (divisionIds.length > 0) {
@@ -84,7 +123,10 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
 
   return (data as any[]).map((row) => ({
     ...row,
-    division_name: row.division_id ? divisionNameById.get(row.division_id) ?? null : null,
+    division_id: divisionScopeEnabled ? row.division_id ?? null : null,
+    division_name: divisionScopeEnabled && row.division_id
+      ? divisionNameById.get(row.division_id) ?? null
+      : null,
   })) as PlayoffSeries[];
 }
 

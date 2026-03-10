@@ -6,6 +6,7 @@
  */
 
 import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
+import { isOrganizationManagerAccess } from '@/lib/organizations/access';
 import { redirect } from '@/i18n/navigation';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -47,8 +48,10 @@ export default async function CompanyProfilePage({ params }: Props) {
     return null;
   }
 
-  // Check if current user is the organization owner
   const isOwner = organization.owner_user_id === userData.user.id;
+  const isManager =
+    isOwner || isOrganizationManagerAccess((organization as any).access_type);
+  const accessLabel = isOwner ? t('company.owner') : isManager ? t('company.manager') : t('company.member');
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -76,10 +79,10 @@ export default async function CompanyProfilePage({ params }: Props) {
             <div>
               <h2 className="text-xl font-bold text-white mb-1">{organization.name}</h2>
               <p className="text-sm text-neutral-500">
-                {isOwner ? t('company.owner') : t('company.member')}
+                {accessLabel}
               </p>
             </div>
-            {isOwner && (
+            {isManager && (
               <Link
                 href="/dashboard/settings"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-800 text-neutral-300 hover:text-white hover:bg-neutral-700 transition-colors text-sm font-medium"

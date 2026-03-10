@@ -9,7 +9,6 @@ import {
   Smartphone,
   Monitor,
   Tablet,
-  RefreshCw,
   ExternalLink,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -17,11 +16,7 @@ import { useEditor } from './EditorContext';
 import { useEditorSave } from './hooks/useEditorSave';
 import type { ViewportSize } from './types';
 
-interface EditorHeaderProps {
-  onRefreshPreview: () => void;
-}
-
-export function EditorHeader({ onRefreshPreview }: EditorHeaderProps) {
+export function EditorHeader() {
   const {
     state,
     hasUnsavedChanges,
@@ -98,15 +93,6 @@ export function EditorHeader({ onRefreshPreview }: EditorHeaderProps) {
             );
           })}
         </div>
-
-        {/* Refresh Preview */}
-        <button
-          onClick={onRefreshPreview}
-          className="p-2 text-neutral-400 hover:text-white transition-colors"
-          title={t('refreshPreview')}
-        >
-          <RefreshCw className={cn('w-4 h-4', !state.isPreviewReady && 'animate-spin')} />
-        </button>
 
         {/* Open in new tab */}
         <a

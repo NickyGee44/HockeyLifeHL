@@ -37,12 +37,46 @@ export interface PlayoffBracket {
 }
 
 const OVERALL_BRACKET_KEY = 'overall';
+const PLAYOFF_SERIES_DIVISION_ID_MISSING =
+  "Could not find the 'division_id' column of 'playoff_series' in the schema cache";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+type PlayoffSeriesCapabilities = {
+  hasDivisionScope: boolean;
+};
+
+function isMissingPlayoffSeriesDivisionScopeError(
+  error: { message?: string | null } | null | undefined,
+) {
+  return error?.message?.includes(PLAYOFF_SERIES_DIVISION_ID_MISSING) ?? false;
+}
+
+async function getPlayoffSeriesCapabilities(
+  supabase: SupabaseServerClient,
+): Promise<PlayoffSeriesCapabilities> {
+  const { error } = await supabase
+    .from('playoff_series')
+    .select('id, division_id')
+    .limit(1);
+
+  if (isMissingPlayoffSeriesDivisionScopeError(error)) {
+    return { hasDivisionScope: false };
+  }
+
+  return { hasDivisionScope: true };
+}
 
 // Supabase query builders use different concrete types, so this stays loose.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyDivisionScope(query: any, divisionId: string | null) {
+function applyDivisionScope(
+  query: any,
+  divisionId: string | null,
+  capabilities: PlayoffSeriesCapabilities,
+) {
+  if (!capabilities.hasDivisionScope) {
+    return query;
+  }
+
   return divisionId ? query.eq('division_id', divisionId) : query.is('division_id', null);
 }
 
@@ -65,6 +99,7 @@ async function getDivisionNameMap(
 async function finalizeSeasonIfReady(
   supabase: SupabaseServerClient,
   seasonId: string,
+  capabilities: PlayoffSeriesCapabilities,
 ) {
   const { count: incompleteCount, error: incompleteError } = await supabase
     .from('playoff_series')
@@ -76,9 +111,15 @@ async function finalizeSeasonIfReady(
     return;
   }
 
-  const { data: completedSeries, error: completedError } = await supabase
+  const completedSeriesSelect = capabilities.hasDivisionScope
+    ? 'division_id, round_number, winner_id'
+    : 'round_number, winner_id';
+  // The selected shape changes when older environments still lack division_id.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const completedSeriesQuery: any = supabase
     .from('playoff_series')
-    .select('division_id, round_number, winner_id')
+    .select(completedSeriesSelect);
+  const { data: completedSeries, error: completedError } = await completedSeriesQuery
     .eq('season_id', seasonId)
     .eq('status', 'completed')
     .order('round_number', { ascending: false });
@@ -88,8 +129,14 @@ async function finalizeSeasonIfReady(
   }
 
   const championsByScope = new Map<string, string | null>();
-  for (const row of completedSeries) {
-    const scopeKey = row.division_id ?? OVERALL_BRACKET_KEY;
+  const completedSeriesRows = completedSeries as unknown as Array<{
+    division_id?: string | null;
+    winner_id: string | null;
+  }>;
+  for (const row of completedSeriesRows) {
+    const scopeKey = capabilities.hasDivisionScope
+      ? row.division_id ?? OVERALL_BRACKET_KEY
+      : OVERALL_BRACKET_KEY;
     if (!championsByScope.has(scopeKey)) {
       championsByScope.set(scopeKey, row.winner_id);
     }
@@ -113,6 +160,7 @@ export async function getPlayoffBracket(
   seasonId: string
 ): Promise<ActionResult<PlayoffBracket | null>> {
   const supabase = await createClient();
+  const capabilities = await getPlayoffSeriesCapabilities(supabase);
 
   // Get season format
   const { data: season } = await supabase
@@ -123,10 +171,8 @@ export async function getPlayoffBracket(
 
   if (!season) return { success: false, error: 'Season not found' };
 
-  // Get series with team names
-  const { data: seriesRows, error } = await supabase
-    .from('playoff_series')
-    .select(`
+  const seriesSelect = capabilities.hasDivisionScope
+    ? `
       id, division_id, round_number, series_number,
       high_seed_id, low_seed_id,
       high_seed_wins, low_seed_wins,
@@ -134,7 +180,23 @@ export async function getPlayoffBracket(
       high_seed:teams!playoff_series_high_seed_id_fkey(name),
       low_seed:teams!playoff_series_low_seed_id_fkey(name),
       winner:teams!playoff_series_winner_id_fkey(name)
-    `)
+    `
+    : `
+      id, round_number, series_number,
+      high_seed_id, low_seed_id,
+      high_seed_wins, low_seed_wins,
+      winner_id, status,
+      high_seed:teams!playoff_series_high_seed_id_fkey(name),
+      low_seed:teams!playoff_series_low_seed_id_fkey(name),
+      winner:teams!playoff_series_winner_id_fkey(name)
+    `;
+
+  // Get series with team names
+  // The selected shape changes when older environments still lack division_id.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playoffSeriesTable: any = supabase.from('playoff_series');
+  const { data: seriesRows, error } = await playoffSeriesTable
+    .select(seriesSelect)
     .eq('season_id', seasonId)
     .order('round_number')
     .order('series_number');
@@ -145,17 +207,36 @@ export async function getPlayoffBracket(
     return { success: true, data: null };
   }
 
-  const divisionIds = [...new Set(
-    seriesRows
-      .map((row) => row.division_id)
-      .filter((value): value is string => Boolean(value)),
-  )];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const seriesRowsList = (seriesRows ?? []) as any[];
+  const divisionIds = capabilities.hasDivisionScope
+    ? [...new Set(
+      seriesRowsList
+        .map((row: { division_id?: string | null }) => row.division_id)
+        .filter((value: string | null | undefined): value is string => Boolean(value)),
+    )]
+    : [];
   const divisionNameById = await getDivisionNameMap(supabase, divisionIds);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const series: PlayoffSeries[] = seriesRows.map((row: any) => ({
-    division_id: row.division_id ?? null,
-    division_name: row.division_id ? divisionNameById.get(row.division_id) ?? null : null,
+  const series: PlayoffSeries[] = seriesRowsList.map((row: {
+    division_id?: string | null;
+    id: string;
+    round_number: number;
+    series_number: number;
+    high_seed_id: string | null;
+    low_seed_id: string | null;
+    high_seed_wins: number;
+    low_seed_wins: number;
+    winner_id: string | null;
+    status: 'pending' | 'in_progress' | 'completed';
+    high_seed?: { name?: string | null } | null;
+    low_seed?: { name?: string | null } | null;
+    winner?: { name?: string | null } | null;
+  }) => ({
+    division_id: capabilities.hasDivisionScope ? row.division_id ?? null : null,
+    division_name: capabilities.hasDivisionScope && row.division_id
+      ? divisionNameById.get(row.division_id) ?? null
+      : null,
     id: row.id,
     round_number: row.round_number,
     series_number: row.series_number,
@@ -165,9 +246,9 @@ export async function getPlayoffBracket(
     low_seed_wins: row.low_seed_wins,
     winner_id: row.winner_id,
     status: row.status,
-    high_seed_name: row.high_seed?.name,
-    low_seed_name: row.low_seed?.name,
-    winner_name: row.winner?.name,
+    high_seed_name: row.high_seed?.name ?? undefined,
+    low_seed_name: row.low_seed?.name ?? undefined,
+    winner_name: row.winner?.name ?? undefined,
   }));
 
   const rounds = Math.max(...series.map((s) => s.round_number));
@@ -190,6 +271,7 @@ export async function generatePlayoffBracket(
   if (!access.authorized) return { success: false, error: 'Not authorized' };
 
   const supabase = await createClient();
+  const capabilities = await getPlayoffSeriesCapabilities(supabase);
 
   // Get season + standings config
   const [seasonResult, configResult] = await Promise.all([
@@ -232,11 +314,20 @@ export async function generatePlayoffBracket(
     return { success: false, error: generationResult.error };
   }
 
+  const needsDivisionScope = generationResult.data.some((scope) => scope.divisionId !== null);
+  if (needsDivisionScope && !capabilities.hasDivisionScope) {
+    return {
+      success: false,
+      error:
+        'This environment is missing division-scoped playoff support. Apply the playoff_series division migration, then try again.',
+    };
+  }
+
   const seriesToInsert = generationResult.data.flatMap((scope) =>
     scope.series.map((series) => ({
       league_id: leagueId,
       season_id: seasonId,
-      division_id: scope.divisionId,
+      ...(capabilities.hasDivisionScope ? { division_id: scope.divisionId } : {}),
       round_number: series.round_number,
       series_number: series.series_number,
       high_seed_id: series.high_seed_id,
@@ -249,7 +340,12 @@ export async function generatePlayoffBracket(
   );
 
   const { error: insertError } = await supabase.from('playoff_series').insert(seriesToInsert);
-  if (insertError) return { success: false, error: `Failed to create bracket: ${insertError.message}` };
+  if (insertError) {
+    const errorMessage = isMissingPlayoffSeriesDivisionScopeError(insertError)
+      ? 'This environment is missing division-scoped playoff support. Apply the playoff_series division migration, then try again.'
+      : insertError.message;
+    return { success: false, error: `Failed to create bracket: ${errorMessage}` };
+  }
 
   // Update season status to playoffs
   await supabase.from('seasons').update({ status: 'playoffs' }).eq('id', seasonId);
@@ -269,6 +365,7 @@ export async function recordSeriesWin(
   if (!access.authorized) return { success: false, error: 'Not authorized' };
 
   const supabase = await createClient();
+  const capabilities = await getPlayoffSeriesCapabilities(supabase);
 
   const { data: series, error } = await supabase
     .from('playoff_series')
@@ -318,7 +415,7 @@ export async function recordSeriesWin(
       .eq('round_number', nextRound)
       .eq('series_number', nextSeriesNumber);
 
-    nextSeriesQuery = applyDivisionScope(nextSeriesQuery, series.division_id);
+    nextSeriesQuery = applyDivisionScope(nextSeriesQuery, series.division_id ?? null, capabilities);
 
     const { data: nextSeries } = await nextSeriesQuery.maybeSingle();
 
@@ -331,7 +428,7 @@ export async function recordSeriesWin(
         .eq('id', nextSeries.id);
     }
 
-    await finalizeSeasonIfReady(supabase, seasonId);
+    await finalizeSeasonIfReady(supabase, seasonId, capabilities);
   }
 
   revalidatePath(`/dashboard/leagues/${leagueId}/seasons/${seasonId}`);

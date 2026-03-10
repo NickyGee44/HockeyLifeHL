@@ -14,6 +14,7 @@ import { VenuesSettingsClient } from '@/components/venues/VenuesSettingsClient';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 
 export const metadata = {
   title: 'Venues & Ice Times | League Settings',
@@ -23,6 +24,70 @@ export const metadata = {
 type Props = {
   params: Promise<{ locale: string; id: string }>;
 };
+
+function toDateInput(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function parseDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function buildHolidayImportWindow(
+  season: {
+    name?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+  } | null
+) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const seasonStart = parseDate(season?.start_date);
+  const seasonEnd = parseDate(season?.end_date);
+
+  let startDate = today;
+  let endDate = addDays(today, 365);
+  let label = 'the next 12 months';
+
+  if (season) {
+    const baseLabel = season.name?.trim() || 'the current operating season';
+
+    if (seasonStart && seasonEnd && seasonEnd >= today) {
+      startDate = seasonStart > today ? seasonStart : today;
+      endDate = seasonEnd >= startDate ? seasonEnd : addDays(startDate, 365);
+      label = baseLabel;
+    } else if (seasonEnd && seasonEnd >= today) {
+      endDate = seasonEnd;
+      label = baseLabel;
+    } else if (seasonStart) {
+      startDate = seasonStart > today ? seasonStart : today;
+      endDate = addDays(startDate, 365);
+      label = baseLabel;
+    }
+  }
+
+  if (endDate < startDate) {
+    endDate = addDays(startDate, 365);
+  }
+
+  return {
+    startDate: toDateInput(startDate),
+    endDate: toDateInput(endDate),
+    label: `${label} (${toDateInput(startDate)} to ${toDateInput(endDate)})`,
+  };
+}
 
 export default async function LeagueVenuesPage({ params }: Props) {
   const awaited = await params;
@@ -43,13 +108,19 @@ export default async function LeagueVenuesPage({ params }: Props) {
   }
 
   // Fetch data in parallel
-  const [venues, availability, blackouts] = await Promise.all([
+  const [venues, availability, blackouts, seasonsResult] = await Promise.all([
     getLeagueVenuesFull(leagueId),
     getVenueAvailability(leagueId),
     getVenueBlackoutDates(leagueId),
+    supabase
+      .from('seasons')
+      .select('id, name, status, start_date, end_date, created_at')
+      .eq('league_id', leagueId),
   ]);
 
   const primaryColor = league.primary_color || '#22D3EE';
+  const operationalSeason = pickOperationalSeason(seasonsResult.data ?? []);
+  const holidayImportWindow = buildHolidayImportWindow(operationalSeason);
 
   // Future blackouts only (for stat card)
   const upcomingBlackouts = blackouts.filter(
@@ -96,6 +167,7 @@ export default async function LeagueVenuesPage({ params }: Props) {
           initialVenues={venues}
           initialAvailability={availability}
           initialBlackouts={blackouts}
+          holidayImportWindow={holidayImportWindow}
         />
       </div>
     </div>

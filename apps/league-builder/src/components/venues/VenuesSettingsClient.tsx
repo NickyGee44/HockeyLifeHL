@@ -8,7 +8,7 @@ import {
 import { cn } from '@hockey-life/ui';
 import type { VenueFull, VenueCsvRow, AvailabilityCsvRow, BlackoutCsvRow } from '@/lib/actions/venues';
 import { deleteVenue, importVenuesFromCsv, importAvailabilityFromCsv, importBlackoutsFromCsv } from '@/lib/actions/venues';
-import { deleteVenueAvailability, deleteVenueBlackoutDate, saveVenueAvailability } from '@/lib/schedule/actions';
+import { addStandardHolidayBlackouts, deleteVenueAvailability, deleteVenueBlackoutDate, saveVenueAvailability } from '@/lib/schedule/actions';
 import type { VenueAvailability, VenueBlackoutDate } from '@/lib/schedule/types';
 import { VenueForm } from './VenueForm';
 import { AvailabilityForm } from './AvailabilityForm';
@@ -85,6 +85,11 @@ interface VenuesSettingsClientProps {
   initialVenues: VenueFull[];
   initialAvailability: VenueAvailability[];
   initialBlackouts: VenueBlackoutDate[];
+  holidayImportWindow: {
+    startDate: string;
+    endDate: string;
+    label: string;
+  };
 }
 
 type Tab = 'venues' | 'schedule' | 'blackouts';
@@ -94,6 +99,7 @@ export function VenuesSettingsClient({
   initialVenues,
   initialAvailability,
   initialBlackouts,
+  holidayImportWindow,
 }: VenuesSettingsClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>('venues');
   const [venues, setVenues] = useState(initialVenues);
@@ -120,6 +126,7 @@ export function VenuesSettingsClient({
   const [blackoutVenueFilter, setBlackoutVenueFilter] = useState<string>('all');
   const blackoutFileRef = useRef<HTMLInputElement>(null);
   const [blackoutImporting, setBlackoutImporting] = useState(false);
+  const [holidayImporting, setHolidayImporting] = useState(false);
   const [blackoutImportResult, setBlackoutImportResult] = useState<ImportResult | null>(null);
 
   // ============================================================
@@ -375,6 +382,39 @@ export function VenuesSettingsClient({
     setBlackoutImportResult({ ...result, errors: [...errors, ...result.errors] });
     setBlackoutImporting(false);
     if (blackoutFileRef.current) blackoutFileRef.current.value = '';
+  };
+
+  const handleAddStandardHolidays = async () => {
+    setHolidayImporting(true);
+    setBlackoutImportResult(null);
+
+    const result = await addStandardHolidayBlackouts(leagueId, {
+      startDate: holidayImportWindow.startDate,
+      endDate: holidayImportWindow.endDate,
+    });
+
+    if (!result.success) {
+      setBlackoutImportResult({
+        imported: 0,
+        skipped: 0,
+        errors: [result.error ?? 'Failed to add standard holidays.'],
+      });
+      setHolidayImporting(false);
+      return;
+    }
+
+    if (result.blackouts.length > 0) {
+      setBlackouts((previous) => [...previous, ...result.blackouts].sort(
+        (a, z) => new Date(a.blackoutDate).getTime() - new Date(z.blackoutDate).getTime()
+      ));
+    }
+
+    setBlackoutImportResult({
+      imported: result.imported,
+      skipped: result.skipped,
+      errors: result.errors,
+    });
+    setHolidayImporting(false);
   };
 
   // ============================================================
@@ -732,6 +772,17 @@ export function VenuesSettingsClient({
                 </button>
 
                 <button
+                  onClick={handleAddStandardHolidays}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 text-neutral-300 hover:text-white text-sm transition-colors',
+                    holidayImporting && 'opacity-50 pointer-events-none'
+                  )}
+                >
+                  {holidayImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                  Add Standard Holidays
+                </button>
+
+                <button
                   onClick={() => downloadCsv('blackout-dates-template.csv', BLACKOUT_TEMPLATE)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 text-neutral-400 hover:text-white text-sm transition-colors"
                 >
@@ -772,6 +823,10 @@ export function VenuesSettingsClient({
                   </div>
                 </div>
               </div>
+
+              <p className="text-xs text-neutral-500">
+                Automatically adds upcoming standard holiday blackouts for {holidayImportWindow.label} across all league venues.
+              </p>
 
               {/* Import result */}
               {blackoutImportResult && (

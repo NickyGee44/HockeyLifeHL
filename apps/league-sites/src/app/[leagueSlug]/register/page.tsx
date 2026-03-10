@@ -168,7 +168,14 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
   const waiver =
     waiverResult.success && waiverResult.data
       ? waiverResult.data
-      : { content: DEFAULT_WAIVER_CONTENT, version: 'v1', content_hash: '' };
+      : {
+          content: DEFAULT_WAIVER_CONTENT,
+          version: 'v1',
+          content_hash: '',
+          document_url: null,
+          document_name: null,
+          document_mime_type: null,
+        };
 
   const teams = (league.teams || []).map((team: any) => ({
     id: team.id,
@@ -203,6 +210,9 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
         waiverContent={waiver.content}
         waiverVersion={waiver.version}
         waiverContentHash={waiver.content_hash}
+        waiverDocumentUrl={waiver.document_url}
+        waiverDocumentName={waiver.document_name}
+        waiverDocumentMimeType={waiver.document_mime_type}
         initialData={initialData}
         leagueFormConfig={leagueFormConfig}
       />

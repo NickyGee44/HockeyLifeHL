@@ -102,6 +102,9 @@ interface LeagueWaiver {
   version: string;
   content_hash: string;
   title: string;
+  document_url: string | null;
+  document_name: string | null;
+  document_mime_type: string | null;
 }
 
 // ============================================================================
@@ -329,7 +332,7 @@ export async function getLeagueWaiver(
 
     const { data: waiver, error } = await supabase
       .from('league_waiver_templates')
-      .select('id, content, version, content_hash, title')
+      .select('id, content, version, content_hash, title, document_url, document_name, document_mime_type')
       .eq('league_id', leagueId)
       .eq('is_active', true)
       .single();

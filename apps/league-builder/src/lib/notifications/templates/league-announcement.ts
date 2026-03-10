@@ -22,6 +22,10 @@ export interface LeagueAnnouncementEmailProps {
   dashboardUrl: string;
   unsubscribeUrl?: string;
   leagueName?: string;
+  leagueLogo?: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
 }
 
 export function getLeagueAnnouncementEmail(props: LeagueAnnouncementEmailProps): string {
@@ -39,6 +43,10 @@ export function getLeagueAnnouncementEmail(props: LeagueAnnouncementEmailProps):
     dashboardUrl,
     unsubscribeUrl,
     leagueName = 'Beer League Hockey',
+    leagueLogo,
+    primaryColor,
+    secondaryColor,
+    accentColor,
   } = props;
 
   const priorityBadge = {
@@ -113,6 +121,10 @@ export function getLeagueAnnouncementEmail(props: LeagueAnnouncementEmailProps):
     footerNote: 'This announcement was sent to all league members.',
     unsubscribeUrl,
     leagueName,
+    leagueLogo: leagueLogo || undefined,
+    primaryColor: primaryColor || undefined,
+    secondaryColor: secondaryColor || undefined,
+    accentColor: accentColor || undefined,
   });
 }
 

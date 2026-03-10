@@ -55,12 +55,13 @@ export default function NewSeasonWizard({
 
   const [currentStep, setCurrentStep] = useState<Step>('info');
   const [creating, setCreating] = useState(false);
+  const hasImportableTeams = teams.length > 0;
 
   // Form state
   const [seasonName, setSeasonName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [carryForwardTeams, setCarryForwardTeams] = useState(true);
+  const [carryForwardTeams, setCarryForwardTeams] = useState(hasImportableTeams);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(
     new Set(teams.map((t) => t.id))
   );
@@ -126,7 +127,7 @@ export default function NewSeasonWizard({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create season');
+        throw new Error(error.error || error.message || 'Failed to create season');
       }
 
       const data = await response.json();
@@ -144,7 +145,7 @@ export default function NewSeasonWizard({
       case 'info':
         return seasonName.trim() !== '' && startDate !== '' && endDate !== '';
       case 'teams':
-        return selectedTeamIds.size > 0 || !carryForwardTeams;
+        return !carryForwardTeams || !hasImportableTeams || selectedTeamIds.size > 0;
       case 'rosters':
         return true;
       case 'review':
@@ -162,7 +163,7 @@ export default function NewSeasonWizard({
           {t('step1')} for {leagueName}
         </h1>
         <p className="text-neutral-400">
-          Create a new season and optionally import rosters from previous seasons.
+          Create a new season, bring teams forward without carrying players, and import rosters only when you want them.
         </p>
       </div>
 
@@ -274,13 +275,14 @@ export default function NewSeasonWizard({
               <div>
                 <h3 className="font-medium text-white">{t('carryForwardTeams')}</h3>
                 <p className="text-sm text-neutral-400">
-                  Include teams from the previous season
+                  Bring previous-season teams into this season. Players still register again each season.
                 </p>
               </div>
               <button
-                onClick={() => setCarryForwardTeams(!carryForwardTeams)}
+                onClick={() => hasImportableTeams && setCarryForwardTeams(!carryForwardTeams)}
+                disabled={!hasImportableTeams}
                 className={cn(
-                  'relative w-12 h-6 rounded-full transition-colors',
+                  'relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                   carryForwardTeams ? 'bg-rink-500' : 'bg-neutral-700'
                 )}
               >
@@ -293,7 +295,13 @@ export default function NewSeasonWizard({
               </button>
             </div>
 
-            {carryForwardTeams && teams.length > 0 && (
+            {!hasImportableTeams && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+                No previous-season teams were found to copy into this season. You can continue with an empty season and import teams later if they decide to join.
+              </div>
+            )}
+
+            {carryForwardTeams && hasImportableTeams && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-neutral-400">
@@ -347,10 +355,16 @@ export default function NewSeasonWizard({
             )}
 
             {!carryForwardTeams && (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-neutral-300">
+                You can create the season now and import teams later from the season dashboard. Importing teams does not carry forward players or fees.
+              </div>
+            )}
+
+            {!carryForwardTeams && (
               <div className="text-center py-8 bg-neutral-800/50 rounded-xl">
                 <p className="text-neutral-400">{t('startFresh')}</p>
                 <p className="text-sm text-neutral-500 mt-2">
-                  You can add teams manually after creating the season.
+                  You can import teams from the season dashboard or add them manually after the season is created.
                 </p>
               </div>
             )}

@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { ScrollText, Save, Loader2, Info } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { ScrollText, Save, Loader2, Info, Upload, FileText, ExternalLink, X } from 'lucide-react';
 import { Button } from '@hockey-life/ui';
 import { toast } from 'sonner';
-import { saveWaiverTemplate } from '@/lib/actions/waiver-management';
+import {
+  deleteWaiverDocument,
+  saveWaiverTemplate,
+  uploadWaiverDocument,
+} from '@/lib/actions/waiver-management';
 
 interface WaiverSettingsFormProps {
   leagueId: string;
@@ -12,6 +16,9 @@ interface WaiverSettingsFormProps {
     title: string;
     content: string;
     version: string;
+    documentUrl: string | null;
+    documentName: string | null;
+    documentMimeType: string | null;
     updatedAt: string | null;
   } | null;
 }
@@ -20,22 +27,88 @@ export function WaiverSettingsForm({ leagueId, initialData }: WaiverSettingsForm
   const [title, setTitle] = useState(initialData?.title || 'Liability Waiver');
   const [content, setContent] = useState(initialData?.content || '');
   const [saving, setSaving] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
   const [version, setVersion] = useState(initialData?.version || null);
   const [updatedAt, setUpdatedAt] = useState(initialData?.updatedAt || null);
+  const [documentUrl, setDocumentUrl] = useState(initialData?.documentUrl || '');
+  const [documentName, setDocumentName] = useState(initialData?.documentName || '');
+  const [documentMimeType, setDocumentMimeType] = useState(initialData?.documentMimeType || '');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleDocumentUpload = async (file: File) => {
+    setUploadingDocument(true);
+
+    try {
+      const previousUrl = documentUrl;
+      const result = await uploadWaiverDocument(leagueId, file);
+
+      if (!result.success) {
+        toast.error(result.error || 'Failed to upload waiver document.');
+        return;
+      }
+
+      if (!result.data) {
+        toast.error('Failed to upload waiver document.');
+        return;
+      }
+
+      setDocumentUrl(result.data.url);
+      setDocumentName(result.data.name);
+      setDocumentMimeType(result.data.mimeType);
+      toast.success('Waiver document uploaded.');
+
+      if (previousUrl) {
+        await deleteWaiverDocument(leagueId, previousUrl);
+      }
+    } catch {
+      toast.error('An unexpected error occurred while uploading.');
+    } finally {
+      setUploadingDocument(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveDocument = async () => {
+    if (!documentUrl) {
+      return;
+    }
+
+    const previousUrl = documentUrl;
+    setDocumentUrl('');
+    setDocumentName('');
+    setDocumentMimeType('');
+
+    const result = await deleteWaiverDocument(leagueId, previousUrl);
+    if (!result.success) {
+      setDocumentUrl(previousUrl);
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success('Waiver document removed.');
+  };
 
   const handleSave = async () => {
     if (!title.trim()) {
       toast.error('Please enter a waiver title.');
       return;
     }
-    if (!content.trim()) {
-      toast.error('Please enter waiver content.');
+    if (!content.trim() && !documentUrl) {
+      toast.error('Add waiver text or upload a waiver document.');
       return;
     }
 
     setSaving(true);
     try {
-      const result = await saveWaiverTemplate(leagueId, title.trim(), content.trim());
+      const result = await saveWaiverTemplate(leagueId, {
+        title: title.trim(),
+        content: content.trim(),
+        documentUrl: documentUrl || null,
+        documentName: documentName || null,
+        documentMimeType: documentMimeType || null,
+      });
       if (result.success && result.data) {
         setVersion(result.data.version);
         setUpdatedAt(new Date().toISOString());
@@ -95,7 +168,7 @@ export function WaiverSettingsForm({ leagueId, initialData }: WaiverSettingsForm
             id="waiver-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Enter your waiver text here..."
+            placeholder="Enter your waiver text here, or upload a PDF/image below and keep this as the summary players see before signing."
             rows={16}
             className="w-full px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800/50 text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent font-mono text-sm leading-relaxed resize-y"
           />
@@ -108,6 +181,93 @@ export function WaiverSettingsForm({ leagueId, initialData }: WaiverSettingsForm
               <code className="text-neutral-400">**bold text**</code>
             </span>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-neutral-900/50 p-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-white">Waiver Document Upload</h3>
+              <p className="mt-1 text-xs text-neutral-400">
+                Upload a PDF or image of the official waiver. Players will be able to review it
+                before signing or accepting the terms.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void handleDocumentUpload(file);
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={uploadingDocument}
+                onClick={() => fileInputRef.current?.click()}
+                className="border-white/10 bg-neutral-800 text-white hover:bg-neutral-700"
+              >
+                {uploadingDocument ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Document
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {documentUrl ? (
+            <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-rink-500/10 p-2 text-rink-400">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">{documentName || 'Uploaded waiver document'}</p>
+                    <p className="text-xs text-neutral-400">
+                      {documentMimeType || 'Document'} · Players can open this before signing
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-neutral-800 px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-700"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => void handleRemoveDocument()}
+                    className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300 transition-colors hover:bg-red-500/20"
+                  >
+                    <X className="h-4 w-4" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-lg border border-dashed border-white/10 bg-black/10 p-4 text-sm text-neutral-500">
+              No waiver document uploaded yet.
+            </div>
+          )}
         </div>
 
         {/* Save Button */}

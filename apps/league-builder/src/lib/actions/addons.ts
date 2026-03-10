@@ -4,6 +4,7 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/client';
 import { getStripeErrorMessage } from '@/lib/stripe/client';
 import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
+import { verifyOrganizationAccess } from '@/lib/organizations/access';
 
 // ============================================================================
 // Types
@@ -60,46 +61,21 @@ function getAddonPriceId(addonType: AddonType): string | null {
 }
 
 // ============================================================================
-// Helper: Verify Org Owner Access
+// Helper: Verify Organization Management Access
 // ============================================================================
 
-async function verifyOrgOwnerAccess(
+async function verifyOrgManagementAccess(
   orgId: string
 ): Promise<{ userId: string; orgId: string; stripeCustomerId: string | null } | { error: string }> {
-  const supabase = await createClient();
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return { error: 'Authentication required.' };
-  }
-
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .select('id, owner_user_id, stripe_customer_id')
-    .eq('id', orgId)
-    .single();
-
-  if (orgError || !org) {
-    return { error: 'Organization not found.' };
-  }
-
-  if (org.owner_user_id !== user.id) {
-    // Check platform admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_platform_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!(profile as any)?.is_platform_admin) {
-      return { error: 'Only organization owners can manage add-ons.' };
-    }
+  const access = await verifyOrganizationAccess(orgId, { requireManagement: true });
+  if (!access.authorized || !access.organization || !access.userId) {
+    return { error: access.error || 'Only league owners and organization admins can manage add-ons.' };
   }
 
   return {
-    userId: user.id,
-    orgId: org.id,
-    stripeCustomerId: org.stripe_customer_id || null,
+    userId: access.userId,
+    orgId: access.organization.id,
+    stripeCustomerId: access.organization.stripe_customer_id || null,
   };
 }
 
@@ -109,7 +85,7 @@ async function verifyOrgOwnerAccess(
 
 export async function getOrgAddons(orgId: string): ActionResult<OrgAddon[]> {
   try {
-    const result = await verifyOrgOwnerAccess(orgId);
+    const result = await verifyOrgManagementAccess(orgId);
     if ('error' in result) {
       return { success: false, error: result.error };
     }
@@ -147,7 +123,7 @@ export async function createAddonCheckout(
       return { success: false, error: 'Invalid redirect URL.' };
     }
 
-    const result = await verifyOrgOwnerAccess(orgId);
+    const result = await verifyOrgManagementAccess(orgId);
     if ('error' in result) {
       return { success: false, error: result.error };
     }
@@ -228,7 +204,7 @@ export async function cancelAddon(
   addonType: AddonType
 ): ActionResult<void> {
   try {
-    const result = await verifyOrgOwnerAccess(orgId);
+    const result = await verifyOrgManagementAccess(orgId);
     if ('error' in result) {
       return { success: false, error: result.error };
     }

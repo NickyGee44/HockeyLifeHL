@@ -16,6 +16,9 @@ export interface BaseEmailTemplateProps {
   unsubscribeUrl?: string;
   leagueName?: string;
   leagueLogo?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
   /** Physical postal address for CAN-SPAM/CASL compliance */
   postalAddress?: string;
 }
@@ -38,6 +41,12 @@ const BRAND_COLORS = {
   error: '#FB7185',
 };
 
+type RgbColor = {
+  r: number;
+  g: number;
+  b: number;
+};
+
 export function getBaseEmailTemplate({
   title,
   preheader,
@@ -48,10 +57,18 @@ export function getBaseEmailTemplate({
   unsubscribeUrl,
   leagueName = 'Beer League Hockey',
   leagueLogo,
+  primaryColor,
+  secondaryColor,
+  accentColor,
   postalAddress = DEFAULT_POSTAL_ADDRESS,
 }: BaseEmailTemplateProps): string {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
   const year = new Date().getFullYear();
+  const theme = getEmailBrandTheme({
+    primaryColor,
+    secondaryColor,
+    accentColor,
+  });
 
   return `
 <!DOCTYPE html>
@@ -95,31 +112,32 @@ export function getBaseEmailTemplate({
     body {
       margin: 0 !important;
       padding: 0 !important;
-      background-color: ${BRAND_COLORS.black};
+      background-color: ${theme.pageBackgroundColor};
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: ${BRAND_COLORS.white};
+      color: ${theme.contentTextColor};
     }
 
     /* Container */
     .email-wrapper {
       width: 100%;
-      background-color: ${BRAND_COLORS.black};
+      background-color: ${theme.pageBackgroundColor};
       padding: 40px 20px;
     }
 
     .email-container {
       max-width: 600px;
       margin: 0 auto;
-      background-color: ${BRAND_COLORS.darkGray};
+      background-color: ${theme.containerBackgroundColor};
       border-radius: 16px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.10);
+      border: 1px solid ${theme.containerBorderColor};
     }
 
     /* Header */
     .email-header {
-      background: linear-gradient(to right, #22D3EE, #3B82F6);
+      background-color: ${theme.headerStartColor};
+      background-image: linear-gradient(to right, ${theme.headerStartColor}, ${theme.headerEndColor});
       padding: 32px 40px;
       text-align: center;
     }
@@ -127,37 +145,47 @@ export function getBaseEmailTemplate({
     .email-logo {
       font-size: 28px;
       font-weight: 800;
-      color: ${BRAND_COLORS.black};
+      color: ${theme.headerTextColor};
       text-decoration: none;
       letter-spacing: -0.5px;
+    }
+
+    .email-logo-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 10px 30px rgba(7, 10, 15, 0.16);
     }
 
     .email-title {
       margin: 16px 0 0 0;
       font-size: 24px;
       font-weight: 700;
-      color: ${BRAND_COLORS.black};
+      color: ${theme.headerTextColor};
       line-height: 1.3;
     }
 
     /* Content */
     .email-content {
       padding: 40px;
-      color: ${BRAND_COLORS.white};
+      color: ${theme.contentTextColor};
     }
 
     .email-content h1, .email-content h2, .email-content h3 {
-      color: ${BRAND_COLORS.white};
+      color: ${theme.contentTextColor};
       margin: 0 0 16px 0;
     }
 
     .email-content p {
       margin: 0 0 16px 0;
-      color: ${BRAND_COLORS.lightGray};
+      color: ${theme.contentMutedColor};
     }
 
     .email-content a {
-      color: ${BRAND_COLORS.gold};
+      color: ${theme.linkColor};
       text-decoration: none;
     }
 
@@ -167,8 +195,8 @@ export function getBaseEmailTemplate({
 
     /* Info Box */
     .info-box {
-      background-color: rgba(34, 211, 238, 0.1);
-      border-left: 4px solid ${BRAND_COLORS.gold};
+      background-color: ${theme.infoBoxBackgroundColor};
+      border-left: 4px solid ${theme.infoBoxBorderColor};
       border-radius: 0 8px 8px 0;
       padding: 20px;
       margin: 24px 0;
@@ -176,16 +204,16 @@ export function getBaseEmailTemplate({
 
     .info-box p {
       margin: 0;
-      color: ${BRAND_COLORS.white};
+      color: ${theme.contentTextColor};
     }
 
     .info-box strong {
-      color: ${BRAND_COLORS.gold};
+      color: ${theme.linkColor};
     }
 
     /* Details List */
     .details-list {
-      background-color: rgba(0, 0, 0, 0.3);
+      background-color: ${theme.detailsBackgroundColor};
       border-radius: 12px;
       padding: 20px;
       margin: 24px 0;
@@ -202,13 +230,13 @@ export function getBaseEmailTemplate({
     }
 
     .details-list .label {
-      color: ${BRAND_COLORS.lightGray};
+      color: ${theme.contentMutedColor};
       font-size: 14px;
       width: 120px;
     }
 
     .details-list .value {
-      color: ${BRAND_COLORS.white};
+      color: ${theme.contentTextColor};
       font-weight: 500;
     }
 
@@ -220,8 +248,9 @@ export function getBaseEmailTemplate({
 
     .button {
       display: inline-block;
-      background: linear-gradient(to right, #22D3EE, #3B82F6);
-      color: #070A0F !important;
+      background-color: ${theme.buttonStartColor};
+      background-image: linear-gradient(to right, ${theme.buttonStartColor}, ${theme.buttonEndColor});
+      color: ${theme.buttonTextColor} !important;
       font-weight: 600;
       font-size: 16px;
       text-decoration: none;
@@ -231,20 +260,20 @@ export function getBaseEmailTemplate({
     }
 
     .button:hover {
-      box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+      box-shadow: 0 0 20px ${theme.buttonGlowColor};
     }
 
     /* Footer */
     .email-footer {
-      background-color: ${BRAND_COLORS.black};
+      background-color: ${theme.footerBackgroundColor};
       padding: 32px 40px;
       text-align: center;
-      border-top: 1px solid #1e293b;
+      border-top: 1px solid ${theme.footerBorderColor};
     }
 
     .footer-note {
       font-size: 14px;
-      color: ${BRAND_COLORS.lightGray};
+      color: ${theme.contentMutedColor};
       margin: 0 0 16px 0;
     }
 
@@ -253,30 +282,30 @@ export function getBaseEmailTemplate({
     }
 
     .footer-links a {
-      color: ${BRAND_COLORS.lightGray};
+      color: ${theme.footerLinkColor};
       text-decoration: none;
       margin: 0 12px;
       font-size: 13px;
     }
 
     .footer-links a:hover {
-      color: ${BRAND_COLORS.gold};
+      color: ${theme.linkColor};
     }
 
     .footer-copyright {
       font-size: 12px;
-      color: ${BRAND_COLORS.mediumGray};
+      color: ${theme.footerMetaColor};
       margin: 0;
     }
 
     .unsubscribe {
       font-size: 12px;
-      color: ${BRAND_COLORS.mediumGray};
+      color: ${theme.footerMetaColor};
       margin: 16px 0 0 0;
     }
 
     .unsubscribe a {
-      color: ${BRAND_COLORS.mediumGray};
+      color: ${theme.footerMetaColor};
       text-decoration: underline;
     }
 
@@ -352,7 +381,7 @@ export function getBaseEmailTemplate({
     /* Dark mode support */
     @media (prefers-color-scheme: dark) {
       body {
-        background-color: ${BRAND_COLORS.black} !important;
+        background-color: ${theme.pageBackgroundColor} !important;
       }
     }
   </style>
@@ -374,7 +403,7 @@ export function getBaseEmailTemplate({
             <!-- Header -->
             <div class="email-header">
               ${leagueLogo
-                ? `<img src="${leagueLogo}" alt="${leagueName}" height="48" style="height: 48px; width: auto;">`
+                ? `<div class="email-logo-badge"><img src="${leagueLogo}" alt="${leagueName}" height="48" style="height: 48px; width: auto; display: block;"></div>`
                 : `<a href="${siteUrl}" class="email-logo">${leagueName}</a>`
               }
               <h1 class="email-title">${title}</h1>
@@ -391,7 +420,7 @@ export function getBaseEmailTemplate({
               ` : ''}
 
               ${footerNote ? `
-              <p style="font-size: 14px; color: ${BRAND_COLORS.mediumGray}; margin-top: 24px;">
+              <p style="font-size: 14px; color: ${theme.footerMetaColor}; margin-top: 24px;">
                 ${footerNote}
               </p>
               ` : ''}
@@ -410,7 +439,7 @@ export function getBaseEmailTemplate({
               <p class="footer-copyright">
                 &copy; ${year} ${leagueName}. All rights reserved.
               </p>
-              <p style="font-size: 11px; color: ${BRAND_COLORS.mediumGray}; margin: 8px 0 0 0;">
+              <p style="font-size: 11px; color: ${theme.footerMetaColor}; margin: 8px 0 0 0;">
                 ${postalAddress}
               </p>
               ${unsubscribeUrl ? `
@@ -463,4 +492,148 @@ export function createDetailsList(details: Array<{ label: string; value: string 
  */
 export function createBadge(text: string, type: 'success' | 'warning' | 'error' | 'gold' = 'gold'): string {
   return `<span class="badge badge-${type}">${text}</span>`;
+}
+
+function getEmailBrandTheme(params: {
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+}) {
+  const primaryColor = normalizeHexColor(params.primaryColor, BRAND_COLORS.gold);
+  const accentColor = normalizeHexColor(params.accentColor, BRAND_COLORS.goldLight);
+  const rawSecondaryColor = normalizeHexColor(params.secondaryColor, BRAND_COLORS.darkGray);
+  const secondaryColor = balanceSecondaryColor(rawSecondaryColor);
+  const pageBackgroundColor = mixHexColors(secondaryColor, BRAND_COLORS.black, 0.58);
+  const containerBackgroundColor = mixHexColors(secondaryColor, BRAND_COLORS.darkGray, 0.2);
+  const headerStartColor = primaryColor;
+  const headerEndColor = accentColor;
+  const headerTextColor = getContrastTextColor(mixHexColors(primaryColor, accentColor, 0.5));
+
+  return {
+    pageBackgroundColor,
+    containerBackgroundColor,
+    containerBorderColor: hexToRgba(primaryColor, 0.18),
+    headerStartColor,
+    headerEndColor,
+    headerTextColor,
+    contentTextColor: BRAND_COLORS.white,
+    contentMutedColor: '#CBD5E1',
+    linkColor: primaryColor,
+    infoBoxBackgroundColor: hexToRgba(primaryColor, 0.12),
+    infoBoxBorderColor: primaryColor,
+    detailsBackgroundColor: hexToRgba(pageBackgroundColor, 0.82),
+    buttonStartColor: primaryColor,
+    buttonEndColor: accentColor,
+    buttonTextColor: getContrastTextColor(mixHexColors(primaryColor, accentColor, 0.45)),
+    buttonGlowColor: hexToRgba(primaryColor, 0.38),
+    footerBackgroundColor: mixHexColors(pageBackgroundColor, BRAND_COLORS.black, 0.34),
+    footerBorderColor: hexToRgba(primaryColor, 0.16),
+    footerLinkColor: '#CBD5E1',
+    footerMetaColor: '#64748B',
+  };
+}
+
+function balanceSecondaryColor(color: string): string {
+  const rgb = parseHexColor(color);
+  if (!rgb) {
+    return BRAND_COLORS.darkGray;
+  }
+
+  const luminance = getRelativeLuminance(rgb);
+
+  if (luminance <= 0.12) {
+    return mixHexColors(color, BRAND_COLORS.black, 0.18);
+  }
+
+  if (luminance <= 0.3) {
+    return mixHexColors(color, BRAND_COLORS.darkGray, 0.4);
+  }
+
+  return mixHexColors(color, BRAND_COLORS.darkGray, 0.78);
+}
+
+function normalizeHexColor(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  const normalized = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+  const raw = normalized.slice(1);
+
+  if (/^[0-9a-fA-F]{3}$/.test(raw)) {
+    return `#${raw
+      .split('')
+      .map((char) => `${char}${char}`)
+      .join('')
+      .toUpperCase()}`;
+  }
+
+  if (/^[0-9a-fA-F]{6}$/.test(raw)) {
+    return `#${raw.toUpperCase()}`;
+  }
+
+  return fallback;
+}
+
+function getContrastTextColor(hex: string): string {
+  const rgb = parseHexColor(hex);
+  if (!rgb) {
+    return BRAND_COLORS.black;
+  }
+
+  return getRelativeLuminance(rgb) > 0.58 ? BRAND_COLORS.black : BRAND_COLORS.white;
+}
+
+function mixHexColors(from: string, to: string, ratio: number): string {
+  const start = parseHexColor(from) ?? parseHexColor(BRAND_COLORS.gold)!;
+  const end = parseHexColor(to) ?? parseHexColor(BRAND_COLORS.black)!;
+  const clamped = Math.max(0, Math.min(1, ratio));
+
+  return rgbToHex({
+    r: Math.round(start.r + (end.r - start.r) * clamped),
+    g: Math.round(start.g + (end.g - start.g) * clamped),
+    b: Math.round(start.b + (end.b - start.b) * clamped),
+  });
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const rgb = parseHexColor(hex) ?? parseHexColor(BRAND_COLORS.gold)!;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+function parseHexColor(hex: string): RgbColor | null {
+  const normalized = normalizeHexColor(hex, '');
+  if (!normalized) {
+    return null;
+  }
+
+  const raw = normalized.slice(1);
+  if (!/^[0-9A-F]{6}$/.test(raw)) {
+    return null;
+  }
+
+  return {
+    r: parseInt(raw.slice(0, 2), 16),
+    g: parseInt(raw.slice(2, 4), 16),
+    b: parseInt(raw.slice(4, 6), 16),
+  };
+}
+
+function rgbToHex(rgb: RgbColor): string {
+  return `#${[rgb.r, rgb.g, rgb.b]
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()}`;
+}
+
+function getRelativeLuminance({ r, g, b }: RgbColor): number {
+  const channels = [r, g, b].map((value) => {
+    const channel = value / 255;
+    return channel <= 0.03928
+      ? channel / 12.92
+      : Math.pow((channel + 0.055) / 1.055, 2.4);
+  });
+
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }

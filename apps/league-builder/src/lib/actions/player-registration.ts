@@ -32,6 +32,7 @@ import {
   notifyLeagueAdminsOfNewRegistration,
 } from '@/lib/email/registration-emails';
 import { createPaymentIntent } from '@/lib/leagues/stripe-connect';
+import { verifyLeagueOwnerAccess } from './permissions';
 
 // ============================================================================
 // Types
@@ -54,6 +55,9 @@ interface LeagueWaiver {
   version: string;
   content_hash: string;
   title: string;
+  document_url: string | null;
+  document_name: string | null;
+  document_mime_type: string | null;
 }
 
 interface PendingRegistration {
@@ -119,44 +123,21 @@ async function getCurrentUser() {
 // ============================================================================
 
 async function verifyLeagueAdminAccess(leagueId: string) {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return {
+      error:
+        access.error ||
+        'Only league owners and admins can manage registrations.',
+    };
+  }
+
   const user = await getCurrentUser();
   if (!user) {
     return { error: 'Authentication required. Please sign in.' };
   }
 
-  const supabase = await createClient();
-
-  const { data: membership, error: membershipError } = await supabase
-    .from('league_memberships')
-    .select('role, status')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (membership && ['owner', 'admin'].includes(membership.role) && membership.status === 'active') {
-    return { userId: user.id };
-  }
-
-  // Fallback: platform admins get owner-level access to all leagues
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .single();
-
-  if ((profile as any)?.is_platform_admin === true) {
-    return { userId: user.id };
-  }
-
-  if (membershipError || !membership) {
-    return { error: 'You do not have access to this league.' };
-  }
-
-  if (!['owner', 'admin'].includes(membership.role)) {
-    return { error: 'Only league owners and admins can manage registrations.' };
-  }
-
-  return { error: 'Your league membership is not active.' };
+  return { userId: user.id };
 }
 
 // ============================================================================
@@ -420,7 +401,7 @@ export async function getLeagueWaiver(
 
     const { data: waiver, error } = await supabase
       .from('league_waiver_templates')
-      .select('id, content, version, content_hash, title')
+      .select('id, content, version, content_hash, title, document_url, document_name, document_mime_type')
       .eq('league_id', leagueId)
       .eq('is_active', true)
       .single();
@@ -1052,7 +1033,7 @@ export async function getPendingRegistrations(
       return { success: false, error: result.error as string };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { status, type, seasonId, search, limit = 20, offset = 0 } = options;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1061,9 +1042,9 @@ export async function getPendingRegistrations(
       .select(
         `
         *,
-        player:profiles!player_id (id, full_name, email, phone),
-        team:teams!team_id (id, name),
-        waiver:player_waivers!waiver_id (id, signed_name, agreed_at)
+        player:profiles!registration_submissions_player_id_fkey (id, full_name, email, phone),
+        team:teams!registration_submissions_team_id_fkey (id, name),
+        waiver:player_waivers!registration_submissions_waiver_id_fkey (id, signed_name, agreed_at)
       `,
         { count: 'exact' }
       )
@@ -1117,16 +1098,34 @@ export async function getRegistrationDetails(
       return { success: false, error: 'Please sign in.' };
     }
 
-    const supabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
 
-    const { data: registration, error } = await supabase
+    const { data: accessRegistration, error: accessError } = await serviceSupabase
+      .from('registration_submissions')
+      .select('id, player_id, league_id')
+      .eq('id', registrationId)
+      .single();
+
+    if (accessError || !accessRegistration) {
+      return { success: false, error: 'Registration not found.' };
+    }
+
+    // Verify access (player viewing own, or admin viewing league's)
+    if (accessRegistration.player_id !== user.id) {
+      const accessResult = await verifyLeagueAdminAccess(accessRegistration.league_id);
+      if ('error' in accessResult) {
+        return { success: false, error: accessResult.error || 'Access denied' };
+      }
+    }
+
+    const { data: registration, error } = await serviceSupabase
       .from('registration_submissions')
       .select(
         `
         *,
-        player:profiles!player_id (id, full_name, email, phone, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, medical_notes),
-        team:teams!team_id (id, name),
-        waiver:player_waivers!waiver_id (id, signed_name, agreed_at, signature_data)
+        player:profiles!registration_submissions_player_id_fkey (id, full_name, email, phone, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, medical_notes),
+        team:teams!registration_submissions_team_id_fkey (id, name),
+        waiver:player_waivers!registration_submissions_waiver_id_fkey (id, signed_name, agreed_at, signature_data)
       `
       )
       .eq('id', registrationId)
@@ -1134,14 +1133,6 @@ export async function getRegistrationDetails(
 
     if (error) {
       return { success: false, error: 'Registration not found.' };
-    }
-
-    // Verify access (player viewing own, or admin viewing league's)
-    if (registration.player_id !== user.id) {
-      const accessResult = await verifyLeagueAdminAccess(registration.league_id);
-      if ('error' in accessResult) {
-        return { success: false, error: accessResult.error || 'Access denied' };
-      }
     }
 
     return {
@@ -1167,7 +1158,7 @@ export async function approveRegistration(
 ): ActionResult {
   try {
     // Get registration to find league ID
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data: registration } = await supabase
       .from('registration_submissions')
@@ -1205,9 +1196,8 @@ export async function approveRegistration(
     }
 
     // If team assigned, add player to roster
-    const serviceSupabase = createServiceRoleClient();
     if (teamId) {
-      await serviceSupabase.from('team_rosters').insert({
+      await supabase.from('team_rosters').insert({
         team_id: teamId,
         player_id: registration.player_id,
         league_id: registration.league_id,
@@ -1220,7 +1210,7 @@ export async function approveRegistration(
     // Send approval notification email
     try {
       // Get full registration details
-      const { data: fullReg } = await serviceSupabase
+      const { data: fullReg } = await supabase
         .from('registration_submissions')
         .select(`
           *,
@@ -1234,7 +1224,7 @@ export async function approveRegistration(
 
       if (fullReg?.player?.email) {
         const assignedTeam = teamId
-          ? await serviceSupabase
+          ? await supabase
               .from('teams')
               .select('name')
               .eq('id', teamId)
@@ -1277,7 +1267,7 @@ export async function rejectRegistration(
   reason: string
 ): ActionResult {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data: registration } = await supabase
       .from('registration_submissions')
@@ -1311,9 +1301,7 @@ export async function rejectRegistration(
 
     // Send rejection notification email
     try {
-      const serviceSupabase = createServiceRoleClient();
-
-      const { data: fullReg } = await serviceSupabase
+      const { data: fullReg } = await supabase
         .from('registration_submissions')
         .select(`
           *,
@@ -1355,7 +1343,7 @@ export async function waitlistRegistration(
   registrationId: string
 ): ActionResult {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data: registration } = await supabase
       .from('registration_submissions')
@@ -1411,7 +1399,7 @@ export async function bulkUpdateRegistrations(
       return { success: false, error: 'No registrations selected.' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     // Get first registration to verify league access
     const { data: firstReg } = await supabase
@@ -1493,7 +1481,7 @@ export async function getRegistrationSummary(
       return { success: false, error: result.error as string };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data, error } = await supabase.rpc('get_registration_summary', {
       check_league_id: leagueId,
