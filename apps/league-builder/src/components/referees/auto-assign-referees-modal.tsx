@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,13 +64,6 @@ export function AutoAssignRefereesModal({
     officialsPerGame: '2',
   });
 
-  useEffect(() => {
-    if (open) {
-      setError(null);
-      setResult(null);
-    }
-  }, [open]);
-
   const handleAutoAssign = () => {
     setError(null);
     setResult(null);
@@ -104,8 +97,19 @@ export function AutoAssignRefereesModal({
     onOpenChange(false);
   };
 
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      handleClose();
+      return;
+    }
+
+    setError(null);
+    setResult(null);
+    onOpenChange(true);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

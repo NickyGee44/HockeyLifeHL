@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useMemo, useOptimistic, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { cn } from '@hockey-life/ui';
@@ -126,15 +126,22 @@ export function MigrationQueueClient({
   const router = useRouter();
   const [filter, setFilter] = useState<FilterValue>('all');
   const [query, setQuery] = useState('');
-  const [requestList, setRequestList] = useState<PlatformMigrationQueueRequest[]>(requests);
   const [selectedId, setSelectedId] = useState<string | null>(requests[0]?.id ?? null);
-  const [editorState, setEditorState] = useState<EditorState>(() => createEditorState(requests[0] ?? null));
   const [isPending, startTransition] = useTransition();
+  const [requestList, updateRequestList] = useOptimistic<
+    PlatformMigrationQueueRequest[],
+    PlatformMigrationQueueRequest
+  >(requests, (currentRequests, updatedRequest) => {
+    const existingIndex = currentRequests.findIndex((request) => request.id === updatedRequest.id);
 
-  useEffect(() => {
-    setRequestList(requests);
-    setSelectedId((current) => current ?? requests[0]?.id ?? null);
-  }, [requests]);
+    if (existingIndex === -1) {
+      return [updatedRequest, ...currentRequests];
+    }
+
+    return currentRequests.map((request) =>
+      request.id === updatedRequest.id ? updatedRequest : request
+    );
+  });
 
   const derivedSummary = useMemo(() => {
     const next: Record<LeagueMigrationRequestStatus, number> = {
@@ -173,20 +180,20 @@ export function MigrationQueueClient({
     });
   }, [filter, query, requestList]);
 
+  const effectiveSelectedId = useMemo(() => {
+    if (selectedId && requestList.some((request) => request.id === selectedId)) {
+      return selectedId;
+    }
+
+    return filteredRequests[0]?.id ?? requestList[0]?.id ?? null;
+  }, [filteredRequests, requestList, selectedId]);
+
   const selectedRequest = useMemo(
-    () => requestList.find((request) => request.id === selectedId) ?? filteredRequests[0] ?? null,
-    [requestList, selectedId, filteredRequests]
+    () => requestList.find((request) => request.id === effectiveSelectedId) ?? filteredRequests[0] ?? null,
+    [effectiveSelectedId, filteredRequests, requestList]
   );
 
-  useEffect(() => {
-    if (!selectedRequest) return;
-    setSelectedId(selectedRequest.id);
-    setEditorState(createEditorState(selectedRequest));
-  }, [selectedRequest?.id, selectedRequest?.updated_at]);
-
-  function saveChanges() {
-    if (!selectedRequest) return;
-
+  function saveChanges(selectedRequest: PlatformMigrationQueueRequest, editorState: EditorState) {
     startTransition(async () => {
       const quotedPriceCents = editorState.quotedPrice.trim()
         ? Math.round(Number(editorState.quotedPrice) * 100)
@@ -207,10 +214,7 @@ export function MigrationQueueClient({
       }
 
       toast.success('Migration request updated');
-      setRequestList((current) =>
-        current.map((request) => (request.id === result.data.id ? result.data : request))
-      );
-      setEditorState(createEditorState(result.data));
+      updateRequestList(result.data);
       setSelectedId(result.data.id);
       router.refresh();
     });
@@ -471,83 +475,12 @@ export function MigrationQueueClient({
                   </div>
                 </div>
 
-                <div className="rounded-[24px] border border-cyan-400/15 bg-cyan-400/[0.05] p-5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100/80">Ops controls</p>
-                  <h3 className="mt-3 text-2xl font-black tracking-tight text-white">Review, quote, and schedule</h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-300">
-                    Update the workflow state here, keep internal notes on the request, and add the commercial or scheduling fields the owner needs back in their dashboard.
-                  </p>
-
-                  <div className="mt-5 grid gap-5 md:grid-cols-2">
-                    <label className="space-y-2">
-                      <span className="text-sm font-semibold text-white">Status</span>
-                      <select
-                        value={editorState.status}
-                        onChange={(event) => setEditorState((current) => ({ ...current, status: event.target.value as LeagueMigrationRequestStatus }))}
-                        className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-medium text-white outline-none transition-colors focus:border-cyan-300/35"
-                        disabled={isPending}
-                      >
-                        {MIGRATION_REQUEST_STATUS_OPTIONS.map((status) => (
-                          <option key={status} value={status}>
-                            {MIGRATION_STATUS_META[status].label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="space-y-2">
-                      <span className="text-sm font-semibold text-white">Quoted price (USD)</span>
-                      <Input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={editorState.quotedPrice}
-                        onChange={(event) => setEditorState((current) => ({ ...current, quotedPrice: event.target.value }))}
-                        placeholder="499"
-                        className="border-white/10 bg-black/20 text-white placeholder:text-neutral-500"
-                        disabled={isPending}
-                      />
-                    </label>
-
-                    <label className="space-y-2 md:col-span-2">
-                      <span className="text-sm font-semibold text-white">Scheduled work date</span>
-                      <Input
-                        type="date"
-                        value={editorState.scheduledFor}
-                        onChange={(event) => setEditorState((current) => ({ ...current, scheduledFor: event.target.value }))}
-                        className="border-white/10 bg-black/20 text-white"
-                        disabled={isPending}
-                      />
-                    </label>
-                  </div>
-
-                  <label className="mt-5 block space-y-2">
-                    <span className="text-sm font-semibold text-white">Internal ops notes</span>
-                    <Textarea
-                      rows={10}
-                      value={editorState.adminNotes}
-                      onChange={(event) => setEditorState((current) => ({ ...current, adminNotes: event.target.value }))}
-                      placeholder="Source quality is good. Need player ID mapping before importing 2018-2020 stats. Quote assumes articles come in CSV plus image URLs."
-                      className="border-white/10 bg-black/20 text-white placeholder:text-neutral-500"
-                      disabled={isPending}
-                    />
-                  </label>
-
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
-                    <p className="text-sm text-neutral-400">
-                      Changes here flow back into the owner-facing migration center.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={saveChanges}
-                      disabled={isPending}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition-[border-color,background-color,color,transform] hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                    >
-                      {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                      Save admin update
-                    </button>
-                  </div>
-                </div>
+                <MigrationRequestEditor
+                  key={`${selectedRequest.id}:${selectedRequest.updated_at}`}
+                  request={selectedRequest}
+                  isPending={isPending}
+                  onSave={(editorState) => saveChanges(selectedRequest, editorState)}
+                />
               </div>
             </div>
           ) : (
@@ -577,6 +510,118 @@ function SummaryCard({
       <div className={cn('inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.04]', accent)}>{icon}</div>
       <p className="mt-3 text-2xl font-black text-white">{value}</p>
       <p className="text-sm text-neutral-400">{label}</p>
+    </div>
+  );
+}
+
+function MigrationRequestEditor({
+  request,
+  isPending,
+  onSave,
+}: {
+  request: PlatformMigrationQueueRequest;
+  isPending: boolean;
+  onSave: (editorState: EditorState) => void;
+}) {
+  const [editorState, setEditorState] = useState<EditorState>(() => createEditorState(request));
+
+  return (
+    <div className="rounded-[24px] border border-cyan-400/15 bg-cyan-400/[0.05] p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100/80">Ops controls</p>
+      <h3 className="mt-3 text-2xl font-black tracking-tight text-white">Review, quote, and schedule</h3>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-300">
+        Update the workflow state here, keep internal notes on the request, and add the commercial or scheduling fields the owner needs back in their dashboard.
+      </p>
+
+      <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <label className="space-y-2">
+          <span className="text-sm font-semibold text-white">Status</span>
+          <select
+            value={editorState.status}
+            onChange={(event) =>
+              setEditorState((current) => ({
+                ...current,
+                status: event.target.value as LeagueMigrationRequestStatus,
+              }))
+            }
+            className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-medium text-white outline-none transition-colors focus:border-cyan-300/35"
+            disabled={isPending}
+          >
+            {MIGRATION_REQUEST_STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {MIGRATION_STATUS_META[status].label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold text-white">Quoted price (USD)</span>
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            value={editorState.quotedPrice}
+            onChange={(event) =>
+              setEditorState((current) => ({
+                ...current,
+                quotedPrice: event.target.value,
+              }))
+            }
+            placeholder="499"
+            className="border-white/10 bg-black/20 text-white placeholder:text-neutral-500"
+            disabled={isPending}
+          />
+        </label>
+
+        <label className="space-y-2 md:col-span-2">
+          <span className="text-sm font-semibold text-white">Scheduled work date</span>
+          <Input
+            type="date"
+            value={editorState.scheduledFor}
+            onChange={(event) =>
+              setEditorState((current) => ({
+                ...current,
+                scheduledFor: event.target.value,
+              }))
+            }
+            className="border-white/10 bg-black/20 text-white"
+            disabled={isPending}
+          />
+        </label>
+      </div>
+
+      <label className="mt-5 block space-y-2">
+        <span className="text-sm font-semibold text-white">Internal ops notes</span>
+        <Textarea
+          rows={10}
+          value={editorState.adminNotes}
+          onChange={(event) =>
+            setEditorState((current) => ({
+              ...current,
+              adminNotes: event.target.value,
+            }))
+          }
+          placeholder="Source quality is good. Need player ID mapping before importing 2018-2020 stats. Quote assumes articles come in CSV plus image URLs."
+          className="border-white/10 bg-black/20 text-white placeholder:text-neutral-500"
+          disabled={isPending}
+        />
+      </label>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+        <p className="text-sm text-neutral-400">
+          Changes here flow back into the owner-facing migration center.
+        </p>
+        <button
+          type="button"
+          onClick={() => onSave(editorState)}
+          disabled={isPending}
+          className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition-[border-color,background-color,color,transform] hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+        >
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+          Save admin update
+        </button>
+      </div>
     </div>
   );
 }

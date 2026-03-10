@@ -20,7 +20,7 @@ export default function RevealView({
   duration = 380,
   style,
 }: RevealViewProps) {
-  const progress = React.useRef(new Animated.Value(0)).current;
+  const [progress] = React.useState(() => new Animated.Value(0));
 
   React.useEffect(() => {
     const animation = Animated.timing(progress, {

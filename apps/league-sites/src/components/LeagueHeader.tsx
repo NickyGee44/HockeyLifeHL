@@ -71,13 +71,18 @@ const PRIMARY_DESKTOP_HREFS = new Set(['/schedule', '/standings', '/teams', '/st
 
 export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePages, isPlayoffSeason }: LeagueHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const pathname = usePathname();
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const { isPreviewMode, theme } = usePreviewMode();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
+  const [moreMenuState, setMoreMenuState] = useState<{ open: boolean; pathname: string }>({
+    open: false,
+    pathname: pathname ?? '',
+  });
   const customNavItems = (league as any).settings?.website?.navItems;
   const hasCustomNav = Array.isArray(customNavItems) && customNavItems.length > 0;
+  const currentPathname = pathname ?? '';
+  const isMoreMenuOpen = moreMenuState.open && moreMenuState.pathname === currentPathname;
 
   const normalizedCustomNavItems: NavItem[] = hasCustomNav
     ? customNavItems
@@ -155,16 +160,24 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
 
   const isMoreActive = desktopMoreItems.some((item) => isItemActive(item));
 
-  useEffect(() => {
-    setIsMoreMenuOpen(false);
-  }, [pathname]);
+  const closeMoreMenu = () => {
+    setMoreMenuState({ open: false, pathname: currentPathname });
+  };
+
+  const toggleMoreMenu = () => {
+    setMoreMenuState((current) =>
+      current.open && current.pathname === currentPathname
+        ? { open: false, pathname: currentPathname }
+        : { open: true, pathname: currentPathname }
+    );
+  };
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
       if (!moreMenuRef.current) return;
       const target = event.target;
       if (target instanceof Node && !moreMenuRef.current.contains(target)) {
-        setIsMoreMenuOpen(false);
+        closeMoreMenu();
       }
     };
 
@@ -175,7 +188,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
       document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('touchstart', handleOutsideClick);
     };
-  }, []);
+  }, [currentPathname]);
 
   return (
     <header
@@ -274,7 +287,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                     }`}
                     aria-expanded={isMoreMenuOpen}
                     aria-haspopup="menu"
-                    onClick={() => setIsMoreMenuOpen((open) => !open)}
+                    onClick={toggleMoreMenu}
                   >
                     More
                     <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
@@ -310,7 +323,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                               rel="noopener noreferrer"
                               className={itemClasses}
                               role="menuitem"
-                              onClick={() => setIsMoreMenuOpen(false)}
+                              onClick={closeMoreMenu}
                             >
                               {content}
                             </a>
@@ -323,7 +336,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                             href={href}
                             className={itemClasses}
                             role="menuitem"
-                            onClick={() => setIsMoreMenuOpen(false)}
+                            onClick={closeMoreMenu}
                           >
                             {content}
                           </Link>

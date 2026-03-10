@@ -215,7 +215,7 @@ export default function LeagueMarketplace({
   );
 
   const sorted = React.useMemo(() => {
-    let list = [...leagues];
+    const list = [...leagues];
     if (sortMode === 'fit') {
       const fitOrder: Record<string, number> = {
         perfect: 0,

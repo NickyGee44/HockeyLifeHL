@@ -68,15 +68,19 @@ function formatFullDate(iso: string) {
 }
 
 function LiveDot() {
-  const pulse = React.useRef(new Animated.Value(1)).current;
+  const [pulse] = React.useState(() => new Animated.Value(1));
 
   React.useEffect(() => {
-    Animated.loop(
+    const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
         Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
       ]),
-    ).start();
+    );
+
+    animation.start();
+
+    return () => animation.stop();
   }, [pulse]);
 
   return <Animated.View style={[styles.liveDot, { opacity: pulse }]} />;

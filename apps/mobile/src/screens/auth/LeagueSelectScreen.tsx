@@ -132,7 +132,7 @@ export default function LeagueSelectScreen({ onComplete }: LeagueSelectScreenPro
           ItemSeparatorComponent={() => <View style={styles.divider} />}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>You're not in any leagues yet</Text>
+              <Text style={styles.emptyText}>You&apos;re not in any leagues yet</Text>
               <Text style={styles.emptySubtext}>Browse below to get started.</Text>
             </View>
           }

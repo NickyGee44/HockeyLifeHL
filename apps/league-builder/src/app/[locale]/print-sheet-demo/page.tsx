@@ -17,6 +17,8 @@ export const metadata = {
   title: 'Game Sheet Preview — HockeyLife HL',
 };
 
+const DEMO_GAME_SCHEDULED_AT = '2026-03-11T23:15:00.000Z';
+
 // ── Mock data — realistic beer-league players ─────────────────────────────────
 
 function makeRoster(players: [number, string, boolean?][]): RosterPlayer[] {
@@ -90,7 +92,7 @@ export default async function PrintSheetDemoPage({ params }: Props) {
       <PrintableGameSheet
         league={{ name: 'Beer League Hockey — Demo League' }}
         game={{
-          scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+          scheduledAt: DEMO_GAME_SCHEDULED_AT,
           location: 'Barrie Community Arena — Rink 2',
           periodCount: 3,
           periodLengthMinutes: 20,

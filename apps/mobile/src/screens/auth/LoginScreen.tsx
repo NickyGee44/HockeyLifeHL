@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import blhLogo from '../../../assets/blh-logo.png';
 import { useAuth } from '../../context/AuthContext';
 import colors from '../../theme/colors';
 
@@ -67,7 +68,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <Image source={require('../../../assets/blh-logo.png')} style={styles.logo} />
+        <Image source={blhLogo} style={styles.logo} />
         <Text style={styles.heading}>Sign in to BLH</Text>
 
         {Platform.OS === 'ios' ? (

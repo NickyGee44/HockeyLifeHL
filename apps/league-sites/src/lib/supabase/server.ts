@@ -11,6 +11,50 @@ import { cookies } from 'next/headers';
 const noStoreFetch: typeof globalThis.fetch = (input, init) =>
   fetch(input, { ...init, cache: 'no-store' });
 
+function createEmptyQueryBuilder(single = false): any {
+  const listResult = Promise.resolve({ data: [], error: null, count: 0 });
+  const singleResult = Promise.resolve({ data: null, error: null, count: 0 });
+
+  return new Proxy(
+    {},
+    {
+      get(_target, prop) {
+        if (prop === 'then') {
+          const promise = single ? singleResult : listResult;
+          return promise.then.bind(promise);
+        }
+
+        if (prop === 'catch') {
+          const promise = single ? singleResult : listResult;
+          return promise.catch.bind(promise);
+        }
+
+        if (prop === 'finally') {
+          const promise = single ? singleResult : listResult;
+          return promise.finally.bind(promise);
+        }
+
+        if (prop === 'single' || prop === 'maybeSingle') {
+          return () => singleResult;
+        }
+
+        return () => createEmptyQueryBuilder(single);
+      },
+    }
+  );
+}
+
+function createEmptyServiceClient() {
+  return {
+    from() {
+      return createEmptyQueryBuilder(false);
+    },
+    rpc() {
+      return Promise.resolve({ data: null, error: null });
+    },
+  } as ReturnType<typeof createServerClient>;
+}
+
 /**
  * Create a Supabase client for server-side usage in Platform 2 (League Sites)
  *
@@ -75,21 +119,20 @@ export async function createAuthClient() {
 export function createServiceRoleClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!serviceRoleKey || !supabaseUrl) {
-    // Return a mock client for build time when env vars aren't available
-    // This is safe because generateStaticParams will return empty array
-    return {
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            order: () => ({
-              limit: () => Promise.resolve({ data: [], error: null }),
-            }),
-          }),
-        }),
-      }),
-    } as ReturnType<typeof createServerClient>;
+    if (supabaseUrl && anonKey) {
+      return createBrowserClient(supabaseUrl, anonKey, {
+        global: { fetch: noStoreFetch },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }) as ReturnType<typeof createServerClient>;
+    }
+
+    return createEmptyServiceClient();
   }
 
   return createServerClient(

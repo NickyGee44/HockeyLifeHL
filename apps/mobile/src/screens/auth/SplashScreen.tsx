@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
+import blhLogo from '../../../assets/blh-logo.png';
 import colors from '../../theme/colors';
 
 export default function SplashScreen({ navigation }: { navigation: any }) {
@@ -14,7 +15,7 @@ export default function SplashScreen({ navigation }: { navigation: any }) {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../../../assets/blh-logo.png')} style={styles.logo} />
+      <Image source={blhLogo} style={styles.logo} />
       <Text style={styles.title}>BLH</Text>
       <Text style={styles.subtitle}>Beer League Hockey</Text>
     </View>

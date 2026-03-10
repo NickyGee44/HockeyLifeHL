@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import blhLogo from '../../assets/blh-logo.png';
 import GameCard from '../components/GameCard';
 import BrandAtmosphere from '../components/BrandAtmosphere';
 import GuestBanner from '../components/GuestBanner';
@@ -493,12 +494,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         showsVerticalScrollIndicator={false}
       >
         <RevealView delay={20}>
-          <View style={styles.headerRow}>
-            <View style={styles.brandWrap}>
-              <Image source={require('../../assets/blh-logo.png')} style={styles.smallLogo} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.logo, { color: activeTheme.primaryColor }]} numberOfLines={1}>
-                  {activeLeague.name}
+            <View style={styles.headerRow}>
+              <View style={styles.brandWrap}>
+                <Image source={blhLogo} style={styles.smallLogo} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.logo, { color: activeTheme.primaryColor }]} numberOfLines={1}>
+                    {activeLeague.name}
                 </Text>
                 <Text style={styles.logoSub}>
                   {isGuestLeague ? 'Preview mode' : formatSyncTime(lastUpdatedAt)}
