@@ -11,3 +11,4 @@ npm-debug.*
 *.orig
 .DS_Store
 .env.local
+.codex-monorepo-preview.png
