@@ -336,6 +336,7 @@ export function LeagueTeamsClient({
 
 function TeamCardInner({
   team,
+  leagueId,
   locale,
   onDelete,
 }: {
@@ -349,12 +350,14 @@ function TeamCardInner({
     pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
     inactive: 'bg-neutral-800 text-neutral-400 border-neutral-700',
   };
+  const teamHref = `/dashboard/teams/${team.id}?leagueId=${leagueId}`;
+  const teamRosterHref = `/dashboard/teams/${team.id}?leagueId=${leagueId}&tab=roster`;
 
   return (
     <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5 hover:border-white/20 transition-colors group relative">
       {/* Clickable overlay to navigate to team detail */}
       <Link
-        href={`/dashboard/teams/${team.id}`}
+        href={teamHref}
         className="absolute inset-0 rounded-xl z-0"
         aria-label={`Manage ${team.name}`}
       />
@@ -392,13 +395,13 @@ function TeamCardInner({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem asChild>
-              <Link href={`/dashboard/teams/${team.id}`}>
+              <Link href={teamHref}>
                 <Settings className="w-4 h-4 mr-2" />
                 Manage Team
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href={`/dashboard/teams/${team.id}?tab=roster`}>
+              <Link href={teamRosterHref}>
                 <UserCheck className="w-4 h-4 mr-2" />
                 View Roster
               </Link>

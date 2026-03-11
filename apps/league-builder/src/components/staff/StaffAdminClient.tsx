@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import {
   cn,
   Select,
@@ -14,6 +15,7 @@ import {
 } from '@hockey-life/ui';
 import { Plus, Trash2, Pencil, X, UserCircle, Check, XCircle, Filter } from 'lucide-react';
 import { createStaffMember, updateStaffMember, deleteStaffMember } from '@/lib/actions/staff';
+import { sendAvailabilityRequestForRefereeStaffMember } from '@/lib/actions/staffing-availability';
 import { LogoUploader } from '@/components/ui/logo-uploader';
 import { uploadStaffPhoto, deleteStaffPhoto } from '@/lib/actions/image-upload';
 
@@ -76,6 +78,7 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
   const t = useTranslations('staff');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const locale = _locale || 'en';
 
   // Mounted state to avoid Radix Select hydration mismatch
   const [mounted, setMounted] = useState(false);
@@ -95,6 +98,7 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
   const [phone, setPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [bio, setBio] = useState('');
+  const [sendAvailabilityNow, setSendAvailabilityNow] = useState(true);
 
   // Filter state
   const [filterRole, setFilterRole] = useState('all');
@@ -131,6 +135,7 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
     setPhone('');
     setPhotoUrl('');
     setBio('');
+    setSendAvailabilityNow(true);
     setShowForm(false);
     setEditingId(null);
   }
@@ -153,7 +158,7 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
 
     startTransition(async () => {
       if (editingId) {
-        await updateStaffMember(editingId, {
+        const updateResult = await updateStaffMember(editingId, {
           name: name.trim(),
           roleTitle: effectiveRoleTitle,
           email: email.trim() || undefined,
@@ -161,8 +166,13 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
           photoUrl: photoUrl.trim() || undefined,
           bio: bio.trim() || undefined,
         });
+        if (!updateResult.success) {
+          toast.error(updateResult.error || 'Failed to update staff member.');
+          return;
+        }
+        toast.success('Staff member updated.');
       } else {
-        await createStaffMember({
+        const createResult = await createStaffMember({
           leagueId,
           name: name.trim(),
           roleTitle: effectiveRoleTitle,
@@ -171,6 +181,31 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
           photoUrl: photoUrl.trim() || undefined,
           bio: bio.trim() || undefined,
         });
+
+        if (!createResult.success || !createResult.data) {
+          toast.error(createResult.error || 'Failed to add staff member.');
+          return;
+        }
+
+        if (
+          effectiveRoleTitle.toLowerCase().includes('referee') &&
+          email.trim() &&
+          sendAvailabilityNow
+        ) {
+          const requestResult = await sendAvailabilityRequestForRefereeStaffMember({
+            leagueId,
+            staffMemberId: createResult.data.id,
+            locale,
+          });
+
+          if (!requestResult.success) {
+            toast.error(requestResult.error || 'Referee added, but the availability request could not be sent.');
+          } else {
+            toast.success('Referee added and availability request sent.');
+          }
+        } else {
+          toast.success('Staff member added.');
+        }
       }
       resetForm();
       router.refresh();
@@ -308,6 +343,22 @@ export function StaffAdminClient({ leagueId, locale: _locale, staff }: StaffAdmi
                 className="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-4 py-2 text-white focus:ring-2 focus:ring-rink-500 focus:border-transparent"
               />
             </div>
+            {selectedRole === 'Referee' && (
+              <label className="md:col-span-2 flex items-start gap-3 rounded-lg border border-neutral-700 bg-neutral-800/60 p-3">
+                <input
+                  type="checkbox"
+                  checked={sendAvailabilityNow}
+                  onChange={(event) => setSendAvailabilityNow(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-rink-500/30 bg-neutral-900 text-rink-500 focus:ring-rink-500"
+                />
+                <div>
+                  <p className="text-sm font-medium text-white">Send weekly availability request</p>
+                  <p className="text-xs text-neutral-400">
+                    Email this referee a link to set recurring weekly availability so the auto-assigner can use it.
+                  </p>
+                </div>
+              </label>
+            )}
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-1">{t('phone')}</label>
               <input

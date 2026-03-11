@@ -16,6 +16,7 @@ interface ScorekeepersListProps {
   onEdit: (scorekeeper: LeagueScorekeeper) => void;
   onRemove: (scorekeeper: LeagueScorekeeper) => void;
   onAssignGames: (scorekeeper: LeagueScorekeeper) => void;
+  onRequestAvailability: (scorekeeper: LeagueScorekeeper) => void;
   onRefresh: () => void;
   isLoading: boolean;
 }
@@ -28,6 +29,7 @@ export function ScorekeepersList({
   onEdit,
   onRemove,
   onAssignGames,
+  onRequestAvailability,
   onRefresh,
   isLoading }: ScorekeepersListProps) {
   const t = useTranslations('scorekeepers.list');
@@ -118,6 +120,7 @@ export function ScorekeepersList({
               onEdit={() => onEdit(scorekeeper)}
               onRemove={() => onRemove(scorekeeper)}
               onAssignGames={() => onAssignGames(scorekeeper)}
+              onRequestAvailability={() => onRequestAvailability(scorekeeper)}
             />
           ))}
         </div>

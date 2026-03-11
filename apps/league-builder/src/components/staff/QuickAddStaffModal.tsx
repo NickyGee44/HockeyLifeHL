@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@hockey-life/ui';
 import { Loader2 } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +24,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { createStaffMember, type StaffMember } from '@/lib/actions/staff';
+import { sendAvailabilityRequestForRefereeStaffMember } from '@/lib/actions/staffing-availability';
 
 // Re-export for consumers
 export type { StaffMember } from '@/lib/actions/staff';
@@ -54,10 +57,13 @@ export function QuickAddStaffModal({
 }: QuickAddStaffModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState(defaultRole || 'Admin');
+  const [sendAvailabilityNow, setSendAvailabilityNow] = useState(true);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -66,6 +72,7 @@ export function QuickAddStaffModal({
       setEmail('');
       setPhone('');
       setRole(defaultRole || 'Admin');
+      setSendAvailabilityNow(true);
       setError(null);
     }
   }, [open, defaultRole]);
@@ -89,6 +96,22 @@ export function QuickAddStaffModal({
       if (!result.success) {
         setError(result.error || 'Failed to add staff member');
         return;
+      }
+
+      if (role === 'Referee' && email.trim() && sendAvailabilityNow && result.data?.id) {
+        const requestResult = await sendAvailabilityRequestForRefereeStaffMember({
+          leagueId,
+          staffMemberId: result.data.id,
+          locale,
+        });
+
+        if (!requestResult.success) {
+          toast.error(requestResult.error || 'Referee added, but the availability request could not be sent.');
+        } else {
+          toast.success('Referee added and availability request sent.');
+        }
+      } else {
+        toast.success('Staff member added.');
       }
 
       onOpenChange(false);
@@ -163,6 +186,23 @@ export function QuickAddStaffModal({
                 className="bg-neutral-800 border-neutral-700 text-white"
               />
             </div>
+
+            {role === 'Referee' && (
+              <label className="flex items-start gap-3 rounded-lg border border-neutral-700 bg-neutral-800/60 p-3 md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={sendAvailabilityNow}
+                  onChange={(event) => setSendAvailabilityNow(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-rink-500/30 bg-neutral-900 text-rink-500 focus:ring-rink-500"
+                />
+                <div>
+                  <p className="text-sm font-medium text-white">Send weekly availability request</p>
+                  <p className="text-xs text-neutral-400">
+                    Email this referee a link to set the nights and time slots they can work so the auto-assigner can use them.
+                  </p>
+                </div>
+              </label>
+            )}
 
             {/* Phone (optional) */}
             <div className="space-y-2">

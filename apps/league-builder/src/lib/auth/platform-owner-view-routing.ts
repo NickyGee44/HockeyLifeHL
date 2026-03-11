@@ -1,4 +1,5 @@
 const LOCALE_PREFIX_PATTERN = /^\/(en|fr)(?=\/|$)/;
+const DASHBOARD_LEAGUE_SEGMENT_PATTERN = /\/dashboard\/leagues\/([^/?#]+)/;
 
 export function normalizePlatformOwnerViewTarget(
   target: string | null | undefined,
@@ -29,4 +30,28 @@ export function buildPlatformOwnerViewHref({
   }
 
   return `/dashboard/admin/owner-view?${params.toString()}`;
+}
+
+export function buildLeagueScopedDashboardTarget({
+  pathname,
+  search,
+  leagueId,
+}: {
+  pathname: string | null | undefined;
+  search?: string | null | undefined;
+  leagueId: string;
+}): string {
+  const fallback = `/dashboard/leagues/${leagueId}`;
+  const normalizedPath = normalizePlatformOwnerViewTarget(pathname, fallback);
+
+  if (!DASHBOARD_LEAGUE_SEGMENT_PATTERN.test(normalizedPath)) {
+    return fallback;
+  }
+
+  const nextPath = normalizedPath.replace(
+    DASHBOARD_LEAGUE_SEGMENT_PATTERN,
+    `/dashboard/leagues/${leagueId}`
+  );
+
+  return search ? `${nextPath}?${search}` : nextPath;
 }

@@ -1,6 +1,11 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  getRegistrationPaymentMode,
+  getSeasonFeeCollectionModel,
+} from '@/lib/payments/fee-collection-model';
+import { getSeasonParticipationTeams } from '@/lib/seasons/team-participation';
 import { revalidatePath } from 'next/cache';
 
 // ==============================================================================
@@ -18,6 +23,13 @@ function sanitizeError(error: unknown, context: string): string {
   if (error instanceof Error) {
     if (error.message.includes('not found') || error.message.includes('PGRST116')) {
       return 'Resource not found';
+    }
+    if (
+      error.message.includes('team_invoices') ||
+      error.message.includes('team_invoice_payments') ||
+      error.message.includes('fee_collection_model')
+    ) {
+      return 'Team billing is not available in this environment yet.';
     }
     if (error.message.includes('permission denied') || error.message.includes('row-level security')) {
       return 'Permission denied';
@@ -85,6 +97,16 @@ export interface TeamBillingSummary {
   overdue_count: number;
 }
 
+interface ExistingTeamInvoiceRecord {
+  id: string;
+  team_id: string;
+  amount_paid_cents: number;
+  payment_deadline: string | null;
+  notes: string | null;
+  paid_by: string | null;
+  paid_at: string | null;
+}
+
 // ==============================================================================
 // HELPER: Verify user has admin access to league
 // ==============================================================================
@@ -105,11 +127,11 @@ async function verifyLeagueAdmin(leagueId: string): Promise<{ userId: string } |
 
   const { data: league } = await supabase
     .from('leagues')
-    .select('created_by')
+    .select('created_by, owner_id')
     .eq('id', leagueId)
     .single();
 
-  const isCreator = league?.created_by === user.id;
+  const isCreator = league?.created_by === user.id || league?.owner_id === user.id;
   const isAdmin = membership && ['owner', 'admin'].includes(membership.role);
 
   if (isCreator || isAdmin) {
@@ -127,6 +149,24 @@ async function verifyLeagueAdmin(leagueId: string): Promise<{ userId: string } |
   }
 
   return null;
+}
+
+async function verifyTeamLeader(
+  teamId: string,
+  userId: string
+): Promise<boolean> {
+  const serviceSupabase = createServiceRoleClient();
+
+  const { data: rosterMembership } = await serviceSupabase
+    .from('team_rosters')
+    .select('team_id')
+    .eq('team_id', teamId)
+    .eq('player_id', userId)
+    .eq('status', 'active')
+    .in('leadership_role', ['captain', 'alternate_captain'])
+    .maybeSingle();
+
+  return Boolean(rosterMembership);
 }
 
 // ==============================================================================
@@ -151,7 +191,7 @@ export async function getTeamInvoices(
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     // Build base query — cast to any as team_invoices not in generated types
     const baseQuery = (supabase as any)
@@ -188,9 +228,13 @@ export async function getTeamInvoice(
       return { success: false, error: 'Invalid invoice ID format' };
     }
 
-    const supabase = await createClient();
+    const authSupabase = await createClient();
+    const supabase = createServiceRoleClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await authSupabase.auth.getUser();
     if (authError || !user) {
       return { success: false, error: 'Authentication required' };
     }
@@ -213,15 +257,8 @@ export async function getTeamInvoice(
     const adminAuth = await verifyLeagueAdmin(invoice.league_id);
 
     if (!adminAuth) {
-      // Check if user is captain of the team
-      const { data: team } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('id', invoice.team_id)
-        .eq('captain_id', user.id)
-        .single();
-
-      if (!team) {
+      const hasTeamLeaderAccess = await verifyTeamLeader(invoice.team_id, user.id);
+      if (!hasTeamLeaderAccess) {
         return { success: false, error: 'Unauthorized' };
       }
     }
@@ -250,7 +287,7 @@ export async function generateTeamInvoices(
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     // Get the active season fee for this season
     const { data: seasonFee, error: feeError } = await supabase
@@ -266,66 +303,150 @@ export async function generateTeamInvoices(
       return { success: false, error: 'No active season fee found for this season' };
     }
 
-    // Get all teams in this season with their roster counts
-    const { data: teams, error: teamsError } = await supabase
-      .from('teams')
-      .select('id, name')
-      .eq('league_id', leagueId)
-      .eq('season_id', seasonId);
+    const feeCollectionModel = await getSeasonFeeCollectionModel(supabase as any, seasonId);
+    const paymentMode = getRegistrationPaymentMode(
+      feeCollectionModel,
+      seasonFee.amount_cents
+    );
 
-    if (teamsError || !teams || teams.length === 0) {
+    if (paymentMode === 'required') {
+      return {
+        success: false,
+        error:
+          'Team invoices are only available when the season fee collection model is Team or Hybrid.',
+      };
+    }
+
+    const teams = await getSeasonParticipationTeams(supabase as any, leagueId, seasonId);
+
+    if (!teams || teams.length === 0) {
       return { success: false, error: 'No teams found for this season' };
     }
 
     // Get existing invoices to avoid duplicates
     const { data: existingInvoices } = await (supabase as any)
       .from('team_invoices')
-      .select('team_id')
+      .select(
+        'id, team_id, amount_paid_cents, payment_deadline, notes, paid_by, paid_at'
+      )
       .eq('league_id', leagueId)
       .eq('season_id', seasonId);
 
-    const existingTeamIds = new Set(
-      (existingInvoices || []).map((inv: any) => inv.team_id)
+    const existingByTeamId = new Map<string, ExistingTeamInvoiceRecord>(
+      ((existingInvoices || []) as ExistingTeamInvoiceRecord[]).map((invoice) => [
+        invoice.team_id,
+        invoice,
+      ])
     );
+
+    const { data: registrations, error: registrationError } = await supabase
+      .from('registration_submissions')
+      .select(
+        'team_id, fee_amount_cents, amount_paid_cents, payment_status, status, submitted_at'
+      )
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .not('team_id', 'is', null)
+      .not('submitted_at', 'is', null)
+      .in('status', ['pending', 'approved', 'waitlisted']);
+
+    if (registrationError) {
+      return {
+        success: false,
+        error: sanitizeError(registrationError, 'generateTeamInvoices'),
+      };
+    }
+
+    const registrationsByTeam = new Map<string, Array<{
+      fee_amount_cents: number | null;
+      amount_paid_cents: number | null;
+    }>>();
+
+    for (const registration of registrations || []) {
+      if (!registration.team_id) continue;
+
+      if (!registrationsByTeam.has(registration.team_id)) {
+        registrationsByTeam.set(registration.team_id, []);
+      }
+
+      registrationsByTeam.get(registration.team_id)!.push({
+        fee_amount_cents: registration.fee_amount_cents,
+        amount_paid_cents: registration.amount_paid_cents,
+      });
+    }
 
     let generated = 0;
     let skipped = 0;
 
     for (const team of teams) {
-      if (existingTeamIds.has(team.id)) {
+      const teamRegistrations = registrationsByTeam.get(team.id) || [];
+      const perPlayerOutstanding = teamRegistrations
+        .map((registration) => {
+          const feeAmount =
+            registration.fee_amount_cents ?? seasonFee.amount_cents;
+          const amountPaid = registration.amount_paid_cents ?? 0;
+          return Math.max(0, feeAmount - amountPaid);
+        })
+        .filter((amount) => amount > 0);
+
+      const totalPlayers = perPlayerOutstanding.length;
+      const calculatedTotalAmount = perPlayerOutstanding.reduce(
+        (sum, amount) => sum + amount,
+        0
+      );
+
+      const existingInvoice = existingByTeamId.get(team.id);
+
+      if (totalPlayers === 0 && !existingInvoice) {
         skipped++;
         continue;
       }
 
-      // Count roster players for this team
-      const { count: playerCount } = await supabase
-        .from('team_rosters')
-        .select('*', { count: 'exact', head: true })
-        .eq('team_id', team.id);
+      const amountPaidCents = Math.max(existingInvoice?.amount_paid_cents ?? 0, 0);
+      const totalAmountCents = Math.max(calculatedTotalAmount, amountPaidCents);
+      const status =
+        totalAmountCents === 0
+          ? 'waived'
+          : amountPaidCents >= totalAmountCents
+            ? 'paid'
+            : amountPaidCents > 0
+              ? 'partial'
+              : 'pending';
 
-      const totalPlayers = playerCount || 0;
-      const totalAmountCents = totalPlayers * seasonFee.amount_cents;
-
-      const { error: insertError } = await (supabase as any)
-        .from('team_invoices')
-        .insert({
+      const invoicePayload = {
           team_id: team.id,
           season_id: seasonId,
           league_id: leagueId,
           total_players: totalPlayers,
           fee_per_player_cents: seasonFee.amount_cents,
           total_amount_cents: totalAmountCents,
-          amount_paid_cents: 0,
+          amount_paid_cents: amountPaidCents,
           currency: seasonFee.currency,
-          status: 'pending',
-        });
+          status,
+          payment_deadline: existingInvoice?.payment_deadline ?? null,
+          notes: existingInvoice?.notes ?? null,
+          paid_by: status === 'paid' ? existingInvoice?.paid_by ?? auth.userId : null,
+          paid_at:
+            status === 'paid'
+              ? existingInvoice?.paid_at ?? new Date().toISOString()
+              : null,
+          updated_at: new Date().toISOString(),
+        };
 
-      if (insertError) {
-        console.error(`Failed to create invoice for team ${team.id}:`, insertError);
+      const { error: writeError } = existingInvoice
+        ? await (supabase as any)
+            .from('team_invoices')
+            .update(invoicePayload)
+            .eq('id', existingInvoice.id)
+        : await (supabase as any).from('team_invoices').insert(invoicePayload);
+
+      if (writeError) {
+        console.error(`Failed to write invoice for team ${team.id}:`, writeError);
         skipped++;
-      } else {
-        generated++;
+        continue;
       }
+
+      generated++;
     }
 
     revalidatePath(`/dashboard/leagues/${leagueId}/billing`);
@@ -349,7 +470,7 @@ export async function updateTeamInvoice(
       return { success: false, error: 'Invalid invoice ID format' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     // Fetch the invoice to get league_id for auth check
     // Cast to any — team_invoices table not yet in generated types
@@ -433,7 +554,7 @@ export async function recordTeamPayment(
       return { success: false, error: 'Payment amount must be positive' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     // Fetch invoice for auth and totals
     const { data: invoice, error: fetchError } = await (supabase as any)
@@ -536,7 +657,7 @@ export async function getTeamBillingSummary(
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data: invoices, error } = await (supabase as any)
       .from('team_invoices')
@@ -596,7 +717,7 @@ export async function getPerTeamPaymentBreakdown(
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data: submissions, error } = await supabase
       .from('registration_submissions')

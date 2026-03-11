@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Trophy, Calendar, Users } from 'lucide-react';
 
@@ -30,12 +30,14 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [selectedId, setSelectedId] = useState<string>(champions[champions.length - 1]?.id || '');
-  const longDateFormatter = useRef(
+  const longDateFormatter = useMemo(
+    () =>
     new Intl.DateTimeFormat(undefined, {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
-    })
+    }),
+    []
   );
 
   const updateScrollState = useCallback(() => {
@@ -279,7 +281,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
                 <span className="font-semibold text-[var(--color-text-primary)]">{selected.finalGame.awayTeam}</span>
               </div>
               <p className="text-xs text-[var(--color-text-muted)] text-center mt-2">
-                {longDateFormatter.current.format(new Date(selected.finalGame.date))}
+                {longDateFormatter.format(new Date(selected.finalGame.date))}
               </p>
             </div>
           )}

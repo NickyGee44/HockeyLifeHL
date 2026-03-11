@@ -6,6 +6,7 @@ import { redirect as nextRedirect } from 'next/navigation';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { getLocale } from 'next-intl/server';
 import { checkLegacyMergeStatus } from './legacy-merge';
+import { getUserOrganizationsWithAccess } from '@/lib/organizations/access';
 
 // Password validation function
 function validatePassword(password: string): { valid: boolean; error?: string } {
@@ -440,97 +441,19 @@ export async function getCurrentUser() {
 }
 
 export async function getUserOrganizations() {
+  const organizations = await getUserOrganizationsWithAccess();
   const supabase = await createClient();
-
-  // Get current user from session - never accept userId as parameter (IDOR vulnerability)
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return [];
   }
 
-  // Get organizations where user is either the owner OR a member
-  // First, get organizations where user is owner
-  const { data: ownedOrgs, error: ownerError } = await supabase
-    .from('organizations')
-    .select('*')
-    .eq('owner_user_id', user.id);
-
-  // Then, get organizations where user is a member (fetch separately to avoid FK join issues)
-  const { data: memberOrgIds, error: memberError } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .eq('status', 'active');
-
-  if (ownerError && isDevelopment) {
-    console.error('Error fetching owned organizations:', ownerError);
-  }
-  if (memberError && isDevelopment) {
-    console.error('Error fetching member organizations:', memberError);
-  }
-
-  // Combine and deduplicate organizations
   const allOrgs = new Map<string, any>();
-
-  // Add owned organizations
-  if (ownedOrgs) {
-    for (const org of ownedOrgs) {
-      allOrgs.set(org.id, org);
-    }
-  }
-
-  // Fetch member organizations separately to avoid FK join RLS issues
-  if (memberOrgIds && memberOrgIds.length > 0) {
-    const orgIds = memberOrgIds.map((m) => m.organization_id).filter((id): id is string => id != null);
-    const uniqueOrgIds = [...new Set(orgIds)].filter((id) => !allOrgs.has(id));
-
-    if (uniqueOrgIds.length > 0) {
-      const { data: memberOrgs } = await supabase
-        .from('organizations')
-        .select('*')
-        .in('id', uniqueOrgIds);
-
-      if (memberOrgs) {
-        for (const org of memberOrgs) {
-          allOrgs.set(org.id, org);
-        }
-      }
-    }
-  }
-
-  // Fallback: If no organizations found via direct ownership or membership,
-  // find organizations through league ownership (handles cases where user owns leagues
-  // but their organization association is missing or RLS-restricted)
-  if (allOrgs.size === 0) {
-    const { data: ownedLeagues } = await supabase
-      .from('league_memberships')
-      .select('league:leagues(organization_id)')
-      .eq('user_id', user.id)
-      .in('role', ['owner', 'admin']);
-
-    if (ownedLeagues && ownedLeagues.length > 0) {
-      const leagueOrgIds = ownedLeagues
-        .map((m: any) => m.league?.organization_id)
-        .filter((id: any): id is string => !!id);
-      const uniqueLeagueOrgIds = [...new Set(leagueOrgIds)];
-
-      if (uniqueLeagueOrgIds.length > 0) {
-        // Use service role to bypass RLS — we've already verified the user owns
-        // leagues in these orgs via league_memberships above
-        const serviceClient = createServiceRoleClient();
-        const { data: leagueOrgs } = await serviceClient
-          .from('organizations')
-          .select('*')
-          .in('id', uniqueLeagueOrgIds);
-
-        if (leagueOrgs) {
-          for (const org of leagueOrgs) {
-            allOrgs.set(org.id, org);
-          }
-        }
-      }
-    }
+  for (const organization of organizations) {
+    allOrgs.set(organization.id, organization);
   }
 
   // DEV ONLY: If no organizations found, check if this is a test user and auto-associate
@@ -574,10 +497,12 @@ export async function getUserOrganizations() {
     }
   }
 
-  // Convert to array and sort by created_at
-  const organizations = Array.from(allOrgs.values()).sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  return Array.from(allOrgs.values()).sort((a, b) => {
+    const accessDelta = Number(b.access_priority || 0) - Number(a.access_priority || 0);
+    if (accessDelta !== 0) {
+      return accessDelta;
+    }
 
-  return organizations;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 }

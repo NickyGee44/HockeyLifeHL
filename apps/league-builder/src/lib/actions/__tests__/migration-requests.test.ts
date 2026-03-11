@@ -6,6 +6,7 @@ jest.mock('next/cache', () => ({
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(),
+  createServiceRoleClient: jest.fn(),
 }));
 
 jest.mock('../permissions', () => ({
@@ -13,13 +14,16 @@ jest.mock('../permissions', () => ({
 }));
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '../permissions';
 import { upsertLeagueMigrationRequest } from '../migration-requests';
 
 describe('migration request actions', () => {
   const mockRevalidatePath = revalidatePath as jest.MockedFunction<typeof revalidatePath>;
   const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
+  const mockCreateServiceRoleClient = createServiceRoleClient as jest.MockedFunction<
+    typeof createServiceRoleClient
+  >;
   const mockVerifyLeagueOwnerAccess = verifyLeagueOwnerAccess as jest.MockedFunction<
     typeof verifyLeagueOwnerAccess
   >;
@@ -80,10 +84,7 @@ describe('migration request actions', () => {
     }));
     const maybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
 
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
-      },
+    const serviceClient = {
       from: jest.fn((table: string) => {
         if (table !== 'league_migration_requests') {
           throw new Error(`Unexpected table: ${table}`);
@@ -102,7 +103,14 @@ describe('migration request actions', () => {
           insert,
         };
       }),
+    };
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+      },
     } as never);
+    mockCreateServiceRoleClient.mockReturnValue(serviceClient as never);
 
     const result = await upsertLeagueMigrationRequest({
       leagueId: 'league-1',

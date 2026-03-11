@@ -1,4 +1,5 @@
 import type { RegistrationDraftData, LeagueFormConfig } from '@/lib/actions/registration';
+import type { RegistrationPaymentMode } from '@/lib/registration/fee-collection-model';
 
 export interface StepValidationResult {
   valid: boolean;
@@ -74,8 +75,10 @@ export function validateWaiverStep(
 
 export function canSubmitRegistration(
   data: RegistrationDraftData,
-  registrationFeeCents: number
+  registrationFeeCents: number,
+  paymentMode: RegistrationPaymentMode
 ): boolean {
   if (registrationFeeCents <= 0) return true;
+  if (paymentMode !== 'required') return true;
   return data.payment_status === 'completed';
 }

@@ -105,7 +105,7 @@ export default async function TeamMembersPage({ params }: Props) {
             <div>
               <h4 className="font-medium text-gray-900 dark:text-white mb-1">Admin</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Can manage leagues, team members, and organization settings. Cannot access billing or delete the organization.
+                Can manage leagues, team members, organization settings, billing, and domain setup. Cannot delete the organization.
               </p>
             </div>
             <div>

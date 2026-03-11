@@ -2,6 +2,10 @@ import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import {
+  getRegistrationPaymentMode,
+  getSeasonPaymentSettings,
+} from '@/lib/payments/fee-collection-model';
+import {
   getRegistrationDraft,
   getLeagueWaiver,
   getMyRegistrationStatus,
@@ -93,28 +97,18 @@ async function getLeagueBySlug(slug: string) {
   return league;
 }
 
-/**
- * Fetch the active registration fee for a league + season from the season_fees table.
- * Returns the fee amount in cents, or 0 if no active fee exists.
- */
-async function getSeasonRegistrationFee(leagueId: string, seasonId: string): Promise<number> {
+async function getSeasonRegistrationConfig(leagueId: string, seasonId: string) {
   const supabase = await createClient();
+  const settings = await getSeasonPaymentSettings(supabase as any, leagueId, seasonId);
 
-  const { data: fee, error } = await supabase
-    .from('season_fees')
-    .select('amount_cents')
-    .eq('league_id', leagueId)
-    .eq('season_id', seasonId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !fee) {
-    return 0;
-  }
-
-  return fee.amount_cents;
+  return {
+    registrationFee: settings.feeAmountCents,
+    feeCollectionModel: settings.feeCollectionModel,
+    paymentMode: getRegistrationPaymentMode(
+      settings.feeCollectionModel,
+      settings.feeAmountCents
+    ),
+  };
 }
 
 async function getCurrentUser() {
@@ -269,6 +263,9 @@ export default async function RegisterPage({
         content: DEFAULT_WAIVER_CONTENT,
         version: 'v1',
         content_hash: '',
+        document_url: null,
+        document_name: null,
+        document_mime_type: null,
       };
 
   // Get available teams
@@ -277,8 +274,10 @@ export default async function RegisterPage({
     name: team.name,
   }));
 
-  // Fetch the actual registration fee from the season_fees table
-  const registrationFee = await getSeasonRegistrationFee(league.id, activeSeason.id);
+  const registrationConfig = await getSeasonRegistrationConfig(
+    league.id,
+    activeSeason.id
+  );
 
   // Determine current step from URL
   const currentStep = searchParams.step ? parseInt(searchParams.step, 10) : 1;
@@ -302,11 +301,16 @@ export default async function RegisterPage({
             seasonId={activeSeason.id}
             leagueName={league.name}
             initialData={initialData}
-            registrationFee={registrationFee}
+            registrationFee={registrationConfig.registrationFee}
+            feeCollectionModel={registrationConfig.feeCollectionModel}
+            paymentMode={registrationConfig.paymentMode}
             teams={teams}
             waiverContent={waiver.content}
             waiverVersion={waiver.version}
             waiverContentHash={waiver.content_hash}
+            waiverDocumentUrl={waiver.document_url}
+            waiverDocumentName={waiver.document_name}
+            waiverDocumentMimeType={waiver.document_mime_type}
           >
             {/* Render appropriate step based on URL */}
             {currentStep === 1 && <Step1RegistrationType />}

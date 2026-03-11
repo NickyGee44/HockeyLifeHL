@@ -1,41 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import { seedSeasonParticipationTeams } from '@/lib/seasons/team-participation';
+
+async function requireLeagueSeasonAccess(leagueId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Unauthorized', status: 401 as const };
+  }
+
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return {
+      error: access.error || 'Forbidden',
+      status: 403 as const,
+      userId: user.id,
+    };
+  }
+
+  return { userId: user.id };
+}
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const { leagueId } = await params;
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const access = await requireLeagueSeasonAccess(leagueId);
+  if ('error' in access) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  // Verify user has access to this league via league_memberships or org ownership
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .single();
-
-  if (!membership) {
-    // Fallback: check org ownership
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('organization_id, organizations(owner_user_id)')
-      .eq('id', leagueId)
-      .single();
-
-    const org = league?.organizations as any;
-    if (!org || org.owner_user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-  }
+  const supabase = createServiceRoleClient();
 
   // Fetch seasons for the league
   const { data: seasons, error } = await supabase
@@ -57,38 +57,12 @@ export async function POST(
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const { leagueId } = await params;
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const access = await requireLeagueSeasonAccess(leagueId);
+  if ('error' in access) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  // Verify user has admin/owner access to this league
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .single();
-
-  const isAdmin = membership && ['owner', 'admin'].includes(membership.role);
-
-  if (!isAdmin) {
-    // Fallback: check org ownership
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('organization_id, organizations(owner_user_id)')
-      .eq('id', leagueId)
-      .single();
-
-    const org = league?.organizations as any;
-    if (!org || org.owner_user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-  }
+  const supabase = createServiceRoleClient();
 
   try {
     const body = await request.json();
@@ -128,8 +102,14 @@ export async function POST(
 
     // If carrying forward teams, update team-season associations
     if (carry_forward_teams && selected_team_ids && selected_team_ids.length > 0) {
-      // Teams are associated via their league_id, so we just need to ensure
-      // they have roster entries for the new season if importing rosters
+      await seedSeasonParticipationTeams({
+        supabase,
+        leagueId,
+        seasonId: newSeason.id,
+        teamIds: selected_team_ids,
+        createdBy: access.userId,
+        sourceSeasonId: previous_season_id || null,
+      });
 
       if (import_rosters && previous_season_id) {
         // Import rosters for selected teams
@@ -164,37 +144,12 @@ export async function PUT(
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const { leagueId } = await params;
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const access = await requireLeagueSeasonAccess(leagueId);
+  if ('error' in access) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  // Verify user has admin/owner access to this league
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .single();
-
-  const isAdmin = membership && ['owner', 'admin'].includes(membership.role);
-
-  if (!isAdmin) {
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('organization_id, organizations(owner_user_id)')
-      .eq('id', leagueId)
-      .single();
-
-    const org = league?.organizations as any;
-    if (!org || org.owner_user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-  }
+  const supabase = createServiceRoleClient();
 
   try {
     const body = await request.json();
@@ -244,37 +199,12 @@ export async function DELETE(
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const { leagueId } = await params;
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const access = await requireLeagueSeasonAccess(leagueId);
+  if ('error' in access) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  // Verify user has admin/owner access to this league
-  const { data: membership } = await supabase
-    .from('league_memberships')
-    .select('role')
-    .eq('league_id', leagueId)
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .single();
-
-  const isAdmin = membership && ['owner', 'admin'].includes(membership.role);
-
-  if (!isAdmin) {
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('organization_id, organizations(owner_user_id)')
-      .eq('id', leagueId)
-      .single();
-
-    const org = league?.organizations as any;
-    if (!org || org.owner_user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-  }
+  const supabase = createServiceRoleClient();
 
   try {
     const { searchParams } = new URL(request.url);

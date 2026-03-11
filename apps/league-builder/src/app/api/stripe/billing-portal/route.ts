@@ -1,12 +1,12 @@
 /**
  * API Route: Create Stripe Billing Portal Session
  *
- * Creates a Stripe Billing Portal session so organization owners
+ * Creates a Stripe Billing Portal session so organization managers
  * can manage payment methods, view invoices, and cancel subscriptions.
  *
  * Security:
  * - Verifies user authentication
- * - Validates organization ownership
+ * - Validates organization-management access
  * - Uses server-side Stripe SDK
  */
 
@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/client';
 import { capturePaymentError } from '@/lib/sentry/payments';
 import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
+import { getPrimaryManagedOrganization } from '@/lib/organizations/access';
 
 interface BillingPortalRequest {
   returnUrl: string;
@@ -50,23 +51,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's organization
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('id, owner_user_id, stripe_customer_id')
-      .eq('owner_user_id', user.id)
-      .single();
-
-    if (orgError || !org) {
+    const org = await getPrimaryManagedOrganization();
+    if (!org) {
       return NextResponse.json(
         { error: 'Organization not found' },
         { status: 404 }
       );
-    }
-
-    // Verify ownership
-    if (org.owner_user_id !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     if (!org.stripe_customer_id) {

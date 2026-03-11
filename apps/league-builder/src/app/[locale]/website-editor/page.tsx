@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Website Editor | Beer League Hockey',
-  description: 'Customize your league website with live preview',
+  description: 'Customize your league website with a wireframe preview and publish changes to your live league site.',
 };
 
 function mergeUniqueLeagues(...leagueGroups: LeagueEditorData[][]): LeagueEditorData[] {
@@ -64,8 +64,11 @@ export default async function WebsiteEditorPage({ params, searchParams }: Props)
     ? leagueIdParam
     : leagues[0].id;
 
-  // Get the platform 2 base URL for preview
-  const previewBaseUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL || 'http://localhost:3001';
+  // Fall back to the public app URL in production and normalize hosts later in the preview helper.
+  const previewBaseUrl =
+    process.env.NEXT_PUBLIC_LEAGUE_SITES_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'http://localhost:3001';
 
   return (
     <WebsiteEditorClient

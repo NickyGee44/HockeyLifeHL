@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ImportPlayersModal } from './ImportPlayersModal';
@@ -18,12 +18,6 @@ export function ImportPlayersButton({
 }: ImportPlayersButtonProps) {
   const [open, setOpen] = useState(defaultOpen);
   const router = useRouter();
-
-  useEffect(() => {
-    if (defaultOpen) {
-      setOpen(true);
-    }
-  }, [defaultOpen]);
 
   return (
     <>

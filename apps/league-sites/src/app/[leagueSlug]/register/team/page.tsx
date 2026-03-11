@@ -97,7 +97,14 @@ export default async function TeamRegisterPage({ params }: TeamRegisterPageProps
   const waiver =
     waiverResult.success && waiverResult.data
       ? waiverResult.data
-      : { content: DEFAULT_WAIVER_CONTENT, version: 'v1', content_hash: '' };
+      : {
+          content: DEFAULT_WAIVER_CONTENT,
+          version: 'v1',
+          content_hash: '',
+          document_url: null,
+          document_name: null,
+          document_mime_type: null,
+        };
 
   const leagueFormConfig = (league as any).registration_form_config ?? {};
 
@@ -123,6 +130,9 @@ export default async function TeamRegisterPage({ params }: TeamRegisterPageProps
         seasonName={activeSeason.name}
         waiverContent={waiver.content}
         waiverVersion={waiver.version}
+        waiverDocumentUrl={waiver.document_url}
+        waiverDocumentName={waiver.document_name}
+        waiverDocumentMimeType={waiver.document_mime_type}
         leagueFormConfig={leagueFormConfig}
       />
     </div>

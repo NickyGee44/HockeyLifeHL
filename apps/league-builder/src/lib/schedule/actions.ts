@@ -9,6 +9,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { generateSchedule, generateScheduleEnhanced } from './generator';
+import { getStandardHolidayDatesInRange } from './holidays';
 import type {
   Team,
   Venue,
@@ -899,6 +900,200 @@ export async function addVenueBlackoutDate(
       endTime: data.end_time,
       reason: data.reason,
     },
+  };
+}
+
+/**
+ * Add standard holiday blackout dates across a league's venues.
+ */
+export async function addStandardHolidayBlackouts(
+  leagueId: string,
+  input: {
+    startDate: string;
+    endDate: string;
+    venueIds?: string[];
+  }
+): Promise<{
+  success: boolean;
+  imported: number;
+  skipped: number;
+  blackouts: VenueBlackoutDate[];
+  errors: string[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    return {
+      success: false,
+      imported: 0,
+      skipped: 0,
+      blackouts: [],
+      errors: [],
+      error: 'Not authenticated',
+    };
+  }
+
+  const holidays = getStandardHolidayDatesInRange(input.startDate, input.endDate);
+  if (holidays.length === 0) {
+    return {
+      success: true,
+      imported: 0,
+      skipped: 0,
+      blackouts: [],
+      errors: ['No standard holidays were found in the selected date range.'],
+    };
+  }
+
+  let venuesQuery = supabase
+    .from('venues')
+    .select('id')
+    .eq('league_id', leagueId);
+
+  if (input.venueIds && input.venueIds.length > 0) {
+    venuesQuery = venuesQuery.in('id', input.venueIds);
+  }
+
+  const { data: venues, error: venuesError } = await venuesQuery;
+
+  if (venuesError) {
+    console.error('Error fetching venues for holiday blackouts:', venuesError);
+    return {
+      success: false,
+      imported: 0,
+      skipped: 0,
+      blackouts: [],
+      errors: [],
+      error: venuesError.message,
+    };
+  }
+
+  if (!venues || venues.length === 0) {
+    return {
+      success: false,
+      imported: 0,
+      skipped: 0,
+      blackouts: [],
+      errors: [],
+      error: 'No venues found for this league.',
+    };
+  }
+
+  let existingQuery = supabase
+    .from('venue_blackout_dates')
+    .select('venue_id, blackout_date, start_time, end_time, reason')
+    .eq('league_id', leagueId)
+    .gte('blackout_date', input.startDate)
+    .lte('blackout_date', input.endDate);
+
+  if (input.venueIds && input.venueIds.length > 0) {
+    existingQuery = existingQuery.in('venue_id', input.venueIds);
+  }
+
+  const { data: existingRows, error: existingError } = await existingQuery;
+
+  if (existingError) {
+    console.error('Error fetching existing holiday blackouts:', existingError);
+    return {
+      success: false,
+      imported: 0,
+      skipped: 0,
+      blackouts: [],
+      errors: [],
+      error: existingError.message,
+    };
+  }
+
+  const normalizeReason = (value: string | null | undefined) => (value ?? '').trim().toLowerCase();
+  const existingByVenueDate = new Map<string, Array<{
+    start_time: string | null;
+    end_time: string | null;
+    reason: string | null;
+  }>>();
+
+  for (const row of existingRows ?? []) {
+    const key = `${row.venue_id}|${row.blackout_date}`;
+    const matches = existingByVenueDate.get(key) ?? [];
+    matches.push({
+      start_time: row.start_time,
+      end_time: row.end_time,
+      reason: row.reason,
+    });
+    existingByVenueDate.set(key, matches);
+  }
+
+  let skipped = 0;
+  const rowsToInsert = [];
+
+  for (const venue of venues) {
+    for (const holiday of holidays) {
+      const key = `${venue.id}|${holiday.date}`;
+      const existingMatches = existingByVenueDate.get(key) ?? [];
+      const alreadyCovered = existingMatches.some((row) =>
+        (!row.start_time && !row.end_time) ||
+        normalizeReason(row.reason) === normalizeReason(holiday.label)
+      );
+
+      if (alreadyCovered) {
+        skipped += 1;
+        continue;
+      }
+
+      rowsToInsert.push({
+        league_id: leagueId,
+        venue_id: venue.id,
+        blackout_date: holiday.date,
+        start_time: null,
+        end_time: null,
+        reason: holiday.label,
+        created_by: userData.user.id,
+      });
+    }
+  }
+
+  if (rowsToInsert.length === 0) {
+    return {
+      success: true,
+      imported: 0,
+      skipped,
+      blackouts: [],
+      errors: [],
+    };
+  }
+
+  const { data, error } = await supabase
+    .from('venue_blackout_dates')
+    .insert(rowsToInsert)
+    .select();
+
+  if (error) {
+    console.error('Error adding standard holiday blackouts:', error);
+    return {
+      success: false,
+      imported: 0,
+      skipped,
+      blackouts: [],
+      errors: [],
+      error: error.message,
+    };
+  }
+
+  revalidatePath('/dashboard');
+  return {
+    success: true,
+    imported: data?.length ?? 0,
+    skipped,
+    errors: [],
+    blackouts: (data ?? []).map((row) => ({
+      id: row.id,
+      leagueId: row.league_id,
+      venueId: row.venue_id,
+      blackoutDate: new Date(row.blackout_date),
+      startTime: row.start_time,
+      endTime: row.end_time,
+      reason: row.reason,
+    })),
   };
 }
 

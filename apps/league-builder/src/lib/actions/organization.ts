@@ -1,21 +1,13 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { verifyOrganizationAccess } from '@/lib/organizations/access';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { verifyLeagueOwnerAccess } from './permissions';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 export async function updateOrganizationProfile(formData: FormData) {
-  const supabase = await createClient();
-
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Unauthorized' };
-  }
-
   const organizationId = formData.get('organizationId') as string;
   const name = formData.get('name') as string;
   const slug = formData.get('slug') as string;
@@ -26,38 +18,27 @@ export async function updateOrganizationProfile(formData: FormData) {
   }
 
   try {
-    // Check if user owns this organization
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('owner_user_id')
-      .eq('id', organizationId)
-      .single();
-
-    if (orgError || !org) {
-      if (isDevelopment) {
-        console.error('Organization fetch error:', orgError);
-      }
-      return { error: 'Organization not found' };
+    const access = await verifyOrganizationAccess(organizationId, { requireManagement: true });
+    if (!access.authorized) {
+      return { error: access.error || 'You do not have permission to update this organization' };
     }
 
-    if (org.owner_user_id !== user.id) {
-      return { error: 'You do not have permission to update this organization' };
-    }
+    const serviceClient = createServiceRoleClient();
 
     // Check if slug is already taken by another organization
-    const { data: existingOrg } = await supabase
+    const { data: existingOrg } = await serviceClient
       .from('organizations')
       .select('id')
       .eq('slug', slug)
       .neq('id', organizationId)
-      .single();
+      .maybeSingle();
 
     if (existingOrg) {
       return { error: 'This slug is already taken by another organization' };
     }
 
     // Update organization
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceClient
       .from('organizations')
       .update({
         name,
@@ -87,42 +68,20 @@ export async function updateOrganizationProfile(formData: FormData) {
 }
 
 export async function getOrganization(organizationId: string) {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return null;
-  }
-
-  const { data: organization, error } = await supabase
-    .from('organizations')
-    .select('*')
-    .eq('id', organizationId)
-    .eq('owner_user_id', user.id)
-    .single();
-
-  if (error) {
-    if (isDevelopment) {
-      console.error('Error fetching organization:', error);
-    }
-    return null;
-  }
-
-  return organization;
+  const access = await verifyOrganizationAccess(organizationId);
+  return access.authorized ? (access.organization ?? null) : null;
 }
 
 export async function getOrganizationMembers(organizationId: string) {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
+  const access = await verifyOrganizationAccess(organizationId);
+  if (!access.authorized) {
     return null;
   }
 
+  const serviceClient = createServiceRoleClient();
+
   // First get the members
-  const { data: members, error } = await supabase
+  const { data: members, error } = await serviceClient
     .from('organization_members')
     .select('*')
     .eq('organization_id', organizationId)
@@ -138,7 +97,7 @@ export async function getOrganizationMembers(organizationId: string) {
   // Then fetch profile details separately to avoid FK join issues
   const membersWithProfiles = await Promise.all(
     (members || []).map(async (member) => {
-      const { data: profile } = await supabase
+      const { data: profile } = await serviceClient
         .from('profiles')
         .select('email, full_name')
         .eq('id', member.user_id)
@@ -151,46 +110,20 @@ export async function getOrganizationMembers(organizationId: string) {
 }
 
 export async function inviteOrganizationMember(formData: FormData) {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Unauthorized' };
-  }
-
   const organizationId = formData.get('organizationId') as string;
   const email = formData.get('email') as string;
   const role = formData.get('role') as string;
 
   try {
-    // Check if user has permission to invite
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('owner_user_id')
-      .eq('id', organizationId)
-      .single();
-
-    if (orgError || !org) {
-      return { error: 'Organization not found' };
+    const access = await verifyOrganizationAccess(organizationId, { requireManagement: true });
+    if (!access.authorized || !access.userId) {
+      return { error: access.error || 'You do not have permission to invite members' };
     }
 
-    // Only owner or admin can invite
-    if (org.owner_user_id !== user.id) {
-      const { data: membership } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (!membership || !['admin', 'owner'].includes(membership.role)) {
-        return { error: 'You do not have permission to invite members' };
-      }
-    }
+    const serviceClient = createServiceRoleClient();
 
     // Check if user with this email exists
-    const { data: invitedUser } = await supabase
+    const { data: invitedUser } = await serviceClient
       .from('profiles')
       .select('id')
       .eq('email', email)
@@ -201,7 +134,7 @@ export async function inviteOrganizationMember(formData: FormData) {
     }
 
     // Check if already a member
-    const { data: existingMember } = await supabase
+    const { data: existingMember } = await serviceClient
       .from('organization_members')
       .select('id')
       .eq('organization_id', organizationId)
@@ -213,13 +146,13 @@ export async function inviteOrganizationMember(formData: FormData) {
     }
 
     // Create invitation
-    const { error: inviteError } = await supabase
+    const { error: inviteError } = await serviceClient
       .from('organization_members')
       .insert({
         organization_id: organizationId,
         user_id: invitedUser.id,
         role,
-        invited_by: user.id,
+        invited_by: access.userId,
         status: 'pending',
       });
 
@@ -242,32 +175,31 @@ export async function inviteOrganizationMember(formData: FormData) {
 }
 
 export async function updateMemberRole(formData: FormData) {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Unauthorized' };
-  }
-
   const organizationId = formData.get('organizationId') as string;
   const memberId = formData.get('memberId') as string;
   const role = formData.get('role') as string;
 
   try {
-    // Check permission
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('owner_user_id')
-      .eq('id', organizationId)
-      .single();
+    const access = await verifyOrganizationAccess(organizationId, { requireManagement: true });
+    if (!access.authorized || !access.organization) {
+      return { error: access.error || 'Only organization managers can change roles' };
+    }
 
-    if (!org || org.owner_user_id !== user.id) {
-      return { error: 'Only the organization owner can change roles' };
+    const serviceClient = createServiceRoleClient();
+
+    const { data: member } = await serviceClient
+      .from('organization_members')
+      .select('user_id')
+      .eq('id', memberId)
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+
+    if (member && member.user_id === access.organization.owner_user_id && role !== 'owner') {
+      return { error: 'Cannot change the role of the organization owner' };
     }
 
     // Update role
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceClient
       .from('organization_members')
       .update({ role })
       .eq('id', memberId)
@@ -292,42 +224,30 @@ export async function updateMemberRole(formData: FormData) {
 }
 
 export async function removeOrganizationMember(formData: FormData) {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Unauthorized' };
-  }
-
   const organizationId = formData.get('organizationId') as string;
   const memberId = formData.get('memberId') as string;
 
   try {
-    // Check permission
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('owner_user_id')
-      .eq('id', organizationId)
-      .single();
-
-    if (!org || org.owner_user_id !== user.id) {
-      return { error: 'Only the organization owner can remove members' };
+    const access = await verifyOrganizationAccess(organizationId, { requireManagement: true });
+    if (!access.authorized || !access.organization) {
+      return { error: access.error || 'Only organization managers can remove members' };
     }
 
+    const serviceClient = createServiceRoleClient();
+
     // Cannot remove owner
-    const { data: member } = await supabase
+    const { data: member } = await serviceClient
       .from('organization_members')
       .select('user_id')
       .eq('id', memberId)
-      .single();
+      .maybeSingle();
 
-    if (member && member.user_id === org.owner_user_id) {
+    if (member && member.user_id === access.organization.owner_user_id) {
       return { error: 'Cannot remove the organization owner' };
     }
 
     // Remove member
-    const { error: removeError } = await supabase
+    const { error: removeError } = await serviceClient
       .from('organization_members')
       .delete()
       .eq('id', memberId)
@@ -359,29 +279,18 @@ export async function removeOrganizationMember(formData: FormData) {
  * Get leagues for the current user's organization
  */
 export async function getOrganizationLeagues(organizationId: string) {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: 'Not authenticated' };
-  }
-
   try {
-    // Verify user owns the organization
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('owner_user_id')
-      .eq('id', organizationId)
-      .single();
-
-    if (orgError || !org || org.owner_user_id !== user.id) {
-      return { error: 'Not authorized' };
+    const access = await verifyOrganizationAccess(organizationId, { requireManagement: true });
+    if (!access.authorized) {
+      return { error: access.error || 'Not authorized' };
     }
 
+    const serviceClient = createServiceRoleClient();
+
     // Get leagues for this organization (include all statuses — callers need drafts too)
-    const { data: leagues, error: leaguesError } = await supabase
+    const { data: leagues, error: leaguesError } = await serviceClient
       .from('leagues')
-      .select('id, name, slug, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings')
+      .select('id, organization_id, name, slug, subdomain, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings')
       .eq('organization_id', organizationId)
       .order('name');
 
@@ -416,7 +325,7 @@ export async function getUserLeaguesViaMembership() {
   try {
     const { data: memberships, error: membershipError } = await supabase
       .from('league_memberships')
-      .select('league:leagues(id, name, slug, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings)')
+      .select('league:leagues(id, organization_id, name, slug, subdomain, logo_url, banner_url, primary_color, secondary_color, accent_color, tagline, description, status, font_family, favicon_url, custom_css, is_public, contact_email, contact_phone, website_url, settings)')
       .eq('user_id', user.id)
       .in('role', ['owner', 'admin']);
 
@@ -626,26 +535,10 @@ export async function updateLeagueBranding(formData: {
 export async function uploadLeagueLogo(leagueId: string, file: File) {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: 'Not authenticated' };
-  }
-
   try {
-    // Get league and verify ownership through organization
-    const { data: league, error: leagueError } = await supabase
-      .from('leagues')
-      .select('id, organization_id, organizations!inner(owner_user_id)')
-      .eq('id', leagueId)
-      .single();
-
-    if (leagueError || !league) {
-      return { error: 'League not found' };
-    }
-
-    const orgOwner = (league.organizations as any)?.owner_user_id;
-    if (orgOwner !== user.id) {
-      return { error: 'Not authorized to update this league' };
+    const access = await verifyLeagueOwnerAccess(leagueId);
+    if (!access.authorized) {
+      return { error: access.error || 'Not authorized to update this league' };
     }
 
     // Validate file type

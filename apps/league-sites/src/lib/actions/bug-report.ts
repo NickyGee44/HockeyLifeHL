@@ -1,7 +1,7 @@
 'use server';
 
 import crypto from 'node:crypto';
-import { createAuthClient } from '@/lib/supabase/server';
+import { createAuthClient, createServiceRoleClient } from '@/lib/supabase/server';
 import type { BugReportCategory, CollectedBugReportData } from '@/lib/bug-report-collector';
 
 interface SubmitBugReportInput {
@@ -93,6 +93,7 @@ export async function submitBugReport(
     }
 
     const supabase = await createAuthClient();
+    const serviceSupabase = createServiceRoleClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -118,9 +119,10 @@ export async function submitBugReport(
     const severity = classifySeverity(input);
 
     let duplicateOf: string | null = null;
+    const reportId = crypto.randomUUID();
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: existing } = await (supabase as any)
+    const { data: existing, error: existingError } = await (serviceSupabase as any)
       .from('bug_reports' as any)
       .select('id, report_count')
       .eq('league_id', input.leagueId)
@@ -131,16 +133,24 @@ export async function submitBugReport(
       .limit(1)
       .maybeSingle();
 
+    if (existingError) {
+      console.warn('[submitBugReport] Duplicate lookup failed; continuing without dedupe', existingError);
+    }
+
     if (existing?.id) {
       duplicateOf = existing.id;
 
-      await (supabase as any)
+      const { error: duplicateUpdateError } = await (serviceSupabase as any)
         .from('bug_reports' as any)
         .update({
           report_count: Number(existing.report_count || 1) + 1,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id);
+
+      if (duplicateUpdateError) {
+        console.warn('[submitBugReport] Duplicate counter update failed; continuing', duplicateUpdateError);
+      }
     }
 
     const screenshotUrl =
@@ -150,9 +160,10 @@ export async function submitBugReport(
         ? input.screenshotUrl
         : null;
 
-    const { data: inserted, error } = await (supabase as any)
+    const { error } = await (serviceSupabase as any)
       .from('bug_reports' as any)
       .insert({
+        id: reportId,
         league_id: input.leagueId,
         season_id: input.seasonId || null,
         team_id: input.teamId || null,
@@ -176,9 +187,7 @@ export async function submitBugReport(
         status: duplicateOf ? 'duplicate' : 'new',
         error_signature: errorSignature,
         duplicate_of: duplicateOf,
-      })
-      .select('id')
-      .single();
+      });
 
     if (error) {
       console.error('[submitBugReport] Insert failed', error);
@@ -187,7 +196,7 @@ export async function submitBugReport(
 
     return {
       success: true,
-      reportId: inserted?.id,
+      reportId,
       duplicateOf: duplicateOf || undefined,
     };
   } catch (error) {

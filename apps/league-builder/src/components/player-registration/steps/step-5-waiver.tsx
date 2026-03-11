@@ -10,7 +10,14 @@ import { useRegistrationContext } from '../registration-wizard-container';
 import type { RegistrationFormData } from '@/lib/schemas/player-registration';
 
 export function Step5Waiver() {
-  const { waiverContent, waiverVersion, waiverContentHash } =
+  const {
+    waiverContent,
+    waiverVersion,
+    waiverContentHash,
+    waiverDocumentUrl,
+    waiverDocumentName,
+    waiverDocumentMimeType,
+  } =
     useRegistrationContext();
   const {
     watch,
@@ -126,6 +133,9 @@ export function Step5Waiver() {
         content={waiverContent}
         version={waiverVersion}
         contentHash={waiverContentHash}
+        documentUrl={waiverDocumentUrl}
+        documentName={waiverDocumentName}
+        documentMimeType={waiverDocumentMimeType}
       />
 
       {/* Additional Consents */}

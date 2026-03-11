@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getPlayerDetail } from '@/lib/actions/ratings';
+import { PLAYER_BREAKDOWN_METRIC_HELP } from '@/lib/ratings';
 
 interface PlayerDetailPanelProps {
   open: boolean;
@@ -47,6 +48,36 @@ export function PlayerDetailPanel({ open, playerId, leagueId, onClose }: PlayerD
               <p className="text-xl text-white font-semibold">{detail.name}</p>
             </div>
 
+            {detail.latestBreakdown && detail.latestBreakdown.length > 0 && (
+              <div>
+                <p className="text-sm text-neutral-500 mb-2">Latest Rating Breakdown</p>
+                <div className="space-y-2">
+                  {detail.latestBreakdown.map((metric) => (
+                    <div
+                      key={metric.key}
+                      className="flex items-center justify-between gap-4 rounded border border-white/10 px-3 py-2 text-sm"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-white">{metric.label}</p>
+                        {PLAYER_BREAKDOWN_METRIC_HELP[metric.key] ? (
+                          <p className="text-xs leading-5 text-neutral-500">
+                            {PLAYER_BREAKDOWN_METRIC_HELP[metric.key].description}
+                          </p>
+                        ) : null}
+                        <p className="text-xs text-neutral-500">
+                          {metric.appliedWeight.toFixed(1)}% of active rating weight
+                          {PLAYER_BREAKDOWN_METRIC_HELP[metric.key]
+                            ? ` • ${PLAYER_BREAKDOWN_METRIC_HELP[metric.key].sway}`
+                            : ''}
+                        </p>
+                      </div>
+                      <p className="font-semibold text-rink-400">{metric.normalizedScore.toFixed(1)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
               <p className="text-sm text-neutral-500 mb-2">Rating History</p>
               <div className="space-y-2">
@@ -58,6 +89,7 @@ export function PlayerDetailPanel({ open, playerId, leagueId, onClose }: PlayerD
                     </div>
                     <div className="text-neutral-400 text-xs mt-1">
                       {row.overallPercentile.toFixed(1)} percentile, {row.gamesPlayed} GP
+                      {typeof row.confidenceScore === 'number' ? `, ${row.confidenceScore.toFixed(0)} confidence` : ''}
                     </div>
                   </div>
                 ))}

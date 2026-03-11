@@ -11,6 +11,10 @@ import {
   deleteRegistrationDraft,
 } from '@/lib/actions/player-registration';
 import type { RegistrationFormData, RegistrationDraftData } from '@/lib/schemas/player-registration';
+import type {
+  FeeCollectionModel,
+  RegistrationPaymentMode,
+} from '@/lib/payments/fee-collection-model';
 import { getStepFields } from '@/lib/schemas/player-registration';
 import { WizardProgressBar } from '../ui/wizard/wizard-progress-bar';
 import { RegistrationWizardNavigation } from './registration-wizard-navigation';
@@ -36,10 +40,15 @@ export interface RegistrationWizardContainerProps {
   leagueName: string;
   initialData?: Partial<RegistrationDraftData> | null;
   registrationFee?: number; // In cents, 0 = no payment required
+  feeCollectionModel?: FeeCollectionModel;
+  paymentMode?: RegistrationPaymentMode;
   teams?: Array<{ id: string; name: string }>;
   waiverContent?: string;
   waiverVersion?: string;
   waiverContentHash?: string;
+  waiverDocumentUrl?: string | null;
+  waiverDocumentName?: string | null;
+  waiverDocumentMimeType?: string | null;
   children: React.ReactNode;
 }
 
@@ -50,10 +59,15 @@ export function RegistrationWizardContainer({
   leagueName,
   initialData,
   registrationFee = 0,
+  feeCollectionModel = 'individual',
+  paymentMode = registrationFee > 0 ? 'required' : 'hidden',
   teams = [],
   waiverContent = '',
   waiverVersion = 'v1',
   waiverContentHash = '',
+  waiverDocumentUrl = null,
+  waiverDocumentName = null,
+  waiverDocumentMimeType = null,
   children,
 }: RegistrationWizardContainerProps) {
   const router = useRouter();
@@ -69,8 +83,8 @@ export function RegistrationWizardContainer({
   // Ensure step is within valid range
   const validStep = Math.max(1, Math.min(currentStep, TOTAL_STEPS));
 
-  // Check if payment is required
-  const requiresPayment = registrationFee > 0;
+  const requiresPayment = paymentMode === 'required';
+  const showsPaymentStep = paymentMode !== 'hidden';
 
   // Initialize form with default values or loaded draft
   const form = useRegistrationForm({
@@ -152,9 +166,9 @@ export function RegistrationWizardContainer({
     // Save draft before moving to next step
     await handleAutoSave();
 
-    // Skip payment step if no fee
+    // Skip payment step if this season does not collect individual payments
     let nextStep = validStep + 1;
-    if (nextStep === 6 && !requiresPayment) {
+    if (nextStep === 6 && !showsPaymentStep) {
       nextStep = 7;
     }
 
@@ -166,9 +180,9 @@ export function RegistrationWizardContainer({
   const handlePrevious = () => {
     if (validStep <= 1) return;
 
-    // Skip payment step if no fee
+    // Skip payment step if this season does not collect individual payments
     let prevStep = validStep - 1;
-    if (prevStep === 6 && !requiresPayment) {
+    if (prevStep === 6 && !showsPaymentStep) {
       prevStep = 5;
     }
 
@@ -190,18 +204,19 @@ export function RegistrationWizardContainer({
 
   // Handle final form submission
   const handleSubmit = async (data: RegistrationFormData) => {
-    // Client-side payment gate: if fee > 0, payment must be completed
+    // Client-side payment gate: only required payment modes block submit.
     if (requiresPayment && data.payment_status !== 'completed') {
       toast.error('Payment is required to complete registration. Please complete the payment step.');
       return;
     }
 
     // Ensure fee metadata is consistent
-    if (requiresPayment) {
+    if (data.payment_status === 'completed') {
       data.amount_cents = registrationFee;
     } else {
       data.payment_status = 'not_required';
       data.amount_cents = 0;
+      data.payment_intent_id = undefined;
     }
 
     setIsSubmitting(true);
@@ -279,10 +294,16 @@ export function RegistrationWizardContainer({
     leagueName,
     teams,
     requiresPayment,
+    feeCollectionModel,
+    paymentMode,
+    showsPaymentStep,
     registrationFee,
     waiverContent,
     waiverVersion,
     waiverContentHash,
+    waiverDocumentUrl,
+    waiverDocumentName,
+    waiverDocumentMimeType,
     currentStep: validStep,
   };
 
@@ -294,7 +315,7 @@ export function RegistrationWizardContainer({
           <WizardProgressBar
             steps={WIZARD_STEPS.filter((step) => {
               // Hide payment step if not required
-              if (step.number === 6 && !requiresPayment) return false;
+              if (step.number === 6 && !showsPaymentStep) return false;
               return true;
             })}
             currentStep={validStep}
@@ -303,12 +324,12 @@ export function RegistrationWizardContainer({
 
         {/* Progress indicator */}
         <div className="mb-6">
-          <RegistrationWizardProgress
-            currentStep={validStep}
-            totalSteps={requiresPayment ? TOTAL_STEPS : TOTAL_STEPS - 1}
-            isSaving={isSaving}
-            leagueName={leagueName}
-          />
+            <RegistrationWizardProgress
+              currentStep={validStep}
+              totalSteps={showsPaymentStep ? TOTAL_STEPS : TOTAL_STEPS - 1}
+              isSaving={isSaving}
+              leagueName={leagueName}
+            />
         </div>
 
         {/* Form */}
@@ -320,7 +341,7 @@ export function RegistrationWizardContainer({
             {/* Navigation buttons */}
             <RegistrationWizardNavigation
               currentStep={validStep}
-              totalSteps={requiresPayment ? TOTAL_STEPS : TOTAL_STEPS - 1}
+              totalSteps={showsPaymentStep ? TOTAL_STEPS : TOTAL_STEPS - 1}
               onPrevious={handlePrevious}
               onNext={handleNext}
               onDiscard={handleDiscardDraft}
@@ -343,10 +364,16 @@ export interface RegistrationContextValue {
   leagueName: string;
   teams: Array<{ id: string; name: string }>;
   requiresPayment: boolean;
+  feeCollectionModel: FeeCollectionModel;
+  paymentMode: RegistrationPaymentMode;
+  showsPaymentStep: boolean;
   registrationFee: number;
   waiverContent: string;
   waiverVersion: string;
   waiverContentHash: string;
+  waiverDocumentUrl: string | null;
+  waiverDocumentName: string | null;
+  waiverDocumentMimeType: string | null;
   currentStep: number;
 }
 

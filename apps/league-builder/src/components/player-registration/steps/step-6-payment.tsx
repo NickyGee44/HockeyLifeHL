@@ -11,7 +11,8 @@ import type { RegistrationFormData } from '@/lib/schemas/player-registration';
 import type { StripeCardElementChangeEvent } from '@stripe/stripe-js';
 
 export function Step6Payment() {
-  const { registrationFee, leagueName, leagueId, seasonId } = useRegistrationContext();
+  const { registrationFee, leagueName, leagueId, seasonId, paymentMode } =
+    useRegistrationContext();
   const {
     watch,
     setValue,
@@ -27,6 +28,7 @@ export function Step6Payment() {
   const [clientSecret, setClientSecret] = React.useState<string | null>(null);
 
   const paymentStatus = watch('payment_status');
+  const isOptionalPayment = paymentMode === 'optional';
 
   // Format amount for display
   const formattedAmount = new Intl.NumberFormat('en-CA', {
@@ -35,7 +37,7 @@ export function Step6Payment() {
 
   // Create PaymentIntent on component mount
   React.useEffect(() => {
-    if (!clientSecret && registrationFee > 0) {
+    if (!clientSecret && registrationFee > 0 && paymentMode !== 'hidden') {
       createPaymentIntent();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: create payment intent once; re-creating on fee/secret changes would duplicate Stripe intents
@@ -121,6 +123,13 @@ export function Step6Payment() {
     }
   };
 
+  const handleSkip = () => {
+    setValue('payment_status', 'not_required');
+    setValue('payment_intent_id', undefined);
+    setValue('amount_cents', 0);
+    setPaymentError(null);
+  };
+
   // If payment is already completed
   if (paymentStatus === 'completed' || paymentSuccess) {
     return (
@@ -159,10 +168,12 @@ export function Step6Payment() {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">
-          Registration Fee
+          {isOptionalPayment ? 'Optional Player Payment' : 'Registration Fee'}
         </h2>
         <p className="text-neutral-400">
-          Complete payment to finalize your registration for {leagueName}
+          {isOptionalPayment
+            ? `You can pay now or continue and have your team handle the fee for ${leagueName}.`
+            : `Complete payment to finalize your registration for ${leagueName}.`}
         </p>
       </div>
 
@@ -184,6 +195,12 @@ export function Step6Payment() {
             <span className="text-neutral-400">Season registration</span>
             <span className="text-white">{formattedAmount}</span>
           </div>
+          {isOptionalPayment && (
+            <p className="text-xs text-neutral-400">
+              If you skip this step, your registration will still submit and the outstanding fee
+              will remain on the team billing side.
+            </p>
+          )}
         </div>
 
         <div className="flex justify-between text-lg font-semibold pt-4 border-t border-neutral-700">
@@ -221,6 +238,19 @@ export function Step6Payment() {
           <div className="p-4 rounded-lg border border-neutral-600 bg-neutral-900/50 text-center">
             <Loader2 className="w-5 h-5 animate-spin text-rink-500 mx-auto mb-2" />
             <p className="text-neutral-400 text-sm">Loading payment form...</p>
+          </div>
+        )}
+
+        {isOptionalPayment && (
+          <div className="pt-2 border-t border-neutral-700">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-neutral-600 text-neutral-200 hover:bg-neutral-800"
+              onClick={handleSkip}
+            >
+              Skip And Let My Team Handle It
+            </Button>
           </div>
         )}
 

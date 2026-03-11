@@ -44,7 +44,7 @@ export async function calculateDivisionBalance(
   const [teamRatingsRes, divisionsRes] = await Promise.all([
     supabase
       .from('team_ratings' as any)
-      .select('team_id, division_id, overall_percentile, overall_grade, teams(name)')
+      .select('team_id, division_id, overall_percentile, overall_grade, roster_count, teams(name)')
       .eq('league_id', leagueId)
       .eq('season_id', seasonId),
     supabase
@@ -85,6 +85,7 @@ export async function calculateDivisionBalance(
     division_id: string | null;
     overall_percentile: number | null;
     overall_grade: string | null;
+    roster_count: number | null;
     teams: { name: string } | { name: string }[] | null;
   }>;
 
@@ -93,6 +94,7 @@ export async function calculateDivisionBalance(
     teamName: string;
     overallPercentile: number;
     overallGrade: string;
+    rosterCount: number;
   }>>();
 
   for (const row of rows) {
@@ -107,6 +109,7 @@ export async function calculateDivisionBalance(
       teamName,
       overallPercentile: Number(row.overall_percentile ?? 0),
       overallGrade: row.overall_grade ?? 'D-',
+      rosterCount: Number(row.roster_count ?? 0),
     });
 
     grouped.set(divisionKey, teams);
@@ -148,33 +151,6 @@ export async function calculateDivisionBalance(
       stdDev: round2(sd),
       teams: teamsWithFlags,
     });
-
-    for (const team of teamsWithFlags) {
-      if (!team.flag || !divisionId) continue;
-
-      const currentTier = tierByDivision.get(divisionId) ?? 99;
-      const targetTier = team.flag === 'above' ? currentTier - 1 : currentTier + 1;
-      const targetDivisionId = [...tierByDivision.entries()].find(([, tier]) => tier === targetTier)?.[0] ?? null;
-      if (!targetDivisionId) continue;
-
-      const targetDivisionName = divisionNameById.get(targetDivisionId) ?? 'Unknown Division';
-      const impact = round2(Math.abs(team.zScore) * 6);
-
-      recommendations.push({
-        teamId: team.teamId,
-        teamName: team.teamName,
-        fromDivisionId: divisionId,
-        fromDivisionName: divisionName,
-        toDivisionId: targetDivisionId,
-        toDivisionName: targetDivisionName,
-        direction: team.flag === 'above' ? 'move_up' : 'move_down',
-        reason:
-          team.flag === 'above'
-            ? `${team.teamName} is significantly above division average (+${team.zScore}σ).`
-            : `${team.teamName} is significantly below division average (${team.zScore}σ).`,
-        impact,
-      });
-    }
   }
 
   divisionsOutput.sort((a, b) => {
@@ -182,6 +158,53 @@ export async function calculateDivisionBalance(
     const tierB = b.divisionId ? (tierByDivision.get(b.divisionId) ?? 999) : 999;
     return tierA - tierB;
   });
+
+  for (let index = 0; index < divisionsOutput.length; index++) {
+    const division = divisionsOutput[index];
+    if (!division.divisionId || division.teams.length < 3) continue;
+
+    for (const team of division.teams) {
+      if (!team.flag) continue;
+
+      const targetDivision = team.flag === 'above'
+        ? divisionsOutput[index - 1] ?? null
+        : divisionsOutput[index + 1] ?? null;
+
+      if (!targetDivision?.divisionId || targetDivision.teams.length < 3) {
+        continue;
+      }
+
+      const currentGap = team.flag === 'above'
+        ? team.overallPercentile - division.mean
+        : division.mean - team.overallPercentile;
+      const targetGap = Math.abs(team.overallPercentile - targetDivision.mean);
+      const targetAllowance = Math.max(6, targetDivision.stdDev * 1.25);
+      const isDominantMismatch = Math.abs(team.zScore) >= 1 && currentGap >= 6;
+      const fitsAdjacentDivision = targetGap <= targetAllowance;
+
+      if (!isDominantMismatch || !fitsAdjacentDivision) {
+        continue;
+      }
+
+      const direction = team.flag === 'above' ? 'move_up' : 'move_down';
+      const impact = round2(Math.max(4, (currentGap * 0.7) + (Math.max(0, targetAllowance - targetGap) * 0.4)));
+
+      recommendations.push({
+        teamId: team.teamId,
+        teamName: team.teamName,
+        fromDivisionId: division.divisionId,
+        fromDivisionName: division.divisionName,
+        toDivisionId: targetDivision.divisionId,
+        toDivisionName: targetDivision.divisionName,
+        direction,
+        reason:
+          direction === 'move_up'
+            ? `${team.teamName} is ${currentGap.toFixed(1)} points above the ${division.divisionName} average and sits within ${targetGap.toFixed(1)} points of the ${targetDivision.divisionName} average.`
+            : `${team.teamName} is ${currentGap.toFixed(1)} points below the ${division.divisionName} average and sits within ${targetGap.toFixed(1)} points of the ${targetDivision.divisionName} average.`,
+        impact,
+      });
+    }
+  }
 
   const avgStdDev = mean(divisionsOutput.map((division) => division.stdDev));
   const outlierPenalty = recommendations.length * 3;

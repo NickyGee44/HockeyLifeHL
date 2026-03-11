@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@hockey-life/ui';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { addScorekeeperToLeague } from '@/lib/actions/scorekeeper-management';
+import { useParams } from 'next/navigation';
+import { sendAvailabilityRequest } from '@/lib/actions/staffing-availability';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 interface AddScorekeeperModalProps {
@@ -34,6 +37,8 @@ export function AddScorekeeperModal({
   const t = useTranslations('scorekeepers.addModal');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -41,6 +46,7 @@ export function AddScorekeeperModal({
     hourlyRate: '',
     notes: '',
   });
+  const [sendAvailabilityNow, setSendAvailabilityNow] = useState(true);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,12 +61,30 @@ export function AddScorekeeperModal({
         notes: formData.notes || undefined,
       });
 
-      if (result.success) {
+      if (result.success && result.data) {
+        if (sendAvailabilityNow) {
+          const requestResult = await sendAvailabilityRequest({
+            leagueId,
+            targetType: 'scorekeeper',
+            targetId: result.data.id,
+            locale,
+          });
+
+          if (!requestResult.success) {
+            toast.error(requestResult.error || 'Scorekeeper added, but the availability request could not be sent.');
+          } else {
+            toast.success('Scorekeeper added and availability request sent.');
+          }
+        } else {
+          toast.success('Scorekeeper added.');
+        }
+
         setFormData({ displayName: '', email: '', hourlyRate: '', notes: '' });
+        setSendAvailabilityNow(true);
         onSuccess();
         onOpenChange(false);
       } else {
-        setError(result.error);
+        setError(!result.success ? result.error : 'Failed to add scorekeeper.');
       }
     });
   };
@@ -136,6 +160,21 @@ export function AddScorekeeperModal({
               className="bg-neutral-800 border-white/10 text-white placeholder:text-neutral-500 resize-none"
             />
           </div>
+
+          <label className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <input
+              type="checkbox"
+              checked={sendAvailabilityNow}
+              onChange={(event) => setSendAvailabilityNow(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-rink-500/30 bg-neutral-800 text-rink-500 focus:ring-rink-500"
+            />
+            <div>
+              <p className="text-sm font-medium text-white">Send availability request now</p>
+              <p className="text-xs text-neutral-400">
+                Email this scorekeeper a link to set their weekly working slots so auto-assign can use them right away.
+              </p>
+            </div>
+          </label>
 
           <DialogFooter>
             <Button

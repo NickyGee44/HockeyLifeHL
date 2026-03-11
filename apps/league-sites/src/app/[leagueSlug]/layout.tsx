@@ -121,23 +121,33 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
               <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
                 <div className={`relative z-[1] min-h-screen flex flex-col overflow-x-clip ${templateClass}`}>
                   {(league as any).settings?.website?.showGameTicker !== false && (
-                    <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+                    <div className="league-site-chrome">
+                      <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+                    </div>
                   )}
-                  <LeagueHeader
-                    league={league}
-                    leagueSlug={leagueSlug}
-                    registrationOpen={registrationOpen}
-                    visiblePages={(league as any).settings?.website?.visiblePages}
-                    isPlayoffSeason={isPlayoffSeason}
-                  />
+                  <div className="league-site-chrome">
+                    <LeagueHeader
+                      league={league}
+                      leagueSlug={leagueSlug}
+                      registrationOpen={registrationOpen}
+                      visiblePages={(league as any).settings?.website?.visiblePages}
+                      isPlayoffSeason={isPlayoffSeason}
+                    />
+                  </div>
                   <LeagueSiteAnalytics leagueSlug={leagueSlug} />
-                  <main className="flex-1">{children}</main>
-                  <SponsorFooterStrip sponsors={sponsors} />
-                  <LeagueFooter league={league} leagueSlug={leagueSlug} />
-                  {!(league as any).settings?.website?.demoMode && <BugReportButton />}
-                  {(league as any).settings?.website?.demoMode && (
-                    <DemoTourPanel leagueSlug={leagueSlug} />
-                  )}
+                  <main className="league-site-main flex-1">{children}</main>
+                  <div className="league-site-chrome">
+                    <SponsorFooterStrip sponsors={sponsors} />
+                  </div>
+                  <div className="league-site-chrome">
+                    <LeagueFooter league={league} leagueSlug={leagueSlug} />
+                  </div>
+                  <div className="league-site-chrome">
+                    {!(league as any).settings?.website?.demoMode && <BugReportButton />}
+                    {(league as any).settings?.website?.demoMode && (
+                      <DemoTourPanel leagueSlug={leagueSlug} />
+                    )}
+                  </div>
                 </div>
               </DivisionFilterProvider>
             </SubscriptionProvider>

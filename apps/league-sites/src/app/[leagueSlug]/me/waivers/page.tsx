@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Loader2,
 } from 'lucide-react';
+import { WaiverDocumentPanel } from '@/components/registration/WaiverDocumentPanel';
 
 /**
  * DOMPurify configuration for waiver content sanitization
@@ -78,17 +79,23 @@ function sanitizeWaiverContent(content: string | undefined): string {
 
 interface Waiver {
   id: string;
-  name: string;
+  title: string;
   content: string;
-  is_required: boolean;
+  version: string;
+  content_hash: string;
+  document_url: string | null;
+  document_name: string | null;
+  document_mime_type: string | null;
   created_at: string;
 }
 
 interface WaiverSignature {
   id: string;
-  waiver_template_id: string;
   signed_name: string;
-  signed_at: string;
+  agreed_at: string | null;
+  waiver_version: string;
+  waiver_content_hash: string;
+  signature_type: string;
 }
 
 interface WaiverWithStatus extends Waiver {
@@ -104,6 +111,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
   const { leagueSlug } = use(params);
   const { profile, isLoading: profileLoading } = usePlayerProfile();
   const [waivers, setWaivers] = useState<WaiverWithStatus[]>([]);
+  const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(null);
   const [selectedWaiver, setSelectedWaiver] = useState<WaiverWithStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSigning, setIsSigning] = useState(false);
@@ -141,11 +149,14 @@ export default function WaiversPage({ params }: WaiversPageProps) {
         throw new Error('League not found.');
       }
 
+      setCurrentLeagueId(league.id);
+
       // Get waivers (actual table: league_waiver_templates)
       const { data: waiversData, error: waiversError } = await supabase
         .from('league_waiver_templates')
         .select('*')
         .eq('league_id', league.id)
+        .eq('is_active', true)
         .order('created_at', { ascending: true });
 
       if (waiversError) {
@@ -156,7 +167,9 @@ export default function WaiversPage({ params }: WaiversPageProps) {
       const { data: signaturesData, error: signaturesError } = await supabase
         .from('player_waivers')
         .select('*')
-        .eq('player_id', profile.id);
+        .eq('player_id', profile.id)
+        .eq('league_id', league.id)
+        .order('agreed_at', { ascending: false });
 
       if (signaturesError) {
         throw new Error('Failed to load your waiver signatures. Please try again.');
@@ -165,7 +178,9 @@ export default function WaiversPage({ params }: WaiversPageProps) {
       // Combine waivers with signature status
       const waiversWithStatus: WaiverWithStatus[] = (waiversData || []).map((waiver: Waiver) => {
         const signature = (signaturesData || []).find(
-          (sig: WaiverSignature) => sig.waiver_template_id === waiver.id
+          (sig: WaiverSignature) =>
+            sig.waiver_content_hash === waiver.content_hash ||
+            (!sig.waiver_content_hash && sig.waiver_version === waiver.version)
         );
         return {
           ...waiver,
@@ -195,7 +210,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
   };
 
   const handleSign = async () => {
-    if (!selectedWaiver || !profile || !signedName.trim() || !agreedToTerms) {
+    if (!selectedWaiver || !profile || !currentLeagueId || !signedName.trim() || !agreedToTerms) {
       return;
     }
 
@@ -204,13 +219,21 @@ export default function WaiversPage({ params }: WaiversPageProps) {
 
     try {
       const supabase = createClient();
+      const agreedAt = new Date().toISOString();
 
       const { error } = await supabase.from('player_waivers').insert({
-        waiver_template_id: selectedWaiver.id,
+        league_id: currentLeagueId,
         player_id: profile.id,
+        season_id: null,
+        signature_data: signedName.trim(),
+        signature_type: 'typed',
         signed_name: signedName.trim(),
-        signed_at: new Date().toISOString(),
-        // Note: IP address, user agent, and waiver_content_hash would be captured server-side
+        waiver_version: selectedWaiver.version,
+        waiver_content_hash: selectedWaiver.content_hash,
+        waiver_accepted: true,
+        waiver_accepted_at: agreedAt,
+        agreed_at: agreedAt,
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
       });
 
       if (error) {
@@ -226,9 +249,11 @@ export default function WaiversPage({ params }: WaiversPageProps) {
                 isSigned: true,
                 signature: {
                   id: 'new',
-                  waiver_template_id: selectedWaiver.id,
                   signed_name: signedName.trim(),
-                  signed_at: new Date().toISOString(),
+                  agreed_at: agreedAt,
+                  waiver_version: selectedWaiver.version,
+                  waiver_content_hash: selectedWaiver.content_hash,
+                  signature_type: 'typed',
                 },
               }
             : w
@@ -255,7 +280,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
     });
   };
 
-  const unsignedCount = waivers.filter((w) => !w.isSigned && w.is_required).length;
+  const unsignedCount = waivers.filter((w) => !w.isSigned).length;
   const signedCount = waivers.filter((w) => w.isSigned).length;
 
   if (isLoading || profileLoading) {
@@ -319,16 +344,22 @@ export default function WaiversPage({ params }: WaiversPageProps) {
                 </div>
                 <div className="flex-1">
                   <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
-                    {selectedWaiver.name}
+                    {selectedWaiver.title}
                   </h1>
-                  {selectedWaiver.is_required && (
-                    <span className="inline-block mt-1 text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">
-                      Required
-                    </span>
-                  )}
+                  <span className="inline-block mt-1 text-xs bg-[var(--league-primary)]/15 text-[var(--league-primary)] px-2 py-0.5 rounded-full">
+                    Active waiver
+                  </span>
                 </div>
               </div>
             </div>
+
+              <div className="px-6 pt-6">
+                <WaiverDocumentPanel
+                  documentUrl={selectedWaiver.document_url}
+                  documentName={selectedWaiver.document_name}
+                  documentMimeType={selectedWaiver.document_mime_type}
+                />
+              </div>
 
             {/* Waiver Content - HTML is sanitized with DOMPurify to prevent XSS */}
             <div className="p-6 max-h-[400px] overflow-y-auto bg-[var(--color-background)]">
@@ -348,8 +379,8 @@ export default function WaiversPage({ params }: WaiversPageProps) {
                   <div>
                     <p className="font-medium">Signed by {selectedWaiver.signature?.signed_name}</p>
                     <p className="text-sm text-green-400/70">
-                      {selectedWaiver.signature?.signed_at
-                        ? formatDate(selectedWaiver.signature.signed_at)
+                      {selectedWaiver.signature?.agreed_at
+                        ? formatDate(selectedWaiver.signature.agreed_at)
                         : 'Date unknown'}
                     </p>
                   </div>
@@ -454,8 +485,8 @@ export default function WaiversPage({ params }: WaiversPageProps) {
         <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
           <p className="text-sm text-amber-200">
-            You have <strong>{unsignedCount}</strong> required waiver{unsignedCount > 1 ? 's' : ''}{' '}
-            to sign before you can participate.
+            You have <strong>{unsignedCount}</strong> waiver{unsignedCount > 1 ? 's' : ''}{' '}
+            to review and sign before you can participate.
           </p>
         </div>
       )}
@@ -519,20 +550,18 @@ export default function WaiversPage({ params }: WaiversPageProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-[var(--color-text-primary)] truncate">
-                      {waiver.name}
+                      {waiver.title}
                     </h3>
-                    {waiver.is_required && (
-                      <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">
-                        Required
-                      </span>
-                    )}
+                    <span className="text-xs bg-[var(--league-primary)]/15 text-[var(--league-primary)] px-2 py-0.5 rounded-full">
+                      Active
+                    </span>
                   </div>
                   <p className="text-sm text-[var(--color-text-secondary)]">
                     {waiver.isSigned ? (
                       <>
                         Signed on{' '}
-                        {waiver.signature?.signed_at
-                          ? new Date(waiver.signature.signed_at).toLocaleDateString()
+                        {waiver.signature?.agreed_at
+                          ? new Date(waiver.signature.agreed_at).toLocaleDateString()
                           : 'Unknown date'}
                       </>
                     ) : (

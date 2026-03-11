@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ImportPlayersButton } from '@/components/players/ImportPlayersButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -100,6 +101,10 @@ export default async function RegistrationsPage({
     ? registrationsResult.data?.total || 0
     : 0;
   const summary = summaryResult.success ? summaryResult.data : null;
+  const loadErrors = [
+    !registrationsResult.success ? registrationsResult.error : null,
+    !summaryResult.success ? summaryResult.error : null,
+  ].filter(Boolean) as string[];
 
   const totalPages = Math.ceil(total / limit);
 
@@ -110,9 +115,10 @@ export default async function RegistrationsPage({
   }));
 
   // Resolve active season for player import (prefer URL param, then active status)
-  const activeSeason = seasons.find((s: any) =>
-    seasonId ? s.id === seasonId : (league.seasons as any[]).find((ls: any) => ls.id === s.id)?.status === 'active'
-  ) ?? seasons[0];
+  const activeSeason =
+    seasons.find((s: any) => (seasonId ? s.id === seasonId : false)) ??
+    pickOperationalSeason((league.seasons as any[]) ?? []) ??
+    seasons[0];
 
   return (
     <div className="space-y-6">
@@ -134,6 +140,24 @@ export default async function RegistrationsPage({
       </div>
 
       {/* Stats Cards */}
+      {loadErrors.length > 0 && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-amber-400" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-300">
+                We couldn&apos;t fully load registrations.
+              </p>
+              {loadErrors.map((error) => (
+                <p key={error} className="text-sm text-amber-100/90">
+                  {error}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard

@@ -3,6 +3,10 @@
 import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import Stripe from 'stripe';
+import {
+  getRegistrationPaymentMode,
+  getSeasonPaymentSettings,
+} from '@/lib/registration/fee-collection-model';
 
 // ============================================================================
 // Stripe Client (Lazy Initialization)
@@ -102,6 +106,9 @@ interface LeagueWaiver {
   version: string;
   content_hash: string;
   title: string;
+  document_url: string | null;
+  document_name: string | null;
+  document_mime_type: string | null;
 }
 
 // ============================================================================
@@ -172,6 +179,23 @@ export async function getSeasonRegistrationFee(
   return fee?.amount_cents ?? 0;
 }
 
+export async function getSeasonRegistrationPaymentConfig(
+  leagueId: string,
+  seasonId: string
+) {
+  const supabase = createServiceRoleClient();
+  const settings = await getSeasonPaymentSettings(supabase as any, leagueId, seasonId);
+
+  return {
+    registrationFee: settings.feeAmountCents,
+    feeCollectionModel: settings.feeCollectionModel,
+    paymentMode: getRegistrationPaymentMode(
+      settings.feeCollectionModel,
+      settings.feeAmountCents
+    ),
+  };
+}
+
 // ============================================================================
 // Draft Management
 // ============================================================================
@@ -188,6 +212,29 @@ export async function saveRegistrationDraft(
     }
 
     const supabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
+    const paymentSettings = await getSeasonPaymentSettings(
+      serviceSupabase as any,
+      leagueId,
+      seasonId
+    );
+    const paymentMode = getRegistrationPaymentMode(
+      paymentSettings.feeCollectionModel,
+      paymentSettings.feeAmountCents
+    );
+    const normalizedPaymentStatus =
+      data.payment_status === 'completed'
+        ? 'completed'
+        : paymentMode === 'required'
+          ? 'pending'
+          : 'not_required';
+    const amountPaidCents =
+      normalizedPaymentStatus === 'completed' ? paymentSettings.feeAmountCents : 0;
+    const normalizedDraftData = {
+      ...data,
+      payment_status: normalizedPaymentStatus,
+      amount_cents: amountPaidCents,
+    };
 
     const { data: registration, error } = await (supabase.from as any)(
       'registration_submissions'
@@ -199,9 +246,13 @@ export async function saveRegistrationDraft(
           season_id: seasonId,
           registration_type: data.registration_type || 'free_agent',
           team_id: data.team_id || null,
-          draft_data: data,
+          draft_data: normalizedDraftData,
           draft_step: data.current_step || 1,
           status: 'pending',
+          payment_status: normalizedPaymentStatus,
+          fee_amount_cents: paymentSettings.feeAmountCents,
+          amount_paid_cents: amountPaidCents,
+          currency: paymentSettings.currency,
         },
         { onConflict: 'player_id,league_id,season_id' }
       )
@@ -329,7 +380,7 @@ export async function getLeagueWaiver(
 
     const { data: waiver, error } = await supabase
       .from('league_waiver_templates')
-      .select('id, content, version, content_hash, title')
+      .select('id, content, version, content_hash, title, document_url, document_name, document_mime_type')
       .eq('league_id', leagueId)
       .eq('is_active', true)
       .single();
@@ -372,20 +423,33 @@ export async function submitPlayerRegistration(
       };
     }
 
-    // Server-side payment enforcement
-    const { data: seasonFee } = await serviceSupabase
-      .from('season_fees')
-      .select('amount_cents')
-      .eq('league_id', data.league_id)
-      .eq('season_id', data.season_id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const paymentSettings = await getSeasonPaymentSettings(
+      serviceSupabase as any,
+      data.league_id,
+      data.season_id
+    );
+    const expectedFeeCents = paymentSettings.feeAmountCents;
+    const paymentMode = getRegistrationPaymentMode(
+      paymentSettings.feeCollectionModel,
+      expectedFeeCents
+    );
+    let amountPaidCents = 0;
 
-    const expectedFeeCents = seasonFee?.amount_cents ?? 0;
+    if (paymentMode === 'required' && data.payment_status !== 'completed') {
+      return {
+        success: false,
+        error: 'Payment is required for this registration. Please complete payment before submitting.',
+      };
+    }
 
-    if (expectedFeeCents > 0) {
+    const shouldVerifyIndividualPayment =
+      expectedFeeCents > 0 &&
+      (paymentMode === 'required' ||
+        (paymentMode === 'optional' &&
+          data.payment_status === 'completed' &&
+          Boolean(data.payment_intent_id)));
+
+    if (shouldVerifyIndividualPayment) {
       if (!data.payment_intent_id) {
         return {
           success: false,
@@ -405,8 +469,6 @@ export async function submitPlayerRegistration(
           };
         }
 
-        // Verify the amount paid matches the expected fee — prevents reusing a
-        // succeeded payment intent from a cheaper registration to bypass fees.
         if (paymentIntent.amount_received !== expectedFeeCents) {
           console.error('[Registration] Payment amount mismatch', {
             expected: expectedFeeCents,
@@ -428,6 +490,7 @@ export async function submitPlayerRegistration(
 
       data.payment_status = 'completed';
       data.amount_cents = expectedFeeCents;
+      amountPaidCents = expectedFeeCents;
     } else {
       data.payment_status = 'not_required';
       data.amount_cents = 0;
@@ -532,8 +595,10 @@ export async function submitPlayerRegistration(
           previous_leagues: data.previous_leagues || null,
           photo_url: data.photo_url || null,
           payment_status: data.payment_status || 'not_required',
+          fee_amount_cents: expectedFeeCents,
           stripe_payment_intent_id: data.payment_intent_id || null,
-          amount_paid_cents: data.amount_cents || 0,
+          amount_paid_cents: amountPaidCents,
+          currency: paymentSettings.currency,
           submitted_at: new Date().toISOString(),
           draft_data: null,
           draft_step: null,

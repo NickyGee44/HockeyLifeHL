@@ -398,12 +398,19 @@ export async function getPlayerDetail(
       gamesPlayed: number;
       position: string | null;
       calculatedAt: string | null;
+      confidenceScore?: number | null;
     }>;
     teamHistory: Array<{
       seasonId: string;
       teamName: string;
       divisionName: string;
       isGoalie: boolean;
+    }>;
+    latestBreakdown?: Array<{
+      key: string;
+      label: string;
+      normalizedScore: number;
+      appliedWeight: number;
     }>;
   };
   error?: string;
@@ -467,7 +474,7 @@ export async function getPlayerDetail(
   const [ratingsRes, rostersRes, seasonsRes, teamsRes, divisionsRes] = await Promise.all([
     service
       .from('player_ratings' as any)
-      .select('season_id, rating, overall_percentile, games_played, position, calculated_at')
+      .select('season_id, rating, overall_percentile, games_played, position, calculated_at, stats_json')
       .eq('league_id', leagueId)
       .eq('player_id', playerId)
       .order('calculated_at', { ascending: false }),
@@ -510,6 +517,7 @@ export async function getPlayerDetail(
         gamesPlayed: Number(row.games_played ?? 0),
         position: row.position,
         calculatedAt: row.calculated_at,
+        confidenceScore: typeof row.stats_json?.ratingConfidence === 'number' ? row.stats_json.ratingConfidence : null,
       })),
       teamHistory: (rostersRes.data ?? []).map((row: any) => ({
         seasonId: row.season_id,
@@ -517,6 +525,16 @@ export async function getPlayerDetail(
         divisionName: row.division_id ? (divisionNameById.get(row.division_id) || 'Unassigned') : 'Unassigned',
         isGoalie: Boolean(row.is_goalie),
       })),
+      latestBreakdown: Array.isArray((ratingsRes.data ?? [])[0]?.stats_json?.breakdown)
+        ? (ratingsRes.data ?? [])[0].stats_json.breakdown
+            .filter((entry: any) => entry && entry.label)
+            .map((entry: any) => ({
+              key: entry.key,
+              label: entry.label,
+              normalizedScore: Number(entry.normalizedScore ?? 0),
+              appliedWeight: Number(entry.appliedWeight ?? 0),
+            }))
+        : [],
     },
   };
 }

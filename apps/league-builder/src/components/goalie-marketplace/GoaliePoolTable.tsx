@@ -47,7 +47,14 @@ export function GoaliePoolTable({ goalies, onRefresh, onSelect }: GoaliePoolTabl
             <tr key={goalie.id} className="border-t border-white/5">
               <td className="p-3">
                 <div className="font-medium text-white">{goalie.name}</div>
-                <div className="text-neutral-500 text-xs">{goalie.email}</div>
+                <div className="text-neutral-500 text-xs">
+                  {goalie.email || 'No email on file'}
+                </div>
+                {goalie.source === 'roster' && (
+                  <div className="text-[11px] text-cyan-300 mt-1">
+                    Current league goalie{goalie.team_name ? ` • ${goalie.team_name}` : ''}
+                  </div>
+                )}
               </td>
               <td className="p-3 text-neutral-300 capitalize">{goalie.skill_level || 'intermediate'}</td>
               <td className="p-3">
@@ -62,7 +69,13 @@ export function GoaliePoolTable({ goalies, onRefresh, onSelect }: GoaliePoolTabl
                   <Button size="sm" variant="outline" onClick={() => onSelect(goalie)}>
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleRemove(goalie.id)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRemove(goalie.id)}
+                    disabled={goalie.read_only}
+                    title={goalie.read_only ? 'Roster goalies are read-only here' : 'Remove goalie from pool'}
+                  >
                     <Trash2 className="w-4 h-4 text-red-400" />
                   </Button>
                 </div>

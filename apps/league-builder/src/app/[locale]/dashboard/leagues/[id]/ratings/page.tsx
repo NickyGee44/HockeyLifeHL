@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
+import { PLAYER_RATING_CATEGORY_CARDS } from '@/lib/ratings';
 import {
   getDivisionBalance,
   getPlayerRatings,
@@ -107,6 +108,14 @@ export default async function LeagueRatingsPage({ params }: Props) {
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-white">Player Directory</h2>
+          <div className="grid gap-3 lg:grid-cols-3">
+            {PLAYER_RATING_CATEGORY_CARDS.map((card) => (
+              <div key={card.key} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-sm font-semibold text-white">{card.title}</p>
+                <p className="mt-2 text-sm leading-6 text-neutral-400">{card.description}</p>
+              </div>
+            ))}
+          </div>
           {playerRatings.success && playerRatings.data ? (
             <PlayerDirectory leagueId={leagueId} rows={playerRatings.data.rows} />
           ) : (

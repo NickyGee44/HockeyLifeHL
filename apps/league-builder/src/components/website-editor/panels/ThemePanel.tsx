@@ -67,6 +67,10 @@ export function ThemePanel() {
       </div>
 
       {/* Color pickers */}
+      <div className="rounded-lg border border-white/10 bg-neutral-900/50 p-3 text-xs text-neutral-400">
+        Primary drives buttons and calls to action. Secondary drives surface tinting and is automatically balanced so dark templates stay readable and light templates do not wash out.
+      </div>
+
       <ColorInput
         label={t('primaryColor')}
         description={t('primaryDescription')}

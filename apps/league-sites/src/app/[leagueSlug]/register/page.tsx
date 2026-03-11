@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getLeagueBySlug } from '@/lib/data';
 import {
   getLeagueRegistrationData,
-  getSeasonRegistrationFee,
+  getSeasonRegistrationPaymentConfig,
   getRegistrationDraft,
   getMyRegistrationStatus,
   getLeagueWaiver,
@@ -157,18 +157,25 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
     }
   }
 
-  // Load draft, waiver, and fee data
-  const [draftResult, waiverResult, registrationFee] = await Promise.all([
+  // Load draft, waiver, and payment settings
+  const [draftResult, waiverResult, registrationConfig] = await Promise.all([
     getRegistrationDraft(league.id, activeSeason.id),
     getLeagueWaiver(league.id),
-    getSeasonRegistrationFee(league.id, activeSeason.id),
+    getSeasonRegistrationPaymentConfig(league.id, activeSeason.id),
   ]);
 
   const initialData = draftResult.success ? (draftResult.data ?? null) : null;
   const waiver =
     waiverResult.success && waiverResult.data
       ? waiverResult.data
-      : { content: DEFAULT_WAIVER_CONTENT, version: 'v1', content_hash: '' };
+      : {
+          content: DEFAULT_WAIVER_CONTENT,
+          version: 'v1',
+          content_hash: '',
+          document_url: null,
+          document_name: null,
+          document_mime_type: null,
+        };
 
   const teams = (league.teams || []).map((team: any) => ({
     id: team.id,
@@ -199,10 +206,15 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
         leagueName={league.name}
         seasonName={activeSeason.name}
         teams={teams}
-        registrationFee={registrationFee}
+        registrationFee={registrationConfig.registrationFee}
+        feeCollectionModel={registrationConfig.feeCollectionModel}
+        paymentMode={registrationConfig.paymentMode}
         waiverContent={waiver.content}
         waiverVersion={waiver.version}
         waiverContentHash={waiver.content_hash}
+        waiverDocumentUrl={waiver.document_url}
+        waiverDocumentName={waiver.document_name}
+        waiverDocumentMimeType={waiver.document_mime_type}
         initialData={initialData}
         leagueFormConfig={leagueFormConfig}
       />

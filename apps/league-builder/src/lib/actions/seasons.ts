@@ -1,9 +1,14 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { verifyLeagueOwnerAccess } from './permissions';
+import {
+  getSeasonParticipationTeamIds,
+  getSeasonParticipationTeams,
+  seedSeasonParticipationTeams,
+} from '@/lib/seasons/team-participation';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -378,6 +383,109 @@ export async function cloneSeason(seasonId: string, newName: string) {
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in cloneSeason:', sanitizeErrorForLogging(error));
+    }
+    return { error: 'An unexpected error occurred' };
+  }
+}
+
+export async function importSeasonTeamsFromPreviousSeason(params: {
+  leagueId: string;
+  seasonId: string;
+  sourceSeasonId: string;
+  teamIds: string[];
+}) {
+  const authSupabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
+
+  try {
+    const {
+      data: { user },
+    } = await authSupabase.auth.getUser();
+
+    if (!user) {
+      return { error: 'Authentication required' };
+    }
+
+    const access = await verifyLeagueOwnerAccess(params.leagueId);
+    if (!access.authorized) {
+      return { error: access.error || 'Not authorized' };
+    }
+
+    const [{ data: targetSeason }, { data: sourceSeason }] = await Promise.all([
+      serviceSupabase
+        .from('seasons')
+        .select('id, name, league_id')
+        .eq('id', params.seasonId)
+        .eq('league_id', params.leagueId)
+        .maybeSingle(),
+      serviceSupabase
+        .from('seasons')
+        .select('id, name, league_id')
+        .eq('id', params.sourceSeasonId)
+        .eq('league_id', params.leagueId)
+        .maybeSingle(),
+    ]);
+
+    if (!targetSeason) {
+      return { error: 'Target season not found' };
+    }
+
+    if (!sourceSeason) {
+      return { error: 'Source season not found' };
+    }
+
+    const requestedTeamIds = [...new Set(params.teamIds.filter(Boolean))];
+    if (requestedTeamIds.length === 0) {
+      return { error: 'Select at least one team to import' };
+    }
+
+    const [sourceTeams, currentSeasonTeamIds] = await Promise.all([
+      getSeasonParticipationTeams(serviceSupabase, params.leagueId, params.sourceSeasonId),
+      getSeasonParticipationTeamIds(serviceSupabase, params.leagueId, params.seasonId),
+    ]);
+
+    const sourceTeamIds = new Set(sourceTeams.map((team) => team.id));
+    const existingTeamIds = new Set(currentSeasonTeamIds);
+    const eligibleTeamIds = requestedTeamIds.filter(
+      (teamId) => sourceTeamIds.has(teamId) && !existingTeamIds.has(teamId)
+    );
+
+    if (eligibleTeamIds.length === 0) {
+      return {
+        error: 'All selected teams are already in this season or were not found in the previous season.',
+      };
+    }
+
+    const result = await seedSeasonParticipationTeams({
+      supabase: serviceSupabase,
+      leagueId: params.leagueId,
+      seasonId: params.seasonId,
+      teamIds: eligibleTeamIds,
+      createdBy: user.id,
+      sourceSeasonId: params.sourceSeasonId,
+    });
+
+    revalidatePath(`/dashboard/leagues/${params.leagueId}/seasons`);
+    revalidatePath(`/dashboard/leagues/${params.leagueId}/seasons/${params.seasonId}`);
+    revalidatePath(`/dashboard/leagues/${params.leagueId}/schedule?season=${params.seasonId}`);
+    revalidatePath(`/dashboard/leagues/${params.leagueId}/teams`);
+    revalidatePath(`/dashboard/leagues/${params.leagueId}/teams-divisions`);
+
+    return {
+      success: true,
+      data: {
+        importedCount: result.importedCount,
+        skippedCount: result.skippedCount,
+        sourceSeasonName: sourceSeason.name,
+        targetSeasonName: targetSeason.name,
+      },
+    };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error(
+        'Unexpected error in importSeasonTeamsFromPreviousSeason:',
+        sanitizeErrorForLogging(error)
+      );
     }
     return { error: 'An unexpected error occurred' };
   }

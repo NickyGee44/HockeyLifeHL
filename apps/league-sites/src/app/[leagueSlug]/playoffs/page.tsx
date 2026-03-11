@@ -41,14 +41,37 @@ interface PlayoffSeries {
   high_seed: { name: string; logo_url: string | null } | null;
   low_seed: { name: string; logo_url: string | null } | null;
   winner: { name: string } | null;
+  next_game_at?: string | null;
+  next_game_location?: string | null;
+}
+
+const PLAYOFF_SERIES_DIVISION_ID_MISSING =
+  "Could not find the 'division_id' column of 'playoff_series' in the schema cache";
+
+function isMissingPlayoffSeriesDivisionScopeError(
+  error: { message?: string | null } | null | undefined,
+) {
+  return error?.message?.includes(PLAYOFF_SERIES_DIVISION_ID_MISSING) ?? false;
+}
+
+async function hasPlayoffSeriesDivisionScope(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { error } = await supabase
+    .from('playoff_series')
+    .select('id, division_id')
+    .limit(1);
+
+  if (isMissingPlayoffSeriesDivisionScopeError(error)) {
+    return false;
+  }
+
+  return true;
 }
 
 async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<PlayoffSeries[]> {
   const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('playoff_series')
-    .select(`
+  const divisionScopeEnabled = await hasPlayoffSeriesDivisionScope(supabase);
+  const seriesSelect = divisionScopeEnabled
+    ? `
       id, division_id, round_number, series_number,
       high_seed_id, low_seed_id,
       high_seed_wins, low_seed_wins,
@@ -56,7 +79,22 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
       high_seed:teams!playoff_series_high_seed_id_fkey(name, logo_url),
       low_seed:teams!playoff_series_low_seed_id_fkey(name, logo_url),
       winner:teams!playoff_series_winner_id_fkey(name)
-    `)
+    `
+    : `
+      id, round_number, series_number,
+      high_seed_id, low_seed_id,
+      high_seed_wins, low_seed_wins,
+      winner_id, status,
+      high_seed:teams!playoff_series_high_seed_id_fkey(name, logo_url),
+      low_seed:teams!playoff_series_low_seed_id_fkey(name, logo_url),
+      winner:teams!playoff_series_winner_id_fkey(name)
+    `;
+
+  // The selected shape changes when older environments still lack division_id.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playoffSeriesTable: any = supabase.from('playoff_series');
+  const { data, error } = await playoffSeriesTable
+    .select(seriesSelect)
     .eq('league_id', leagueId)
     .eq('season_id', seasonId)
     .order('round_number')
@@ -64,11 +102,23 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
 
   if (error || !data) return [];
 
-  const divisionIds = [...new Set(
-    data
-      .map((row: any) => row.division_id)
-      .filter((value: string | null | undefined): value is string => Boolean(value)),
-  )];
+  const { data: scheduledGames } = await supabase
+    .from('games')
+    .select('id, playoff_series_id, scheduled_at, location, status')
+    .eq('league_id', leagueId)
+    .eq('season_id', seasonId)
+    .eq('game_type', 'playoff')
+    .not('playoff_series_id', 'is', null)
+    .order('scheduled_at', { ascending: true });
+
+  const dataRows = data as Array<{ id: string; division_id?: string | null } & Omit<PlayoffSeries, 'division_id' | 'division_name' | 'next_game_at' | 'next_game_location'>>;
+  const divisionIds = divisionScopeEnabled
+    ? [...new Set(
+      dataRows
+        .map((row) => row.division_id)
+        .filter((value: string | null | undefined): value is string => Boolean(value)),
+    )]
+    : [];
 
   const divisionNameById = new Map<string, string>();
   if (divisionIds.length > 0) {
@@ -82,9 +132,33 @@ async function getPlayoffBracket(leagueId: string, seasonId: string): Promise<Pl
     }
   }
 
-  return (data as any[]).map((row) => ({
+  const nextGameBySeriesId = new Map<string, { scheduledAt: string; location: string | null }>();
+  const now = Date.now();
+  for (const game of scheduledGames ?? []) {
+    if (!game.playoff_series_id || game.status === 'cancelled' || game.status === 'completed') {
+      continue;
+    }
+
+    if (new Date(game.scheduled_at).getTime() < now) {
+      continue;
+    }
+
+    if (!nextGameBySeriesId.has(game.playoff_series_id)) {
+      nextGameBySeriesId.set(game.playoff_series_id, {
+        scheduledAt: game.scheduled_at,
+        location: game.location ?? null,
+      });
+    }
+  }
+
+  return dataRows.map((row) => ({
     ...row,
-    division_name: row.division_id ? divisionNameById.get(row.division_id) ?? null : null,
+    division_id: divisionScopeEnabled ? row.division_id ?? null : null,
+    division_name: divisionScopeEnabled && row.division_id
+      ? divisionNameById.get(row.division_id) ?? null
+      : null,
+    next_game_at: nextGameBySeriesId.get(row.id)?.scheduledAt ?? null,
+    next_game_location: nextGameBySeriesId.get(row.id)?.location ?? null,
   })) as PlayoffSeries[];
 }
 
@@ -164,7 +238,7 @@ function TeamRow({
   );
 }
 
-function SeriesCard({ series, totalRounds }: { series: PlayoffSeries; totalRounds: number }) {
+function SeriesCard({ series, totalRounds: _totalRounds }: { series: PlayoffSeries; totalRounds: number }) {
   const isCompleted = series.status === 'completed';
   const hasTeams = series.high_seed_id || series.low_seed_id;
   const isByeHigh = series.high_seed_id === null;
@@ -195,6 +269,26 @@ function SeriesCard({ series, totalRounds }: { series: PlayoffSeries; totalRound
         isWinner={isCompleted && series.winner_id === series.low_seed_id}
         isBye={isByeLow && series.high_seed_id !== null}
       />
+      {series.next_game_at ? (
+        <div className="border-t border-white/10 px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)] opacity-70">
+            Next Game
+          </p>
+          <p className="mt-1 text-xs font-medium text-[var(--color-text-primary)]">
+            {new Date(series.next_game_at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })}
+          </p>
+          {series.next_game_location ? (
+            <p className="mt-1 text-[11px] text-[var(--color-text-secondary)]">
+              {series.next_game_location}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

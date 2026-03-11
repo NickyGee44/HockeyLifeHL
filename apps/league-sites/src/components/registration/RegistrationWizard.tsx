@@ -10,6 +10,10 @@ import {
   type RegistrationDraftData,
   type LeagueFormConfig,
 } from '@/lib/actions/registration';
+import type {
+  FeeCollectionModel,
+  RegistrationPaymentMode,
+} from '@/lib/registration/fee-collection-model';
 import {
   canSubmitRegistration,
   validatePersonalInfoStep,
@@ -36,9 +40,14 @@ interface RegistrationWizardProps {
   seasonName: string;
   teams: { id: string; name: string }[];
   registrationFee: number; // cents
+  feeCollectionModel?: FeeCollectionModel;
+  paymentMode?: RegistrationPaymentMode;
   waiverContent: string;
   waiverVersion: string;
   waiverContentHash: string;
+  waiverDocumentUrl?: string | null;
+  waiverDocumentName?: string | null;
+  waiverDocumentMimeType?: string | null;
   initialData: RegistrationDraftData | null;
   leagueFormConfig: LeagueFormConfig;
 }
@@ -64,9 +73,14 @@ export function RegistrationWizard({
   seasonName,
   teams,
   registrationFee,
+  feeCollectionModel: _feeCollectionModel = 'individual',
+  paymentMode = registrationFee > 0 ? 'required' : 'hidden',
   waiverContent,
   waiverVersion: _waiverVersion,
   waiverContentHash,
+  waiverDocumentUrl,
+  waiverDocumentName,
+  waiverDocumentMimeType,
   initialData,
   leagueFormConfig,
 }: RegistrationWizardProps) {
@@ -78,6 +92,8 @@ export function RegistrationWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const requiresPayment = paymentMode === 'required';
+  const showsPaymentStep = paymentMode !== 'hidden';
 
   // Form data state
   const [formData, setFormData] = useState<RegistrationDraftData>({
@@ -113,15 +129,15 @@ export function RegistrationWizard({
     signature_type: initialData?.signature_type || 'checkbox',
     signed_name: initialData?.signed_name || '',
     waiver_content_hash: waiverContentHash,
-    payment_status: initialData?.payment_status || (registrationFee > 0 ? 'pending' : 'not_required'),
+    payment_status: initialData?.payment_status || (requiresPayment ? 'pending' : 'not_required'),
     payment_intent_id: initialData?.payment_intent_id || '',
-    amount_cents: registrationFee,
+    amount_cents: initialData?.amount_cents ?? (requiresPayment ? registrationFee : 0),
     tos_accepted: initialData?.tos_accepted ?? false,
     email_marketing_opt_in: initialData?.email_marketing_opt_in ?? false,
   });
 
   // Determine which steps to show (skip payment step if free)
-  const visibleSteps = registrationFee > 0
+  const visibleSteps = showsPaymentStep
     ? STEPS
     : STEPS.filter((s) => s.id !== 5);
 
@@ -132,7 +148,7 @@ export function RegistrationWizard({
   const preferencesStepValidation = validateLeaguePreferencesStep(formData, leagueFormConfig);
   const skillStepValidation = validateSkillPositionStep(formData);
   const waiverStepValidation = validateWaiverStep(formData);
-  const paymentReady = canSubmitRegistration(formData, registrationFee);
+  const paymentReady = canSubmitRegistration(formData, registrationFee, paymentMode);
   const canSubmitFinal = paymentReady && formData.tos_accepted === true;
 
   const canGoNext = (() => {
@@ -146,7 +162,7 @@ export function RegistrationWizard({
       case 4:
         return waiverStepValidation.valid;
       case 5:
-        return paymentReady;
+        return paymentMode === 'required' ? paymentReady : true;
       default:
         return true;
     }
@@ -197,8 +213,7 @@ export function RegistrationWizard({
       return;
     }
 
-    // Block submission if payment is required but not completed
-    if (!paymentReady) {
+    if (paymentMode === 'required' && !paymentReady) {
       setSubmitError('Payment is required before submitting your registration. Please go back to the Payment step to complete your payment.');
       return;
     }
@@ -292,7 +307,12 @@ export function RegistrationWizard({
           {seasonName}
           {registrationFee > 0 && (
             <span className="ml-2">
-              &middot; ${(registrationFee / 100).toFixed(2)} registration fee
+              &middot; ${(registrationFee / 100).toFixed(2)}{' '}
+              {paymentMode === 'hidden'
+                ? 'team-billed fee'
+                : paymentMode === 'optional'
+                  ? 'registration fee (player payment optional)'
+                  : 'registration fee'}
             </span>
           )}
         </p>
@@ -368,17 +388,21 @@ export function RegistrationWizard({
             onUpdate={updateFormData}
           />
         )}
-        {currentStep === 4 && (
-          <StepWaiver
-            formData={formData}
-            waiverContent={waiverContent}
-            onUpdate={updateFormData}
-          />
-        )}
-        {currentStep === 5 && registrationFee > 0 && (
+          {currentStep === 4 && (
+            <StepWaiver
+              formData={formData}
+              waiverContent={waiverContent}
+              waiverDocumentUrl={waiverDocumentUrl}
+              waiverDocumentName={waiverDocumentName}
+              waiverDocumentMimeType={waiverDocumentMimeType}
+              onUpdate={updateFormData}
+            />
+          )}
+        {currentStep === 5 && showsPaymentStep && (
           <StepPayment
             formData={formData}
             registrationFee={registrationFee}
+            paymentMode={paymentMode}
             leagueId={leagueId}
             seasonId={seasonId}
             leagueSlug={leagueSlug}
@@ -393,9 +417,10 @@ export function RegistrationWizard({
             leagueName={leagueName}
             seasonName={seasonName}
             registrationFee={registrationFee}
+            paymentMode={paymentMode}
             teams={teams}
             onUpdate={updateFormData}
-            canSubmit={registrationFee <= 0 || formData.payment_status === 'completed'}
+            canSubmit={paymentMode !== 'required' || formData.payment_status === 'completed'}
           />
         )}
 

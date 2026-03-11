@@ -21,7 +21,10 @@ import {
   Database,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
+import { AnnouncementComposerButton } from '@/components/news/AnnouncementComposerButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
+import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -74,9 +77,7 @@ export default async function LeagueDetailPage({ params }: Props) {
     .eq('league_id', leagueId);
 
   // Pending action counts — all run in parallel
-  const currentSeason = league.seasons?.find(
-    (s: any) => s.status === 'active' || s.status === 'registration'
-  ) ?? league.seasons?.[0] ?? null;
+  const currentSeason = pickOperationalSeason((league.seasons as any[]) ?? []);
 
   const [
     { count: pendingRegistrations },
@@ -146,7 +147,8 @@ export default async function LeagueDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <AnnouncementComposerButton leagueId={leagueId} leagueName={league.name} />
               <span
                 className={cn(
                   'px-3 py-1.5 text-sm font-semibold rounded-full',
@@ -421,7 +423,7 @@ function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: st
             statusColors[season.status] || statusColors.draft
           )}
         >
-          {season.status?.charAt(0).toUpperCase() + season.status?.slice(1)}
+          {getSeasonStatusLabel(season.status, season.registration_type)}
         </span>
       </div>
 

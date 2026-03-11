@@ -20,8 +20,7 @@ import {
   formatRelationship } from '@/lib/schemas/player-registration';
 
 export function Step7Confirmation() {
-  const { leagueName, teams, requiresPayment, registrationFee } =
-    useRegistrationContext();
+  const { leagueName, teams, paymentMode, registrationFee } = useRegistrationContext();
   const { watch } = useFormContext<RegistrationFormData>();
 
   const formData = watch();
@@ -30,7 +29,7 @@ export function Step7Confirmation() {
   const selectedTeam = teams.find((t) => t.id === formData.team_id);
 
   // Format payment amount
-  const formattedAmount = requiresPayment
+  const formattedAmount = registrationFee > 0
     ? new Intl.NumberFormat('en-CA', {
         style: 'currency',
         currency: 'CAD' }).format(registrationFee / 100)
@@ -189,7 +188,7 @@ export function Step7Confirmation() {
       </div>
 
       {/* Payment Status */}
-      {requiresPayment && (
+      {registrationFee > 0 && (
         <div className="p-6 rounded-xl border border-neutral-700 bg-neutral-800/30">
           <div className="flex items-center gap-3 mb-4">
             <CreditCard className="w-5 h-5 text-rink-500" />
@@ -198,7 +197,9 @@ export function Step7Confirmation() {
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-400">Registration Fee</p>
+              <p className="text-sm text-neutral-400">
+                {paymentMode === 'hidden' ? 'Team Billing' : 'Registration Fee'}
+              </p>
               <p className="text-2xl font-bold text-rink-500">{formattedAmount}</p>
             </div>
             {formData.payment_status === 'completed' ? (
@@ -206,12 +207,31 @@ export function Step7Confirmation() {
                 <Check className="w-4 h-4" />
                 Paid
               </span>
+            ) : paymentMode === 'hidden' ? (
+              <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400">
+                Team Pays
+              </span>
+            ) : paymentMode === 'optional' ? (
+              <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400">
+                Team Can Pay
+              </span>
             ) : (
               <span className="px-4 py-2 rounded-full bg-amber-500/20 text-amber-400">
                 Pending
               </span>
             )}
           </div>
+          {paymentMode === 'hidden' && (
+            <p className="mt-3 text-sm text-neutral-400">
+              This season uses team billing. Your team captain or league will handle the invoice.
+            </p>
+          )}
+          {paymentMode === 'optional' && formData.payment_status !== 'completed' && (
+            <p className="mt-3 text-sm text-neutral-400">
+              You are registering without paying individually. Any unpaid amount can be collected
+              through team billing later.
+            </p>
+          )}
         </div>
       )}
 

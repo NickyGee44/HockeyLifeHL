@@ -38,6 +38,19 @@ type PlayerAggregate = {
   stats: Record<string, unknown>;
 };
 
+type MetricGroup = 'offense' | 'defense' | 'availability' | 'goalie';
+
+type AdaptiveMetric<T> = {
+  key: string;
+  label: string;
+  group: MetricGroup;
+  weight: number;
+  direction?: 'high' | 'low';
+  getValue: (candidate: T) => number;
+  isAvailable?: (cohort: T[]) => boolean;
+  isAvailableForCandidate?: (candidate: T) => boolean;
+};
+
 const MIN_GAMES_FOR_RATING = 5;
 const MIN_PLAYERS_FOR_DIVISION_RATING = 3;
 
@@ -120,6 +133,110 @@ function divisionWeightAndFloor(tier: number): { weight: number; floor: number }
   }
 }
 
+function avg(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function weightedAverage(values: Array<{ value: number; weight: number }>): number {
+  const totalWeight = values.reduce((sum, entry) => sum + entry.weight, 0);
+  if (totalWeight <= 0) {
+    return 50;
+  }
+
+  return values.reduce((sum, entry) => sum + (entry.value * entry.weight), 0) / totalWeight;
+}
+
+function hasPositiveSignal(values: number[]): boolean {
+  return values.some((value) => Number.isFinite(value) && value > 0);
+}
+
+function resolveActiveMetrics<T>(
+  cohort: T[],
+  candidate: T,
+  metrics: AdaptiveMetric<T>[]
+) {
+  const active = metrics.filter((metric) => {
+    if (metric.isAvailable) {
+      if (!metric.isAvailable(cohort)) {
+        return false;
+      }
+    }
+
+    if (metric.isAvailableForCandidate) {
+      return metric.isAvailableForCandidate(candidate);
+    }
+
+    return true;
+  });
+
+  const totalWeight = active.reduce((sum, metric) => sum + metric.weight, 0);
+  return {
+    active,
+    totalWeight,
+    coverage: metrics.length > 0 ? totalWeight / metrics.reduce((sum, metric) => sum + metric.weight, 0) : 0,
+  };
+}
+
+function buildMetricBreakdown<T extends { gamesPlayed: number }>(
+  candidate: T,
+  cohort: T[],
+  metrics: AdaptiveMetric<T>[]
+) {
+  const { active, totalWeight, coverage } = resolveActiveMetrics(cohort, candidate, metrics);
+
+  const breakdown = active.map((metric) => {
+    const comparableCohort = metric.isAvailableForCandidate
+      ? cohort.filter((entry) => metric.isAvailableForCandidate?.(entry))
+      : cohort;
+    const values = comparableCohort.map((entry) => metric.getValue(entry));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const rawValue = metric.getValue(candidate);
+    const normalized = metric.direction === 'low'
+      ? inverseNormalize(rawValue, min, max)
+      : normalize(rawValue, min, max);
+    const appliedWeight = totalWeight > 0 ? metric.weight / totalWeight : 0;
+
+    return {
+      key: metric.key,
+      label: metric.label,
+      group: metric.group,
+      rawValue: round2(rawValue),
+      normalizedScore: round2(normalized * 100),
+      appliedWeight: round2(appliedWeight * 100),
+    };
+  });
+
+  const scorePairs = breakdown.map((metric) => ({
+    value: metric.normalizedScore,
+    weight: metric.appliedWeight,
+  }));
+
+  const offense = weightedAverage(
+    breakdown
+      .filter((metric) => metric.group === 'offense')
+      .map((metric) => ({ value: metric.normalizedScore, weight: metric.appliedWeight }))
+  );
+  const defense = weightedAverage(
+    breakdown
+      .filter((metric) => metric.group === 'defense' || metric.group === 'goalie')
+      .map((metric) => ({ value: metric.normalizedScore, weight: metric.appliedWeight }))
+  );
+
+  const gamesConfidence = clamp((candidate.gamesPlayed - MIN_GAMES_FOR_RATING + 3) / 12, 0.25, 1);
+  const confidence = round2(((gamesConfidence * 0.6) + (coverage * 0.4)) * 100);
+
+  return {
+    compositeScore: round2(weightedAverage(scorePairs)),
+    offensiveComponent: round2(offense),
+    defensiveComponent: round2(defense),
+    confidenceScore: confidence,
+    metricCoverage: round2(coverage * 100),
+    breakdown,
+  };
+}
+
 function mostRecentRosterEntry(rows: RosterInfo[]): RosterInfo | null {
   if (rows.length === 0) return null;
   const active = rows.filter((row) => !row.end_date);
@@ -155,7 +272,21 @@ export async function calculatePlayerRatings(
       .eq('season_id', seasonId),
     supabase
       .from('player_stats')
-      .select('player_id, team_id, game_id, goals, assists, plus_minus, penalty_minutes, shots')
+      .select(`
+        player_id,
+        team_id,
+        game_id,
+        goals,
+        assists,
+        plus_minus,
+        penalty_minutes,
+        shots,
+        game_winning_goals,
+        power_play_goals,
+        power_play_assists,
+        short_handed_goals,
+        short_handed_assists
+      `)
       .eq('league_id', leagueId)
       .eq('season_id', seasonId),
     supabase
@@ -203,6 +334,8 @@ export async function calculatePlayerRatings(
     plusMinus: number;
     pim: number;
     shots: number;
+    gameWinningGoals: number;
+    specialTeamsPoints: number;
   }>();
 
   for (const row of skaterStatsRes.data ?? []) {
@@ -215,6 +348,8 @@ export async function calculatePlayerRatings(
       plusMinus: 0,
       pim: 0,
       shots: 0,
+      gameWinningGoals: 0,
+      specialTeamsPoints: 0,
     };
 
     entry.games.add(row.game_id);
@@ -225,6 +360,12 @@ export async function calculatePlayerRatings(
     entry.plusMinus += Number(row.plus_minus ?? 0);
     entry.pim += Number(row.penalty_minutes ?? 0);
     entry.shots += Number(row.shots ?? 0);
+    entry.gameWinningGoals += Number(row.game_winning_goals ?? 0);
+    entry.specialTeamsPoints +=
+      Number(row.power_play_goals ?? 0) +
+      Number(row.power_play_assists ?? 0) +
+      Number(row.short_handed_goals ?? 0) +
+      Number(row.short_handed_assists ?? 0);
 
     skaterAggregate.set(row.player_id, entry);
   }
@@ -278,6 +419,13 @@ export async function calculatePlayerRatings(
     assists: number;
     points: number;
     shots: number;
+    goalsPerGame: number;
+    assistsPerGame: number;
+    shotsPerGame: number;
+    gameWinningGoals: number;
+    gameWinningGoalsPerGame: number;
+    specialTeamsPoints: number;
+    specialTeamsPointsPerGame: number;
   }> = [];
 
   for (const [playerId, agg] of skaterAggregate.entries()) {
@@ -304,6 +452,13 @@ export async function calculatePlayerRatings(
       assists: agg.assists,
       points: agg.points,
       shots: agg.shots,
+      goalsPerGame: agg.goals / gamesPlayed,
+      assistsPerGame: agg.assists / gamesPlayed,
+      shotsPerGame: agg.shots / gamesPlayed,
+      gameWinningGoals: agg.gameWinningGoals,
+      gameWinningGoalsPerGame: agg.gameWinningGoals / gamesPlayed,
+      specialTeamsPoints: agg.specialTeamsPoints,
+      specialTeamsPointsPerGame: agg.specialTeamsPoints / gamesPlayed,
     });
   }
 
@@ -321,6 +476,9 @@ export async function calculatePlayerRatings(
     shotsAgainst: number;
     goalsAgainst: number;
     shutouts: number;
+    savePctAvailable: boolean;
+    shotsAgainstPerGame: number;
+    shutoutRate: number;
   }> = [];
 
   for (const [playerId, agg] of goalieAggregate.entries()) {
@@ -354,6 +512,9 @@ export async function calculatePlayerRatings(
       shotsAgainst: agg.shotsAgainst,
       goalsAgainst: agg.goalsAgainst,
       shutouts: agg.shutouts,
+      savePctAvailable: agg.shotsAgainst > 0,
+      shotsAgainstPerGame: gamesPlayed > 0 ? agg.shotsAgainst / gamesPlayed : 0,
+      shutoutRate: gamesPlayed > 0 ? agg.shutouts / gamesPlayed : 0,
     });
   }
 
@@ -391,25 +552,83 @@ export async function calculatePlayerRatings(
 
     const divAggregate: PlayerAggregate[] = [];
 
-    // Per-division skater composites — ranges from actual data only, no sentinels.
-    // normalize() already returns 0.5 when max <= min (flat distribution).
+    // Per-division skater composites adapt to the stats this league actually tracks.
     if (divSkaters.length > 0) {
-      const ppgMin  = Math.min(...divSkaters.map((p) => p.pointsPerGame));
-      const ppgMax  = Math.max(...divSkaters.map((p) => p.pointsPerGame));
-      const plusMin = Math.min(...divSkaters.map((p) => p.plusMinusPerGame));
-      const plusMax = Math.max(...divSkaters.map((p) => p.plusMinusPerGame));
-      const pimMin  = Math.min(...divSkaters.map((p) => p.pimPerGame));
-      const pimMax  = Math.max(...divSkaters.map((p) => p.pimPerGame));
+      const skaterMetrics: AdaptiveMetric<(typeof divSkaters)[number]>[] = [
+        {
+          key: 'points_per_game',
+          label: 'Points per game',
+          group: 'offense',
+          weight: 0.32,
+          getValue: (player) => player.pointsPerGame,
+        },
+        {
+          key: 'goals_per_game',
+          label: 'Goals per game',
+          group: 'offense',
+          weight: 0.1,
+          getValue: (player) => player.goalsPerGame,
+          isAvailable: (cohort) => hasPositiveSignal(cohort.map((player) => player.goals)),
+        },
+        {
+          key: 'assists_per_game',
+          label: 'Assists per game',
+          group: 'offense',
+          weight: 0.1,
+          getValue: (player) => player.assistsPerGame,
+          isAvailable: (cohort) => hasPositiveSignal(cohort.map((player) => player.assists)),
+        },
+        {
+          key: 'shot_generation',
+          label: 'Shots per game',
+          group: 'offense',
+          weight: 0.08,
+          getValue: (player) => player.shotsPerGame,
+          isAvailable: (cohort) => hasPositiveSignal(cohort.map((player) => player.shots)),
+        },
+        {
+          key: 'two_way_impact',
+          label: 'Plus/minus per game',
+          group: 'defense',
+          weight: 0.14,
+          getValue: (player) => player.plusMinusPerGame,
+        },
+        {
+          key: 'discipline',
+          label: 'Penalty minutes per game',
+          group: 'defense',
+          weight: 0.08,
+          direction: 'low',
+          getValue: (player) => player.pimPerGame,
+          isAvailable: (cohort) => hasPositiveSignal(cohort.map((player) => player.pimPerGame)),
+        },
+        {
+          key: 'special_teams',
+          label: 'Special-teams points per game',
+          group: 'offense',
+          weight: 0.1,
+          getValue: (player) => player.specialTeamsPointsPerGame,
+          isAvailable: (cohort) => hasPositiveSignal(cohort.map((player) => player.specialTeamsPoints)),
+        },
+        {
+          key: 'clutch_scoring',
+          label: 'Game-winning goals per game',
+          group: 'offense',
+          weight: 0.03,
+          getValue: (player) => player.gameWinningGoalsPerGame,
+          isAvailable: (cohort) => hasPositiveSignal(cohort.map((player) => player.gameWinningGoals)),
+        },
+        {
+          key: 'attendance',
+          label: 'Attendance rate',
+          group: 'availability',
+          weight: 0.05,
+          getValue: (player) => player.attendanceRate,
+        },
+      ];
 
       for (const player of divSkaters) {
-        const ppgNorm  = normalize(player.pointsPerGame,    ppgMin,  ppgMax);
-        const plusNorm = normalize(player.plusMinusPerGame, plusMin, plusMax);
-        const pimNorm  = inverseNormalize(player.pimPerGame, pimMin, pimMax);
-        const attNorm  = clamp(player.attendanceRate, 0, 1);
-
-        const offensive = ppgNorm;
-        const defensive = 0.6 * plusNorm + 0.4 * pimNorm;
-        const composite = (0.5 * ppgNorm) + (0.2 * plusNorm) + (0.15 * pimNorm) + (0.15 * attNorm);
+        const scoring = buildMetricBreakdown(player, divSkaters, skaterMetrics);
 
         divAggregate.push({
           playerId: player.playerId,
@@ -419,9 +638,9 @@ export async function calculatePlayerRatings(
           gamesPlayed: player.gamesPlayed,
           pointsPerGame: round2(player.pointsPerGame),
           attendanceRate: round2(player.attendanceRate),
-          compositeScore: round2(composite * 100),
-          offensiveComponent: round2(offensive * 100),
-          defensiveComponent: round2(defensive * 100),
+          compositeScore: scoring.compositeScore,
+          offensiveComponent: scoring.offensiveComponent,
+          defensiveComponent: scoring.defensiveComponent,
           rawPercentile: 0,
           overallPercentile: 0,
           rating: 'D-',
@@ -432,27 +651,76 @@ export async function calculatePlayerRatings(
             shots: player.shots,
             plusMinusPerGame: round2(player.plusMinusPerGame),
             pimPerGame: round2(player.pimPerGame),
+            goalsPerGame: round2(player.goalsPerGame),
+            assistsPerGame: round2(player.assistsPerGame),
+            shotsPerGame: round2(player.shotsPerGame),
+            specialTeamsPoints: player.specialTeamsPoints,
+            specialTeamsPointsPerGame: round2(player.specialTeamsPointsPerGame),
+            gameWinningGoals: player.gameWinningGoals,
+            gameWinningGoalsPerGame: round2(player.gameWinningGoalsPerGame),
+            ratingConfidence: scoring.confidenceScore,
+            metricCoverage: scoring.metricCoverage,
+            breakdown: scoring.breakdown,
           },
         });
       }
     }
 
-    // Per-division goalie composites — same pattern, no sentinels.
+    // Per-division goalie composites shift weight depending on whether shot detail exists.
     if (divGoalies.length > 0) {
-      const saveMin = Math.min(...divGoalies.map((p) => p.savePct));
-      const saveMax = Math.max(...divGoalies.map((p) => p.savePct));
-      const gaaMin  = Math.min(...divGoalies.map((p) => p.gaa));
-      const gaaMax  = Math.max(...divGoalies.map((p) => p.gaa));
+      const goalieMetrics: AdaptiveMetric<(typeof divGoalies)[number]>[] = [
+        {
+          key: 'save_percentage',
+          label: 'Save percentage',
+          group: 'goalie',
+          weight: 0.3,
+          getValue: (player) => player.savePct,
+          isAvailable: (cohort) => cohort.some((player) => player.savePctAvailable),
+          isAvailableForCandidate: (player) => player.savePctAvailable,
+        },
+        {
+          key: 'goals_against_average',
+          label: 'Goals against per game',
+          group: 'goalie',
+          weight: 0.24,
+          direction: 'low',
+          getValue: (player) => player.gaa,
+        },
+        {
+          key: 'win_rate',
+          label: 'Win rate',
+          group: 'goalie',
+          weight: 0.2,
+          getValue: (player) => player.winPct,
+        },
+        {
+          key: 'shutout_rate',
+          label: 'Shutout rate',
+          group: 'goalie',
+          weight: 0.08,
+          getValue: (player) => player.shutoutRate,
+          isAvailable: (cohort) => hasPositiveSignal(cohort.map((player) => player.shutouts)),
+        },
+        {
+          key: 'workload',
+          label: 'Shots against per game',
+          group: 'goalie',
+          weight: 0.08,
+          getValue: (player) => player.shotsAgainstPerGame,
+          isAvailable: (cohort) => cohort.some((player) => player.shotsAgainst > 0),
+          isAvailableForCandidate: (player) => player.shotsAgainst > 0,
+        },
+        {
+          key: 'attendance',
+          label: 'Attendance rate',
+          group: 'availability',
+          weight: 0.1,
+          getValue: (player) => player.attendanceRate,
+        },
+      ];
 
       for (const player of divGoalies) {
-        const saveNorm = normalize(player.savePct, saveMin, saveMax);
-        const gaaNorm  = inverseNormalize(player.gaa, gaaMin, gaaMax);
-        const winNorm  = clamp(player.winPct, 0, 1);
-        const attNorm  = clamp(player.attendanceRate, 0, 1);
-
-        const offensive = winNorm;
-        const defensive = 0.65 * saveNorm + 0.35 * gaaNorm;
-        const composite = (0.4 * saveNorm) + (0.25 * gaaNorm) + (0.2 * winNorm) + (0.15 * attNorm);
+        const scoring = buildMetricBreakdown(player, divGoalies, goalieMetrics);
 
         divAggregate.push({
           playerId: player.playerId,
@@ -462,9 +730,9 @@ export async function calculatePlayerRatings(
           gamesPlayed: player.gamesPlayed,
           pointsPerGame: 0,
           attendanceRate: round2(player.attendanceRate),
-          compositeScore: round2(composite * 100),
-          offensiveComponent: round2(offensive * 100),
-          defensiveComponent: round2(defensive * 100),
+          compositeScore: scoring.compositeScore,
+          offensiveComponent: round2(clamp(player.winPct, 0, 1) * 100),
+          defensiveComponent: scoring.defensiveComponent,
           rawPercentile: 0,
           overallPercentile: 0,
           rating: 'D-',
@@ -477,6 +745,11 @@ export async function calculatePlayerRatings(
             winPct: round2(player.winPct),
             wins: player.wins,
             shutouts: player.shutouts,
+            shutoutRate: round2(player.shutoutRate),
+            shotsAgainstPerGame: round2(player.shotsAgainstPerGame),
+            ratingConfidence: scoring.confidenceScore,
+            metricCoverage: scoring.metricCoverage,
+            breakdown: scoring.breakdown,
           },
         });
       }

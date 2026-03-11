@@ -7,6 +7,7 @@ import { Calendar, Loader2, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateSeason, deleteSeason } from '@/lib/actions/seasons';
 import type { SeasonStatus } from '@/lib/actions/seasons';
+import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
 
 interface Season {
   id: string;
@@ -140,7 +141,9 @@ export function EditSeasonForm({ leagueId, season }: EditSeasonFormProps) {
                 'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
               )}
             >
-              <option value="draft">Draft</option>
+              <option value="draft">
+                {getSeasonStatusLabel('draft', season.registration_type)}
+              </option>
               <option value="active">Active</option>
               <option value="playoffs">Playoffs</option>
               <option value="completed">Completed</option>

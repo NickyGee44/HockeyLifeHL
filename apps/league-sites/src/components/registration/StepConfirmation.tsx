@@ -2,6 +2,7 @@
 
 import { CheckCircle2, User, Shield, CreditCard, AlertTriangle } from 'lucide-react';
 import type { RegistrationDraftData } from '@/lib/actions/registration';
+import type { RegistrationPaymentMode } from '@/lib/registration/fee-collection-model';
 
 interface StepConfirmationProps {
   formData: RegistrationDraftData;
@@ -9,6 +10,7 @@ interface StepConfirmationProps {
   leagueName: string;
   seasonName: string;
   registrationFee: number;
+  paymentMode: RegistrationPaymentMode;
   teams: { id: string; name: string }[];
   onUpdate: (updates: Partial<RegistrationDraftData>) => void;
   canSubmit?: boolean;
@@ -36,6 +38,7 @@ export function StepConfirmation({
   leagueName,
   seasonName,
   registrationFee,
+  paymentMode,
   teams,
   onUpdate,
   canSubmit = true,
@@ -153,7 +156,9 @@ export function StepConfirmation({
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[var(--color-text-muted)]">Registration Fee</span>
+              <span className="text-sm text-[var(--color-text-muted)]">
+                {paymentMode === 'hidden' ? 'Team Billing' : 'Registration Fee'}
+              </span>
               <span className="font-bold text-[var(--color-text-primary)]">
                 {formatCurrency(registrationFee)}
               </span>
@@ -161,8 +166,12 @@ export function StepConfirmation({
             <p className="mt-1 text-xs text-green-400">
               {formData.payment_status === 'completed'
                 ? 'Payment completed'
-                : formData.payment_status === 'not_required'
-                  ? 'No payment required'
+                : paymentMode === 'hidden'
+                  ? 'Your team will be billed for this registration'
+                  : paymentMode === 'optional'
+                    ? 'You are registering now and can let your team handle payment later'
+                    : formData.payment_status === 'not_required'
+                      ? 'No payment required'
                   : 'Payment pending'}
             </p>
           </div>

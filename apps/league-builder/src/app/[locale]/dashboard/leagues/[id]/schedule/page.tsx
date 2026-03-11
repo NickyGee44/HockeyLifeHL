@@ -13,13 +13,16 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getSeasonParticipationTeamIds } from '@/lib/seasons/team-participation';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
   searchParams: Promise<{ season?: string; tool?: string }>;
 };
 
-async function getSeasonScheduleData(supabase: any, seasonId: string) {
+async function getSeasonScheduleData(supabase: any, serviceClient: any, seasonId: string) {
   const { data: season, error } = await supabase
     .from('seasons')
     .select('*')
@@ -28,13 +31,11 @@ async function getSeasonScheduleData(supabase: any, seasonId: string) {
 
   if (error || !season) return null;
 
-  // Only include teams with active rosters in this specific season
-  const { data: seasonRosters } = await supabase
-    .from('team_rosters')
-    .select('team_id')
-    .eq('season_id', seasonId)
-    .eq('status', 'active');
-  const seasonTeamIds = [...new Set((seasonRosters ?? []).map((r: any) => r.team_id))];
+  const seasonTeamIds = await getSeasonParticipationTeamIds(
+    serviceClient,
+    season.league_id,
+    seasonId
+  );
 
   const { data: teams } = seasonTeamIds.length > 0
     ? await supabase
@@ -82,6 +83,7 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
   setRequestLocale(locale);
 
   const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
+  const serviceClient = createServiceRoleClient();
 
   // Get league details with seasons
   const { data: league, error: leagueError } = await supabase
@@ -124,11 +126,11 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
     .order('scheduled_at')
     .limit(10);
 
-  const activeSeason = league.seasons?.find((s: any) => s.status === 'active');
+  const activeSeason = pickOperationalSeason((league.seasons as any[]) ?? []);
 
   // If a specific season is selected via ?season= param, show the season schedule management view
   if (seasonParam) {
-    const seasonData = await getSeasonScheduleData(supabase, seasonParam);
+    const seasonData = await getSeasonScheduleData(supabase, serviceClient, seasonParam);
     if (seasonData) {
       const FALLBACK_DATE = '1970-01-01T00:00:00.000Z';
       return (
@@ -316,7 +318,7 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
                   className={cn(
                     'flex items-center justify-between p-5 rounded-xl transition-all',
                     'bg-white/[0.04] border border-white/10 hover:border-rink-500/50',
-                    season.status === 'active' && 'border-rink-500/30 bg-rink-500/5'
+                    activeSeason?.id === season.id && 'border-rink-500/30 bg-rink-500/5'
                   )}
                 >
                   <div>
@@ -332,6 +334,8 @@ export default async function LeagueSchedulePage({ params, searchParams }: Props
                         'px-2.5 py-1 text-xs font-semibold rounded-full border',
                         season.status === 'active'
                           ? 'bg-green-500/10 text-green-500 border-green-500/30'
+                          : season.status === 'playoffs'
+                            ? 'bg-purple-500/10 text-purple-500 border-purple-500/30'
                           : 'bg-neutral-800 text-neutral-400 border-neutral-700'
                       )}
                     >

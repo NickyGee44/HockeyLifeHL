@@ -8,11 +8,12 @@ import {
 import { cn } from '@hockey-life/ui';
 import type { VenueFull, VenueCsvRow, AvailabilityCsvRow, BlackoutCsvRow } from '@/lib/actions/venues';
 import { deleteVenue, importVenuesFromCsv, importAvailabilityFromCsv, importBlackoutsFromCsv } from '@/lib/actions/venues';
-import { deleteVenueAvailability, deleteVenueBlackoutDate } from '@/lib/schedule/actions';
+import { addStandardHolidayBlackouts, deleteVenueAvailability, deleteVenueBlackoutDate, saveVenueAvailability } from '@/lib/schedule/actions';
 import type { VenueAvailability, VenueBlackoutDate } from '@/lib/schedule/types';
 import { VenueForm } from './VenueForm';
 import { AvailabilityForm } from './AvailabilityForm';
 import { BlackoutForm } from './BlackoutForm';
+import { WeeklyAvailabilityMatrix, type WeeklyAvailabilityMatrixSlot } from './WeeklyAvailabilityMatrix';
 
 // ============================================================================
 // CSV download helper
@@ -84,6 +85,11 @@ interface VenuesSettingsClientProps {
   initialVenues: VenueFull[];
   initialAvailability: VenueAvailability[];
   initialBlackouts: VenueBlackoutDate[];
+  holidayImportWindow: {
+    startDate: string;
+    endDate: string;
+    label: string;
+  };
 }
 
 type Tab = 'venues' | 'schedule' | 'blackouts';
@@ -93,6 +99,7 @@ export function VenuesSettingsClient({
   initialVenues,
   initialAvailability,
   initialBlackouts,
+  holidayImportWindow,
 }: VenuesSettingsClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>('venues');
   const [venues, setVenues] = useState(initialVenues);
@@ -119,6 +126,7 @@ export function VenuesSettingsClient({
   const [blackoutVenueFilter, setBlackoutVenueFilter] = useState<string>('all');
   const blackoutFileRef = useRef<HTMLInputElement>(null);
   const [blackoutImporting, setBlackoutImporting] = useState(false);
+  const [holidayImporting, setHolidayImporting] = useState(false);
   const [blackoutImportResult, setBlackoutImportResult] = useState<ImportResult | null>(null);
 
   // ============================================================
@@ -187,6 +195,82 @@ export function VenuesSettingsClient({
   const handleAvailAdded = (slot: VenueAvailability) => {
     setAvailability((prev) => [...prev, slot]);
     setShowAvailForm(false);
+  };
+
+  const handleMatrixAvailAdd = async (slot: {
+    venueId: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    maxGames: number | null;
+  }) => {
+    const exists = availability.some((entry) =>
+      entry.venueId === slot.venueId &&
+      entry.dayOfWeek === slot.dayOfWeek &&
+      entry.startTime === slot.startTime &&
+      entry.endTime === slot.endTime
+    );
+
+    if (exists) {
+      return;
+    }
+
+    const result = await saveVenueAvailability(leagueId, slot.venueId, {
+      leagueId,
+      venueId: slot.venueId,
+      dayOfWeek: slot.dayOfWeek,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      isAvailable: true,
+      maxGames: slot.maxGames,
+      seasonId: null,
+      notes: null,
+    } as Omit<VenueAvailability, 'id'>);
+
+    if (result.success && result.availability) {
+      setAvailability((previous) => [...previous, result.availability!]);
+    }
+  };
+
+  const handleCopySlotToOtherVenues = async (slot: WeeklyAvailabilityMatrixSlot) => {
+    const copied: VenueAvailability[] = [];
+
+    for (const venue of venues) {
+      if (venue.id === slot.venueId) {
+        continue;
+      }
+
+      const exists = availability.some((entry) =>
+        entry.venueId === venue.id &&
+        entry.dayOfWeek === slot.dayOfWeek &&
+        entry.startTime === slot.startTime &&
+        entry.endTime === slot.endTime
+      );
+
+      if (exists) {
+        continue;
+      }
+
+      const result = await saveVenueAvailability(leagueId, venue.id, {
+        leagueId,
+        venueId: venue.id,
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isAvailable: true,
+        maxGames: slot.maxGames ?? null,
+        seasonId: null,
+        notes: null,
+      } as Omit<VenueAvailability, 'id'>);
+
+      if (result.success && result.availability) {
+        copied.push(result.availability);
+      }
+    }
+
+    if (copied.length > 0) {
+      setAvailability((previous) => [...previous, ...copied]);
+    }
   };
 
   const handleDeleteAvail = async (id: string) => {
@@ -298,6 +382,39 @@ export function VenuesSettingsClient({
     setBlackoutImportResult({ ...result, errors: [...errors, ...result.errors] });
     setBlackoutImporting(false);
     if (blackoutFileRef.current) blackoutFileRef.current.value = '';
+  };
+
+  const handleAddStandardHolidays = async () => {
+    setHolidayImporting(true);
+    setBlackoutImportResult(null);
+
+    const result = await addStandardHolidayBlackouts(leagueId, {
+      startDate: holidayImportWindow.startDate,
+      endDate: holidayImportWindow.endDate,
+    });
+
+    if (!result.success) {
+      setBlackoutImportResult({
+        imported: 0,
+        skipped: 0,
+        errors: [result.error ?? 'Failed to add standard holidays.'],
+      });
+      setHolidayImporting(false);
+      return;
+    }
+
+    if (result.blackouts.length > 0) {
+      setBlackouts((previous) => [...previous, ...result.blackouts].sort(
+        (a, z) => new Date(a.blackoutDate).getTime() - new Date(z.blackoutDate).getTime()
+      ));
+    }
+
+    setBlackoutImportResult({
+      imported: result.imported,
+      skipped: result.skipped,
+      errors: result.errors,
+    });
+    setHolidayImporting(false);
   };
 
   // ============================================================
@@ -559,6 +676,26 @@ export function VenuesSettingsClient({
                 />
               )}
 
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white">Weekly venue matrix</p>
+                    <p className="text-xs text-neutral-500">
+                      Add a slot directly inside any venue/day cell, then use copy to push that same day and time to the other venues.
+                    </p>
+                  </div>
+                </div>
+                <WeeklyAvailabilityMatrix
+                  venues={scheduleVenueFilter === 'all'
+                    ? venues
+                    : venues.filter((venue) => venue.id === scheduleVenueFilter)}
+                  slots={filteredAvailability}
+                  onAddSlot={handleMatrixAvailAdd}
+                  onDeleteSlot={handleDeleteAvail}
+                  onCopySlotToOtherVenues={handleCopySlotToOtherVenues}
+                />
+              </div>
+
               {/* Slots grouped by day */}
               {filteredAvailability.length === 0 ? (
                 <EmptyState
@@ -635,6 +772,17 @@ export function VenuesSettingsClient({
                 </button>
 
                 <button
+                  onClick={handleAddStandardHolidays}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 text-neutral-300 hover:text-white text-sm transition-colors',
+                    holidayImporting && 'opacity-50 pointer-events-none'
+                  )}
+                >
+                  {holidayImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                  Add Standard Holidays
+                </button>
+
+                <button
                   onClick={() => downloadCsv('blackout-dates-template.csv', BLACKOUT_TEMPLATE)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 text-neutral-400 hover:text-white text-sm transition-colors"
                 >
@@ -675,6 +823,10 @@ export function VenuesSettingsClient({
                   </div>
                 </div>
               </div>
+
+              <p className="text-xs text-neutral-500">
+                Automatically adds upcoming standard holiday blackouts for {holidayImportWindow.label} across all league venues.
+              </p>
 
               {/* Import result */}
               {blackoutImportResult && (

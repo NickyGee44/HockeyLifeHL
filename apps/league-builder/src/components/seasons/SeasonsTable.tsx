@@ -55,6 +55,7 @@ import {
   deleteSeason,
   cloneSeason,
 } from '@/lib/actions/seasons';
+import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
 
 const STATUS_TABS: (SeasonStatus | 'all')[] = ['all', 'draft', 'active', 'playoffs', 'completed', 'archived'];
 
@@ -154,7 +155,7 @@ export function SeasonsTable({ seasons, leagueId, locale }: SeasonsTableProps) {
                 : 'bg-neutral-800/50 text-neutral-400 hover:text-white hover:bg-neutral-800 border border-transparent'
             )}
           >
-            {t(`filter.${tab}`)}
+            {tab === 'draft' ? 'Pre-Season' : t(`filter.${tab}`)}
             {tab !== 'all' && (
               <span className="ml-2 text-xs opacity-70">
                 {seasons.filter(s => (s.status || 'draft') === tab).length}
@@ -211,7 +212,7 @@ export function SeasonsTable({ seasons, leagueId, locale }: SeasonsTableProps) {
                         variant="outline"
                         className={cn('capitalize', STATUS_COLORS[status])}
                       >
-                        {t(`status.${status}`)}
+                        {getSeasonStatusLabel(status, season.registration_type)}
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-neutral-400 text-sm">

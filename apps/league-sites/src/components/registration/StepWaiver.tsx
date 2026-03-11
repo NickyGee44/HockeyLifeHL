@@ -2,14 +2,25 @@
 
 import { FileText, ChevronDown } from 'lucide-react';
 import type { RegistrationDraftData } from '@/lib/actions/registration';
+import { WaiverDocumentPanel } from './WaiverDocumentPanel';
 
 interface StepWaiverProps {
   formData: RegistrationDraftData;
   waiverContent: string;
+  waiverDocumentUrl?: string | null;
+  waiverDocumentName?: string | null;
+  waiverDocumentMimeType?: string | null;
   onUpdate: (updates: Partial<RegistrationDraftData>) => void;
 }
 
-export function StepWaiver({ formData, waiverContent, onUpdate }: StepWaiverProps) {
+export function StepWaiver({
+  formData,
+  waiverContent,
+  waiverDocumentUrl,
+  waiverDocumentName,
+  waiverDocumentMimeType,
+  onUpdate,
+}: StepWaiverProps) {
   const handleAcceptChange = (checked: boolean) => {
     onUpdate({
       waiver_accepted: checked,
@@ -30,6 +41,12 @@ export function StepWaiver({ formData, waiverContent, onUpdate }: StepWaiverProp
           Please read the full waiver below, then scroll to the bottom to accept.
         </p>
       </div>
+
+      <WaiverDocumentPanel
+        documentUrl={waiverDocumentUrl}
+        documentName={waiverDocumentName}
+        documentMimeType={waiverDocumentMimeType}
+      />
 
       {/* Waiver Content */}
       <div

@@ -1,3 +1,15 @@
+function normalizePreviewHost(hostname: string): string {
+  if (hostname.startsWith('www.')) {
+    return hostname.slice(4);
+  }
+
+  if (hostname.startsWith('app.')) {
+    return hostname.slice(4);
+  }
+
+  return hostname;
+}
+
 export function buildWebsiteEditorPreviewUrl(baseUrl: string, slug: string): string {
   try {
     const url = new URL(baseUrl);
@@ -7,7 +19,7 @@ export function buildWebsiteEditorPreviewUrl(baseUrl: string, slug: string): str
       return `${baseUrl.replace(/\/+$/, '')}/${slug}?preview=true`;
     }
 
-    url.hostname = `${slug}.${url.hostname}`;
+    url.hostname = `${slug}.${normalizePreviewHost(url.hostname)}`;
     url.pathname = '/';
     url.search = 'preview=true';
     return url.toString();

@@ -16,7 +16,6 @@ type EditorAction =
   | { type: 'SET_VIEWPORT'; size: ViewportSize }
   | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'SET_SAVING'; value: boolean }
-  | { type: 'SET_PREVIEW_READY'; value: boolean }
   | { type: 'MARK_CLEAN' };
 
 // ---------------------------------------------------------------------------
@@ -63,7 +62,6 @@ function leagueToState(league: LeagueEditorData | undefined, leagues: LeagueEdit
     viewportSize: 'desktop',
     isSidebarCollapsed: false,
     isSaving: false,
-    isPreviewReady: false,
   };
 }
 
@@ -92,8 +90,6 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, isSidebarCollapsed: !state.isSidebarCollapsed };
     case 'SET_SAVING':
       return { ...state, isSaving: action.value };
-    case 'SET_PREVIEW_READY':
-      return { ...state, isPreviewReady: action.value };
     case 'MARK_CLEAN':
       return state; // snapshot updated externally
     default:
@@ -115,11 +111,9 @@ interface EditorContextValue {
   setViewportSize: (size: ViewportSize) => void;
   toggleSidebar: () => void;
   setSaving: (v: boolean) => void;
-  setPreviewReady: (v: boolean) => void;
   markClean: () => void;
   organizationId: string;
   previewBaseUrl: string;
-  iframeRef: React.RefObject<HTMLIFrameElement | null>;
   previewUrl: string;
 }
 
@@ -148,7 +142,6 @@ export function EditorProvider({ children, organizationId, leagues, previewBaseU
   const initial = leagueToState(initialLeague, leagues);
   const [state, dispatch] = useReducer(editorReducer, initial);
   const snapshot = useRef<EditorState | null>(initial);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const hasUnsavedChanges = useCallback(() => {
     if (!snapshot.current) return false;
@@ -211,17 +204,13 @@ export function EditorProvider({ children, organizationId, leagues, previewBaseU
     dispatch({ type: 'SET_SAVING', value: v });
   }, []);
 
-  const setPreviewReady = useCallback((v: boolean) => {
-    dispatch({ type: 'SET_PREVIEW_READY', value: v });
-  }, []);
-
   const markClean = useCallback(() => {
     snapshot.current = { ...state };
   }, [state]);
 
   const selectedLeague = state.leagues.find((l) => l.id === state.selectedLeagueId);
   const previewUrl = selectedLeague
-    ? buildWebsiteEditorPreviewUrl(previewBaseUrl, selectedLeague.slug)
+    ? buildWebsiteEditorPreviewUrl(previewBaseUrl, selectedLeague.subdomain || selectedLeague.slug)
     : '';
 
   return (
@@ -236,11 +225,9 @@ export function EditorProvider({ children, organizationId, leagues, previewBaseU
         setViewportSize,
         toggleSidebar,
         setSaving,
-        setPreviewReady,
         markClean,
         organizationId,
         previewBaseUrl,
-        iframeRef,
         previewUrl,
       }}
     >

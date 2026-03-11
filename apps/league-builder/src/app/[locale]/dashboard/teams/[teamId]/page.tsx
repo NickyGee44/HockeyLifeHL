@@ -17,7 +17,7 @@ import { setRequestLocale } from 'next-intl/server';
 
 type Props = {
   params: Promise<{ locale: string; teamId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; leagueId?: string }>;
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; teamId: string }> }) {
@@ -52,6 +52,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
   const { data: activeSeason } = await getCurrentSeason(team.league_id);
   const resolvedSearchParams = await searchParams;
   const currentTab = resolvedSearchParams.tab || 'roster';
+  const sourceLeagueId = resolvedSearchParams.leagueId || team.league_id;
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -59,11 +60,11 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href="/dashboard/teams"
+            href={`/dashboard/leagues/${sourceLeagueId}/teams-divisions`}
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Teams
+            Back to Teams & Divisions
           </Link>
 
           {/* Team Header Card */}

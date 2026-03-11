@@ -30,7 +30,7 @@ export default async function WaiverSettingsPage({ params }: Props) {
   // Fetch active waiver template
   const { data: waiver } = await supabase
     .from('league_waiver_templates')
-    .select('id, title, content, version, content_hash, updated_at')
+    .select('id, title, content, version, content_hash, document_url, document_name, document_mime_type, updated_at')
     .eq('league_id', leagueId)
     .eq('is_active', true)
     .single();
@@ -64,6 +64,9 @@ export default async function WaiverSettingsPage({ params }: Props) {
                     title: waiver.title,
                     content: waiver.content,
                     version: waiver.version,
+                    documentUrl: waiver.document_url,
+                    documentName: waiver.document_name,
+                    documentMimeType: waiver.document_mime_type,
                     updatedAt: waiver.updated_at,
                   }
                 : null

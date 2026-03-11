@@ -14,12 +14,19 @@ describe('league announcement template', () => {
       senderName: 'Commissioner',
       dashboardUrl: 'https://example.com/dashboard',
       leagueName: 'Metro League',
+      leagueLogo: 'https://example.com/logo.png',
+      primaryColor: '#123456',
+      secondaryColor: '#89ABCD',
+      accentColor: '#FEDCBA',
     });
 
     expect(html).toContain('Schedule Update');
     expect(html).toContain('Commissioner');
     expect(html).toContain('<strong>Important:</strong>');
     expect(html).toContain('Please arrive early.');
+    expect(html).toContain('https://example.com/logo.png');
+    expect(html).toContain('#123456');
+    expect(html).toContain('#FEDCBA');
   });
 
   it('sanitizes dangerous inline content', () => {
@@ -32,4 +39,3 @@ describe('league announcement template', () => {
     expect(sanitized).not.toContain('onclick=');
   });
 });
-

@@ -47,6 +47,7 @@ import type { DashboardData } from '@/lib/actions/dashboard';
 interface SecondaryPanelProps {
   dashboardData: DashboardData | null;
   isSubscribed: boolean;
+  ownerViewLeagueId?: string | null;
 }
 
 interface NavItem {
@@ -63,7 +64,11 @@ function extractLeagueIdFromPath(pathname: string): string | null {
   return match ? match[1] : null;
 }
 
-export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelProps) {
+export function SecondaryPanel({
+  dashboardData,
+  isSubscribed,
+  ownerViewLeagueId = null,
+}: SecondaryPanelProps) {
   const t = useTranslations('navigation');
   const locale = useLocale();
   const pathname = usePathname();
@@ -235,7 +240,11 @@ export function SecondaryPanel({ dashboardData, isSubscribed }: SecondaryPanelPr
       {/* League scope selector — also show for platform admins who have admin_leagues but no org */}
       {((dashboardData?.organizations?.length ?? 0) > 0 || (dashboardData?.admin_leagues?.length ?? 0) > 0) && (
         <div className="border-b border-white/[0.06]">
-          <LeagueScopeSelector dashboardData={dashboardData} collapsed={false} />
+          <LeagueScopeSelector
+            dashboardData={dashboardData}
+            collapsed={false}
+            ownerViewLeagueId={ownerViewLeagueId}
+          />
         </div>
       )}
 
