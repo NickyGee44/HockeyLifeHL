@@ -18,9 +18,13 @@ COMMENT ON COLUMN league_billing_settings.stripe_billing_customer_id IS
   'Stripe Customer ID on the BLH platform account used for billing floors and season settlement invoices.';
 
 -- 2. Replace get_league_billing_settings to include the new columns.
+--    PostgreSQL does not allow CREATE OR REPLACE to change the RETURNS TABLE
+--    row shape, so the old function must be dropped first.
+DROP FUNCTION IF EXISTS public.get_league_billing_settings(uuid);
+
 --    This is a security-definer function (reads billing settings regardless of RLS)
 --    so it can only be called server-side with the service role key.
-CREATE OR REPLACE FUNCTION get_league_billing_settings(p_league_id uuid)
+CREATE FUNCTION public.get_league_billing_settings(p_league_id uuid)
 RETURNS TABLE (
   league_id                    uuid,
   platform_fee_bps             integer,

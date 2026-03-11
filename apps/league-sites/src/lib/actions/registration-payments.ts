@@ -17,6 +17,10 @@
 import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 import crypto from 'crypto';
+import {
+  getRegistrationPaymentMode,
+  getSeasonPaymentSettings,
+} from '@/lib/registration/fee-collection-model';
 
 // ============================================================================
 // Types
@@ -169,8 +173,24 @@ export async function createRegistrationCheckout(
     if (registration.payment_status === 'completed') {
       return { success: false, error: 'This registration has already been paid in full.' };
     }
+    const paymentSettings = await getSeasonPaymentSettings(
+      createServiceRoleClient() as any,
+      registration.league_id,
+      registration.season_id
+    );
+    const paymentMode = getRegistrationPaymentMode(
+      paymentSettings.feeCollectionModel,
+      paymentSettings.feeAmountCents
+    );
 
-    if (registration.payment_status === 'not_required') {
+    if (paymentMode === 'hidden') {
+      return {
+        success: false,
+        error: 'This season uses team billing. Individual player payment is not required.',
+      };
+    }
+
+    if (registration.payment_status === 'not_required' && paymentMode !== 'optional') {
       return { success: false, error: 'This registration does not require payment.' };
     }
 
@@ -185,7 +205,8 @@ export async function createRegistrationCheckout(
     }
 
     // Calculate amount owed
-    const feeAmount = registration.fee_amount_cents || 0;
+    const feeAmount =
+      registration.fee_amount_cents || paymentSettings.feeAmountCents || 0;
     const amountPaid = registration.amount_paid_cents || 0;
     const amountOwed = feeAmount - amountPaid;
 
@@ -250,7 +271,7 @@ export async function createRegistrationCheckout(
         line_items: [
           {
             price_data: {
-              currency: registration.currency || 'usd',
+              currency: registration.currency || paymentSettings.currency || 'cad',
               product_data: {
                 name: `${registration.registration_type} Registration`,
                 description: `${league.name} - Registration Fee`,
@@ -372,8 +393,24 @@ export async function createEmbeddedCheckout(
     if (registration.payment_status === 'completed') {
       return { success: false, error: 'This registration has already been paid in full.' };
     }
+    const paymentSettings = await getSeasonPaymentSettings(
+      createServiceRoleClient() as any,
+      registration.league_id,
+      registration.season_id
+    );
+    const paymentMode = getRegistrationPaymentMode(
+      paymentSettings.feeCollectionModel,
+      paymentSettings.feeAmountCents
+    );
 
-    if (registration.payment_status === 'not_required') {
+    if (paymentMode === 'hidden') {
+      return {
+        success: false,
+        error: 'This season uses team billing. Individual player payment is not required.',
+      };
+    }
+
+    if (registration.payment_status === 'not_required' && paymentMode !== 'optional') {
       return { success: false, error: 'This registration does not require payment.' };
     }
 
@@ -388,7 +425,8 @@ export async function createEmbeddedCheckout(
     }
 
     // Calculate amount owed
-    const feeAmount = registration.fee_amount_cents || 0;
+    const feeAmount =
+      registration.fee_amount_cents || paymentSettings.feeAmountCents || 0;
     const amountPaid = registration.amount_paid_cents || 0;
     const amountOwed = feeAmount - amountPaid;
 
@@ -452,7 +490,7 @@ export async function createEmbeddedCheckout(
         line_items: [
           {
             price_data: {
-              currency: registration.currency || 'cad',
+              currency: registration.currency || paymentSettings.currency || 'cad',
               product_data: {
                 name: `${registration.registration_type} Registration`,
                 description: `${league.name} - Registration Fee`,

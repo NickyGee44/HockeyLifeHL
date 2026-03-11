@@ -2,19 +2,30 @@
 
 import { useState, useTransition } from 'react';
 import { cn } from '@hockey-life/ui';
-import { Trophy, Loader2, ChevronRight, CalendarPlus, X, Check } from 'lucide-react';
 import {
-  generatePlayoffBracket,
+  Trophy,
+  Loader2,
+  ChevronRight,
+  CalendarPlus,
+  Clock3,
+  MapPin,
+  X,
+  Check,
+} from 'lucide-react';
+import {
   recordSeriesWin,
   schedulePlayoffGame,
   type PlayoffBracket,
   type PlayoffSeries,
+  type PlayoffVenueOption,
 } from '@/lib/actions/playoff-bracket';
+import { PlayoffGenerationDialog } from './PlayoffGenerationDialog';
 
 interface PlayoffBracketClientProps {
   leagueId: string;
   seasonId: string;
   initialBracket: PlayoffBracket | null;
+  venues: PlayoffVenueOption[];
   canEdit: boolean;
 }
 
@@ -91,16 +102,12 @@ function groupBracketSections(series: PlayoffSeries[]): BracketSection[] {
 
 function SeriesCard({
   series,
-  leagueId,
-  seasonId,
   canEdit,
   onRecordWin,
   onScheduleGame,
   isPending,
 }: {
   series: PlayoffSeries;
-  leagueId: string;
-  seasonId: string;
   canEdit: boolean;
   onRecordWin: (seriesId: string, side: 'high' | 'low') => void;
   onScheduleGame: (seriesId: string, scheduledAt: string, location: string) => void;
@@ -109,7 +116,7 @@ function SeriesCard({
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
-  const [scheduleLocation, setScheduleLocation] = useState('');
+  const [scheduleLocation, setScheduleLocation] = useState(series.next_game_location ?? '');
   const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   const isCompleted = series.status === 'completed';
@@ -124,189 +131,197 @@ function SeriesCard({
       setScheduleError('Date and time are required');
       return;
     }
+
     setScheduleError(null);
     const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
     onScheduleGame(series.id, scheduledAt, scheduleLocation);
     setShowScheduleForm(false);
     setScheduleDate('');
     setScheduleTime('');
-    setScheduleLocation('');
   };
 
   return (
     <div
       className={cn(
-        'rounded-xl border p-3 min-w-[200px] transition-all',
+        'min-w-[220px] rounded-xl border p-3 transition-all',
         isCompleted
           ? 'border-white/20 bg-neutral-800/60'
           : hasTeams
             ? 'border-rink-500/40 bg-neutral-800/80'
-            : 'border-white/10 bg-neutral-900/60'
+            : 'border-white/10 bg-neutral-900/60',
       )}
     >
-      {/* High Seed Row */}
       <div
         className={cn(
-          'flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg mb-1',
-          highWon ? 'bg-rink-500/20' : 'bg-neutral-900/50'
+          'mb-1 flex items-center justify-between gap-2 rounded-lg px-2 py-1.5',
+          highWon ? 'bg-rink-500/20' : 'bg-neutral-900/50',
         )}
       >
         <span
           className={cn(
-            'text-sm font-medium truncate flex-1',
-            highWon ? 'text-rink-400 font-semibold' : 'text-neutral-300',
-            !series.high_seed_name && 'text-neutral-600 italic'
+            'flex-1 truncate text-sm font-medium',
+            highWon ? 'font-semibold text-rink-400' : 'text-neutral-300',
+            !series.high_seed_name && 'italic text-neutral-600',
           )}
         >
           {series.high_seed_name ?? 'TBD'}
         </span>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span
-            className={cn(
-              'text-sm font-bold w-5 text-center',
-              highWon ? 'text-rink-400' : 'text-neutral-400'
-            )}
-          >
+        <div className="flex items-center gap-1.5">
+          <span className={cn('w-5 text-center text-sm font-bold', highWon ? 'text-rink-400' : 'text-neutral-400')}>
             {series.high_seed_wins}
           </span>
-          {highWon && <Trophy className="w-3.5 h-3.5 text-amber-400" />}
-          {canEdit && isActive && series.high_seed_id && (
+          {highWon && <Trophy className="h-3.5 w-3.5 text-amber-400" />}
+          {canEdit && isActive && series.high_seed_id ? (
             <button
               onClick={() => onRecordWin(series.id, 'high')}
               disabled={isPending}
               className={cn(
-                'ml-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors',
+                'ml-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors',
                 'bg-rink-500/20 text-rink-400 hover:bg-rink-500/40 hover:text-rink-300',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
+                'disabled:cursor-not-allowed disabled:opacity-50',
               )}
               title="Record win for top seed"
             >
               +W
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="h-px bg-white/10 mx-2 my-1" />
+      <div className="mx-2 my-1 h-px bg-white/10" />
 
-      {/* Low Seed Row */}
       <div
         className={cn(
-          'flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg',
-          lowWon ? 'bg-rink-500/20' : 'bg-neutral-900/50'
+          'flex items-center justify-between gap-2 rounded-lg px-2 py-1.5',
+          lowWon ? 'bg-rink-500/20' : 'bg-neutral-900/50',
         )}
       >
         <span
           className={cn(
-            'text-sm font-medium truncate flex-1',
-            lowWon ? 'text-rink-400 font-semibold' : 'text-neutral-300',
-            !series.low_seed_name && 'text-neutral-600 italic'
+            'flex-1 truncate text-sm font-medium',
+            lowWon ? 'font-semibold text-rink-400' : 'text-neutral-300',
+            !series.low_seed_name && 'italic text-neutral-600',
           )}
         >
           {series.low_seed_name ?? 'TBD'}
         </span>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span
-            className={cn(
-              'text-sm font-bold w-5 text-center',
-              lowWon ? 'text-rink-400' : 'text-neutral-400'
-            )}
-          >
+        <div className="flex items-center gap-1.5">
+          <span className={cn('w-5 text-center text-sm font-bold', lowWon ? 'text-rink-400' : 'text-neutral-400')}>
             {series.low_seed_wins}
           </span>
-          {lowWon && <Trophy className="w-3.5 h-3.5 text-amber-400" />}
-          {canEdit && isActive && series.low_seed_id && (
+          {lowWon && <Trophy className="h-3.5 w-3.5 text-amber-400" />}
+          {canEdit && isActive && series.low_seed_id ? (
             <button
               onClick={() => onRecordWin(series.id, 'low')}
               disabled={isPending}
               className={cn(
-                'ml-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors',
+                'ml-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors',
                 'bg-rink-500/20 text-rink-400 hover:bg-rink-500/40 hover:text-rink-300',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
+                'disabled:cursor-not-allowed disabled:opacity-50',
               )}
               title="Record win for bottom seed"
             >
               +W
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Status indicator */}
-      {isCompleted && series.winner_name && (
-        <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-1.5">
-          <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span className="text-xs text-amber-400 font-medium truncate">
+      {isCompleted && series.winner_name ? (
+        <div className="mt-2 flex items-center gap-1.5 border-t border-white/10 pt-2">
+          <Trophy className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <span className="truncate text-xs font-medium text-amber-400">
             {series.winner_name} advances
           </span>
         </div>
-      )}
+      ) : null}
 
-      {/* Schedule Game button — only for active series with both teams */}
-      {canEdit && isActive && hasTeams && !showScheduleForm && (
-        <div className="mt-2 pt-2 border-t border-white/10">
+      {series.next_game_at ? (
+        <div className="mt-2 rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+            <Clock3 className="h-3 w-3" />
+            Next Game
+          </div>
+          <p className="mt-1 text-xs font-medium text-neutral-200">
+            {new Date(series.next_game_at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })}
+          </p>
+          {series.next_game_location ? (
+            <p className="mt-1 flex items-center gap-1 text-[11px] text-neutral-500">
+              <MapPin className="h-3 w-3" />
+              {series.next_game_location}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {canEdit && isActive && hasTeams && !showScheduleForm ? (
+        <div className="mt-2 border-t border-white/10 pt-2">
           <button
             onClick={() => setShowScheduleForm(true)}
             className={cn(
-              'w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              'bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200'
+              'flex w-full items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors',
+              'bg-neutral-700/50 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200',
             )}
           >
-            <CalendarPlus className="w-3 h-3" />
-            Schedule Game
+            <CalendarPlus className="h-3 w-3" />
+            {series.next_game_at ? 'Add Another Game' : 'Schedule Game'}
           </button>
         </div>
-      )}
+      ) : null}
 
-      {/* Inline schedule form */}
-      {showScheduleForm && (
-        <div className="mt-2 pt-2 border-t border-white/10 space-y-2">
+      {showScheduleForm ? (
+        <div className="mt-2 space-y-2 border-t border-white/10 pt-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-400">Schedule Game</span>
             <button
-              onClick={() => { setShowScheduleForm(false); setScheduleError(null); }}
+              onClick={() => {
+                setShowScheduleForm(false);
+                setScheduleError(null);
+              }}
               className="text-neutral-500 hover:text-neutral-300"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          {scheduleError && (
-            <p className="text-xs text-red-400">{scheduleError}</p>
-          )}
+          {scheduleError ? <p className="text-xs text-red-400">{scheduleError}</p> : null}
           <input
             type="date"
             value={scheduleDate}
-            onChange={(e) => setScheduleDate(e.target.value)}
-            className="w-full px-2 py-1.5 rounded-lg bg-neutral-800 border border-white/10 text-white text-xs focus:outline-none focus:border-rink-500/50"
+            onChange={(event) => setScheduleDate(event.target.value)}
+            className="w-full rounded-lg border border-white/10 bg-neutral-800 px-2 py-1.5 text-xs text-white focus:border-rink-500/50 focus:outline-none"
           />
           <input
             type="time"
             value={scheduleTime}
-            onChange={(e) => setScheduleTime(e.target.value)}
-            className="w-full px-2 py-1.5 rounded-lg bg-neutral-800 border border-white/10 text-white text-xs focus:outline-none focus:border-rink-500/50"
+            onChange={(event) => setScheduleTime(event.target.value)}
+            className="w-full rounded-lg border border-white/10 bg-neutral-800 px-2 py-1.5 text-xs text-white focus:border-rink-500/50 focus:outline-none"
           />
           <input
             type="text"
             value={scheduleLocation}
-            onChange={(e) => setScheduleLocation(e.target.value)}
-            placeholder="Venue (optional)"
-            className="w-full px-2 py-1.5 rounded-lg bg-neutral-800 border border-white/10 text-white text-xs placeholder:text-neutral-600 focus:outline-none focus:border-rink-500/50"
+            onChange={(event) => setScheduleLocation(event.target.value)}
+            placeholder="Venue"
+            className="w-full rounded-lg border border-white/10 bg-neutral-800 px-2 py-1.5 text-xs text-white placeholder:text-neutral-600 focus:border-rink-500/50 focus:outline-none"
           />
           <button
             onClick={handleScheduleSubmit}
             disabled={isPending}
             className={cn(
-              'w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+              'flex w-full items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors',
               'bg-rink-500/20 text-rink-400 hover:bg-rink-500/30 hover:text-rink-300',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
+              'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+            {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
             Confirm
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -315,23 +330,13 @@ export function PlayoffBracketClient({
   leagueId,
   seasonId,
   initialBracket,
+  venues,
   canEdit,
 }: PlayoffBracketClientProps) {
   const [bracket, setBracket] = useState<PlayoffBracket | null>(initialBracket);
   const [error, setError] = useState<string | null>(null);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const handleGenerate = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await generatePlayoffBracket(leagueId, seasonId);
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
-      window.location.reload();
-    });
-  };
 
   const handleRecordWin = (seriesId: string, side: 'high' | 'low') => {
     setError(null);
@@ -351,232 +356,230 @@ export function PlayoffBracketClient({
       const result = await schedulePlayoffGame(leagueId, seasonId, seriesId, scheduledAt, location);
       if (!result.success) {
         setError(result.error);
+        return;
       }
-      // Success — no reload needed, the game is now in the schedule
+      window.location.reload();
     });
   };
 
-  // No bracket yet
   if (!bracket) {
     return (
-      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="p-4 rounded-2xl bg-purple-500/10">
-            <Trophy className="w-8 h-8 text-purple-400" />
+      <>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center backdrop-blur-xl">
+          <div className="mb-4 flex justify-center">
+            <div className="rounded-2xl bg-purple-500/10 p-4">
+              <Trophy className="h-8 w-8 text-purple-400" />
+            </div>
           </div>
+          <h3 className="mb-2 text-lg font-bold text-white">No Playoff Bracket Yet</h3>
+          <p className="mx-auto mb-6 max-w-md text-sm text-neutral-400">
+            Generate official playoff brackets for every division from the current standings, then schedule the opening-round games right away.
+          </p>
+          {error ? (
+            <p className="mb-4 rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
+          ) : null}
+          {canEdit ? (
+            <button
+              onClick={() => setGenerateDialogOpen(true)}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition-all',
+                'bg-purple-500 text-white hover:bg-purple-400',
+              )}
+            >
+              <Trophy className="h-4 w-4" />
+              Generate Playoff Brackets
+            </button>
+          ) : null}
         </div>
-        <h3 className="text-lg font-bold text-white mb-2">No Playoff Bracket Yet</h3>
-        <p className="text-neutral-400 text-sm mb-6 max-w-sm mx-auto">
-          Generate the bracket from current standings. Make sure the regular season is complete
-          before generating playoffs.
-        </p>
-        {error && (
-          <p className="text-red-400 text-sm mb-4 bg-red-500/10 rounded-lg px-4 py-2">{error}</p>
-        )}
-        {canEdit && (
-          <button
-            onClick={handleGenerate}
-            disabled={isPending}
-            className={cn(
-              'inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all',
-              'bg-purple-500 hover:bg-purple-400 text-white',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Trophy className="w-4 h-4" />
-                Generate Playoff Bracket
-              </>
-            )}
-          </button>
-        )}
-      </div>
+
+        {generateDialogOpen ? (
+          <PlayoffGenerationDialog
+            open={generateDialogOpen}
+            leagueId={leagueId}
+            seasonId={seasonId}
+            venues={venues}
+            onOpenChange={setGenerateDialogOpen}
+            onGenerated={(nextBracket) => {
+              setBracket(nextBracket);
+              setError(null);
+            }}
+          />
+        ) : null}
+      </>
     );
   }
 
   const sections = groupBracketSections(bracket.series);
   const hasDivisionSections = sections.filter((section) => section.divisionId).length > 0;
   const multipleSections = sections.length > 1;
+  const openingSeriesCount = bracket.series.filter(
+    (series) => series.round_number === 1 && Boolean(series.high_seed_id) && Boolean(series.low_seed_id),
+  ).length;
 
   return (
-    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-purple-500/10">
-            <Trophy className="w-5 h-5 text-purple-400" />
+    <>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-purple-500/10 p-2">
+              <Trophy className="h-5 w-5 text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">
+                {multipleSections ? 'Playoff Brackets' : 'Playoff Bracket'}
+              </h2>
+              <p className="text-xs capitalize text-neutral-500">
+                {bracket.format.replace(/_/g, ' ')} format
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-white">
-              {multipleSections ? 'Playoff Brackets' : 'Playoff Bracket'}
-            </h2>
-            <p className="text-xs text-neutral-500 capitalize">
-              {bracket.format.replace(/_/g, ' ')} format
-            </p>
+          {canEdit ? (
+            <button
+              onClick={() => setGenerateDialogOpen(true)}
+              disabled={isPending}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+                'bg-neutral-700 text-neutral-300 hover:bg-neutral-600 hover:text-white',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+              )}
+            >
+              {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Regenerate & Schedule
+            </button>
+          ) : null}
+        </div>
+
+        {hasDivisionSections ? (
+          <div className="mb-6 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-neutral-300">
+            Each division has its own official bracket. The opening round can be scheduled directly from league ice times or manually, and those playoff games flow through the normal scorekeeper and referee workflows.
           </div>
-        </div>
-        {canEdit && (
-          <button
-            onClick={handleGenerate}
-            disabled={isPending}
-            className={cn(
-              'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-              'bg-neutral-700 hover:bg-neutral-600 text-neutral-300 hover:text-white',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Regenerating...
-              </>
-            ) : (
-              multipleSections ? 'Regenerate Brackets' : 'Regenerate Bracket'
-            )}
-          </button>
-        )}
-      </div>
+        ) : null}
 
-      {hasDivisionSections && (
-        <div className="mb-6 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-neutral-300">
-          Each division now has its own official bracket. Regenerating will rebuild every division from the current standings.
-        </div>
-      )}
-
-      {/* Overall champion banner only for one-bracket seasons */}
-      {!multipleSections && sections[0]?.champion?.winner_name && (
-        <div className="mb-6 flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
-          <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
-          <div>
-            <p className="text-xs text-amber-500 font-medium uppercase tracking-wider">Champion</p>
-            <p className="text-lg font-black text-amber-400">{sections[0].champion?.winner_name}</p>
+        {openingSeriesCount > 0 ? (
+          <div className="mb-6 rounded-xl border border-rink-500/30 bg-rink-500/5 px-4 py-3 text-sm text-rink-100">
+            {openingSeriesCount} opening-round playoff matchup{openingSeriesCount === 1 ? '' : 's'} are live in the bracket.
+            {' '}Schedule them here or use the regenerate flow if you want to rebuild the divisional field first.
           </div>
-        </div>
-      )}
+        ) : null}
 
-      {/* Error */}
-      {error && (
-        <p className="text-red-400 text-sm mb-4 bg-red-500/10 rounded-lg px-4 py-2">{error}</p>
-      )}
+        {!multipleSections && sections[0]?.champion?.winner_name ? (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <Trophy className="h-6 w-6 shrink-0 text-amber-400" />
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-amber-500">Champion</p>
+              <p className="text-lg font-black text-amber-400">{sections[0].champion?.winner_name}</p>
+            </div>
+          </div>
+        ) : null}
 
-      <div className="space-y-6">
-        {sections.map((section) => (
-          <div
-            key={section.key}
-            className={cn(
-              'rounded-2xl border border-white/10 bg-black/20 p-4',
-              multipleSections && 'border-white/12',
-            )}
-          >
-            {(multipleSections || section.divisionName) && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                    {section.divisionName ? 'Division playoff bracket' : 'Bracket'}
-                  </p>
-                  <h3 className="mt-1 text-xl font-bold text-white">
-                    {section.divisionName ?? 'Overall bracket'}
-                  </h3>
-                </div>
-                {section.champion?.winner_name && (
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-right">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-500">
-                      Champion
+        {error ? (
+          <p className="mb-4 rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
+        ) : null}
+
+        <div className="space-y-6">
+          {sections.map((section) => (
+            <div
+              key={section.key}
+              className={cn(
+                'rounded-2xl border border-white/10 bg-black/20 p-4',
+                multipleSections && 'border-white/12',
+              )}
+            >
+              {multipleSections || section.divisionName ? (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                      {section.divisionName ? 'Division playoff bracket' : 'Bracket'}
                     </p>
-                    <p className="mt-1 text-sm font-bold text-amber-300">
-                      {section.champion.winner_name}
-                    </p>
+                    <h3 className="mt-1 text-xl font-bold text-white">
+                      {section.divisionName ?? 'Overall bracket'}
+                    </h3>
                   </div>
-                )}
-              </div>
-            )}
-
-            <div className="overflow-x-auto">
-              <div className="flex items-start gap-2 min-w-max pb-2">
-                {section.roundNumbers.map((round, roundIdx) => {
-                  const roundSeries = section.seriesByRound[round];
-                  const label = getRoundLabel(round, section.rounds);
-                  const isLast = roundIdx === section.roundNumbers.length - 1;
-
-                  return (
-                    <div key={`${section.key}-${round}`} className="flex items-start gap-2">
-                      <div className="flex flex-col gap-2">
-                        <div className="text-center mb-2">
-                          <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                            {label}
-                          </span>
-                        </div>
-
-                        <div
-                          className="flex flex-col"
-                          style={{
-                            gap: `${Math.pow(2, roundIdx) * 8 + 8}px`,
-                          }}
-                        >
-                          {roundSeries.map((entry) => (
-                            <SeriesCard
-                              key={entry.id}
-                              series={entry}
-                              leagueId={leagueId}
-                              seasonId={seasonId}
-                              canEdit={canEdit}
-                              onRecordWin={handleRecordWin}
-                              onScheduleGame={handleScheduleGame}
-                              isPending={isPending}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {!isLast && (
-                        <div className="flex items-center self-center mt-6">
-                          <ChevronRight className="w-5 h-5 text-neutral-700" />
-                        </div>
-                      )}
+                  {section.champion?.winner_name ? (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-right">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-500">
+                        Champion
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-amber-300">
+                        {section.champion.winner_name}
+                      </p>
                     </div>
-                  );
-                })}
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="overflow-x-auto">
+                <div className="flex min-w-max items-start gap-2 pb-2">
+                  {section.roundNumbers.map((round, roundIdx) => {
+                    const roundSeries = section.seriesByRound[round];
+                    const label = getRoundLabel(round, section.rounds);
+                    const isLast = roundIdx === section.roundNumbers.length - 1;
+
+                    return (
+                      <div key={`${section.key}-${round}`} className="flex items-start gap-2">
+                        <div className="flex flex-col gap-2">
+                          <div className="mb-2 text-center">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                              {label}
+                            </span>
+                          </div>
+
+                          <div
+                            className="flex flex-col"
+                            style={{ gap: `${Math.pow(2, roundIdx) * 8 + 8}px` }}
+                          >
+                            {roundSeries.map((series, seriesIdx) => (
+                              <div
+                                key={series.id}
+                                style={{
+                                  marginTop: roundIdx > 0 && seriesIdx % 2 === 0
+                                    ? `${Math.pow(2, roundIdx - 1) * 8}px`
+                                    : '0px',
+                                }}
+                              >
+                                <SeriesCard
+                                  series={series}
+                                  canEdit={canEdit}
+                                  onRecordWin={handleRecordWin}
+                                  onScheduleGame={handleScheduleGame}
+                                  isPending={isPending}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {!isLast ? (
+                          <div
+                            className="mt-10 flex items-center"
+                            style={{ height: `${Math.pow(2, roundIdx + 1) * 40}px` }}
+                          >
+                            <ChevronRight className="h-4 w-4 text-neutral-600" />
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Legend */}
-      <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-rink-500/60" />
-          <span className="text-xs text-neutral-500">Active series</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-neutral-600" />
-          <span className="text-xs text-neutral-500">Completed</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-neutral-800 border border-white/10" />
-          <span className="text-xs text-neutral-500">Awaiting opponent</span>
-        </div>
-        {canEdit && (
-          <>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs px-1.5 py-0.5 rounded bg-rink-500/20 text-rink-400 font-medium">
-                +W
-              </span>
-              <span className="text-xs text-neutral-500">Record a win</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CalendarPlus className="w-3 h-3 text-neutral-500" />
-              <span className="text-xs text-neutral-500">Schedule game for scorekeeper</span>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+      {generateDialogOpen ? (
+        <PlayoffGenerationDialog
+          open={generateDialogOpen}
+          leagueId={leagueId}
+          seasonId={seasonId}
+          venues={venues}
+          onOpenChange={setGenerateDialogOpen}
+          onGenerated={(nextBracket) => {
+            setBracket(nextBracket);
+            setError(null);
+          }}
+        />
+      ) : null}
+    </>
   );
 }

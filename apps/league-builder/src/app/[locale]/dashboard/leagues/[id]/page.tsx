@@ -24,6 +24,7 @@ import { LeagueLogo } from '@/components/ui/league-logo';
 import { AnnouncementComposerButton } from '@/components/news/AnnouncementComposerButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
+import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -422,7 +423,7 @@ function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: st
             statusColors[season.status] || statusColors.draft
           )}
         >
-          {season.status?.charAt(0).toUpperCase() + season.status?.slice(1)}
+          {getSeasonStatusLabel(season.status, season.registration_type)}
         </span>
       </div>
 

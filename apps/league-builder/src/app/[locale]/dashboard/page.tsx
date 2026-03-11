@@ -31,6 +31,7 @@ import {
   isOperationalSeasonStatus,
   pickOperationalSeason,
 } from '@/lib/seasons/operational';
+import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -676,7 +677,10 @@ function OwnerLeagueCommandCard({
                     'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold border',
                     getSeasonStatusClasses(league.currentSeason.status)
                   )}>
-                    {formatSeasonStatus(league.currentSeason.status)}
+                    {formatSeasonStatus(
+                      league.currentSeason.status,
+                      league.currentSeason.registration_type
+                    )}
                   </span>
                 </div>
                 <p className="text-sm text-neutral-400 leading-6">
@@ -950,23 +954,8 @@ function sortLeagueCommandDeck(a: LeagueCommandDeckItem, b: LeagueCommandDeckIte
   return rank(a) - rank(b) || a.name.localeCompare(b.name);
 }
 
-function formatSeasonStatus(status: string | null) {
-  if (!status) return 'Unknown';
-
-  switch (status) {
-    case 'registration':
-      return 'Registration';
-    case 'active':
-      return 'Active';
-    case 'playoffs':
-      return 'Playoffs';
-    case 'draft':
-      return 'Draft';
-    case 'completed':
-      return 'Completed';
-    default:
-      return status.charAt(0).toUpperCase() + status.slice(1);
-  }
+function formatSeasonStatus(status: string | null, registrationType?: string | null) {
+  return getSeasonStatusLabel(status, registrationType);
 }
 
 function getSeasonStatusClasses(status: string | null) {

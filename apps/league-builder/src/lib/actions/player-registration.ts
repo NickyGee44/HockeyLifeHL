@@ -25,6 +25,7 @@ import type {
   RegistrationDraftData,
 } from '@/lib/schemas/player-registration';
 import type { Database } from '@hockey-life/database';
+import Stripe from 'stripe';
 import {
   sendRegistrationSubmittedEmail,
   sendRegistrationApprovedEmail,
@@ -32,7 +33,30 @@ import {
   notifyLeagueAdminsOfNewRegistration,
 } from '@/lib/email/registration-emails';
 import { createPaymentIntent } from '@/lib/leagues/stripe-connect';
+import {
+  getRegistrationPaymentMode,
+  getSeasonPaymentSettings,
+} from '@/lib/payments/fee-collection-model';
 import { verifyLeagueOwnerAccess } from './permissions';
+
+let _stripe: Stripe | null = null;
+
+function getStripeClient(): Stripe {
+  if (_stripe) return _stripe;
+
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey) {
+    throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+  }
+
+  _stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2026-01-28.clover',
+    typescript: true,
+  });
+
+  return _stripe;
+}
 
 // ============================================================================
 // Types
@@ -159,6 +183,29 @@ export async function saveRegistrationDraft(
     }
 
     const supabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
+    const paymentSettings = await getSeasonPaymentSettings(
+      serviceSupabase as any,
+      leagueId,
+      seasonId
+    );
+    const paymentMode = getRegistrationPaymentMode(
+      paymentSettings.feeCollectionModel,
+      paymentSettings.feeAmountCents
+    );
+    const normalizedPaymentStatus =
+      data.payment_status === 'completed'
+        ? 'completed'
+        : paymentMode === 'required'
+          ? 'pending'
+          : 'not_required';
+    const amountPaidCents =
+      normalizedPaymentStatus === 'completed' ? paymentSettings.feeAmountCents : 0;
+    const normalizedDraftData = {
+      ...data,
+      payment_status: normalizedPaymentStatus,
+      amount_cents: amountPaidCents,
+    };
 
     // Upsert the draft (update if exists, insert if not)
     // Note: registration_submissions table is defined in migrations but not in generated types yet
@@ -171,9 +218,13 @@ export async function saveRegistrationDraft(
           season_id: seasonId,
           registration_type: data.registration_type || 'free_agent',
           team_id: data.team_id || null,
-          draft_data: data,
+          draft_data: normalizedDraftData,
           draft_step: data.current_step || 1,
           status: 'pending',
+          payment_status: normalizedPaymentStatus,
+          fee_amount_cents: paymentSettings.feeAmountCents,
+          amount_paid_cents: amountPaidCents,
+          currency: paymentSettings.currency,
         },
         {
           onConflict: 'player_id,league_id,season_id',
@@ -495,6 +546,32 @@ export async function createRegistrationPaymentIntent(
     }
 
     const supabase = await createClient();
+    const paymentSettings = await getSeasonPaymentSettings(
+      createServiceRoleClient() as any,
+      leagueId,
+      seasonId
+    );
+    const paymentMode = getRegistrationPaymentMode(
+      paymentSettings.feeCollectionModel,
+      paymentSettings.feeAmountCents
+    );
+
+    if (paymentMode === 'hidden') {
+      return {
+        success: false,
+        error: 'This season uses team billing, so individual player payment is not required.',
+      };
+    }
+
+    const amountToCharge =
+      paymentSettings.feeAmountCents > 0 ? paymentSettings.feeAmountCents : amountCents;
+
+    if (amountToCharge <= 0) {
+      return {
+        success: false,
+        error: 'This registration does not currently require an individual payment.',
+      };
+    }
 
     // 1. Get league's Stripe Connect account
     const { data: league, error: leagueError } = await supabase
@@ -539,8 +616,8 @@ export async function createRegistrationPaymentIntent(
     const paymentResult = await createPaymentIntent({
       leagueId,
       connectedAccountId: league.stripe_account_id,
-      amountCents,
-      currency: 'usd',
+      amountCents: amountToCharge,
+      currency: paymentSettings.currency,
       description: `Registration fee for ${season?.name || 'season'} - ${league.name}`,
       customerEmail: profile?.email || user.email,
       metadata: {
@@ -662,37 +739,74 @@ export async function submitPlayerRegistration(
     }
     const emailMarketingOptIn = (data as any).email_marketing_opt_in ?? data.consent_marketing ?? false;
 
-    // Server-side payment enforcement: resolve expected fee from season_fees
-    const { data: seasonFee } = await serviceSupabase
-      .from('season_fees')
-      .select('amount_cents')
-      .eq('league_id', data.league_id)
-      .eq('season_id', data.season_id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const paymentSettings = await getSeasonPaymentSettings(
+      serviceSupabase as any,
+      data.league_id,
+      data.season_id
+    );
+    const expectedFeeCents = paymentSettings.feeAmountCents;
+    const paymentMode = getRegistrationPaymentMode(
+      paymentSettings.feeCollectionModel,
+      expectedFeeCents
+    );
 
-    const expectedFeeCents = seasonFee?.amount_cents ?? 0;
+    let amountPaidCents = 0;
+    const shouldVerifyIndividualPayment =
+      expectedFeeCents > 0 &&
+      (paymentMode === 'required' ||
+        (paymentMode === 'optional' &&
+          data.payment_status === 'completed' &&
+          Boolean(data.payment_intent_id)));
 
-    if (expectedFeeCents > 0) {
-      // Payment is required - reject if not completed
-      if (data.payment_status !== 'completed') {
-        return {
-          success: false,
-          error: 'Payment is required for this registration. Please complete payment before submitting.',
-        };
-      }
+    if (paymentMode === 'required' && data.payment_status !== 'completed') {
+      return {
+        success: false,
+        error: 'Payment is required for this registration. Please complete payment before submitting.',
+      };
+    }
+
+    if (shouldVerifyIndividualPayment) {
       if (!data.payment_intent_id) {
         return {
           success: false,
           error: 'Missing payment confirmation. Please complete the payment step.',
         };
       }
-      // Enforce the correct fee amount from the database (don't trust client)
+
+      try {
+        const stripe = getStripeClient();
+        const paymentIntent = await stripe.paymentIntents.retrieve(data.payment_intent_id);
+
+        if (paymentIntent.status !== 'succeeded') {
+          return {
+            success: false,
+            error: `Payment has not been completed (status: ${paymentIntent.status}). Please complete payment before submitting.`,
+          };
+        }
+
+        if (paymentIntent.amount_received !== expectedFeeCents) {
+          console.error('[Registration] Payment amount mismatch', {
+            expected: expectedFeeCents,
+            received: paymentIntent.amount_received,
+            payment_intent_id: data.payment_intent_id,
+          });
+          return {
+            success: false,
+            error: 'Payment amount does not match the registration fee. Please contact support.',
+          };
+        }
+      } catch (stripeError) {
+        console.error('Stripe PaymentIntent verification failed:', stripeError);
+        return {
+          success: false,
+          error: 'Unable to verify payment. Please try again or contact support.',
+        };
+      }
+
+      data.payment_status = 'completed';
       data.amount_cents = expectedFeeCents;
+      amountPaidCents = expectedFeeCents;
     } else {
-      // No fee expected - normalize as free registration
       data.payment_status = 'not_required';
       data.amount_cents = 0;
       data.payment_intent_id = undefined;
@@ -788,8 +902,10 @@ export async function submitPlayerRegistration(
           previous_leagues: data.previous_leagues || null,
           photo_url: data.photo_url || null,
           payment_status: data.payment_status || 'not_required',
+          fee_amount_cents: expectedFeeCents,
           stripe_payment_intent_id: data.payment_intent_id || null,
-          amount_paid_cents: data.amount_cents || 0,
+          amount_paid_cents: amountPaidCents,
+          currency: paymentSettings.currency,
           submitted_at: new Date().toISOString(),
           draft_data: null, // Clear draft data on submission
           draft_step: null,

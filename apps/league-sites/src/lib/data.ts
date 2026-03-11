@@ -921,41 +921,87 @@ export async function getTickerGames(
   limit = 10
 ): Promise<TickerGame[]> {
   const supabase = await createClient();
-
-  // Get today's games and upcoming games only (no past games)
-  const todayStart = new Date();
+  const now = new Date();
+  const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
+  const recentWindowStart = new Date(now);
+  recentWindowStart.setDate(recentWindowStart.getDate() - 7);
 
-  const { data, error } = await supabase
-    .from('games')
-    .select(`
-      id,
-      scheduled_at,
-      location,
-      home_score,
-      away_score,
-      status,
-      game_type,
-      home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(name)),
-      away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(name))
-    `)
-    .eq('league_id', leagueId)
-    .in('status', ['completed', 'in_progress', 'scheduled'])
-    .gte('scheduled_at', todayStart.toISOString())
-    .order('scheduled_at', { ascending: true })
-    .limit(limit);
+  const tickerSelect = `
+    id,
+    scheduled_at,
+    location,
+    home_score,
+    away_score,
+    status,
+    game_type,
+    home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(name)),
+    away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(name))
+  `;
 
-  if (error || !data) {
+  const recentCompletedCap = Math.min(Math.max(2, Math.floor(limit / 3)), 4, limit);
+
+  const [liveGamesResult, upcomingGamesResult, recentCompletedResult] = await Promise.all([
+    supabase
+      .from('games')
+      .select(tickerSelect)
+      .eq('league_id', leagueId)
+      .eq('status', 'in_progress')
+      .order('scheduled_at', { ascending: true })
+      .limit(limit),
+    supabase
+      .from('games')
+      .select(tickerSelect)
+      .eq('league_id', leagueId)
+      .eq('status', 'scheduled')
+      .gte('scheduled_at', todayStart.toISOString())
+      .order('scheduled_at', { ascending: true })
+      .limit(limit),
+    supabase
+      .from('games')
+      .select(tickerSelect)
+      .eq('league_id', leagueId)
+      .eq('status', 'completed')
+      .gte('scheduled_at', recentWindowStart.toISOString())
+      .lt('scheduled_at', now.toISOString())
+      .order('scheduled_at', { ascending: false })
+      .limit(recentCompletedCap),
+  ]);
+
+  if (liveGamesResult.error || upcomingGamesResult.error || recentCompletedResult.error) {
     return [];
   }
 
-  // Transform team data from DB columns to expected format
-  return data.map((game) => ({
-    ...game,
-    venue: (game as any).location || null,
-    home_team: transformTeamData(game.home_team),
-    away_team: transformTeamData(game.away_team),
-  })) as TickerGame[];
+  const transformTickerGames = (games: any[] | null | undefined): TickerGame[] =>
+    (games ?? []).map((game) => ({
+      ...game,
+      venue: (game as any).location || null,
+      home_team: transformTeamData(game.home_team),
+      away_team: transformTeamData(game.away_team),
+    })) as TickerGame[];
+
+  const liveGames = transformTickerGames(liveGamesResult.data);
+  const upcomingGames = transformTickerGames(upcomingGamesResult.data);
+  const recentCompletedGames = transformTickerGames(recentCompletedResult.data);
+
+  const seen = new Set<string>();
+  const dedupe = (games: TickerGame[]) =>
+    games.filter((game) => {
+      if (seen.has(game.id)) return false;
+      seen.add(game.id);
+      return true;
+    });
+
+  const primaryGames = dedupe([...liveGames, ...upcomingGames]);
+
+  if (primaryGames.length >= limit && recentCompletedGames.length > 0) {
+    return dedupe([
+      ...primaryGames.slice(0, Math.max(limit - recentCompletedGames.length, 1)),
+      ...recentCompletedGames.slice(0, recentCompletedCap),
+    ]).slice(0, limit);
+  }
+
+  return dedupe([...primaryGames, ...recentCompletedGames]).slice(0, limit);
 }
 
 /**

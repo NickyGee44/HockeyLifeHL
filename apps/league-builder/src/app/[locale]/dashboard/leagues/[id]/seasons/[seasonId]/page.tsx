@@ -32,6 +32,7 @@ import {
   getSeasonParticipationTeamIds,
   getSeasonParticipationTeams,
 } from '@/lib/seasons/team-participation';
+import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -71,6 +72,7 @@ export default async function SeasonDetailPage({ params }: Props) {
   const [
     seasonTeamIds,
     previousSeason,
+    venuesResult,
   ] = await Promise.all([
     getSeasonParticipationTeamIds(serviceClient, leagueId, seasonId),
     (async () => {
@@ -89,11 +91,22 @@ export default async function SeasonDetailPage({ params }: Props) {
       const { data } = await query.maybeSingle();
       return data;
     })(),
+    serviceClient
+      .from('venues')
+      .select('id, name, address, number_of_rinks')
+      .eq('league_id', leagueId)
+      .order('name'),
   ]);
 
   const previousSeasonTeams = previousSeason
     ? await getSeasonParticipationTeams(serviceClient, leagueId, previousSeason.id)
     : [];
+  const venues = (venuesResult.data ?? []).map((venue) => ({
+    id: venue.id,
+    name: venue.name,
+    address: venue.address ?? null,
+    numberOfRinks: venue.number_of_rinks ?? null,
+  }));
   const importableTeams = previousSeasonTeams.filter(
     (team) => !seasonTeamIds.includes(team.id)
   );
@@ -196,8 +209,7 @@ export default async function SeasonDetailPage({ params }: Props) {
                   statusColors[season.status ?? 'draft'] || statusColors.draft
                 )}
               >
-                {(season.status || 'draft').charAt(0).toUpperCase() +
-                  (season.status || 'draft').slice(1)}
+                {getSeasonStatusLabel(season.status ?? 'draft', season.registration_type)}
               </span>
               {canEdit && (
                 <SeasonStatusTransitionButton
@@ -340,12 +352,13 @@ export default async function SeasonDetailPage({ params }: Props) {
 
         {/* Playoff Bracket Section */}
         <div className="mb-8">
-          <PlayoffBracketClient
-            leagueId={leagueId}
-            seasonId={seasonId}
-            initialBracket={initialBracket}
-            canEdit={canEdit}
-          />
+            <PlayoffBracketClient
+              leagueId={leagueId}
+              seasonId={seasonId}
+              initialBracket={initialBracket}
+              venues={venues}
+              canEdit={canEdit}
+            />
         </div>
 
         {/* Season Details */}
