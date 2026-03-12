@@ -27,6 +27,8 @@ import { StepSkillPosition } from './StepSkillPosition';
 import { StepWaiver } from './StepWaiver';
 import { StepPayment } from './StepPayment';
 import { StepConfirmation } from './StepConfirmation';
+import type { PreviousTeamOption } from '@/lib/registration/intents';
+import { getDefaultRegistrationIntent } from '@/lib/registration/intents';
 
 // ============================================================================
 // Types
@@ -50,6 +52,9 @@ interface RegistrationWizardProps {
   waiverDocumentMimeType?: string | null;
   initialData: RegistrationDraftData | null;
   leagueFormConfig: LeagueFormConfig;
+  previousTeams: PreviousTeamOption[];
+  confirmedTeamIds: string[];
+  teamReturnStatuses: Record<string, NonNullable<RegistrationDraftData['team_return_status']>>;
 }
 
 const STEPS = [
@@ -83,6 +88,9 @@ export function RegistrationWizard({
   waiverDocumentMimeType,
   initialData,
   leagueFormConfig,
+  previousTeams,
+  confirmedTeamIds,
+  teamReturnStatuses,
 }: RegistrationWizardProps) {
   const { user } = useUser();
   const { openLogin } = useAuth();
@@ -99,7 +107,20 @@ export function RegistrationWizard({
   const [formData, setFormData] = useState<RegistrationDraftData>({
     current_step: initialData?.current_step || 1,
     registration_type: initialData?.registration_type || 'free_agent',
+    registration_intent:
+      initialData?.registration_intent || getDefaultRegistrationIntent(previousTeams),
     team_id: initialData?.team_id || null,
+    requested_team_id: initialData?.requested_team_id || initialData?.team_id || null,
+    requested_team_name: initialData?.requested_team_name || '',
+    previous_team_id: initialData?.previous_team_id || previousTeams[0]?.teamId || null,
+    previous_team_name: initialData?.previous_team_name || previousTeams[0]?.teamName || '',
+    previous_season_id: initialData?.previous_season_id || previousTeams[0]?.seasonId || null,
+    previous_season_name:
+      initialData?.previous_season_name || previousTeams[0]?.seasonName || '',
+    team_return_status:
+      initialData?.team_return_status ||
+      previousTeams[0]?.returnStatus ||
+      (previousTeams[0]?.isConfirmedForSeason ? 'confirmed' : undefined),
     full_name: initialData?.full_name || user?.user_metadata?.full_name || '',
     email: initialData?.email || user?.email || '',
     phone: initialData?.phone || '',
@@ -283,7 +304,13 @@ export function RegistrationWizard({
             and is pending approval.
           </p>
           <p className="text-[var(--color-text-muted)] text-sm mb-6">
-            You will receive an email once it has been reviewed.
+            {formData.registration_intent === 'captain_application'
+              ? 'Your captain/team request is now with league staff for review.'
+              : formData.team_return_status === 'team_not_returning'
+                ? 'We’ve kept your registration on file while league staff routes you to a new team or the free agent pool.'
+              : formData.team_return_status === 'pending_team_return'
+                ? 'We’ll hold this against your requested team until that team confirms for the season.'
+                : 'You will receive an email once it has been reviewed.'}
           </p>
           <a
             href={`/${leagueSlug}`}
@@ -372,6 +399,9 @@ export function RegistrationWizard({
             formData={formData}
             teams={teams}
             leagueFormConfig={leagueFormConfig}
+            previousTeams={previousTeams}
+            confirmedTeamIds={confirmedTeamIds}
+            teamReturnStatuses={teamReturnStatuses}
             onUpdate={updateFormData}
           />
         )}
@@ -379,6 +409,7 @@ export function RegistrationWizard({
           <StepLeaguePreferences
             formData={formData}
             leagueFormConfig={leagueFormConfig}
+            previousTeams={previousTeams}
             onUpdate={updateFormData}
           />
         )}
@@ -419,6 +450,7 @@ export function RegistrationWizard({
             registrationFee={registrationFee}
             paymentMode={paymentMode}
             teams={teams}
+            previousTeams={previousTeams}
             onUpdate={updateFormData}
             canSubmit={paymentMode !== 'required' || formData.payment_status === 'completed'}
           />

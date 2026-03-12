@@ -6,9 +6,15 @@ import {
   getRegistrationDraft,
   getMyRegistrationStatus,
   getLeagueWaiver,
+  getRegistrationJourneyData,
 } from '@/lib/actions/registration';
 import { RegistrationWizard } from '@/components/registration';
 import { Check, Clock, XCircle } from 'lucide-react';
+import {
+  formatRegistrationIntent,
+  formatTeamReturnStatus,
+} from '@/lib/registration/intents';
+import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
 // Default waiver for leagues without a custom one
 const DEFAULT_WAIVER_CONTENT = `# Participant Waiver and Release of Liability
@@ -70,14 +76,7 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
 
   // Find active season with open registration
   const now = new Date();
-  const activeSeason = league.seasons?.find((season: any) => {
-    if (season.registration_opens_at && season.registration_closes_at) {
-      const opens = new Date(season.registration_opens_at);
-      const closes = new Date(season.registration_closes_at);
-      return now >= opens && now <= closes;
-    }
-    return season.status === 'upcoming' || season.status === 'active';
-  });
+  const activeSeason = pickRegistrationSeason((league.seasons as any[]) || [], now);
 
   if (!activeSeason) {
     return (
@@ -143,6 +142,17 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
             </h1>
             <p className="text-[var(--color-text-secondary)] mb-6">
               Your registration for {activeSeason.name} is awaiting approval.
+              {existingStatus.data.draftData?.registration_intent && (
+                <>
+                  {' '}We have it marked as{' '}
+                  <strong>{formatRegistrationIntent(existingStatus.data.draftData.registration_intent)}</strong>.
+                </>
+              )}
+              {existingStatus.data.draftData?.team_return_status && (
+                <>
+                  {' '}Status: <strong>{formatTeamReturnStatus(existingStatus.data.draftData.team_return_status)}</strong>.
+                </>
+              )}{' '}
               You will receive an email once it has been reviewed.
             </p>
             <a
@@ -158,10 +168,11 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
   }
 
   // Load draft, waiver, and payment settings
-  const [draftResult, waiverResult, registrationConfig] = await Promise.all([
+  const [draftResult, waiverResult, registrationConfig, journeyResult] = await Promise.all([
     getRegistrationDraft(league.id, activeSeason.id),
     getLeagueWaiver(league.id),
     getSeasonRegistrationPaymentConfig(league.id, activeSeason.id),
+    getRegistrationJourneyData(league.id, activeSeason.id),
   ]);
 
   const initialData = draftResult.success ? (draftResult.data ?? null) : null;
@@ -183,6 +194,10 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
   }));
 
   const leagueFormConfig = (league as any).registration_form_config ?? {};
+  const journeyData =
+    journeyResult.success && journeyResult.data
+      ? journeyResult.data
+      : { previousTeams: [], confirmedTeamIds: [], teamReturnStatuses: {} };
 
   return (
     <div className="py-8">
@@ -217,6 +232,9 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
         waiverDocumentMimeType={waiver.document_mime_type}
         initialData={initialData}
         leagueFormConfig={leagueFormConfig}
+        previousTeams={journeyData.previousTeams}
+        confirmedTeamIds={journeyData.confirmedTeamIds}
+        teamReturnStatuses={journeyData.teamReturnStatuses}
       />
     </div>
   );

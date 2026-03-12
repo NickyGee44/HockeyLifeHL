@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
+import { getLocale } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
+import { Link } from '@/i18n/navigation';
 import {
   getRegistrationPaymentMode,
   getPlayerRegistrationFeeAmount,
@@ -123,10 +125,11 @@ export default async function RegisterPage({
   params,
   searchParams,
 }: RegisterPageProps) {
+  const locale = await getLocale();
   // Verify user is logged in
   const user = await getCurrentUser();
   if (!user) {
-    redirect(`/login?redirect=/register/${params.leagueSlug}`);
+    redirect(`/${locale}/login?redirect=/register/${params.leagueSlug}`);
   }
 
   // Get league by slug
@@ -163,12 +166,12 @@ export default async function RegisterPage({
             Registration for {league.name} is not currently open. Please check
             back later or contact the league administrator.
           </p>
-          <a
+          <Link
             href="/dashboard"
             className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
           >
             Return to Dashboard
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -204,12 +207,12 @@ export default async function RegisterPage({
             <p className="text-neutral-400 mb-6">
               You&apos;re already registered for {activeSeason.name} in {league.name}.
             </p>
-            <a
+            <Link
               href="/dashboard"
               className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
             >
               Go to Dashboard
-            </a>
+            </Link>
           </div>
         </div>
       );
@@ -241,12 +244,12 @@ export default async function RegisterPage({
               Your registration for {activeSeason.name} is awaiting approval.
               You&apos;ll receive an email once it&apos;s been reviewed.
             </p>
-            <a
+            <Link
               href="/dashboard"
               className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
             >
               Go to Dashboard
-            </a>
+            </Link>
           </div>
         </div>
       );

@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { verifyLeagueOwnerAccess } from './permissions';
@@ -41,6 +41,8 @@ export interface TeamRegistrationRequest {
 }
 
 export interface TeamRegistrationRequestWithDetails extends TeamRegistrationRequest {
+  source_table?: 'team_registration_requests' | 'team_registrations';
+  season_id?: string | null;
   requester?: {
     id: string;
     full_name: string;
@@ -59,6 +61,118 @@ export interface TeamRegistrationRequestWithDetails extends TeamRegistrationRequ
     id: string;
     full_name: string;
   } | null;
+}
+
+function generateShortName(teamName: string): string {
+  const words = teamName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) return 'TEAM';
+
+  const initials = words
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 4);
+
+  if (initials.length >= 2) {
+    return initials;
+  }
+
+  return teamName.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4) || 'TEAM';
+}
+
+function buildLegacyPreferredDivisionNotes(row: any): string | null {
+  const notes = [
+    row.level ? `Requested level: ${row.level}` : null,
+    typeof row.played_last_season === 'boolean'
+      ? `Played last season: ${row.played_last_season ? 'Yes' : 'No'}`
+      : null,
+    row.team_last_season ? `Previous team: ${row.team_last_season}` : null,
+    row.location_preference ? `Location preference: ${row.location_preference}` : null,
+    row.preferred_day ? `Preferred day: ${row.preferred_day}` : null,
+    row.alternate_day ? `Alternate day: ${row.alternate_day}` : null,
+    row.backup_rep_name ? `Backup rep: ${row.backup_rep_name}` : null,
+    row.backup_rep_email ? `Backup rep email: ${row.backup_rep_email}` : null,
+    row.waiver_version ? `Waiver version accepted: ${row.waiver_version}` : null,
+  ].filter(Boolean);
+
+  return notes.length > 0 ? notes.join('\n') : null;
+}
+
+async function syncLegacyTeamRegistrationsIntoRequests(leagueId: string): Promise<void> {
+  const serviceSupabase = createServiceRoleClient();
+
+  const [{ data: legacyRows }, { data: pendingRequests }] =
+    await Promise.all([
+      serviceSupabase
+        .from('team_registrations')
+        .select(`
+          id,
+          league_id,
+          season_id,
+          submitted_by,
+          team_name,
+          level,
+          played_last_season,
+          team_last_season,
+          backup_rep_name,
+          backup_rep_email,
+          location_preference,
+          preferred_day,
+          alternate_day,
+          comments,
+          waiver_version,
+          status,
+          created_at,
+          submitter:profiles!team_registrations_submitted_by_fkey(email)
+        `)
+        .eq('league_id', leagueId)
+        .eq('status', 'pending'),
+      serviceSupabase
+        .from('team_registration_requests')
+        .select('requester_id, team_name, status')
+        .eq('league_id', leagueId)
+        .eq('status', 'pending'),
+    ]);
+
+  const existingKeys = new Set(
+    (pendingRequests ?? []).map((row: any) => `${row.requester_id}:${row.team_name.toLowerCase()}`)
+  );
+
+  const rowsToInsert = (legacyRows ?? [])
+    .filter((row: any) => row.submitted_by)
+    .filter((row: any) => !existingKeys.has(`${row.submitted_by}:${String(row.team_name).toLowerCase()}`))
+    .map((row: any) => ({
+      league_id: row.league_id,
+      requester_id: row.submitted_by,
+      team_name: row.team_name,
+      team_short_name: generateShortName(row.team_name),
+      team_primary_color: '#22D3EE',
+      team_secondary_color: '#070A0F',
+      team_contact_email:
+        row.backup_rep_email ||
+        (Array.isArray(row.submitter) ? row.submitter[0]?.email : row.submitter?.email) ||
+        null,
+      message: row.comments || null,
+      preferred_division_notes: buildLegacyPreferredDivisionNotes(row),
+      status: 'pending',
+      requested_at: row.created_at,
+    }));
+
+  if (rowsToInsert.length === 0) {
+    return;
+  }
+
+  const { error } = await serviceSupabase
+    .from('team_registration_requests')
+    .insert(rowsToInsert);
+
+  if (error) {
+    console.error('Error syncing legacy team registrations:', sanitizeErrorForLogging(error));
+  }
 }
 
 export interface SubmitTeamRequestParams {
@@ -287,6 +401,8 @@ export async function getTeamRegistrationRequests(leagueId: string, options?: { 
   }
 
   try {
+    await syncLegacyTeamRegistrationsIntoRequests(leagueId);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query: any = supabase
       .from('team_registration_requests')
@@ -343,6 +459,8 @@ export async function getPendingTeamRegistrationRequestsCount(leagueId: string) 
   const supabase = await createClient();
 
   try {
+    await syncLegacyTeamRegistrationsIntoRequests(leagueId);
+
     const { count, error } = await supabase
       .from('team_registration_requests')
       .select('*', { count: 'exact', head: true })

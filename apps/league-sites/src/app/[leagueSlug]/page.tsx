@@ -50,6 +50,7 @@ import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
+import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
 interface HomePageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -129,12 +130,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
   // Check if registration is open for any season
   const now = new Date();
-  const registrationSeason = seasons.find((season: any) => {
-    if (season.registration_opens_at && season.registration_closes_at) {
-      return now >= new Date(season.registration_opens_at) && now <= new Date(season.registration_closes_at);
-    }
-    return false;
-  });
+  const registrationSeason = pickRegistrationSeason(seasons as any[], now);
   const hasOpenRegistration = !!registrationSeason;
 
   const templateVariant =
@@ -350,7 +346,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                     Registration Open
                   </h3>
                   <p className="text-sm text-[var(--color-text-secondary)] mt-1 mb-4">
-                    Sign up for {(registrationSeason as any)?.name || 'the upcoming season'} today!
+                    {(currentSeason as any)?.status === 'playoffs' && registrationSeason?.status === 'upcoming'
+                      ? `Playoffs are underway, and registration is already open for ${registrationSeason.name}.`
+                      : `Sign up for ${registrationSeason?.name || 'the upcoming season'} today!`}
                   </p>
                   <Button
                     href={`/${leagueSlug}/register`}

@@ -32,6 +32,18 @@ export interface SuspensionCaptainEmailProps {
   unsubscribeUrl?: string;
 }
 
+export interface SuspensionReviewSummaryEmailProps {
+  recipientName: string;
+  playerName: string;
+  teamName: string;
+  leagueName?: string;
+  reason: string;
+  decision: 'approved' | 'denied';
+  reviewNotes?: string;
+  dashboardUrl: string;
+  unsubscribeUrl?: string;
+}
+
 /**
  * Email sent to the suspended player
  */
@@ -160,6 +172,73 @@ export function getSuspensionIssuedCaptainEmail(props: SuspensionCaptainEmailPro
     preheader: `${playerName} has been suspended for ${gamesRemaining} game${gamesRemaining !== 1 ? 's' : ''}`,
     content,
     buttonText: 'View Team Roster',
+    buttonUrl: dashboardUrl,
+    unsubscribeUrl,
+    leagueName,
+  });
+}
+
+/**
+ * Email sent to league operators when a suspension review is completed.
+ */
+export function getSuspensionReviewSummaryEmail(
+  props: SuspensionReviewSummaryEmailProps
+): string {
+  const {
+    recipientName,
+    playerName,
+    teamName,
+    leagueName = 'Beer League Hockey',
+    reason,
+    decision,
+    reviewNotes,
+    dashboardUrl,
+    unsubscribeUrl,
+  } = props;
+
+  const badge = createBadge(
+    decision === 'approved' ? 'Suspension Approved' : 'Suspension Denied',
+    decision === 'approved' ? 'error' : 'warning'
+  );
+
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'Player', value: playerName },
+    { label: 'Team', value: teamName },
+    { label: 'Decision', value: decision === 'approved' ? 'Approved' : 'Denied' },
+    { label: 'Reason', value: reason },
+  ];
+
+  if (reviewNotes) {
+    details.push({ label: 'Review Notes', value: reviewNotes });
+  }
+
+  const content = `
+    <p>Hi ${recipientName},</p>
+
+    ${badge}
+
+    <p style="font-size: 18px; color: #fafafa; margin-top: 16px;">
+      <strong>A suspension review has been completed.</strong>
+    </p>
+
+    <p>
+      A discipline review in ${leagueName} has been ${decision === 'approved' ? 'approved and is now active' : 'denied'}.
+    </p>
+
+    ${createDetailsList(details)}
+
+    ${createInfoBox(
+      decision === 'approved'
+        ? '<strong>Next Step:</strong> Ensure captains, staff, and scorekeepers are aware before the next game.'
+        : '<strong>Next Step:</strong> If further discipline is required, update the notes and submit a new review record.'
+    )}
+  `;
+
+  return getBaseEmailTemplate({
+    title: decision === 'approved' ? 'Suspension Approved' : 'Suspension Denied',
+    preheader: `${playerName} - ${teamName}`,
+    content,
+    buttonText: 'Open League Dashboard',
     buttonUrl: dashboardUrl,
     unsubscribeUrl,
     leagueName,

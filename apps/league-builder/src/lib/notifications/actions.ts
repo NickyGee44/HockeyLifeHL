@@ -6,7 +6,7 @@
  * Server actions for sending notifications and managing preferences
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendEmail, sendBatchEmails, getUnsubscribeUrl, type BatchEmailRecipient } from './email-service';
 import {
   getBaseEmailTemplate,
@@ -18,6 +18,7 @@ import {
   sanitizeAnnouncementContent,
   getSuspensionIssuedPlayerEmail,
   getSuspensionIssuedCaptainEmail,
+  getSuspensionReviewSummaryEmail,
 } from './templates';
 
 // =============================================================================
@@ -885,6 +886,151 @@ export async function sendSuspensionNotification(params: {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error sending suspension notification',
+    };
+  }
+}
+
+export async function sendSuspensionReviewSummaryNotification(params: {
+  leagueId: string;
+  suspensionId: string;
+  status: 'approved' | 'denied';
+  playerName: string;
+  teamName: string;
+  reason: string;
+  reviewNotes?: string;
+}): Promise<NotificationResult> {
+  const serviceClient = createServiceRoleClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca';
+
+  try {
+    const [{ data: league }, { data: memberships }] = await Promise.all([
+      serviceClient
+        .from('leagues')
+        .select('name, contact_email')
+        .eq('id', params.leagueId)
+        .single(),
+      serviceClient
+        .from('league_memberships')
+        .select(`
+          user_id,
+          role,
+          profiles!league_memberships_user_id_fkey(id, email, full_name)
+        `)
+        .eq('league_id', params.leagueId)
+        .eq('status', 'active')
+        .in('role', ['owner', 'admin']),
+    ]);
+
+    const leagueName = league?.name || 'Beer League Hockey';
+    const dashboardUrl = `${siteUrl}/dashboard`;
+    const recipients = new Map<
+      string,
+      { userId?: string; email: string; name: string }
+    >();
+
+    for (const membership of (memberships || []) as Array<{
+      user_id: string;
+      role: string;
+      profiles?: { id?: string; email?: string | null; full_name?: string | null } | null;
+    }>) {
+      const profile = membership.profiles;
+      const email = profile?.email;
+      if (!email) continue;
+      recipients.set(email.toLowerCase(), {
+        userId: membership.user_id,
+        email,
+        name: profile?.full_name || (membership.role === 'owner' ? 'League Owner' : 'League Admin'),
+      });
+    }
+
+    if (league?.contact_email) {
+      recipients.set(league.contact_email.toLowerCase(), {
+        email: league.contact_email,
+        name: leagueName,
+      });
+    }
+
+    if (recipients.size === 0) {
+      return { success: true, sent: 0, failed: 0 };
+    }
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const recipient of recipients.values()) {
+      if (recipient.userId) {
+        const pref = await shouldSendEmail(recipient.userId, 'game_updates');
+        if (!pref.canSend) {
+          continue;
+        }
+
+        const subject = `Suspension ${params.status === 'approved' ? 'Approved' : 'Denied'}: ${params.playerName}`;
+        const html = getSuspensionReviewSummaryEmail({
+          recipientName: recipient.name,
+          playerName: params.playerName,
+          teamName: params.teamName,
+          leagueName,
+          reason: params.reason,
+          decision: params.status,
+          reviewNotes: params.reviewNotes,
+          dashboardUrl,
+          unsubscribeUrl: pref.unsubscribeToken
+            ? getUnsubscribeUrl(pref.unsubscribeToken, 'game_updates')
+            : undefined,
+        });
+
+        const result = await sendEmail({
+          to: recipient.email,
+          subject,
+          html,
+        });
+
+        await logNotification({
+          leagueId: params.leagueId,
+          userId: recipient.userId,
+          type: 'suspension_reviewed',
+          channel: 'email',
+          subject,
+          relatedEntityType: 'suspension',
+          relatedEntityId: params.suspensionId,
+          status: result.success ? 'sent' : 'failed',
+          providerMessageId: result.messageId,
+          failureReason: result.error,
+        });
+
+        if (result.success) sent++;
+        else failed++;
+        continue;
+      }
+
+      const subject = `Suspension ${params.status === 'approved' ? 'Approved' : 'Denied'}: ${params.playerName}`;
+      const html = getSuspensionReviewSummaryEmail({
+        recipientName: recipient.name,
+        playerName: params.playerName,
+        teamName: params.teamName,
+        leagueName,
+        reason: params.reason,
+        decision: params.status,
+        reviewNotes: params.reviewNotes,
+        dashboardUrl,
+      });
+
+      const result = await sendEmail({
+        to: recipient.email,
+        subject,
+        html,
+      });
+
+      if (result.success) sent++;
+      else failed++;
+    }
+
+    return { success: true, sent, failed };
+  } catch (error) {
+    console.error('[Notifications] Suspension review summary error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error sending suspension review summary',
     };
   }
 }

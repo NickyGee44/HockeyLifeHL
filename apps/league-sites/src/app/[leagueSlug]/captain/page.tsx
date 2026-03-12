@@ -15,6 +15,7 @@ import {
   Trophy,
   DollarSign,
   CheckCircle2,
+  Mail,
 } from 'lucide-react';
 import { RosterManager } from '@/components/captain/RosterManager';
 import { TeamAttendance } from '@/components/captain/TeamAttendance';
@@ -400,6 +401,19 @@ export default function CaptainPage({ params }: CaptainPageProps) {
           <div>
             <p className="font-medium text-[var(--color-text-primary)]">Team Fees</p>
             <p className="text-sm text-[var(--color-text-secondary)]">Invoices & payments</p>
+          </div>
+        </Link>
+
+        <Link
+          href={`/${leagueSlug}/captain/team-return`}
+          className="flex items-center gap-4 p-4 bg-cyan-500/10 border border-cyan-400/20 rounded-xl hover:bg-cyan-500/20 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-cyan-400/20 flex items-center justify-center">
+            <Mail className="w-5 h-5 text-cyan-200" />
+          </div>
+          <div>
+            <p className="font-medium text-cyan-100">Team Return</p>
+            <p className="text-sm text-cyan-100/75">Confirm next season plans</p>
           </div>
         </Link>
 
