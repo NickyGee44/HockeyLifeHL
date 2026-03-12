@@ -17,10 +17,13 @@ export function isSeasonRegistrationOpen(
   season: RegistrationSeasonLike,
   now = new Date()
 ): boolean {
-  if (season.registration_opens_at && season.registration_closes_at) {
-    const opensAt = new Date(season.registration_opens_at);
-    const closesAt = new Date(season.registration_closes_at);
-    return now >= opensAt && now <= closesAt;
+  const opensAt = season.registration_opens_at ? new Date(season.registration_opens_at) : null;
+  const closesAt = season.registration_closes_at ? new Date(season.registration_closes_at) : null;
+
+  if (opensAt || closesAt) {
+    const isAfterOpen = !opensAt || now >= opensAt;
+    const isBeforeClose = !closesAt || now <= closesAt;
+    return isAfterOpen && isBeforeClose;
   }
 
   return season.status === 'upcoming' || season.status === 'active';
