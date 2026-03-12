@@ -86,6 +86,8 @@ export default async function EditSeasonPage({ params }: Props) {
             start_date: season.start_date,
             end_date: season.end_date,
             registration_type: season.registration_type,
+            registration_opens_at: season.registration_opens_at,
+            registration_closes_at: season.registration_closes_at,
             games_per_cycle: season.games_per_cycle,
             max_players_per_team: season.max_players_per_team,
             allow_team_selection: season.allow_team_selection,

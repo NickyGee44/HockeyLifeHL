@@ -70,6 +70,9 @@ export async function POST(
       name,
       start_date,
       end_date,
+      registration_type,
+      registration_opens_at,
+      registration_closes_at,
       carry_forward_teams,
       selected_team_ids,
       import_rosters,
@@ -82,6 +85,17 @@ export async function POST(
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    if (
+      registration_opens_at &&
+      registration_closes_at &&
+      new Date(registration_opens_at).getTime() >= new Date(registration_closes_at).getTime()
+    ) {
+      return NextResponse.json(
+        { error: 'Registration open date must be before registration close date' },
+        { status: 400 }
+      );
+    }
+
     // Create the new season
     const { data: newSeason, error: seasonError } = await supabase
       .from('seasons')
@@ -91,6 +105,9 @@ export async function POST(
         start_date,
         end_date,
         status: 'draft',
+        registration_type: registration_type || 'open_registration',
+        registration_opens_at: registration_opens_at || null,
+        registration_closes_at: registration_closes_at || null,
       })
       .select()
       .single();

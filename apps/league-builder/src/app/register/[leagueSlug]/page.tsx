@@ -121,6 +121,23 @@ async function getCurrentUser() {
   return user;
 }
 
+function isSeasonRegistrationOpen(season: {
+  registration_opens_at?: string | null;
+  registration_closes_at?: string | null;
+  status?: string | null;
+}, now: Date) {
+  const opensAt = season.registration_opens_at ? new Date(season.registration_opens_at) : null;
+  const closesAt = season.registration_closes_at ? new Date(season.registration_closes_at) : null;
+
+  if (opensAt || closesAt) {
+    const isAfterOpen = !opensAt || now >= opensAt;
+    const isBeforeClose = !closesAt || now <= closesAt;
+    return isAfterOpen && isBeforeClose;
+  }
+
+  return season.status === 'upcoming' || season.status === 'active';
+}
+
 export default async function RegisterPage({
   params,
   searchParams,
@@ -146,12 +163,7 @@ export default async function RegisterPage({
       return true;
     }
     // Otherwise find season with open registration
-    if (season.registration_opens_at && season.registration_closes_at) {
-      const opens = new Date(season.registration_opens_at);
-      const closes = new Date(season.registration_closes_at);
-      return now >= opens && now <= closes;
-    }
-    return season.status === 'upcoming' || season.status === 'active';
+    return isSeasonRegistrationOpen(season, now);
   });
 
   if (!activeSeason) {

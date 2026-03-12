@@ -18,12 +18,19 @@ export function SeasonStatusTransitionButton({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  if (currentStatus !== 'active') return null;
+  if (!['active', 'playoffs'].includes(currentStatus)) return null;
+
+  const nextStatus = currentStatus === 'active' ? 'playoffs' : 'completed';
+  const buttonLabel = currentStatus === 'active' ? 'Switch to Playoffs' : 'Complete Season';
+  const buttonClassName =
+    currentStatus === 'active'
+      ? 'bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20'
+      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20';
 
   const handleSwitch = () => {
     setError(null);
     startTransition(async () => {
-      const result = await updateSeasonStatus(seasonId, 'playoffs');
+      const result = await updateSeasonStatus(seasonId, nextStatus);
       if (result.error) {
         setError(result.error);
       } else {
@@ -38,10 +45,10 @@ export function SeasonStatusTransitionButton({
         type="button"
         onClick={handleSwitch}
         disabled={isPending}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500/20 transition-colors disabled:opacity-50"
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-colors disabled:opacity-50 ${buttonClassName}`}
       >
         <Shield className="w-4 h-4" />
-        {isPending ? 'Switching…' : 'Switch to Playoffs'}
+        {isPending ? 'Updating…' : buttonLabel}
       </button>
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>

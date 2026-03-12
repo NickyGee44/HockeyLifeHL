@@ -16,6 +16,8 @@ interface Season {
   start_date: string | null;
   end_date: string | null;
   registration_type: string | null;
+  registration_opens_at: string | null;
+  registration_closes_at: string | null;
   games_per_cycle: number | null;
   max_players_per_team: number | null;
   allow_team_selection: boolean | null;
@@ -26,6 +28,21 @@ interface EditSeasonFormProps {
   leagueId: string;
   season: Season;
   isDraftLeague?: boolean;
+}
+
+function toDateTimeLocalValue(value?: string | null) {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 export function EditSeasonForm({
@@ -51,12 +68,16 @@ export function EditSeasonForm({
     const formData = new FormData(e.currentTarget);
 
     try {
+      const registrationOpensAt = (formData.get('registration_opens_at') as string)?.trim() || null;
+      const registrationClosesAt = (formData.get('registration_closes_at') as string)?.trim() || null;
       const result = await updateSeason(season.id, {
         name: formData.get('name') as string,
         status: formData.get('status') as SeasonStatus,
         start_date: formData.get('start_date') as string,
         end_date: formData.get('end_date') as string,
         registration_type: formData.get('registration_type') as string,
+        registration_opens_at: registrationOpensAt,
+        registration_closes_at: registrationClosesAt,
         games_per_cycle: parseInt(formData.get('games_per_cycle') as string) || 13,
         max_players_per_team:
           parseInt(formData.get('max_players_per_team') as string) || 18,
@@ -247,6 +268,51 @@ export function EditSeasonForm({
             <option value="captain_invite_only">Captain Invite Only</option>
           </select>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="registration_opens_at"
+              className="block text-sm font-medium text-neutral-300 mb-2"
+            >
+              Registration Opens
+            </label>
+            <input
+              type="datetime-local"
+              id="registration_opens_at"
+              name="registration_opens_at"
+              defaultValue={toDateTimeLocalValue(season.registration_opens_at)}
+              className={cn(
+                'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
+                'text-white placeholder-neutral-500',
+                'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
+              )}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="registration_closes_at"
+              className="block text-sm font-medium text-neutral-300 mb-2"
+            >
+              Registration Closes
+            </label>
+            <input
+              type="datetime-local"
+              id="registration_closes_at"
+              name="registration_closes_at"
+              defaultValue={toDateTimeLocalValue(season.registration_closes_at)}
+              className={cn(
+                'w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700',
+                'text-white placeholder-neutral-500',
+                'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
+              )}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-neutral-500">
+          For BMHL-style pre-season launches, leave the season status as {draftStatusLabel.toLowerCase()} and
+          open registration here so players can start signing up before opening night.
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

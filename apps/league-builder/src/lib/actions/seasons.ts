@@ -136,6 +136,7 @@ export async function getLeagueSeasons(leagueId: string, options?: { status?: Se
  */
 export async function updateSeasonStatus(seasonId: string, newStatus: SeasonStatus) {
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
 
   try {
     // Fetch current season to get league_id and current status
@@ -163,16 +164,18 @@ export async function updateSeasonStatus(seasonId: string, newStatus: SeasonStat
       };
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedSeason, error: updateError } = await serviceSupabase
       .from('seasons')
       .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', seasonId);
+      .eq('id', seasonId)
+      .select('id, league_id, status')
+      .single();
 
-    if (updateError) {
+    if (updateError || !updatedSeason) {
       if (isDevelopment) {
         console.error('Error updating season status:', sanitizeErrorForLogging(updateError));
       }
-      return { error: 'Failed to update season status' };
+      return { error: updateError?.message || 'Failed to update season status' };
     }
 
     revalidatePath(`/dashboard/leagues/${season.league_id}/seasons`);
@@ -194,6 +197,8 @@ export async function updateSeason(seasonId: string, data: {
   start_date?: string;
   end_date?: string;
   registration_type?: string;
+  registration_opens_at?: string | null;
+  registration_closes_at?: string | null;
   games_per_cycle?: number;
   max_players_per_team?: number;
   allow_team_selection?: boolean;
@@ -201,6 +206,7 @@ export async function updateSeason(seasonId: string, data: {
   playoff_format?: string;
 }) {
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
 
   try {
     // Fetch current season
@@ -235,22 +241,30 @@ export async function updateSeason(seasonId: string, data: {
     if (data.start_date !== undefined) updateData.start_date = data.start_date;
     if (data.end_date !== undefined) updateData.end_date = data.end_date;
     if (data.registration_type !== undefined) updateData.registration_type = data.registration_type;
+    if (data.registration_opens_at !== undefined) {
+      updateData.registration_opens_at = data.registration_opens_at;
+    }
+    if (data.registration_closes_at !== undefined) {
+      updateData.registration_closes_at = data.registration_closes_at;
+    }
     if (data.games_per_cycle !== undefined) updateData.games_per_cycle = data.games_per_cycle;
     if (data.max_players_per_team !== undefined) updateData.max_players_per_team = data.max_players_per_team;
     if (data.allow_team_selection !== undefined) updateData.allow_team_selection = data.allow_team_selection;
     if (data.status !== undefined) updateData.status = data.status;
     if (data.playoff_format !== undefined) updateData.playoff_format = data.playoff_format;
 
-    const { error: updateError } = await supabase
+    const { data: updatedSeason, error: updateError } = await serviceSupabase
       .from('seasons')
       .update(updateData)
-      .eq('id', seasonId);
+      .eq('id', seasonId)
+      .select('id')
+      .single();
 
-    if (updateError) {
+    if (updateError || !updatedSeason) {
       if (isDevelopment) {
         console.error('Error updating season:', sanitizeErrorForLogging(updateError));
       }
-      return { error: 'Failed to update season' };
+      return { error: updateError?.message || 'Failed to update season' };
     }
 
     revalidatePath(`/dashboard/leagues/${season.league_id}/seasons`);
