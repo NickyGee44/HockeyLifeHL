@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import Stripe from 'stripe';
 import {
   getRegistrationPaymentMode,
+  getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
 } from '@/lib/registration/fee-collection-model';
 
@@ -164,19 +165,9 @@ export async function getSeasonRegistrationFee(
   leagueId: string,
   seasonId: string
 ): Promise<number> {
-  const supabase = await createClient();
-
-  const { data: fee } = await supabase
-    .from('season_fees')
-    .select('amount_cents')
-    .eq('league_id', leagueId)
-    .eq('season_id', seasonId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return fee?.amount_cents ?? 0;
+  const supabase = createServiceRoleClient();
+  const settings = await getSeasonPaymentSettings(supabase as any, leagueId, seasonId);
+  return getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents);
 }
 
 export async function getSeasonRegistrationPaymentConfig(
@@ -187,11 +178,12 @@ export async function getSeasonRegistrationPaymentConfig(
   const settings = await getSeasonPaymentSettings(supabase as any, leagueId, seasonId);
 
   return {
-    registrationFee: settings.feeAmountCents,
+    registrationFee: getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents),
     feeCollectionModel: settings.feeCollectionModel,
     paymentMode: getRegistrationPaymentMode(
       settings.feeCollectionModel,
-      settings.feeAmountCents
+      settings.feeAmountCents,
+      settings.feeBasis
     ),
   };
 }
@@ -218,9 +210,14 @@ export async function saveRegistrationDraft(
       leagueId,
       seasonId
     );
+    const playerFeeAmountCents = getPlayerRegistrationFeeAmount(
+      paymentSettings.feeBasis,
+      paymentSettings.feeAmountCents
+    );
     const paymentMode = getRegistrationPaymentMode(
       paymentSettings.feeCollectionModel,
-      paymentSettings.feeAmountCents
+      paymentSettings.feeAmountCents,
+      paymentSettings.feeBasis
     );
     const normalizedPaymentStatus =
       data.payment_status === 'completed'
@@ -229,7 +226,7 @@ export async function saveRegistrationDraft(
           ? 'pending'
           : 'not_required';
     const amountPaidCents =
-      normalizedPaymentStatus === 'completed' ? paymentSettings.feeAmountCents : 0;
+      normalizedPaymentStatus === 'completed' ? playerFeeAmountCents : 0;
     const normalizedDraftData = {
       ...data,
       payment_status: normalizedPaymentStatus,
@@ -250,7 +247,7 @@ export async function saveRegistrationDraft(
           draft_step: data.current_step || 1,
           status: 'pending',
           payment_status: normalizedPaymentStatus,
-          fee_amount_cents: paymentSettings.feeAmountCents,
+          fee_amount_cents: playerFeeAmountCents,
           amount_paid_cents: amountPaidCents,
           currency: paymentSettings.currency,
         },
@@ -428,10 +425,14 @@ export async function submitPlayerRegistration(
       data.league_id,
       data.season_id
     );
-    const expectedFeeCents = paymentSettings.feeAmountCents;
+    const expectedFeeCents = getPlayerRegistrationFeeAmount(
+      paymentSettings.feeBasis,
+      paymentSettings.feeAmountCents
+    );
     const paymentMode = getRegistrationPaymentMode(
       paymentSettings.feeCollectionModel,
-      expectedFeeCents
+      paymentSettings.feeAmountCents,
+      paymentSettings.feeBasis
     );
     let amountPaidCents = 0;
 

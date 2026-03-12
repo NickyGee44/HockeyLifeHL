@@ -4,6 +4,8 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import {
   getRegistrationPaymentMode,
   getSeasonFeeCollectionModel,
+  normalizeFeeBasis,
+  type FeeBasis,
 } from '@/lib/payments/fee-collection-model';
 import { getSeasonParticipationTeams } from '@/lib/seasons/team-participation';
 import { revalidatePath } from 'next/cache';
@@ -56,6 +58,7 @@ export interface TeamInvoice {
   season_id: string;
   league_id: string;
   total_players: number;
+  fee_basis?: FeeBasis;
   fee_per_player_cents: number;
   total_amount_cents: number;
   amount_paid_cents: number;
@@ -105,6 +108,13 @@ interface ExistingTeamInvoiceRecord {
   notes: string | null;
   paid_by: string | null;
   paid_at: string | null;
+  fee_basis?: FeeBasis;
+}
+
+interface ActiveSeasonFeeConfig {
+  amount_cents: number;
+  currency: string;
+  fee_basis: FeeBasis;
 }
 
 // ==============================================================================
@@ -167,6 +177,59 @@ async function verifyTeamLeader(
     .maybeSingle();
 
   return Boolean(rosterMembership);
+}
+
+async function getActiveSeasonFeeConfig(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  leagueId: string,
+  seasonId: string
+): Promise<ActionResult<ActiveSeasonFeeConfig>> {
+  const feeWithBasis = await supabase
+    .from('season_fees')
+    .select('amount_cents, currency, fee_basis')
+    .eq('league_id', leagueId)
+    .eq('season_id', seasonId)
+    .eq('is_active', true)
+    .limit(1)
+    .single();
+
+  if (
+    feeWithBasis.error &&
+    (feeWithBasis.error.code === '42703' || feeWithBasis.error.message?.includes('fee_basis'))
+  ) {
+    const fallbackFee = await supabase
+      .from('season_fees')
+      .select('amount_cents, currency')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('is_active', true)
+      .limit(1)
+      .single();
+
+    if (fallbackFee.error || !fallbackFee.data) {
+      return { success: false, error: 'No active season fee found for this season' };
+    }
+
+    return {
+      success: true,
+      data: {
+        ...fallbackFee.data,
+        fee_basis: 'player',
+      },
+    };
+  }
+
+  if (feeWithBasis.error || !feeWithBasis.data) {
+    return { success: false, error: 'No active season fee found for this season' };
+  }
+
+  return {
+    success: true,
+    data: {
+      ...feeWithBasis.data,
+      fee_basis: normalizeFeeBasis((feeWithBasis.data as any).fee_basis),
+    },
+  };
 }
 
 // ==============================================================================
@@ -289,27 +352,21 @@ export async function generateTeamInvoices(
 
     const supabase = createServiceRoleClient();
 
-    // Get the active season fee for this season
-    const { data: seasonFee, error: feeError } = await supabase
-      .from('season_fees')
-      .select('amount_cents, currency')
-      .eq('league_id', leagueId)
-      .eq('season_id', seasonId)
-      .eq('is_active', true)
-      .limit(1)
-      .single();
-
-    if (feeError || !seasonFee) {
-      return { success: false, error: 'No active season fee found for this season' };
+    const seasonFeeResult = await getActiveSeasonFeeConfig(supabase, leagueId, seasonId);
+    if (!seasonFeeResult.success) {
+      return { success: false, error: seasonFeeResult.error };
     }
+
+    const seasonFee = seasonFeeResult.data;
 
     const feeCollectionModel = await getSeasonFeeCollectionModel(supabase as any, seasonId);
     const paymentMode = getRegistrationPaymentMode(
       feeCollectionModel,
-      seasonFee.amount_cents
+      seasonFee.amount_cents,
+      seasonFee.fee_basis
     );
 
-    if (paymentMode === 'required') {
+    if (paymentMode === 'required' && seasonFee.fee_basis !== 'team') {
       return {
         success: false,
         error:
@@ -389,15 +446,15 @@ export async function generateTeamInvoices(
         })
         .filter((amount) => amount > 0);
 
-      const totalPlayers = perPlayerOutstanding.length;
-      const calculatedTotalAmount = perPlayerOutstanding.reduce(
-        (sum, amount) => sum + amount,
-        0
-      );
+      const totalPlayers = teamRegistrations.length;
+      const calculatedTotalAmount =
+        seasonFee.fee_basis === 'team'
+          ? seasonFee.amount_cents
+          : perPlayerOutstanding.reduce((sum, amount) => sum + amount, 0);
 
       const existingInvoice = existingByTeamId.get(team.id);
 
-      if (totalPlayers === 0 && !existingInvoice) {
+      if (seasonFee.fee_basis !== 'team' && perPlayerOutstanding.length === 0 && !existingInvoice) {
         skipped++;
         continue;
       }
@@ -418,7 +475,8 @@ export async function generateTeamInvoices(
           season_id: seasonId,
           league_id: leagueId,
           total_players: totalPlayers,
-          fee_per_player_cents: seasonFee.amount_cents,
+          fee_basis: seasonFee.fee_basis,
+          fee_per_player_cents: seasonFee.fee_basis === 'team' ? 0 : seasonFee.amount_cents,
           total_amount_cents: totalAmountCents,
           amount_paid_cents: amountPaidCents,
           currency: seasonFee.currency,
@@ -433,12 +491,36 @@ export async function generateTeamInvoices(
           updated_at: new Date().toISOString(),
         };
 
-      const { error: writeError } = existingInvoice
+      let { error: writeError } = existingInvoice
         ? await (supabase as any)
             .from('team_invoices')
             .update(invoicePayload)
             .eq('id', existingInvoice.id)
         : await (supabase as any).from('team_invoices').insert(invoicePayload);
+
+      if (
+        writeError &&
+        (writeError.code === '42703' || writeError.message?.includes('fee_basis'))
+      ) {
+        if (seasonFee.fee_basis === 'team') {
+          return {
+            success: false,
+            error: 'Flat team fee invoices are not available in this environment yet.',
+          };
+        }
+
+        const fallbackPayload = { ...invoicePayload };
+        delete (fallbackPayload as Record<string, unknown>).fee_basis;
+
+        const fallbackResult = existingInvoice
+          ? await (supabase as any)
+              .from('team_invoices')
+              .update(fallbackPayload)
+              .eq('id', existingInvoice.id)
+          : await (supabase as any).from('team_invoices').insert(fallbackPayload);
+
+        writeError = fallbackResult.error;
+      }
 
       if (writeError) {
         console.error(`Failed to write invoice for team ${team.id}:`, writeError);
@@ -718,6 +800,50 @@ export async function getPerTeamPaymentBreakdown(
     }
 
     const supabase = createServiceRoleClient();
+    const seasonFeeResult = await getActiveSeasonFeeConfig(supabase, leagueId, seasonId);
+
+    if (!seasonFeeResult.success) {
+      return { success: false, error: seasonFeeResult.error };
+    }
+
+    if (seasonFeeResult.data.fee_basis === 'team') {
+      const { data: invoices, error: invoiceError } = await (supabase as any)
+        .from('team_invoices')
+        .select(`
+          team_id,
+          total_players,
+          total_amount_cents,
+          amount_paid_cents,
+          status,
+          team:teams!team_invoices_team_id_fkey(name)
+        `)
+        .eq('league_id', leagueId)
+        .eq('season_id', seasonId);
+
+      if (invoiceError) {
+        return { success: false, error: sanitizeError(invoiceError, 'getPerTeamPaymentBreakdown') };
+      }
+
+      const rows: TeamPaymentBreakdown[] = ((invoices || []) as Array<Record<string, any>>).map(
+        (invoice) => ({
+          team_id: invoice.team_id,
+          team_name: invoice.team?.name || 'Unknown Team',
+          total_players: invoice.total_players || 0,
+          total_fee_cents: invoice.total_amount_cents || 0,
+          total_collected_cents: invoice.amount_paid_cents || 0,
+          total_outstanding_cents: Math.max(
+            0,
+            (invoice.total_amount_cents || 0) - (invoice.amount_paid_cents || 0)
+          ),
+          players_paid: invoice.status === 'paid' || invoice.status === 'waived' ? invoice.total_players || 0 : 0,
+          players_unpaid:
+            invoice.status === 'paid' || invoice.status === 'waived' ? 0 : invoice.total_players || 0,
+        })
+      );
+
+      rows.sort((a, b) => a.team_name.localeCompare(b.team_name));
+      return { success: true, data: rows };
+    }
 
     const { data: submissions, error } = await supabase
       .from('registration_submissions')
@@ -812,6 +938,15 @@ export async function getUnpaidPlayers(
     const auth = await verifyLeagueAdmin(leagueId);
     if (!auth) {
       return { success: false, error: 'Unauthorized' };
+    }
+
+    const seasonFeeResult = await getActiveSeasonFeeConfig(createServiceRoleClient(), leagueId, seasonId);
+    if (!seasonFeeResult.success) {
+      return { success: false, error: seasonFeeResult.error };
+    }
+
+    if (seasonFeeResult.data.fee_basis === 'team') {
+      return { success: true, data: [] };
     }
 
     const supabase = await createClient();

@@ -25,14 +25,23 @@ interface Season {
 interface EditSeasonFormProps {
   leagueId: string;
   season: Season;
+  isDraftLeague?: boolean;
 }
 
-export function EditSeasonForm({ leagueId, season }: EditSeasonFormProps) {
+export function EditSeasonForm({
+  leagueId,
+  season,
+  isDraftLeague = false,
+}: EditSeasonFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const draftStatusLabel = getSeasonStatusLabel(
+    'draft',
+    isDraftLeague ? 'draft' : 'open_registration'
+  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -141,9 +150,7 @@ export function EditSeasonForm({ leagueId, season }: EditSeasonFormProps) {
                 'focus:border-rink-500 focus:outline-none focus:ring-1 focus:ring-rink-500'
               )}
             >
-              <option value="draft">
-                {getSeasonStatusLabel('draft', season.registration_type)}
-              </option>
+              <option value="draft">{draftStatusLabel}</option>
               <option value="active">Active</option>
               <option value="playoffs">Playoffs</option>
               <option value="completed">Completed</option>

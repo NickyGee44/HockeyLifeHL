@@ -11,6 +11,7 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { Plus, Edit, Trash2, DollarSign, Calendar, AlertCircle, Info, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,7 +46,7 @@ import {
   getSeasonFees,
   updateSeasonFeeCollectionModel,
 } from '@/lib/payments/fee-actions';
-import type { SeasonFeeWithSeason } from '@/lib/payments/types';
+import type { FeeBasis, SeasonFeeWithSeason } from '@/lib/payments/types';
 
 // ============================================================================
 // Types
@@ -59,12 +60,14 @@ interface SeasonFeeManagerProps {
   seasonName: string;
   initialFees?: SeasonFeeWithSeason[];
   initialFeeCollectionModel?: FeeCollectionModel;
+  billingHref?: string;
 }
 
 interface FeeFormData {
   name: string;
   description: string;
   amountCents: number;
+  feeBasis: FeeBasis;
   currency: 'usd' | 'cad';
   allowFullPayment: boolean;
   allowTwoPay: boolean;
@@ -80,7 +83,8 @@ const initialFormData: FeeFormData = {
   name: '',
   description: '',
   amountCents: 0,
-  currency: 'usd',
+  feeBasis: 'player',
+  currency: 'cad',
   allowFullPayment: true,
   allowTwoPay: false,
   allowThreePay: false,
@@ -105,9 +109,20 @@ function dollarsToCents(dollars: string): number {
   return Math.round(parsed * 100);
 }
 
-function formatCurrency(cents: number, currency: string = 'usd'): string {
+function formatCurrency(cents: number, currency: string = 'cad'): string {
   const symbol = currency === 'cad' ? 'CA$' : '$';
   return `${symbol}${centsToDollars(cents)}`;
+}
+
+function getFeeAmountLabel(
+  feeCollectionModel: FeeCollectionModel,
+  feeBasis: FeeBasis
+): string {
+  if (feeCollectionModel === 'individual') {
+    return 'Per-player registration fee';
+  }
+
+  return feeBasis === 'team' ? 'Flat team fee' : 'Per-player rate billed through team invoices';
 }
 
 // ============================================================================
@@ -120,6 +135,7 @@ export function SeasonFeeManager({
   seasonName,
   initialFees = [],
   initialFeeCollectionModel = 'individual',
+  billingHref,
 }: SeasonFeeManagerProps) {
   const t = useTranslations('payments.seasonFee');
   const [fees, setFees] = React.useState<SeasonFeeWithSeason[]>(initialFees);
@@ -141,6 +157,33 @@ export function SeasonFeeManager({
     loadFees();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loadFees is a data-fetching function that depends on leagueId and seasonId; also called after CRUD operations
   }, [leagueId, seasonId]);
+
+  React.useEffect(() => {
+    if (feeCollectionModel === 'individual' && formData.feeBasis !== 'player') {
+      setFormData((current) => ({ ...current, feeBasis: 'player' }));
+    }
+  }, [feeCollectionModel, formData.feeBasis]);
+
+  React.useEffect(() => {
+    if (
+      formData.feeBasis === 'team' &&
+      (!formData.allowFullPayment || formData.allowTwoPay || formData.allowThreePay)
+    ) {
+      setFormData((current) => ({
+        ...current,
+        allowFullPayment: true,
+        allowTwoPay: false,
+        allowThreePay: false,
+        installmentFeeCents: 0,
+      }));
+      setInstallmentFeeDisplay('0.00');
+    }
+  }, [
+    formData.allowFullPayment,
+    formData.allowThreePay,
+    formData.allowTwoPay,
+    formData.feeBasis,
+  ]);
 
   const loadFees = async () => {
     const result = await getSeasonFees(leagueId, { seasonId });
@@ -166,6 +209,7 @@ export function SeasonFeeManager({
       name: fee.name,
       description: fee.description || '',
       amountCents: fee.amount_cents,
+      feeBasis: fee.fee_basis || 'player',
       currency: fee.currency as 'usd' | 'cad',
       allowFullPayment: fee.allow_full_payment,
       allowTwoPay: fee.allow_two_pay,
@@ -325,9 +369,16 @@ export function SeasonFeeManager({
           {(feeCollectionModel === 'team' || feeCollectionModel === 'hybrid') && (
             <div className="flex items-start gap-2 p-3 mt-4 bg-rink-500/10 border border-rink-500/20 rounded-lg">
               <Info className="w-4 h-4 text-rink-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-rink-300">
-                Team billing is enabled. Use &apos;Generate Team Invoices&apos; from the Billing tab to create invoices for each team.
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-rink-300">
+                  Team billing is enabled. Generate team invoices from the league billing page.
+                </p>
+                {billingHref ? (
+                  <Button asChild size="sm" variant="secondary" className="bg-white/10 text-white hover:bg-white/15">
+                    <Link href={billingHref}>Open League Billing</Link>
+                  </Button>
+                ) : null}
+              </div>
             </div>
           )}
         </CardContent>
@@ -412,9 +463,16 @@ export function SeasonFeeManager({
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-neutral-400">{t('baseAmount')}</span>
-                    <span className="text-lg font-bold text-white">
+                        <span className="text-sm text-neutral-400">{t('baseAmount')}</span>
+                    <span className="text-lg font-bold text-white text-right">
                       {formatCurrency(fee.amount_cents, fee.currency)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-neutral-500">Fee basis</span>
+                    <span className="text-neutral-300">
+                      {getFeeAmountLabel(feeCollectionModel, fee.fee_basis || 'player')}
                     </span>
                   </div>
 
@@ -538,6 +596,9 @@ export function SeasonFeeManager({
                       className="pl-7"
                     />
                   </div>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {getFeeAmountLabel(feeCollectionModel, formData.feeBasis)}
+                  </p>
                 </div>
 
                 <div>
@@ -552,47 +613,88 @@ export function SeasonFeeManager({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="usd">USD ($)</SelectItem>
                       <SelectItem value="cad">CAD (CA$)</SelectItem>
+                      <SelectItem value="usd">USD ($)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {feeCollectionModel !== 'individual' && (
+                <div>
+                  <label className="text-sm font-medium text-white mb-2 block">
+                    Fee basis
+                  </label>
+                  <Select
+                    value={formData.feeBasis}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, feeBasis: value as FeeBasis })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="player">Per-player fee</SelectItem>
+                      <SelectItem value="team">Flat team fee</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-neutral-500 mt-2">
+                    Per-player fees let each team invoice grow with roster size. Flat team fees
+                    create one invoice per team regardless of player count.
+                  </p>
+                  {feeCollectionModel === 'hybrid' && formData.feeBasis === 'team' && (
+                    <p className="text-xs text-amber-400 mt-2">
+                      Hybrid plus a flat team fee still bills the captain/team invoice as one total.
+                      Individual player checkout stays hidden for this setup.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Payment Plans */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-white">{t('paymentPlans')}</label>
-              <div className="bg-neutral-800/50 p-4 rounded-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-300">{t('fullPayment')}</span>
-                  <Switch
-                    checked={formData.allowFullPayment}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, allowFullPayment: checked })
-                    }
-                  />
+              {formData.feeBasis === 'team' ? (
+                <div className="bg-neutral-800/50 p-4 rounded-lg">
+                  <p className="text-sm text-neutral-300">
+                    Flat team fees create one team invoice. Captains can pay the full amount or the
+                    league can record partial payments, but player installment plans do not apply.
+                  </p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-300">{t('twoPayments')}</span>
-                  <Switch
-                    checked={formData.allowTwoPay}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, allowTwoPay: checked })
-                    }
-                  />
+              ) : (
+                <div className="bg-neutral-800/50 p-4 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-300">{t('fullPayment')}</span>
+                    <Switch
+                      checked={formData.allowFullPayment}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, allowFullPayment: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-300">{t('twoPayments')}</span>
+                    <Switch
+                      checked={formData.allowTwoPay}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, allowTwoPay: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-300">{t('threePayments')}</span>
+                    <Switch
+                      checked={formData.allowThreePay}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, allowThreePay: checked })
+                      }
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-300">{t('threePayments')}</span>
-                  <Switch
-                    checked={formData.allowThreePay}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, allowThreePay: checked })
-                    }
-                  />
-                </div>
-              </div>
-              {formData.allowTwoPay || formData.allowThreePay ? (
+              )}
+              {formData.feeBasis !== 'team' && (formData.allowTwoPay || formData.allowThreePay) ? (
                 <div>
                   <label className="text-sm font-medium text-white mb-2 block">
                     {t('installmentFee')}

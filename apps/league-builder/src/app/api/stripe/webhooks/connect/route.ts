@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { stripe } from '@/lib/stripe/client';
+import { resolveConnectAccountStatus } from '@/lib/leagues/stripe-connect';
 import Stripe from 'stripe';
 import {
   sendPayoutFailureAlertEmail,
@@ -141,18 +142,17 @@ async function handleAccountUpdated(
   let status = 'pending';
   let decisionPath = 'pending';
 
-  if (account.charges_enabled && account.payouts_enabled) {
-    status = 'complete';
+  status = resolveConnectAccountStatus(account);
+
+  if (status === 'complete') {
     decisionPath = 'fully_enabled';
-  } else if (account.requirements?.disabled_reason) {
-    status = 'disabled';
-    decisionPath = `disabled_${account.requirements.disabled_reason}`;
-  } else if (
-    account.requirements?.currently_due &&
-    account.requirements.currently_due.length > 0
-  ) {
-    status = 'restricted';
-    decisionPath = `restricted_${account.requirements.currently_due.length}_requirements`;
+  } else if (status === 'disabled') {
+    decisionPath = `disabled_${account.requirements?.disabled_reason ?? 'unknown'}`;
+  } else if (status === 'restricted') {
+    decisionPath =
+      account.requirements?.disabled_reason
+        ? `restricted_${account.requirements.disabled_reason}`
+        : `restricted_${account.requirements?.currently_due?.length ?? 0}_requirements`;
   }
 
   // Update league

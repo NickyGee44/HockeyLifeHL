@@ -604,9 +604,9 @@ function pickCurrentSeason(seasons: SeasonSnapshot[]) {
 
 function formatMoney(cents: number) {
   if (!cents || cents <= 0) return 'Custom quote';
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }

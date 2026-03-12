@@ -23,6 +23,7 @@ import {
   createAccountLink,
   createLoginLink,
   getConnectAccountInfo,
+  isMissingConnectAccountError,
   createPaymentIntent,
   createRefund,
   getPayoutInfo,
@@ -206,8 +207,44 @@ export async function startConnectOnboarding(
         account_id: accountId }, userId);
     }
 
-    // Create onboarding link
-    const link = await createAccountLink(accountId, refreshUrl, returnUrl);
+    let link;
+
+    try {
+      link = await createAccountLink(accountId, refreshUrl, returnUrl);
+    } catch (error) {
+      if (!isMissingConnectAccountError(error)) {
+        throw error;
+      }
+
+      const supabase = await createClient();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', userId)
+        .single();
+
+      const email = profile?.email || '';
+      accountId = await createConnectAccount(leagueId, league.name, email);
+
+      const serviceSupabase = createServiceRoleClient();
+      await serviceSupabase
+        .from('leagues')
+        .update({
+          stripe_account_id: accountId,
+          stripe_account_status: 'pending',
+          payment_mode: 'manual',
+        })
+        .eq('id', leagueId);
+
+      await logAuditEvent(
+        leagueId,
+        'connect_account_recreated',
+        { account_id: accountId },
+        userId
+      );
+
+      link = await createAccountLink(accountId, refreshUrl, returnUrl);
+    }
 
     await logAuditEvent(leagueId, 'onboarding_link_created', {
       account_id: accountId,
@@ -236,15 +273,27 @@ export async function getConnectAccountStatus(
 
     const accountInfo = await getConnectAccountInfo(league.stripe_account_id);
 
-    // Update league status if changed
-    if (league.stripe_account_id && league.stripe_account_status !== accountInfo.status) {
+    if (league.stripe_account_id) {
       const serviceSupabase = createServiceRoleClient();
-      await serviceSupabase
-        .from('leagues')
-        .update({
-          stripe_account_status: accountInfo.status,
-          payment_mode: accountInfo.chargesEnabled ? 'stripe' : 'manual' })
-        .eq('id', leagueId);
+
+      if (accountInfo.accountMissing) {
+        await serviceSupabase
+          .from('leagues')
+          .update({
+            stripe_account_id: null,
+            stripe_account_status: 'not_created',
+            payment_mode: 'manual',
+          })
+          .eq('id', leagueId);
+      } else if (league.stripe_account_status !== accountInfo.status) {
+        await serviceSupabase
+          .from('leagues')
+          .update({
+            stripe_account_status: accountInfo.status,
+            payment_mode: accountInfo.chargesEnabled ? 'stripe' : 'manual',
+          })
+          .eq('id', leagueId);
+      }
     }
 
     return { success: true, data: accountInfo };
@@ -272,9 +321,31 @@ export async function getStripeDashboardLink(
       return { success: false, error: 'No Stripe account connected. Please complete onboarding first.' };
     }
 
-    const url = await createLoginLink(league.stripe_account_id);
+    try {
+      const url = await createLoginLink(league.stripe_account_id);
 
-    return { success: true, data: { url } };
+      return { success: true, data: { url } };
+    } catch (error) {
+      if (isMissingConnectAccountError(error)) {
+        const serviceSupabase = createServiceRoleClient();
+        await serviceSupabase
+          .from('leagues')
+          .update({
+            stripe_account_id: null,
+            stripe_account_status: 'not_created',
+            payment_mode: 'manual',
+          })
+          .eq('id', leagueId);
+
+        return {
+          success: false,
+          error:
+            'This Stripe account is no longer available. Reload the billing page and start setup again.',
+        };
+      }
+
+      throw error;
+    }
   } catch (error) {
     console.error('[Stripe Connect] Get dashboard link error:', error);
     return { success: false, error: getStripeErrorMessage(error) };
@@ -537,9 +608,22 @@ export async function initializeConnectAccount(
     }
     const { league, userId } = result;
 
-    // If account already exists, return it
     if (league.stripe_account_id) {
-      return { success: true, data: { accountId: league.stripe_account_id } };
+      const accountInfo = await getConnectAccountInfo(league.stripe_account_id);
+
+      if (!accountInfo.accountMissing) {
+        return { success: true, data: { accountId: league.stripe_account_id } };
+      }
+
+      const serviceSupabase = createServiceRoleClient();
+      await serviceSupabase
+        .from('leagues')
+        .update({
+          stripe_account_id: null,
+          stripe_account_status: 'not_created',
+          payment_mode: 'manual',
+        })
+        .eq('id', leagueId);
     }
 
     // Get user email for the account

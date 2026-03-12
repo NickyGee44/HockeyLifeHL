@@ -50,6 +50,7 @@ interface TeamInvoice {
   id: string;
   team_id: string;
   total_players: number;
+  fee_basis?: 'player' | 'team';
   fee_per_player_cents: number;
   total_amount_cents: number;
   amount_paid_cents: number;
@@ -73,6 +74,14 @@ function formatCurrency(cents: number): string {
     style: 'currency',
     currency: 'CAD',
   }).format(cents / 100);
+}
+
+function getInvoiceFeeSetup(invoice: TeamInvoice): string {
+  if (invoice.fee_basis === 'team') {
+    return 'Flat team fee';
+  }
+
+  return formatCurrency(invoice.fee_per_player_cents);
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -250,7 +259,7 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
                     {t('players')}
                   </th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                    {t('feePerPlayer')}
+                    Fee setup
                   </th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                     {t('total')}
@@ -281,7 +290,7 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
                         {invoice.total_players}
                       </td>
                       <td className="px-4 py-3 text-right text-neutral-300">
-                        {formatCurrency(invoice.fee_per_player_cents)}
+                        {getInvoiceFeeSetup(invoice)}
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-white">
                         {formatCurrency(invoice.total_amount_cents)}

@@ -34,6 +34,7 @@ interface InvoicePayment {
 interface TeamInvoice {
   id: string;
   total_players: number;
+  fee_basis?: 'player' | 'team';
   fee_per_player_cents: number;
   total_amount_cents: number;
   amount_paid_cents: number;
@@ -93,30 +94,40 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
       }
 
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from('team_invoices')
-        .select(`
-          id,
-          total_players,
-          fee_per_player_cents,
-          total_amount_cents,
-          amount_paid_cents,
-          status,
-          payment_deadline,
-          notes,
-          currency,
-          season_id,
-          team_invoice_payments (
+      const invoiceQuery = async (includeFeeBasis: boolean) =>
+        supabase
+          .from('team_invoices')
+          .select(`
             id,
-            amount_cents,
-            payment_method,
-            reference_number,
+            total_players,
+            ${includeFeeBasis ? 'fee_basis,' : ''}
+            fee_per_player_cents,
+            total_amount_cents,
+            amount_paid_cents,
+            status,
+            payment_deadline,
             notes,
-            created_at
-          )
-        `)
-        .eq('team_id', currentTeam.team_id)
-        .order('created_at', { ascending: false });
+            currency,
+            season_id,
+            team_invoice_payments (
+              id,
+              amount_cents,
+              payment_method,
+              reference_number,
+              notes,
+              created_at
+            )
+          `)
+          .eq('team_id', currentTeam.team_id)
+          .order('created_at', { ascending: false });
+
+      let { data, error } = await invoiceQuery(true);
+
+      if (error && (error.code === '42703' || error.message?.includes('fee_basis'))) {
+        const fallbackResult = await invoiceQuery(false);
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      }
 
       if (!error && data) {
         setInvoices(data as unknown as TeamInvoice[]);
@@ -232,7 +243,9 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
                         {formatCurrency(invoice.total_amount_cents, invoice.currency)}
                       </p>
                       <p className="text-xs text-[var(--color-text-muted)]">
-                        {invoice.total_players} players &times; {formatCurrency(invoice.fee_per_player_cents, invoice.currency)}
+                        {invoice.fee_basis === 'team'
+                          ? `Flat team fee${invoice.total_players > 0 ? ` • ${invoice.total_players} registered player${invoice.total_players === 1 ? '' : 's'}` : ''}`
+                          : `${invoice.total_players} players × ${formatCurrency(invoice.fee_per_player_cents, invoice.currency)}`}
                       </p>
                     </div>
                     <div>

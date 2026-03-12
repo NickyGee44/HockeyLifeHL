@@ -188,7 +188,7 @@ export function Step7Confirmation() {
       </div>
 
       {/* Payment Status */}
-      {registrationFee > 0 && (
+      {(registrationFee > 0 || paymentMode === 'hidden') && (
         <div className="p-6 rounded-xl border border-neutral-700 bg-neutral-800/30">
           <div className="flex items-center gap-3 mb-4">
             <CreditCard className="w-5 h-5 text-rink-500" />
@@ -200,7 +200,11 @@ export function Step7Confirmation() {
               <p className="text-sm text-neutral-400">
                 {paymentMode === 'hidden' ? 'Team Billing' : 'Registration Fee'}
               </p>
-              <p className="text-2xl font-bold text-rink-500">{formattedAmount}</p>
+              <p className="text-2xl font-bold text-rink-500">
+                {paymentMode === 'hidden' && registrationFee <= 0
+                  ? 'Handled by team invoice'
+                  : formattedAmount}
+              </p>
             </div>
             {formData.payment_status === 'completed' ? (
               <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 text-green-400">
@@ -223,7 +227,9 @@ export function Step7Confirmation() {
           </div>
           {paymentMode === 'hidden' && (
             <p className="mt-3 text-sm text-neutral-400">
-              This season uses team billing. Your team captain or league will handle the invoice.
+              {registrationFee > 0
+                ? 'This season uses team billing. Your team captain or league will handle the invoice.'
+                : 'This season uses a flat team fee. Your captain or league can pay the full team invoice after registrations are collected.'}
             </p>
           )}
           {paymentMode === 'optional' && formData.payment_status !== 'completed' && (

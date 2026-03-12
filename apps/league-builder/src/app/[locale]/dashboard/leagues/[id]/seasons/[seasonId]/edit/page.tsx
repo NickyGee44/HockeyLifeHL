@@ -33,7 +33,8 @@ export default async function EditSeasonPage({ params }: Props) {
         id,
         name,
         slug,
-        primary_color
+        primary_color,
+        settings
       )
     `
     )
@@ -77,6 +78,7 @@ export default async function EditSeasonPage({ params }: Props) {
         {/* Form */}
         <EditSeasonForm
           leagueId={leagueId}
+          isDraftLeague={(season.league?.settings as { isDraftLeague?: boolean } | null)?.isDraftLeague === true}
           season={{
             id: season.id,
             name: season.name,

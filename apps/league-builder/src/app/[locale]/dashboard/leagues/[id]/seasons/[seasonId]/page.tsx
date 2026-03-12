@@ -347,6 +347,7 @@ export default async function SeasonDetailPage({ params }: Props) {
             seasonName={season.name}
             initialFees={seasonFees}
             initialFeeCollectionModel={initialFeeCollectionModel}
+            billingHref={`/${locale}/dashboard/leagues/${leagueId}/billing`}
           />
         </div>
 

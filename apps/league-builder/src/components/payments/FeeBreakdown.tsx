@@ -45,7 +45,7 @@ function centsToDollars(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-function formatCurrency(cents: number, currency: string = 'usd'): string {
+function formatCurrency(cents: number, currency: string = 'cad'): string {
   const symbol = currency === 'cad' ? 'CA$' : '$';
   return `${symbol}${centsToDollars(cents)}`;
 }
