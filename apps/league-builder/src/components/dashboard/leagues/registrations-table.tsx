@@ -36,6 +36,12 @@ interface Registration {
   id: string;
   player_id: string;
   registration_type: string;
+  draft_data?: {
+    registration_intent?: string | null;
+    requested_team_name?: string | null;
+    previous_team_name?: string | null;
+    team_return_status?: string | null;
+  } | null;
   status: string;
   preferred_position: string | null;
   secondary_position: string | null;
@@ -71,6 +77,40 @@ type SortDirection = 'asc' | 'desc';
 interface RegistrationsTableProps {
   registrations: Registration[];
   leagueId: string;
+}
+
+function formatRegistrationIntent(intent?: string | null): string {
+  switch (intent) {
+    case 'return_to_previous_team':
+      return 'Returning player';
+    case 'join_team':
+      return 'Joining team';
+    case 'captain_application':
+      return 'Captain application';
+    case 'free_agent':
+      return 'Free agent';
+    default:
+      return '';
+  }
+}
+
+function formatTeamReturnStatus(status?: string | null): string {
+  switch (status) {
+    case 'confirmed':
+      return 'Team confirmed';
+    case 'pending_team_return':
+      return 'Waiting on team return';
+    case 'team_not_returning':
+      return 'Team not returning';
+    case 'new_team_request':
+      return 'Waiting on new team approval';
+    default:
+      return '';
+  }
+}
+
+function getRequestedTeamLabel(reg: Registration): string | null {
+  return reg.team?.name || reg.draft_data?.requested_team_name || reg.draft_data?.previous_team_name || null;
 }
 
 function getSortValue(reg: Registration, field: SortField): string | number {
@@ -438,11 +478,21 @@ function RegistrationRow({
         </td>
         <td className="px-4 py-3">
           <span className="text-sm text-neutral-300">
-            {reg.team?.name || '-'}
+            {getRequestedTeamLabel(reg) || '-'}
           </span>
           <p className="text-xs text-neutral-500">
             {formatRegistrationType(reg.registration_type as any)}
           </p>
+          {reg.draft_data?.registration_intent && (
+            <p className="text-xs text-rink-300">
+              {formatRegistrationIntent(reg.draft_data.registration_intent)}
+            </p>
+          )}
+          {reg.draft_data?.team_return_status && (
+            <p className="text-xs text-neutral-500">
+              {formatTeamReturnStatus(reg.draft_data.team_return_status)}
+            </p>
+          )}
         </td>
         <td className="px-4 py-3">
           <WaiverBadge waiver={reg.waiver} />
@@ -562,7 +612,13 @@ function ExpandedDetails({ reg }: { reg: Registration }) {
         </h4>
         <div className="text-sm space-y-1">
           <DetailRow label="Type" value={formatRegistrationType(reg.registration_type as any)} />
-          <DetailRow label="Team Pref." value={reg.team?.name || 'None'} />
+          {reg.draft_data?.registration_intent && (
+            <DetailRow label="Path" value={formatRegistrationIntent(reg.draft_data.registration_intent)} />
+          )}
+          <DetailRow label="Team Pref." value={getRequestedTeamLabel(reg) || 'None'} />
+          {reg.draft_data?.team_return_status && (
+            <DetailRow label="Team Status" value={formatTeamReturnStatus(reg.draft_data.team_return_status)} />
+          )}
           <DetailRow
             label="Waiver"
             value={reg.waiver ? `Signed by ${reg.waiver.signed_name}` : 'Not signed'}
@@ -724,6 +780,12 @@ function RegistrationMobileCard({
         <div>
           <span className="text-neutral-500 text-xs">Payment</span>
           <p><PaymentBadge status={reg.payment_status} /></p>
+        </div>
+        <div>
+          <span className="text-neutral-500 text-xs">Path</span>
+          <p className="text-neutral-300">
+            {formatRegistrationIntent(reg.draft_data?.registration_intent) || formatRegistrationType(reg.registration_type as any)}
+          </p>
         </div>
         <div>
           <span className="text-neutral-500 text-xs">Waiver</span>

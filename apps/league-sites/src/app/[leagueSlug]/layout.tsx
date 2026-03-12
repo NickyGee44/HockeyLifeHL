@@ -14,6 +14,7 @@ import { SubscriptionProvider } from '@/components/shared';
 import { DemoTourPanel } from '@/components/demo/DemoTourPanel';
 import type { Metadata } from 'next';
 import { LeagueSiteAnalytics } from '@/components/LeagueSiteAnalytics';
+import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
 /**
  * Revalidate every 60 seconds as a time-based fallback.
@@ -101,14 +102,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
   const templateClass = `league-template-${theme.templateVariant}`;
 
   // Check if any season has open registration
-  const now = new Date();
-  const registrationOpen = seasons.some((season) => {
-    const s = season as any;
-    if (s.registration_opens_at && s.registration_closes_at) {
-      return now >= new Date(s.registration_opens_at) && now <= new Date(s.registration_closes_at);
-    }
-    return false;
-  });
+  const registrationOpen = Boolean(pickRegistrationSeason(seasons as any[]));
   const activeSeasonId = (seasons.find((season) => (season as any).status === 'active' || (season as any).status === 'playoffs') as any)?.id ?? null;
   const isPlayoffSeason = seasons.some((season) => (season as any).status === 'playoffs');
 

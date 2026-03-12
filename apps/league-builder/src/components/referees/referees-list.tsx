@@ -13,6 +13,7 @@ interface RefereesListProps {
   onSelectReferee: (id: string, selected: boolean) => void;
   onSelectAll: () => void;
   onEdit: (referee: LeagueReferee) => void;
+  onEditCompensation: (referee: LeagueReferee) => void;
   onRemove: (referee: LeagueReferee) => void;
   onAssignGames: (referee: LeagueReferee) => void;
   onRequestAvailability: (referee: LeagueReferee) => void;
@@ -26,6 +27,7 @@ export function RefereesList({
   onSelectReferee,
   onSelectAll,
   onEdit,
+  onEditCompensation,
   onRemove,
   onAssignGames,
   onRequestAvailability,
@@ -117,6 +119,7 @@ export function RefereesList({
               selected={selectedIds.has(referee.id)}
               onSelect={(selected) => onSelectReferee(referee.id, selected)}
               onEdit={() => onEdit(referee)}
+              onEditCompensation={() => onEditCompensation(referee)}
               onRemove={() => onRemove(referee)}
               onAssignGames={() => onAssignGames(referee)}
               onRequestAvailability={() => onRequestAvailability(referee)}

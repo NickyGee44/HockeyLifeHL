@@ -2,10 +2,16 @@
 
 import { MapPin, Calendar, Users, MessageSquare } from 'lucide-react';
 import type { RegistrationDraftData, LeagueFormConfig } from '@/lib/actions/registration';
+import type { PreviousTeamOption } from '@/lib/registration/intents';
+import {
+  formatRegistrationIntent,
+  formatTeamReturnStatus,
+} from '@/lib/registration/intents';
 
 interface StepLeaguePreferencesProps {
   formData: RegistrationDraftData;
   leagueFormConfig: LeagueFormConfig;
+  previousTeams: PreviousTeamOption[];
   onUpdate: (updates: Partial<RegistrationDraftData>) => void;
 }
 
@@ -62,6 +68,7 @@ function YesNoToggle({
 export function StepLeaguePreferences({
   formData,
   leagueFormConfig,
+  previousTeams,
   onUpdate,
 }: StepLeaguePreferencesProps) {
   const fields = leagueFormConfig.enabled_fields ?? {};
@@ -86,20 +93,45 @@ export function StepLeaguePreferences({
         </p>
       </div>
 
-      {/* Prior season */}
-      <YesNoToggle
-        label="Did you play last season?"
-        value={formData.played_last_season}
-        onChange={(v) =>
-          onUpdate({
-            played_last_season: v,
-            prior_organization: v ? formData.prior_organization : '',
-            team_last_season: v ? formData.team_last_season : '',
-          })
-        }
-      />
+      {formData.registration_intent && (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
+            Registration Path
+          </p>
+          <p className="font-medium text-[var(--color-text-primary)]">
+            {formatRegistrationIntent(formData.registration_intent)}
+          </p>
+          {formData.registration_intent === 'return_to_previous_team' && formData.previous_team_name && (
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              Returning from {formData.previous_team_name}
+              {formData.previous_season_name ? ` (${formData.previous_season_name})` : ''}.{' '}
+              {formatTeamReturnStatus(formData.team_return_status)}
+            </p>
+          )}
+          {formData.registration_intent === 'captain_application' && (
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              League staff will review your team/captain request before placing you on a roster.
+            </p>
+          )}
+        </div>
+      )}
 
-      {formData.played_last_season === true && (
+      {/* Prior season */}
+      {previousTeams.length === 0 && (
+        <YesNoToggle
+          label="Did you play last season?"
+          value={formData.played_last_season}
+          onChange={(v) =>
+            onUpdate({
+              played_last_season: v,
+              prior_organization: v ? formData.prior_organization : '',
+              team_last_season: v ? formData.team_last_season : '',
+            })
+          }
+        />
+      )}
+
+      {previousTeams.length === 0 && formData.played_last_season === true && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-1 border-l-2 border-[var(--league-primary)]/30 ml-1">
           <div>
             <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">

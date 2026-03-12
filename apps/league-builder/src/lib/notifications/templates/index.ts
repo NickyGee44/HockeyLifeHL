@@ -39,6 +39,7 @@ export type EmailTemplateType =
   | 'registration_admin_alert'
   | 'scorekeeper_assignment'
   | 'suspension_issued'
+  | 'suspension_reviewed'
   | 'goalie_request_notification'
   | 'goalie_request_filled_captain'
   | 'goalie_request_filled_goalie'

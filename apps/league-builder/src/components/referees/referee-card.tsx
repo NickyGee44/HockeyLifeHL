@@ -4,7 +4,7 @@ import { cn } from '@hockey-life/ui';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { LeagueReferee } from '@/lib/actions/referee-management';
-import { Mail, Calendar, Edit, Trash2, MoreVertical, Phone } from 'lucide-react';
+import { Mail, Calendar, Edit, Trash2, MoreVertical, Phone, Wallet } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ interface RefereeCardProps {
   selected?: boolean;
   onSelect?: (selected: boolean) => void;
   onEdit?: () => void;
+  onEditCompensation?: () => void;
   onRemove?: () => void;
   onAssignGames?: () => void;
   onRequestAvailability?: () => void;
@@ -27,6 +28,7 @@ export function RefereeCard({
   selected,
   onSelect,
   onEdit,
+  onEditCompensation,
   onRemove,
   onAssignGames,
   onRequestAvailability,
@@ -105,6 +107,9 @@ export function RefereeCard({
                     : 'No officiating role enabled'}
             </span>
           </div>
+          <div className="mt-2 text-xs text-neutral-400">
+            Base {formatCurrency(referee.game_fee_cents)} · Solo {formatCurrency(referee.solo_game_fee_cents)} · Paired {formatCurrency(referee.paired_game_fee_cents)} · Linesman {formatCurrency(referee.linesman_fee_cents)}
+          </div>
         </div>
 
         {/* Actions */}
@@ -140,6 +145,15 @@ export function RefereeCard({
                   Edit
                 </DropdownMenuItem>
               )}
+              {onEditCompensation && (
+                <DropdownMenuItem
+                  onClick={onEditCompensation}
+                  className="text-white hover:bg-neutral-800 cursor-pointer"
+                >
+                  <Wallet className="w-4 h-4 mr-2" />
+                  Edit Pay Rules
+                </DropdownMenuItem>
+              )}
               {onRemove && (
                 <DropdownMenuItem
                   onClick={onRemove}
@@ -164,4 +178,12 @@ export function RefereeCard({
       </div>
     </div>
   );
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat('en-CA', {
+    style: 'currency',
+    currency: 'CAD',
+    maximumFractionDigits: 0,
+  }).format((cents || 0) / 100);
 }

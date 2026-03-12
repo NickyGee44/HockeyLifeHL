@@ -119,6 +119,7 @@ export function TeamsDivisionsClient({
           locale={locale}
           teams={teams}
           divisions={divisions}
+          seasons={[]}
           initialTab="teams"
         />
       )}

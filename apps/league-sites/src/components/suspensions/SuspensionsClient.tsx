@@ -27,9 +27,10 @@ function getStatusBadge(status: string) {
         </span>
       );
     case 'completed':
+    case 'served':
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
-          Completed
+          Served
         </span>
       );
     case 'appealed':
@@ -108,10 +109,10 @@ export function SuspensionsClient({
             onClick={() => handleFilterChange('status', 'active')}
           />
           <StatusChip
-            label="Completed"
-            value="completed"
+            label="Served"
+            value="served"
             currentStatus={currentFilters.status}
-            onClick={() => handleFilterChange('status', 'completed')}
+            onClick={() => handleFilterChange('status', 'served')}
           />
         </div>
       </div>
@@ -229,8 +230,8 @@ export function SuspensionsClient({
           <p className="text-[var(--color-text-secondary)]">
             {currentFilters.status === 'active'
               ? 'There are no active suspensions at this time.'
-              : currentFilters.status === 'completed'
-              ? 'No completed suspensions found for this period.'
+              : currentFilters.status === 'served'
+              ? 'No served suspensions found for this period.'
               : 'No suspensions have been recorded yet.'}
           </p>
         </div>

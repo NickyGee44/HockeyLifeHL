@@ -80,6 +80,14 @@ export default async function CompletedGamesPage({ params }: Props) {
           start_date,
           end_date,
           status,
+          suspension_type,
+          severity,
+          behavior_category,
+          internal_notes,
+          review_notes,
+          appeal_eligible,
+          appeal_deadline,
+          is_indefinite,
           player:profiles!suspensions_player_id_fkey(full_name),
           team:teams!suspensions_team_id_fkey(name)
         `)
@@ -140,6 +148,14 @@ export default async function CompletedGamesPage({ params }: Props) {
     start_date: s.start_date,
     end_date: s.end_date,
     status: s.status,
+    suspension_type: s.suspension_type,
+    severity: s.severity,
+    behavior_category: s.behavior_category,
+    internal_notes: s.internal_notes,
+    review_notes: s.review_notes,
+    appeal_eligible: s.appeal_eligible,
+    appeal_deadline: s.appeal_deadline,
+    is_indefinite: s.is_indefinite,
   }));
 
   // Transform penalties

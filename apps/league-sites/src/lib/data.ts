@@ -2691,6 +2691,7 @@ export async function getSuspensions(leagueId: string, seasonId?: string): Promi
     .from('suspensions')
     .select('*, player:profiles(full_name, avatar_url), team:teams(name, logo_url)')
     .eq('league_id', leagueId)
+    .in('status', ['active', 'appealed', 'served'])
     .order('created_at', { ascending: false });
   if (seasonId) query = query.eq('season_id', seasonId);
   const { data, error } = await query;
