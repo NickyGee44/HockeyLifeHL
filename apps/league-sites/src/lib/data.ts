@@ -920,12 +920,14 @@ export async function getTickerGames(
   leagueId: string,
   limit = 10
 ): Promise<TickerGame[]> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
   const recentWindowStart = new Date(now);
   recentWindowStart.setDate(recentWindowStart.getDate() - 7);
+  const liveWindowStart = new Date(now);
+  liveWindowStart.setHours(liveWindowStart.getHours() - 6);
 
   const tickerSelect = `
     id,
@@ -947,6 +949,7 @@ export async function getTickerGames(
       .select(tickerSelect)
       .eq('league_id', leagueId)
       .eq('status', 'in_progress')
+      .gte('scheduled_at', liveWindowStart.toISOString())
       .order('scheduled_at', { ascending: true })
       .limit(limit),
     supabase
@@ -968,9 +971,13 @@ export async function getTickerGames(
       .limit(recentCompletedCap),
   ]);
 
-  if (liveGamesResult.error || upcomingGamesResult.error || recentCompletedResult.error) {
-    return [];
-  }
+  const fallbackResult = await supabase
+    .from('games')
+    .select(tickerSelect)
+    .eq('league_id', leagueId)
+    .in('status', ['scheduled', 'in_progress', 'completed'])
+    .order('scheduled_at', { ascending: false })
+    .limit(limit);
 
   const transformTickerGames = (games: any[] | null | undefined): TickerGame[] =>
     (games ?? []).map((game) => ({
@@ -980,9 +987,26 @@ export async function getTickerGames(
       away_team: transformTeamData(game.away_team),
     })) as TickerGame[];
 
+  if (liveGamesResult.error) {
+    console.error('[ScoreTicker] Failed to fetch live games', liveGamesResult.error);
+  }
+
+  if (upcomingGamesResult.error) {
+    console.error('[ScoreTicker] Failed to fetch upcoming games', upcomingGamesResult.error);
+  }
+
+  if (recentCompletedResult.error) {
+    console.error('[ScoreTicker] Failed to fetch recent completed games', recentCompletedResult.error);
+  }
+
+  if (fallbackResult.error) {
+    console.error('[ScoreTicker] Failed to fetch fallback games', fallbackResult.error);
+  }
+
   const liveGames = transformTickerGames(liveGamesResult.data);
   const upcomingGames = transformTickerGames(upcomingGamesResult.data);
   const recentCompletedGames = transformTickerGames(recentCompletedResult.data);
+  const fallbackGames = transformTickerGames(fallbackResult.data);
 
   const seen = new Set<string>();
   const dedupe = (games: TickerGame[]) =>
@@ -1001,7 +1025,13 @@ export async function getTickerGames(
     ]).slice(0, limit);
   }
 
-  return dedupe([...primaryGames, ...recentCompletedGames]).slice(0, limit);
+  const mergedGames = dedupe([...primaryGames, ...recentCompletedGames]).slice(0, limit);
+
+  if (mergedGames.length > 0) {
+    return mergedGames;
+  }
+
+  return dedupe(fallbackGames).slice(0, limit);
 }
 
 /**
