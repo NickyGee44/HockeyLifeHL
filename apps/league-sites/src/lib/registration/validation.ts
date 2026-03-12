@@ -20,11 +20,20 @@ export function validatePersonalInfoStep(
     errors.push('Full name is required.');
   }
 
-  if (data.registration_type === 'team_registration') {
-    if (!valuePresent(data.team_id || '')) {
-      errors.push('Team selection is required for team registration.');
+  if (data.registration_intent === 'return_to_previous_team') {
+    if (!valuePresent(data.previous_team_id || '')) {
+      errors.push('Please choose the team you are returning to.');
     }
-    // paid_team_rep is informational — not blocked if not answered
+  } else if (data.registration_intent === 'join_team') {
+    if (!valuePresent(data.requested_team_id || data.team_id || '')) {
+      errors.push('Please choose the team you want to join.');
+    }
+  } else if (data.registration_intent === 'captain_application') {
+    if (!valuePresent(data.requested_team_name || '')) {
+      errors.push('Please enter the team name or group name for your captain application.');
+    }
+  } else if (data.registration_type === 'team_registration' && !valuePresent(data.team_id || '')) {
+    errors.push('Team selection is required for team registration.');
   }
 
   if (!valuePresent(data.emergency_contact_name)) {

@@ -9799,51 +9799,104 @@ export type Database = {
       }
       suspensions: {
         Row: {
+          appeal_deadline: string | null
+          appeal_eligible: boolean
+          appeal_reason: string | null
+          appeal_requested_at: string | null
+          appeal_requested_by: string | null
+          behavior_category: string | null
           created_at: string | null
           end_date: string | null
           game_id: string | null
           games_remaining: number
           id: string
+          internal_notes: string | null
+          is_indefinite: boolean
           issued_by: string
           league_id: string
           player_id: string
           reason: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           season_id: string | null
           start_date: string
           status: string | null
+          severity: string
+          suspension_type: string
           team_id: string | null
         }
         Insert: {
+          appeal_deadline?: string | null
+          appeal_eligible?: boolean
+          appeal_reason?: string | null
+          appeal_requested_at?: string | null
+          appeal_requested_by?: string | null
+          behavior_category?: string | null
           created_at?: string | null
           end_date?: string | null
           game_id?: string | null
           games_remaining: number
           id?: string
+          internal_notes?: string | null
+          is_indefinite?: boolean
           issued_by: string
           league_id: string
           player_id: string
           reason: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           season_id?: string | null
           start_date: string
           status?: string | null
+          severity?: string
+          suspension_type?: string
           team_id?: string | null
         }
         Update: {
+          appeal_deadline?: string | null
+          appeal_eligible?: boolean
+          appeal_reason?: string | null
+          appeal_requested_at?: string | null
+          appeal_requested_by?: string | null
+          behavior_category?: string | null
           created_at?: string | null
           end_date?: string | null
           game_id?: string | null
           games_remaining?: number
           id?: string
+          internal_notes?: string | null
+          is_indefinite?: boolean
           issued_by?: string
           league_id?: string
           player_id?: string
           reason?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           season_id?: string | null
           start_date?: string
           status?: string | null
+          severity?: string
+          suspension_type?: string
           team_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "suspensions_appeal_requested_by_fkey"
+            columns: ["appeal_requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suspensions_appeal_requested_by_fkey"
+            columns: ["appeal_requested_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "suspensions_game_id_fkey"
             columns: ["game_id"]
@@ -9896,6 +9949,20 @@ export type Database = {
           {
             foreignKeyName: "suspensions_player_id_fkey"
             columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suspensions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suspensions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]

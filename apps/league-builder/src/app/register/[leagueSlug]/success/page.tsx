@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Check, Mail, Calendar, Users, ArrowRight } from 'lucide-react';
 
 interface SuccessPageProps {

@@ -52,6 +52,12 @@ interface Registration {
   season_id: string;
   team_id: string | null;
   registration_type: string;
+  draft_data?: {
+    registration_intent?: string | null;
+    requested_team_name?: string | null;
+    previous_team_name?: string | null;
+    team_return_status?: string | null;
+  } | null;
   status: string;
   preferred_position: string | null;
   secondary_position: string | null;
@@ -94,6 +100,36 @@ interface RegistrationDetailClientProps {
   registration: Registration;
   leagueId: string;
   teams: { id: string; name: string }[];
+}
+
+function formatRegistrationIntent(intent?: string | null): string {
+  switch (intent) {
+    case 'return_to_previous_team':
+      return 'Returning to previous team';
+    case 'join_team':
+      return 'Joining a team';
+    case 'captain_application':
+      return 'Captain / team application';
+    case 'free_agent':
+      return 'Free agent';
+    default:
+      return 'Standard registration';
+  }
+}
+
+function formatTeamReturnStatus(status?: string | null): string {
+  switch (status) {
+    case 'confirmed':
+      return 'Team is confirmed for this season';
+    case 'pending_team_return':
+      return 'Waiting on the team to confirm for this season';
+    case 'team_not_returning':
+      return 'That team is marked as not returning for this season';
+    case 'new_team_request':
+      return 'Waiting on team/captain approval';
+    default:
+      return '-';
+  }
 }
 
 export function RegistrationDetailClient({
@@ -305,8 +341,21 @@ export function RegistrationDetailClient({
         {/* Preferences */}
         <InfoCard icon={Target} title="Preferences" iconColor="text-green-400">
           <InfoRow
+            label="Registration Path"
+            value={formatRegistrationIntent(registration.draft_data?.registration_intent)}
+          />
+          <InfoRow
             label="Preferred Team"
-            value={registration.team?.name || 'None selected'}
+            value={
+              registration.team?.name ||
+              registration.draft_data?.requested_team_name ||
+              registration.draft_data?.previous_team_name ||
+              'None selected'
+            }
+          />
+          <InfoRow
+            label="Team Status"
+            value={formatTeamReturnStatus(registration.draft_data?.team_return_status)}
           />
           <InfoRow
             label="Preferred Jersey #"

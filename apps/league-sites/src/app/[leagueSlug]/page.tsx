@@ -50,6 +50,7 @@ import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
+import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
 interface HomePageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -129,13 +130,19 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
   // Check if registration is open for any season
   const now = new Date();
-  const registrationSeason = seasons.find((season: any) => {
-    if (season.registration_opens_at && season.registration_closes_at) {
-      return now >= new Date(season.registration_opens_at) && now <= new Date(season.registration_closes_at);
-    }
-    return false;
-  });
+  const registrationSeason = pickRegistrationSeason(seasons as any[], now);
   const hasOpenRegistration = !!registrationSeason;
+  const isCurrentSeasonWrappingUp =
+    (currentSeason as any)?.status === 'playoffs' || (currentSeason as any)?.status === 'completed';
+  const isNextSeasonRegistration =
+    !!registrationSeason && !!currentSeason && registrationSeason.id !== currentSeason.id;
+  const registrationPromoDate = registrationSeason?.registration_closes_at
+    ? new Date(registrationSeason.registration_closes_at).toLocaleDateString('en-CA', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : null;
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
@@ -350,7 +357,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                     Registration Open
                   </h3>
                   <p className="text-sm text-[var(--color-text-secondary)] mt-1 mb-4">
-                    Sign up for {(registrationSeason as any)?.name || 'the upcoming season'} today!
+                    {isCurrentSeasonWrappingUp && isNextSeasonRegistration
+                      ? `The current season is wrapping up, and registration is already open for ${registrationSeason.name}${registrationPromoDate ? ` through ${registrationPromoDate}` : ''}.`
+                      : `Sign up for ${registrationSeason?.name || 'the upcoming season'} today${registrationPromoDate ? ` before ${registrationPromoDate}` : ''}!`}
                   </p>
                   <Button
                     href={`/${leagueSlug}/register`}

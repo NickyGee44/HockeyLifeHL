@@ -92,6 +92,12 @@ interface PendingRegistration {
   season_id: string;
   team_id: string | null;
   registration_type: string;
+  draft_data: {
+    registration_intent?: string | null;
+    requested_team_name?: string | null;
+    previous_team_name?: string | null;
+    team_return_status?: string | null;
+  } | null;
   status: string;
   preferred_position: string | null;
   secondary_position: string | null;

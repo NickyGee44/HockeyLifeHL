@@ -32,6 +32,12 @@ interface Team {
   primary_color: string | null;
 }
 
+const REGISTRATION_TYPE_LABELS: Record<string, string> = {
+  open_registration: 'Open Registration',
+  draft: 'Draft',
+  captain_invite_only: 'Captain Invite Only',
+};
+
 interface NewSeasonWizardProps {
   leagueId: string;
   leagueName: string;
@@ -61,6 +67,9 @@ export default function NewSeasonWizard({
   const [seasonName, setSeasonName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [registrationType, setRegistrationType] = useState<'open_registration' | 'draft' | 'captain_invite_only'>('open_registration');
+  const [registrationOpensAt, setRegistrationOpensAt] = useState('');
+  const [registrationClosesAt, setRegistrationClosesAt] = useState('');
   const [carryForwardTeams, setCarryForwardTeams] = useState(hasImportableTeams);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(
     new Set(teams.map((t) => t.id))
@@ -117,6 +126,9 @@ export default function NewSeasonWizard({
           name: seasonName,
           start_date: startDate,
           end_date: endDate,
+          registration_type: registrationType,
+          registration_opens_at: registrationOpensAt || null,
+          registration_closes_at: registrationClosesAt || null,
           carry_forward_teams: carryForwardTeams,
           selected_team_ids: Array.from(selectedTeamIds),
           import_rosters: importRosters,
@@ -253,6 +265,55 @@ export default function NewSeasonWizard({
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Registration Type
+              </label>
+              <select
+                value={registrationType}
+                onChange={(e) =>
+                  setRegistrationType(
+                    e.target.value as 'open_registration' | 'draft' | 'captain_invite_only'
+                  )
+                }
+                className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
+              >
+                <option value="open_registration">Open Registration</option>
+                <option value="draft">Draft</option>
+                <option value="captain_invite_only">Captain Invite Only</option>
+              </select>
+            </div>
+
+            <div className="rounded-xl border border-rink-500/20 bg-rink-500/5 p-4 text-sm text-neutral-300">
+              Leave the season in Pre-Season and set registration dates here if you want players
+              registering and paying before the first game is scheduled.
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  Registration Opens
+                </label>
+                <input
+                  type="datetime-local"
+                  value={registrationOpensAt}
+                  onChange={(e) => setRegistrationOpensAt(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  Registration Closes
+                </label>
+                <input
+                  type="datetime-local"
+                  value={registrationClosesAt}
+                  onChange={(e) => setRegistrationClosesAt(e.target.value)}
                   className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
                 />
               </div>
@@ -515,6 +576,21 @@ export default function NewSeasonWizard({
                   {carryForwardTeams
                     ? `${selectedTeamIds.size} teams will be carried forward`
                     : 'Starting fresh with no teams'}
+                </p>
+              </div>
+
+              <div className="bg-neutral-800/50 rounded-xl p-4">
+                <h3 className="text-sm text-neutral-400 mb-1">Registration</h3>
+                <p className="font-medium text-white">
+                  {REGISTRATION_TYPE_LABELS[registrationType] ?? registrationType}
+                </p>
+                <p className="mt-2 text-sm text-neutral-400">
+                  {registrationOpensAt
+                    ? `Opens ${new Date(registrationOpensAt).toLocaleString()}`
+                    : 'Opens when you are ready'}
+                  {registrationClosesAt
+                    ? ` • Closes ${new Date(registrationClosesAt).toLocaleString()}`
+                    : ''}
                 </p>
               </div>
 

@@ -13,6 +13,8 @@ import { sendAvailabilityRequest } from '@/lib/actions/staffing-availability';
 import { RefereesList } from './referees-list';
 import { AssignRefereeModal } from './assign-referee-modal';
 import { AutoAssignRefereesModal } from './auto-assign-referees-modal';
+import { EditRefereeCompensationModal } from './edit-referee-compensation-modal';
+import { RefereePayrollReport } from './referee-payroll-report';
 import {
   Calendar,
   Trash2,
@@ -56,11 +58,14 @@ export function RefereeManagementClient({
   const [isPending, startTransition] = useTransition();
   const [referees, setReferees] = useState<LeagueReferee[]>(initialReferees);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [payrollRefreshNonce, setPayrollRefreshNonce] = useState(0);
 
   // Modal states
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAutoAssignModal, setShowAutoAssignModal] = useState(false);
+  const [showCompensationModal, setShowCompensationModal] = useState(false);
   const [assignForReferee, setAssignForReferee] = useState<LeagueReferee | null>(null);
+  const [editCompensationForReferee, setEditCompensationForReferee] = useState<LeagueReferee | null>(null);
   const [removeReferee, setRemoveReferee] = useState<LeagueReferee | null>(null);
   const [showBulkRemoveConfirm, setShowBulkRemoveConfirm] = useState(false);
 
@@ -73,6 +78,7 @@ export function RefereeManagementClient({
       const result = await getLeagueReferees(leagueId);
       if (result.success && result.data) {
         setReferees(result.data.referees);
+        setPayrollRefreshNonce((current) => current + 1);
       }
     });
   }, [leagueId]);
@@ -129,6 +135,11 @@ export function RefereeManagementClient({
   const handleAssignGames = (referee: LeagueReferee) => {
     setAssignForReferee(referee);
     setShowAssignModal(true);
+  };
+
+  const handleEditCompensation = (referee: LeagueReferee) => {
+    setEditCompensationForReferee(referee);
+    setShowCompensationModal(true);
   };
 
   const handleRequestAvailability = (referee: LeagueReferee) => {
@@ -242,11 +253,18 @@ export function RefereeManagementClient({
         onSelectReferee={handleSelectReferee}
         onSelectAll={handleSelectAll}
         onEdit={handleEdit}
+        onEditCompensation={handleEditCompensation}
         onRemove={setRemoveReferee}
         onAssignGames={handleAssignGames}
         onRequestAvailability={handleRequestAvailability}
         onRefresh={refreshReferees}
         isLoading={isPending}
+      />
+
+      <RefereePayrollReport
+        leagueId={leagueId}
+        seasons={seasons}
+        refreshNonce={payrollRefreshNonce}
       />
 
       {/* Assign modal */}
@@ -269,6 +287,19 @@ export function RefereeManagementClient({
         seasons={seasons}
         open={showAutoAssignModal}
         onOpenChange={setShowAutoAssignModal}
+        onSuccess={refreshReferees}
+      />
+
+      <EditRefereeCompensationModal
+        leagueId={leagueId}
+        referee={editCompensationForReferee}
+        open={showCompensationModal}
+        onOpenChange={(open) => {
+          setShowCompensationModal(open);
+          if (!open) {
+            setEditCompensationForReferee(null);
+          }
+        }}
         onSuccess={refreshReferees}
       />
 

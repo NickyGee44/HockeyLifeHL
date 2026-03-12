@@ -8,6 +8,15 @@ import {
   getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
 } from '@/lib/registration/fee-collection-model';
+import {
+  getRegistrationTypeForIntent,
+  getRequestedTeamId,
+  getResolvedTeamReturnStatus,
+  type RegistrationIntent,
+  type RegistrationJourneyData,
+  type PreviousTeamOption,
+  type TeamReturnStatus,
+} from '@/lib/registration/intents';
 
 // ============================================================================
 // Stripe Client (Lazy Initialization)
@@ -44,7 +53,15 @@ type ActionResult<T = void> = Promise<
 export interface RegistrationDraftData {
   current_step: number;
   registration_type: 'team_registration' | 'free_agent' | 'individual';
+  registration_intent?: RegistrationIntent;
   team_id?: string | null;
+  requested_team_id?: string | null;
+  requested_team_name?: string;
+  previous_team_id?: string | null;
+  previous_team_name?: string;
+  previous_season_id?: string | null;
+  previous_season_name?: string | null;
+  team_return_status?: TeamReturnStatus;
   full_name?: string;
   email?: string;
   phone?: string;
@@ -121,6 +138,221 @@ async function getCurrentUser() {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return null;
   return user;
+}
+
+function getNormalizedIntent(
+  data: Partial<RegistrationDraftData>
+): RegistrationIntent {
+  if (data.registration_intent) {
+    return data.registration_intent;
+  }
+
+  if (data.previous_team_id) {
+    return 'return_to_previous_team';
+  }
+
+  return data.registration_type === 'team_registration' ? 'join_team' : 'free_agent';
+}
+
+function buildRegistrationContext(
+  data: Partial<RegistrationDraftData>,
+  teamReturnStatuses: Record<string, TeamReturnStatus>
+) {
+  const intent = getNormalizedIntent(data);
+  const requestedTeamId = getRequestedTeamId({
+    registration_intent: intent,
+    requested_team_id: data.requested_team_id || data.team_id || null,
+    previous_team_id: data.previous_team_id || null,
+  });
+  const teamReturnStatus = getResolvedTeamReturnStatus({
+    intent,
+    requestedTeamId,
+    teamReturnStatuses,
+  });
+  const storedTeamId = teamReturnStatus === 'confirmed' ? requestedTeamId : null;
+
+  return {
+    intent,
+    requestedTeamId,
+    teamReturnStatus,
+    registrationType: getRegistrationTypeForIntent(intent),
+    storedTeamId,
+    context: {
+      registration_intent: intent,
+      requested_team_id:
+        intent === 'join_team' ? requestedTeamId : data.requested_team_id || null,
+      requested_team_name: data.requested_team_name || null,
+      previous_team_id:
+        intent === 'return_to_previous_team' ? requestedTeamId : data.previous_team_id || null,
+      previous_team_name: data.previous_team_name || null,
+      previous_season_id: data.previous_season_id || null,
+      previous_season_name: data.previous_season_name || null,
+      team_return_status: teamReturnStatus,
+    } satisfies Record<string, unknown>,
+  };
+}
+
+async function getSeasonTeamReturnStatuses(
+  leagueId: string,
+  seasonId: string
+): Promise<Record<string, TeamReturnStatus>> {
+  const serviceSupabase = createServiceRoleClient();
+  const [preferenceResult, rosterResult, gamesResult, returnRowsResult] = await Promise.all([
+    serviceSupabase
+      .from('team_schedule_preferences')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+    serviceSupabase
+      .from('team_rosters')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active'),
+    serviceSupabase
+      .from('games')
+      .select('home_team_id, away_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+    ((serviceSupabase.from as any)('season_team_returns'))
+      .select('team_id, status')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+  ]);
+
+  const statusMap: Record<string, TeamReturnStatus> = {};
+
+  for (const row of (returnRowsResult.data ?? []) as Array<{ team_id: string | null; status: string | null }>) {
+    if (!row.team_id) continue;
+    statusMap[row.team_id] =
+      row.status === 'confirmed'
+        ? 'confirmed'
+        : row.status === 'declined'
+          ? 'team_not_returning'
+          : 'pending_team_return';
+  }
+
+  const confirmedTeamIds = [
+    ...(preferenceResult.data ?? []).map((row: { team_id: string | null }) => row.team_id),
+    ...(rosterResult.data ?? []).map((row: { team_id: string | null }) => row.team_id),
+    ...(gamesResult.data ?? []).flatMap(
+      (row: { home_team_id: string | null; away_team_id: string | null }) => [
+        row.home_team_id,
+        row.away_team_id,
+      ]
+    ),
+  ].filter((teamId, index, array): teamId is string => Boolean(teamId) && array.indexOf(teamId) === index);
+
+  for (const teamId of confirmedTeamIds) {
+    statusMap[teamId] = 'confirmed';
+  }
+
+  return statusMap;
+}
+
+export async function getRegistrationJourneyData(
+  leagueId: string,
+  seasonId: string
+): ActionResult<RegistrationJourneyData> {
+  try {
+    const user = await getCurrentUser();
+    const teamReturnStatuses = await getSeasonTeamReturnStatuses(leagueId, seasonId);
+    const confirmedTeamIds = Object.entries(teamReturnStatuses)
+      .filter(([, status]) => status === 'confirmed')
+      .map(([teamId]) => teamId);
+
+    if (!user) {
+      return {
+        success: true,
+        data: {
+          previousTeams: [],
+          confirmedTeamIds,
+          teamReturnStatuses,
+        },
+      };
+    }
+
+    const serviceSupabase = createServiceRoleClient();
+    const { data: rosterRows, error } = await serviceSupabase
+      .from('team_rosters')
+      .select(`
+        team_id,
+        season_id,
+        leadership_role,
+        teams!inner (
+          id,
+          name,
+          status
+        ),
+        seasons!inner (
+          id,
+          name,
+          start_date
+        )
+      `)
+      .eq('league_id', leagueId)
+      .eq('player_id', user.id)
+      .eq('status', 'active')
+      .neq('season_id', seasonId);
+
+    if (error) {
+      console.error('Get registration journey data error:', error);
+      return { success: false, error: 'Failed to load returning player options.' };
+    }
+
+    const latestByTeam = new Map<string, PreviousTeamOption & { seasonStart: string | null }>();
+
+    for (const row of rosterRows ?? []) {
+      const team = Array.isArray((row as any).teams) ? (row as any).teams[0] : (row as any).teams;
+      const season = Array.isArray((row as any).seasons) ? (row as any).seasons[0] : (row as any).seasons;
+
+      if (!team?.id || team.status === 'inactive' || !season?.id) {
+        continue;
+      }
+
+      const existing = latestByTeam.get(team.id);
+      const seasonStart = season.start_date || null;
+
+      if (!existing || (seasonStart && (!existing.seasonStart || seasonStart > existing.seasonStart))) {
+        latestByTeam.set(team.id, {
+          teamId: team.id,
+          teamName: team.name,
+          seasonId: season.id,
+          seasonName: season.name,
+          wasCaptain:
+            row.leadership_role === 'captain' ||
+            row.leadership_role === 'alternate_captain',
+          isConfirmedForSeason: confirmedTeamIds.includes(team.id),
+          returnStatus: teamReturnStatuses[team.id] || 'pending_team_return',
+          seasonStart,
+        });
+      }
+    }
+
+    const previousTeams = Array.from(latestByTeam.values())
+      .sort((a, b) => {
+        if (a.isConfirmedForSeason !== b.isConfirmedForSeason) {
+          return a.isConfirmedForSeason ? -1 : 1;
+        }
+        if (a.seasonStart && b.seasonStart) {
+          return b.seasonStart.localeCompare(a.seasonStart);
+        }
+        return a.teamName.localeCompare(b.teamName);
+      })
+      .map(({ seasonStart: _seasonStart, ...team }) => team);
+
+    return {
+      success: true,
+      data: {
+        previousTeams,
+        confirmedTeamIds,
+        teamReturnStatuses,
+      },
+    };
+  } catch (error) {
+    console.error('Get registration journey data error:', error);
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
 }
 
 // ============================================================================
@@ -219,6 +451,8 @@ export async function saveRegistrationDraft(
       paymentSettings.feeAmountCents,
       paymentSettings.feeBasis
     );
+    const teamReturnStatuses = await getSeasonTeamReturnStatuses(leagueId, seasonId);
+    const registrationContext = buildRegistrationContext(data, teamReturnStatuses);
     const normalizedPaymentStatus =
       data.payment_status === 'completed'
         ? 'completed'
@@ -229,6 +463,10 @@ export async function saveRegistrationDraft(
       normalizedPaymentStatus === 'completed' ? playerFeeAmountCents : 0;
     const normalizedDraftData = {
       ...data,
+      ...registrationContext.context,
+      registration_intent: registrationContext.intent,
+      registration_type: registrationContext.registrationType,
+      team_id: registrationContext.storedTeamId,
       payment_status: normalizedPaymentStatus,
       amount_cents: amountPaidCents,
     };
@@ -241,8 +479,8 @@ export async function saveRegistrationDraft(
           player_id: user.id,
           league_id: leagueId,
           season_id: seasonId,
-          registration_type: data.registration_type || 'free_agent',
-          team_id: data.team_id || null,
+          registration_type: registrationContext.registrationType,
+          team_id: registrationContext.storedTeamId,
           draft_data: normalizedDraftData,
           draft_step: data.current_step || 1,
           status: 'pending',
@@ -328,7 +566,11 @@ export async function getRegistrationDraft(
 export async function getMyRegistrationStatus(
   leagueId: string,
   seasonId: string
-): ActionResult<{ status: string; registrationId: string } | null> {
+): ActionResult<{
+  status: string;
+  registrationId: string;
+  draftData?: RegistrationDraftData | null;
+} | null> {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -339,7 +581,7 @@ export async function getMyRegistrationStatus(
 
     const { data: registration, error } = await supabase
       .from('registration_submissions')
-      .select('id, status')
+      .select('id, status, draft_data')
       .eq('player_id', user.id)
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
@@ -357,6 +599,7 @@ export async function getMyRegistrationStatus(
       data: {
         status: registration.status,
         registrationId: registration.id,
+        draftData: (registration.draft_data as RegistrationDraftData | null) ?? null,
       },
     };
   } catch (error) {
@@ -425,6 +668,11 @@ export async function submitPlayerRegistration(
       data.league_id,
       data.season_id
     );
+    const teamReturnStatuses = await getSeasonTeamReturnStatuses(
+      data.league_id,
+      data.season_id
+    );
+    const registrationContext = buildRegistrationContext(data, teamReturnStatuses);
     const expectedFeeCents = getPlayerRegistrationFeeAmount(
       paymentSettings.feeBasis,
       paymentSettings.feeAmountCents
@@ -584,9 +832,9 @@ export async function submitPlayerRegistration(
           player_id: user.id,
           league_id: data.league_id,
           season_id: data.season_id,
-          team_id: data.team_id || null,
+          team_id: registrationContext.storedTeamId,
           waiver_id: waiverId,
-          registration_type: data.registration_type,
+          registration_type: registrationContext.registrationType,
           status: 'pending',
           preferred_position: data.primary_position,
           secondary_position: data.secondary_position || null,
@@ -601,7 +849,11 @@ export async function submitPlayerRegistration(
           amount_paid_cents: amountPaidCents,
           currency: paymentSettings.currency,
           submitted_at: new Date().toISOString(),
-          draft_data: null,
+          draft_data: {
+            ...registrationContext.context,
+            registration_intent: registrationContext.intent,
+            requested_team_name: data.requested_team_name || registrationContext.context.requested_team_name,
+          },
           draft_step: null,
         },
         { onConflict: 'player_id,league_id,season_id' }
@@ -662,6 +914,51 @@ export interface TeamRegistrationData {
   waiver_version?: string;
 }
 
+function generateTeamShortName(teamName: string): string {
+  const words = teamName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) return 'TEAM';
+
+  const initials = words
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 4);
+
+  if (initials.length >= 2) {
+    return initials;
+  }
+
+  return teamName.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4) || 'TEAM';
+}
+
+function buildTeamRequestNotes(data: TeamRegistrationData): {
+  message: string | null;
+  preferredDivisionNotes: string | null;
+} {
+  const structuredNotes = [
+    data.level ? `Requested level: ${data.level}` : null,
+    typeof data.played_last_season === 'boolean'
+      ? `Played last season: ${data.played_last_season ? 'Yes' : 'No'}`
+      : null,
+    data.team_last_season ? `Previous team: ${data.team_last_season}` : null,
+    data.location_preference ? `Location preference: ${data.location_preference}` : null,
+    data.preferred_day ? `Preferred day: ${data.preferred_day}` : null,
+    data.alternate_day ? `Alternate day: ${data.alternate_day}` : null,
+    data.backup_rep_name ? `Backup rep: ${data.backup_rep_name}` : null,
+    data.backup_rep_email ? `Backup rep email: ${data.backup_rep_email}` : null,
+    data.waiver_version ? `Waiver version accepted: ${data.waiver_version}` : null,
+  ].filter(Boolean);
+
+  return {
+    message: data.comments?.trim() || null,
+    preferredDivisionNotes: structuredNotes.length > 0 ? structuredNotes.join('\n') : null,
+  };
+}
+
 export async function submitTeamRegistration(
   data: TeamRegistrationData
 ): ActionResult<{ registrationId: string }> {
@@ -683,6 +980,53 @@ export async function submitTeamRegistration(
     }
 
     const serviceSupabase = createServiceRoleClient();
+
+    const [{ data: existingLegacy }, { data: existingRequest }, { data: existingTeam }, { data: profile }] =
+      await Promise.all([
+        serviceSupabase
+          .from('team_registrations')
+          .select('id')
+          .eq('league_id', data.league_id)
+          .eq('submitted_by', user.id)
+          .eq('team_name', data.team_name.trim())
+          .eq('status', 'pending')
+          .maybeSingle(),
+        serviceSupabase
+          .from('team_registration_requests')
+          .select('id')
+          .eq('league_id', data.league_id)
+          .eq('requester_id', user.id)
+          .eq('team_name', data.team_name.trim())
+          .eq('status', 'pending')
+          .maybeSingle(),
+        serviceSupabase
+          .from('teams')
+          .select('id')
+          .eq('league_id', data.league_id)
+          .eq('name', data.team_name.trim())
+          .maybeSingle(),
+        serviceSupabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
+
+    if (existingLegacy || existingRequest) {
+      return {
+        success: false,
+        error: 'You already have a pending team registration request for this league.',
+      };
+    }
+
+    if (existingTeam) {
+      return {
+        success: false,
+        error: 'A team with this name already exists in the league.',
+      };
+    }
+
+    const requestNotes = buildTeamRequestNotes(data);
 
     const { data: registration, error } = await serviceSupabase
       .from('team_registrations')
@@ -711,6 +1055,34 @@ export async function submitTeamRegistration(
     if (error) {
       console.error('Team registration error:', error);
       return { success: false, error: 'Failed to submit team registration.' };
+    }
+
+    const { error: requestError } = await serviceSupabase
+      .from('team_registration_requests')
+      .insert({
+        league_id: data.league_id,
+        requester_id: user.id,
+        team_name: data.team_name.trim(),
+        team_short_name: generateTeamShortName(data.team_name),
+        team_primary_color: '#22D3EE',
+        team_secondary_color: '#070A0F',
+        team_contact_email: data.backup_rep_email || profile?.email || user.email || null,
+        team_contact_phone: null,
+        message: requestNotes.message,
+        preferred_division_notes: requestNotes.preferredDivisionNotes,
+        status: 'pending',
+      });
+
+    if (requestError) {
+      console.error('Team registration queue error:', requestError);
+      await serviceSupabase
+        .from('team_registrations')
+        .delete()
+        .eq('id', registration.id);
+      return {
+        success: false,
+        error: 'Failed to submit team registration for admin review.',
+      };
     }
 
     revalidatePath('/');

@@ -26,6 +26,7 @@ export async function generateMetadata({ params }: SuspensionsPageProps): Promis
 export default async function SuspensionsPage({ params, searchParams }: SuspensionsPageProps) {
   const { leagueSlug } = await params;
   const { season: seasonFilter, status: statusFilter } = await searchParams;
+  const normalizedStatusFilter = statusFilter === 'completed' ? 'served' : statusFilter;
 
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) notFound();
@@ -38,8 +39,8 @@ export default async function SuspensionsPage({ params, searchParams }: Suspensi
   ]);
 
   // Filter by status on the client side
-  const filteredSuspensions = statusFilter && statusFilter !== 'all'
-    ? suspensions.filter((s) => s.status === statusFilter)
+  const filteredSuspensions = normalizedStatusFilter && normalizedStatusFilter !== 'all'
+    ? suspensions.filter((s) => s.status === normalizedStatusFilter)
     : suspensions;
 
   return (
@@ -59,7 +60,7 @@ export default async function SuspensionsPage({ params, searchParams }: Suspensi
           seasons={seasons}
           currentFilters={{
             season: seasonFilter || currentSeason?.id || '',
-            status: statusFilter || 'all',
+            status: normalizedStatusFilter || 'all',
           }}
           leagueSlug={leagueSlug}
         />

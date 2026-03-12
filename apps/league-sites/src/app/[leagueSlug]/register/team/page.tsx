@@ -6,6 +6,7 @@ import {
 } from '@/lib/actions/registration';
 import { TeamRegistrationForm } from '@/components/registration/TeamRegistrationForm';
 import { XCircle } from 'lucide-react';
+import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
 const DEFAULT_WAIVER_CONTENT = `# Participant Waiver and Release of Liability
 
@@ -62,14 +63,7 @@ export default async function TeamRegisterPage({ params }: TeamRegisterPageProps
 
   // Find active season
   const now = new Date();
-  const activeSeason = (league.seasons as any[])?.find((season: any) => {
-    if (season.registration_opens_at && season.registration_closes_at) {
-      const opens = new Date(season.registration_opens_at);
-      const closes = new Date(season.registration_closes_at);
-      return now >= opens && now <= closes;
-    }
-    return season.status === 'upcoming' || season.status === 'active';
-  });
+  const activeSeason = pickRegistrationSeason((league.seasons as any[]) || [], now);
 
   if (!activeSeason) {
     return (

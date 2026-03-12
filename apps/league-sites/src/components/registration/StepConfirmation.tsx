@@ -3,6 +3,11 @@
 import { CheckCircle2, User, Shield, CreditCard, AlertTriangle } from 'lucide-react';
 import type { RegistrationDraftData } from '@/lib/actions/registration';
 import type { RegistrationPaymentMode } from '@/lib/registration/fee-collection-model';
+import type { PreviousTeamOption } from '@/lib/registration/intents';
+import {
+  formatRegistrationIntent,
+  formatTeamReturnStatus,
+} from '@/lib/registration/intents';
 
 interface StepConfirmationProps {
   formData: RegistrationDraftData;
@@ -12,6 +17,7 @@ interface StepConfirmationProps {
   registrationFee: number;
   paymentMode: RegistrationPaymentMode;
   teams: { id: string; name: string }[];
+  previousTeams: PreviousTeamOption[];
   onUpdate: (updates: Partial<RegistrationDraftData>) => void;
   canSubmit?: boolean;
 }
@@ -40,12 +46,13 @@ export function StepConfirmation({
   registrationFee,
   paymentMode,
   teams,
+  previousTeams: _previousTeams,
   onUpdate,
   canSubmit = true,
 }: StepConfirmationProps) {
   const teamName = formData.team_id
     ? teams.find((t) => t.id === formData.team_id)?.name
-    : null;
+    : formData.requested_team_name || formData.previous_team_name || null;
 
   const formatCurrency = (cents: number) =>
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
@@ -88,12 +95,22 @@ export function StepConfirmation({
             </span>
             <span className="text-[var(--color-text-muted)]">Type</span>
             <span className="text-[var(--color-text-primary)]">
-              {formData.registration_type === 'free_agent' ? 'Free Agent' : 'Team Registration'}
+              {formatRegistrationIntent(formData.registration_intent)}
             </span>
             {teamName && (
               <>
-                <span className="text-[var(--color-text-muted)]">Team</span>
+                <span className="text-[var(--color-text-muted)]">
+                  {formData.registration_intent === 'captain_application' ? 'Requested Team' : 'Team'}
+                </span>
                 <span className="text-[var(--color-text-primary)]">{teamName}</span>
+              </>
+            )}
+            {formData.team_return_status && (
+              <>
+                <span className="text-[var(--color-text-muted)]">Team Status</span>
+                <span className="text-[var(--color-text-primary)]">
+                  {formatTeamReturnStatus(formData.team_return_status)}
+                </span>
               </>
             )}
             {formData.phone && (

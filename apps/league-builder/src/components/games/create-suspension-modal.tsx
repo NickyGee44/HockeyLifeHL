@@ -32,6 +32,12 @@ export function CreateSuspensionModal({
   const [playerId, setPlayerId] = useState('');
   const [seasonId, setSeasonId] = useState(seasons[0]?.id ?? '');
   const [reason, setReason] = useState('');
+  const [suspensionType, setSuspensionType] = useState<'games' | 'date_range' | 'indefinite'>('games');
+  const [severity, setSeverity] = useState<'standard' | 'minor' | 'major' | 'gross_misconduct' | 'match' | 'behavioral'>('standard');
+  const [behaviorCategory, setBehaviorCategory] = useState('');
+  const [internalNotes, setInternalNotes] = useState('');
+  const [appealEligible, setAppealEligible] = useState(false);
+  const [appealDeadline, setAppealDeadline] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [gamesRemaining, setGamesRemaining] = useState(1);
@@ -62,6 +68,12 @@ export function CreateSuspensionModal({
     setPlayerId('');
     setSeasonId(seasons[0]?.id ?? '');
     setReason('');
+    setSuspensionType('games');
+    setSeverity('standard');
+    setBehaviorCategory('');
+    setInternalNotes('');
+    setAppealEligible(false);
+    setAppealDeadline('');
     setStartDate(new Date().toISOString().split('T')[0]);
     setEndDate('');
     setGamesRemaining(1);
@@ -93,6 +105,13 @@ export function CreateSuspensionModal({
         startDate,
         endDate: endDate || undefined,
         gamesRemaining,
+        suspensionType,
+        severity,
+        behaviorCategory: behaviorCategory || undefined,
+        internalNotes: internalNotes || undefined,
+        isIndefinite: suspensionType === 'indefinite',
+        appealEligible,
+        appealDeadline: appealEligible && appealDeadline ? appealDeadline : undefined,
       });
 
       if (result.success) {
@@ -114,7 +133,7 @@ export function CreateSuspensionModal({
         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
       >
         <Plus className="w-4 h-4" />
-        Issue Suspension
+        Submit Suspension
       </button>
     );
   }
@@ -130,7 +149,7 @@ export function CreateSuspensionModal({
         <div className="flex items-center justify-between p-5 border-b border-white/10">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-red-400" />
-            <h2 className="text-lg font-bold text-white">Issue Suspension</h2>
+            <h2 className="text-lg font-bold text-white">Submit Suspension Review</h2>
           </div>
           <button onClick={handleClose} className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors">
             <X className="w-4 h-4" />
@@ -207,17 +226,74 @@ export function CreateSuspensionModal({
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Suspension Type *</label>
+              <select
+                value={suspensionType}
+                onChange={(e) => setSuspensionType(e.target.value as 'games' | 'date_range' | 'indefinite')}
+                className="w-full bg-neutral-800 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-rink-500"
+              >
+                <option value="games">Game-based</option>
+                <option value="date_range">Date range</option>
+                <option value="indefinite">Indefinite</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Severity *</label>
+              <select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value as 'standard' | 'minor' | 'major' | 'gross_misconduct' | 'match' | 'behavioral')}
+                className="w-full bg-neutral-800 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-rink-500"
+              >
+                <option value="standard">Standard review</option>
+                <option value="minor">Minor</option>
+                <option value="major">Major</option>
+                <option value="gross_misconduct">Gross misconduct</option>
+                <option value="match">Match penalty</option>
+                <option value="behavioral">Behavioral tracking</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Behavior Category</label>
+              <input
+                value={behaviorCategory}
+                onChange={(e) => setBehaviorCategory(e.target.value)}
+                placeholder="e.g. Abuse of officials"
+                className="w-full bg-neutral-800 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-rink-500"
+              />
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-neutral-200">
+                <input
+                  type="checkbox"
+                  checked={appealEligible}
+                  onChange={(e) => setAppealEligible(e.target.checked)}
+                  className="rounded border-white/10 bg-neutral-900 text-rink-500 focus:ring-rink-500"
+                />
+                Eligible for captain appeal
+              </label>
+              <p className="mt-1 text-xs text-neutral-500">
+                Allow a captain or alternate to request an appeal on this case.
+              </p>
+            </div>
+          </div>
+
           {/* Dates & Games */}
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1">
               <label className="block text-sm font-medium text-neutral-300 mb-1.5">Games *</label>
               <input
                 type="number"
-                min={1}
+                min={0}
                 max={99}
-                value={gamesRemaining}
+                value={suspensionType === 'indefinite' ? 0 : gamesRemaining}
                 onChange={(e) => setGamesRemaining(parseInt(e.target.value) || 1)}
                 required
+                disabled={suspensionType === 'indefinite'}
                 className="w-full bg-neutral-800 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-rink-500"
               />
             </div>
@@ -237,9 +313,33 @@ export function CreateSuspensionModal({
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                disabled={suspensionType === 'indefinite'}
                 className="w-full bg-neutral-800 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-rink-500"
               />
             </div>
+          </div>
+
+          {appealEligible && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Appeal Deadline</label>
+              <input
+                type="date"
+                value={appealDeadline}
+                onChange={(e) => setAppealDeadline(e.target.value)}
+                className="w-full bg-neutral-800 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-rink-500"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1.5">Internal Notes</label>
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              rows={3}
+              placeholder="Visible to league operators only."
+              className="w-full bg-neutral-800 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-rink-500 resize-none"
+            />
           </div>
 
           {/* Error / Success */}
@@ -248,7 +348,7 @@ export function CreateSuspensionModal({
           )}
           {success && (
             <p className="text-sm text-green-400 bg-green-500/10 px-3 py-2 rounded-lg">
-              Suspension issued — notification sent to player.
+              Suspension submitted for review.
             </p>
           )}
 
@@ -263,7 +363,7 @@ export function CreateSuspensionModal({
               className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50"
             >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
-              Issue Suspension
+              Submit for Review
             </button>
           </div>
         </form>

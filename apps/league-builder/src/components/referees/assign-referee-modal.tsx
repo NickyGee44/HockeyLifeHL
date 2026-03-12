@@ -102,6 +102,7 @@ export function AssignRefereeModal({
       const res = await bulkAssignRefereeToGames({
         leagueId,
         refereeName: chosenReferee.name,
+        leagueRefereeId: chosenReferee.league_referee_id || undefined,
         gameIds: Array.from(selectedGameIds),
         role: 'referee',
       });

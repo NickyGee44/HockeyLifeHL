@@ -11,6 +11,8 @@
  * - Referee Notes
  */
 
+import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   CheckCircle2,
@@ -18,11 +20,14 @@ import {
   AlertTriangle,
   Ban,
   FileText,
+  Loader2,
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { GamesListClient } from './games-list-client';
 import { CreateSuspensionModal } from './create-suspension-modal';
+import { reviewSuspension } from '@/lib/actions/suspensions';
 import type { Game } from '@/lib/actions/games';
+import { toast } from 'sonner';
 
 // ============================================================================
 // TYPES
@@ -37,6 +42,14 @@ interface Suspension {
   start_date: string;
   end_date: string | null;
   status: string | null;
+  suspension_type?: string | null;
+  severity?: string | null;
+  behavior_category?: string | null;
+  internal_notes?: string | null;
+  review_notes?: string | null;
+  appeal_eligible?: boolean | null;
+  appeal_deadline?: string | null;
+  is_indefinite?: boolean | null;
 }
 
 interface Penalty {
@@ -318,6 +331,33 @@ function SuspensionsSection({
                 <span className="text-neutral-300 text-sm">{suspension.team_name}</span>
               </div>
               <p className="text-sm text-neutral-400 mb-2">{suspension.reason}</p>
+              <div className="flex flex-wrap items-center gap-2 mb-2 text-xs">
+                {suspension.suspension_type && (
+                  <span className="rounded-full bg-white/5 px-2 py-1 text-neutral-300">
+                    {formatSuspensionType(suspension.suspension_type)}
+                  </span>
+                )}
+                {suspension.severity && (
+                  <span className="rounded-full bg-red-500/10 px-2 py-1 text-red-300">
+                    {formatSeverity(suspension.severity)}
+                  </span>
+                )}
+                {suspension.is_indefinite && (
+                  <span className="rounded-full bg-amber-500/10 px-2 py-1 text-amber-300">
+                    Indefinite
+                  </span>
+                )}
+                {suspension.behavior_category && (
+                  <span className="rounded-full bg-white/5 px-2 py-1 text-neutral-300">
+                    {suspension.behavior_category}
+                  </span>
+                )}
+                {suspension.appeal_eligible && (
+                  <span className="rounded-full bg-blue-500/10 px-2 py-1 text-blue-300">
+                    Appeal eligible
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-4 text-xs text-neutral-500">
                 <span>
                   {t('suspensions.started')}: {new Date(suspension.start_date).toLocaleDateString()}
@@ -327,6 +367,28 @@ function SuspensionsSection({
                     {t('suspensions.ends')}: {new Date(suspension.end_date).toLocaleDateString()}
                   </span>
                 )}
+                {suspension.appeal_deadline && (
+                  <span>
+                    Appeal by: {new Date(suspension.appeal_deadline).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              {(suspension.internal_notes || suspension.review_notes) && (
+                <div className="mt-3 space-y-2 text-xs">
+                  {suspension.internal_notes && (
+                    <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-neutral-300">
+                      <span className="font-semibold text-neutral-200">Internal notes:</span> {suspension.internal_notes}
+                    </div>
+                  )}
+                  {suspension.review_notes && (
+                    <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-neutral-300">
+                      <span className="font-semibold text-neutral-200">Review notes:</span> {suspension.review_notes}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="mt-3">
+                <SuspensionReviewActions suspension={suspension} />
               </div>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
@@ -346,11 +408,82 @@ function SuspensionsSection({
   );
 }
 
+function SuspensionReviewActions({ suspension }: { suspension: Suspension }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const runReview = (decision: 'approve' | 'deny' | 'serve') => {
+    startTransition(async () => {
+      const result = await reviewSuspension({
+        suspensionId: suspension.id,
+        decision,
+      });
+
+      if (!result.success) {
+        toast.error(result.error || 'Failed to update suspension');
+        return;
+      }
+
+      const label =
+        decision === 'approve'
+          ? 'Suspension approved'
+          : decision === 'deny'
+            ? 'Suspension denied'
+            : 'Suspension marked served';
+      toast.success(label);
+      router.refresh();
+    });
+  };
+
+  if (!['pending_review', 'active', 'appealed'].includes(suspension.status || '')) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {suspension.status === 'pending_review' && (
+        <>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => runReview('approve')}
+            className="inline-flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-1.5 text-xs font-semibold text-green-300 hover:bg-green-500/20 disabled:opacity-50"
+          >
+            {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Approve
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => runReview('deny')}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+          >
+            Deny
+          </button>
+        </>
+      )}
+      {(suspension.status === 'active' || suspension.status === 'appealed') && (
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => runReview('serve')}
+          className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15 disabled:opacity-50"
+        >
+          {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          Mark Served
+        </button>
+      )}
+    </div>
+  );
+}
+
 function SuspensionStatusBadge({ status }: { status: string | null }) {
   const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
+    pending_review: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Pending Review' },
     active: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Active' },
     served: { bg: 'bg-green-500/10', text: 'text-green-400', label: 'Served' },
     appealed: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'Appealed' },
+    denied: { bg: 'bg-neutral-500/10', text: 'text-neutral-300', label: 'Denied' },
   };
 
   const config = statusConfig[status || 'active'] || statusConfig.active;
@@ -360,6 +493,19 @@ function SuspensionStatusBadge({ status }: { status: string | null }) {
       {config.label}
     </span>
   );
+}
+
+function formatSuspensionType(type: string) {
+  if (type === 'date_range') return 'Date range';
+  if (type === 'indefinite') return 'Indefinite';
+  return 'Game-based';
+}
+
+function formatSeverity(severity: string) {
+  return severity
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 // ============================================================================
