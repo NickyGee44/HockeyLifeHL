@@ -39,6 +39,7 @@ import {
 } from '@/lib/actions/team-billing';
 import type { ConnectAccountInfo } from '@/lib/leagues/stripe-connect';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
+import { TeamFeesDashboard } from './TeamFeesDashboard';
 
 interface EmbeddedBillingDashboardProps {
   leagueId: string;
@@ -55,6 +56,23 @@ interface PaymentStats {
   successRate: number;
   averagePayment: number;
 }
+
+type BillingSeason = {
+  id: string;
+  name: string;
+  feeCollectionModel: 'individual' | 'team' | 'hybrid';
+  feeBasis: 'player' | 'team';
+};
+
+type SeasonRow = {
+  id: string;
+  name: string;
+  status: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string | null;
+  fee_collection_model?: 'individual' | 'team' | 'hybrid' | null;
+};
 
 function formatCurrency(cents: number): string {
   return new Intl.NumberFormat('en-CA', {
@@ -76,7 +94,7 @@ export function EmbeddedBillingDashboard({
   const [unpaidPlayers, setUnpaidPlayers] = useState<UnpaidPlayer[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [stripeActionLoading, setStripeActionLoading] = useState(false);
-  const [activeSeason, setActiveSeason] = useState<{ id: string; name: string } | null>(null);
+  const [activeSeason, setActiveSeason] = useState<BillingSeason | null>(null);
 
   const loadingRef = useRef(false);
 
@@ -102,21 +120,60 @@ export function EmbeddedBillingDashboard({
 
       // Find active season
       const supabase = createClient();
-      const { data: seasons } = await supabase
+      const { data: seasonsData } = await (supabase as any)
         .from('seasons')
-        .select('id, name, status, start_date, end_date, created_at')
+        .select('id, name, status, start_date, end_date, created_at, fee_collection_model')
         .eq('league_id', leagueId)
         .order('start_date', { ascending: false })
         .limit(10);
 
-      const season = pickOperationalSeason(seasons ?? []);
-      setActiveSeason(season ? { id: season.id, name: season.name } : null);
+      const seasons = (seasonsData ?? []) as SeasonRow[];
+
+      const preferredBillingSeason =
+        (seasons ?? []).find(
+          (season) =>
+            (season.fee_collection_model === 'team' ||
+              season.fee_collection_model === 'hybrid') &&
+            season.status !== 'completed'
+        ) ?? pickOperationalSeason(seasons ?? []) ?? seasons?.[0] ?? null;
+
+      let feeBasis: 'player' | 'team' = 'player';
+      if (preferredBillingSeason) {
+        const feeBasisResult = await supabase
+          .from('season_fees')
+          .select('fee_basis')
+          .eq('league_id', leagueId)
+          .eq('season_id', preferredBillingSeason.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!feeBasisResult.error && feeBasisResult.data?.fee_basis === 'team') {
+          feeBasis = 'team';
+        }
+      }
+
+      setActiveSeason(
+        preferredBillingSeason
+          ? {
+              id: preferredBillingSeason.id,
+              name: preferredBillingSeason.name,
+              feeCollectionModel:
+                preferredBillingSeason.fee_collection_model === 'team' ||
+                preferredBillingSeason.fee_collection_model === 'hybrid'
+                  ? preferredBillingSeason.fee_collection_model
+                  : 'individual',
+              feeBasis,
+            }
+          : null
+      );
 
       // Load team/player data if we have a season
-      if (season) {
+      if (preferredBillingSeason) {
         const [teamResult, playerResult] = await Promise.all([
-          getPerTeamPaymentBreakdown(leagueId, season.id),
-          getUnpaidPlayers(leagueId, season.id),
+          getPerTeamPaymentBreakdown(leagueId, preferredBillingSeason.id),
+          getUnpaidPlayers(leagueId, preferredBillingSeason.id),
         ]);
 
         if (teamResult.success) {
@@ -277,7 +334,7 @@ export function EmbeddedBillingDashboard({
             <p className="text-sm text-neutral-400 mt-0.5">{stripeDescription}</p>
           </div>
         </div>
-        {!isDisabled && (
+        {(!isDisabled || accountInfo?.accountId) && (
           <button
             className={`w-full py-4 px-6 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-3 ${
               isConnected
@@ -295,6 +352,10 @@ export function EmbeddedBillingDashboard({
           </button>
         )}
       </div>
+
+      {activeSeason && activeSeason.feeCollectionModel !== 'individual' && (
+        <TeamFeesDashboard leagueId={leagueId} seasonId={activeSeason.id} />
+      )}
 
       {/* ── Quick Stats ── */}
       {stats && (
@@ -435,7 +496,15 @@ export function EmbeddedBillingDashboard({
           )}
         </div>
 
-        {unpaidPlayers.length === 0 ? (
+        {activeSeason?.feeBasis === 'team' ? (
+          <div className="px-6 py-12 text-center">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500/50 mx-auto mb-3" />
+            <p className="text-emerald-400 font-medium">Flat team fee season</p>
+            <p className="text-sm text-neutral-500 mt-1">
+              Individual player balances do not apply. Track payment progress from the team invoices above.
+            </p>
+          </div>
+        ) : unpaidPlayers.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <CheckCircle2 className="h-8 w-8 text-emerald-500/50 mx-auto mb-3" />
             <p className="text-emerald-400 font-medium">{t('allPaid')}</p>

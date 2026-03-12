@@ -19,6 +19,7 @@ import Stripe from 'stripe';
 import crypto from 'crypto';
 import {
   getRegistrationPaymentMode,
+  getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
 } from '@/lib/registration/fee-collection-model';
 
@@ -178,9 +179,14 @@ export async function createRegistrationCheckout(
       registration.league_id,
       registration.season_id
     );
+    const playerFeeAmountCents = getPlayerRegistrationFeeAmount(
+      paymentSettings.feeBasis,
+      paymentSettings.feeAmountCents
+    );
     const paymentMode = getRegistrationPaymentMode(
       paymentSettings.feeCollectionModel,
-      paymentSettings.feeAmountCents
+      paymentSettings.feeAmountCents,
+      paymentSettings.feeBasis
     );
 
     if (paymentMode === 'hidden') {
@@ -206,7 +212,7 @@ export async function createRegistrationCheckout(
 
     // Calculate amount owed
     const feeAmount =
-      registration.fee_amount_cents || paymentSettings.feeAmountCents || 0;
+      registration.fee_amount_cents || playerFeeAmountCents || 0;
     const amountPaid = registration.amount_paid_cents || 0;
     const amountOwed = feeAmount - amountPaid;
 
@@ -398,9 +404,14 @@ export async function createEmbeddedCheckout(
       registration.league_id,
       registration.season_id
     );
+    const playerFeeAmountCents = getPlayerRegistrationFeeAmount(
+      paymentSettings.feeBasis,
+      paymentSettings.feeAmountCents
+    );
     const paymentMode = getRegistrationPaymentMode(
       paymentSettings.feeCollectionModel,
-      paymentSettings.feeAmountCents
+      paymentSettings.feeAmountCents,
+      paymentSettings.feeBasis
     );
 
     if (paymentMode === 'hidden') {
@@ -426,7 +437,7 @@ export async function createEmbeddedCheckout(
 
     // Calculate amount owed
     const feeAmount =
-      registration.fee_amount_cents || paymentSettings.feeAmountCents || 0;
+      registration.fee_amount_cents || playerFeeAmountCents || 0;
     const amountPaid = registration.amount_paid_cents || 0;
     const amountOwed = feeAmount - amountPaid;
 

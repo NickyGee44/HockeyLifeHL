@@ -97,9 +97,11 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
         leagueId: league.id,
         leagueName: league.name,
         message:
-          'Stripe account setup is incomplete. Finish onboarding to start accepting payments.',
+          league.stripe_account_status === 'disabled'
+            ? 'Stripe needs attention before payments can be accepted. Review the billing page to reconnect or finish any remaining verification steps.'
+            : 'Stripe account setup is incomplete. Finish onboarding to start accepting payments.',
         actionUrl: `/dashboard/leagues/${league.id}/billing`,
-        actionLabel: 'Finish Setup',
+        actionLabel: league.stripe_account_status === 'disabled' ? 'Review Billing' : 'Finish Setup',
       });
     }
 

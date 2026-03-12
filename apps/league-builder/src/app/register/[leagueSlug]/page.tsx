@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import {
   getRegistrationPaymentMode,
+  getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
 } from '@/lib/payments/fee-collection-model';
 import {
@@ -102,11 +103,12 @@ async function getSeasonRegistrationConfig(leagueId: string, seasonId: string) {
   const settings = await getSeasonPaymentSettings(supabase as any, leagueId, seasonId);
 
   return {
-    registrationFee: settings.feeAmountCents,
+    registrationFee: getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents),
     feeCollectionModel: settings.feeCollectionModel,
     paymentMode: getRegistrationPaymentMode(
       settings.feeCollectionModel,
-      settings.feeAmountCents
+      settings.feeAmountCents,
+      settings.feeBasis
     ),
   };
 }

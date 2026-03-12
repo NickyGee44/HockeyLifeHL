@@ -294,6 +294,7 @@ export const step7Schema = z.object({
   // Registration Fees
   enablePaidRegistration: z.boolean().default(false),
   feeCollectionModel: z.enum(['individual', 'team', 'hybrid']).default('individual'),
+  feeBasis: z.enum(['player', 'team']).default('player'),
   registrationFee: z
     .number()
     .int('Must be a whole number')

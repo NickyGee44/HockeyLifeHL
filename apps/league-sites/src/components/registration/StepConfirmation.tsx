@@ -147,7 +147,7 @@ export function StepConfirmation({
         </div>
 
         {/* Payment */}
-        {registrationFee > 0 && (
+        {(registrationFee > 0 || paymentMode === 'hidden') && (
           <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
             <div className="flex items-center gap-2 mb-3">
               <CreditCard className="w-4 h-4 text-[var(--league-primary)]" />
@@ -160,14 +160,18 @@ export function StepConfirmation({
                 {paymentMode === 'hidden' ? 'Team Billing' : 'Registration Fee'}
               </span>
               <span className="font-bold text-[var(--color-text-primary)]">
-                {formatCurrency(registrationFee)}
+                {paymentMode === 'hidden' && registrationFee <= 0
+                  ? 'Handled by team invoice'
+                  : formatCurrency(registrationFee)}
               </span>
             </div>
             <p className="mt-1 text-xs text-green-400">
               {formData.payment_status === 'completed'
                 ? 'Payment completed'
                 : paymentMode === 'hidden'
-                  ? 'Your team will be billed for this registration'
+                  ? registrationFee > 0
+                    ? 'Your team will be billed for this registration'
+                    : 'Your captain or league can pay the full team invoice after registrations are collected.'
                   : paymentMode === 'optional'
                     ? 'You are registering now and can let your team handle payment later'
                     : formData.payment_status === 'not_required'

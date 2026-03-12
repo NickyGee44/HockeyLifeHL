@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type FeeCollectionModel = 'individual' | 'team' | 'hybrid';
+export type FeeBasis = 'player' | 'team';
 export type RegistrationPaymentMode = 'hidden' | 'required' | 'optional';
 
 export function normalizeFeeCollectionModel(
@@ -13,11 +14,26 @@ export function normalizeFeeCollectionModel(
   return 'individual';
 }
 
+export function normalizeFeeBasis(value: string | null | undefined): FeeBasis {
+  return value === 'team' ? 'team' : 'player';
+}
+
+export function getPlayerRegistrationFeeAmount(
+  feeBasis: FeeBasis,
+  feeAmountCents: number
+): number {
+  if (feeAmountCents <= 0) return 0;
+  return feeBasis === 'team' ? 0 : feeAmountCents;
+}
+
 export function getRegistrationPaymentMode(
   feeCollectionModel: FeeCollectionModel,
-  feeAmountCents: number
+  feeAmountCents: number,
+  feeBasis: FeeBasis = 'player'
 ): RegistrationPaymentMode {
-  if (feeAmountCents <= 0) return 'hidden';
+  const playerFeeAmountCents = getPlayerRegistrationFeeAmount(feeBasis, feeAmountCents);
+
+  if (playerFeeAmountCents <= 0) return 'hidden';
 
   switch (feeCollectionModel) {
     case 'team':
@@ -61,24 +77,59 @@ export async function getSeasonPaymentSettings(
 ): Promise<{
   feeAmountCents: number;
   feeCollectionModel: FeeCollectionModel;
+  feeBasis: FeeBasis;
   currency: string;
 }> {
   const [feeResult, model] = await Promise.all([
-    supabase
-      .from('season_fees')
-      .select('amount_cents, currency')
-      .eq('league_id', leagueId)
-      .eq('season_id', seasonId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    (async () => {
+      const feeQuery = await supabase
+        .from('season_fees')
+        .select('amount_cents, currency, fee_basis')
+        .eq('league_id', leagueId)
+        .eq('season_id', seasonId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (
+        feeQuery.error &&
+        (feeQuery.error.code === '42703' || feeQuery.error.message?.includes('fee_basis'))
+      ) {
+        const fallbackQuery = await supabase
+          .from('season_fees')
+          .select('amount_cents, currency')
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        return {
+          data: fallbackQuery.data
+            ? { ...fallbackQuery.data, fee_basis: 'player' as const }
+            : null,
+        };
+      }
+
+      if (feeQuery.error) {
+        throw feeQuery.error;
+      }
+
+      return {
+        data: feeQuery.data
+          ? { ...feeQuery.data, fee_basis: normalizeFeeBasis(feeQuery.data.fee_basis) }
+          : null,
+      };
+    })(),
     getSeasonFeeCollectionModel(supabase, seasonId),
   ]);
 
   return {
     feeAmountCents: feeResult.data?.amount_cents ?? 0,
     feeCollectionModel: model,
+    feeBasis: normalizeFeeBasis(feeResult.data?.fee_basis),
     currency: feeResult.data?.currency ?? 'cad',
   };
 }

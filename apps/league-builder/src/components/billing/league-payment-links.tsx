@@ -47,6 +47,8 @@ export function LeaguePaymentLinks({ leagues }: LeaguePaymentLinksProps) {
             {leagues.map((league) => {
               const isConnected = league.stripe_account_status === 'complete';
               const needsSetup = !league.stripe_account_id;
+              const isDisabled = league.stripe_account_status === 'disabled';
+              const needsAttention = league.stripe_account_status === 'restricted';
 
               return (
                 <Link
@@ -69,6 +71,10 @@ export function LeaguePaymentLinks({ leagues }: LeaguePaymentLinksProps) {
                       <p className="text-xs text-neutral-500">
                         {isConnected ? (
                           <span className="text-green-500">Stripe Connected</span>
+                        ) : isDisabled ? (
+                          <span className="text-red-500">Needs Billing Review</span>
+                        ) : needsAttention ? (
+                          <span className="text-orange-400">Action Required</span>
                         ) : needsSetup ? (
                           <span className="text-yellow-500">Setup Required</span>
                         ) : (

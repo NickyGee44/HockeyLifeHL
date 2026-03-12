@@ -136,6 +136,7 @@ export async function saveDraft(
           // Step 7 - Registration & Payments
           enablePaidRegistration: data.enablePaidRegistration ?? false,
           feeCollectionModel: data.feeCollectionModel ?? 'individual',
+          feeBasis: data.feeBasis ?? 'player',
           registrationFee: data.registrationFee ?? 0,
           earlyBirdDiscount: data.earlyBirdDiscount ?? {
             enabled: false,
@@ -480,6 +481,7 @@ export async function createLeague(
           fees: {
             enablePaidRegistration: data.enablePaidRegistration ?? false,
             feeCollectionModel: data.feeCollectionModel ?? 'individual',
+            feeBasis: data.feeBasis ?? 'player',
             registrationFee: data.registrationFee ?? 0,
             earlyBirdDiscount: {
               enabled: data.earlyBirdDiscount?.enabled ?? false,
@@ -578,6 +580,7 @@ export async function createLeague(
           registration_closes_at: data.registration_closes || null,
           registration_type: dbRegistrationType,
           status: 'active', // Valid enum: active, playoffs, completed, draft, archived
+          fee_collection_model: data.feeCollectionModel ?? 'individual',
           game_duration_minutes: data.game_duration_minutes,
           period_count: data.period_count,
           playoff_eligibility_min_games_pct: data.playoff_eligibility_enabled
@@ -596,19 +599,24 @@ export async function createLeague(
 
       // Step 3b: Create season fee if paid registration is enabled
       if (data.enablePaidRegistration && data.registrationFee > 0) {
+        const feeBasis =
+          (data.feeCollectionModel ?? 'individual') === 'individual'
+            ? 'player'
+            : data.feeBasis ?? 'player';
         const earlyBirdDiscountCents = data.earlyBirdDiscount?.enabled
           ? data.earlyBirdDiscount.isPercentage
             ? Math.round((data.registrationFee * data.earlyBirdDiscount.amount) / 100)
             : data.earlyBirdDiscount.amount
           : 0;
 
-        const { error: feeError } = await serviceSupabase.from('season_fees').insert({
+        const feePayload = {
           league_id: league.id,
           season_id: season.id,
           name: 'Registration Fee',
           description: 'Season registration fee',
           amount_cents: data.registrationFee,
-          currency: 'usd',
+          fee_basis: feeBasis,
+          currency: 'cad',
           allow_full_payment: true,
           allow_two_pay: false,
           allow_three_pay: false,
@@ -619,7 +627,23 @@ export async function createLeague(
           installment_fee_cents: 0,
           is_active: true,
           created_by: user.id,
-        });
+        };
+
+        let { error: feeError } = await serviceSupabase.from('season_fees').insert(feePayload);
+
+        if (
+          feeError &&
+          (feeError.code === '42703' || feeError.message?.includes('fee_basis'))
+        ) {
+          if (feeBasis === 'team') {
+            console.error('[league-wizard] Flat team fee support is not available in this environment yet.');
+          } else {
+            const fallbackPayload = { ...feePayload };
+            delete (fallbackPayload as Record<string, unknown>).fee_basis;
+            const fallbackResult = await serviceSupabase.from('season_fees').insert(fallbackPayload);
+            feeError = fallbackResult.error;
+          }
+        }
 
         if (feeError) {
           console.error('[league-wizard] Failed to create season fee:', feeError.message);

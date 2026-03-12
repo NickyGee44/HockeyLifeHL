@@ -8934,6 +8934,7 @@ export type Database = {
           description: string | null
           early_bird_deadline: string | null
           early_bird_discount_cents: number | null
+          fee_basis: string
           id: string
           installment_fee_cents: number | null
           is_active: boolean
@@ -8955,6 +8956,7 @@ export type Database = {
           description?: string | null
           early_bird_deadline?: string | null
           early_bird_discount_cents?: number | null
+          fee_basis?: string
           id?: string
           installment_fee_cents?: number | null
           is_active?: boolean
@@ -8976,6 +8978,7 @@ export type Database = {
           description?: string | null
           early_bird_deadline?: string | null
           early_bird_discount_cents?: number | null
+          fee_basis?: string
           id?: string
           installment_fee_cents?: number | null
           is_active?: boolean

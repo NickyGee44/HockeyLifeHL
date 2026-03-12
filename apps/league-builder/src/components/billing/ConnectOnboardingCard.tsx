@@ -203,15 +203,17 @@ export function ConnectOnboardingCard({
                   <p className="text-sm text-red-700 dark:text-red-300 mt-1">
                     {t('accountDisabledDesc')}
                   </p>
-                  <a
-                    href="https://support.stripe.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-red-700 dark:text-red-300 underline hover:no-underline"
-                  >
-                    Contact Stripe Support
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                  {!accountInfo.accountId && (
+                    <a
+                      href="https://support.stripe.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-red-700 dark:text-red-300 underline hover:no-underline"
+                    >
+                      Contact Stripe Support
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
                 </>
               )}
             </div>
@@ -255,7 +257,7 @@ export function ConnectOnboardingCard({
             </Button>
           )}
 
-          {accountInfo.accountId && accountInfo.status !== 'disabled' && (
+          {accountInfo.accountId && (
             <Button
               variant="outline"
               onClick={handleOpenDashboard}

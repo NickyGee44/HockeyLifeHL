@@ -48,7 +48,7 @@ function leagueToState(league: LeagueEditorData | undefined, leagues: LeagueEdit
     websiteUrl: league?.website_url ?? '',
     visiblePages: ws.visiblePages ?? { ...DEFAULT_VISIBLE_PAGES },
     navItems: ws.navItems ?? [],
-    showGameTicker: ws.showGameTicker ?? false,
+    showGameTicker: ws.showGameTicker ?? true,
     socialFacebook: ws.socialFacebook ?? '',
     socialTwitter: ws.socialTwitter ?? '',
     socialInstagram: ws.socialInstagram ?? '',

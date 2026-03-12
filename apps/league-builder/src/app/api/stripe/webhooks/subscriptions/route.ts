@@ -851,7 +851,7 @@ async function handleInvoicePaid(
           organizationName: org.name,
           tier: org.subscription_tier as any,
           amount: invoice.amount_paid,
-          currency: invoice.currency || 'usd',
+          currency: invoice.currency || 'cad',
           periodStart: org.current_period_start
             ? new Date(org.current_period_start)
             : new Date(),

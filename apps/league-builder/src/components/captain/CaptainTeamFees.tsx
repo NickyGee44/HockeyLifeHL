@@ -32,6 +32,7 @@ interface InvoicePayment {
 interface InvoiceDetail {
   id: string;
   total_players: number;
+  fee_basis?: 'player' | 'team';
   fee_per_player_cents: number;
   total_amount_cents: number;
   amount_paid_cents: number;
@@ -40,6 +41,7 @@ interface InvoiceDetail {
   notes: string | null;
   currency: string;
   payments?: InvoicePayment[];
+  team_invoice_payments?: InvoicePayment[];
 }
 
 function formatCurrency(cents: number): string {
@@ -103,7 +105,10 @@ export function CaptainTeamFees({ invoiceId, teamName }: CaptainTeamFeesProps) {
       setLoading(true);
       const result = await getTeamInvoice(invoiceId);
       if (result.success && result.data) {
-        setInvoice(result.data);
+        setInvoice({
+          ...result.data,
+          payments: result.data.team_invoice_payments || [],
+        });
       }
       setLoading(false);
     }
@@ -158,7 +163,9 @@ export function CaptainTeamFees({ invoiceId, teamName }: CaptainTeamFeesProps) {
           <p className="text-sm text-neutral-400 mb-1">{t('amountDue')}</p>
           <p className="text-2xl font-bold text-white">{formatCurrency(invoice.total_amount_cents)}</p>
           <p className="text-xs text-neutral-500 mt-1">
-            {invoice.total_players} {t('players')} &times; {formatCurrency(invoice.fee_per_player_cents)}
+            {invoice.fee_basis === 'team'
+              ? `Flat team fee${invoice.total_players > 0 ? ` • ${invoice.total_players} registered player${invoice.total_players === 1 ? '' : 's'}` : ''}`
+              : `${invoice.total_players} ${t('players')} × ${formatCurrency(invoice.fee_per_player_cents)}`}
           </p>
         </div>
 

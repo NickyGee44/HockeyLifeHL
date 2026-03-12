@@ -99,7 +99,7 @@ function formatMoney(cents?: number | null) {
   if (cents === null || cents === undefined) return '—';
   return new Intl.NumberFormat(undefined, {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }
@@ -556,7 +556,7 @@ function MigrationRequestEditor({
         </label>
 
         <label className="space-y-2">
-          <span className="text-sm font-semibold text-white">Quoted price (USD)</span>
+          <span className="text-sm font-semibold text-white">Quoted price (CAD)</span>
           <Input
             type="number"
             min={0}

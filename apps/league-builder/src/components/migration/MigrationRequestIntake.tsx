@@ -247,7 +247,7 @@ export function MigrationRequestIntake({ leagueId, locale, requests }: Props) {
                         <p className="mt-1 text-lg font-bold text-violet-50">
                           {new Intl.NumberFormat(undefined, {
                             style: 'currency',
-                            currency: 'USD',
+                            currency: 'CAD',
                             maximumFractionDigits: 0,
                           }).format(request.quoted_price_cents / 100)}
                         </p>

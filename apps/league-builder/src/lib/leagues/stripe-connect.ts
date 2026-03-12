@@ -69,6 +69,8 @@ export interface ConnectAccountInfo {
   payoutsEnabled: boolean;
   detailsSubmitted: boolean;
   requiresAction: boolean;
+  disableReason?: string | null;
+  accountMissing?: boolean;
   requirements?: {
     currentlyDue: string[];
     eventuallyDue: string[];
@@ -76,6 +78,55 @@ export interface ConnectAccountInfo {
     pendingVerification: string[];
   };
   createdAt?: Date;
+}
+
+const HARD_DISABLED_REASONS = [
+  'rejected.',
+  'fraud',
+  'listed',
+  'platform_paused',
+  'other',
+] as const;
+
+function isHardDisabledReason(reason: string | null | undefined): boolean {
+  if (!reason) return false;
+
+  return HARD_DISABLED_REASONS.some((token) => reason.includes(token));
+}
+
+export function isMissingConnectAccountError(error: unknown): boolean {
+  if (!(error instanceof Stripe.errors.StripeError)) {
+    return false;
+  }
+
+  return (
+    error.type === 'StripeInvalidRequestError' &&
+    (error.code === 'resource_missing' || /no such account/i.test(error.message))
+  );
+}
+
+export function resolveConnectAccountStatus(
+  account: Stripe.Account
+): ConnectAccountInfo['status'] {
+  if (account.charges_enabled && account.payouts_enabled) {
+    return 'complete';
+  }
+
+  const disabledReason = account.requirements?.disabled_reason ?? null;
+  const hasOutstandingRequirements =
+    (account.requirements?.currently_due?.length ?? 0) > 0 ||
+    (account.requirements?.past_due?.length ?? 0) > 0 ||
+    (account.requirements?.pending_verification?.length ?? 0) > 0;
+
+  if (disabledReason) {
+    return isHardDisabledReason(disabledReason) ? 'disabled' : 'restricted';
+  }
+
+  if (hasOutstandingRequirements) {
+    return 'restricted';
+  }
+
+  return 'pending';
 }
 
 export interface ConnectOnboardingLink {
@@ -211,18 +262,7 @@ export async function getConnectAccountInfo(
   try {
     const account = await stripe.accounts.retrieve(accountId);
 
-    // Determine status based on account state
-    let status: ConnectAccountStatus = 'pending';
-    if (account.charges_enabled && account.payouts_enabled) {
-      status = 'complete';
-    } else if (account.requirements?.disabled_reason) {
-      status = 'disabled';
-    } else if (
-      account.requirements?.currently_due &&
-      account.requirements.currently_due.length > 0
-    ) {
-      status = 'restricted';
-    }
+    const status = resolveConnectAccountStatus(account);
 
     return {
       accountId,
@@ -230,10 +270,13 @@ export async function getConnectAccountInfo(
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
       detailsSubmitted: account.details_submitted || false,
+      disableReason: account.requirements?.disabled_reason ?? null,
       requiresAction:
         !account.charges_enabled ||
         !account.payouts_enabled ||
-        (account.requirements?.currently_due?.length ?? 0) > 0,
+        (account.requirements?.currently_due?.length ?? 0) > 0 ||
+        (account.requirements?.past_due?.length ?? 0) > 0 ||
+        (account.requirements?.pending_verification?.length ?? 0) > 0,
       requirements: {
         currentlyDue: account.requirements?.currently_due || [],
         eventuallyDue: account.requirements?.eventually_due || [],
@@ -244,13 +287,28 @@ export async function getConnectAccountInfo(
     };
   } catch (error) {
     console.error('[Stripe Connect] Failed to retrieve account:', error);
+
+    if (isMissingConnectAccountError(error)) {
+      return {
+        accountId: null,
+        status: 'not_created',
+        chargesEnabled: false,
+        payoutsEnabled: false,
+        detailsSubmitted: false,
+        requiresAction: true,
+        accountMissing: true,
+      };
+    }
+
     return {
       accountId,
-      status: 'disabled',
+      status: 'restricted',
       chargesEnabled: false,
       payoutsEnabled: false,
       detailsSubmitted: false,
       requiresAction: true,
+      disableReason:
+        error instanceof Stripe.errors.StripeError ? error.code ?? error.message : null,
     };
   }
 }

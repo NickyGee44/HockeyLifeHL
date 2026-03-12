@@ -72,6 +72,7 @@ export function Step7RegistrationPayments({ platformFeePercent = 3.5 }: Step7Reg
   // Watch all relevant fields
   const enablePaidRegistration = watch('enablePaidRegistration');
   const feeCollectionModel = watch('feeCollectionModel') || 'individual';
+  const feeBasis = watch('feeBasis') || 'player';
   const registrationFee = watch('registrationFee') || 0;
   const earlyBirdDiscount = watch('earlyBirdDiscount') || {
     enabled: false,
@@ -105,6 +106,12 @@ export function Step7RegistrationPayments({ platformFeePercent = 3.5 }: Step7Reg
   const [stripeError, setStripeError] = React.useState<string | null>(null);
   const searchParams = useSearchParams();
   const stripeCheckDone = React.useRef(false);
+
+  React.useEffect(() => {
+    if (feeCollectionModel === 'individual' && feeBasis !== 'player') {
+      setValue('feeBasis', 'player');
+    }
+  }, [feeBasis, feeCollectionModel, setValue]);
 
   // On return from Stripe onboarding, check account status
   React.useEffect(() => {
@@ -319,6 +326,56 @@ export function Step7RegistrationPayments({ platformFeePercent = 3.5 }: Step7Reg
                 ))}
               </div>
             </div>
+
+            {feeCollectionModel !== 'individual' && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Fee Basis
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose whether the amount above is a per-player rate or a flat team invoice.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {([
+                    {
+                      value: 'player' as const,
+                      label: 'Per-player fee',
+                      description:
+                        'Best when teams owe more or less depending on how many players register.',
+                    },
+                    {
+                      value: 'team' as const,
+                      label: 'Flat team fee',
+                      description:
+                        'Creates one team invoice regardless of roster size. Captains can collect offline and settle the team total.',
+                    },
+                  ]).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setValue('feeBasis', option.value)}
+                      className={`flex flex-col items-start gap-2 p-4 rounded-lg border transition-colors text-left ${
+                        feeBasis === option.value
+                          ? 'bg-rink-500/10 border-rink-500 text-white'
+                          : 'bg-neutral-800/50 border-white/10 hover:border-white/20 text-neutral-300'
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{option.label}</div>
+                      <div className="text-xs text-muted-foreground">{option.description}</div>
+                    </button>
+                  ))}
+                </div>
+                {feeCollectionModel === 'hybrid' && feeBasis === 'team' && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex items-start gap-2">
+                    <Info className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-200">
+                      Hybrid plus a flat team fee still hides player checkout and bills the captain/team invoice as one amount.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Early Bird Discount Section */}
             <div className="space-y-4">

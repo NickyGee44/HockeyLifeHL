@@ -267,7 +267,7 @@ async function handleCheckoutCompleted(
       p_payment_intent_id: paymentIntent,
       p_amount_paid_cents: amountPaid,
       p_application_fee_cents: applicationFee,
-      p_currency: session.currency || 'usd',
+      p_currency: session.currency || 'cad',
       p_idempotency_key: `checkout_${session.id}`,
     }
   );

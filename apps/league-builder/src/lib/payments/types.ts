@@ -9,6 +9,7 @@
 // ============================================================================
 
 export type PaymentPlanType = 'full' | 'two_pay' | 'three_pay';
+export type FeeBasis = 'player' | 'team';
 
 export type PlayerPaymentStatus =
   | 'pending'
@@ -40,6 +41,7 @@ export interface SeasonFee {
   name: string;
   description: string | null;
   amount_cents: number;
+  fee_basis: FeeBasis;
   currency: string;
   allow_full_payment: boolean;
   allow_two_pay: boolean;
@@ -70,6 +72,7 @@ export interface CreateSeasonFeeParams {
   name: string;
   description?: string;
   amountCents: number;
+  feeBasis?: FeeBasis;
   currency?: string;
   allowFullPayment?: boolean;
   allowTwoPay?: boolean;

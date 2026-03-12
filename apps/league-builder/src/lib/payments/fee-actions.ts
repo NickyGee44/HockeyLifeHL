@@ -24,6 +24,7 @@ import type {
   ActionResult,
 } from './types';
 import type { Json } from '@hockey-life/database';
+import { normalizeFeeCollectionModel } from './fee-collection-model';
 
 // ============================================================================
 // Helper: Verify League Admin Access
@@ -99,6 +100,27 @@ async function logPaymentAuditEvent(
   if (error) {
     console.error('[Payments] Failed to log audit event:', sanitizeErrorForLogging(error));
   }
+}
+
+async function getSeasonFeeModelForSeason(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  seasonId: string
+): Promise<'individual' | 'team' | 'hybrid'> {
+  const { data, error } = await (supabase as any)
+    .from('seasons')
+    .select('fee_collection_model')
+    .eq('id', seasonId)
+    .maybeSingle();
+
+  if (
+    error &&
+    error.code !== '42703' &&
+    !error.message?.includes('fee_collection_model')
+  ) {
+    throw error;
+  }
+
+  return normalizeFeeCollectionModel(data?.fee_collection_model);
 }
 
 // ============================================================================
@@ -211,6 +233,15 @@ export async function createSeasonFee(
     }
 
     const supabase = await createClient();
+    const feeBasis = params.feeBasis ?? 'player';
+    const seasonFeeCollectionModel = await getSeasonFeeModelForSeason(supabase, params.seasonId);
+
+    if (seasonFeeCollectionModel === 'individual' && feeBasis === 'team') {
+      return {
+        success: false,
+        error: 'Flat team fees require Team Billing or Hybrid billing for the season.',
+      };
+    }
 
     // Check for duplicate name
     const { data: existing } = await supabase
@@ -233,7 +264,8 @@ export async function createSeasonFee(
         name: params.name,
         description: params.description || null,
         amount_cents: params.amountCents,
-        currency: params.currency || 'usd',
+        fee_basis: feeBasis,
+        currency: params.currency || 'cad',
         allow_full_payment: allowFull,
         allow_two_pay: allowTwo,
         allow_three_pay: allowThree,
@@ -248,6 +280,51 @@ export async function createSeasonFee(
       .single();
 
     if (error) {
+      if (error.code === '42703' || error.message?.includes('fee_basis')) {
+        if (feeBasis === 'team') {
+          return {
+            success: false,
+            error: 'Flat team fee support is not available in this environment yet.',
+          };
+        }
+
+        const { data: fallbackFee, error: fallbackError } = await supabase
+          .from('season_fees')
+          .insert({
+            league_id: params.leagueId,
+            season_id: params.seasonId,
+            name: params.name,
+            description: params.description || null,
+            amount_cents: params.amountCents,
+            currency: params.currency || 'cad',
+            allow_full_payment: allowFull,
+            allow_two_pay: allowTwo,
+            allow_three_pay: allowThree,
+            payment_deadline: params.paymentDeadline || null,
+            early_bird_deadline: params.earlyBirdDeadline || null,
+            early_bird_discount_cents: params.earlyBirdDiscountCents || 0,
+            late_fee_cents: params.lateFeeCents || 0,
+            installment_fee_cents: params.installmentFeeCents || 0,
+            created_by: access.userId,
+          })
+          .select()
+          .single();
+
+        if (fallbackError) {
+          console.error('[Payments] Create fee error:', sanitizeErrorForLogging(fallbackError));
+          return { success: false, error: 'Failed to create season fee.' };
+        }
+
+        await logPaymentAuditEvent(params.leagueId, 'season_fee_created', {
+          fee_id: fallbackFee.id,
+          name: params.name,
+          amount_cents: params.amountCents,
+        }, access.userId);
+
+        revalidatePath(`/dashboard/leagues/${params.leagueId}/fees`);
+        return { success: true, data: fallbackFee as SeasonFee };
+      }
+
       console.error('[Payments] Create fee error:', sanitizeErrorForLogging(error));
       return { success: false, error: 'Failed to create season fee.' };
     }
@@ -292,12 +369,26 @@ export async function updateSeasonFee(
       return { success: false, error: access.error };
     }
 
+    const feeBasis = params.feeBasis ?? (existingFee as any).fee_basis ?? 'player';
+    const seasonFeeCollectionModel = await getSeasonFeeModelForSeason(
+      supabase,
+      existingFee.season_id
+    );
+
+    if (seasonFeeCollectionModel === 'individual' && feeBasis === 'team') {
+      return {
+        success: false,
+        error: 'Flat team fees require Team Billing or Hybrid billing for the season.',
+      };
+    }
+
     // Build update object
     const updateData: Record<string, unknown> = {};
 
     if (params.name !== undefined) updateData.name = params.name;
     if (params.description !== undefined) updateData.description = params.description;
     if (params.amountCents !== undefined) updateData.amount_cents = params.amountCents;
+    if (params.feeBasis !== undefined) updateData.fee_basis = params.feeBasis;
     if (params.currency !== undefined) updateData.currency = params.currency;
     if (params.allowFullPayment !== undefined) updateData.allow_full_payment = params.allowFullPayment;
     if (params.allowTwoPay !== undefined) updateData.allow_two_pay = params.allowTwoPay;
@@ -317,6 +408,37 @@ export async function updateSeasonFee(
       .single();
 
     if (error) {
+      if (error.code === '42703' || error.message?.includes('fee_basis')) {
+        if (params.feeBasis === 'team') {
+          return {
+            success: false,
+            error: 'Flat team fee support is not available in this environment yet.',
+          };
+        }
+
+        delete updateData.fee_basis;
+
+        const { data: fallbackFee, error: fallbackError } = await supabase
+          .from('season_fees')
+          .update(updateData)
+          .eq('id', params.feeId)
+          .select()
+          .single();
+
+        if (fallbackError) {
+          console.error('[Payments] Update fee error:', sanitizeErrorForLogging(fallbackError));
+          return { success: false, error: 'Failed to update season fee.' };
+        }
+
+        await logPaymentAuditEvent(existingFee.league_id, 'season_fee_updated', {
+          fee_id: params.feeId,
+          changes: updateData,
+        }, access.userId);
+
+        revalidatePath(`/dashboard/leagues/${existingFee.league_id}/fees`);
+        return { success: true, data: fallbackFee as SeasonFee };
+      }
+
       console.error('[Payments] Update fee error:', sanitizeErrorForLogging(error));
       return { success: false, error: 'Failed to update season fee.' };
     }
@@ -422,6 +544,33 @@ export async function updateSeasonFeeCollectionModel(
     }
 
     const serviceSupabase = createServiceRoleClient();
+
+    if (feeCollectionModel === 'individual') {
+      const { data: teamFees, error: feeError } = await serviceSupabase
+        .from('season_fees')
+        .select('id')
+        .eq('league_id', leagueId)
+        .eq('season_id', seasonId)
+        .eq('fee_basis', 'team')
+        .limit(1);
+
+      if (
+        feeError &&
+        feeError.code !== '42703' &&
+        !feeError.message?.includes('fee_basis')
+      ) {
+        console.error('[Payments] Check team fees error:', sanitizeErrorForLogging(feeError));
+        return { success: false, error: 'Failed to validate season fees.' };
+      }
+
+      if ((teamFees || []).length > 0) {
+        return {
+          success: false,
+          error:
+            'This season has a flat team fee. Change the fee to per-player before switching to individual billing.',
+        };
+      }
+    }
 
     const { data: season, error } = await (serviceSupabase
       .from('seasons') as any)
