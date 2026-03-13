@@ -792,7 +792,7 @@ export async function recordCaptainTeamInvoicePayment(
 
   const { data: invoice, error: invoiceError } = await (supabase as any)
     .from('team_invoices')
-    .select('id, team_id, league_id, total_amount_cents, amount_paid_cents, status')
+    .select('id, team_id, league_id, season_id, total_amount_cents, amount_paid_cents, status, fee_basis')
     .eq('id', invoiceId)
     .single();
 
@@ -842,10 +842,35 @@ export async function recordCaptainTeamInvoicePayment(
     return { success: false, error: 'Payment was saved, but the invoice could not be refreshed.' };
   }
 
-  const totalPaid = (payments || []).reduce(
+  const invoicePaymentTotal = (payments || []).reduce(
     (sum: number, row: { amount_cents: number }) => sum + (row.amount_cents || 0),
     0
   );
+
+  let playerPaid = 0;
+  if (invoice.fee_basis !== 'team') {
+    const { data: teamRegistrations, error: playerPaidError } = await supabase
+      .from('registration_submissions')
+      .select('amount_paid_cents')
+      .eq('league_id', invoice.league_id)
+      .eq('season_id', invoice.season_id)
+      .eq('assigned_team_id', invoice.team_id)
+      .not('submitted_at', 'is', null)
+      .in('status', ['pending', 'approved', 'waitlisted']);
+
+    if (playerPaidError) {
+      console.error('[CaptainPayments] recordCaptainTeamInvoicePayment player sum error:', playerPaidError);
+      return { success: false, error: 'Payment was saved, but the invoice could not be refreshed.' };
+    }
+
+    playerPaid = (teamRegistrations || []).reduce(
+      (sum: number, row: { amount_paid_cents: number | null }) =>
+        sum + Math.max(0, row.amount_paid_cents || 0),
+      0
+    );
+  }
+
+  const totalPaid = invoicePaymentTotal + playerPaid;
 
   const newStatus =
     totalPaid >= invoice.total_amount_cents

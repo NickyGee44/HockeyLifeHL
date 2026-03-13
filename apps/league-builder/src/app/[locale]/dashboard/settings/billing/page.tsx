@@ -13,6 +13,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect } from '@/i18n/navigation';
 import { getCurrentUser, getUserOrganizations } from '@/lib/actions/auth';
 import { getPlatformFeeConfig } from '@/lib/fees/platform-fees';
+import { getBillingReadiness } from '@/lib/payments/billing-readiness';
 import { createClient } from '@/lib/supabase/server';
 import { SubscriptionContent } from '@/components/subscription/subscription-content';
 import { LeaguePaymentLinks } from '@/components/billing/league-payment-links';
@@ -73,6 +74,51 @@ export default async function BillingSettingsPage({ params }: Props) {
     }
   }
 
+  const leagueLinks = await Promise.all(
+    (leagues || []).map(async (league: any) => {
+      try {
+        const readiness = await getBillingReadiness(league.id);
+
+        return {
+          ...league,
+          stripe_account_status: readiness.stripeStatus,
+          statusLabel: readiness.canAcceptPayments
+            ? readiness.needsOwnerAttention
+              ? 'Payments Live · Review Recommended'
+              : 'Payments Live'
+            : readiness.ctaLabel,
+          statusTone: readiness.canAcceptPayments
+            ? readiness.needsOwnerAttention
+              ? 'warning'
+              : 'success'
+            : readiness.stripeStatus === 'disabled'
+              ? 'danger'
+              : league.stripe_account_id
+                ? 'warning'
+                : 'pending',
+        };
+      } catch {
+        return {
+          ...league,
+          statusLabel: !league.stripe_account_id
+            ? 'Setup Required'
+            : league.stripe_account_status === 'complete'
+              ? 'Payments Live'
+              : league.stripe_account_status === 'disabled'
+                ? 'Needs Billing Review'
+                : 'Action Required',
+          statusTone: !league.stripe_account_id
+            ? 'pending'
+            : league.stripe_account_status === 'complete'
+              ? 'success'
+              : league.stripe_account_status === 'disabled'
+                ? 'danger'
+                : 'warning',
+        };
+      }
+    })
+  );
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -94,7 +140,7 @@ export default async function BillingSettingsPage({ params }: Props) {
       />
 
       {/* Per-League Billing Links */}
-      <LeaguePaymentLinks leagues={leagues || []} />
+      <LeaguePaymentLinks leagues={leagueLinks} />
     </div>
   );
 }

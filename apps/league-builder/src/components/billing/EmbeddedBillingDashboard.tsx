@@ -201,7 +201,10 @@ export function EmbeddedBillingDashboard({
     setStripeActionLoading(true);
     try {
       const accountNotCreated = !accountInfo || accountInfo.status === 'not_created';
-      const needsOnboarding = !accountNotCreated && (accountInfo.status === 'pending' || accountInfo.status === 'restricted');
+      const needsOnboarding =
+        !accountNotCreated &&
+        (accountInfo.status === 'pending' ||
+          (accountInfo.status === 'restricted' && !accountInfo.chargesEnabled));
 
       if (accountNotCreated) {
         // Create account then start onboarding
@@ -264,8 +267,12 @@ export function EmbeddedBillingDashboard({
   }
 
   const accountNotCreated = !accountInfo || accountInfo.status === 'not_created';
-  const needsOnboarding = !accountNotCreated && (accountInfo.status === 'pending' || accountInfo.status === 'restricted');
-  const isConnected = !accountNotCreated && !needsOnboarding && accountInfo.status === 'complete';
+  const canAcceptPayments = Boolean(accountInfo?.chargesEnabled);
+  const needsOnboarding =
+    !accountNotCreated &&
+    !canAcceptPayments &&
+    (accountInfo.status === 'pending' || accountInfo.status === 'restricted');
+  const isConnected = !accountNotCreated && canAcceptPayments;
   const isDisabled = accountInfo?.status === 'disabled';
 
   // Determine stripe card styling
@@ -301,6 +308,14 @@ export function EmbeddedBillingDashboard({
     stripeLabel = t('setupIncomplete');
     stripeDescription = t('setupIncompleteDescription');
     stripeBtnLabel = t('completeSetup');
+  } else if (accountInfo?.status === 'restricted') {
+    stripeCardClass = 'border-amber-500/30 bg-amber-500/5';
+    stripeIconClass = 'bg-amber-500/10 text-amber-500';
+    stripeLabelClass = 'text-amber-400';
+    stripeStatusIcon = AlertCircle;
+    stripeLabel = t('actionRequired');
+    stripeDescription = t('actionRequiredDesc');
+    stripeBtnLabel = t('openDashboard');
   } else {
     stripeCardClass = 'border-red-500/30 bg-red-500/5';
     stripeIconClass = 'bg-red-500/10 text-red-500';

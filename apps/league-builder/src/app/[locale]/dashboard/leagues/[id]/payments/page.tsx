@@ -7,6 +7,8 @@ import {
   getPaymentSummary,
 } from '@/lib/payments/payment-actions';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
+import { getBillingReadiness } from '@/lib/payments/billing-readiness';
+import { reconcileSeasonRegistrationFees } from '@/lib/payments/registration-fee-reconciliation';
 import { PaymentDashboard } from './PaymentDashboard';
 
 type Props = {
@@ -88,12 +90,15 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
     seasons?.find((s) => s.id === selectedSeasonId) ||
     pickOperationalSeason(seasons ?? []) ||
     seasons?.[0];
+  const billingReadiness = await getBillingReadiness(leagueId);
 
   let payments: any[] = [];
   let total = 0;
   let summary = null;
 
   if (activeSeason) {
+    await reconcileSeasonRegistrationFees(leagueId, activeSeason.id);
+
     // Get payments for the selected season
     const paymentsResult = await getLeaguePlayerPayments(leagueId, {
       seasonId: activeSeason.id,
@@ -130,9 +135,7 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
       limit={limit}
       statusFilter={statusFilter}
       teams={(teams || []).map((t) => ({ id: t.id, name: t.name }))}
-      hasStripeConnected={
-        !!league.stripe_account_id && league.stripe_account_status === 'complete'
-      }
+      billingReadiness={billingReadiness}
     />
   );
 }

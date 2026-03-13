@@ -38,6 +38,7 @@ import {
   markPaymentAsPaid,
   sendBulkPaymentReminders,
 } from '@/lib/payments/payment-actions';
+import type { BillingReadiness } from '@/lib/payments/billing-readiness';
 import type {
   PlayerPaymentWithDetails,
   PaymentSummary,
@@ -69,7 +70,7 @@ interface PaymentDashboardProps {
   limit: number;
   statusFilter?: string;
   teams: { id: string; name: string }[];
-  hasStripeConnected: boolean;
+  billingReadiness: BillingReadiness;
 }
 
 export function PaymentDashboard({
@@ -85,7 +86,7 @@ export function PaymentDashboard({
   limit,
   statusFilter,
   teams,
-  hasStripeConnected,
+  billingReadiness,
 }: PaymentDashboardProps) {
   const router = useRouter();
   const t = useTranslations('payments.dashboard');
@@ -181,39 +182,6 @@ export function PaymentDashboard({
     router.push(`/${locale}/dashboard/leagues/${leagueId}/payments?${params.toString()}`);
   };
 
-  if (!hasStripeConnected) {
-    return (
-      <div className="min-h-screen bg-neutral-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('backToLeague')}
-          </Link>
-
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
-            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-amber-500" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">{t('noStripeTitle')}</h2>
-            <p className="text-neutral-400 mb-6 max-w-md mx-auto">
-              {t('noStripeDescription')}
-            </p>
-            <Link
-              href={`/${locale}/dashboard/leagues/${leagueId}/billing`}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-lg hover:shadow-rink-500/20 transition-all"
-            >
-              <DollarSign className="w-5 h-5" />
-              {t('setupPayments')}
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (!selectedSeason) {
     return (
       <div className="min-h-screen bg-neutral-950">
@@ -299,6 +267,41 @@ export function PaymentDashboard({
             </div>
           </div>
         </div>
+
+        {billingReadiness.needsOwnerAttention && (
+          <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 text-amber-400" />
+                <div>
+                  <p className="font-semibold text-amber-200">Payments need attention</p>
+                  <p className="text-sm text-amber-100/80">{billingReadiness.message}</p>
+                </div>
+              </div>
+              <Link
+                href={`/${locale}${billingReadiness.ctaUrl}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-100 transition-colors hover:bg-amber-400/20"
+              >
+                <DollarSign className="h-4 w-4" />
+                {billingReadiness.ctaLabel}
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {!billingReadiness.canAcceptPayments && (
+          <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 text-red-400" />
+              <div>
+                <p className="font-semibold text-red-200">Card payments are currently blocked</p>
+                <p className="text-sm text-red-100/80">
+                  Owners can still review balances here, but Stripe needs attention before online checkout will work.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         {summary && (

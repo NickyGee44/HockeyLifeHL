@@ -143,6 +143,9 @@ export async function sendRegistrationApprovedEmail(params: {
   seasonStartDate?: Date;
   firstGameDate?: Date;
   adminNotes?: string;
+  paymentsUrl?: string;
+  paymentRequired?: boolean;
+  amountDueCents?: number;
 }): Promise<{ success: boolean; error?: string }> {
   const {
     to,
@@ -156,6 +159,9 @@ export async function sendRegistrationApprovedEmail(params: {
     seasonStartDate,
     firstGameDate,
     adminNotes,
+    paymentsUrl,
+    paymentRequired,
+    amountDueCents,
   } = params;
 
   const templateProps: RegistrationApprovedEmailProps = {
@@ -181,6 +187,9 @@ export async function sendRegistrationApprovedEmail(params: {
     adminNotes,
     dashboardUrl: `${SITE_URL}/dashboard`,
     scheduleUrl: teamName ? `${SITE_URL}/dashboard/schedule` : undefined,
+    paymentsUrl,
+    paymentRequired,
+    amountDueCents,
     unsubscribeUrl: `${SITE_URL}/unsubscribe`,
   };
 

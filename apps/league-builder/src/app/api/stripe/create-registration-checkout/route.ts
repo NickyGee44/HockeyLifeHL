@@ -13,10 +13,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
-import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
+import { calculateApplicationFee, getConnectAccountInfo } from '@/lib/leagues/stripe-connect';
 import { capturePaymentError } from '@/lib/sentry/payments';
 import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
 
@@ -121,7 +121,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (league.stripe_account_status !== 'complete') {
+    const accountInfo = await getConnectAccountInfo(league.stripe_account_id);
+
+    if (league.stripe_account_status !== accountInfo.status) {
+      const serviceSupabase = createServiceRoleClient();
+      await serviceSupabase
+        .from('leagues')
+        .update({
+          stripe_account_status: accountInfo.status,
+          payment_mode: accountInfo.chargesEnabled ? 'stripe' : 'manual',
+        })
+        .eq('id', leagueId);
+    }
+
+    if (!accountInfo.chargesEnabled) {
       return NextResponse.json(
         { error: 'League payment processing is not yet active' },
         { status: 400 }

@@ -54,6 +54,8 @@ interface RegistrationPaymentRegistration {
   team_id: string | null;
   status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'waitlisted' | 'pending';
   payment_status: 'pending' | 'paid' | 'partial' | 'refunded' | 'failed' | 'completed' | 'not_required';
+  fee_amount_cents: number;
+  currency: string;
   amount_paid_cents: number;
   stripe_payment_intent_id: string | null;
   created_at: string;
@@ -96,6 +98,72 @@ function getStripeClient(): Stripe {
   });
 
   return _stripe;
+}
+
+function resolveStripeAccountStatus(account: Stripe.Account):
+  | 'not_created'
+  | 'pending'
+  | 'restricted'
+  | 'complete'
+  | 'disabled' {
+  if (account.charges_enabled && account.payouts_enabled) {
+    return 'complete';
+  }
+
+  const disabledReason = account.requirements?.disabled_reason ?? null;
+  const hasOutstandingRequirements =
+    (account.requirements?.currently_due?.length ?? 0) > 0 ||
+    (account.requirements?.past_due?.length ?? 0) > 0 ||
+    (account.requirements?.pending_verification?.length ?? 0) > 0;
+
+  if (disabledReason) {
+    return /rejected|fraud|listed|platform_paused|other/i.test(disabledReason)
+      ? 'disabled'
+      : 'restricted';
+  }
+
+  if (hasOutstandingRequirements) {
+    return 'restricted';
+  }
+
+  return 'pending';
+}
+
+async function syncLeagueStripeCollectionStatus(
+  leagueId: string,
+  stripeAccountId: string | null,
+  currentStatus?: string | null
+) {
+  if (!stripeAccountId) {
+    return {
+      canAcceptPayments: false,
+      canPayout: false,
+      status: 'not_created' as const,
+    };
+  }
+
+  const stripe = getStripeClient();
+  const serviceSupabase = createServiceRoleClient();
+
+  const account = await stripe.accounts.retrieve(stripeAccountId);
+  const status = resolveStripeAccountStatus(account);
+
+  if (currentStatus !== status) {
+    await serviceSupabase
+      .from('leagues')
+      .update({
+        stripe_account_status: status,
+        payment_mode: account.charges_enabled ? 'stripe' : 'manual',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', leagueId);
+  }
+
+  return {
+    canAcceptPayments: account.charges_enabled,
+    canPayout: account.payouts_enabled,
+    status,
+  };
 }
 
 // ============================================================================
@@ -186,6 +254,7 @@ async function getPlayerRegistrationRowsForLeague(leagueSlug: string, accessToke
       season_id,
       team_id,
       status,
+      submitted_at,
       payment_status,
       amount_paid_cents,
       fee_amount_cents,
@@ -196,7 +265,8 @@ async function getPlayerRegistrationRowsForLeague(leagueSlug: string, accessToke
     `)
     .eq('player_id', playerId)
     .eq('league_id', leagueId)
-    .neq('payment_status', 'not_required')
+    .not('submitted_at', 'is', null)
+    .or('payment_status.neq.not_required,fee_amount_cents.gt.0')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -332,8 +402,13 @@ export async function createRegistrationCheckout(
 
     const league = registration.leagues as any;
 
-    // Verify league has Stripe Connect account
-    if (!league?.stripe_account_id || league.stripe_account_status !== 'complete') {
+    const stripeAvailability = await syncLeagueStripeCollectionStatus(
+      registration.league_id,
+      league?.stripe_account_id || null,
+      league?.stripe_account_status || null
+    );
+
+    if (!league?.stripe_account_id || !stripeAvailability.canAcceptPayments) {
       return {
         success: false,
         error: 'This league has not set up payment processing yet. Please contact the league administrator.',
@@ -559,8 +634,13 @@ export async function createEmbeddedCheckout(
 
     const league = registration.leagues as any;
 
-    // Verify league has Stripe Connect account
-    if (!league?.stripe_account_id || league.stripe_account_status !== 'complete') {
+    const stripeAvailability = await syncLeagueStripeCollectionStatus(
+      registration.league_id,
+      league?.stripe_account_id || null,
+      league?.stripe_account_status || null
+    );
+
+    if (!league?.stripe_account_id || !stripeAvailability.canAcceptPayments) {
       return {
         success: false,
         error: 'This league has not set up payment processing yet. Please contact the league administrator.',
@@ -846,6 +926,8 @@ export async function getRegistrationPaymentRegistrations(
         team_id: reg.team_id,
         status: reg.status,
         payment_status: reg.payment_status,
+        fee_amount_cents: reg.fee_amount_cents || 0,
+        currency: reg.currency || 'cad',
         amount_paid_cents: reg.amount_paid_cents || 0,
         stripe_payment_intent_id: reg.stripe_payment_intent_id,
         created_at: reg.created_at,
