@@ -90,6 +90,8 @@
 | [BMHL_API_TESTING](BMHL_API_TESTING.md) | BMHL API test coverage and procedures |
 | [BMHL_GAP_ANALYSIS](BMHL_GAP_ANALYSIS.md) | Feature gap analysis for BMHL |
 | [BMHL_UI_REQUIREMENTS](BMHL_UI_REQUIREMENTS.md) | BMHL UI/UX requirements |
+| [SPORTNINJA_BATTLECARD](SPORTNINJA_BATTLECARD.md) | One-page internal sales battlecard for SportNinja vs BLH |
+| [SPORTNINJA_BMHL_MEMO](SPORTNINJA_BMHL_MEMO.md) | Extended internal memo for BMHL-style SportNinja comparisons |
 
 ## Database
 
@@ -104,4 +106,4 @@ Session logs for multi-agent coordination live in `.claude/work-logs/`:
 
 ---
 
-*Last updated: 2026-02-12*
+*Last updated: 2026-03-13*
