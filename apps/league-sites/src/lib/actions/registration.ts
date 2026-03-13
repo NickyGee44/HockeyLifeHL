@@ -154,6 +154,90 @@ function normalizeWaiverSignature(input: {
   };
 }
 
+function normalizeRegistrationPosition(
+  position?: string | null
+): 'Forward' | 'Defense' | 'Goalie' | null {
+  if (!position) return null;
+
+  switch (position.trim().toUpperCase()) {
+    case 'C':
+    case 'LW':
+    case 'RW':
+    case 'F':
+    case 'FORWARD':
+      return 'Forward';
+    case 'D':
+    case 'DEF':
+    case 'DEFENSE':
+      return 'Defense';
+    case 'G':
+    case 'GOALIE':
+      return 'Goalie';
+    default:
+      return null;
+  }
+}
+
+function normalizeRegistrationSkillLevel(
+  skillLevel?: string | null
+): 'beginner' | 'intermediate' | 'advanced' | 'expert' | null {
+  if (!skillLevel) return null;
+
+  switch (skillLevel.trim().toLowerCase()) {
+    case 'beginner':
+    case 'novice':
+      return 'beginner';
+    case 'intermediate':
+      return 'intermediate';
+    case 'advanced':
+      return 'advanced';
+    case 'expert':
+      return 'expert';
+    default:
+      return null;
+  }
+}
+
+async function persistCanonicalRegistrationConsents(
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+  emailMarketingOptIn: boolean
+) {
+  const consents = [
+    { consent_type: 'terms_v1', granted: true },
+    { consent_type: 'privacy_v1', granted: true },
+    { consent_type: 'marketing_emails', granted: emailMarketingOptIn },
+  ] as const;
+
+  for (const consent of consents) {
+    const { data: existing } = await serviceSupabase
+      .from('user_consents')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('consent_type', consent.consent_type)
+      .maybeSingle();
+
+    if (existing?.id) {
+      await serviceSupabase
+        .from('user_consents')
+        .update({
+          granted: consent.granted,
+          granted_at: new Date().toISOString(),
+          withdrawn_at: consent.granted ? null : new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+    } else {
+      await serviceSupabase.from('user_consents').insert({
+        user_id: userId,
+        consent_type: consent.consent_type,
+        granted: consent.granted,
+        granted_at: new Date().toISOString(),
+      });
+    }
+  }
+}
+
 // ============================================================================
 // Helper: Get Current User
 // ============================================================================
@@ -703,6 +787,9 @@ export async function submitPlayerRegistration(
       paymentSettings.feeBasis,
       paymentSettings.feeAmountCents
     );
+    const normalizedPrimaryPosition = normalizeRegistrationPosition(data.primary_position);
+    const normalizedSecondaryPosition = normalizeRegistrationPosition(data.secondary_position);
+    const normalizedSkillLevel = normalizeRegistrationSkillLevel(data.skill_level);
     const paymentMode = getRegistrationPaymentMode(
       paymentSettings.feeCollectionModel,
       paymentSettings.feeAmountCents,
@@ -879,10 +966,10 @@ export async function submitPlayerRegistration(
           waiver_id: waiverId,
           registration_type: registrationContext.registrationType,
           status: 'pending',
-          preferred_position: data.primary_position,
-          secondary_position: data.secondary_position || null,
+          preferred_position: normalizedPrimaryPosition,
+          secondary_position: normalizedSecondaryPosition,
           preferred_jersey_number: data.preferred_jersey_number || null,
-          self_assessed_skill: data.skill_level,
+          self_assessed_skill: normalizedSkillLevel,
           years_experience: data.years_experience || null,
           previous_leagues: data.previous_leagues || null,
           photo_url: data.photo_url || null,
@@ -906,19 +993,26 @@ export async function submitPlayerRegistration(
 
     if (regError) {
       console.error('Registration error:', regError);
-      return { success: false, error: 'Failed to submit registration.' };
+      return {
+        success: false,
+        error:
+          regError.code === '22P02'
+            ? 'One of your registration details needs to be refreshed before we can submit it. Please reload the page and try again.'
+            : 'Failed to submit registration.',
+      };
     }
 
     // Store consents
     const emailMarketingOptIn = data.email_marketing_opt_in ?? data.consent_marketing ?? false;
-    const consents = [
-      { user_id: user.id, consent_type: 'registration_terms_v1', granted: true },
-      { user_id: user.id, consent_type: 'registration_privacy_v1', granted: true },
-      { user_id: user.id, consent_type: 'registration_data_processing_v1', granted: true },
-      { user_id: user.id, consent_type: 'terms_of_service_v1', granted: data.tos_accepted },
-      { user_id: user.id, consent_type: 'email_marketing_v1', granted: emailMarketingOptIn },
-    ];
-    await serviceSupabase.from('user_consents').insert(consents);
+    try {
+      await persistCanonicalRegistrationConsents(
+        serviceSupabase,
+        user.id,
+        emailMarketingOptIn
+      );
+    } catch (consentError) {
+      console.error('Registration consent persistence warning:', consentError);
+    }
 
     revalidatePath('/');
 
