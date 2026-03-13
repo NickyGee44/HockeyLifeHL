@@ -1,10 +1,12 @@
 import { getCurrentUser } from '@/lib/actions/auth';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import { getLeagueBackupTokens } from '@/lib/actions/league-backup';
 import { getLeagueMigrationRequests } from '@/lib/actions/migration-requests';
 import { getMigrationFee } from '@/lib/fees/platform-fees';
 import { createClient } from '@/lib/supabase/server';
 import { cn } from '@hockey-life/ui';
 import { Link } from '@/i18n/navigation';
+import { MigrationBackupPanel } from '@/components/migration/MigrationBackupPanel';
 import { MigrationRequestIntake } from '@/components/migration/MigrationRequestIntake';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
@@ -124,6 +126,9 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
   const statsRecordCount = (playerStatsCount ?? 0) + (goalieStatsCount ?? 0);
   const migrationRequestsResult = await getLeagueMigrationRequests(leagueId);
   const migrationRequests = migrationRequestsResult.success ? migrationRequestsResult.data : [];
+  const backupTokensResult = await getLeagueBackupTokens(leagueId);
+  const backupTokens = backupTokensResult.success ? backupTokensResult.data : [];
+  const backupEndpoint = `${(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.beerleaguehockey.ca').replace(/\/$/, '')}/api/leagues/${leagueId}/backup`;
 
   const tracks = [
     {
@@ -148,7 +153,7 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
         'Older stats, champions, award winners, and record books are best handled through a migration request. You do not need to clean everything up first.',
       href: `/dashboard/leagues/${leagueId}/migration-center#migration-intake`,
       cta: 'Request help with history',
-      detail: 'Share whatever you have: spreadsheets, PDFs, exported reports, or a link to the old site.',
+      detail: 'Share whatever you have: spreadsheets, SQL dumps, PDFs, exported reports, or a link to the old site.',
     },
     {
       title: 'News archive',
@@ -228,6 +233,7 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
       title: 'Stats and records',
       items: [
         'Player or goalie stat exports by season if you have them',
+        'Raw SQL dumps are okay if that is the only export your old system offers',
         'Championship winners, standings, and award history',
         'Any player IDs or roster mapping files from the old system',
         'PDFs or screenshots are still useful if exports do not exist',
@@ -381,6 +387,13 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
           leagueId={leagueId}
           locale={locale}
           requests={migrationRequests}
+        />
+
+        <MigrationBackupPanel
+          leagueId={leagueId}
+          locale={locale}
+          endpoint={backupEndpoint}
+          tokens={backupTokens}
         />
 
         <section className="space-y-4">

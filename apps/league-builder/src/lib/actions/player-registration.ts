@@ -107,7 +107,9 @@ interface PendingRegistration {
   previous_leagues: string | null;
   photo_url: string | null;
   payment_status: string;
+  fee_amount_cents: number | null;
   amount_paid_cents: number;
+  currency: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_notes: string | null;
@@ -129,6 +131,32 @@ interface PendingRegistration {
     signed_name: string;
     agreed_at: string;
   } | null;
+}
+
+type OfflineRegistrationPaymentMethod =
+  | 'e_transfer'
+  | 'cash'
+  | 'check'
+  | 'other';
+
+function buildRegistrationPaymentStatus(
+  feeAmountCents: number,
+  amountPaidCents: number,
+  currentStatus: string | null
+) {
+  if (currentStatus === 'not_required' || feeAmountCents <= 0) {
+    return 'not_required';
+  }
+
+  if (amountPaidCents >= feeAmountCents) {
+    return 'completed';
+  }
+
+  if (amountPaidCents > 0) {
+    return 'pending';
+  }
+
+  return currentStatus || 'pending';
 }
 
 // ============================================================================
@@ -1278,6 +1306,240 @@ export async function getRegistrationDetails(
     };
   } catch (error) {
     console.error('Get registration details error:', error);
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+/**
+ * Record an offline/manual payment against a registration.
+ * Supports e-transfer, cash, cheque, or other owner-collected payments.
+ */
+export async function recordOfflineRegistrationPayment(
+  registrationId: string,
+  payment: {
+    amountCents: number;
+    paymentMethod: OfflineRegistrationPaymentMethod;
+    referenceNumber?: string;
+    notes?: string;
+  }
+): ActionResult<{
+  paymentStatus: string;
+  amountPaidCents: number;
+  amountOutstandingCents: number;
+}> {
+  try {
+    if (payment.amountCents <= 0) {
+      return { success: false, error: 'Payment amount must be greater than 0.' };
+    }
+
+    const supabase = createServiceRoleClient();
+
+    const { data: registration, error: registrationError } = await supabase
+      .from('registration_submissions')
+      .select(`
+        id,
+        league_id,
+        season_id,
+        player_id,
+        team_id,
+        assigned_team_id,
+        payment_status,
+        fee_amount_cents,
+        amount_paid_cents,
+        currency,
+        draft_data
+      `)
+      .eq('id', registrationId)
+      .single();
+
+    if (registrationError || !registration) {
+      return { success: false, error: 'Registration not found.' };
+    }
+
+    const access = await verifyLeagueAdminAccess(registration.league_id);
+    if ('error' in access) {
+      return { success: false, error: access.error || 'Access denied' };
+    }
+
+    const totalFeeCents = registration.fee_amount_cents || 0;
+    if (registration.payment_status === 'not_required' || totalFeeCents <= 0) {
+      return {
+        success: false,
+        error: 'This registration does not require an individual player payment.',
+      };
+    }
+
+    const currentPaidCents = registration.amount_paid_cents || 0;
+    const outstandingCents = Math.max(0, totalFeeCents - currentPaidCents);
+
+    if (outstandingCents <= 0) {
+      return { success: false, error: 'This registration is already fully paid.' };
+    }
+
+    if (payment.amountCents > outstandingCents) {
+      return {
+        success: false,
+        error: `Payment exceeds the remaining balance of $${(outstandingCents / 100).toFixed(2)}.`,
+      };
+    }
+
+    const newAmountPaidCents = currentPaidCents + payment.amountCents;
+    const newPaymentStatus = buildRegistrationPaymentStatus(
+      totalFeeCents,
+      newAmountPaidCents,
+      registration.payment_status
+    );
+
+    const paymentEvent = {
+      amount_cents: payment.amountCents,
+      method: payment.paymentMethod,
+      reference_number: payment.referenceNumber || null,
+      notes: payment.notes || null,
+      recorded_at: new Date().toISOString(),
+      recorded_by: access.userId,
+    };
+
+    const existingDraftData =
+      registration.draft_data && typeof registration.draft_data === 'object'
+        ? (registration.draft_data as Record<string, unknown>)
+        : {};
+    const existingEvents = Array.isArray(existingDraftData.admin_payment_events)
+      ? existingDraftData.admin_payment_events
+      : [];
+
+    const { error: updateRegistrationError } = await supabase
+      .from('registration_submissions')
+      .update({
+        amount_paid_cents: newAmountPaidCents,
+        payment_status: newPaymentStatus,
+        draft_data: {
+          ...existingDraftData,
+          admin_payment_events: [...existingEvents, paymentEvent],
+          last_manual_payment: paymentEvent,
+        },
+      })
+      .eq('id', registrationId);
+
+    if (updateRegistrationError) {
+      console.error('Record offline registration payment error:', updateRegistrationError);
+      return { success: false, error: 'Failed to update registration payment status.' };
+    }
+
+    const { data: seasonFee } = await supabase
+      .from('season_fees')
+      .select('id, amount_cents, currency')
+      .eq('league_id', registration.league_id)
+      .eq('season_id', registration.season_id)
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (seasonFee) {
+      const paymentRecordStatus =
+        newAmountPaidCents >= totalFeeCents
+          ? 'paid'
+          : newAmountPaidCents > 0
+            ? 'partially_paid'
+            : 'pending';
+
+      const teamId = registration.assigned_team_id || registration.team_id || null;
+      const manualNoteParts = [
+        `Manual ${payment.paymentMethod.replace('_', ' ')}`,
+        payment.referenceNumber ? `ref ${payment.referenceNumber}` : null,
+        payment.notes || null,
+      ].filter(Boolean);
+      const manualNote = manualNoteParts.join(' - ');
+
+      const { data: existingPlayerPayment } = await supabase
+        .from('player_payments')
+        .select(`
+          id,
+          amount_paid_cents,
+          total_amount_cents,
+          total_installments,
+          current_installment,
+          notes,
+          metadata
+        `)
+        .eq('league_id', registration.league_id)
+        .eq('season_id', registration.season_id)
+        .eq('player_id', registration.player_id)
+        .eq('season_fee_id', seasonFee.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const mergedMetadata = {
+        ...(existingPlayerPayment?.metadata &&
+        typeof existingPlayerPayment.metadata === 'object'
+          ? (existingPlayerPayment.metadata as Record<string, unknown>)
+          : {}),
+        registration_id: registrationId,
+        offline_payment_method: payment.paymentMethod,
+        offline_payment_reference: payment.referenceNumber || null,
+      };
+
+      if (existingPlayerPayment) {
+        await supabase
+          .from('player_payments')
+          .update({
+            amount_paid_cents: newAmountPaidCents,
+            status: paymentRecordStatus as any,
+            paid_at:
+              paymentRecordStatus === 'paid' ? new Date().toISOString() : null,
+            current_installment:
+              paymentRecordStatus === 'paid'
+                ? existingPlayerPayment.total_installments || 1
+                : existingPlayerPayment.current_installment || 1,
+            team_id: teamId,
+            notes: manualNote
+              ? `${existingPlayerPayment.notes || ''}\n[Manual] ${manualNote}`.trim()
+              : existingPlayerPayment.notes,
+            metadata: mergedMetadata as any,
+          })
+          .eq('id', existingPlayerPayment.id);
+      } else {
+        await supabase.from('player_payments').insert({
+          player_id: registration.player_id,
+          season_fee_id: seasonFee.id,
+          team_id: teamId,
+          league_id: registration.league_id,
+          season_id: registration.season_id,
+          payment_plan: 'full',
+          base_amount_cents: totalFeeCents || seasonFee.amount_cents,
+          discount_cents: 0,
+          late_fee_cents: 0,
+          installment_fee_cents: 0,
+          total_amount_cents: totalFeeCents || seasonFee.amount_cents,
+          amount_paid_cents: newAmountPaidCents,
+          currency: registration.currency || seasonFee.currency || 'CAD',
+          status: paymentRecordStatus as any,
+          total_installments: 1,
+          current_installment: paymentRecordStatus === 'paid' ? 1 : 0,
+          paid_at:
+            paymentRecordStatus === 'paid' ? new Date().toISOString() : null,
+          notes: manualNote || null,
+          metadata: mergedMetadata as any,
+        });
+      }
+    }
+
+    revalidatePath(`/dashboard/leagues/${registration.league_id}/registrations`);
+    revalidatePath(`/dashboard/leagues/${registration.league_id}/registrations/${registrationId}`);
+    revalidatePath(`/dashboard/leagues/${registration.league_id}/payments`);
+    revalidatePath('/dashboard');
+
+    return {
+      success: true,
+      data: {
+        paymentStatus: newPaymentStatus,
+        amountPaidCents: newAmountPaidCents,
+        amountOutstandingCents: Math.max(0, totalFeeCents - newAmountPaidCents),
+      },
+    };
+  } catch (error) {
+    console.error('Record offline registration payment error:', error);
     return { success: false, error: 'An unexpected error occurred.' };
   }
 }

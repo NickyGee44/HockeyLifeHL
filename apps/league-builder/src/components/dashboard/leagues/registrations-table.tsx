@@ -11,6 +11,7 @@ import {
   Eye,
   User,
   CreditCard,
+  Landmark,
   ChevronDown,
   ChevronUp,
   ArrowUpDown,
@@ -31,6 +32,7 @@ import {
 } from '@/lib/actions/player-registration';
 import { formatRegistrationType, formatSkillLevel, formatPosition } from '@/lib/schemas/player-registration';
 import { cn } from '@hockey-life/ui/lib/utils';
+import { ManualRegistrationPaymentDialog } from './ManualRegistrationPaymentDialog';
 
 interface Registration {
   id: string;
@@ -51,7 +53,9 @@ interface Registration {
   previous_leagues: string | null;
   photo_url: string | null;
   payment_status: string;
+  fee_amount_cents: number | null;
   amount_paid_cents: number;
+  currency: string | null;
   created_at: string;
   submitted_at: string | null;
   player: {
@@ -131,6 +135,61 @@ function getSortValue(reg: Registration, field: SortField): string | number {
   }
 }
 
+function getOutstandingBalanceCents(reg: Registration) {
+  return Math.max(0, (reg.fee_amount_cents || 0) - (reg.amount_paid_cents || 0));
+}
+
+function canRecordOfflinePayment(reg: Registration) {
+  return (
+    reg.payment_status !== 'not_required' &&
+    getOutstandingBalanceCents(reg) > 0 &&
+    !['rejected', 'cancelled'].includes(reg.status)
+  );
+}
+
+function getPaymentBadgeModel(reg: Registration) {
+  if (reg.payment_status === 'pending' && reg.amount_paid_cents > 0) {
+    return {
+      status: 'partial',
+      label: 'Partial',
+      detail: `$${(reg.amount_paid_cents / 100).toFixed(2)} received`,
+    };
+  }
+
+  if (reg.payment_status === 'completed') {
+    return {
+      status: 'completed',
+      label: 'Paid',
+      detail:
+        reg.amount_paid_cents > 0
+          ? `$${(reg.amount_paid_cents / 100).toFixed(2)} received`
+          : undefined,
+    };
+  }
+
+  if (reg.payment_status === 'pending' && canRecordOfflinePayment(reg)) {
+    return {
+      status: 'pending',
+      label: 'Pending',
+      detail: `$${(getOutstandingBalanceCents(reg) / 100).toFixed(2)} due`,
+    };
+  }
+
+  if (reg.payment_status === 'refunded') {
+    return { status: 'refunded', label: 'Refunded', detail: undefined };
+  }
+
+  if (reg.payment_status === 'failed') {
+    return { status: 'failed', label: 'Failed', detail: undefined };
+  }
+
+  if (reg.payment_status === 'not_required') {
+    return { status: 'not_required', label: 'N/A', detail: undefined };
+  }
+
+  return { status: reg.payment_status, label: reg.payment_status, detail: undefined };
+}
+
 export function RegistrationsTable({
   registrations,
   leagueId,
@@ -141,6 +200,7 @@ export function RegistrationsTable({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('submitted');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [paymentTarget, setPaymentTarget] = useState<Registration | null>(null);
 
   const sortedRegistrations = useMemo(() => {
     return [...registrations].sort((a, b) => {
@@ -306,6 +366,7 @@ export function RegistrationsTable({
             onApprove={handleApprove}
             onReject={handleReject}
             onWaitlist={handleWaitlist}
+            onRecordPayment={setPaymentTarget}
           />
         ))}
       >
@@ -348,11 +409,26 @@ export function RegistrationsTable({
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onWaitlist={handleWaitlist}
+                onRecordPayment={setPaymentTarget}
               />
             ))}
           </tbody>
         </table>
       </ResponsiveTable>
+
+      <ManualRegistrationPaymentDialog
+        open={Boolean(paymentTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPaymentTarget(null);
+          }
+        }}
+        registration={paymentTarget}
+        onSaved={() => {
+          setPaymentTarget(null);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
@@ -405,6 +481,7 @@ function RegistrationRow({
   onApprove,
   onReject,
   onWaitlist,
+  onRecordPayment,
 }: {
   reg: Registration;
   leagueId: string;
@@ -416,7 +493,10 @@ function RegistrationRow({
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onWaitlist: (id: string) => void;
+  onRecordPayment: (registration: Registration) => void;
 }) {
+  const paymentBadge = getPaymentBadgeModel(reg);
+
   return (
     <>
       <tr className="hover:bg-neutral-800/50 transition-colors">
@@ -498,7 +578,11 @@ function RegistrationRow({
           <WaiverBadge waiver={reg.waiver} />
         </td>
         <td className="px-4 py-3">
-          <PaymentBadge status={reg.payment_status} />
+          <PaymentBadge
+            status={paymentBadge.status}
+            label={paymentBadge.label}
+            detail={paymentBadge.detail}
+          />
         </td>
         <td className="px-4 py-3">
           <StatusBadge status={reg.status} />
@@ -519,6 +603,17 @@ function RegistrationRow({
             >
               <Eye className="w-4 h-4 text-neutral-400" />
             </Link>
+
+            {canRecordOfflinePayment(reg) && (
+              <button
+                onClick={() => onRecordPayment(reg)}
+                disabled={isProcessing}
+                className="p-2 rounded-lg hover:bg-blue-500/20 transition-colors text-blue-400 disabled:opacity-50"
+                title="Record manual payment"
+              >
+                <Landmark className="w-4 h-4" />
+              </button>
+            )}
 
             {reg.status === 'pending' && (
               <>
@@ -566,6 +661,9 @@ function RegistrationRow({
 
 // Expanded detail section within the table
 function ExpandedDetails({ reg }: { reg: Registration }) {
+  const outstandingCents = getOutstandingBalanceCents(reg);
+  const paymentBadge = getPaymentBadgeModel(reg);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-12">
       {/* Contact Info */}
@@ -623,10 +721,17 @@ function ExpandedDetails({ reg }: { reg: Registration }) {
             label="Waiver"
             value={reg.waiver ? `Signed by ${reg.waiver.signed_name}` : 'Not signed'}
           />
+          <DetailRow label="Payment" value={paymentBadge.label} />
           {reg.amount_paid_cents > 0 && (
             <DetailRow
               label="Paid"
               value={`$${(reg.amount_paid_cents / 100).toFixed(2)}`}
+            />
+          )}
+          {reg.fee_amount_cents !== null && reg.fee_amount_cents > 0 && (
+            <DetailRow
+              label="Outstanding"
+              value={`$${(outstandingCents / 100).toFixed(2)}`}
             />
           )}
         </div>
@@ -704,19 +809,31 @@ function WaiverBadge({ waiver }: { waiver: Registration['waiver'] }) {
 }
 
 // Payment Badge Component
-function PaymentBadge({ status }: { status: string }) {
+function PaymentBadge({
+  status,
+  label,
+  detail,
+}: {
+  status: string;
+  label?: string;
+  detail?: string;
+}) {
   const config = {
     not_required: { icon: null, text: 'text-neutral-500', label: 'N/A' },
     pending: { icon: Clock, text: 'text-amber-400', label: 'Pending' },
+    partial: { icon: CreditCard, text: 'text-blue-400', label: 'Partial' },
     completed: { icon: CreditCard, text: 'text-green-400', label: 'Paid' },
     failed: { icon: X, text: 'text-red-400', label: 'Failed' },
     refunded: { icon: CreditCard, text: 'text-blue-400', label: 'Refunded' },
   }[status] || { icon: null, text: 'text-neutral-500', label: status };
 
   return (
-    <span className={cn('inline-flex items-center gap-1 text-xs', config.text)}>
-      {config.icon && <config.icon className="w-3 h-3" />}
-      {config.label}
+    <span className="inline-flex flex-col">
+      <span className={cn('inline-flex items-center gap-1 text-xs', config.text)}>
+        {config.icon && <config.icon className="w-3 h-3" />}
+        {label || config.label}
+      </span>
+      {detail && <span className="text-[11px] text-neutral-500">{detail}</span>}
     </span>
   );
 }
@@ -731,6 +848,7 @@ function RegistrationMobileCard({
   onApprove,
   onReject,
   onWaitlist,
+  onRecordPayment,
 }: {
   reg: Registration;
   leagueId: string;
@@ -740,7 +858,10 @@ function RegistrationMobileCard({
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onWaitlist: (id: string) => void;
+  onRecordPayment: (registration: Registration) => void;
 }) {
+  const paymentBadge = getPaymentBadgeModel(reg);
+
   return (
     <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 p-4 space-y-3">
       {/* Header: avatar + name + status */}
@@ -779,7 +900,13 @@ function RegistrationMobileCard({
         </div>
         <div>
           <span className="text-neutral-500 text-xs">Payment</span>
-          <p><PaymentBadge status={reg.payment_status} /></p>
+          <p>
+            <PaymentBadge
+              status={paymentBadge.status}
+              label={paymentBadge.label}
+              detail={paymentBadge.detail}
+            />
+          </p>
         </div>
         <div>
           <span className="text-neutral-500 text-xs">Path</span>
@@ -802,6 +929,15 @@ function RegistrationMobileCard({
           <Eye className="w-4 h-4" />
           View
         </Link>
+        {canRecordOfflinePayment(reg) && (
+          <button
+            onClick={() => onRecordPayment(reg)}
+            className="px-3 py-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+            title="Record manual payment"
+          >
+            <Landmark className="w-4 h-4" />
+          </button>
+        )}
         {reg.status === 'pending' && (
           <>
             <button

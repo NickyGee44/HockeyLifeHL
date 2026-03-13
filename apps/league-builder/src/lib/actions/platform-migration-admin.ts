@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/actions/auth';
 import { locales } from '@/i18n/config';
 import {
   MIGRATION_REQUEST_STATUS_OPTIONS,
+  normalizeLeagueMigrationRequest,
   type LeagueMigrationRequest,
   type LeagueMigrationRequestStatus,
 } from '@/lib/migration/requests';
@@ -106,7 +107,9 @@ export async function getPlatformMigrationQueue(): Promise<ActionResult<Platform
     return { success: false, error: 'Failed to load migration queue.' };
   }
 
-  const requests = (requestRows ?? []) as LeagueMigrationRequest[];
+  const requests = (requestRows ?? []).map((row: Record<string, unknown>) =>
+    normalizeLeagueMigrationRequest(row)
+  ) as LeagueMigrationRequest[];
   const leagueIds = [...new Set(requests.map((request) => request.league_id).filter(Boolean))];
   const requesterIds = [...new Set(requests.map((request) => request.requested_by).filter(Boolean))];
 
@@ -276,7 +279,7 @@ export async function updatePlatformMigrationRequest(
   return {
     success: true,
     data: {
-      ...(updated as LeagueMigrationRequest),
+      ...normalizeLeagueMigrationRequest(updated as Record<string, unknown>),
       league_name: league?.name ?? 'Unknown league',
       league_slug: league?.slug ?? null,
       organization_name: organization?.name ?? null,
