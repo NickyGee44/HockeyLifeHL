@@ -51,7 +51,10 @@ interface UpcomingLineupGame {
 export default function CaptainPage({ params }: CaptainPageProps) {
   const { leagueSlug } = use(params);
   const { league } = useLeague();
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);

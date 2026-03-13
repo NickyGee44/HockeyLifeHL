@@ -62,7 +62,10 @@ function isReminderDisabled(player: CaptainPaymentPlayer): boolean {
 export default function PlayerPaymentsPage({ params }: PlayerPaymentsPageProps) {
   const { leagueSlug } = use(params);
   const { league, isLoading: leagueLoading } = useLeague();
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
   const [payments, setPayments] = useState<CaptainPaymentPlayer[]>([]);
   const [summary, setSummary] = useState<CaptainPaymentSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);

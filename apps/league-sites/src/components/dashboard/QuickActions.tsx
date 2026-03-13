@@ -16,6 +16,7 @@ import {
   UserSearch,
 } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
+import { useLeague } from '@/hooks/useLeague';
 
 interface QuickActionsProps {
   leagueSlug: string;
@@ -32,7 +33,11 @@ interface QuickAction {
 }
 
 export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActionsProps) {
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile();
+  const { league } = useLeague();
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
 

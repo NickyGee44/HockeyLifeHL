@@ -68,7 +68,10 @@ const DUTY_ICONS: Record<string, React.ReactNode> = {
 export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
   const { leagueSlug } = use(params);
   const { league } = useLeague();
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
   const [dutyTypes, setDutyTypes] = useState<DutyType[]>([]);
   const [upcomingGames, setUpcomingGames] = useState<UpcomingGame[]>([]);
   const [gameDuties, setGameDuties] = useState<Record<string, GameDuty[]>>({});

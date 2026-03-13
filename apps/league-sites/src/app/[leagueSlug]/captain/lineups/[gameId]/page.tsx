@@ -14,7 +14,10 @@ export default function CaptainLineupPage({
 }) {
   const { leagueSlug, gameId } = use(params);
   const { league } = useLeague();
-  const { currentTeam, isLoading } = usePlayerProfile(league?.id);
+  const { currentTeam, isLoading } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
 
   const canManage = !!(currentTeam?.is_captain || currentTeam?.is_alternate);
 
