@@ -55,6 +55,26 @@ export function MigrationBackupPanel({ leagueId, locale, endpoint, tokens }: Pro
     [endpoint, revealedToken]
   );
 
+  const cronExample = useMemo(
+    () =>
+      `0 2 * * * curl -fsS -H "Authorization: Bearer ${revealedToken ?? 'YOUR_BACKUP_TOKEN'}" "${endpoint}" -o "/var/backups/blh/league-backup-$(date +\\%F).json"`,
+    [endpoint, revealedToken]
+  );
+
+  const nodeExample = useMemo(
+    () =>
+      [
+        "const response = await fetch('" + endpoint + "', {",
+        "  headers: { Authorization: 'Bearer " + (revealedToken ?? 'YOUR_BACKUP_TOKEN') + "' },",
+        "});",
+        '',
+        "if (!response.ok) throw new Error('Backup failed');",
+        'const payload = await response.json();',
+        '// Save payload into your own database or object storage here.',
+      ].join('\n'),
+    [endpoint, revealedToken]
+  );
+
   function copyText(value: string, successMessage: string) {
     navigator.clipboard
       .writeText(value)
@@ -232,9 +252,58 @@ export function MigrationBackupPanel({ leagueId, locale, endpoint, tokens }: Pro
               <RefreshCw className="h-4 w-4 text-cyan-300" />
               <p className="text-sm font-semibold">Example request</p>
             </div>
-            <pre className="mt-3 overflow-x-auto rounded-2xl bg-neutral-950/80 p-4 text-xs leading-6 text-neutral-300">
-              {curlExample}
-            </pre>
+            <div className="mt-3 space-y-4">
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">One-off curl</p>
+                  <button
+                    type="button"
+                    onClick={() => copyText(curlExample, 'Curl example copied')}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white hover:border-white/20"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy
+                  </button>
+                </div>
+                <pre className="overflow-x-auto rounded-2xl bg-neutral-950/80 p-4 text-xs leading-6 text-neutral-300">
+                  {curlExample}
+                </pre>
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Nightly cron</p>
+                  <button
+                    type="button"
+                    onClick={() => copyText(cronExample, 'Cron example copied')}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white hover:border-white/20"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy
+                  </button>
+                </div>
+                <pre className="overflow-x-auto rounded-2xl bg-neutral-950/80 p-4 text-xs leading-6 text-neutral-300">
+                  {cronExample}
+                </pre>
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">App sync example</p>
+                  <button
+                    type="button"
+                    onClick={() => copyText(nodeExample, 'App sync example copied')}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white hover:border-white/20"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy
+                  </button>
+                </div>
+                <pre className="overflow-x-auto rounded-2xl bg-neutral-950/80 p-4 text-xs leading-6 text-neutral-300">
+                  {nodeExample}
+                </pre>
+              </div>
+            </div>
           </div>
 
           <div className="rounded-[22px] border border-white/10 bg-black/20 p-4">
