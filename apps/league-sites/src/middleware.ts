@@ -134,12 +134,14 @@ function isCustomDomainCandidate(hostname: string): boolean {
   return true;
 }
 
+function normalizeHostname(hostname: string): string {
+  return hostname.toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '');
+}
+
 /**
- * Look up a verified custom domain in the organizations table and return the
- * league slug. Uses the Supabase service-role key so RLS does not block the
- * query (middleware runs outside user session context).
- *
- * Returns null if no matching verified domain is found.
+ * Look up a verified custom domain and return the league slug. League-level
+ * custom domains are the source of truth. Organization-level domains are only
+ * used as a temporary fallback for legacy records.
  */
 async function resolveCustomDomain(hostname: string): Promise<string | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -153,10 +155,11 @@ async function resolveCustomDomain(hostname: string): Promise<string | null> {
   }
 
   try {
-    // Use the Supabase REST API directly via fetch (no client lib needed in edge)
-    const encodedHostname = encodeURIComponent(hostname);
-    const res = await fetch(
-      `${supabaseUrl}/rest/v1/organizations?custom_domain=eq.${encodedHostname}&custom_domain_verified=eq.true&select=slug&limit=1`,
+    const normalizedHostname = normalizeHostname(hostname);
+    const encodedHostname = encodeURIComponent(normalizedHostname);
+
+    const leagueResponse = await fetch(
+      `${supabaseUrl}/rest/v1/leagues?custom_domain=eq.${encodedHostname}&custom_domain_verified=eq.true&status=eq.active&select=slug&limit=1`,
       {
         headers: {
           apikey: serviceKey,
@@ -168,13 +171,88 @@ async function resolveCustomDomain(hostname: string): Promise<string | null> {
       }
     );
 
-    if (!res.ok) {
-      console.error('[middleware] Custom domain lookup failed', { status: res.status, hostname });
+    if (!leagueResponse.ok) {
+      console.error('[middleware] League custom domain lookup failed', {
+        status: leagueResponse.status,
+        hostname: normalizedHostname,
+      });
       return null;
     }
 
-    const rows = (await res.json()) as Array<{ slug: string }>;
-    return rows.length > 0 ? rows[0].slug : null;
+    const leagueRows = (await leagueResponse.json()) as Array<{ slug: string }>;
+    if (leagueRows.length > 0) {
+      return leagueRows[0].slug;
+    }
+
+    const organizationResponse = await fetch(
+      `${supabaseUrl}/rest/v1/organizations?custom_domain=eq.${encodedHostname}&custom_domain_verified=eq.true&select=id,slug&limit=1`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+      }
+    );
+
+    if (!organizationResponse.ok) {
+      console.error('[middleware] Legacy organization domain lookup failed', {
+        status: organizationResponse.status,
+        hostname: normalizedHostname,
+      });
+      return null;
+    }
+
+    const organizations = (await organizationResponse.json()) as Array<{ id: string; slug: string }>;
+    if (organizations.length === 0) {
+      return null;
+    }
+
+    const [organization] = organizations;
+    const leagueListResponse = await fetch(
+      `${supabaseUrl}/rest/v1/leagues?organization_id=eq.${encodeURIComponent(organization.id)}&status=eq.active&select=slug,subdomain&order=created_at.asc`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+      }
+    );
+
+    if (!leagueListResponse.ok) {
+      console.error('[middleware] Legacy organization league lookup failed', {
+        status: leagueListResponse.status,
+        hostname: normalizedHostname,
+      });
+      return null;
+    }
+
+    const organizationLeagues = (await leagueListResponse.json()) as Array<{
+      slug: string;
+      subdomain: string | null;
+    }>;
+
+    if (organizationLeagues.length === 1) {
+      return organizationLeagues[0].slug;
+    }
+
+    const slugMatch = organizationLeagues.find(
+      (league) => league.slug === organization.slug || league.subdomain === organization.slug
+    );
+
+    if (slugMatch) {
+      return slugMatch.slug;
+    }
+
+    console.warn('[middleware] Legacy organization domain is ambiguous and needs manual review', {
+      hostname: normalizedHostname,
+      organizationId: organization.id,
+      leagueCount: organizationLeagues.length,
+    });
+    return null;
   } catch (err) {
     console.error('[middleware] Custom domain lookup threw', err);
     return null;

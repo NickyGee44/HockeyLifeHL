@@ -1,22 +1,36 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, ShoppingCart, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, Search, ShoppingCart, XCircle } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import { toast } from 'sonner';
-import { searchDomains, purchaseDomain } from '@/lib/actions/domain';
-import type { DomainSearchResult } from '@/lib/actions/domain';
+import { purchaseLeagueDomain, searchDomains } from '@/lib/actions/domain';
 
-interface DomainPurchaseProps {
-  organizationId: string;
-  onPurchase: (domain: string) => void;
+interface DomainPurchaseCapability {
+  searchEnabled: boolean;
+  purchaseEnabled: boolean;
+  vercelProjectConfigured: boolean;
+  message: string | null;
 }
 
-export function DomainPurchase({ organizationId, onPurchase }: DomainPurchaseProps) {
+interface DomainPurchaseProps {
+  leagueId: string;
+  capability: DomainPurchaseCapability;
+  onPurchase: (domain: string, verified: boolean) => void;
+}
+
+type DomainSearchResult = {
+  name: string;
+  price: number;
+  available: boolean;
+  premium: boolean;
+};
+
+export function DomainPurchase({ leagueId, capability, onPurchase }: DomainPurchaseProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<DomainSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -25,9 +39,11 @@ export function DomainPurchase({ organizationId, onPurchase }: DomainPurchasePro
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
 
-    if (!query.trim() || query.trim().length < 2) {
+    if (!capability.purchaseEnabled || !query.trim() || query.trim().length < 2) {
       setResults([]);
       setSearchError(null);
       return;
@@ -38,35 +54,58 @@ export function DomainPurchase({ organizationId, onPurchase }: DomainPurchasePro
       setSearchError(null);
       const result = await searchDomains(query.trim());
       setIsSearching(false);
+
       if (result.error) {
         setSearchError(result.error);
         setResults([]);
-      } else {
-        setResults(result.data ?? []);
+        return;
       }
+
+      setResults(result.data ?? []);
     }, 300);
 
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
     };
-  }, [query]);
+  }, [capability.purchaseEnabled, query]);
 
   const handlePurchase = async (domain: string) => {
     setPurchasingDomain(domain);
     try {
-      const result = await purchaseDomain(organizationId, domain);
+      const result = await purchaseLeagueDomain(leagueId, domain);
       if (result.error) {
         toast.error(result.error);
-      } else {
-        toast.success(`Domain ${domain} purchased and configured!`);
-        onPurchase(domain);
+        return;
       }
+
+      toast.success(result.message || `${domain} is ready to use.`);
+      onPurchase(domain, Boolean(result.verified));
     } catch {
       toast.error('An unexpected error occurred');
     } finally {
       setPurchasingDomain(null);
     }
   };
+
+  if (!capability.purchaseEnabled) {
+    return (
+      <Card className="bg-neutral-800/50 border-white/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-neutral-100 flex items-center gap-2 text-base">
+            <Search className="h-4 w-4 text-rink-500" />
+            Search &amp; Buy a Domain
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-neutral-400">
+            {capability.message || 'Domain purchase is not available right now. You can still connect a domain you already own.'}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-neutral-800/50 border-white/10">
@@ -78,9 +117,9 @@ export function DomainPurchase({ organizationId, onPurchase }: DomainPurchasePro
       </CardHeader>
       <CardContent className="space-y-4">
         <Input
-          placeholder="Search domains (e.g. mylocalleague)"
+          placeholder="Search domains (e.g. barriemenshockey)"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
           className="bg-black/50 border-rink-500/30 text-neutral-100 placeholder-neutral-500 focus-visible:ring-rink-500/50"
         />
 
@@ -95,45 +134,42 @@ export function DomainPurchase({ organizationId, onPurchase }: DomainPurchasePro
 
         {results.length > 0 && (
           <div className="space-y-2">
-            {results.map((r) => (
+            {results.map((result) => (
               <div
-                key={r.name}
+                key={result.name}
                 className={cn(
-                  'flex items-center justify-between p-3 rounded-lg border',
-                  r.available
+                  'flex items-center justify-between gap-3 p-3 rounded-lg border',
+                  result.available
                     ? 'bg-neutral-900/50 border-white/10'
                     : 'bg-neutral-900/20 border-white/5 opacity-60'
                 )}
               >
                 <div className="flex items-center gap-3">
-                  {r.available ? (
+                  {result.available ? (
                     <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
                   ) : (
                     <XCircle className="h-4 w-4 text-neutral-500 shrink-0" />
                   )}
-                  <span className="font-mono text-sm text-neutral-100">{r.name}</span>
-                  {r.premium && (
-                    <Badge
-                      variant="outline"
-                      className="text-xs border-yellow-500/50 text-yellow-400"
-                    >
+                  <span className="font-mono text-sm text-neutral-100">{result.name}</span>
+                  {result.premium && (
+                    <Badge variant="outline" className="text-xs border-yellow-500/50 text-yellow-400">
                       Premium
                     </Badge>
                   )}
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {r.price > 0 && (
-                    <span className="text-sm text-neutral-400">${r.price}/yr</span>
+                  {result.price > 0 && (
+                    <span className="text-sm text-neutral-400">${result.price}/yr</span>
                   )}
-                  {r.available ? (
+                  {result.available ? (
                     <Button
                       size="sm"
-                      onClick={() => handlePurchase(r.name)}
+                      onClick={() => handlePurchase(result.name)}
                       disabled={purchasingDomain !== null}
                       className="bg-rink-500 hover:bg-rink-600 text-black font-medium"
                     >
-                      {purchasingDomain === r.name ? (
+                      {purchasingDomain === result.name ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
                         <>
@@ -151,18 +187,14 @@ export function DomainPurchase({ organizationId, onPurchase }: DomainPurchasePro
           </div>
         )}
 
-        {!isSearching &&
-          !searchError &&
-          query.trim().length >= 2 &&
-          results.length === 0 && (
-            <p className="text-sm text-neutral-500">
-              No domains found for &quot;{query}&quot;.
-            </p>
-          )}
+        {!isSearching && !searchError && query.trim().length >= 2 && results.length === 0 && (
+          <p className="text-sm text-neutral-500">No domains found for &quot;{query}&quot;.</p>
+        )}
 
-        <p className="text-xs text-neutral-500">
-          Domain cost (~$15/yr .ca, ~$20/yr .com) is included with your platform subscription. Vercel manages DNS automatically — active within minutes.
-        </p>
+        <div className="space-y-1 text-xs text-neutral-500">
+          <p>If the purchase succeeds, BLH still verifies the domain/project attachment before marking it as fully connected.</p>
+          <p>Bring-your-own-domain remains available if you would rather manage the registration yourself.</p>
+        </div>
       </CardContent>
     </Card>
   );
