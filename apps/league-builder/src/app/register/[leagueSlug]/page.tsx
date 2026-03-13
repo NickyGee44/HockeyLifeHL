@@ -107,6 +107,7 @@ async function getSeasonRegistrationConfig(leagueId: string, seasonId: string) {
   return {
     registrationFee: getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents),
     feeCollectionModel: settings.feeCollectionModel,
+    feeBasis: settings.feeBasis,
     paymentMode: getRegistrationPaymentMode(
       settings.feeCollectionModel,
       settings.feeAmountCents,
@@ -320,6 +321,7 @@ export default async function RegisterPage({
             initialData={initialData}
             registrationFee={registrationConfig.registrationFee}
             feeCollectionModel={registrationConfig.feeCollectionModel}
+            feeBasis={registrationConfig.feeBasis}
             paymentMode={registrationConfig.paymentMode}
             teams={teams}
             waiverContent={waiver.content}

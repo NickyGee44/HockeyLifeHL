@@ -37,6 +37,7 @@ import {
   getRegistrationPaymentMode,
   getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
+  usesTeamBilling,
 } from '@/lib/payments/fee-collection-model';
 import { verifyLeagueOwnerAccess } from './permissions';
 
@@ -785,7 +786,9 @@ export async function createRegistrationPaymentIntent(
     if (paymentMode === 'hidden') {
       return {
         success: false,
-        error: 'This season uses team billing, so individual player payment is not required.',
+        error: usesTeamBilling(paymentSettings.feeCollectionModel, paymentSettings.feeBasis)
+          ? 'This season uses team billing, so individual player payment is not required.'
+          : 'This season does not currently have an individual player fee configured.',
       };
     }
 

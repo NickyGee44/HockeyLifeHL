@@ -2,7 +2,12 @@
 
 import { CheckCircle2, User, Shield, CreditCard, AlertTriangle } from 'lucide-react';
 import type { RegistrationDraftData } from '@/lib/actions/registration';
-import type { RegistrationPaymentMode } from '@/lib/registration/fee-collection-model';
+import type {
+  FeeBasis,
+  FeeCollectionModel,
+  RegistrationPaymentMode,
+} from '@/lib/registration/fee-collection-model';
+import { usesTeamBilling } from '@/lib/registration/fee-collection-model';
 import type { PreviousTeamOption } from '@/lib/registration/intents';
 import {
   formatRegistrationIntent,
@@ -15,6 +20,8 @@ interface StepConfirmationProps {
   leagueName: string;
   seasonName: string;
   registrationFee: number;
+  feeCollectionModel: FeeCollectionModel;
+  feeBasis: FeeBasis;
   paymentMode: RegistrationPaymentMode;
   teams: { id: string; name: string }[];
   previousTeams: PreviousTeamOption[];
@@ -44,6 +51,8 @@ export function StepConfirmation({
   leagueName,
   seasonName,
   registrationFee,
+  feeCollectionModel,
+  feeBasis,
   paymentMode,
   teams,
   previousTeams: _previousTeams,
@@ -53,6 +62,7 @@ export function StepConfirmation({
   const teamName = formData.team_id
     ? teams.find((t) => t.id === formData.team_id)?.name
     : formData.requested_team_name || formData.previous_team_name || null;
+  const isTeamBilledSeason = usesTeamBilling(feeCollectionModel, feeBasis);
 
   const formatCurrency = (cents: number) =>
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
@@ -174,11 +184,17 @@ export function StepConfirmation({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--color-text-muted)]">
-                {paymentMode === 'hidden' ? 'Team Billing' : 'Registration Fee'}
+                {paymentMode === 'hidden'
+                  ? isTeamBilledSeason
+                    ? 'Team Billing'
+                    : 'Registration Fee'
+                  : 'Registration Fee'}
               </span>
               <span className="font-bold text-[var(--color-text-primary)]">
                 {paymentMode === 'hidden' && registrationFee <= 0
-                  ? 'Handled by team invoice'
+                  ? isTeamBilledSeason
+                    ? 'Handled by team invoice'
+                    : 'No player payment required'
                   : formatCurrency(registrationFee)}
               </span>
             </div>
@@ -186,14 +202,16 @@ export function StepConfirmation({
               {formData.payment_status === 'completed'
                 ? 'Payment completed'
                 : paymentMode === 'hidden'
-                  ? registrationFee > 0
+                  ? isTeamBilledSeason
+                    ? registrationFee > 0
                     ? 'Your team will be billed for this registration'
                     : 'Your captain or league can pay the full team invoice after registrations are collected.'
+                    : 'This season does not currently require an individual player payment.'
                   : paymentMode === 'optional'
                     ? 'You are registering now and can let your team handle payment later'
                     : formData.payment_status === 'not_required'
                       ? 'No payment required'
-                  : 'Payment pending'}
+                      : 'Payment pending'}
             </p>
           </div>
         )}

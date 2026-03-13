@@ -223,6 +223,7 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
         teams={teams}
         registrationFee={registrationConfig.registrationFee}
         feeCollectionModel={registrationConfig.feeCollectionModel}
+        feeBasis={registrationConfig.feeBasis}
         paymentMode={registrationConfig.paymentMode}
         waiverContent={waiver.content}
         waiverVersion={waiver.version}

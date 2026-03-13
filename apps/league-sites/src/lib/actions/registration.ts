@@ -521,6 +521,7 @@ export async function getSeasonRegistrationPaymentConfig(
   return {
     registrationFee: getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents),
     feeCollectionModel: settings.feeCollectionModel,
+    feeBasis: settings.feeBasis,
     paymentMode: getRegistrationPaymentMode(
       settings.feeCollectionModel,
       settings.feeAmountCents,
