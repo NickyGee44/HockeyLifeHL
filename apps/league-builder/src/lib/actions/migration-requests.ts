@@ -423,7 +423,8 @@ export async function upsertLeagueMigrationRequest(
   const normalizationProfile = buildNormalizationProfile(
     currentAssets,
     normalized.data.assetLinks,
-    normalized.data.sourceUrl
+    normalized.data.sourceUrl,
+    existing?.normalization_profile ?? null
   );
 
   const basePayload = {
@@ -634,7 +635,8 @@ export async function finalizeMigrationAssetUpload(
   const normalizationProfile = buildNormalizationProfile(
     nextAssets,
     draftRequest.asset_links,
-    draftRequest.source_url
+    draftRequest.source_url,
+    draftRequest.normalization_profile
   );
 
   const { data, error } = await serviceSupabase
@@ -685,7 +687,8 @@ export async function deleteMigrationAsset(
   const normalizationProfile = buildNormalizationProfile(
     nextAssets,
     request.asset_links,
-    request.source_url
+    request.source_url,
+    request.normalization_profile
   );
 
   const [{ data, error }, removeResult] = await Promise.all([

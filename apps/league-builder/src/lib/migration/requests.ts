@@ -43,6 +43,26 @@ export type MigrationSqlEngine =
   | 'mssql'
   | 'unknown';
 
+export const MIGRATION_IMPORT_MODE_OPTIONS = [
+  'merge_upsert',
+  'append_only',
+  'replace_history',
+  'reference_only',
+] as const;
+
+export type MigrationImportMode = (typeof MIGRATION_IMPORT_MODE_OPTIONS)[number];
+
+export const MIGRATION_TARGET_ENTITY_OPTIONS = [
+  'teams',
+  'players',
+  'schedule_games',
+  'stats',
+  'news_articles',
+  'media_assets',
+] as const;
+
+export type MigrationTargetEntity = (typeof MIGRATION_TARGET_ENTITY_OPTIONS)[number];
+
 export interface MigrationUploadedAssetAnalysis {
   source_format: MigrationSourceFormat;
   sql_engine?: MigrationSqlEngine | null;
@@ -64,12 +84,35 @@ export interface MigrationUploadedAsset {
   analysis: MigrationUploadedAssetAnalysis;
 }
 
+export interface MigrationImportFieldMapping {
+  source_field: string;
+  target_field: string | null;
+  required: boolean;
+  confidence: 'suggested' | 'confirmed';
+}
+
+export interface MigrationImportMappingEntry {
+  asset_id: string;
+  scope: LeagueMigrationScope | null;
+  target_entity: MigrationTargetEntity | null;
+  source_object: string | null;
+  import_mode: MigrationImportMode;
+  field_mappings: MigrationImportFieldMapping[];
+  notes: string[];
+  blockers: string[];
+  ready_for_import: boolean;
+  updated_at: string;
+}
+
 export interface LeagueMigrationNormalizationProfile {
   source_formats: MigrationSourceFormat[];
   suggested_scope: LeagueMigrationScope[];
   detected_tables: string[];
   notes: string[];
   ready_for_review: boolean;
+  import_mappings: MigrationImportMappingEntry[];
+  import_ready_scopes: LeagueMigrationScope[];
+  import_blockers: string[];
 }
 
 export const ACTIVE_MIGRATION_REQUEST_STATUSES: readonly LeagueMigrationRequestStatus[] = [
@@ -202,6 +245,20 @@ function normalizeSourceFormats(values: unknown): MigrationSourceFormat[] {
   );
 }
 
+function normalizeImportMode(value: unknown): MigrationImportMode {
+  return typeof value === 'string' &&
+    (MIGRATION_IMPORT_MODE_OPTIONS as readonly string[]).includes(value)
+    ? (value as MigrationImportMode)
+    : 'merge_upsert';
+}
+
+function normalizeTargetEntity(value: unknown): MigrationTargetEntity | null {
+  return typeof value === 'string' &&
+    (MIGRATION_TARGET_ENTITY_OPTIONS as readonly string[]).includes(value)
+    ? (value as MigrationTargetEntity)
+    : null;
+}
+
 function normalizeUploadedAssetAnalysis(value: unknown): MigrationUploadedAssetAnalysis {
   const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   return {
@@ -245,6 +302,49 @@ function normalizeUploadedAssets(value: unknown): MigrationUploadedAsset[] {
     .filter((item) => item.path);
 }
 
+function normalizeImportFieldMappings(value: unknown): MigrationImportFieldMapping[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+    .map(
+      (item): MigrationImportFieldMapping => ({
+        source_field: typeof item.source_field === 'string' ? item.source_field : '',
+        target_field: typeof item.target_field === 'string' ? item.target_field : null,
+        required: Boolean(item.required),
+        confidence: item.confidence === 'suggested' ? 'suggested' : 'confirmed',
+      })
+    )
+    .filter((item) => item.source_field);
+}
+
+function normalizeImportMappings(value: unknown): MigrationImportMappingEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+    .map((item) => ({
+      asset_id: typeof item.asset_id === 'string' ? item.asset_id : crypto.randomUUID(),
+      scope:
+        typeof item.scope === 'string' &&
+        (MIGRATION_SCOPE_OPTIONS as readonly string[]).includes(item.scope)
+          ? (item.scope as LeagueMigrationScope)
+          : null,
+      target_entity: normalizeTargetEntity(item.target_entity),
+      source_object: typeof item.source_object === 'string' ? item.source_object : null,
+      import_mode: normalizeImportMode(item.import_mode),
+      field_mappings: normalizeImportFieldMappings(item.field_mappings),
+      notes: Array.isArray(item.notes)
+        ? item.notes.filter((note): note is string => typeof note === 'string')
+        : [],
+      blockers: Array.isArray(item.blockers)
+        ? item.blockers.filter((blocker): blocker is string => typeof blocker === 'string')
+        : [],
+      ready_for_import: Boolean(item.ready_for_import),
+      updated_at:
+        typeof item.updated_at === 'string' ? item.updated_at : new Date(0).toISOString(),
+    }))
+    .filter((item) => item.asset_id);
+}
+
 function normalizeNormalizationProfile(value: unknown): LeagueMigrationNormalizationProfile | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
@@ -258,6 +358,11 @@ function normalizeNormalizationProfile(value: unknown): LeagueMigrationNormaliza
       ? raw.notes.filter((item): item is string => typeof item === 'string')
       : [],
     ready_for_review: Boolean(raw.ready_for_review),
+    import_mappings: normalizeImportMappings(raw.import_mappings),
+    import_ready_scopes: normalizeScopeArray(raw.import_ready_scopes),
+    import_blockers: Array.isArray(raw.import_blockers)
+      ? raw.import_blockers.filter((item): item is string => typeof item === 'string')
+      : [],
   };
 }
 
