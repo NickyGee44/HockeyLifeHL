@@ -15,8 +15,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BADGES_DIR = path.join(__dirname, '..', 'apps', 'league-sites', 'public', 'badges');
 const SPONSORS_DIR = path.join(__dirname, '..', 'apps', 'league-sites', 'public', 'sponsors');
 
-const API_KEY = 'AIzaSyB3DGfdFT-g0oOf42x_EJI48JC3nO0MVgI';
+const API_KEY = process.env.GEMINI_API_KEY;
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${API_KEY}`;
+
+if (!API_KEY) {
+  console.error('Missing GEMINI_API_KEY. Set it in your environment before running this script.');
+  process.exit(1);
+}
 
 // Delay between API calls to avoid rate limiting
 const DELAY_MS = 3000;
