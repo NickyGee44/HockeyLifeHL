@@ -91,7 +91,8 @@ export default async function LeagueDetailPage({ params }: Props) {
     (supabase.from('registration_submissions') as any)
       .select('*', { count: 'exact', head: true })
       .eq('league_id', leagueId)
-      .eq('status', 'pending'),
+      .eq('status', 'pending')
+      .not('submitted_at', 'is', null),
     currentSeason
       ? supabase
           .from('games')

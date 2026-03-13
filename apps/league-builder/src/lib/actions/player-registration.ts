@@ -2012,26 +2012,49 @@ export async function getRegistrationSummary(
     }
 
     const supabase = createServiceRoleClient();
-
-    const { data, error } = await supabase.rpc('get_registration_summary', {
-      check_league_id: leagueId,
-    });
+    const { data, error } = await supabase
+      .from('registration_submissions')
+      .select('status, registration_type')
+      .eq('league_id', leagueId)
+      .not('submitted_at', 'is', null);
 
     if (error) {
       console.error('Get summary error:', error);
       return { success: false, error: 'Failed to fetch summary.' };
     }
 
-    const summary = data?.[0] || {
-      total_submissions: 0,
-      pending_count: 0,
-      approved_count: 0,
-      rejected_count: 0,
-      waitlisted_count: 0,
-      team_registrations: 0,
-      free_agents: 0,
-      individual_registrations: 0,
-    };
+    const summary = (data || []).reduce(
+      (acc, row) => {
+        acc.total_submissions += 1;
+
+        if (row.status === 'pending') acc.pending_count += 1;
+        if (row.status === 'approved') acc.approved_count += 1;
+        if (row.status === 'rejected') acc.rejected_count += 1;
+        if (row.status === 'waitlisted') acc.waitlisted_count += 1;
+
+        if (row.registration_type === 'team_registration') {
+          acc.team_registrations += 1;
+        }
+        if (row.registration_type === 'free_agent') {
+          acc.free_agents += 1;
+        }
+        if (row.registration_type === 'individual') {
+          acc.individual_registrations += 1;
+        }
+
+        return acc;
+      },
+      {
+        total_submissions: 0,
+        pending_count: 0,
+        approved_count: 0,
+        rejected_count: 0,
+        waitlisted_count: 0,
+        team_registrations: 0,
+        free_agents: 0,
+        individual_registrations: 0,
+      }
+    );
 
     return {
       success: true,
