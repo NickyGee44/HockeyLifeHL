@@ -610,6 +610,7 @@ export async function getMyRegistrationStatus(
       .eq('player_id', user.id)
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
+      .not('submitted_at', 'is', null)
       .single();
 
     if (error) {
