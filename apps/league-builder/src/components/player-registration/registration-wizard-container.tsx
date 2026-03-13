@@ -12,6 +12,7 @@ import {
 } from '@/lib/actions/player-registration';
 import type { RegistrationFormData, RegistrationDraftData } from '@/lib/schemas/player-registration';
 import type {
+  FeeBasis,
   FeeCollectionModel,
   RegistrationPaymentMode,
 } from '@/lib/payments/fee-collection-model';
@@ -41,6 +42,7 @@ export interface RegistrationWizardContainerProps {
   initialData?: Partial<RegistrationDraftData> | null;
   registrationFee?: number; // In cents, 0 = no payment required
   feeCollectionModel?: FeeCollectionModel;
+  feeBasis?: FeeBasis;
   paymentMode?: RegistrationPaymentMode;
   teams?: Array<{ id: string; name: string }>;
   waiverContent?: string;
@@ -60,6 +62,7 @@ export function RegistrationWizardContainer({
   initialData,
   registrationFee = 0,
   feeCollectionModel = 'individual',
+  feeBasis = 'player',
   paymentMode = registrationFee > 0 ? 'required' : 'hidden',
   teams = [],
   waiverContent = '',
@@ -295,6 +298,7 @@ export function RegistrationWizardContainer({
     teams,
     requiresPayment,
     feeCollectionModel,
+    feeBasis,
     paymentMode,
     showsPaymentStep,
     registrationFee,
@@ -365,6 +369,7 @@ export interface RegistrationContextValue {
   teams: Array<{ id: string; name: string }>;
   requiresPayment: boolean;
   feeCollectionModel: FeeCollectionModel;
+  feeBasis: FeeBasis;
   paymentMode: RegistrationPaymentMode;
   showsPaymentStep: boolean;
   registrationFee: number;

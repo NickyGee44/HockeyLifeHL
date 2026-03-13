@@ -11,6 +11,7 @@ import {
   type LeagueFormConfig,
 } from '@/lib/actions/registration';
 import type {
+  FeeBasis,
   FeeCollectionModel,
   RegistrationPaymentMode,
 } from '@/lib/registration/fee-collection-model';
@@ -43,6 +44,7 @@ interface RegistrationWizardProps {
   teams: { id: string; name: string }[];
   registrationFee: number; // cents
   feeCollectionModel?: FeeCollectionModel;
+  feeBasis?: FeeBasis;
   paymentMode?: RegistrationPaymentMode;
   waiverContent: string;
   waiverVersion: string;
@@ -78,7 +80,8 @@ export function RegistrationWizard({
   seasonName,
   teams,
   registrationFee,
-  feeCollectionModel: _feeCollectionModel = 'individual',
+  feeCollectionModel = 'individual',
+  feeBasis = 'player',
   paymentMode = registrationFee > 0 ? 'required' : 'hidden',
   waiverContent,
   waiverVersion: _waiverVersion,
@@ -442,15 +445,17 @@ export function RegistrationWizard({
           />
         )}
         {currentStep === 6 && (
-          <StepConfirmation
-            formData={formData}
-            leagueSlug={leagueSlug}
-            leagueName={leagueName}
-            seasonName={seasonName}
-            registrationFee={registrationFee}
-            paymentMode={paymentMode}
-            teams={teams}
-            previousTeams={previousTeams}
+        <StepConfirmation
+          formData={formData}
+          leagueSlug={leagueSlug}
+          leagueName={leagueName}
+          seasonName={seasonName}
+          registrationFee={registrationFee}
+          feeCollectionModel={feeCollectionModel}
+          feeBasis={feeBasis}
+          paymentMode={paymentMode}
+          teams={teams}
+          previousTeams={previousTeams}
             onUpdate={updateFormData}
             canSubmit={paymentMode !== 'required' || formData.payment_status === 'completed'}
           />

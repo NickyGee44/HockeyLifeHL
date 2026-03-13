@@ -13,6 +13,7 @@ import {
 import { cn } from '@hockey-life/ui/lib/utils';
 import { useRegistrationContext } from '../registration-wizard-container';
 import type { RegistrationFormData } from '@/lib/schemas/player-registration';
+import { usesTeamBilling } from '@/lib/payments/fee-collection-model';
 import {
   formatRegistrationType,
   formatSkillLevel,
@@ -20,10 +21,12 @@ import {
   formatRelationship } from '@/lib/schemas/player-registration';
 
 export function Step7Confirmation() {
-  const { leagueName, teams, paymentMode, registrationFee } = useRegistrationContext();
+  const { leagueName, teams, paymentMode, registrationFee, feeCollectionModel, feeBasis } =
+    useRegistrationContext();
   const { watch } = useFormContext<RegistrationFormData>();
 
   const formData = watch();
+  const isTeamBilledSeason = usesTeamBilling(feeCollectionModel, feeBasis);
 
   // Get team name if applicable
   const selectedTeam = teams.find((t) => t.id === formData.team_id);
@@ -198,11 +201,17 @@ export function Step7Confirmation() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-neutral-400">
-                {paymentMode === 'hidden' ? 'Team Billing' : 'Registration Fee'}
+                {paymentMode === 'hidden'
+                  ? isTeamBilledSeason
+                    ? 'Team Billing'
+                    : 'Registration Fee'
+                  : 'Registration Fee'}
               </p>
               <p className="text-2xl font-bold text-rink-500">
                 {paymentMode === 'hidden' && registrationFee <= 0
-                  ? 'Handled by team invoice'
+                  ? isTeamBilledSeason
+                    ? 'Handled by team invoice'
+                    : 'No player payment required'
                   : formattedAmount}
               </p>
             </div>
@@ -213,7 +222,7 @@ export function Step7Confirmation() {
               </span>
             ) : paymentMode === 'hidden' ? (
               <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400">
-                Team Pays
+                {isTeamBilledSeason ? 'Team Pays' : 'No Payment'}
               </span>
             ) : paymentMode === 'optional' ? (
               <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400">
@@ -227,9 +236,11 @@ export function Step7Confirmation() {
           </div>
           {paymentMode === 'hidden' && (
             <p className="mt-3 text-sm text-neutral-400">
-              {registrationFee > 0
-                ? 'This season uses team billing. Your team captain or league will handle the invoice.'
-                : 'This season uses a flat team fee. Your captain or league can pay the full team invoice after registrations are collected.'}
+              {isTeamBilledSeason
+                ? registrationFee > 0
+                  ? 'This season uses team billing. Your team captain or league will handle the invoice.'
+                  : 'This season uses a flat team fee. Your captain or league can pay the full team invoice after registrations are collected.'
+                : 'No individual player payment has been configured for this season yet.'}
             </p>
           )}
           {paymentMode === 'optional' && formData.payment_status !== 'completed' && (

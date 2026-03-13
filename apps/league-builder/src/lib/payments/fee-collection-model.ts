@@ -26,6 +26,13 @@ export function getPlayerRegistrationFeeAmount(
   return feeBasis === 'team' ? 0 : feeAmountCents;
 }
 
+export function usesTeamBilling(
+  feeCollectionModel: FeeCollectionModel,
+  feeBasis: FeeBasis = 'player'
+): boolean {
+  return feeCollectionModel === 'team' || feeBasis === 'team';
+}
+
 export function getRegistrationPaymentMode(
   feeCollectionModel: FeeCollectionModel,
   feeAmountCents: number,
