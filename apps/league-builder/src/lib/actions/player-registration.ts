@@ -98,6 +98,7 @@ interface PendingRegistration {
     requested_team_name?: string | null;
     previous_team_name?: string | null;
     team_return_status?: string | null;
+    date_of_birth?: string | null;
   } | null;
   status: string;
   preferred_position: string | null;

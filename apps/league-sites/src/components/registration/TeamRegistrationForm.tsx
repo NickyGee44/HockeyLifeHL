@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useUser } from '@/hooks/useUser';
 import { Users, FileText, ChevronDown, Check, Loader2 } from 'lucide-react';
 import {
   submitTeamRegistration,
   type LeagueFormConfig,
+  type RegistrationDivisionOption,
 } from '@/lib/actions/registration';
 import { WaiverDocumentPanel } from './WaiverDocumentPanel';
 
@@ -22,6 +23,7 @@ interface TeamRegistrationFormProps {
   waiverDocumentName?: string | null;
   waiverDocumentMimeType?: string | null;
   leagueFormConfig: LeagueFormConfig;
+  divisionOptions?: RegistrationDivisionOption[];
 }
 
 const inputClass =
@@ -50,6 +52,7 @@ export function TeamRegistrationForm({
   waiverDocumentName,
   waiverDocumentMimeType,
   leagueFormConfig,
+  divisionOptions = [],
 }: TeamRegistrationFormProps) {
   const { user } = useUser();
   const { openLogin } = useAuth();
@@ -57,6 +60,20 @@ export function TeamRegistrationForm({
   const levels = leagueFormConfig.levels ?? [];
   const locations = leagueFormConfig.locations ?? [];
   const nights = leagueFormConfig.nights ?? [];
+  const waiverScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const availableDivisions = useMemo(() => {
+    if (divisionOptions.length > 0) {
+      return divisionOptions;
+    }
+
+    return levels.map((name) => ({
+      id: name,
+      name,
+      description: null,
+      skill_level: null,
+    }));
+  }, [divisionOptions, levels]);
 
   const [teamName, setTeamName] = useState('');
   const [level, setLevel] = useState('');
@@ -77,12 +94,37 @@ export function TeamRegistrationForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
 
+  const selectedDivision = availableDivisions.find((division) => division.name === level) || null;
+
+  const updateWaiverScrollState = () => {
+    const container = waiverScrollRef.current;
+    if (!container) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const atBottom = scrollTop + clientHeight >= scrollHeight - 20;
+    const doesNotNeedScroll = scrollHeight <= clientHeight + 8;
+
+    if (atBottom || doesNotNeedScroll) {
+      setHasScrolledToBottom(true);
+    }
+  };
+
   const handleWaiverScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     if (scrollTop + clientHeight >= scrollHeight - 20) {
       setHasScrolledToBottom(true);
     }
   };
+
+  useEffect(() => {
+    setHasScrolledToBottom(false);
+
+    const frame = window.requestAnimationFrame(() => {
+      updateWaiverScrollState();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [waiverContent, waiverDocumentUrl, waiverDocumentName, waiverDocumentMimeType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,7 +264,7 @@ export function TeamRegistrationForm({
               />
             </div>
 
-            {levels.length > 0 && (
+            {availableDivisions.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
                   Division / Level
@@ -233,12 +275,56 @@ export function TeamRegistrationForm({
                   className={selectClass}
                 >
                   <option value="">Select a division...</option>
-                  {levels.map((l) => (
-                    <option key={l} value={l}>
-                      {l}
+                  {availableDivisions.map((division) => (
+                    <option key={division.id} value={division.name}>
+                      {division.name}
                     </option>
                   ))}
                 </select>
+
+                {availableDivisions.some((division) => division.description || division.skill_level) && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
+                      Division guidance
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {availableDivisions.map((division) => {
+                        const isSelected = division.name === level;
+                        return (
+                          <div
+                            key={`${division.id}-details`}
+                            className={`rounded-xl border p-3 text-sm transition-colors ${
+                              isSelected
+                                ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10'
+                                : 'border-[var(--color-border)] bg-[var(--color-surface)]'
+                            }`}
+                          >
+                            <p className="font-semibold text-[var(--color-text-primary)]">
+                              {division.name}
+                            </p>
+                            {division.skill_level && (
+                              <p className="mt-1 text-xs text-[var(--league-primary)]">
+                                Skill level: {division.skill_level}
+                              </p>
+                            )}
+                            {division.description && (
+                              <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                                {division.description}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {selectedDivision && (selectedDivision.description || selectedDivision.skill_level) && (
+                  <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
+                    {selectedDivision.skill_level ? `Skill level: ${selectedDivision.skill_level}. ` : ''}
+                    {selectedDivision.description || ''}
+                  </p>
+                )}
               </div>
             )}
 
@@ -424,8 +510,9 @@ export function TeamRegistrationForm({
           </div>
 
           <div
+            ref={waiverScrollRef}
             onScroll={handleWaiverScroll}
-            className="max-h-72 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)] prose prose-sm prose-invert max-w-none mb-3"
+            className="max-h-72 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)] prose prose-sm prose-invert max-w-none mb-3 overscroll-contain"
           >
             <div
               dangerouslySetInnerHTML={{

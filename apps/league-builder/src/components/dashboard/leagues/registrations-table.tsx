@@ -43,6 +43,7 @@ interface Registration {
     requested_team_name?: string | null;
     previous_team_name?: string | null;
     team_return_status?: string | null;
+    date_of_birth?: string | null;
   } | null;
   status: string;
   preferred_position: string | null;
@@ -710,6 +711,12 @@ function ExpandedDetails({ reg }: { reg: Registration }) {
         </h4>
         <div className="text-sm space-y-1">
           <DetailRow label="Type" value={formatRegistrationType(reg.registration_type as any)} />
+          {reg.draft_data?.date_of_birth && (
+            <DetailRow
+              label="DOB"
+              value={new Date(`${reg.draft_data.date_of_birth}T00:00:00`).toLocaleDateString()}
+            />
+          )}
           {reg.draft_data?.registration_intent && (
             <DetailRow label="Path" value={formatRegistrationIntent(reg.draft_data.registration_intent)} />
           )}

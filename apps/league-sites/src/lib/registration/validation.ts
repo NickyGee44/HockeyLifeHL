@@ -10,6 +10,17 @@ function valuePresent(value: string | null | undefined): boolean {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isValidBirthDate(value: string | null | undefined): boolean {
+  if (!valuePresent(value)) return false;
+
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return parsed <= today;
+}
+
 export function validatePersonalInfoStep(
   data: RegistrationDraftData,
   leagueFormConfig?: LeagueFormConfig
@@ -18,6 +29,10 @@ export function validatePersonalInfoStep(
 
   if (!valuePresent(data.full_name)) {
     errors.push('Full name is required.');
+  }
+
+  if (!isValidBirthDate(data.date_of_birth)) {
+    errors.push('Date of birth is required.');
   }
 
   if (data.registration_intent === 'return_to_previous_team') {

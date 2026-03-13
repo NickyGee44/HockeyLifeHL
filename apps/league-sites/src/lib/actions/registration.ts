@@ -65,6 +65,7 @@ export interface RegistrationDraftData {
   full_name?: string;
   email?: string;
   phone?: string;
+  date_of_birth?: string;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
   emergency_contact_relationship?: string;
@@ -116,6 +117,13 @@ export interface LeagueFormConfig {
     referral_source?: boolean;
     paid_team_rep?: boolean;
   };
+}
+
+export interface RegistrationDivisionOption {
+  id: string;
+  name: string;
+  description?: string | null;
+  skill_level?: string | null;
 }
 
 interface LeagueWaiver {
@@ -493,6 +501,12 @@ export async function getLeagueRegistrationData(leagueSlug: string) {
       teams (
         id,
         name
+      ),
+      divisions (
+        id,
+        name,
+        description,
+        skill_level
       )
     `)
     .eq('slug', leagueSlug)
@@ -984,6 +998,7 @@ export async function submitPlayerRegistration(
             ...registrationContext.context,
             registration_intent: registrationContext.intent,
             requested_team_name: data.requested_team_name || registrationContext.context.requested_team_name,
+            date_of_birth: data.date_of_birth || null,
           },
           draft_step: null,
         },

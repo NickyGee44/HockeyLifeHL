@@ -101,6 +101,12 @@ export default async function TeamRegisterPage({ params }: TeamRegisterPageProps
         };
 
   const leagueFormConfig = (league as any).registration_form_config ?? {};
+  const divisionOptions = ((league as any).divisions || []).map((division: any) => ({
+    id: division.id,
+    name: division.name,
+    description: division.description,
+    skill_level: division.skill_level,
+  }));
 
   return (
     <div className="py-8">
@@ -128,6 +134,7 @@ export default async function TeamRegisterPage({ params }: TeamRegisterPageProps
         waiverDocumentName={waiver.document_name}
         waiverDocumentMimeType={waiver.document_mime_type}
         leagueFormConfig={leagueFormConfig}
+        divisionOptions={divisionOptions}
       />
     </div>
   );
