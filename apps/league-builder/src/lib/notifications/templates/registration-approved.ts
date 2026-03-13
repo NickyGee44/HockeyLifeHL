@@ -19,6 +19,9 @@ export interface RegistrationApprovedEmailProps {
   adminNotes?: string;
   dashboardUrl: string;
   scheduleUrl?: string;
+  paymentsUrl?: string;
+  paymentRequired?: boolean;
+  amountDueCents?: number;
   unsubscribeUrl?: string;
 }
 
@@ -36,6 +39,9 @@ export function getRegistrationApprovedEmail(props: RegistrationApprovedEmailPro
     adminNotes,
     dashboardUrl,
     scheduleUrl,
+    paymentsUrl,
+    paymentRequired,
+    amountDueCents,
     unsubscribeUrl,
   } = props;
 
@@ -72,7 +78,24 @@ export function getRegistrationApprovedEmail(props: RegistrationApprovedEmailPro
     details.push({ label: 'First Game', value: `<strong style="color: #22D3EE;">${firstGameDate}</strong>` });
   }
 
-  const nextStepsContent = teamName
+  if (paymentRequired && typeof amountDueCents === 'number' && amountDueCents > 0) {
+    details.push({
+      label: 'Amount Due',
+      value: `<strong style="color: #facc15;">$${(amountDueCents / 100).toFixed(2)} CAD</strong>`,
+    });
+  }
+
+  const nextStepsContent = paymentRequired && paymentsUrl
+    ? `
+      <p style="color: #a3a3a3;"><strong>Next Steps:</strong></p>
+      <ol style="color: #a3a3a3;">
+        <li>Your registration is approved and ready to move forward</li>
+        <li>Complete your league fee payment from your player payments page</li>
+        <li>Watch for team assignment and schedule updates</li>
+        <li>Reach out to your league admin if you have any billing questions</li>
+      </ol>
+    `
+    : teamName
     ? `
       <p style="color: #a3a3a3;"><strong>Next Steps:</strong></p>
       <ol style="color: #a3a3a3;">
@@ -143,8 +166,8 @@ export function getRegistrationApprovedEmail(props: RegistrationApprovedEmailPro
     title: 'Registration Approved!',
     preheader: `Congratulations! Your registration for ${seasonName} has been approved.`,
     content,
-    buttonText: scheduleUrl ? 'View Schedule' : 'Go to Dashboard',
-    buttonUrl: scheduleUrl || dashboardUrl,
+    buttonText: paymentRequired && paymentsUrl ? 'Pay Registration Fees' : scheduleUrl ? 'View Schedule' : 'Go to Dashboard',
+    buttonUrl: paymentRequired && paymentsUrl ? paymentsUrl : scheduleUrl || dashboardUrl,
     footerNote: 'See you on the ice!',
     unsubscribeUrl,
     leagueName,

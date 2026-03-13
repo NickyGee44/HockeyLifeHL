@@ -1,11 +1,12 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import {
   hasDraftSeason,
   isOperationalSeasonStatus,
   pickOperationalSeason,
 } from '@/lib/seasons/operational';
+import { getConnectAccountInfo } from '@/lib/leagues/stripe-connect';
 
 export interface LeagueSetupIssue {
   type: 'draft' | 'no_teams' | 'no_season' | 'billing_incomplete' | 'next_season';
@@ -55,6 +56,7 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
   if (!leagues || leagues.length === 0) return [];
 
   const issues: LeagueSetupIssue[] = [];
+  const serviceSupabase = createServiceRoleClient();
 
   for (const league of leagues) {
     const settings = league.settings as Record<string, any> | null;
@@ -75,10 +77,24 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
     // 2. Stripe billing not fully connected
     const feesEnabled = settings?.fees?.enablePaidRegistration === true;
     const paymentSkipped = settings?.payment?.skipPaymentSetup === true;
-    const stripeConnected =
-      league.stripe_account_id && league.stripe_account_status === 'complete';
+    const liveStripeInfo = league.stripe_account_id
+      ? await getConnectAccountInfo(league.stripe_account_id)
+      : null;
+    const effectiveStripeStatus = liveStripeInfo?.status ?? league.stripe_account_status;
+    const stripeConnected = Boolean(liveStripeInfo?.chargesEnabled);
     const stripeStartedButIncomplete =
-      league.stripe_account_id && league.stripe_account_status !== 'complete';
+      Boolean(league.stripe_account_id) && !stripeConnected;
+
+    if (league.stripe_account_id && liveStripeInfo && effectiveStripeStatus !== league.stripe_account_status) {
+      await serviceSupabase
+        .from('leagues')
+        .update({
+          stripe_account_status: effectiveStripeStatus,
+          payment_mode: liveStripeInfo.chargesEnabled ? 'stripe' : 'manual',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', league.id);
+    }
 
     if (feesEnabled && !paymentSkipped && !stripeConnected) {
       issues.push({
@@ -97,11 +113,11 @@ export async function getSetupIssues(): Promise<LeagueSetupIssue[]> {
         leagueId: league.id,
         leagueName: league.name,
         message:
-          league.stripe_account_status === 'disabled'
+          effectiveStripeStatus === 'disabled'
             ? 'Stripe needs attention before payments can be accepted. Review the billing page to reconnect or finish any remaining verification steps.'
-            : 'Stripe account setup is incomplete. Finish onboarding to start accepting payments.',
+            : 'Stripe setup still needs follow-up before card payments can go live.',
         actionUrl: `/dashboard/leagues/${league.id}/billing`,
-        actionLabel: league.stripe_account_status === 'disabled' ? 'Review Billing' : 'Finish Setup',
+        actionLabel: effectiveStripeStatus === 'disabled' ? 'Review Billing' : 'Finish Setup',
       });
     }
 

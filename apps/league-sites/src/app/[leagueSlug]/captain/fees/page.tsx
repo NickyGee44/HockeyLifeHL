@@ -212,6 +212,10 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
         <div className="space-y-6">
           {invoices.map((invoice) => {
             const balance = invoice.total_amount_cents - invoice.amount_paid_cents;
+            const isZeroBalancePlaceholder =
+              invoice.status === 'waived' &&
+              invoice.total_amount_cents === 0 &&
+              invoice.total_players === 0;
             const config = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.pending;
             const StatusIcon = config.Icon;
 
@@ -226,7 +230,7 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
                     <StatusIcon className={`w-5 h-5 ${config.text}`} />
                     <div className="flex-1">
                       <span className={`font-semibold ${config.text}`}>
-                        {config.label}
+                        {isZeroBalancePlaceholder ? 'No Balance Yet' : config.label}
                       </span>
                       {invoice.payment_deadline && invoice.status !== 'paid' && invoice.status !== 'waived' && (
                         <span className="text-sm text-[var(--color-text-secondary)] ml-3">
@@ -271,6 +275,15 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
                     <div className="bg-[var(--color-surface-hover)] rounded-lg p-3 mb-4">
                       <p className="text-xs text-[var(--color-text-muted)] mb-1">Note from league admin</p>
                       <p className="text-sm text-[var(--color-text-primary)]">{invoice.notes}</p>
+                    </div>
+                  )}
+
+                  {isZeroBalancePlaceholder && (
+                    <div className="bg-[var(--color-surface-hover)] rounded-lg p-3 mb-4">
+                      <p className="text-xs text-[var(--color-text-muted)] mb-1">Team billing status</p>
+                      <p className="text-sm text-[var(--color-text-primary)]">
+                        Your team invoice is ready, but there is no balance yet. As players are assigned and fees are recorded, this summary will update automatically.
+                      </p>
                     </div>
                   )}
 

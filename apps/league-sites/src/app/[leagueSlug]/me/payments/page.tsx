@@ -35,6 +35,8 @@ interface Registration {
   team_id: string | null;
   status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'waitlisted';
   payment_status: 'pending' | 'paid' | 'partial' | 'refunded' | 'failed';
+  fee_amount_cents: number;
+  currency: string;
   amount_paid_cents: number;
   stripe_payment_intent_id: string | null;
   created_at: string;
@@ -154,7 +156,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
 
   const totalOwed = registrations.reduce(
     (sum, reg) => {
-      const feeAmount = reg.registration_type?.fee_amount_cents || 0;
+      const feeAmount = reg.fee_amount_cents || 0;
       const paid = reg.amount_paid_cents || 0;
       return sum + Math.max(0, feeAmount - paid);
     },
@@ -166,7 +168,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
     .reduce((sum, p) => sum + p.amount, 0);
 
   const outstandingRegistrations = registrations.filter((reg) => {
-    const feeAmount = reg.registration_type?.fee_amount_cents || 0;
+    const feeAmount = reg.fee_amount_cents || 0;
     return feeAmount > (reg.amount_paid_cents || 0);
   });
 
@@ -239,7 +241,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
               onClick={() =>
                 handlePayNow(
                   primaryOutstanding.id,
-                  (primaryOutstanding.registration_type?.fee_amount_cents || 0) -
+                  (primaryOutstanding.fee_amount_cents || 0) -
                     (primaryOutstanding.amount_paid_cents || 0),
                   primaryOutstanding.registration_type?.name ||
                     primaryOutstanding.season?.name ||
@@ -314,7 +316,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
           </h2>
           <div className="space-y-3">
             {outstandingRegistrations.map((reg) => {
-                const feeAmount = reg.registration_type?.fee_amount_cents || 0;
+                const feeAmount = reg.fee_amount_cents || 0;
                 const balance = feeAmount - (reg.amount_paid_cents || 0);
                 return (
                   <div

@@ -281,6 +281,10 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
               <tbody className="divide-y divide-white/5">
                 {invoices.map((invoice) => {
                   const balance = invoice.total_amount_cents - invoice.amount_paid_cents;
+                  const isZeroBalancePlaceholder =
+                    invoice.status === 'waived' &&
+                    invoice.total_amount_cents === 0 &&
+                    invoice.total_players === 0;
                   return (
                     <tr key={invoice.id} className="hover:bg-white/[0.02]">
                       <td className="px-4 py-3 font-medium text-white">
@@ -308,7 +312,9 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
                             STATUS_STYLES[invoice.status] || STATUS_STYLES.pending
                           )}
                         >
-                          {t(`status${invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}`)}
+                          {isZeroBalancePlaceholder
+                            ? 'No Balance Yet'
+                            : t(`status${invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}`)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">

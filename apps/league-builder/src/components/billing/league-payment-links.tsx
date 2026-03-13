@@ -17,6 +17,8 @@ interface League {
   primary_color: string | null;
   stripe_account_id: string | null;
   stripe_account_status: string | null;
+  statusLabel?: string;
+  statusTone?: 'success' | 'warning' | 'danger' | 'pending';
 }
 
 interface LeaguePaymentLinksProps {
@@ -45,10 +47,21 @@ export function LeaguePaymentLinks({ leagues }: LeaguePaymentLinksProps) {
           </h3>
           <div className="space-y-3">
             {leagues.map((league) => {
-              const isConnected = league.stripe_account_status === 'complete';
+              const isConnected = league.statusTone === 'success';
               const needsSetup = !league.stripe_account_id;
-              const isDisabled = league.stripe_account_status === 'disabled';
-              const needsAttention = league.stripe_account_status === 'restricted';
+              const isDisabled = league.statusTone === 'danger';
+              const needsAttention = league.statusTone === 'warning';
+              const statusLabel = league.statusLabel
+                ? league.statusLabel
+                : isConnected
+                  ? 'Stripe Connected'
+                  : isDisabled
+                    ? 'Needs Billing Review'
+                    : needsAttention
+                      ? 'Action Required'
+                      : needsSetup
+                        ? 'Setup Required'
+                        : 'Pending Setup';
 
               return (
                 <Link
@@ -69,17 +82,19 @@ export function LeaguePaymentLinks({ leagues }: LeaguePaymentLinksProps) {
                         {league.name}
                       </h4>
                       <p className="text-xs text-neutral-500">
-                        {isConnected ? (
-                          <span className="text-green-500">Stripe Connected</span>
-                        ) : isDisabled ? (
-                          <span className="text-red-500">Needs Billing Review</span>
-                        ) : needsAttention ? (
-                          <span className="text-orange-400">Action Required</span>
-                        ) : needsSetup ? (
-                          <span className="text-yellow-500">Setup Required</span>
-                        ) : (
-                          <span className="text-yellow-500">Pending Setup</span>
-                        )}
+                        <span
+                          className={
+                            isConnected
+                              ? 'text-green-500'
+                              : isDisabled
+                                ? 'text-red-500'
+                                : needsAttention
+                                  ? 'text-orange-400'
+                                  : 'text-yellow-500'
+                          }
+                        >
+                          {statusLabel}
+                        </span>
                       </p>
                     </div>
                   </div>

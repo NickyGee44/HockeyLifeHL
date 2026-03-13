@@ -25,6 +25,7 @@ import type {
 } from './types';
 import type { Json } from '@hockey-life/database';
 import { normalizeFeeCollectionModel } from './fee-collection-model';
+import { reconcileSeasonRegistrationFees } from './registration-fee-reconciliation';
 
 // ============================================================================
 // Helper: Verify League Admin Access
@@ -322,7 +323,11 @@ export async function createSeasonFee(
           amount_cents: params.amountCents,
         }, access.userId);
 
+        await reconcileSeasonRegistrationFees(params.leagueId, params.seasonId);
+
         revalidatePath(`/dashboard/leagues/${params.leagueId}/fees`);
+        revalidatePath(`/dashboard/leagues/${params.leagueId}/payments`);
+        revalidatePath(`/dashboard/leagues/${params.leagueId}/billing`);
         return { success: true, data: fallbackFee as SeasonFee };
       }
 
@@ -336,7 +341,11 @@ export async function createSeasonFee(
       amount_cents: params.amountCents,
     }, access.userId);
 
+    await reconcileSeasonRegistrationFees(params.leagueId, params.seasonId);
+
     revalidatePath(`/dashboard/leagues/${params.leagueId}/fees`);
+    revalidatePath(`/dashboard/leagues/${params.leagueId}/payments`);
+    revalidatePath(`/dashboard/leagues/${params.leagueId}/billing`);
     return { success: true, data: fee as SeasonFee };
   } catch (error) {
     console.error('[Payments] Unexpected error in createSeasonFee:', sanitizeErrorForLogging(error));
@@ -437,7 +446,11 @@ export async function updateSeasonFee(
           changes: updateData,
         }, access.userId);
 
+        await reconcileSeasonRegistrationFees(existingFee.league_id, existingFee.season_id);
+
         revalidatePath(`/dashboard/leagues/${existingFee.league_id}/fees`);
+        revalidatePath(`/dashboard/leagues/${existingFee.league_id}/payments`);
+        revalidatePath(`/dashboard/leagues/${existingFee.league_id}/billing`);
         return { success: true, data: fallbackFee as SeasonFee };
       }
 
@@ -450,7 +463,11 @@ export async function updateSeasonFee(
       changes: updateData,
     }, access.userId);
 
+    await reconcileSeasonRegistrationFees(existingFee.league_id, existingFee.season_id);
+
     revalidatePath(`/dashboard/leagues/${existingFee.league_id}/fees`);
+    revalidatePath(`/dashboard/leagues/${existingFee.league_id}/payments`);
+    revalidatePath(`/dashboard/leagues/${existingFee.league_id}/billing`);
     return { success: true, data: fee as SeasonFee };
   } catch (error) {
     console.error('[Payments] Unexpected error in updateSeasonFee:', sanitizeErrorForLogging(error));
@@ -606,6 +623,8 @@ export async function updateSeasonFeeCollectionModel(
       season_id: seasonId,
       fee_collection_model: feeCollectionModel,
     }, access.userId);
+
+    await reconcileSeasonRegistrationFees(leagueId, seasonId);
 
     revalidatePath(`/dashboard/leagues/${leagueId}`);
     revalidatePath(`/dashboard/leagues/${leagueId}/seasons`);

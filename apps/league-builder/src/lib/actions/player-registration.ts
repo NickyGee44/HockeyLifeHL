@@ -40,6 +40,7 @@ import {
   isPlayerFeeConfigurationMissing,
   usesTeamBilling,
 } from '@/lib/payments/fee-collection-model';
+import { reconcileSeasonRegistrationFees } from '@/lib/payments/registration-fee-reconciliation';
 import { verifyLeagueOwnerAccess } from './permissions';
 
 let _stripe: Stripe | null = null;
@@ -1861,15 +1862,39 @@ export async function approveRegistration(
 
     // If team assigned, add player to roster
     if (teamId) {
-      await supabase.from('team_rosters').insert({
-        team_id: teamId,
-        player_id: registration.player_id,
-        league_id: registration.league_id,
-        season_id: registration.season_id,
-        jersey_number: jerseyNumber || null,
-        status: 'active',
-      });
+      const { data: existingRosterRow } = await supabase
+        .from('team_rosters')
+        .select('id, team_id')
+        .eq('player_id', registration.player_id)
+        .eq('league_id', registration.league_id)
+        .eq('season_id', registration.season_id)
+        .eq('status', 'active')
+        .is('end_date', null)
+        .maybeSingle();
+
+      if (!existingRosterRow) {
+        await supabase.from('team_rosters').insert({
+          team_id: teamId,
+          player_id: registration.player_id,
+          league_id: registration.league_id,
+          season_id: registration.season_id,
+          jersey_number: jerseyNumber || null,
+          status: 'active',
+        });
+      } else if (existingRosterRow.team_id !== teamId || jerseyNumber !== undefined) {
+        await supabase
+          .from('team_rosters')
+          .update({
+            team_id: teamId,
+            jersey_number: jerseyNumber || null,
+          })
+          .eq('id', existingRosterRow.id);
+      }
     }
+
+    await reconcileSeasonRegistrationFees(registration.league_id, registration.season_id, {
+      registrationId,
+    });
 
     // Send approval notification email
     try {
@@ -1880,11 +1905,26 @@ export async function approveRegistration(
           *,
           player:profiles!player_id (email, full_name),
           team:teams!team_id (name),
-          league:leagues!league_id (name),
+          assigned_team:teams!assigned_team_id (name),
+          league:leagues!league_id (name, slug),
           season:seasons!season_id (name, start_date)
         `)
         .eq('id', registrationId)
         .single();
+
+      const paymentRequired =
+        Boolean(fullReg?.fee_amount_cents) &&
+        (fullReg?.amount_paid_cents || 0) < (fullReg?.fee_amount_cents || 0) &&
+        fullReg?.payment_status !== 'not_required' &&
+        fullReg?.payment_status !== 'completed' &&
+        fullReg?.payment_status !== 'refunded';
+
+      const sitesBaseDomain =
+        process.env.NEXT_PUBLIC_SITES_BASE_DOMAIN || 'beerleaguehockey.ca';
+      const paymentsUrl =
+        fullReg?.league?.slug
+          ? `https://${fullReg.league.slug}.${sitesBaseDomain}/me/payments`
+          : undefined;
 
       if (fullReg?.player?.email) {
         const assignedTeam = teamId
@@ -1901,13 +1941,21 @@ export async function approveRegistration(
           leagueName: fullReg.league?.name || 'League',
           seasonName: fullReg.season?.name || 'Season',
           registrationType: fullReg.registration_type as 'team_registration' | 'free_agent' | 'individual',
-          teamName: assignedTeam?.data?.name || fullReg.team?.name,
+          teamName: assignedTeam?.data?.name || fullReg.assigned_team?.name || fullReg.team?.name,
           jerseyNumber: jerseyNumber,
           position: fullReg.preferred_position ?? undefined,
           seasonStartDate: fullReg.season?.start_date
             ? new Date(fullReg.season.start_date)
             : undefined,
           adminNotes: notes,
+          paymentRequired,
+          amountDueCents: paymentRequired
+            ? Math.max(
+                0,
+                (fullReg.fee_amount_cents || 0) - (fullReg.amount_paid_cents || 0)
+              )
+            : 0,
+          paymentsUrl,
         }).catch(console.error);
       }
     } catch (emailError) {
