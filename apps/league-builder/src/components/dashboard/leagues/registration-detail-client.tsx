@@ -10,6 +10,7 @@ import {
   Target,
   FileCheck,
   CreditCard,
+  Landmark,
   Check,
   X,
   Clock,
@@ -44,6 +45,7 @@ import {
   formatRelationship,
 } from '@/lib/schemas/player-registration';
 import { cn } from '@hockey-life/ui/lib/utils';
+import { ManualRegistrationPaymentDialog } from './ManualRegistrationPaymentDialog';
 
 interface Registration {
   id: string;
@@ -67,7 +69,9 @@ interface Registration {
   previous_leagues: string | null;
   photo_url: string | null;
   payment_status: string;
+  fee_amount_cents: number | null;
   amount_paid_cents: number;
+  currency: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_notes: string | null;
@@ -132,6 +136,52 @@ function formatTeamReturnStatus(status?: string | null): string {
   }
 }
 
+function getOutstandingBalanceCents(registration: Registration) {
+  return Math.max(
+    0,
+    (registration.fee_amount_cents || 0) - (registration.amount_paid_cents || 0)
+  );
+}
+
+function canRecordOfflinePayment(registration: Registration) {
+  return (
+    registration.payment_status !== 'not_required' &&
+    getOutstandingBalanceCents(registration) > 0 &&
+    !['rejected', 'cancelled'].includes(registration.status)
+  );
+}
+
+function formatMoney(amountCents: number, currency: string | null) {
+  return new Intl.NumberFormat('en-CA', {
+    style: 'currency',
+    currency: currency || 'CAD',
+  }).format(amountCents / 100);
+}
+
+function getPaymentStatusLabel(registration: Registration) {
+  if (registration.payment_status === 'pending' && registration.amount_paid_cents > 0) {
+    return 'Partial';
+  }
+
+  if (registration.payment_status === 'completed') {
+    return 'Paid';
+  }
+
+  if (registration.payment_status === 'not_required') {
+    return 'Not required';
+  }
+
+  if (registration.payment_status === 'failed') {
+    return 'Failed';
+  }
+
+  if (registration.payment_status === 'refunded') {
+    return 'Refunded';
+  }
+
+  return 'Pending';
+}
+
 export function RegistrationDetailClient({
   registration,
   teams,
@@ -139,6 +189,7 @@ export function RegistrationDetailClient({
   const router = useRouter();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [processing, setProcessing] = useState(false);
 
   // Approval form state
@@ -191,6 +242,9 @@ export function RegistrationDetailClient({
   };
 
   const isPending = registration.status === 'pending';
+  const outstandingCents = getOutstandingBalanceCents(registration);
+  const canRecordPayment = canRecordOfflinePayment(registration);
+  const paymentStatusLabel = getPaymentStatusLabel(registration);
 
   return (
     <div className="space-y-6">
@@ -221,8 +275,19 @@ export function RegistrationDetailClient({
         </div>
 
         {/* Actions */}
-        {isPending && (
-          <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {canRecordPayment && (
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentDialog(true)}
+              className="border-blue-500/40 text-blue-300 hover:bg-blue-500/10"
+            >
+              <Landmark className="w-4 h-4 mr-2" />
+              Record Payment
+            </Button>
+          )}
+          {isPending && (
+            <>
             <Button
               variant="outline"
               onClick={() => setShowRejectDialog(true)}
@@ -235,8 +300,9 @@ export function RegistrationDetailClient({
               <Check className="w-4 h-4 mr-2" />
               Approve
             </Button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Info Grid */}
@@ -393,12 +459,34 @@ export function RegistrationDetailClient({
 
         {/* Payment Status */}
         <InfoCard icon={CreditCard} title="Payment" iconColor="text-cyan-400">
-          <InfoRow label="Status" value={registration.payment_status} />
+          <InfoRow label="Status" value={paymentStatusLabel} />
+          {registration.fee_amount_cents !== null && registration.fee_amount_cents > 0 && (
+            <InfoRow
+              label="Total Fee"
+              value={formatMoney(registration.fee_amount_cents, registration.currency)}
+            />
+          )}
           {registration.amount_paid_cents > 0 && (
             <InfoRow
               label="Amount Paid"
-              value={`$${(registration.amount_paid_cents / 100).toFixed(2)}`}
+              value={formatMoney(registration.amount_paid_cents, registration.currency)}
             />
+          )}
+          {registration.fee_amount_cents !== null && registration.fee_amount_cents > 0 && (
+            <InfoRow
+              label="Outstanding"
+              value={formatMoney(outstandingCents, registration.currency)}
+            />
+          )}
+          {canRecordPayment && (
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentDialog(true)}
+              className="mt-3 w-full border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+            >
+              <Landmark className="w-4 h-4 mr-2" />
+              Record Offline Payment
+            </Button>
           )}
         </InfoCard>
       </div>
@@ -574,6 +662,16 @@ export function RegistrationDetailClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ManualRegistrationPaymentDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        registration={registration}
+        onSaved={() => {
+          setShowPaymentDialog(false);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
