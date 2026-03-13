@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { User, LogOut, ChevronDown, CreditCard, FileText, LayoutDashboard, Shield, ClipboardCheck, Goal } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
+import { useLeague } from '@/hooks/useLeague';
 import { signOut } from '@/lib/supabase/auth';
 
 interface UserMenuProps {
@@ -15,7 +16,11 @@ interface UserMenuProps {
 
 export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
   const { user, isLoading } = useUser();
-  const { profile, currentTeam } = usePlayerProfile(leagueId);
+  const { league } = useLeague();
+  const { profile, currentTeam } = usePlayerProfile(
+    leagueId,
+    league?.current_season_id
+  );
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

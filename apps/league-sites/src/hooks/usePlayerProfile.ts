@@ -42,7 +42,10 @@ interface UsePlayerProfileReturn {
  * Hook to get current player's profile and team memberships
  * For the authenticated player on league sites
  */
-export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
+export function usePlayerProfile(
+  leagueId?: string,
+  seasonId?: string | null
+): UsePlayerProfileReturn {
   const { user, isLoading: userLoading } = useUser();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [teams, setTeams] = useState<TeamMembership[]>([]);
@@ -76,8 +79,8 @@ export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
 
       setProfile(profileData);
 
-      // Fetch team memberships (active only, no end_date)
-      const { data: teamsData, error: teamsError } = await supabase
+      // Fetch active team memberships, scoped to the active league season when provided.
+      let teamsQuery = supabase
         .from('team_rosters')
         .select(`
           id,
@@ -85,11 +88,22 @@ export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
           jersey_number,
           position,
           leadership_role,
+          season_id,
           team:teams(id, name, slug, logo_url, league_id, division_id)
         `)
         .eq('player_id', user.id)
         .eq('status', 'active')
         .is('end_date', null);
+
+      if (leagueId) {
+        teamsQuery = teamsQuery.eq('league_id', leagueId);
+      }
+
+      if (seasonId) {
+        teamsQuery = teamsQuery.eq('season_id', seasonId);
+      }
+
+      const { data: teamsData, error: teamsError } = await teamsQuery;
 
       if (teamsError) {
         throw new Error(teamsError.message);
@@ -131,7 +145,7 @@ export function usePlayerProfile(leagueId?: string): UsePlayerProfileReturn {
       fetchProfile();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchProfile is a data-fetching function that depends on user; also exposed via refetch return value
-  }, [user, userLoading]);
+  }, [user, userLoading, leagueId, seasonId]);
 
   // Get current team for this league
   const currentTeam = leagueId

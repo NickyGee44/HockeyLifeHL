@@ -413,7 +413,10 @@ function GoaliePaymentModal({
 export default function CaptainGoaliesPage({ params }: CaptainGoaliesPageProps) {
   const { leagueSlug } = use(params);
   const { league, isLoading: leagueLoading } = useLeague();
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
   const [dashboard, setDashboard] = useState<CaptainGoalieDashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);

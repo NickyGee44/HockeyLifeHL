@@ -46,7 +46,10 @@ export default function CheckinPage() {
   const params = useParams();
   const leagueSlug = params.leagueSlug as string;
   const { league, isLoading: leagueLoading } = useLeague();
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
 
   const teamId = currentTeam?.team_id;
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;

@@ -56,7 +56,10 @@ export default function PlayerDashboard() {
   const { league, isLoading: leagueLoading } = useLeague();
 
   // Then get player profile filtered by this league
-  const { profile, currentTeam, isLoading, error, refetch } = usePlayerProfile(league?.id);
+  const { profile, currentTeam, isLoading, error, refetch } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
 
   // Fetch outstanding balance
   useEffect(() => {

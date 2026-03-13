@@ -82,7 +82,10 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; I
 export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
   const { leagueSlug } = use(params);
   const { league } = useLeague();
-  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
+  const { currentTeam, isLoading: profileLoading } = usePlayerProfile(
+    league?.id,
+    league?.current_season_id
+  );
   const [invoices, setInvoices] = useState<TeamInvoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeInvoice, setActiveInvoice] = useState<TeamInvoice | null>(null);
