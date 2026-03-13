@@ -124,7 +124,8 @@ export default async function SeasonDetailPage({ params }: Props) {
     .select('*', { count: 'exact', head: true })
     .eq('league_id', leagueId)
     .eq('season_id', seasonId)
-    .eq('status', 'pending');
+    .eq('status', 'pending')
+    .not('submitted_at', 'is', null);
 
   // Get season fees
   const feesResult = await getSeasonFees(leagueId, { seasonId });
