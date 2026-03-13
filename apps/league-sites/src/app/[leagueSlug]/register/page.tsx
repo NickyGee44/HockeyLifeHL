@@ -245,6 +245,10 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
         seasonName={activeSeason.name}
         teams={teams}
         registrationFee={registrationConfig.registrationFee}
+        platformFeeCents={registrationConfig.platformFeeCents}
+        platformFeePercent={registrationConfig.platformFeePercent}
+        totalChargeCents={registrationConfig.totalChargeCents}
+        chargeIncludesPlatformFee={registrationConfig.chargeIncludesPlatformFee}
         feeCollectionModel={registrationConfig.feeCollectionModel}
         feeBasis={registrationConfig.feeBasis}
         paymentMode={registrationConfig.paymentMode}

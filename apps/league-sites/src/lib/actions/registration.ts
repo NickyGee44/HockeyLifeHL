@@ -9,6 +9,7 @@ import {
   getSeasonPaymentSettings,
   isPlayerFeeConfigurationMissing,
 } from '@/lib/registration/fee-collection-model';
+import { getRegistrationPaymentQuoteForLeague } from '@/lib/registration/payment-pricing';
 import {
   getRegistrationTypeForIntent,
   getRequestedTeamId,
@@ -537,9 +538,11 @@ export async function getSeasonRegistrationPaymentConfig(
     settings.feeAmountCents,
     settings.feeBasis
   );
+  const registrationFee = getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents);
+  const paymentQuote = await getRegistrationPaymentQuoteForLeague(leagueId, registrationFee);
 
   return {
-    registrationFee: getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents),
+    registrationFee,
     feeCollectionModel: settings.feeCollectionModel,
     feeBasis: settings.feeBasis,
     paymentMode: getRegistrationPaymentMode(
@@ -548,6 +551,10 @@ export async function getSeasonRegistrationPaymentConfig(
       settings.feeBasis
     ),
     feeConfigured,
+    platformFeeCents: paymentQuote.platformFeeCents,
+    platformFeePercent: paymentQuote.platformFeePercent,
+    totalChargeCents: paymentQuote.totalChargeCents,
+    chargeIncludesPlatformFee: paymentQuote.chargeIncludesPlatformFee,
   };
 }
 
@@ -835,6 +842,10 @@ export async function submitPlayerRegistration(
       paymentSettings.feeBasis,
       paymentSettings.feeAmountCents
     );
+    const expectedPaymentQuote = await getRegistrationPaymentQuoteForLeague(
+      data.league_id,
+      expectedFeeCents
+    );
     const normalizedPrimaryPosition = normalizeRegistrationPosition(data.primary_position);
     const normalizedSecondaryPosition = normalizeRegistrationPosition(data.secondary_position);
     const normalizedSkillLevel = normalizeRegistrationSkillLevel(data.skill_level);
@@ -879,9 +890,9 @@ export async function submitPlayerRegistration(
           };
         }
 
-        if (paymentIntent.amount_received !== expectedFeeCents) {
+        if (paymentIntent.amount_received !== expectedPaymentQuote.totalChargeCents) {
           console.error('[Registration] Payment amount mismatch', {
-            expected: expectedFeeCents,
+            expected: expectedPaymentQuote.totalChargeCents,
             received: paymentIntent.amount_received,
             payment_intent_id: data.payment_intent_id,
           });
@@ -899,7 +910,7 @@ export async function submitPlayerRegistration(
       }
 
       data.payment_status = 'completed';
-      data.amount_cents = expectedFeeCents;
+      data.amount_cents = expectedPaymentQuote.totalChargeCents;
       amountPaidCents = expectedFeeCents;
     } else {
       data.payment_status = 'not_required';

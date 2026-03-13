@@ -40,6 +40,7 @@ import {
   isPlayerFeeConfigurationMissing,
   usesTeamBilling,
 } from '@/lib/payments/fee-collection-model';
+import { getLeagueBillingConfig } from '@/lib/fees/platform-fees';
 import { reconcileSeasonRegistrationFees } from '@/lib/payments/registration-fee-reconciliation';
 import { verifyLeagueOwnerAccess } from './permissions';
 
@@ -1019,6 +1020,14 @@ export async function submitPlayerRegistration(
       paymentSettings.feeBasis,
       paymentSettings.feeAmountCents
     );
+    const billingConfig = await getLeagueBillingConfig(data.league_id);
+    const platformFeeCents =
+      billingConfig.platformFeeMode === 'pass_to_player' &&
+      expectedFeeCents > 0 &&
+      billingConfig.platformFeeBps > 0
+        ? Math.max(Math.round((expectedFeeCents * billingConfig.platformFeeBps) / 10_000), 50)
+        : 0;
+    const expectedChargeCents = expectedFeeCents + platformFeeCents;
     const normalizedPrimaryPosition = normalizeRegistrationPosition(data.primary_position);
     const normalizedSecondaryPosition = normalizeRegistrationPosition(data.secondary_position);
     const normalizedSkillLevel = normalizeRegistrationSkillLevel(data.skill_level);
@@ -1062,9 +1071,9 @@ export async function submitPlayerRegistration(
           };
         }
 
-        if (paymentIntent.amount_received !== expectedFeeCents) {
+        if (paymentIntent.amount_received !== expectedChargeCents) {
           console.error('[Registration] Payment amount mismatch', {
-            expected: expectedFeeCents,
+            expected: expectedChargeCents,
             received: paymentIntent.amount_received,
             payment_intent_id: data.payment_intent_id,
           });
@@ -1082,7 +1091,7 @@ export async function submitPlayerRegistration(
       }
 
       data.payment_status = 'completed';
-      data.amount_cents = expectedFeeCents;
+      data.amount_cents = expectedChargeCents;
       amountPaidCents = expectedFeeCents;
     } else {
       data.payment_status = 'not_required';

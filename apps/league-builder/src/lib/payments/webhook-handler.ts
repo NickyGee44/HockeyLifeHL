@@ -150,7 +150,10 @@ async function handleRegistrationCheckoutCompleted(
 
   // Get payment intent for the actual amount
   const paymentIntent = session.payment_intent as string;
-  const amountPaid = session.amount_total || 0;
+  const baseFeeFromMetadata = Number(session.metadata?.base_fee_cents ?? 0);
+  const amountPaid = Number.isFinite(baseFeeFromMetadata) && baseFeeFromMetadata > 0
+    ? baseFeeFromMetadata
+    : (session.amount_total || 0);
 
   // Process payment atomically using database function
   const { data: resultData, error: processError } = await supabase.rpc(
@@ -196,6 +199,8 @@ async function handleRegistrationCheckoutCompleted(
       checkout_session_id: session.id,
       payment_intent_id: paymentIntent,
       amount_cents: amountPaid,
+      total_charge_cents: session.amount_total || amountPaid,
+      application_fee_cents: Number(session.metadata?.application_fee_cents ?? 0) || 0,
       registration_id: registrationId,
       new_status: result.new_status,
       new_amount_paid_cents: result.new_amount_paid_cents,

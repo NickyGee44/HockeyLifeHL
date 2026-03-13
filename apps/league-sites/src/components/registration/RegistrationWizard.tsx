@@ -43,6 +43,10 @@ interface RegistrationWizardProps {
   seasonName: string;
   teams: { id: string; name: string }[];
   registrationFee: number; // cents
+  platformFeeCents: number;
+  platformFeePercent: number;
+  totalChargeCents: number;
+  chargeIncludesPlatformFee: boolean;
   feeCollectionModel?: FeeCollectionModel;
   feeBasis?: FeeBasis;
   paymentMode?: RegistrationPaymentMode;
@@ -80,6 +84,10 @@ export function RegistrationWizard({
   seasonName,
   teams,
   registrationFee,
+  platformFeeCents,
+  platformFeePercent,
+  totalChargeCents,
+  chargeIncludesPlatformFee,
   feeCollectionModel = 'individual',
   feeBasis = 'player',
   paymentMode = registrationFee > 0 ? 'required' : 'hidden',
@@ -437,6 +445,10 @@ export function RegistrationWizard({
           <StepPayment
             formData={formData}
             registrationFee={registrationFee}
+            platformFeeCents={platformFeeCents}
+            platformFeePercent={platformFeePercent}
+            totalChargeCents={totalChargeCents}
+            chargeIncludesPlatformFee={chargeIncludesPlatformFee}
             paymentMode={paymentMode}
             leagueId={leagueId}
             seasonId={seasonId}
@@ -452,6 +464,10 @@ export function RegistrationWizard({
           leagueName={leagueName}
           seasonName={seasonName}
           registrationFee={registrationFee}
+          platformFeeCents={platformFeeCents}
+          platformFeePercent={platformFeePercent}
+          totalChargeCents={totalChargeCents}
+          chargeIncludesPlatformFee={chargeIncludesPlatformFee}
           feeCollectionModel={feeCollectionModel}
           feeBasis={feeBasis}
           paymentMode={paymentMode}

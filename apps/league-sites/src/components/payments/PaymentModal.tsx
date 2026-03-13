@@ -9,6 +9,9 @@ interface PaymentModalProps {
   registrationId: string;
   registrationName: string;
   amount: number;
+  baseFeeCents?: number;
+  platformFeeCents?: number;
+  platformFeePercent?: number;
   leagueSlug: string;
   onPaymentComplete?: () => void;
 }
@@ -19,6 +22,9 @@ export function PaymentModal({
   registrationId,
   registrationName,
   amount,
+  baseFeeCents = amount,
+  platformFeeCents = 0,
+  platformFeePercent = 0,
   leagueSlug,
   onPaymentComplete,
 }: PaymentModalProps) {
@@ -72,6 +78,30 @@ export function PaymentModal({
 
         {/* Content */}
         <div className="p-4">
+          <div className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[var(--color-text-secondary)]">League Fee</span>
+              <span className="font-medium text-[var(--color-text-primary)]">
+                {formatCurrency(baseFeeCents)}
+              </span>
+            </div>
+            {platformFeeCents > 0 && (
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="text-[var(--color-text-secondary)]">
+                  BLH Platform Fee ({platformFeePercent.toFixed(2)}%)
+                </span>
+                <span className="font-medium text-[var(--color-text-primary)]">
+                  {formatCurrency(platformFeeCents)}
+                </span>
+              </div>
+            )}
+            <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-3">
+              <span className="font-medium text-[var(--color-text-primary)]">Total Charge</span>
+              <span className="text-lg font-bold text-[var(--color-text-primary)]">
+                {formatCurrency(amount)}
+              </span>
+            </div>
+          </div>
           <EmbeddedPaymentCheckout
             registrationId={registrationId}
             returnUrl={returnUrl}

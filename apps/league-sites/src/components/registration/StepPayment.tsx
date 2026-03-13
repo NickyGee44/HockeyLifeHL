@@ -12,6 +12,10 @@ import { getSessionPaymentIntentId } from '@/lib/actions/registration-payments';
 interface StepPaymentProps {
   formData: RegistrationDraftData;
   registrationFee: number;
+  platformFeeCents: number;
+  platformFeePercent: number;
+  totalChargeCents: number;
+  chargeIncludesPlatformFee: boolean;
   paymentMode: RegistrationPaymentMode;
   leagueId: string;
   seasonId: string;
@@ -23,6 +27,10 @@ interface StepPaymentProps {
 export function StepPayment({
   formData,
   registrationFee,
+  platformFeeCents,
+  platformFeePercent,
+  totalChargeCents,
+  chargeIncludesPlatformFee,
   paymentMode,
   leagueId,
   seasonId,
@@ -101,7 +109,7 @@ export function StepPayment({
           <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
           <p className="text-green-400 text-center text-lg font-medium">Payment Complete</p>
           <p className="text-[var(--color-text-secondary)] text-center mt-2">
-            {formatCurrency(registrationFee)} has been processed.
+            {formatCurrency(totalChargeCents || registrationFee)} has been processed.
           </p>
         </div>
       </div>
@@ -124,16 +132,39 @@ export function StepPayment({
 
       {/* Fee Summary */}
       <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between text-sm">
           <span className="text-[var(--color-text-secondary)]">Registration Fee</span>
-          <span className="text-lg font-bold text-[var(--color-text-primary)]">
+          <span className="font-semibold text-[var(--color-text-primary)]">
             {formatCurrency(registrationFee)}
           </span>
         </div>
+        {chargeIncludesPlatformFee && platformFeeCents > 0 && (
+          <>
+            <div className="mt-2 flex items-center justify-between text-sm">
+              <span className="text-[var(--color-text-secondary)]">
+                BLH Platform Fee ({platformFeePercent.toFixed(2)}%)
+              </span>
+              <span className="font-semibold text-[var(--color-text-primary)]">
+                {formatCurrency(platformFeeCents)}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-3">
+              <span className="text-sm font-medium text-[var(--color-text-primary)]">Total Due Today</span>
+              <span className="text-lg font-bold text-[var(--color-text-primary)]">
+                {formatCurrency(totalChargeCents)}
+              </span>
+            </div>
+          </>
+        )}
         {isOptionalPayment && (
           <p className="mt-2 text-xs text-[var(--color-text-muted)]">
             Skipping this step keeps your registration valid and leaves the outstanding amount on
             the team billing side.
+          </p>
+        )}
+        {!isOptionalPayment && chargeIncludesPlatformFee && platformFeeCents > 0 && (
+          <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+            Your checkout includes the league fee plus the BLH platform fee configured for this league.
           </p>
         )}
       </div>
@@ -154,7 +185,7 @@ export function StepPayment({
             aria-busy={isCreatingDraft}
             className="px-6 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {isCreatingDraft ? 'Preparing...' : `Pay ${formatCurrency(registrationFee)}`}
+            {isCreatingDraft ? 'Preparing...' : `Pay ${formatCurrency(totalChargeCents || registrationFee)}`}
           </button>
           <p className="mt-3 text-xs text-[var(--color-text-muted)]">
             Payments are securely processed by Stripe.
