@@ -314,6 +314,9 @@ export function StepPersonalInfo({
             onChange={(e) => onUpdate({ date_of_birth: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
           />
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            Used for league administration only. Not shown publicly on the league site.
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
