@@ -32,7 +32,7 @@ export function Footer() {
                             <li><a href="#platform" className="hover:text-white transition-colors">Platform</a></li>
                             <li><a href="#replace" className="hover:text-white transition-colors">What BLH Replaces</a></li>
                             <li><a href="#migration" className="hover:text-white transition-colors">Migration</a></li>
-                            <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+                            <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                             <li><Link href="/book-demo" className="hover:text-accent transition-colors">Book a Demo</Link></li>
                         </ul>
                     </div>

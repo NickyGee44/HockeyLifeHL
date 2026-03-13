@@ -68,7 +68,7 @@ export function Hero() {
 
                     <div className="hero-element flex flex-col w-full sm:w-auto sm:flex-row items-stretch sm:items-center gap-4 pt-4 md:pt-6">
                         <Link
-                            href="/register"
+                            href="/signup"
                             className="group relative inline-flex items-center justify-center px-8 py-3.5 md:py-4 text-sm md:text-base font-semibold overflow-hidden rounded-full bg-white text-[#0B1420] hover:scale-[1.03] transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] shadow-glow-sm hover:shadow-glow w-full sm:w-auto"
                         >
                             <span className="relative z-10">Create Your League</span>
@@ -84,7 +84,7 @@ export function Hero() {
 
                     <p className="hero-element text-sm font-medium text-neutral-400">
                         Running a large existing league?{' '}
-                        <Link href="/contact" className="text-ice underline decoration-white/30 underline-offset-4 transition-colors hover:text-white">
+                        <Link href="/book-demo#existing-league" className="text-ice underline decoration-white/30 underline-offset-4 transition-colors hover:text-white">
                             Talk to us about full-service migration.
                         </Link>
                     </p>
