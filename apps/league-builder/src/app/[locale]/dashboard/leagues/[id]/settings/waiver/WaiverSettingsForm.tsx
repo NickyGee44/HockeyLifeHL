@@ -159,37 +159,13 @@ export function WaiverSettingsForm({ leagueId, initialData }: WaiverSettingsForm
           />
         </div>
 
-        {/* Content */}
-        <div>
-          <label htmlFor="waiver-content" className="block text-sm font-medium text-neutral-300 mb-1.5">
-            Waiver Content
-          </label>
-          <textarea
-            id="waiver-content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Enter your waiver text here, or upload a PDF/image below and keep this as the summary players see before signing."
-            rows={16}
-            className="w-full px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800/50 text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent font-mono text-sm leading-relaxed resize-y"
-          />
-          <div className="flex items-start gap-2 mt-2 text-xs text-neutral-500">
-            <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-            <span>
-              Supports basic formatting: <code className="text-neutral-400"># Heading</code>,{' '}
-              <code className="text-neutral-400">## Subheading</code>,{' '}
-              <code className="text-neutral-400">- Bullet point</code>,{' '}
-              <code className="text-neutral-400">**bold text**</code>
-            </span>
-          </div>
-        </div>
-
         <div className="rounded-xl border border-white/10 bg-neutral-900/50 p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-sm font-medium text-white">Waiver Document Upload</h3>
               <p className="mt-1 text-xs text-neutral-400">
-                Upload a PDF or image of the official waiver. Players will be able to review it
-                before signing or accepting the terms.
+                Upload a PDF or image of the official waiver if you already have a formatted
+                document. This can be used instead of typing the full waiver into the text box.
               </p>
             </div>
             <div className="flex gap-2">
@@ -220,11 +196,18 @@ export function WaiverSettingsForm({ leagueId, initialData }: WaiverSettingsForm
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
+                    Upload PDF or Image
                   </>
                 )}
               </Button>
             </div>
+          </div>
+
+          <div className="mt-3 rounded-lg border border-rink-500/20 bg-rink-500/10 px-3 py-2 text-xs text-rink-100">
+            Owners can use either option:
+            {' '}
+            upload the official waiver PDF/image, type the waiver text, or use both together.
+            If a document is uploaded, the text section below becomes optional.
           </div>
 
           {documentUrl ? (
@@ -268,6 +251,41 @@ export function WaiverSettingsForm({ leagueId, initialData }: WaiverSettingsForm
               No waiver document uploaded yet.
             </div>
           )}
+        </div>
+
+        {/* Content */}
+        <div>
+          <label htmlFor="waiver-content" className="block text-sm font-medium text-neutral-300 mb-1.5">
+            {documentUrl ? 'Waiver Summary / Optional Text' : 'Waiver Content'}
+          </label>
+          <textarea
+            id="waiver-content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={
+              documentUrl
+                ? 'Optional: add a short summary or key notes players should see alongside the uploaded waiver.'
+                : 'Enter your waiver text here, or upload a PDF/image above instead.'
+            }
+            rows={16}
+            className="w-full px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800/50 text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500 focus:border-transparent font-mono text-sm leading-relaxed resize-y"
+          />
+          <div className="flex items-start gap-2 mt-2 text-xs text-neutral-500">
+            <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+            <span>
+              {documentUrl
+                ? 'This text is optional when a waiver document is uploaded. If left blank, players will still review and accept the uploaded file.'
+                : 'Supports basic formatting: '}
+              {!documentUrl && (
+                <>
+                  <code className="text-neutral-400"># Heading</code>,{' '}
+                  <code className="text-neutral-400">## Subheading</code>,{' '}
+                  <code className="text-neutral-400">- Bullet point</code>,{' '}
+                  <code className="text-neutral-400">**bold text**</code>
+                </>
+              )}
+            </span>
+          </div>
         </div>
 
         {/* Save Button */}
