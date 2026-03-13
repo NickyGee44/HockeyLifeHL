@@ -50,5 +50,13 @@ describe('migration asset analysis', () => {
     expect(profile.source_formats).toEqual(['sql_dump']);
     expect(profile.suggested_scope).toEqual(expect.arrayContaining(['teams', 'players']));
     expect(profile.detected_tables).toEqual(expect.arrayContaining(['teams', 'players']));
+    expect(profile.import_mappings).toHaveLength(1);
+    expect(profile.import_mappings[0]?.target_entity).toBe('teams');
+    expect(profile.import_mappings[0]?.ready_for_import).toBe(false);
+    expect(profile.import_blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Map required BLH fields: team_name.'),
+      ])
+    );
   });
 });

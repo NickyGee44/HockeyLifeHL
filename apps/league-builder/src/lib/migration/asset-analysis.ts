@@ -7,6 +7,10 @@ import {
   type MigrationUploadedAsset,
   type MigrationUploadedAssetAnalysis,
 } from '@/lib/migration/requests';
+import {
+  buildImportMappings,
+  summarizeImportReadiness,
+} from '@/lib/migration/import-mapping';
 
 const MAX_ANALYSIS_BYTES = 512_000;
 
@@ -266,7 +270,8 @@ export async function analyzeMigrationAssetBlob(
 export function buildNormalizationProfile(
   uploadedAssets: MigrationUploadedAsset[],
   assetLinks: string[],
-  sourceUrl: string | null
+  sourceUrl: string | null,
+  existingProfile: LeagueMigrationNormalizationProfile | null = null
 ): LeagueMigrationNormalizationProfile {
   const sourceFormats = uniqueStrings(uploadedAssets.map((asset) => asset.analysis.source_format)) as MigrationSourceFormat[];
   const suggestedScope = normalizeDetectedScopes(
@@ -275,6 +280,14 @@ export function buildNormalizationProfile(
   const detectedTables = uniqueStrings(
     uploadedAssets.flatMap((asset) => asset.analysis.detected_tables)
   ).slice(0, 50);
+  const importMappings = buildImportMappings(
+    uploadedAssets,
+    existingProfile?.import_mappings ?? []
+  );
+  const { importReadyScopes, importBlockers } = summarizeImportReadiness(
+    uploadedAssets,
+    importMappings
+  );
 
   const notes = uniqueStrings([
     uploadedAssets.some((asset) => asset.analysis.source_format === 'sql_dump')
@@ -290,5 +303,8 @@ export function buildNormalizationProfile(
     detected_tables: detectedTables,
     notes,
     ready_for_review: uploadedAssets.length > 0 || assetLinks.length > 0 || Boolean(sourceUrl),
+    import_mappings: importMappings,
+    import_ready_scopes: importReadyScopes,
+    import_blockers: importBlockers,
   };
 }

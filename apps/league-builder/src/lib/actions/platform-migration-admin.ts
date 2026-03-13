@@ -6,9 +6,15 @@ import { locales } from '@/i18n/config';
 import {
   MIGRATION_REQUEST_STATUS_OPTIONS,
   normalizeLeagueMigrationRequest,
+  type MigrationImportFieldMapping,
+  type MigrationImportMode,
+  type MigrationTargetEntity,
   type LeagueMigrationRequest,
   type LeagueMigrationRequestStatus,
+  type LeagueMigrationScope,
 } from '@/lib/migration/requests';
+import { buildNormalizationProfile } from '@/lib/migration/asset-analysis';
+import { buildMigrationImportMappingEntry } from '@/lib/migration/import-mapping';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -38,6 +44,18 @@ export interface UpdatePlatformMigrationRequestInput {
   adminNotes?: string;
   quotedPriceCents?: number | null;
   scheduledFor?: string | null;
+}
+
+export interface UpdatePlatformMigrationImportMappingInput {
+  requestId: string;
+  leagueId: string;
+  assetId: string;
+  scope: LeagueMigrationScope | null;
+  targetEntity: MigrationTargetEntity | null;
+  sourceObject?: string | null;
+  importMode: MigrationImportMode;
+  fieldMappings: MigrationImportFieldMapping[];
+  notes?: string[];
 }
 
 async function assertPlatformAdmin(): Promise<ActionResult<true>> {
@@ -89,6 +107,48 @@ function revalidateAdminMigrationPaths(leagueId: string) {
     revalidatePath(`/${locale}/dashboard/admin/migrations`);
     revalidatePath(`/${locale}/dashboard/leagues/${leagueId}/migration-center`);
   }
+}
+
+async function enrichPlatformMigrationRequest(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  request: Record<string, unknown>,
+  leagueId: string
+): Promise<PlatformMigrationQueueRequest> {
+  const requesterId =
+    typeof request.requested_by === 'string' ? request.requested_by : null;
+  const serviceSupabase = supabase as any;
+
+  const [{ data: league }, { data: requester }] = await Promise.all([
+    serviceSupabase
+      .from('leagues')
+      .select('id, name, slug, organization_id')
+      .eq('id', leagueId)
+      .maybeSingle(),
+    requesterId
+      ? serviceSupabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', requesterId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const { data: organization } = league?.organization_id
+    ? await serviceSupabase
+        .from('organizations')
+        .select('id, name')
+        .eq('id', league.organization_id)
+        .maybeSingle()
+    : { data: null };
+
+  return {
+    ...normalizeLeagueMigrationRequest(request),
+    league_name: league?.name ?? 'Unknown league',
+    league_slug: league?.slug ?? null,
+    organization_name: organization?.name ?? null,
+    requester_name: requester?.full_name ?? null,
+    requester_email: requester?.email ?? null,
+  };
 }
 
 export async function getPlatformMigrationQueue(): Promise<ActionResult<PlatformMigrationQueueData>> {
@@ -251,40 +311,106 @@ export async function updatePlatformMigrationRequest(
     return { success: false, error: 'Failed to update migration request.' };
   }
 
-  const [{ data: league }, { data: requester }] = await Promise.all([
-    supabase
-      .from('leagues')
-      .select('id, name, slug, organization_id')
-      .eq('id', input.leagueId)
-      .maybeSingle(),
-    updated.requested_by
-      ? supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', updated.requested_by)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  revalidateAdminMigrationPaths(input.leagueId);
 
-  const { data: organization } = league?.organization_id
-    ? await supabase
-        .from('organizations')
-        .select('id, name')
-        .eq('id', league.organization_id)
-        .maybeSingle()
-    : { data: null };
+  return {
+    success: true,
+    data: await enrichPlatformMigrationRequest(
+      supabase,
+      updated as Record<string, unknown>,
+      input.leagueId
+    ),
+  };
+}
+
+export async function updatePlatformMigrationImportMapping(
+  input: UpdatePlatformMigrationImportMappingInput
+): Promise<ActionResult<PlatformMigrationQueueRequest>> {
+  const access = await assertPlatformAdmin();
+  if (!access.success) return access;
+
+  const supabase = createServiceRoleClient() as any;
+  const { data: existing, error: existingError } = await supabase
+    .from('league_migration_requests')
+    .select('*')
+    .eq('id', input.requestId)
+    .eq('league_id', input.leagueId)
+    .maybeSingle();
+
+  if (existingError || !existing) {
+    if (isDevelopment) console.error('Error loading migration request for import mapping update:', existingError);
+    return { success: false, error: 'Migration request not found.' };
+  }
+
+  const normalized = normalizeLeagueMigrationRequest(existing as Record<string, unknown>);
+  const asset = normalized.uploaded_assets.find((item) => item.id === input.assetId);
+  if (!asset) {
+    return { success: false, error: 'Uploaded asset not found on this migration request.' };
+  }
+
+  const existingProfile = normalized.normalization_profile;
+  const existingMapping =
+    existingProfile?.import_mappings.find((mapping) => mapping.asset_id === asset.id) ?? null;
+  const nextMapping = buildMigrationImportMappingEntry(
+    asset,
+    {
+      scope: input.scope,
+      target_entity: input.targetEntity,
+      source_object: input.sourceObject?.trim() || null,
+      import_mode: input.importMode,
+      field_mappings: input.fieldMappings,
+      notes: input.notes,
+    },
+    existingMapping
+  );
+
+  const nextMappings = [
+    ...(existingProfile?.import_mappings ?? []).filter((mapping) => mapping.asset_id !== asset.id),
+    nextMapping,
+  ];
+
+  const normalizationProfile = buildNormalizationProfile(
+    normalized.uploaded_assets,
+    normalized.asset_links,
+    normalized.source_url,
+    {
+      ...(existingProfile ?? {
+        source_formats: [],
+        suggested_scope: [],
+        detected_tables: [],
+        notes: [],
+        ready_for_review: false,
+        import_mappings: [],
+        import_ready_scopes: [],
+        import_blockers: [],
+      }),
+      import_mappings: nextMappings,
+    }
+  );
+
+  const { data: updated, error: updateError } = await supabase
+    .from('league_migration_requests')
+    .update({
+      normalization_profile: normalizationProfile,
+    })
+    .eq('id', input.requestId)
+    .eq('league_id', input.leagueId)
+    .select('*')
+    .single();
+
+  if (updateError || !updated) {
+    if (isDevelopment) console.error('Error saving migration import mapping:', updateError);
+    return { success: false, error: 'Failed to save the import mapping.' };
+  }
 
   revalidateAdminMigrationPaths(input.leagueId);
 
   return {
     success: true,
-    data: {
-      ...normalizeLeagueMigrationRequest(updated as Record<string, unknown>),
-      league_name: league?.name ?? 'Unknown league',
-      league_slug: league?.slug ?? null,
-      organization_name: organization?.name ?? null,
-      requester_name: requester?.full_name ?? null,
-      requester_email: requester?.email ?? null,
-    },
+    data: await enrichPlatformMigrationRequest(
+      supabase,
+      updated as Record<string, unknown>,
+      input.leagueId
+    ),
   };
 }

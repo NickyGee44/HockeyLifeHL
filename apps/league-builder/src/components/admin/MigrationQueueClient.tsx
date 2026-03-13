@@ -5,6 +5,7 @@ import { useMemo, useOptimistic, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { cn } from '@hockey-life/ui';
+import { MigrationImportPlanner } from '@/components/admin/MigrationImportPlanner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from '@/i18n/navigation';
@@ -194,6 +195,12 @@ export function MigrationQueueClient({
     [effectiveSelectedId, filteredRequests, requestList]
   );
 
+  function handleRequestUpdated(updatedRequest: PlatformMigrationQueueRequest) {
+    updateRequestList(updatedRequest);
+    setSelectedId(updatedRequest.id);
+    router.refresh();
+  }
+
   function saveChanges(selectedRequest: PlatformMigrationQueueRequest, editorState: EditorState) {
     startTransition(async () => {
       const quotedPriceCents = editorState.quotedPrice.trim()
@@ -215,9 +222,7 @@ export function MigrationQueueClient({
       }
 
       toast.success('Migration request updated');
-      updateRequestList(result.data);
-      setSelectedId(result.data.id);
-      router.refresh();
+      handleRequestUpdated(result.data);
     });
   }
 
@@ -509,12 +514,19 @@ export function MigrationQueueClient({
                   </div>
                 </div>
 
-                <MigrationRequestEditor
-                  key={`${selectedRequest.id}:${selectedRequest.updated_at}`}
-                  request={selectedRequest}
-                  isPending={isPending}
-                  onSave={(editorState) => saveChanges(selectedRequest, editorState)}
-                />
+                <div className="space-y-6">
+                  <MigrationImportPlanner
+                    key={`planner:${selectedRequest.id}:${selectedRequest.updated_at}`}
+                    request={selectedRequest}
+                    onRequestUpdated={handleRequestUpdated}
+                  />
+                  <MigrationRequestEditor
+                    key={`${selectedRequest.id}:${selectedRequest.updated_at}`}
+                    request={selectedRequest}
+                    isPending={isPending}
+                    onSave={(editorState) => saveChanges(selectedRequest, editorState)}
+                  />
+                </div>
               </div>
             </div>
           ) : (
