@@ -225,6 +225,9 @@ test.describe.serial('Builder owner ops smoke tests', () => {
     await expect(ownerSession.page.locator('body')).toContainText('CSV Scorekeeper', { timeout: 20000 });
 
     await ownerSession.page.goto(`${BUILDER_URL}/en/dashboard/leagues/${leagueId}/settings/goalie-pool`);
+    await expect(ownerSession.page.getByRole('button', { name: 'Upload CSV' })).toBeVisible({
+      timeout: 20000,
+    });
     await ownerSession.page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles(goaliesCsv);
     await expect(ownerSession.page.locator('body')).toContainText(/Imported 1 goalies?|1 imported/i, {
       timeout: 20000,
