@@ -16,6 +16,7 @@ import {
   DollarSign,
   CheckCircle2,
   Mail,
+  Goal,
 } from 'lucide-react';
 import { RosterManager } from '@/components/captain/RosterManager';
 import { TeamAttendance } from '@/components/captain/TeamAttendance';
@@ -240,6 +241,12 @@ export default function CaptainPage({ params }: CaptainPageProps) {
       label: 'Game Duties',
       icon: CheckCircle2,
       tone: 'bg-[var(--league-primary)]/10 border-[var(--league-primary)]/20 text-[var(--league-primary)]',
+    },
+    {
+      href: `/${leagueSlug}/captain/goalies`,
+      label: 'Goalies',
+      icon: Goal,
+      tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
     },
     {
       href: `/${leagueSlug}/captain/fees`,
