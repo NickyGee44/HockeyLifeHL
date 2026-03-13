@@ -127,6 +127,7 @@ export function RegistrationWizard({
     full_name: initialData?.full_name || user?.user_metadata?.full_name || '',
     email: initialData?.email || user?.email || '',
     phone: initialData?.phone || '',
+    date_of_birth: initialData?.date_of_birth || '',
     emergency_contact_name: initialData?.emergency_contact_name || '',
     emergency_contact_phone: initialData?.emergency_contact_phone || '',
     emergency_contact_relationship: initialData?.emergency_contact_relationship || '',

@@ -59,6 +59,7 @@ interface Registration {
     requested_team_name?: string | null;
     previous_team_name?: string | null;
     team_return_status?: string | null;
+    date_of_birth?: string | null;
   } | null;
   status: string;
   preferred_position: string | null;
@@ -317,6 +318,12 @@ export function RegistrationDetailClient({
           <InfoRow label="Email" value={registration.player.email} />
           {registration.player.phone && (
             <InfoRow label="Phone" value={registration.player.phone} />
+          )}
+          {registration.draft_data?.date_of_birth && (
+            <InfoRow
+              label="Date of Birth"
+              value={new Date(`${registration.draft_data.date_of_birth}T00:00:00`).toLocaleDateString()}
+            />
           )}
           {registration.submitted_at && (
             <InfoRow
