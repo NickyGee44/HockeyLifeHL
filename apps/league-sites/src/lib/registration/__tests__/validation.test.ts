@@ -54,9 +54,17 @@ describe('registration form validation', () => {
   });
 
   it('enforces payment completion when registration fee is required', () => {
-    expect(canSubmitRegistration(baseDraft({ payment_status: 'pending' }), 5000)).toBe(false);
-    expect(canSubmitRegistration(baseDraft({ payment_status: 'completed' }), 5000)).toBe(true);
-    expect(canSubmitRegistration(baseDraft({ payment_status: 'pending' }), 0)).toBe(true);
+    expect(
+      canSubmitRegistration(baseDraft({ payment_status: 'pending' }), 5000, 'required')
+    ).toBe(false);
+    expect(
+      canSubmitRegistration(baseDraft({ payment_status: 'completed' }), 5000, 'required')
+    ).toBe(true);
+    expect(
+      canSubmitRegistration(baseDraft({ payment_status: 'pending' }), 0, 'required')
+    ).toBe(true);
+    expect(
+      canSubmitRegistration(baseDraft({ payment_status: 'pending' }), 5000, 'deferred')
+    ).toBe(true);
   });
 });
-
