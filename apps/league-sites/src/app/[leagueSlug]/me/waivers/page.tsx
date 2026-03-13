@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DOMPurify from 'isomorphic-dompurify';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { createClient } from '@/lib/supabase/client';
+import { signLeagueWaiver } from '@/lib/actions/waivers';
 import { ErrorCard } from '@/components/ui/ErrorCard';
 import {
   FileCheck,
@@ -218,27 +219,17 @@ export default function WaiversPage({ params }: WaiversPageProps) {
     setSignError(null);
 
     try {
-      const supabase = createClient();
-      const agreedAt = new Date().toISOString();
+      const result = await signLeagueWaiver(
+        leagueSlug,
+        selectedWaiver.id,
+        signedName.trim()
+      );
 
-      const { error } = await supabase.from('player_waivers').insert({
-        league_id: currentLeagueId,
-        player_id: profile.id,
-        season_id: null,
-        signature_data: signedName.trim(),
-        signature_type: 'typed',
-        signed_name: signedName.trim(),
-        waiver_version: selectedWaiver.version,
-        waiver_content_hash: selectedWaiver.content_hash,
-        waiver_accepted: true,
-        waiver_accepted_at: agreedAt,
-        agreed_at: agreedAt,
-        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-      });
-
-      if (error) {
-        throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to sign waiver. Please try again.');
       }
+
+      const agreedAt = result.data.agreedAt;
 
       // Update local state
       setWaivers((prev) =>

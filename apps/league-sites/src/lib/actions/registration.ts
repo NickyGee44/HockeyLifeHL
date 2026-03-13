@@ -129,6 +129,31 @@ interface LeagueWaiver {
   document_mime_type: string | null;
 }
 
+function normalizeWaiverSignature(input: {
+  signatureType?: 'drawn' | 'typed' | 'checkbox';
+  signatureData?: string;
+  signedName?: string;
+  fallbackName?: string;
+}) {
+  const signedName = (input.signedName || input.fallbackName || '').trim();
+
+  if (input.signatureType === 'drawn') {
+    return {
+      signatureType: 'drawn' as const,
+      signatureData: input.signatureData || signedName || 'signed',
+      signedName,
+    };
+  }
+
+  // Checkbox acceptance is stored as a typed acknowledgement so older/live
+  // environments that do not yet have the checkbox enum value still accept it.
+  return {
+    signatureType: 'typed' as const,
+    signatureData: signedName || input.signatureData || 'Waiver accepted',
+    signedName,
+  };
+}
+
 // ============================================================================
 // Helper: Get Current User
 // ============================================================================
@@ -763,17 +788,26 @@ export async function submitPlayerRegistration(
         .eq('player_id', user.id)
         .eq('league_id', data.league_id)
         .eq('season_id', data.season_id)
-        .single();
+        .maybeSingle();
 
       if (existingWaiver) {
+        const normalizedSignature = normalizeWaiverSignature({
+          signatureType: data.signature_type,
+          signatureData: data.signature_data,
+          signedName: data.signed_name,
+          fallbackName: data.full_name,
+        });
+
         // Update waiver_accepted flag on existing record
         await serviceSupabase
           .from('player_waivers')
           .update({
             waiver_accepted: true,
             waiver_accepted_at: new Date().toISOString(),
-            signature_type: data.signature_type || 'checkbox',
-            signed_name: data.signed_name || data.full_name || '',
+            agreed_at: new Date().toISOString(),
+            signature_type: normalizedSignature.signatureType,
+            signature_data: normalizedSignature.signatureData,
+            signed_name: normalizedSignature.signedName,
           })
           .eq('id', existingWaiver.id);
         waiverId = existingWaiver.id;
@@ -785,19 +819,27 @@ export async function submitPlayerRegistration(
           .eq('is_active', true)
           .single();
 
+        const normalizedSignature = normalizeWaiverSignature({
+          signatureType: data.signature_type,
+          signatureData: data.signature_data,
+          signedName: data.signed_name,
+          fallbackName: data.full_name,
+        });
+
         const { data: newWaiver, error: waiverError } = await serviceSupabase
           .from('player_waivers')
           .insert({
             player_id: user.id,
             league_id: data.league_id,
             season_id: data.season_id,
-            signature_data: data.signature_data || '',
-            signature_type: data.signature_type || 'checkbox',
-            signed_name: data.signed_name || data.full_name || '',
+            signature_data: normalizedSignature.signatureData,
+            signature_type: normalizedSignature.signatureType,
+            signed_name: normalizedSignature.signedName,
             waiver_version: template?.version || 'v1',
             waiver_content_hash: template?.content_hash || data.waiver_content_hash || '',
             waiver_accepted: true,
             waiver_accepted_at: new Date().toISOString(),
+            agreed_at: new Date().toISOString(),
           })
           .select('id')
           .single();

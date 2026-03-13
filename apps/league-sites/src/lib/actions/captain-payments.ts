@@ -1,7 +1,8 @@
 'use server';
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
-import { verifyTeamCaptainAccess } from './team-captain-access';
+import { createAuthClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { getSeasonPaymentSettings } from '@/lib/registration/fee-collection-model';
+import { verifyTeamCaptainAccess, type TeamCaptainAccessResult } from './team-captain-access';
 
 // ============================================================================
 // Types
@@ -31,12 +32,118 @@ export interface CaptainPaymentSummary {
   totalCollectedCents: number;
 }
 
+export type CaptainOfflinePaymentMethod =
+  | 'e_transfer'
+  | 'cash'
+  | 'check'
+  | 'other';
+
+export interface CaptainManualPaymentInput {
+  amountCents: number;
+  paymentMethod: CaptainOfflinePaymentMethod;
+  referenceNumber?: string;
+  notes?: string;
+}
+
+export interface CaptainPlayerManualPaymentInput extends CaptainManualPaymentInput {
+  seasonId: string;
+  playerId: string;
+  paymentId?: string | null;
+}
+
+export interface CaptainTeamInvoiceSummary {
+  paymentStatus: string;
+  amountPaidCents: number;
+  amountOutstandingCents: number;
+}
+
 // ============================================================================
 // Helper: Verify Captain Access
 // ============================================================================
 
-async function verifyCaptainRole(teamId: string) {
-  return verifyTeamCaptainAccess(teamId);
+async function verifyCaptainRole(teamId: string): Promise<TeamCaptainAccessResult> {
+  const directCaptainAccess = await verifyTeamCaptainAccess(teamId);
+  if (directCaptainAccess.authorized) {
+    return directCaptainAccess;
+  }
+
+  const authSupabase = await createAuthClient();
+  const serviceSupabase = createServiceRoleClient();
+  const {
+    data: { user },
+  } = await authSupabase.auth.getUser();
+
+  if (!user) {
+    return directCaptainAccess;
+  }
+
+  const { data: rosterLeadership } = await serviceSupabase
+    .from('team_rosters')
+    .select('team_id, league_id')
+    .eq('team_id', teamId)
+    .eq('player_id', user.id)
+    .eq('status', 'active')
+    .in('leadership_role', ['captain', 'alternate_captain'])
+    .maybeSingle();
+
+  if (rosterLeadership?.team_id) {
+    return {
+      authorized: true,
+      userId: user.id,
+      teamId: rosterLeadership.team_id,
+      leagueId: rosterLeadership.league_id,
+    };
+  }
+
+  return directCaptainAccess;
+}
+
+function buildRegistrationPaymentStatus(
+  feeAmountCents: number,
+  amountPaidCents: number,
+  currentStatus: string | null
+) {
+  if (currentStatus === 'not_required' || feeAmountCents <= 0) {
+    return 'not_required';
+  }
+
+  if (amountPaidCents >= feeAmountCents) {
+    return 'completed';
+  }
+
+  if (amountPaidCents > 0) {
+    return 'pending';
+  }
+
+  return currentStatus || 'pending';
+}
+
+function normalizeCaptainPaymentStatus(
+  status: string | null | undefined,
+  amountOwedCents: number,
+  amountPaidCents: number
+) {
+  if (status === 'paid' || status === 'completed') {
+    return 'paid';
+  }
+
+  if (status === 'partially_paid') {
+    return 'partially_paid';
+  }
+
+  if (status === 'overdue') {
+    return 'overdue';
+  }
+
+  if (status === 'not_required' || amountOwedCents <= 0) {
+    return 'no_fee';
+  }
+
+  if (amountPaidCents > 0) {
+    return 'partially_paid';
+  }
+
+  return status || 'pending';
 }
 
 function getPlayerPaymentPortalUrl(paymentId: string): string {
@@ -83,46 +190,94 @@ export async function getCaptainTeamPayments(
   }
 
   const playerIds = (rosterData || []).map((r: any) => r.player_id as string);
-
-  // Step 2: Fetch payment records for those players (may be empty)
   const paymentsMap = new Map<string, any>();
-  if (playerIds.length > 0) {
-    const { data: payments } = await supabase
-      .from('player_payments')
-      .select(
-        `
-        id,
-        player_id,
-        status,
-        payment_plan,
-        total_amount_cents,
-        amount_paid_cents,
-        last_reminder_sent_at,
-        reminder_sent_count,
-        next_payment_date
-      `
-      )
-      .eq('team_id', teamId)
-      .eq('season_id', seasonId)
-      .in('player_id', playerIds);
+  const registrationsMap = new Map<string, any>();
 
-    for (const p of payments || []) {
-      paymentsMap.set(p.player_id, p);
+  const [seasonSettings, paymentsResult, registrationsResult] = await Promise.all([
+    getSeasonPaymentSettings(supabase as any, auth.leagueId || '', seasonId),
+    playerIds.length > 0
+      ? supabase
+          .from('player_payments')
+          .select(
+            `
+            id,
+            player_id,
+            status,
+            payment_plan,
+            total_amount_cents,
+            amount_paid_cents,
+            last_reminder_sent_at,
+            reminder_sent_count,
+            next_payment_date
+          `
+          )
+          .eq('team_id', teamId)
+          .eq('season_id', seasonId)
+          .in('player_id', playerIds)
+      : Promise.resolve({ data: [], error: null }),
+    playerIds.length > 0
+      ? supabase
+          .from('registration_submissions')
+          .select(
+            `
+            id,
+            player_id,
+            fee_amount_cents,
+            amount_paid_cents,
+            payment_status,
+            created_at
+          `
+          )
+          .eq('season_id', seasonId)
+          .in('player_id', playerIds)
+          .or(`team_id.eq.${teamId},assigned_team_id.eq.${teamId}`)
+          .not('submitted_at', 'is', null)
+          .in('status', ['pending', 'approved', 'waitlisted'])
+          .order('created_at', { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  for (const payment of paymentsResult.data || []) {
+    if (!paymentsMap.has(payment.player_id)) {
+      paymentsMap.set(payment.player_id, payment);
     }
   }
 
-  // Step 3: Merge — every roster player appears, payment data is null if missing
+  for (const registration of registrationsResult.data || []) {
+    if (!registrationsMap.has(registration.player_id)) {
+      registrationsMap.set(registration.player_id, registration);
+    }
+  }
+
+  const defaultFeeAmountCents =
+    seasonSettings.feeBasis === 'player' ? seasonSettings.feeAmountCents : 0;
+
+  // Step 3: Merge — every roster player appears, even if payment rows do not exist yet.
   const result: CaptainPaymentPlayer[] = (rosterData || []).map((r: any) => {
     const profile = Array.isArray(r.profile) ? r.profile[0] : (r.profile as any);
     const payment = paymentsMap.get(r.player_id);
+    const registration = registrationsMap.get(r.player_id);
+    const amountOwedCents =
+      payment?.total_amount_cents ??
+      registration?.fee_amount_cents ??
+      defaultFeeAmountCents;
+    const amountPaidCents =
+      payment?.amount_paid_cents ??
+      registration?.amount_paid_cents ??
+      0;
+
     return {
       id: profile?.id || r.player_id,
       playerName: profile?.full_name || 'Unknown',
       email: profile?.email || null,
       avatarUrl: profile?.avatar_url || null,
-      amountOwedCents: payment?.total_amount_cents ?? 0,
-      amountPaidCents: payment?.amount_paid_cents ?? 0,
-      status: payment?.status ?? 'no_fee',
+      amountOwedCents,
+      amountPaidCents,
+      status: normalizeCaptainPaymentStatus(
+        payment?.status ?? registration?.payment_status,
+        amountOwedCents,
+        amountPaidCents
+      ),
       paymentPlan: payment?.payment_plan ?? null,
       lastReminderSentAt: payment?.last_reminder_sent_at ?? null,
       reminderSentCount: payment?.reminder_sent_count ?? 0,
@@ -263,35 +418,13 @@ export async function getCaptainPaymentSummary(
   teamId: string,
   seasonId: string
 ): Promise<{ success: boolean; data?: CaptainPaymentSummary; error?: string }> {
-  const auth = await verifyCaptainRole(teamId);
-  if (!auth.authorized) {
-    return { success: false, error: auth.error };
-  }
-
-  const supabase = createServiceRoleClient();
-
-  // Count active roster members for the current season
-  const { count: rosterCount } = await supabase
-    .from('team_rosters')
-    .select('player_id', { count: 'exact', head: true })
-    .eq('team_id', teamId)
-    .eq('season_id', seasonId)
-    .eq('status', 'active')
-    .is('end_date', null);
-
-  const { data: payments, error } = await supabase
-    .from('player_payments')
-    .select('status, total_amount_cents, amount_paid_cents')
-    .eq('team_id', teamId)
-    .eq('season_id', seasonId);
-
-  if (error) {
-    console.error('[CaptainPayments] getCaptainPaymentSummary error:', error.message);
-    return { success: false, error: 'Failed to get payment summary.' };
+  const paymentsResult = await getCaptainTeamPayments(teamId, seasonId);
+  if (!paymentsResult.success || !paymentsResult.data) {
+    return { success: false, error: paymentsResult.error || 'Failed to get payment summary.' };
   }
 
   const summary: CaptainPaymentSummary = {
-    totalPlayers: rosterCount ?? 0,
+    totalPlayers: paymentsResult.data.length,
     paidCount: 0,
     pendingCount: 0,
     overdueCount: 0,
@@ -299,11 +432,11 @@ export async function getCaptainPaymentSummary(
     totalCollectedCents: 0,
   };
 
-  for (const p of payments || []) {
-    summary.totalExpectedCents += p.total_amount_cents ?? 0;
-    summary.totalCollectedCents += p.amount_paid_cents ?? 0;
+  for (const payment of paymentsResult.data) {
+    summary.totalExpectedCents += payment.amountOwedCents;
+    summary.totalCollectedCents += payment.amountPaidCents;
 
-    switch (p.status) {
+    switch (payment.status) {
       case 'paid':
         summary.paidCount++;
         break;
@@ -319,6 +452,427 @@ export async function getCaptainPaymentSummary(
   }
 
   return { success: true, data: summary };
+}
+
+export async function recordCaptainPlayerPayment(
+  teamId: string,
+  payment: CaptainPlayerManualPaymentInput
+): Promise<{ success: boolean; data?: CaptainTeamInvoiceSummary; error?: string }> {
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized || !auth.userId) {
+    return { success: false, error: auth.error || 'Not authorized.' };
+  }
+
+  if (payment.amountCents <= 0) {
+    return { success: false, error: 'Enter a valid payment amount.' };
+  }
+
+  const supabase = createServiceRoleClient();
+
+  let playerPayment: any = null;
+
+  if (payment.paymentId) {
+    const { data, error: paymentError } = await supabase
+      .from('player_payments')
+      .select(`
+        id,
+        team_id,
+        league_id,
+        season_id,
+        player_id,
+        season_fee_id,
+        status,
+        total_amount_cents,
+        amount_paid_cents,
+        total_installments,
+        current_installment,
+        notes,
+        currency,
+        metadata
+      `)
+      .eq('id', payment.paymentId)
+      .single();
+
+    if (paymentError || !data) {
+      return { success: false, error: 'Player payment not found.' };
+    }
+
+    playerPayment = data;
+  } else {
+    const { data: existingPayment } = await supabase
+      .from('player_payments')
+      .select(`
+        id,
+        team_id,
+        league_id,
+        season_id,
+        player_id,
+        season_fee_id,
+        status,
+        total_amount_cents,
+        amount_paid_cents,
+        total_installments,
+        current_installment,
+        notes,
+        currency,
+        metadata
+      `)
+      .eq('team_id', teamId)
+      .eq('season_id', payment.seasonId)
+      .eq('player_id', payment.playerId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    playerPayment = existingPayment;
+  }
+
+  if (!playerPayment) {
+    const [seasonSettings, registrationResult, seasonFeeResult] = await Promise.all([
+      getSeasonPaymentSettings(supabase as any, auth.leagueId || '', payment.seasonId),
+      supabase
+        .from('registration_submissions')
+        .select(`
+          id,
+          league_id,
+          season_id,
+          player_id,
+          team_id,
+          assigned_team_id,
+          fee_amount_cents,
+          amount_paid_cents,
+          payment_status,
+          currency
+        `)
+        .eq('season_id', payment.seasonId)
+        .eq('player_id', payment.playerId)
+        .or(`team_id.eq.${teamId},assigned_team_id.eq.${teamId}`)
+        .not('submitted_at', 'is', null)
+        .in('status', ['pending', 'approved', 'waitlisted'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('season_fees')
+        .select('id')
+        .eq('league_id', auth.leagueId || '')
+        .eq('season_id', payment.seasonId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (seasonSettings.feeBasis === 'team') {
+      return {
+        success: false,
+        error: 'This season is using a flat team fee. Record the payment on the Team Fees page instead.',
+      };
+    }
+
+    const totalAmountCents =
+      registrationResult.data?.fee_amount_cents ?? seasonSettings.feeAmountCents ?? 0;
+
+    if (totalAmountCents <= 0 || !seasonFeeResult.data?.id) {
+      return {
+        success: false,
+        error: 'There is no player fee configured for this season yet.',
+      };
+    }
+
+    const { data: insertedPayment, error: insertError } = await supabase
+      .from('player_payments')
+      .insert({
+        player_id: payment.playerId,
+        season_fee_id: seasonFeeResult.data.id,
+        team_id: teamId,
+        league_id: auth.leagueId || registrationResult.data?.league_id,
+        season_id: payment.seasonId,
+        payment_plan: 'full',
+        base_amount_cents: totalAmountCents,
+        discount_cents: 0,
+        late_fee_cents: 0,
+        installment_fee_cents: 0,
+        amount_paid_cents: registrationResult.data?.amount_paid_cents || 0,
+        currency: registrationResult.data?.currency || seasonSettings.currency || 'CAD',
+        status: normalizeCaptainPaymentStatus(
+          registrationResult.data?.payment_status,
+          totalAmountCents,
+          registrationResult.data?.amount_paid_cents || 0
+        ) as any,
+        total_installments: 1,
+        current_installment:
+          (registrationResult.data?.amount_paid_cents || 0) > 0 ? 1 : 0,
+        metadata: registrationResult.data?.id
+          ? { registration_id: registrationResult.data.id }
+          : null,
+      })
+      .select(`
+        id,
+        team_id,
+        league_id,
+        season_id,
+        player_id,
+        season_fee_id,
+        status,
+        total_amount_cents,
+        amount_paid_cents,
+        total_installments,
+        current_installment,
+        notes,
+        currency,
+        metadata
+      `)
+      .single();
+
+    if (insertError || !insertedPayment) {
+      console.error('[CaptainPayments] create player payment error:', insertError);
+      return { success: false, error: 'Failed to create a player payment record.' };
+    }
+
+    playerPayment = insertedPayment;
+  }
+
+  if (playerPayment.team_id !== teamId) {
+    return { success: false, error: 'This payment does not belong to your team.' };
+  }
+
+  if (['cancelled', 'refunded'].includes(playerPayment.status)) {
+    return { success: false, error: 'This payment can no longer be updated.' };
+  }
+
+  const outstandingCents = Math.max(
+    0,
+    (playerPayment.total_amount_cents || 0) - (playerPayment.amount_paid_cents || 0)
+  );
+
+  if (outstandingCents <= 0) {
+    return { success: false, error: 'This player is already fully paid.' };
+  }
+
+  if (payment.amountCents > outstandingCents) {
+    return {
+      success: false,
+      error: `Payment exceeds the remaining balance of $${(outstandingCents / 100).toFixed(2)}.`,
+    };
+  }
+
+  const newAmountPaidCents = (playerPayment.amount_paid_cents || 0) + payment.amountCents;
+  const newStatus =
+    newAmountPaidCents >= (playerPayment.total_amount_cents || 0)
+      ? 'paid'
+      : newAmountPaidCents > 0
+        ? 'partially_paid'
+        : 'pending';
+
+  const existingMetadata =
+    playerPayment.metadata && typeof playerPayment.metadata === 'object'
+      ? (playerPayment.metadata as Record<string, unknown>)
+      : {};
+
+  const paymentEvent = {
+    amount_cents: payment.amountCents,
+    method: payment.paymentMethod,
+    reference_number: payment.referenceNumber || null,
+    notes: payment.notes || null,
+    recorded_at: new Date().toISOString(),
+    recorded_by: auth.userId,
+    source: 'captain_dashboard',
+  };
+
+  const existingEvents = Array.isArray(existingMetadata.captain_payment_events)
+    ? existingMetadata.captain_payment_events
+    : [];
+
+  const updatedMetadata = {
+    ...existingMetadata,
+    captain_payment_events: [...existingEvents, paymentEvent],
+    last_manual_payment: paymentEvent,
+  };
+
+  const noteParts = [
+    `Captain ${payment.paymentMethod.replace('_', ' ')}`,
+    payment.referenceNumber ? `ref ${payment.referenceNumber}` : null,
+    payment.notes || null,
+  ].filter(Boolean);
+
+  const { error: updatePaymentError } = await supabase
+    .from('player_payments')
+    .update({
+      amount_paid_cents: newAmountPaidCents,
+      status: newStatus as any,
+      paid_at: newStatus === 'paid' ? new Date().toISOString() : null,
+      current_installment:
+        newStatus === 'paid'
+          ? playerPayment.total_installments || 1
+          : Math.max(playerPayment.current_installment || 0, newAmountPaidCents > 0 ? 1 : 0),
+      notes: noteParts.length
+        ? `${playerPayment.notes || ''}\n[Captain] ${noteParts.join(' - ')}`.trim()
+        : playerPayment.notes,
+      metadata: updatedMetadata as any,
+    })
+    .eq('id', playerPayment.id);
+
+  if (updatePaymentError) {
+    console.error('[CaptainPayments] recordCaptainPlayerPayment update error:', updatePaymentError);
+    return { success: false, error: 'Failed to record player payment.' };
+  }
+
+  let registrationId =
+    typeof existingMetadata.registration_id === 'string'
+      ? existingMetadata.registration_id
+      : null;
+
+  if (!registrationId) {
+    const { data: fallbackRegistration } = await supabase
+      .from('registration_submissions')
+      .select('id')
+      .eq('league_id', playerPayment.league_id)
+      .eq('season_id', playerPayment.season_id)
+      .eq('player_id', playerPayment.player_id)
+      .or(`team_id.eq.${teamId},assigned_team_id.eq.${teamId}`)
+      .not('submitted_at', 'is', null)
+      .in('status', ['pending', 'approved', 'waitlisted'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    registrationId = fallbackRegistration?.id || null;
+  }
+
+  if (registrationId) {
+    const { data: registration } = await supabase
+      .from('registration_submissions')
+      .select('id, fee_amount_cents, amount_paid_cents, payment_status')
+      .eq('id', registrationId)
+      .maybeSingle();
+
+    if (registration) {
+      const registrationTotal = registration.fee_amount_cents || playerPayment.total_amount_cents || 0;
+      const registrationPaid = Math.min(registrationTotal, newAmountPaidCents);
+      await supabase
+        .from('registration_submissions')
+        .update({
+          amount_paid_cents: registrationPaid,
+          payment_status: buildRegistrationPaymentStatus(
+            registrationTotal,
+            registrationPaid,
+            registration.payment_status
+          ),
+        })
+        .eq('id', registrationId);
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      paymentStatus: newStatus,
+      amountPaidCents: newAmountPaidCents,
+      amountOutstandingCents: Math.max(0, outstandingCents - payment.amountCents),
+    },
+  };
+}
+
+export async function recordCaptainTeamInvoicePayment(
+  teamId: string,
+  invoiceId: string,
+  payment: CaptainManualPaymentInput
+): Promise<{ success: boolean; data?: CaptainTeamInvoiceSummary; error?: string }> {
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized || !auth.userId) {
+    return { success: false, error: auth.error || 'Not authorized.' };
+  }
+
+  if (payment.amountCents <= 0) {
+    return { success: false, error: 'Enter a valid payment amount.' };
+  }
+
+  const supabase = createServiceRoleClient();
+
+  const { data: invoice, error: invoiceError } = await (supabase as any)
+    .from('team_invoices')
+    .select('id, team_id, league_id, total_amount_cents, amount_paid_cents, status')
+    .eq('id', invoiceId)
+    .single();
+
+  if (invoiceError || !invoice) {
+    return { success: false, error: 'Team invoice not found.' };
+  }
+
+  if (invoice.team_id !== teamId) {
+    return { success: false, error: 'This invoice does not belong to your team.' };
+  }
+
+  const outstandingCents = Math.max(0, invoice.total_amount_cents - invoice.amount_paid_cents);
+  if (outstandingCents <= 0) {
+    return { success: false, error: 'This invoice is already fully paid.' };
+  }
+
+  if (payment.amountCents > outstandingCents) {
+    return {
+      success: false,
+      error: `Payment exceeds the remaining balance of $${(outstandingCents / 100).toFixed(2)}.`,
+    };
+  }
+
+  const { error: paymentInsertError } = await (supabase as any)
+    .from('team_invoice_payments')
+    .insert({
+      team_invoice_id: invoiceId,
+      amount_cents: payment.amountCents,
+      payment_method: payment.paymentMethod,
+      reference_number: payment.referenceNumber || null,
+      recorded_by: auth.userId,
+      notes: payment.notes || null,
+    });
+
+  if (paymentInsertError) {
+    console.error('[CaptainPayments] recordCaptainTeamInvoicePayment insert error:', paymentInsertError);
+    return { success: false, error: 'Failed to record team invoice payment.' };
+  }
+
+  const { data: payments, error: sumError } = await (supabase as any)
+    .from('team_invoice_payments')
+    .select('amount_cents')
+    .eq('team_invoice_id', invoiceId);
+
+  if (sumError) {
+    console.error('[CaptainPayments] recordCaptainTeamInvoicePayment sum error:', sumError);
+    return { success: false, error: 'Payment was saved, but the invoice could not be refreshed.' };
+  }
+
+  const totalPaid = (payments || []).reduce(
+    (sum: number, row: { amount_cents: number }) => sum + (row.amount_cents || 0),
+    0
+  );
+
+  const newStatus =
+    totalPaid >= invoice.total_amount_cents
+      ? 'paid'
+      : totalPaid > 0
+        ? 'partial'
+        : 'pending';
+
+  await (supabase as any)
+    .from('team_invoices')
+    .update({
+      amount_paid_cents: totalPaid,
+      status: newStatus,
+      paid_by: newStatus === 'paid' ? auth.userId : null,
+      paid_at: newStatus === 'paid' ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', invoiceId);
+
+  return {
+    success: true,
+    data: {
+      paymentStatus: newStatus,
+      amountPaidCents: totalPaid,
+      amountOutstandingCents: Math.max(0, invoice.total_amount_cents - totalPaid),
+    },
+  };
 }
 
 // ============================================================================

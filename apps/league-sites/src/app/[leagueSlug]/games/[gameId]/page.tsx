@@ -17,7 +17,7 @@ import {
   hasAdvancedStatsAddon,
 } from '@/lib/data';
 import { getPublishedGameTeamLineups } from '@/lib/actions/game-lineups';
-import { GamePreviewHeader } from '@/components/game/GamePreviewHeader';
+import { LiveGameExperience } from '@/components/game/LiveGameExperience';
 import { GameLineupsSection } from '@/components/game/GameLineupsSection';
 import { PlayerStatsComparison } from '@/components/game/PlayerStatsComparison';
 import { SeasonSeriesCard } from '@/components/game/SeasonSeriesCard';
@@ -27,6 +27,7 @@ import { GameBoxScore } from '@/components/game/GameBoxScore';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { GameRecapSection } from '@/components/game/GameRecapSection';
 import { SubscriptionWall } from '@/components/shared';
+import { getPublicLiveGameState } from '@/lib/game/live-state-data';
 
 interface GamePageProps {
   params: Promise<{ leagueSlug: string; gameId: string }>;
@@ -70,6 +71,9 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
 
   const hasFullStats = await hasAdvancedStatsAddon(league.id);
   const isCompleted = game.status === 'completed';
+  const initialLiveState = game.status === 'in_progress'
+    ? await getPublicLiveGameState(gameId)
+    : null;
 
   // Fetch additional data in parallel
   // Advanced stats (player comparisons, goalie matchup, team stats) require addon
@@ -111,12 +115,13 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
     <SubscriptionWall>
     <div className="min-h-screen">
       {/* Hero Header with diagonal stripes */}
-      <GamePreviewHeader
-        game={game}
+      <LiveGameExperience
+        initialGame={game}
         homeTeam={game.home_team}
         awayTeam={game.away_team}
         leagueSlug={leagueSlug}
         timezone={league.timezone || 'America/Toronto'}
+        initialLiveState={initialLiveState}
       />
 
       {publishedLineups.length > 0 && (

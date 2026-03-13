@@ -38,6 +38,14 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
 
   const actions: QuickAction[] = [
     {
+      label: 'Pay Online',
+      href: `/${leagueSlug}/me/payments`,
+      icon: CreditCard,
+      description: 'Pay fees and view balance',
+      variant: 'primary',
+      badge: hasOutstandingPayment,
+    },
+    {
       label: 'Game Check-In',
       href: `/${leagueSlug}/checkin`,
       icon: ClipboardCheck,
@@ -49,14 +57,6 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
       href: `/${leagueSlug}/schedule`,
       icon: Calendar,
       description: 'See all upcoming games',
-    },
-    {
-      label: 'Pay Fees',
-      href: `/${leagueSlug}/me/payments`,
-      icon: CreditCard,
-      description: 'View and pay registration',
-      variant: 'primary',
-      badge: hasOutstandingPayment,
     },
     {
       label: 'Sign Waivers',

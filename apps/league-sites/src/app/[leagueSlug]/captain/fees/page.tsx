@@ -16,7 +16,9 @@ import {
   Clock,
   CreditCard,
   Receipt,
+  X,
 } from 'lucide-react';
+import { recordCaptainTeamInvoicePayment } from '@/lib/actions/captain-payments';
 
 interface CaptainFeesPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -83,6 +85,8 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
   const { currentTeam, isLoading: profileLoading } = usePlayerProfile(league?.id);
   const [invoices, setInvoices] = useState<TeamInvoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeInvoice, setActiveInvoice] = useState<TeamInvoice | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
 
@@ -138,7 +142,7 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
     if (!profileLoading) {
       fetchInvoices();
     }
-  }, [currentTeam, isCaptain, profileLoading]);
+  }, [currentTeam, isCaptain, profileLoading, refreshKey]);
 
   if (profileLoading || isLoading) {
     return (
@@ -297,12 +301,186 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
                       </div>
                     </div>
                   )}
+
+                  {balance > 0 && (
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setActiveInvoice(invoice)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90"
+                      >
+                        <DollarSign className="h-4 w-4" />
+                        Record Team Payment
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {activeInvoice && (
+        <RecordTeamInvoicePaymentDialog
+          teamId={currentTeam.team_id}
+          invoice={activeInvoice}
+          onClose={() => setActiveInvoice(null)}
+          onRecorded={() => {
+            setActiveInvoice(null);
+            setRefreshKey((value) => value + 1);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function RecordTeamInvoicePaymentDialog({
+  teamId,
+  invoice,
+  onClose,
+  onRecorded,
+}: {
+  teamId: string;
+  invoice: TeamInvoice;
+  onClose: () => void;
+  onRecorded: () => void;
+}) {
+  const outstandingCents = Math.max(0, invoice.total_amount_cents - invoice.amount_paid_cents);
+  const [amount, setAmount] = useState((outstandingCents / 100).toFixed(2));
+  const [paymentMethod, setPaymentMethod] = useState<'e_transfer' | 'cash' | 'check' | 'other'>(
+    'e_transfer'
+  );
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    const amountCents = Math.round(Number(amount) * 100);
+    if (!Number.isFinite(amountCents) || amountCents <= 0 || amountCents > outstandingCents) {
+      setError(`Enter an amount between $0.01 and ${formatCurrency(outstandingCents, invoice.currency)}.`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    const result = await recordCaptainTeamInvoicePayment(teamId, invoice.id, {
+      amountCents,
+      paymentMethod,
+      referenceNumber: referenceNumber.trim() || undefined,
+      notes: notes.trim() || undefined,
+    });
+
+    setIsSubmitting(false);
+
+    if (!result.success) {
+      setError(result.error || 'Failed to record team payment.');
+      return;
+    }
+
+    onRecorded();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Record Team Payment</h2>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Apply a chunk payment against this team invoice.
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-2 hover:bg-[var(--color-surface-hover)]">
+            <X className="h-5 w-5 text-[var(--color-text-secondary)]" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-5 py-4">
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Outstanding Balance</p>
+            <p className="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
+              {formatCurrency(outstandingCents, invoice.currency)}
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]">Amount</label>
+            <input
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              inputMode="decimal"
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]">Method</label>
+            <select
+              value={paymentMethod}
+              onChange={(event) =>
+                setPaymentMethod(event.target.value as 'e_transfer' | 'cash' | 'check' | 'other')
+              }
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+            >
+              <option value="e_transfer">e-Transfer</option>
+              <option value="cash">Cash</option>
+              <option value="check">Cheque</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]">Reference</label>
+            <input
+              value={referenceNumber}
+              onChange={(event) => setReferenceNumber(event.target.value)}
+              placeholder="Optional reference number"
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              rows={3}
+              placeholder="Optional bookkeeping notes"
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-[var(--color-border)] px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save Payment
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

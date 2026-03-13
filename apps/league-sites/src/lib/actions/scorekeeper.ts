@@ -355,6 +355,66 @@ async function verifyActiveSession(gameId: string): Promise<string> {
   return session.createdBy;
 }
 
+function normalizeGameClockValue(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+async function recalculateGameDerivedState(supabase: any, gameId: string): Promise<void> {
+  const { data: gameMeta, error: gameMetaError } = await supabase
+    .from('games')
+    .select('status, season_id, league_id')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (gameMetaError) {
+    console.error('[scorekeeper] Failed to load game metadata for derived-state refresh', gameMetaError);
+  }
+
+  const { data: goalCounts, error: goalCountError } = await supabase
+    .from('game_events')
+    .select('team_type')
+    .eq('game_id', gameId)
+    .eq('event_type', 'goal')
+    .is('deleted_at', null);
+
+  if (goalCountError) {
+    console.error('[scorekeeper] Failed to recount game goals', goalCountError);
+    return;
+  }
+
+  const homeScore = goalCounts?.filter((event: { team_type: string | null }) => event.team_type === 'home').length ?? 0;
+  const awayScore = goalCounts?.filter((event: { team_type: string | null }) => event.team_type === 'away').length ?? 0;
+
+  const { error: scoreUpdateError } = await supabase
+    .from('games')
+    .update({ home_score: homeScore, away_score: awayScore })
+    .eq('id', gameId);
+
+  if (scoreUpdateError) {
+    console.error('[scorekeeper] Failed to persist live game score', scoreUpdateError);
+  }
+
+  // The legacy database RPC still assumes old unique constraints on
+  // game_stats/team_standings in some environments. For live scorekeeping we
+  // only need fast, reliable score persistence; raw events remain the source of
+  // truth for penalties, assists, saves, and public live updates.
+  if (gameMeta?.status !== 'completed' || !gameMeta?.season_id || !gameMeta?.league_id) {
+    return;
+  }
+
+  const rollupCalls: Array<[string, Record<string, string>]> = [
+    ['rollup_player_season_stats', { p_season_id: gameMeta.season_id, p_league_id: gameMeta.league_id }],
+    ['rollup_goalie_season_stats', { p_season_id: gameMeta.season_id, p_league_id: gameMeta.league_id }],
+  ];
+
+  for (const [fnName, params] of rollupCalls) {
+    const { error } = await supabase.rpc(fnName, params);
+    if (error) {
+      console.error(`[scorekeeper] Failed to run ${fnName}`, error);
+    }
+  }
+}
+
 // =============================================================================
 // Public server actions
 // =============================================================================
@@ -702,6 +762,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
       .select(`
         id,
         scheduled_at,
+        season_id,
         status,
         period_count,
         period_length_minutes,
@@ -748,22 +809,40 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
 
     // Get rosters for both teams
     const [homeRosterResult, awayRosterResult] = await Promise.all([
-      (supabase as any)
-        .from('team_rosters')
-        .select(`
-          player_id, jersey_number, position, leadership_role,
-          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
-        `)
-        .eq('team_id', (game.home_team as { id: string }).id)
-        .eq('status', 'active'),
-      (supabase as any)
-        .from('team_rosters')
-        .select(`
-          player_id, jersey_number, position, leadership_role,
-          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
-        `)
-        .eq('team_id', (game.away_team as { id: string }).id)
-        .eq('status', 'active'),
+      (() => {
+        let query = (supabase as any)
+          .from('team_rosters')
+          .select(`
+            player_id, jersey_number, position, leadership_role,
+            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+          `)
+          .eq('team_id', (game.home_team as { id: string }).id)
+          .eq('status', 'active')
+          .is('end_date', null);
+
+        if (game.season_id) {
+          query = query.eq('season_id', game.season_id);
+        }
+
+        return query;
+      })(),
+      (() => {
+        let query = (supabase as any)
+          .from('team_rosters')
+          .select(`
+            player_id, jersey_number, position, leadership_role,
+            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+          `)
+          .eq('team_id', (game.away_team as { id: string }).id)
+          .eq('status', 'active')
+          .is('end_date', null);
+
+        if (game.season_id) {
+          query = query.eq('season_id', game.season_id);
+        }
+
+        return query;
+      })(),
     ]);
 
     const formatRoster = (roster: any[] | null): PlayerData[] => {
@@ -899,7 +978,7 @@ export async function refreshGameEvents(gameId: string): Promise<{
         id, client_event_id, event_type, period, game_time_seconds,
         team_id, team_type, player_id,
         assist1_player_id, assist2_player_id,
-        penalty_type, penalty_minutes,
+        penalty_type, penalty_minutes, is_gwg,
         is_power_play, is_short_handed, is_empty_net,
         created_at, deleted_at,
         player:profiles!game_events_player_id_fkey(full_name),
@@ -908,7 +987,8 @@ export async function refreshGameEvents(gameId: string): Promise<{
       `)
       .eq('game_id', gameId)
       .order('period', { ascending: true })
-      .order('game_time_seconds', { ascending: false });
+      .order('game_time_seconds', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('refreshGameEvents query error:', error);
@@ -917,16 +997,23 @@ export async function refreshGameEvents(gameId: string): Promise<{
 
     const { data: game } = await supabase
       .from('games')
-      .select('home_team_id, away_team_id, home_score, away_score')
+      .select('home_team_id, away_team_id, season_id, home_score, away_score')
       .eq('id', gameId)
       .single();
 
     if (!game) return { success: false, error: 'Game not found' };
 
-    const { data: rosters } = await supabase
+    let rosterQuery = supabase
       .from('team_rosters')
       .select('player_id, jersey_number')
-      .in('team_id', [game.home_team_id, game.away_team_id]);
+      .in('team_id', [game.home_team_id, game.away_team_id])
+      .is('end_date', null);
+
+    if (game.season_id) {
+      rosterQuery = rosterQuery.eq('season_id', game.season_id);
+    }
+
+    const { data: rosters } = await rosterQuery;
 
     const jerseyMap = new Map(rosters?.map((r: { player_id: string; jersey_number: number | null }) => [r.player_id, r.jersey_number]) || []);
 
@@ -988,7 +1075,7 @@ export async function getGameEvents(gameId: string): Promise<{
         id, client_event_id, event_type, period, game_time_seconds,
         team_id, team_type, player_id,
         assist1_player_id, assist2_player_id,
-        penalty_type, penalty_minutes,
+        penalty_type, penalty_minutes, is_gwg,
         is_power_play, is_short_handed, is_empty_net,
         created_at, deleted_at,
         player:profiles!game_events_player_id_fkey(full_name),
@@ -997,7 +1084,8 @@ export async function getGameEvents(gameId: string): Promise<{
       `)
       .eq('game_id', gameId)
       .order('period', { ascending: true })
-      .order('game_time_seconds', { ascending: false });
+      .order('game_time_seconds', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (error) {
       return { success: false, error: 'Failed to load events' };
@@ -1005,16 +1093,23 @@ export async function getGameEvents(gameId: string): Promise<{
 
     const { data: game } = await supabase
       .from('games')
-      .select('home_team_id, away_team_id')
+      .select('home_team_id, away_team_id, season_id')
       .eq('id', gameId)
       .single();
 
     if (!game) return { success: false, error: 'Game not found' };
 
-    const { data: rosters } = await supabase
+    let rosterQuery = supabase
       .from('team_rosters')
       .select('player_id, jersey_number')
-      .in('team_id', [game.home_team_id, game.away_team_id]);
+      .in('team_id', [game.home_team_id, game.away_team_id])
+      .is('end_date', null);
+
+    if (game.season_id) {
+      rosterQuery = rosterQuery.eq('season_id', game.season_id);
+    }
+
+    const { data: rosters } = await rosterQuery;
 
     const jerseyMap = new Map(rosters?.map((r: { player_id: string; jersey_number: number | null }) => [r.player_id, r.jersey_number]) || []);
 
@@ -1099,7 +1194,7 @@ export async function addGoalEvent(data: {
         player_id: data.scorerId,
         event_type: 'goal',
         period: data.period,
-        game_time_seconds: data.gameTimeSeconds || null,
+        game_time_seconds: normalizeGameClockValue(data.gameTimeSeconds),
         assist1_player_id: data.assist1Id || null,
         assist2_player_id: data.assist2Id || null,
         is_power_play: data.isPowerPlay || false,
@@ -1117,21 +1212,7 @@ export async function addGoalEvent(data: {
       return { success: false, error: 'Failed to add goal' };
     }
 
-    // Recount non-deleted goals for each team and write the result — idempotent
-    const { data: goalCounts } = await supabase
-      .from('game_events')
-      .select('team_type')
-      .eq('game_id', data.gameId)
-      .eq('event_type', 'goal')
-      .is('deleted_at', null);
-
-    const homeScore = goalCounts?.filter((e: { team_type: string | null }) => e.team_type === 'home').length ?? 0;
-    const awayScore = goalCounts?.filter((e: { team_type: string | null }) => e.team_type === 'away').length ?? 0;
-
-    await supabase
-      .from('games')
-      .update({ home_score: homeScore, away_score: awayScore })
-      .eq('id', data.gameId);
+    await recalculateGameDerivedState(supabase, data.gameId);
 
     return { success: true, eventId: event.id };
   } catch (error) {
@@ -1182,7 +1263,7 @@ export async function addPenaltyEvent(data: {
         player_id: data.playerId,
         event_type: 'penalty',
         period: data.period,
-        game_time_seconds: data.gameTimeSeconds || null,
+        game_time_seconds: normalizeGameClockValue(data.gameTimeSeconds),
         penalty_type: data.penaltyType,
         penalty_minutes: data.penaltyMinutes,
         entered_by: enteredByProfileId,
@@ -1195,6 +1276,8 @@ export async function addPenaltyEvent(data: {
       console.error('Add penalty error:', error);
       return { success: false, error: 'Failed to add penalty' };
     }
+
+    await recalculateGameDerivedState(supabase, data.gameId);
 
     return { success: true, eventId: event.id };
   } catch (error) {
@@ -1245,7 +1328,7 @@ export async function addShotEvent(data: {
         assist1_player_id: data.shotByPlayerId || null,
         event_type: 'save',
         period: data.period,
-        game_time_seconds: data.gameTimeSeconds || null,
+        game_time_seconds: normalizeGameClockValue(data.gameTimeSeconds),
         entered_by: enteredByProfileId,
         entered_at: new Date().toISOString(),
       })
@@ -1256,6 +1339,8 @@ export async function addShotEvent(data: {
       console.error('Add shot error:', error);
       return { success: false, error: 'Failed to record shot' };
     }
+
+    await recalculateGameDerivedState(supabase, data.gameId);
 
     return { success: true, eventId: event.id };
   } catch (error) {
@@ -1296,23 +1381,7 @@ export async function undoEvent(eventId: string): Promise<{
       return { success: false, error: 'Failed to undo event' };
     }
 
-    // If the undone event was a goal, recount and update home_score / away_score
-    if (event.event_type === 'goal') {
-      const { data: goalCounts } = await supabase
-        .from('game_events')
-        .select('team_type')
-        .eq('game_id', event.game_id)
-        .eq('event_type', 'goal')
-        .is('deleted_at', null);
-
-      const homeScore = goalCounts?.filter((e: { team_type: string | null }) => e.team_type === 'home').length ?? 0;
-      const awayScore = goalCounts?.filter((e: { team_type: string | null }) => e.team_type === 'away').length ?? 0;
-
-      await supabase
-        .from('games')
-        .update({ home_score: homeScore, away_score: awayScore })
-        .eq('id', event.game_id);
-    }
+    await recalculateGameDerivedState(supabase, event.game_id);
 
     return { success: true };
   } catch (error) {
@@ -1429,7 +1498,7 @@ export async function batchAddEvents(
     // Load game to get team IDs and league_id
     const { data: game } = await supabase
       .from('games')
-      .select('league_id, home_team_id, away_team_id')
+      .select('league_id, home_team_id, away_team_id, season_id')
       .eq('id', gameId)
       .single();
 
@@ -1437,16 +1506,34 @@ export async function batchAddEvents(
 
     // Load rosters for both teams to build jersey→playerId map
     const [homeRosterResult, awayRosterResult] = await Promise.all([
-      (supabase as any)
-        .from('team_rosters')
-        .select('player_id, jersey_number')
-        .eq('team_id', game.home_team_id)
-        .eq('status', 'active'),
-      (supabase as any)
-        .from('team_rosters')
-        .select('player_id, jersey_number')
-        .eq('team_id', game.away_team_id)
-        .eq('status', 'active'),
+      (() => {
+        let query = (supabase as any)
+          .from('team_rosters')
+          .select('player_id, jersey_number')
+          .eq('team_id', game.home_team_id)
+          .eq('status', 'active')
+          .is('end_date', null);
+
+        if (game.season_id) {
+          query = query.eq('season_id', game.season_id);
+        }
+
+        return query;
+      })(),
+      (() => {
+        let query = (supabase as any)
+          .from('team_rosters')
+          .select('player_id, jersey_number')
+          .eq('team_id', game.away_team_id)
+          .eq('status', 'active')
+          .is('end_date', null);
+
+        if (game.season_id) {
+          query = query.eq('season_id', game.season_id);
+        }
+
+        return query;
+      })(),
     ]);
 
     const homeJerseyMap = new Map<number, string>();
@@ -1497,7 +1584,7 @@ export async function batchAddEvents(
             player_id: scorerId,
             event_type: 'goal',
             period: evt.period,
-            game_time_seconds: evt.gameTimeSeconds || null,
+            game_time_seconds: normalizeGameClockValue(evt.gameTimeSeconds),
             assist1_player_id: assist1Id,
             assist2_player_id: assist2Id,
             entered_by: enteredByProfileId,
@@ -1508,12 +1595,6 @@ export async function batchAddEvents(
           errors.push(`Goal #${i + 1}: Database insert failed`);
           continue;
         }
-
-        // Update game score
-        await supabase.rpc('increment_game_score', {
-          p_game_id: gameId,
-          p_team_type: evt.teamType,
-        });
 
         addedCount++;
       } else if (evt.type === 'penalty') {
@@ -1537,7 +1618,7 @@ export async function batchAddEvents(
             player_id: playerId,
             event_type: 'penalty',
             period: evt.period,
-            game_time_seconds: evt.gameTimeSeconds || null,
+            game_time_seconds: normalizeGameClockValue(evt.gameTimeSeconds),
             penalty_type: evt.penaltyType || 'Minor',
             penalty_minutes: evt.penaltyMinutes || 2,
             entered_by: enteredByProfileId,
@@ -1551,6 +1632,10 @@ export async function batchAddEvents(
 
         addedCount++;
       }
+    }
+
+    if (addedCount > 0) {
+      await recalculateGameDerivedState(supabase, gameId);
     }
 
     return { success: true, addedCount, errors };
@@ -1572,9 +1657,24 @@ export async function updateGameStatus(
 
     const supabase = createServiceRoleClient();
 
+    const { data: existingGame } = await supabase
+      .from('games')
+      .select('current_period, period_length_minutes')
+      .eq('id', gameId)
+      .single();
+
+    const updatePayload: Record<string, unknown> = { status };
+
+    if (status === 'in_progress') {
+      const nextPeriod = existingGame?.current_period && existingGame.current_period > 0
+        ? existingGame.current_period
+        : 1;
+      updatePayload.current_period = nextPeriod;
+    }
+
     const { error } = await supabase
       .from('games')
-      .update({ status })
+      .update(updatePayload)
       .eq('id', gameId);
 
     if (error) {
@@ -1617,7 +1717,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
     // Get game to find team IDs
     const { data: game, error: gameError } = await (supabase as any)
       .from('games')
-      .select('home_team_id, away_team_id')
+      .select('home_team_id, away_team_id, season_id')
       .eq('id', gameId)
       .single();
 
@@ -1627,22 +1727,40 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
 
     // Fetch rosters and existing checkins in parallel
     const [homeRosterResult, awayRosterResult, checkinsResult] = await Promise.all([
-      (supabase as any)
-        .from('team_rosters')
-        .select(`
-          player_id, jersey_number, position,
-          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
-        `)
-        .eq('team_id', game.home_team_id)
-        .eq('status', 'active'),
-      (supabase as any)
-        .from('team_rosters')
-        .select(`
-          player_id, jersey_number, position,
-          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
-        `)
-        .eq('team_id', game.away_team_id)
-        .eq('status', 'active'),
+      (() => {
+        let query = (supabase as any)
+          .from('team_rosters')
+          .select(`
+            player_id, jersey_number, position,
+            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+          `)
+          .eq('team_id', game.home_team_id)
+          .eq('status', 'active')
+          .is('end_date', null);
+
+        if (game.season_id) {
+          query = query.eq('season_id', game.season_id);
+        }
+
+        return query;
+      })(),
+      (() => {
+        let query = (supabase as any)
+          .from('team_rosters')
+          .select(`
+            player_id, jersey_number, position,
+            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+          `)
+          .eq('team_id', game.away_team_id)
+          .eq('status', 'active')
+          .is('end_date', null);
+
+        if (game.season_id) {
+          query = query.eq('season_id', game.season_id);
+        }
+
+        return query;
+      })(),
       (supabase as any)
         .from('game_checkins')
         .select('player_id, status')

@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { MapPin, Calendar, Clock } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';

@@ -226,6 +226,63 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   }
 
   const record = `${teamStats?.wins || 0}-${teamStats?.losses || 0}-${teamStats?.ties || 0}`;
+  const captainNavItems = [
+    nextLineupGame
+      ? {
+          href: `/${leagueSlug}/captain/lineups/${nextLineupGame.id}`,
+          label: 'Lineup',
+          icon: Calendar,
+          tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
+        }
+      : null,
+    {
+      href: `/${leagueSlug}/captain/duties`,
+      label: 'Game Duties',
+      icon: CheckCircle2,
+      tone: 'bg-[var(--league-primary)]/10 border-[var(--league-primary)]/20 text-[var(--league-primary)]',
+    },
+    {
+      href: `/${leagueSlug}/captain/fees`,
+      label: 'Team Fees',
+      icon: DollarSign,
+      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
+    },
+    {
+      href: `/${leagueSlug}/captain/player-payments`,
+      label: 'Player Payments',
+      icon: Users,
+      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
+    },
+    {
+      href: `/${leagueSlug}/captain/team-return`,
+      label: 'Team Return',
+      icon: Mail,
+      tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
+    },
+    {
+      href: `/${leagueSlug}/schedule?team=${currentTeam.team_id}`,
+      label: 'Schedule',
+      icon: Calendar,
+      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
+    },
+    {
+      href: `/${leagueSlug}/teams/${currentTeam.team.slug}`,
+      label: 'Team Page',
+      icon: Users,
+      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
+    },
+    {
+      href: `/${leagueSlug}/standings`,
+      label: 'Standings',
+      icon: Trophy,
+      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
+    },
+  ].filter(Boolean) as Array<{
+    href: string;
+    label: string;
+    icon: typeof Calendar;
+    tone: string;
+  }>;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -247,6 +304,24 @@ export default function CaptainPage({ params }: CaptainPageProps) {
           <p className="text-[var(--color-text-secondary)]">
             Manage your team: {currentTeam.team.name}
           </p>
+        </div>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+        <div className="flex flex-wrap gap-2">
+          {captainNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors hover:opacity-90 ${item.tone}`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -360,115 +435,6 @@ export default function CaptainPage({ params }: CaptainPageProps) {
           roster={roster}
         />
       )}
-
-      {/* Quick Actions */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {nextLineupGame && (
-          <Link
-            href={`/${leagueSlug}/captain/lineups/${nextLineupGame.id}`}
-            className="flex items-center gap-4 p-4 bg-cyan-500/10 border border-cyan-400/20 rounded-xl hover:bg-cyan-500/20 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-lg bg-cyan-400/20 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-cyan-200" />
-            </div>
-            <div>
-              <p className="font-medium text-cyan-100">Lineup Studio</p>
-              <p className="text-sm text-cyan-100/75">Set game-day positions</p>
-            </div>
-          </Link>
-        )}
-
-        <Link
-          href={`/${leagueSlug}/captain/duties`}
-          className="flex items-center gap-4 p-4 bg-[var(--league-primary)]/10 border border-[var(--league-primary)]/20 rounded-xl hover:bg-[var(--league-primary)]/20 transition-colors"
-        >
-          <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/20 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5 text-[var(--league-primary)]" />
-          </div>
-          <div>
-            <p className="font-medium text-[var(--league-primary)]">Game Duties</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">Assign pucks, scoresheet</p>
-          </div>
-        </Link>
-
-        <Link
-          href={`/${leagueSlug}/captain/fees`}
-          className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
-        >
-          <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-green-400" />
-          </div>
-          <div>
-            <p className="font-medium text-[var(--color-text-primary)]">Team Fees</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">Invoices & payments</p>
-          </div>
-        </Link>
-
-        <Link
-          href={`/${leagueSlug}/captain/team-return`}
-          className="flex items-center gap-4 p-4 bg-cyan-500/10 border border-cyan-400/20 rounded-xl hover:bg-cyan-500/20 transition-colors"
-        >
-          <div className="w-10 h-10 rounded-lg bg-cyan-400/20 flex items-center justify-center">
-            <Mail className="w-5 h-5 text-cyan-200" />
-          </div>
-          <div>
-            <p className="font-medium text-cyan-100">Team Return</p>
-            <p className="text-sm text-cyan-100/75">Confirm next season plans</p>
-          </div>
-        </Link>
-
-        <Link
-          href={`/${leagueSlug}/captain/player-payments`}
-          className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
-        >
-          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-            <Users className="w-5 h-5 text-emerald-400" />
-          </div>
-          <div>
-            <p className="font-medium text-[var(--color-text-primary)]">Player Payments</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">Track player fee collection</p>
-          </div>
-        </Link>
-
-        <Link
-          href={`/${leagueSlug}/schedule?team=${currentTeam.team_id}`}
-          className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
-        >
-          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-            <Calendar className="w-5 h-5 text-blue-400" />
-          </div>
-          <div>
-            <p className="font-medium text-[var(--color-text-primary)]">Team Schedule</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">View upcoming games</p>
-          </div>
-        </Link>
-
-        <Link
-          href={`/${leagueSlug}/teams/${currentTeam.team.slug}`}
-          className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
-        >
-          <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/10 flex items-center justify-center">
-            <Users className="w-5 h-5 text-[var(--league-primary)]" />
-          </div>
-          <div>
-            <p className="font-medium text-[var(--color-text-primary)]">Team Page</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">Public team profile</p>
-          </div>
-        </Link>
-
-        <Link
-          href={`/${leagueSlug}/standings`}
-          className="flex items-center gap-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
-        >
-          <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <Trophy className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <p className="font-medium text-[var(--color-text-primary)]">Standings</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">League standings</p>
-          </div>
-        </Link>
-      </div>
     </div>
   );
 }

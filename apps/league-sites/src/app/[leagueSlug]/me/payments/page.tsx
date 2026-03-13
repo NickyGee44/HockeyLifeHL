@@ -2,9 +2,11 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { usePlayerProfile } from '@/hooks/usePlayerProfile';
-import { createClient } from '@/lib/supabase/client';
-import { getRegistrationPaymentHistory } from '@/lib/actions/registration-payments';
+import { useUser } from '@/hooks/useUser';
+import {
+  getRegistrationPaymentHistory,
+  getRegistrationPaymentRegistrations,
+} from '@/lib/actions/registration-payments';
 import { PaymentModal } from '@/components/payments';
 import {
   CreditCard,
@@ -60,7 +62,7 @@ interface PaymentsPageProps {
 
 export default function PaymentsPage({ params }: PaymentsPageProps) {
   const { leagueSlug } = use(params);
-  const { profile, isLoading: profileLoading } = usePlayerProfile();
+  const { session, user, isLoading: userLoading } = useUser();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,68 +76,20 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!profile) {
+      if (!user) {
         setIsLoading(false);
         return;
       }
 
-      const supabase = createClient();
+      const [registrationsResult, historyResult] = await Promise.all([
+        getRegistrationPaymentRegistrations(leagueSlug, session?.access_token),
+        getRegistrationPaymentHistory(leagueSlug, session?.access_token),
+      ]);
 
-      // Get league ID from slug
-      const { data: league } = await supabase
-        .from('leagues')
-        .select('id')
-        .eq('slug', leagueSlug)
-        .single();
-
-      if (!league) {
-        setIsLoading(false);
-        return;
+      if (registrationsResult.success && registrationsResult.data) {
+        setRegistrations(registrationsResult.data as Registration[]);
       }
 
-      // Fetch player registrations with payment info
-      const { data: regsData } = await supabase
-        .from('registration_submissions')
-        .select(`
-          id,
-          season_id,
-          team_id,
-          status,
-          payment_status,
-          amount_paid_cents,
-          fee_amount_cents,
-          currency,
-          stripe_payment_intent_id,
-          created_at,
-          registration_type,
-          season:seasons(id, name, start_date, end_date),
-          team:teams(id, name, logo_url)
-        `)
-        .eq('player_id', profile.id)
-        .eq('league_id', league.id)
-        .neq('payment_status', 'not_required')
-        .order('created_at', { ascending: false });
-
-      if (regsData) {
-        // Transform nested arrays, map logo_url to logo, and add registration_type as an object
-        const transformedRegs = regsData.map((reg: any) => {
-          const rawTeam = Array.isArray(reg.team) ? reg.team[0] : reg.team;
-          return {
-            ...reg,
-            season: Array.isArray(reg.season) ? reg.season[0] : reg.season,
-            team: rawTeam ? { ...rawTeam, logo: rawTeam.logo_url } : null,
-            registration_type: {
-              id: reg.id,
-              name: `${reg.registration_type} Registration`,
-              fee_amount_cents: reg.fee_amount_cents || 0,
-            },
-          };
-        });
-        setRegistrations(transformedRegs);
-      }
-
-      // Fetch payment history using server action
-      const historyResult = await getRegistrationPaymentHistory(leagueSlug);
       if (historyResult.success && historyResult.data) {
         setPayments(historyResult.data);
       }
@@ -143,10 +97,10 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
       setIsLoading(false);
     };
 
-    if (!profileLoading) {
+    if (!userLoading) {
       fetchData();
     }
-  }, [profile, profileLoading, leagueSlug]);
+  }, [user, userLoading, leagueSlug, session?.access_token]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-CA', {
@@ -211,6 +165,13 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
     .filter((p) => p.status === 'succeeded')
     .reduce((sum, p) => sum + p.amount, 0);
 
+  const outstandingRegistrations = registrations.filter((reg) => {
+    const feeAmount = reg.registration_type?.fee_amount_cents || 0;
+    return feeAmount > (reg.amount_paid_cents || 0);
+  });
+
+  const primaryOutstanding = outstandingRegistrations[0] || null;
+
   const handlePayNow = (registrationId: string, amount: number, registrationName: string) => {
     setPaymentModal({
       isOpen: true,
@@ -230,7 +191,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
     window.location.reload();
   };
 
-  if (isLoading || profileLoading) {
+  if (isLoading || userLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -260,6 +221,41 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
       </div>
 
       {/* Summary Cards */}
+      {totalOwed > 0 && primaryOutstanding && (
+        <div className="mb-6 rounded-2xl border border-[var(--league-primary)]/25 bg-[var(--league-primary)]/10 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--league-primary)]">
+                Ready to pay online
+              </p>
+              <h2 className="mt-2 text-xl font-bold text-[var(--color-text-primary)]">
+                {formatCurrency(totalOwed)} outstanding
+              </h2>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                Open your payment screen and complete your registration balance with Stripe.
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                handlePayNow(
+                  primaryOutstanding.id,
+                  (primaryOutstanding.registration_type?.fee_amount_cents || 0) -
+                    (primaryOutstanding.amount_paid_cents || 0),
+                  primaryOutstanding.registration_type?.name ||
+                    primaryOutstanding.season?.name ||
+                    'Registration'
+                )
+              }
+              disabled={isProcessing}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--league-primary)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              <CreditCard className="h-4 w-4" />
+              Pay Online Now
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         {/* Outstanding Balance */}
         <div
@@ -311,21 +307,13 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
       </div>
 
       {/* Outstanding Registrations */}
-      {registrations.filter((r) => {
-        const feeAmount = r.registration_type?.fee_amount_cents || 0;
-        return feeAmount > (r.amount_paid_cents || 0);
-      }).length > 0 && (
+      {outstandingRegistrations.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
             Outstanding Balances
           </h2>
           <div className="space-y-3">
-            {registrations
-              .filter((r) => {
-                const feeAmount = r.registration_type?.fee_amount_cents || 0;
-                return feeAmount > (r.amount_paid_cents || 0);
-              })
-              .map((reg) => {
+            {outstandingRegistrations.map((reg) => {
                 const feeAmount = reg.registration_type?.fee_amount_cents || 0;
                 const balance = feeAmount - (reg.amount_paid_cents || 0);
                 return (
