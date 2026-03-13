@@ -44,6 +44,11 @@ interface Registration {
     previous_team_name?: string | null;
     team_return_status?: string | null;
     date_of_birth?: string | null;
+    phone?: string | null;
+    emergency_contact_name?: string | null;
+    emergency_contact_phone?: string | null;
+    emergency_contact_relationship?: string | null;
+    medical_notes?: string | null;
   } | null;
   status: string;
   preferred_position: string | null;
@@ -64,6 +69,8 @@ interface Registration {
     full_name: string;
     email: string;
     phone?: string | null;
+    avatar_url?: string | null;
+    photo_url?: string | null;
   };
   team: {
     id: string;
@@ -115,7 +122,24 @@ function formatTeamReturnStatus(status?: string | null): string {
 }
 
 function getRequestedTeamLabel(reg: Registration): string | null {
-  return reg.team?.name || reg.draft_data?.requested_team_name || reg.draft_data?.previous_team_name || null;
+  return reg.team?.name || reg.draft_data?.requested_team_name || null;
+}
+
+function getPreviousTeamLabel(reg: Registration): string | null {
+  return reg.draft_data?.previous_team_name || null;
+}
+
+function getRegistrationAvatarUrl(reg: Registration): string {
+  return reg.photo_url || reg.player.avatar_url || reg.player.photo_url || '/blank_player.png';
+}
+
+function getEmergencyContactSummary(reg: Registration): string | null {
+  const name = reg.draft_data?.emergency_contact_name || null;
+  const phone = reg.draft_data?.emergency_contact_phone || null;
+
+  if (!name && !phone) return null;
+  if (name && phone) return `${name} • ${phone}`;
+  return name || phone;
 }
 
 function getSortValue(reg: Registration, field: SortField): string | number {
@@ -528,7 +552,7 @@ function RegistrationRow({
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
               <img
-                src={reg.photo_url || '/blank_player.png'}
+                src={getRegistrationAvatarUrl(reg)}
                 alt={reg.player.full_name}
                 className="w-full h-full object-cover"
               />
@@ -561,6 +585,11 @@ function RegistrationRow({
           <span className="text-sm text-neutral-300">
             {getRequestedTeamLabel(reg) || '-'}
           </span>
+          {getPreviousTeamLabel(reg) && (
+            <p className="text-xs text-neutral-500">
+              Prev: {getPreviousTeamLabel(reg)}
+            </p>
+          )}
           <p className="text-xs text-neutral-500">
             {formatRegistrationType(reg.registration_type as any)}
           </p>
@@ -572,6 +601,11 @@ function RegistrationRow({
           {reg.draft_data?.team_return_status && (
             <p className="text-xs text-neutral-500">
               {formatTeamReturnStatus(reg.draft_data.team_return_status)}
+            </p>
+          )}
+          {getEmergencyContactSummary(reg) && (
+            <p className="text-xs text-neutral-500">
+              Emergency: {getEmergencyContactSummary(reg)}
             </p>
           )}
         </td>
@@ -720,9 +754,15 @@ function ExpandedDetails({ reg }: { reg: Registration }) {
           {reg.draft_data?.registration_intent && (
             <DetailRow label="Path" value={formatRegistrationIntent(reg.draft_data.registration_intent)} />
           )}
-          <DetailRow label="Team Pref." value={getRequestedTeamLabel(reg) || 'None'} />
+          <DetailRow label="Requested Team" value={getRequestedTeamLabel(reg) || 'None'} />
+          {getPreviousTeamLabel(reg) && (
+            <DetailRow label="Previous Team" value={getPreviousTeamLabel(reg) || '-'} />
+          )}
           {reg.draft_data?.team_return_status && (
             <DetailRow label="Team Status" value={formatTeamReturnStatus(reg.draft_data.team_return_status)} />
+          )}
+          {getEmergencyContactSummary(reg) && (
+            <DetailRow label="Emergency" value={getEmergencyContactSummary(reg) || '-'} />
           )}
           <DetailRow
             label="Waiver"
@@ -882,7 +922,7 @@ function RegistrationMobileCard({
           />
         )}
         <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-          <img src={reg.photo_url || '/blank_player.png'} alt={reg.player.full_name} className="w-full h-full object-cover" />
+          <img src={getRegistrationAvatarUrl(reg)} alt={reg.player.full_name} className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-white font-medium truncate">{reg.player.full_name}</p>

@@ -7,6 +7,7 @@ import {
   getRegistrationPaymentMode,
   getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
+  isPlayerFeeConfigurationMissing,
 } from '@/lib/registration/fee-collection-model';
 import {
   getRegistrationTypeForIntent,
@@ -531,6 +532,11 @@ export async function getSeasonRegistrationPaymentConfig(
 ) {
   const supabase = createServiceRoleClient();
   const settings = await getSeasonPaymentSettings(supabase as any, leagueId, seasonId);
+  const feeConfigured = !isPlayerFeeConfigurationMissing(
+    settings.feeCollectionModel,
+    settings.feeAmountCents,
+    settings.feeBasis
+  );
 
   return {
     registrationFee: getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents),
@@ -541,6 +547,7 @@ export async function getSeasonRegistrationPaymentConfig(
       settings.feeAmountCents,
       settings.feeBasis
     ),
+    feeConfigured,
   };
 }
 
@@ -570,6 +577,19 @@ export async function saveRegistrationDraft(
       paymentSettings.feeBasis,
       paymentSettings.feeAmountCents
     );
+    if (
+      isPlayerFeeConfigurationMissing(
+        paymentSettings.feeCollectionModel,
+        paymentSettings.feeAmountCents,
+        paymentSettings.feeBasis
+      )
+    ) {
+      return {
+        success: false,
+        error: 'Registration is not open yet. The league still needs to configure the player registration fee for this season.',
+      };
+    }
+
     const paymentMode = getRegistrationPaymentMode(
       paymentSettings.feeCollectionModel,
       paymentSettings.feeAmountCents,
@@ -793,6 +813,19 @@ export async function submitPlayerRegistration(
       data.league_id,
       data.season_id
     );
+    if (
+      isPlayerFeeConfigurationMissing(
+        paymentSettings.feeCollectionModel,
+        paymentSettings.feeAmountCents,
+        paymentSettings.feeBasis
+      )
+    ) {
+      return {
+        success: false,
+        error: 'Registration is not open yet. The league still needs to configure the player registration fee for this season.',
+      };
+    }
+
     const teamReturnStatuses = await getSeasonTeamReturnStatuses(
       data.league_id,
       data.season_id
@@ -955,6 +988,14 @@ export async function submitPlayerRegistration(
       }
     }
 
+    const { data: existingProfile } = await serviceSupabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const registrationPhotoUrl = data.photo_url || existingProfile?.avatar_url || null;
+
     // Update profile
     await serviceSupabase
       .from('profiles')
@@ -965,7 +1006,7 @@ export async function submitPlayerRegistration(
         emergency_contact_phone: data.emergency_contact_phone,
         emergency_contact_relationship: data.emergency_contact_relationship,
         medical_notes: data.medical_notes || null,
-        photo_url: data.photo_url || null,
+        photo_url: registrationPhotoUrl,
       })
       .eq('id', user.id);
 
@@ -987,7 +1028,7 @@ export async function submitPlayerRegistration(
           self_assessed_skill: normalizedSkillLevel,
           years_experience: data.years_experience || null,
           previous_leagues: data.previous_leagues || null,
-          photo_url: data.photo_url || null,
+          photo_url: registrationPhotoUrl,
           payment_status: data.payment_status || 'not_required',
           fee_amount_cents: expectedFeeCents,
           stripe_payment_intent_id: data.payment_intent_id || null,

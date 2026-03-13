@@ -7,6 +7,7 @@ import {
   getRegistrationPaymentMode,
   getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
+  isPlayerFeeConfigurationMissing,
 } from '@/lib/payments/fee-collection-model';
 import {
   getRegistrationDraft,
@@ -103,6 +104,11 @@ async function getLeagueBySlug(slug: string) {
 async function getSeasonRegistrationConfig(leagueId: string, seasonId: string) {
   const supabase = await createClient();
   const settings = await getSeasonPaymentSettings(supabase as any, leagueId, seasonId);
+  const feeConfigured = !isPlayerFeeConfigurationMissing(
+    settings.feeCollectionModel,
+    settings.feeAmountCents,
+    settings.feeBasis
+  );
 
   return {
     registrationFee: getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents),
@@ -113,6 +119,7 @@ async function getSeasonRegistrationConfig(leagueId: string, seasonId: string) {
       settings.feeAmountCents,
       settings.feeBasis
     ),
+    feeConfigured,
   };
 }
 
@@ -296,6 +303,28 @@ export default async function RegisterPage({
     league.id,
     activeSeason.id
   );
+
+  if (!registrationConfig.feeConfigured) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">
+            Registration Opening Soon
+          </h1>
+          <p className="text-neutral-400 mb-6">
+            {league.name} is still configuring the player registration fee for {activeSeason.name}.
+            Registration will open once that fee is set.
+          </p>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-rink-500 text-black font-semibold hover:bg-rink-400 transition-colors"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Determine current step from URL
   const currentStep = searchParams.step ? parseInt(searchParams.step, 10) : 1;

@@ -37,6 +37,7 @@ import {
   getRegistrationPaymentMode,
   getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
+  isPlayerFeeConfigurationMissing,
   usesTeamBilling,
 } from '@/lib/payments/fee-collection-model';
 import { verifyLeagueOwnerAccess } from './permissions';
@@ -99,6 +100,11 @@ interface PendingRegistration {
     previous_team_name?: string | null;
     team_return_status?: string | null;
     date_of_birth?: string | null;
+    phone?: string | null;
+    emergency_contact_name?: string | null;
+    emergency_contact_phone?: string | null;
+    emergency_contact_relationship?: string | null;
+    medical_notes?: string | null;
   } | null;
   status: string;
   preferred_position: string | null;
@@ -123,6 +129,12 @@ interface PendingRegistration {
     full_name: string;
     email: string;
     phone: string | null;
+    avatar_url?: string | null;
+    photo_url?: string | null;
+    emergency_contact_name?: string | null;
+    emergency_contact_phone?: string | null;
+    emergency_contact_relationship?: string | null;
+    medical_notes?: string | null;
   };
   team: {
     id: string;
@@ -411,6 +423,20 @@ export async function saveRegistrationDraft(
       paymentSettings.feeBasis,
       paymentSettings.feeAmountCents
     );
+    if (
+      isPlayerFeeConfigurationMissing(
+        paymentSettings.feeCollectionModel,
+        paymentSettings.feeAmountCents,
+        paymentSettings.feeBasis
+      )
+    ) {
+      return {
+        success: false,
+        error:
+          'Registration is not open yet. The league still needs to configure the player registration fee for this season.',
+      };
+    }
+
     const paymentMode = getRegistrationPaymentMode(
       paymentSettings.feeCollectionModel,
       paymentSettings.feeAmountCents,
@@ -974,6 +1000,20 @@ export async function submitPlayerRegistration(
       data.league_id,
       data.season_id
     );
+    if (
+      isPlayerFeeConfigurationMissing(
+        paymentSettings.feeCollectionModel,
+        paymentSettings.feeAmountCents,
+        paymentSettings.feeBasis
+      )
+    ) {
+      return {
+        success: false,
+        error:
+          'Registration is not open yet. The league still needs to configure the player registration fee for this season.',
+      };
+    }
+
     const expectedFeeCents = getPlayerRegistrationFeeAmount(
       paymentSettings.feeBasis,
       paymentSettings.feeAmountCents
@@ -1125,6 +1165,14 @@ export async function submitPlayerRegistration(
       }
     }
 
+    const { data: existingProfile } = await serviceSupabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const registrationPhotoUrl = data.photo_url || existingProfile?.avatar_url || null;
+
     // 2. Update profile with emergency contact info
     const { error: profileError } = await serviceSupabase
       .from('profiles')
@@ -1135,7 +1183,7 @@ export async function submitPlayerRegistration(
         emergency_contact_phone: data.emergency_contact_phone,
         emergency_contact_relationship: data.emergency_contact_relationship,
         medical_notes: data.medical_notes || null,
-        photo_url: data.photo_url || null,
+        photo_url: registrationPhotoUrl,
       })
       .eq('id', user.id);
 
@@ -1162,7 +1210,7 @@ export async function submitPlayerRegistration(
           self_assessed_skill: normalizedSkillLevel,
           years_experience: data.years_experience || null,
           previous_leagues: data.previous_leagues || null,
-          photo_url: data.photo_url || null,
+          photo_url: registrationPhotoUrl,
           payment_status: data.payment_status || 'not_required',
           fee_amount_cents: expectedFeeCents,
           stripe_payment_intent_id: data.payment_intent_id || null,
@@ -1415,7 +1463,7 @@ export async function getPendingRegistrations(
       .select(
         `
         *,
-        player:profiles!registration_submissions_player_id_fkey (id, full_name, email, phone),
+        player:profiles!registration_submissions_player_id_fkey (id, full_name, email, phone, avatar_url, photo_url),
         team:teams!registration_submissions_team_id_fkey (id, name),
         waiver:player_waivers!registration_submissions_waiver_id_fkey (id, signed_name, agreed_at)
       `,
@@ -1501,7 +1549,7 @@ export async function getRegistrationDetails(
       .select(
         `
         *,
-        player:profiles!registration_submissions_player_id_fkey (id, full_name, email, phone, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, medical_notes),
+        player:profiles!registration_submissions_player_id_fkey (id, full_name, email, phone, avatar_url, photo_url, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, medical_notes),
         team:teams!registration_submissions_team_id_fkey (id, name),
         waiver:player_waivers!registration_submissions_waiver_id_fkey (id, signed_name, agreed_at, signature_data)
       `
