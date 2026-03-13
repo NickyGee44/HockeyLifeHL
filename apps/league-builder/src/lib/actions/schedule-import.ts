@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { revalidatePath } from 'next/cache';
 
@@ -35,7 +35,7 @@ export async function importGamesFromCSV(
     return { success: false, error: 'Maximum 500 games per import' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch teams for name → ID resolution
   const { data: teams } = await supabase

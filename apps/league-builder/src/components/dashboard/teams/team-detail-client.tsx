@@ -209,6 +209,7 @@ export default function TeamDetailClient({ team, initialTab, seasonId }: TeamDet
         onClose={() => setIsAddPlayerOpen(false)}
         teamId={team.id}
         leagueId={team.league_id}
+        seasonId={seasonId}
         onSuccess={() => {
           setIsAddPlayerOpen(false);
           router.refresh();

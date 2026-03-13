@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { importScorekepersFromCSV } from '@/lib/actions/scorekeeper-management';
+import { parseCsvText, downloadCsv } from '@/lib/csv/parse';
 import { Loader2, AlertCircle, Upload, FileText, Download, CheckCircle } from 'lucide-react';
 
 interface ImportScorekepersModalProps {
@@ -56,19 +57,16 @@ export function ImportScorekepersModal({
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
-        const lines = text.split('\n').filter(line => line.trim());
+        const rows = parseCsvText(text);
 
         // Skip header row if it exists
-        const hasHeader = lines[0]?.toLowerCase().includes('email') ||
-                          lines[0]?.toLowerCase().includes('name');
-        const dataLines = hasHeader ? lines.slice(1) : lines;
+        const hasHeader =
+          rows[0]?.[0]?.toLowerCase().includes('email') ||
+          rows[0]?.[1]?.toLowerCase().includes('name');
+        const dataRows = hasHeader ? rows.slice(1) : rows;
 
         const parsed: ParsedRow[] = [];
-        for (const line of dataLines) {
-          // Handle both comma and tab delimited
-          const parts = line.includes('\t')
-            ? line.split('\t')
-            : line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+        for (const parts of dataRows) {
 
           if (parts.length >= 2) {
             const email = parts[0]?.trim();
@@ -125,13 +123,7 @@ export function ImportScorekepersModal({
 
   const handleDownloadTemplate = () => {
     const template = 'email,name,hourlyRate\njohn@example.com,John Smith,25.00\njane@example.com,Jane Doe,30.00';
-    const blob = new Blob([template], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'scorekeepers_template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv('scorekeepers_template.csv', template);
   };
 
   const handleClose = () => {

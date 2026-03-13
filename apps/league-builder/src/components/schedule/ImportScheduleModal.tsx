@@ -25,9 +25,9 @@ interface ImportScheduleModalProps {
 }
 
 const TEMPLATE_CONTENT = [
-  'date,time,home_team,away_team,venue,notes',
-  '2026-10-01,19:00,Team A,Team B,Main Arena,',
-  '2026-10-08,20:30,Team B,Team C,East Rink,',
+  'date,time,home_team,away_team,venue',
+  '2026-10-01,19:00,Team A,Team B,Main Arena',
+  '2026-10-08,20:30,Team B,Team C,East Rink',
 ].join('\n');
 
 export function ImportScheduleModal({

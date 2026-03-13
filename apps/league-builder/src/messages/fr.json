@@ -656,7 +656,7 @@
       "title": "Importer l'horaire depuis un CSV",
       "description": "Téléversez un fichier CSV pour importer les matchs en lot. Les noms d'équipes doivent correspondre exactement aux équipes existantes.",
       "clickToUpload": "Cliquez pour téléverser un CSV",
-      "columns": "Colonnes : date, heure, équipe_locale, équipe_visiteuse, lieu, notes",
+      "columns": "Colonnes : date, heure, équipe_locale, équipe_visiteuse, lieu",
       "downloadTemplate": "Télécharger le modèle",
       "previewTitle": "Aperçu — {count} match(s)",
       "dateHeader": "Date",

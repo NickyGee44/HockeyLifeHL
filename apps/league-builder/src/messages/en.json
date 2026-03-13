@@ -656,7 +656,7 @@
       "title": "Import Schedule from CSV",
       "description": "Upload a CSV file to bulk-import games. Team names must match existing teams exactly.",
       "clickToUpload": "Click to upload CSV",
-      "columns": "Columns: date, time, home_team, away_team, venue, notes",
+      "columns": "Columns: date, time, home_team, away_team, venue",
       "downloadTemplate": "Download Template",
       "previewTitle": "Preview — {count} game(s)",
       "dateHeader": "Date",

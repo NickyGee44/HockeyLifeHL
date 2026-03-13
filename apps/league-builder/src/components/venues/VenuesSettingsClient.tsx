@@ -178,11 +178,8 @@ export function VenuesSettingsClient({
 
     const result = await importVenuesFromCsv(leagueId, rows);
     setVenueImportResult(result);
-    if (result.imported > 0) {
-      // Refresh venue list from optimistic update approximation
-      const newNames = new Set(venues.map((v) => v.name.toLowerCase()));
-      const addedRows = rows.filter((r) => !newNames.has(r.name.toLowerCase()));
-      // Re-fetch not available in client — will pick up on next navigation; show toast
+    if (result.venues.length > 0) {
+      setVenues((previous) => [...previous, ...result.venues].sort((a, b) => a.name.localeCompare(b.name)));
     }
     setVenueImporting(false);
     if (venueFileRef.current) venueFileRef.current.value = '';
@@ -327,6 +324,9 @@ export function VenuesSettingsClient({
 
     const result = await importAvailabilityFromCsv(leagueId, rows);
     setSchedImportResult({ ...result, errors: [...errors, ...result.errors] });
+    if (result.availability.length > 0) {
+      setAvailability((previous) => [...previous, ...result.availability]);
+    }
     setSchedImporting(false);
     if (schedFileRef.current) schedFileRef.current.value = '';
   };
@@ -380,6 +380,11 @@ export function VenuesSettingsClient({
 
     const result = await importBlackoutsFromCsv(leagueId, rows);
     setBlackoutImportResult({ ...result, errors: [...errors, ...result.errors] });
+    if (result.blackouts.length > 0) {
+      setBlackouts((previous) => [...previous, ...result.blackouts].sort(
+        (a, z) => new Date(a.blackoutDate).getTime() - new Date(z.blackoutDate).getTime()
+      ));
+    }
     setBlackoutImporting(false);
     if (blackoutFileRef.current) blackoutFileRef.current.value = '';
   };

@@ -1,8 +1,10 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { revalidatePath } from 'next/cache';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
+import { seedSeasonParticipationTeams } from '@/lib/seasons/team-participation';
 
 export interface TeamImportRow {
   teamName: string;
@@ -39,6 +41,13 @@ export async function importTeamsFromCSV(
   leagueId: string,
   rows: TeamImportRow[]
 ): Promise<ActionResult<{ imported: number; skipped: number; errors: string[] }>> {
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
   const access = await verifyLeagueOwnerAccess(leagueId);
   if (!access.authorized) {
     return { success: false, error: 'Not authorized' };
@@ -52,7 +61,7 @@ export async function importTeamsFromCSV(
     return { success: false, error: 'Maximum 100 teams per import' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch existing team names to detect duplicates
   const { data: existingTeams } = await supabase
@@ -78,6 +87,7 @@ export async function importTeamsFromCSV(
   const errors: string[] = [];
   let imported = 0;
   let skipped = 0;
+  const importedTeamIds: string[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -115,7 +125,7 @@ export async function importTeamsFromCSV(
       captainId = captain?.id ?? null;
     }
 
-    const { error: insertError } = await supabase
+    const { data: insertedTeam, error: insertError } = await supabase
       .from('teams')
       .insert({
         league_id: leagueId,
@@ -126,7 +136,9 @@ export async function importTeamsFromCSV(
         division_id: divisionId,
         captain_id: captainId,
         status: 'active',
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
       if (insertError.message.includes('duplicate')) {
@@ -139,6 +151,33 @@ export async function importTeamsFromCSV(
 
     existingNames.add(teamName.toLowerCase());
     imported++;
+    if (insertedTeam?.id) {
+      importedTeamIds.push(insertedTeam.id);
+    }
+  }
+
+  if (importedTeamIds.length > 0) {
+    const { data: seasons } = await supabase
+      .from('seasons')
+      .select('id, status, start_date, end_date, created_at')
+      .eq('league_id', leagueId)
+      .order('start_date', { ascending: false });
+
+    const operationalSeason = pickOperationalSeason(seasons ?? []);
+    if (operationalSeason?.id) {
+      try {
+        await seedSeasonParticipationTeams({
+          supabase,
+          leagueId,
+          seasonId: operationalSeason.id,
+          teamIds: importedTeamIds,
+          createdBy: user.id,
+        });
+      } catch (seasonSeedError) {
+        console.error('[importTeamsFromCSV] Failed to seed season participation', seasonSeedError);
+        errors.push('Teams were created, but they could not be linked to the active season automatically.');
+      }
+    }
   }
 
   if (imported > 0) {

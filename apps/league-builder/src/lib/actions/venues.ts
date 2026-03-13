@@ -1,7 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import type { VenueAvailability, VenueBlackoutDate } from '@/lib/schedule/types';
 
 // ============================================================================
 // TYPES
@@ -53,6 +55,79 @@ export interface BlackoutCsvRow {
   reason?: string;
 }
 
+async function requireLeagueVenueAdmin(leagueId: string): Promise<
+  | {
+      success: true;
+      userId: string;
+      serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+    }
+  | {
+      success: false;
+      error: string;
+    }
+> {
+  const authSupabase = await createClient();
+  const { data: { user } } = await authSupabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized to manage this league' };
+  }
+
+  return {
+    success: true,
+    userId: user.id,
+    serviceSupabase: createServiceRoleClient(),
+  };
+}
+
+async function requireVenueAdmin(venueId: string): Promise<
+  | {
+      success: true;
+      leagueId: string;
+      userId: string;
+      serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+    }
+  | {
+      success: false;
+      error: string;
+    }
+> {
+  const authSupabase = await createClient();
+  const { data: { user } } = await authSupabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const serviceSupabase = createServiceRoleClient();
+  const { data: venue, error } = await serviceSupabase
+    .from('venues')
+    .select('id, league_id')
+    .eq('id', venueId)
+    .maybeSingle();
+
+  if (error || !venue) {
+    return { success: false, error: 'Venue not found' };
+  }
+
+  const access = await verifyLeagueOwnerAccess(venue.league_id);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized to manage this league' };
+  }
+
+  return {
+    success: true,
+    leagueId: venue.league_id,
+    userId: user.id,
+    serviceSupabase,
+  };
+}
+
 // ============================================================================
 // VENUE CRUD
 // ============================================================================
@@ -93,13 +168,12 @@ export async function createVenue(
     return { success: false, error: 'Venue name is required' };
   }
 
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, error: 'Not authenticated' };
+  const auth = await requireLeagueVenueAdmin(leagueId);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
   }
 
-  const { data: inserted, error } = await supabase
+  const { data: inserted, error } = await auth.serviceSupabase
     .from('venues')
     .insert({
       league_id: leagueId,
@@ -145,9 +219,12 @@ export async function updateVenue(
     return { success: false, error: 'Venue name is required' };
   }
 
-  const supabase = await createClient();
+  const auth = await requireVenueAdmin(venueId);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
 
-  const { error } = await supabase
+  const { error } = await auth.serviceSupabase
     .from('venues')
     .update({
       name: data.name.trim(),
@@ -173,9 +250,12 @@ export async function updateVenue(
 export async function deleteVenue(
   venueId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const auth = await requireVenueAdmin(venueId);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
 
-  const { error } = await supabase
+  const { error } = await auth.serviceSupabase
     .from('venues')
     .delete()
     .eq('id', venueId);
@@ -200,15 +280,14 @@ export async function deleteVenue(
 export async function importVenuesFromCsv(
   leagueId: string,
   rows: VenueCsvRow[]
-): Promise<{ success: boolean; imported: number; skipped: number; errors: string[] }> {
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, imported: 0, skipped: 0, errors: ['Not authenticated'] };
+): Promise<{ success: boolean; imported: number; skipped: number; errors: string[]; venues: VenueFull[] }> {
+  const auth = await requireLeagueVenueAdmin(leagueId);
+  if (!auth.success) {
+    return { success: false, imported: 0, skipped: 0, errors: [auth.error], venues: [] };
   }
 
   // Fetch existing venue names for this league (for dedup check)
-  const { data: existing } = await supabase
+  const { data: existing } = await auth.serviceSupabase
     .from('venues')
     .select('name')
     .eq('league_id', leagueId);
@@ -220,6 +299,7 @@ export async function importVenuesFromCsv(
   let imported = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const venues: VenueFull[] = [];
 
   for (const row of rows) {
     if (!row.name?.trim()) {
@@ -233,7 +313,7 @@ export async function importVenuesFromCsv(
       continue;
     }
 
-    const { error } = await supabase
+    const { data: inserted, error } = await auth.serviceSupabase
       .from('venues')
       .insert({
         league_id: leagueId,
@@ -243,7 +323,9 @@ export async function importVenuesFromCsv(
         state_province: row.stateProvince?.trim() || null,
         postal_code: row.postalCode?.trim() || null,
         number_of_rinks: row.numberOfRinks || null,
-      });
+      })
+      .select('id, league_id, name, address, city, state_province, postal_code, number_of_rinks, parking_info, created_at')
+      .single();
 
     if (error) {
       errors.push(`"${row.name}": ${error.message}`);
@@ -251,11 +333,25 @@ export async function importVenuesFromCsv(
     } else {
       existingNames.add(row.name.toLowerCase().trim());
       imported++;
+      if (inserted) {
+        venues.push({
+          id: inserted.id,
+          leagueId: inserted.league_id,
+          name: inserted.name,
+          address: inserted.address,
+          city: inserted.city,
+          stateProvince: inserted.state_province,
+          postalCode: inserted.postal_code,
+          numberOfRinks: inserted.number_of_rinks,
+          parkingInfo: inserted.parking_info,
+          createdAt: inserted.created_at,
+        });
+      }
     }
   }
 
   if (imported > 0) revalidatePath('/dashboard');
-  return { success: true, imported, skipped, errors };
+  return { success: true, imported, skipped, errors, venues };
 }
 
 /**
@@ -265,15 +361,14 @@ export async function importVenuesFromCsv(
 export async function importAvailabilityFromCsv(
   leagueId: string,
   rows: AvailabilityCsvRow[]
-): Promise<{ success: boolean; imported: number; skipped: number; errors: string[] }> {
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, imported: 0, skipped: 0, errors: ['Not authenticated'] };
+): Promise<{ success: boolean; imported: number; skipped: number; errors: string[]; availability: VenueAvailability[] }> {
+  const auth = await requireLeagueVenueAdmin(leagueId);
+  if (!auth.success) {
+    return { success: false, imported: 0, skipped: 0, errors: [auth.error], availability: [] };
   }
 
   // Fetch venue list for name matching
-  const { data: venues } = await supabase
+  const { data: venues } = await auth.serviceSupabase
     .from('venues')
     .select('id, name')
     .eq('league_id', leagueId);
@@ -283,7 +378,7 @@ export async function importAvailabilityFromCsv(
   );
 
   // Fetch existing slots for dedup
-  const { data: existing } = await supabase
+  const { data: existing } = await auth.serviceSupabase
     .from('venue_availability')
     .select('venue_id, day_of_week, start_time')
     .eq('league_id', leagueId);
@@ -295,6 +390,7 @@ export async function importAvailabilityFromCsv(
   let imported = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const availability: VenueAvailability[] = [];
 
   for (const row of rows) {
     const venueId = venueMap.get(row.venueName?.toLowerCase?.().trim() ?? '');
@@ -310,7 +406,7 @@ export async function importAvailabilityFromCsv(
       continue;
     }
 
-    const { error } = await supabase
+    const { data: inserted, error } = await auth.serviceSupabase
       .from('venue_availability')
       .insert({
         league_id: leagueId,
@@ -320,8 +416,10 @@ export async function importAvailabilityFromCsv(
         end_time: row.endTime,
         is_available: true,
         max_games: row.maxGames ?? null,
-        created_by: userData.user.id,
-      });
+        created_by: auth.userId,
+      })
+      .select('id, league_id, venue_id, season_id, day_of_week, start_time, end_time, is_available, max_games, notes')
+      .single();
 
     if (error) {
       errors.push(`"${row.venueName}" ${row.startTime}: ${error.message}`);
@@ -329,11 +427,25 @@ export async function importAvailabilityFromCsv(
     } else {
       existingKeys.add(key);
       imported++;
+      if (inserted) {
+        availability.push({
+          id: inserted.id,
+          leagueId: inserted.league_id,
+          venueId: inserted.venue_id,
+          seasonId: inserted.season_id,
+          dayOfWeek: inserted.day_of_week,
+          startTime: inserted.start_time,
+          endTime: inserted.end_time,
+          isAvailable: inserted.is_available,
+          maxGames: inserted.max_games,
+          notes: inserted.notes,
+        });
+      }
     }
   }
 
   if (imported > 0) revalidatePath('/dashboard');
-  return { success: true, imported, skipped, errors };
+  return { success: true, imported, skipped, errors, availability };
 }
 
 /**
@@ -342,15 +454,14 @@ export async function importAvailabilityFromCsv(
 export async function importBlackoutsFromCsv(
   leagueId: string,
   rows: BlackoutCsvRow[]
-): Promise<{ success: boolean; imported: number; skipped: number; errors: string[] }> {
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return { success: false, imported: 0, skipped: 0, errors: ['Not authenticated'] };
+): Promise<{ success: boolean; imported: number; skipped: number; errors: string[]; blackouts: VenueBlackoutDate[] }> {
+  const auth = await requireLeagueVenueAdmin(leagueId);
+  if (!auth.success) {
+    return { success: false, imported: 0, skipped: 0, errors: [auth.error], blackouts: [] };
   }
 
   // Fetch venue list for name matching
-  const { data: venues } = await supabase
+  const { data: venues } = await auth.serviceSupabase
     .from('venues')
     .select('id, name')
     .eq('league_id', leagueId);
@@ -364,6 +475,7 @@ export async function importBlackoutsFromCsv(
   let imported = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const blackouts: VenueBlackoutDate[] = [];
 
   for (const row of rows) {
     const venueId = venueMap.get(row.venueName?.toLowerCase?.().trim() ?? '');
@@ -379,24 +491,37 @@ export async function importBlackoutsFromCsv(
       continue;
     }
 
-    const { error } = await supabase
+    const { data: inserted, error } = await auth.serviceSupabase
       .from('venue_blackout_dates')
       .insert({
         league_id: leagueId,
         venue_id: venueId,
         blackout_date: row.date,
         reason: row.reason?.trim() || null,
-        created_by: userData.user.id,
-      });
+        created_by: auth.userId,
+      })
+      .select('id, league_id, venue_id, blackout_date, start_time, end_time, reason')
+      .single();
 
     if (error) {
       errors.push(`"${row.venueName}" ${row.date}: ${error.message}`);
       skipped++;
     } else {
       imported++;
+      if (inserted) {
+        blackouts.push({
+          id: inserted.id,
+          leagueId: inserted.league_id,
+          venueId: inserted.venue_id,
+          blackoutDate: new Date(inserted.blackout_date),
+          startTime: inserted.start_time,
+          endTime: inserted.end_time,
+          reason: inserted.reason,
+        });
+      }
     }
   }
 
   if (imported > 0) revalidatePath('/dashboard');
-  return { success: true, imported, skipped, errors };
+  return { success: true, imported, skipped, errors, blackouts };
 }
