@@ -2088,7 +2088,7 @@ Retrieves team roster.
 **Example:**
 ```bash
 curl -X GET "https://leaguebuilder.example.com/api/teams/team-uuid/roster?seasonId=season-uuid" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+  -H "Authorization: <YOUR_ACCESS_TOKEN>"
 ```
 
 **Error Responses:**
@@ -2134,7 +2134,7 @@ Adds a player to the roster.
 **Example:**
 ```bash
 curl -X POST "https://leaguebuilder.example.com/api/teams/team-uuid/roster" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: <YOUR_ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "playerId": "player-uuid",
@@ -2192,7 +2192,7 @@ Updates roster entry.
 **Example:**
 ```bash
 curl -X PATCH "https://leaguebuilder.example.com/api/teams/team-uuid/roster/roster-uuid" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: <YOUR_ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{ "status": "injured" }'
 ```
@@ -2221,7 +2221,7 @@ Removes player from roster.
 **Example:**
 ```bash
 curl -X DELETE "https://leaguebuilder.example.com/api/teams/team-uuid/roster/roster-uuid" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+  -H "Authorization: <YOUR_ACCESS_TOKEN>"
 ```
 
 **Error Responses:**

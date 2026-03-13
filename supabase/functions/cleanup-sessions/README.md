@@ -41,7 +41,7 @@ Use a service like Cron-Job.org or GitHub Actions to call the function:
 
 ```bash
 curl -X POST https://YOUR_PROJECT_REF.supabase.co/functions/v1/cleanup-sessions \
-  -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY"
+  -H "Authorization: <YOUR_SERVICE_ROLE_KEY>"
 ```
 
 ## Response Format
