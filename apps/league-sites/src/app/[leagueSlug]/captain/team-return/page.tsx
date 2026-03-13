@@ -82,12 +82,6 @@ function TeamReturnResponseCard({
   const [pendingStatus, setPendingStatus] = useState<ResponseStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setNote(entry.captainResponseNote || '');
-    setDeclinedReason(entry.declinedReason || '');
-    setError(null);
-  }, [entry.captainResponseNote, entry.declinedReason, entry.recordId]);
-
   const submit = async (status: ResponseStatus) => {
     if (status === 'declined' && !declinedReason.trim()) {
       setError('Please tell the league why the team is not returning.');
@@ -280,7 +274,9 @@ export default function CaptainTeamReturnPage({ params }: CaptainTeamReturnPageP
   }, [leagueSlug, seasonId, teamId]);
 
   useEffect(() => {
-    void loadOverview();
+    queueMicrotask(() => {
+      void loadOverview();
+    });
   }, [loadOverview]);
 
   const entryCountLabel = useMemo(() => {
@@ -395,7 +391,7 @@ export default function CaptainTeamReturnPage({ params }: CaptainTeamReturnPageP
 
               {overview.entries.map((entry) => (
                 <TeamReturnResponseCard
-                  key={entry.recordId}
+                  key={`${entry.recordId}:${entry.status}:${entry.captainResponseAt ?? 'none'}:${entry.declinedReason ?? 'none'}`}
                   leagueSlug={leagueSlug}
                   seasonId={overview.targetSeason?.id || seasonId || ''}
                   entry={entry}
