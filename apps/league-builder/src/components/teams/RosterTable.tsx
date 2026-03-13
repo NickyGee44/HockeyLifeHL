@@ -23,8 +23,8 @@ import { Input } from '@/components/ui/input';
 interface RosterPlayer {
   id: string;
   player_id: string;
-  jersey_number: number;
-  position: string;
+  jersey_number: number | null;
+  position: string | null;
   status: string;
   leadership_role: string | null;
   start_date: string;
@@ -161,18 +161,21 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
   // Sort roster: Goalies first, then Defense, then Forwards, then by jersey number
   const sortedRoster = [...roster].sort((a, b) => {
     const positionOrder: Record<string, number> = { goalie: 0, defense: 1, forward: 2 };
-    const posA = positionOrder[a.position.toLowerCase()] ?? 3;
-    const posB = positionOrder[b.position.toLowerCase()] ?? 3;
+    const posA = positionOrder[(a.position || '').toLowerCase()] ?? 3;
+    const posB = positionOrder[(b.position || '').toLowerCase()] ?? 3;
 
     if (posA !== posB) return posA - posB;
-    return a.jersey_number - b.jersey_number;
+    return Number(a.jersey_number ?? 0) - Number(b.jersey_number ?? 0);
   });
 
   // Group by position
   const groupedRoster = {
-    Goalie: sortedRoster.filter((p) => p.position.toLowerCase() === 'goalie'),
-    Defense: sortedRoster.filter((p) => p.position.toLowerCase() === 'defense'),
-    Forward: sortedRoster.filter((p) => p.position.toLowerCase() === 'forward') };
+    Goalie: sortedRoster.filter((p) => (p.position || '').toLowerCase() === 'goalie'),
+    Defense: sortedRoster.filter((p) => (p.position || '').toLowerCase() === 'defense'),
+    Forward: sortedRoster.filter((p) => {
+      const position = (p.position || '').toLowerCase();
+      return position === 'forward' || position === '';
+    }) };
 
   if (loading) {
     return (
@@ -251,7 +254,7 @@ export function RosterTable({ teamId, seasonId }: RosterTableProps) {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <span className="text-xl font-bold text-white">
-                            {player.jersey_number}
+                            {player.jersey_number ?? '—'}
                           </span>
                           {player.leadership_role === 'captain' && (
                             <Crown className="w-4 h-4 text-rink-500" aria-label="Captain" />
@@ -413,8 +416,8 @@ function EditPlayerForm({
   onCancel: () => void;
   isSubmitting: boolean;
 }) {
-  const [jerseyNumber, setJerseyNumber] = useState(player.jersey_number.toString());
-  const [position, setPosition] = useState(player.position);
+  const [jerseyNumber, setJerseyNumber] = useState(player.jersey_number?.toString() ?? '0');
+  const [position, setPosition] = useState(player.position || 'Forward');
   const [status, setStatus] = useState(player.status);
   const [leadershipRole, setLeadershipRole] = useState(player.leadership_role || '');
 

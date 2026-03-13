@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useTransition } from 'react';
 import Image from 'next/image';
+import { useUser } from '@/hooks/useUser';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
 import { MyTeamCard } from '@/components/dashboard/MyTeamCard';
@@ -49,6 +50,8 @@ export default function PlayerDashboard() {
     registrationId: string | null;
   } | null>(null);
 
+  const { session } = useUser();
+
   // First get the league to know which league we're in
   const { league, isLoading: leagueLoading } = useLeague();
 
@@ -58,9 +61,9 @@ export default function PlayerDashboard() {
   // Fetch outstanding balance
   useEffect(() => {
     if (leagueSlug) {
-      getOutstandingBalance(leagueSlug).then(setOutstandingBalance);
+      getOutstandingBalance(leagueSlug, session?.access_token).then(setOutstandingBalance);
     }
-  }, [leagueSlug]);
+  }, [leagueSlug, session?.access_token]);
 
   const handleRetry = async () => {
     setIsRetrying(true);
@@ -156,7 +159,7 @@ export default function PlayerDashboard() {
             href={`/${leagueSlug}/me/payments`}
             className="px-4 py-2 rounded-lg bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 transition-colors flex-shrink-0"
           >
-            Pay Now
+            Pay Online
           </a>
         </div>
       )}

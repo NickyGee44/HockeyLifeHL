@@ -2,6 +2,8 @@
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { sendEmail } from '@/lib/notifications/email-service';
+import { getBaseEmailTemplate, createInfoBox, createDetailsList } from '@/lib/notifications/templates/base';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -21,6 +23,88 @@ export interface TeamInvite {
   inviterName: string | null;
   expiresAt: string;
   createdAt: string;
+}
+
+function buildTeamInviteEmail(params: {
+  teamName: string;
+  seasonName: string;
+  leagueName: string;
+  invitedByName: string;
+  signupUrl: string;
+  inviteStatus: 'pending' | 'auto_added';
+  message?: string | null;
+  expiresAt?: string;
+  leagueLogo?: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
+}) {
+  const {
+    teamName,
+    seasonName,
+    leagueName,
+    invitedByName,
+    signupUrl,
+    inviteStatus,
+    message,
+    expiresAt,
+    leagueLogo,
+    primaryColor,
+    secondaryColor,
+    accentColor,
+  } = params;
+
+  const details = [
+    { label: 'League', value: leagueName },
+    { label: 'Team', value: teamName },
+    { label: 'Season', value: seasonName },
+    { label: 'Invited by', value: invitedByName },
+  ];
+
+  if (expiresAt) {
+    details.push({
+      label: 'Expires',
+      value: new Date(expiresAt).toLocaleDateString('en-CA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }),
+    });
+  }
+
+  const intro =
+    inviteStatus === 'auto_added'
+      ? `<p>You were added to the <strong>${teamName}</strong> roster for the <strong>${seasonName}</strong> season.</p>
+         <p>Sign in to BeerLeagueHockey.ca with this email to review your team details, waivers, schedule, and payments.</p>`
+      : `<p>You’ve been invited to join <strong>${teamName}</strong> for the <strong>${seasonName}</strong> season.</p>
+         <p>Create your account or sign in with this email to get started with waivers, registration, and payments.</p>`;
+
+  const content = `
+    <p>Hi there,</p>
+    ${intro}
+    ${createDetailsList(details)}
+    ${message ? createInfoBox(`<strong>Message from ${invitedByName}</strong><br>${message}`) : ''}
+    ${inviteStatus === 'pending'
+      ? createInfoBox('Use the same email address this invite was sent to when you create your account so league staff can match your invite quickly.')
+      : ''}
+  `;
+
+  return getBaseEmailTemplate({
+    title: inviteStatus === 'auto_added' ? `You were added to ${teamName}` : `Invitation to join ${teamName}`,
+    preheader:
+      inviteStatus === 'auto_added'
+        ? `You were added to ${teamName} in ${leagueName}`
+        : `Join ${teamName} for the ${seasonName} season`,
+    content,
+    buttonText: inviteStatus === 'auto_added' ? 'Open Dashboard' : 'Create Account or Sign In',
+    buttonUrl: signupUrl,
+    footerNote: 'If you were not expecting this invite, you can ignore this email.',
+    leagueName,
+    leagueLogo: leagueLogo || undefined,
+    primaryColor: primaryColor || undefined,
+    secondaryColor: secondaryColor || undefined,
+    accentColor: accentColor || undefined,
+  });
 }
 
 // ============================================================================
@@ -51,13 +135,38 @@ export async function sendTeamInvite(
   // Verify captain access
   const { data: team } = await supabase
     .from('teams')
-    .select('id, name, captain_id, league_id')
+    .select(`
+      id,
+      name,
+      captain_id,
+      league_id,
+      leagues (
+        name,
+        logo_url,
+        primary_color,
+        secondary_color,
+        accent_color
+      )
+    `)
     .eq('id', teamId)
     .single();
 
   if (!team) {
     return { success: false, error: 'Team not found' };
   }
+
+  const [{ data: inviter }, { data: season }] = await Promise.all([
+    serviceSupabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle(),
+    serviceSupabase
+      .from('seasons')
+      .select('name')
+      .eq('id', seasonId)
+      .maybeSingle(),
+  ]);
 
   if (team.captain_id !== user.id) {
     // Check if the current user is a league admin/owner via league_memberships
@@ -82,6 +191,21 @@ export async function sendTeamInvite(
     .maybeSingle();
 
   const alreadyHasAccount = !!existingProfile;
+
+  if (existingProfile) {
+    const { data: existingRoster } = await serviceSupabase
+      .from('team_rosters')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('player_id', existingProfile.id)
+      .eq('season_id', seasonId)
+      .is('end_date', null)
+      .maybeSingle();
+
+    if (existingRoster) {
+      return { success: false, error: 'This player is already on the roster for this season' };
+    }
+  }
 
   // Check for existing pending invite to same team/season
   const { data: existingInvite } = await serviceSupabase
@@ -108,7 +232,7 @@ export async function sendTeamInvite(
       status: 'pending',
       message: message || null,
     } as any)
-    .select('id')
+    .select('id, expires_at')
     .single();
 
   if (error || !invite) {
@@ -118,26 +242,93 @@ export async function sendTeamInvite(
     return { success: false, error: 'Failed to send invite' };
   }
 
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca').replace(/\/$/, '');
+  const signupUrl = `${siteUrl}/en/signup?teamInvite=${invite.id}`;
+  const leagueBranding = Array.isArray(team.leagues) ? team.leagues[0] : team.leagues;
+  const inviterName = inviter?.full_name || 'Your league administrator';
+  const seasonName = season?.name || 'upcoming season';
+  const leagueName = leagueBranding?.name || 'Beer League Hockey';
+
   // If the player already has an account, auto-accept the invite and add to roster
   if (existingProfile) {
-    await serviceSupabase
-      .from('team_invites')
-      .update({ status: 'accepted', accepted_by: existingProfile.id } as any)
-      .eq('id', invite.id);
-
-    await serviceSupabase
+    const { error: rosterInsertError } = await serviceSupabase
       .from('team_rosters')
       .insert({
         team_id: teamId,
         player_id: existingProfile.id,
         league_id: team!.league_id,
         season_id: seasonId,
+        jersey_number: 99,
+        position: 'Forward',
         status: 'active',
         start_date: new Date().toISOString().split('T')[0],
       } as any);
+
+    if (rosterInsertError) {
+      if (isDevelopment) {
+        console.error('[team-invites] Failed to auto-add existing player to roster:', rosterInsertError.message);
+      }
+      return { success: false, error: `Failed to add player to roster: ${rosterInsertError.message}` };
+    }
+
+    const { error: acceptInviteError } = await serviceSupabase
+      .from('team_invites')
+      .update({ status: 'accepted', accepted_by: existingProfile.id } as any)
+      .eq('id', invite.id);
+
+    if (acceptInviteError && isDevelopment) {
+      console.error('[team-invites] Failed to mark invite accepted:', acceptInviteError.message);
+    }
+
+    await sendEmail({
+      to: email.toLowerCase().trim(),
+      subject: `You were added to ${team.name} in ${leagueName}`,
+      html: buildTeamInviteEmail({
+        teamName: team.name,
+        seasonName,
+        leagueName,
+        invitedByName: inviterName,
+        signupUrl,
+        inviteStatus: 'auto_added',
+        message: message || null,
+        expiresAt: undefined,
+        leagueLogo: leagueBranding?.logo_url || null,
+        primaryColor: leagueBranding?.primary_color || null,
+        secondaryColor: leagueBranding?.secondary_color || null,
+        accentColor: leagueBranding?.accent_color || null,
+      }),
+      tags: [
+        { name: 'type', value: 'team_invite' },
+        { name: 'team_id', value: teamId },
+      ],
+    });
+  } else {
+    await sendEmail({
+      to: email.toLowerCase().trim(),
+      subject: `You’ve been invited to join ${team.name}`,
+      html: buildTeamInviteEmail({
+        teamName: team.name,
+        seasonName,
+        leagueName,
+        invitedByName: inviterName,
+        signupUrl,
+        inviteStatus: 'pending',
+        message: message || null,
+        expiresAt: invite.expires_at || undefined,
+        leagueLogo: leagueBranding?.logo_url || null,
+        primaryColor: leagueBranding?.primary_color || null,
+        secondaryColor: leagueBranding?.secondary_color || null,
+        accentColor: leagueBranding?.accent_color || null,
+      }),
+      tags: [
+        { name: 'type', value: 'team_invite' },
+        { name: 'team_id', value: teamId },
+      ],
+    });
   }
 
   revalidatePath(`/dashboard/leagues/${team!.league_id}`);
+  revalidatePath(`/dashboard/teams/${teamId}`);
 
   return { success: true, inviteId: invite.id, alreadyHasAccount };
 }

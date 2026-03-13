@@ -19,10 +19,12 @@ import {
   Handshake,
   Shuffle,
   Database,
+  ClipboardCheck,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import { AnnouncementComposerButton } from '@/components/news/AnnouncementComposerButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { getSignedWaivers } from '@/lib/actions/waiver-management';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
 
@@ -84,6 +86,7 @@ export default async function LeagueDetailPage({ params }: Props) {
     { count: pendingGames },
     { count: activeSuspensions },
     { count: unreadMessages },
+    signedWaiversResult,
   ] = await Promise.all([
     (supabase.from('registration_submissions') as any)
       .select('*', { count: 'exact', head: true })
@@ -107,7 +110,11 @@ export default async function LeagueDetailPage({ params }: Props) {
       .select('*', { count: 'exact', head: true })
       .eq('league_id', leagueId)
       .eq('is_read', false),
+    getSignedWaivers(leagueId, { limit: 5 }),
   ]);
+
+  const signedWaivers = signedWaiversResult.success ? signedWaiversResult.data?.waivers || [] : [];
+  const signedWaiversTotal = signedWaiversResult.success ? signedWaiversResult.data?.total || 0 : 0;
 
   const pendingActions = [
     pendingRegistrations && { label: `${pendingRegistrations} pending registration${pendingRegistrations === 1 ? '' : 's'}`, href: `/${locale}/dashboard/leagues/${leagueId}/registrations?status=pending`, color: 'yellow' },
@@ -282,6 +289,16 @@ export default async function LeagueDetailPage({ params }: Props) {
             description={t('playerPaymentsDescription')}
           />
           <QuickActionButton
+            href={`/${locale}/dashboard/leagues/${leagueId}/settings/waiver`}
+            icon={<ClipboardCheck className="w-5 h-5" />}
+            title="Waivers"
+            description={
+              signedWaiversTotal > 0
+                ? `${signedWaiversTotal} signature${signedWaiversTotal === 1 ? '' : 's'} on file`
+                : 'Manage the waiver and track signatures'
+            }
+          />
+          <QuickActionButton
             href={`/${locale}/dashboard/leagues/${leagueId}/settings`}
             icon={<Settings className="w-5 h-5" />}
             title={t('settings')}
@@ -305,6 +322,50 @@ export default async function LeagueDetailPage({ params }: Props) {
             title={t('awards')}
             description={t('awardsDescription')}
           />
+        </div>
+
+        <div className="mb-8">
+          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-500">
+                  Waiver Signatures
+                </p>
+                <h2 className="mt-2 text-lg font-bold text-white">
+                  {signedWaiversTotal > 0
+                    ? `${signedWaiversTotal} player${signedWaiversTotal === 1 ? '' : 's'} have signed`
+                    : 'No waiver signatures yet'}
+                </h2>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Signed waivers now surface here so you do not have to dig through settings to confirm them.
+                </p>
+              </div>
+              <Link
+                href={`/${locale}/dashboard/leagues/${leagueId}/settings/waiver`}
+                className="inline-flex items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-200 transition-colors hover:bg-cyan-400/20"
+              >
+                Open Waiver Manager
+              </Link>
+            </div>
+
+            {signedWaivers.length > 0 && (
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {signedWaivers.map((waiver) => (
+                  <div
+                    key={waiver.id}
+                    className="rounded-xl border border-white/10 bg-black/20 px-4 py-3"
+                  >
+                    <p className="font-semibold text-white">{waiver.player_name}</p>
+                    <p className="text-sm text-neutral-400">{waiver.player_email || 'Email unavailable'}</p>
+                    <p className="mt-2 text-xs text-neutral-500">
+                      {waiver.season_name || 'League-wide waiver'} •{' '}
+                      {waiver.agreed_at ? new Date(waiver.agreed_at).toLocaleString() : 'Signed recently'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Seasons Section */}

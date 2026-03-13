@@ -357,7 +357,7 @@ export async function getSignedWaivers(
       return { success: false, error: access.error || 'Access denied' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { search, limit = 20, offset = 0 } = opts;
 
     let query = supabase

@@ -116,45 +116,27 @@ export function PlayerPicker({
                 <button
                   key={player.id}
                   onClick={() => onSelect(player)}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-surface-hover,var(--color-surface))] transition-all duration-150 active:scale-95 min-h-[90px] justify-center"
+                  className="relative flex min-h-[108px] flex-col items-center justify-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-3 transition-all duration-150 active:scale-95 hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-surface-hover,var(--color-surface))]"
                 >
-                  {/* Avatar or Jersey Number */}
-                  <div className="relative">
-                    {player.avatarUrl ? (
-                      <>
-                        <Image
-                          src={player.avatarUrl}
-                          alt={player.fullName}
-                          width={44}
-                          height={44}
-                          className="w-11 h-11 rounded-full object-cover border-2"
-                          style={{ borderColor: teamColor || 'var(--color-border)' }}
-                        />
-                        <div
-                          className="absolute -bottom-1 -right-1 flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold border-2 border-[var(--color-background)]"
-                          style={{
-                            backgroundColor: teamColor || 'var(--league-primary, #d4af37)',
-                            color: '#fff',
-                          }}
-                        >
-                          {player.jerseyNumber}
-                        </div>
-                      </>
-                    ) : (
-                      <div
-                        className="flex items-center justify-center w-11 h-11 rounded-full font-bold text-lg"
-                        style={{
-                          backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
-                          color: teamColor || 'var(--color-text-primary)',
-                        }}
-                      >
-                        {player.jerseyNumber}
-                      </div>
-                    )}
+                  {player.avatarUrl ? (
+                    <Image
+                      src={player.avatarUrl}
+                      alt={player.fullName}
+                      width={22}
+                      height={22}
+                      className="absolute right-2 top-2 h-5 w-5 rounded-full border object-cover"
+                      style={{ borderColor: teamColor || 'var(--color-border)' }}
+                    />
+                  ) : null}
+
+                  <div
+                    className="text-3xl font-black leading-none tabular-nums sm:text-4xl"
+                    style={{ color: teamColor || 'var(--color-text-primary)' }}
+                  >
+                    {player.jerseyNumber}
                   </div>
 
-                  {/* Last name */}
-                  <div className="text-xs font-medium text-[var(--color-text-primary)] truncate w-full text-center">
+                  <div className="w-full truncate text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-primary)]">
                     {player.fullName.split(' ').pop()}
                   </div>
 

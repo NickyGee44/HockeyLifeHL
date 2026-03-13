@@ -47,6 +47,33 @@ interface RegistrationPaymentHistory {
   payment_method?: string;
 }
 
+interface RegistrationPaymentRegistration {
+  id: string;
+  season_id: string;
+  team_id: string | null;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'waitlisted' | 'pending';
+  payment_status: 'pending' | 'paid' | 'partial' | 'refunded' | 'failed' | 'completed' | 'not_required';
+  amount_paid_cents: number;
+  stripe_payment_intent_id: string | null;
+  created_at: string;
+  season?: {
+    id: string;
+    name: string;
+    start_date: string;
+    end_date: string;
+  } | null;
+  team?: {
+    id: string;
+    name: string;
+    logo: string | null;
+  } | null;
+  registration_type?: {
+    id: string;
+    name: string;
+    fee_amount_cents: number;
+  };
+}
+
 // ============================================================================
 // Stripe Client (Lazy Initialization)
 // ============================================================================
@@ -112,10 +139,110 @@ function calculateApplicationFee(amountCents: number): number {
 // Helper: Get Current Player ID
 // ============================================================================
 
-async function getCurrentPlayerId(): Promise<string | null> {
+async function getCurrentPlayerId(accessToken?: string): Promise<string | null> {
+  if (accessToken) {
+    const serviceSupabase = createServiceRoleClient();
+    const { data, error } = await serviceSupabase.auth.getUser(accessToken);
+    if (error) {
+      console.error('[Registration Payments] Token auth error:', error);
+      return null;
+    }
+    return data.user?.id || null;
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   return user?.id || null;
+}
+
+async function getLeagueIdForSlug(leagueSlug: string): Promise<string | null> {
+  const serviceSupabase = createServiceRoleClient();
+  const { data: league } = await serviceSupabase
+    .from('leagues')
+    .select('id')
+    .eq('slug', leagueSlug)
+    .single();
+
+  return league?.id || null;
+}
+
+async function getPlayerRegistrationRowsForLeague(leagueSlug: string, accessToken?: string) {
+  const playerId = await getCurrentPlayerId(accessToken);
+  if (!playerId) {
+    return { playerId: null, leagueId: null, rows: [] as any[] };
+  }
+
+  const leagueId = await getLeagueIdForSlug(leagueSlug);
+  if (!leagueId) {
+    return { playerId, leagueId: null, rows: [] as any[] };
+  }
+
+  const serviceSupabase = createServiceRoleClient();
+  const { data: rows, error } = await serviceSupabase
+    .from('registration_submissions')
+    .select(`
+      id,
+      season_id,
+      team_id,
+      status,
+      payment_status,
+      amount_paid_cents,
+      fee_amount_cents,
+      currency,
+      stripe_payment_intent_id,
+      created_at,
+      registration_type
+    `)
+    .eq('player_id', playerId)
+    .eq('league_id', leagueId)
+    .neq('payment_status', 'not_required')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[Registration Payments] Registration rows fetch error:', error);
+    return { playerId, leagueId, rows: [] as any[] };
+  }
+
+  const seasonIds = [...new Set((rows || []).map((row: any) => row.season_id).filter(Boolean))];
+  const teamIds = [...new Set((rows || []).map((row: any) => row.team_id).filter(Boolean))];
+
+  const [seasonsResult, teamsResult] = await Promise.all([
+    seasonIds.length > 0
+      ? serviceSupabase
+          .from('seasons')
+          .select('id, name, start_date, end_date')
+          .in('id', seasonIds)
+      : Promise.resolve({ data: [], error: null }),
+    teamIds.length > 0
+      ? serviceSupabase
+          .from('teams')
+          .select('id, name, logo_url')
+          .in('id', teamIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (seasonsResult.error) {
+    console.error('[Registration Payments] Seasons fetch error:', seasonsResult.error);
+  }
+
+  if (teamsResult.error) {
+    console.error('[Registration Payments] Teams fetch error:', teamsResult.error);
+  }
+
+  const seasonsById = new Map((seasonsResult.data || []).map((season: any) => [season.id, season]));
+  const teamsById = new Map((teamsResult.data || []).map((team: any) => [team.id, team]));
+
+  const hydratedRows = (rows || []).map((row: any) => ({
+    ...row,
+    season: seasonsById.get(row.season_id) || null,
+    team: teamsById.get(row.team_id) || null,
+  }));
+
+  return {
+    playerId,
+    leagueId,
+    rows: hydratedRows,
+  };
 }
 
 // ============================================================================
@@ -626,42 +753,25 @@ interface OutstandingBalance {
 }
 
 export async function getOutstandingBalance(
-  leagueSlug: string
+  leagueSlug: string,
+  accessToken?: string
 ): Promise<OutstandingBalance> {
   try {
-    const playerId = await getCurrentPlayerId();
+    const { playerId, rows } = await getPlayerRegistrationRowsForLeague(leagueSlug, accessToken);
     if (!playerId) {
       return { hasBalance: false, amountCents: 0, registrationId: null };
     }
 
-    const supabase = await createClient();
-
-    // Get league ID from slug
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('id')
-      .eq('slug', leagueSlug)
-      .single();
-
-    if (!league) {
+    if (!rows || rows.length === 0) {
       return { hasBalance: false, amountCents: 0, registrationId: null };
     }
 
-    // Find registrations with pending payment
-    const { data: registrations } = await supabase
-      .from('registration_submissions')
-      .select('id, fee_amount_cents, amount_paid_cents, payment_status')
-      .eq('player_id', playerId)
-      .eq('league_id', league.id)
-      .in('payment_status', ['pending', 'draft'])
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (!registrations || registrations.length === 0) {
-      return { hasBalance: false, amountCents: 0, registrationId: null };
-    }
-
-    const reg = registrations[0];
+    const reg =
+      rows.find(
+        (row: {
+          payment_status: RegistrationPaymentRegistration['payment_status'];
+        }) => ['pending', 'draft'].includes(row.payment_status)
+      ) || rows[0];
     const amountOwed = (reg.fee_amount_cents || 0) - (reg.amount_paid_cents || 0);
 
     if (amountOwed <= 0) {
@@ -684,52 +794,17 @@ export async function getOutstandingBalance(
 // ============================================================================
 
 export async function getRegistrationPaymentHistory(
-  leagueSlug: string
+  leagueSlug: string,
+  accessToken?: string
 ): Promise<ActionResult<RegistrationPaymentHistory[]>> {
   try {
-    const playerId = await getCurrentPlayerId();
+    const { playerId, rows } = await getPlayerRegistrationRowsForLeague(leagueSlug, accessToken);
     if (!playerId) {
       return { success: false, error: 'Authentication required.' };
     }
 
-    const supabase = await createClient();
-
-    // Get league ID from slug
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('id')
-      .eq('slug', leagueSlug)
-      .single();
-
-    if (!league) {
-      return { success: false, error: 'League not found.' };
-    }
-
-    // Fetch completed payments for this player in this league
-    const { data: registrations, error } = await supabase
-      .from('registration_submissions')
-      .select(`
-        id,
-        registration_type,
-        payment_status,
-        amount_paid_cents,
-        fee_amount_cents,
-        currency,
-        created_at,
-        stripe_payment_intent_id
-      `)
-      .eq('player_id', playerId)
-      .eq('league_id', league.id)
-      .neq('payment_status', 'not_required')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[Registration Payments] Fetch history error:', error);
-      return { success: false, error: 'Failed to fetch payment history.' };
-    }
-
     // Transform to payment history format
-    const history: RegistrationPaymentHistory[] = (registrations || []).map((reg) => ({
+    const history: RegistrationPaymentHistory[] = (rows || []).map((reg: any) => ({
       id: reg.id,
       amount: reg.amount_paid_cents || 0,
       status: reg.payment_status === 'completed' ? 'succeeded' :
@@ -744,5 +819,49 @@ export async function getRegistrationPaymentHistory(
   } catch (error) {
     console.error('[Registration Payments] Get history error:', error);
     return { success: false, error: 'Failed to fetch payment history.' };
+  }
+}
+
+export async function getRegistrationPaymentRegistrations(
+  leagueSlug: string,
+  accessToken?: string
+): Promise<ActionResult<RegistrationPaymentRegistration[]>> {
+  try {
+    const { playerId, rows } = await getPlayerRegistrationRowsForLeague(leagueSlug, accessToken);
+    if (!playerId) {
+      return { success: false, error: 'Authentication required.' };
+    }
+
+    const registrations: RegistrationPaymentRegistration[] = (rows || []).map((reg: any) => {
+      const rawTeam = Array.isArray(reg.team) ? reg.team[0] : reg.team;
+
+      return {
+        id: reg.id,
+        season_id: reg.season_id,
+        team_id: reg.team_id,
+        status: reg.status,
+        payment_status: reg.payment_status,
+        amount_paid_cents: reg.amount_paid_cents || 0,
+        stripe_payment_intent_id: reg.stripe_payment_intent_id,
+        created_at: reg.created_at,
+        season: Array.isArray(reg.season) ? reg.season[0] : reg.season,
+        team: rawTeam
+          ? {
+              ...rawTeam,
+              logo: rawTeam.logo_url || null,
+            }
+          : null,
+        registration_type: {
+          id: reg.id,
+          name: `${reg.registration_type} Registration`,
+          fee_amount_cents: reg.fee_amount_cents || 0,
+        },
+      };
+    });
+
+    return { success: true, data: registrations };
+  } catch (error) {
+    console.error('[Registration Payments] Get registrations error:', error);
+    return { success: false, error: 'Failed to load registrations.' };
   }
 }

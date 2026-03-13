@@ -197,31 +197,31 @@ function PenaltyCard({
     <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${severityClass} ${
       align === 'right' ? 'flex-row-reverse' : ''
     }`}>
-      {/* Player avatar/jersey */}
-      {player?.avatarUrl ? (
-        <Image
-          src={player.avatarUrl}
-          alt={player.fullName}
-          width={24}
-          height={24}
-          className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-        />
-      ) : (
+      <div className="relative flex-shrink-0">
+        {player?.avatarUrl ? (
+          <Image
+            src={player.avatarUrl}
+            alt={player.fullName}
+            width={24}
+            height={24}
+            className="h-6 w-6 rounded-full object-cover opacity-35"
+          />
+        ) : null}
         <div
-          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+          className="flex h-8 min-w-8 items-center justify-center rounded-md px-1 text-sm font-black tabular-nums"
           style={{
             backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
-            color: teamColor || 'var(--color-text-secondary)',
+            color: teamColor || 'var(--color-text-primary)',
           }}
         >
           {player?.jerseyNumber ?? '?'}
         </div>
-      )}
+      </div>
 
       {/* Penalty info */}
       <div className={`flex-1 min-w-0 ${align === 'right' ? 'text-right' : ''}`}>
         <div className="text-[10px] text-[var(--color-text-secondary)] truncate leading-tight">
-          #{player?.jerseyNumber} {abbrev}
+          <span className="font-bold text-[var(--color-text-primary)]">#{player?.jerseyNumber ?? '?'}</span> {abbrev}
           {isDoubleMinor && <span className="ml-0.5 font-bold">(2x)</span>}
           {isMisconduct && <span className="ml-0.5 opacity-60">no PP</span>}
         </div>

@@ -4,6 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/notifications/email-service';
+import { verifyLeagueOwnerAccess } from './permissions';
 import {
   getGoalieRequestNotificationEmail,
   getGoalieRequestFilledCaptainEmail,
@@ -280,6 +281,11 @@ async function getCurrentUserId(): Promise<string | null> {
 }
 
 async function verifyLeagueAdmin(leagueId: string, userId: string): Promise<boolean> {
+  const leagueOwnerAccess = await verifyLeagueOwnerAccess(leagueId);
+  if (leagueOwnerAccess.authorized) {
+    return true;
+  }
+
   const supabase = await createClient();
 
   const { data: league } = await supabase
@@ -393,7 +399,7 @@ export async function addGoalieToPool(leagueId: string, goalieData: AddGoalieInp
     const isAdmin = await verifyLeagueAdmin(leagueId, userId);
     if (!isAdmin) return { success: false, error: 'Not authorized to manage goalie pool' };
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { data, error } = await (supabase as any)
       .from('goalie_pool' as any)
       .insert({
@@ -431,7 +437,7 @@ export async function updateGoalie(goalieId: string, updates: Partial<AddGoalieI
       return { success: false, error: 'Roster goalies are read-only here' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { data: existing } = await (supabase as any)
       .from('goalie_pool' as any)
       .select('league_id')
@@ -470,7 +476,7 @@ export async function removeGoalie(goalieId: string): Promise<ActionResult<{ id:
       return { success: false, error: 'Roster goalies cannot be removed from this view' };
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { data: existing } = await (supabase as any)
       .from('goalie_pool' as any)
       .select('league_id')

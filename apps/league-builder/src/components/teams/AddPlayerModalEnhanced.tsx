@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@hockey-life/ui';
+import { sendTeamInvite } from '@/lib/actions/team-invites';
 import {
   Dialog,
   DialogContent,
@@ -56,7 +57,12 @@ export function AddPlayerModalEnhanced({
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [position, setPosition] = useState('Forward');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -68,6 +74,10 @@ export function AddPlayerModalEnhanced({
       setJerseyNumber('');
       setPosition('Forward');
       setError(null);
+      setSuccessMessage(null);
+      setShowInviteForm(false);
+      setInviteEmail('');
+      setInviteMessage('');
     }
   }, [isOpen]);
 
@@ -113,6 +123,56 @@ export function AddPlayerModalEnhanced({
     setSelectedPlayer(player);
     setStep('details');
     setError(null);
+    setSuccessMessage(null);
+  };
+
+  const handleInvitePlayer = async () => {
+    if (!seasonId) {
+      setError('Create or activate a season before sending team invites.');
+      return;
+    }
+
+    if (!inviteEmail.trim()) {
+      setError('Enter an email address to send the invite.');
+      return;
+    }
+
+    setIsInviting(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const result = await sendTeamInvite(
+        teamId,
+        seasonId,
+        inviteEmail.trim(),
+        inviteMessage.trim() || undefined
+      );
+
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      setSuccessMessage(
+        result.alreadyHasAccount
+          ? 'Player already had an account and was added to the roster.'
+          : 'Invite email sent successfully.'
+      );
+
+      setInviteEmail('');
+      setInviteMessage('');
+
+      if (result.alreadyHasAccount) {
+        onSuccess?.();
+        onClose();
+        return;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send invite');
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   const handleAddPlayer = async () => {
@@ -172,6 +232,13 @@ export function AddPlayerModalEnhanced({
           <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
             <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
             <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+            <p className="text-sm text-green-400">{successMessage}</p>
           </div>
         )}
 
@@ -240,8 +307,9 @@ export function AddPlayerModalEnhanced({
             <div className="pt-4 border-t border-neutral-800">
               <button
                 onClick={() => {
-                  // TODO: Implement invite flow
-                  setError('Invite feature coming soon');
+                  setShowInviteForm((value) => !value);
+                  setError(null);
+                  setSuccessMessage(null);
                 }}
                 className={cn(
                   'w-full flex items-center gap-3 p-3 rounded-xl transition-colors',
@@ -259,6 +327,81 @@ export function AddPlayerModalEnhanced({
                   </p>
                 </div>
               </button>
+
+              {showInviteForm && (
+                <div className="mt-3 space-y-3 rounded-xl border border-neutral-800 bg-neutral-950/60 p-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-neutral-300">
+                      Player Email <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="email"
+                      placeholder="player@example.com"
+                      value={inviteEmail}
+                      onChange={(event) => setInviteEmail(event.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-neutral-300">
+                      Message
+                    </label>
+                    <textarea
+                      value={inviteMessage}
+                      onChange={(event) => setInviteMessage(event.target.value)}
+                      rows={3}
+                      placeholder="Optional message for the player"
+                      className={cn(
+                        'w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2',
+                        'text-sm text-white placeholder:text-neutral-500',
+                        'focus:border-rink-500 focus:outline-none focus:ring-2 focus:ring-rink-500/20'
+                      )}
+                    />
+                  </div>
+
+                  {!seasonId && (
+                    <p className="text-xs text-yellow-400">
+                      A current season is required before you can invite a player to join this roster.
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowInviteForm(false);
+                        setInviteEmail('');
+                        setInviteMessage('');
+                        setError(null);
+                      }}
+                      className="px-3 py-2 text-sm text-neutral-400 hover:text-white transition-colors"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleInvitePlayer}
+                      disabled={isInviting || !inviteEmail.trim() || !seasonId}
+                      className={cn(
+                        'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors',
+                        'bg-rink-500 text-black hover:bg-rink-400 disabled:cursor-not-allowed disabled:opacity-50'
+                      )}
+                    >
+                      {isInviting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4" />
+                          Send Invite
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (

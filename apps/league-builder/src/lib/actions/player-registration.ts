@@ -133,6 +133,37 @@ interface PendingRegistration {
   } | null;
 }
 
+interface WaiverFallbackRecord {
+  id: string;
+  player_id: string;
+  season_id: string | null;
+  signed_name: string;
+  agreed_at: string | null;
+}
+
+function normalizeWaiverSignature(input: {
+  signatureType?: 'drawn' | 'typed' | 'checkbox';
+  signatureData?: string;
+  signedName?: string;
+  fallbackName?: string;
+}) {
+  const signedName = (input.signedName || input.fallbackName || '').trim();
+
+  if (input.signatureType === 'drawn') {
+    return {
+      signatureType: 'drawn' as const,
+      signatureData: input.signatureData || signedName || 'signed',
+      signedName,
+    };
+  }
+
+  return {
+    signatureType: 'typed' as const,
+    signatureData: signedName || input.signatureData || 'Waiver accepted',
+    signedName,
+  };
+}
+
 type OfflineRegistrationPaymentMethod =
   | 'e_transfer'
   | 'cash'
@@ -197,6 +228,72 @@ async function verifyLeagueAdminAccess(leagueId: string) {
   }
 
   return { userId: user.id };
+}
+
+async function attachWaiverFallbackToRegistrations(
+  leagueId: string,
+  registrations: PendingRegistration[]
+): Promise<PendingRegistration[]> {
+  const missingWaiverRegistrations = registrations.filter((registration) => !registration.waiver);
+
+  if (missingWaiverRegistrations.length === 0) {
+    return registrations;
+  }
+
+  const playerIds = Array.from(
+    new Set(missingWaiverRegistrations.map((registration) => registration.player_id))
+  );
+
+  if (playerIds.length === 0) {
+    return registrations;
+  }
+
+  const supabase = createServiceRoleClient();
+  const { data: waiverRows, error } = await supabase
+    .from('player_waivers')
+    .select('id, player_id, season_id, signed_name, agreed_at')
+    .eq('league_id', leagueId)
+    .in('player_id', playerIds)
+    .order('agreed_at', { ascending: false });
+
+  if (error || !waiverRows) {
+    if (error) {
+      console.error('Attach waiver fallback error:', error);
+    }
+    return registrations;
+  }
+
+  const waiversByPlayer = new Map<string, WaiverFallbackRecord[]>();
+  for (const row of waiverRows as WaiverFallbackRecord[]) {
+    const existing = waiversByPlayer.get(row.player_id) || [];
+    existing.push(row);
+    waiversByPlayer.set(row.player_id, existing);
+  }
+
+  return registrations.map((registration) => {
+    if (registration.waiver) {
+      return registration;
+    }
+
+    const playerWaivers = waiversByPlayer.get(registration.player_id) || [];
+    const seasonSpecific =
+      playerWaivers.find((waiver) => waiver.season_id === registration.season_id) || null;
+    const leagueWide = playerWaivers.find((waiver) => waiver.season_id === null) || null;
+    const fallbackWaiver = seasonSpecific || leagueWide;
+
+    if (!fallbackWaiver) {
+      return registration;
+    }
+
+    return {
+      ...registration,
+      waiver: {
+        id: fallbackWaiver.id,
+        signed_name: fallbackWaiver.signed_name,
+        agreed_at: fallbackWaiver.agreed_at || '',
+      },
+    };
+  });
 }
 
 // ============================================================================
@@ -870,9 +967,28 @@ export async function submitPlayerRegistration(
         .eq('player_id', user.id)
         .eq('league_id', data.league_id)
         .eq('season_id', data.season_id)
-        .single();
+        .maybeSingle();
 
       if (existingWaiver) {
+        const normalizedSignature = normalizeWaiverSignature({
+          signatureType: data.signature_type,
+          signatureData: data.signature_data,
+          signedName: data.signed_name,
+          fallbackName: data.full_name,
+        });
+
+        await serviceSupabase
+          .from('player_waivers')
+          .update({
+            waiver_accepted: true,
+            waiver_accepted_at: new Date().toISOString(),
+            agreed_at: new Date().toISOString(),
+            signature_type: normalizedSignature.signatureType as any,
+            signature_data: normalizedSignature.signatureData,
+            signed_name: normalizedSignature.signedName,
+          })
+          .eq('id', existingWaiver.id);
+
         waiverId = existingWaiver.id;
       } else {
         // Get waiver template hash and player name for checkbox flow
@@ -884,9 +1000,12 @@ export async function submitPlayerRegistration(
           .single();
 
         // For checkbox flow, use player's full name as signed_name
-        const signedName = data.signed_name || data.full_name;
-        const signatureData = data.signature_data || 'checkbox_agreed';
-        const signatureType = data.signature_type || 'checkbox';
+        const normalizedSignature = normalizeWaiverSignature({
+          signatureType: data.signature_type,
+          signatureData: data.signature_data,
+          signedName: data.signed_name,
+          fallbackName: data.full_name,
+        });
 
         const { data: newWaiver, error: waiverError } = await serviceSupabase
           .from('player_waivers')
@@ -894,11 +1013,14 @@ export async function submitPlayerRegistration(
             player_id: user.id,
             league_id: data.league_id,
             season_id: data.season_id,
-            signature_data: signatureData,
-            signature_type: signatureType as any,
-            signed_name: signedName,
+            signature_data: normalizedSignature.signatureData,
+            signature_type: normalizedSignature.signatureType as any,
+            signed_name: normalizedSignature.signedName,
             waiver_version: template?.version || 'v1',
             waiver_content_hash: template?.content_hash || '',
+            waiver_accepted: true,
+            waiver_accepted_at: new Date().toISOString(),
+            agreed_at: new Date().toISOString(),
           })
           .select('id')
           .single();
@@ -1238,10 +1360,15 @@ export async function getPendingRegistrations(
       return { success: false, error: 'Failed to fetch registrations.' };
     }
 
+    const hydratedRegistrations = await attachWaiverFallbackToRegistrations(
+      leagueId,
+      ((registrations || []) as unknown as PendingRegistration[])
+    );
+
     return {
       success: true,
       data: {
-        registrations: (registrations || []) as unknown as PendingRegistration[],
+        registrations: hydratedRegistrations,
         total: count || 0,
       },
     };
@@ -1300,9 +1427,14 @@ export async function getRegistrationDetails(
       return { success: false, error: 'Registration not found.' };
     }
 
+    const [hydratedRegistration] = await attachWaiverFallbackToRegistrations(
+      accessRegistration.league_id,
+      [registration as unknown as PendingRegistration]
+    );
+
     return {
       success: true,
-      data: registration as unknown as PendingRegistration,
+      data: hydratedRegistration,
     };
   } catch (error) {
     console.error('Get registration details error:', error);
@@ -1511,7 +1643,6 @@ export async function recordOfflineRegistrationPayment(
           discount_cents: 0,
           late_fee_cents: 0,
           installment_fee_cents: 0,
-          total_amount_cents: totalFeeCents || seasonFee.amount_cents,
           amount_paid_cents: newAmountPaidCents,
           currency: registration.currency || seasonFee.currency || 'CAD',
           status: paymentRecordStatus as any,

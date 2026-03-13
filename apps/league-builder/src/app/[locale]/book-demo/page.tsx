@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 export const metadata: Metadata = {
   title: 'Book a Demo | BeerLeagueHockey.ca',
   description:
-    'Tell BLH whether you are launching a new league or moving an existing one, and we will walk you through registrations, payments, schedules, stats, public league websites, and rollout options.',
+    'Tell BLH whether you are launching a new league or moving an existing one, and we will walk you through registrations, payments, schedules, stats, public league websites, rollout options, and first-season partner pricing for qualified leagues.',
 };
 
 const demoEmail = 'mailto:support@beerleaguehockey.ca?subject=BLH%20Demo%20Request';
@@ -43,6 +43,9 @@ export default function BookDemoPage() {
             </h1>
             <p className="max-w-3xl text-lg leading-8 text-neutral-300 md:text-xl">
               Tell us whether you are launching a new league or moving an existing one. We&apos;ll walk through registrations, payments, schedules, standings, stats, public league websites, and the rollout path that fits your operation.
+            </p>
+            <p className="max-w-3xl text-sm leading-7 text-neutral-400 md:text-base">
+              Qualified leagues can also talk through first-season partner pricing, including flexible year-one structures for leagues switching from spreadsheets or mixed payment workflows.
             </p>
           </div>
         </div>
@@ -84,7 +87,7 @@ export default function BookDemoPage() {
             <ul className="mt-8 space-y-4 text-neutral-300">
               <li>Talk through your current website, registration stack, and admin workflow.</li>
               <li>Decide what needs to migrate now versus what can be phased in later.</li>
-              <li>Get a clearer view of setup, migration scope, and launch timing.</li>
+              <li>Review whether first-season partner pricing fits your league size, payment mix, and onboarding scope.</li>
             </ul>
             <a
               href={migrationEmail}
@@ -98,6 +101,10 @@ export default function BookDemoPage() {
         </div>
 
         <div className="mt-10 rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-6 text-sm leading-7 text-neutral-400">
+          <p className="mb-3 text-xs font-mono uppercase tracking-[0.2em] text-accent">First Season Partner Offer</p>
+          <p className="mb-4">
+            Qualified leagues may access first-season pricing as low as <span className="font-semibold text-white">1.5%</span>. Final year-one pricing depends on league size, payment mix, and onboarding needs.
+          </p>
           Prefer to explore first?{' '}
           <Link href="/signup" className="text-ice underline decoration-white/30 underline-offset-4 transition-colors hover:text-white">
             Create an account

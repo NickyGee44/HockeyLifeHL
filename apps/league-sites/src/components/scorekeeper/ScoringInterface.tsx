@@ -8,8 +8,8 @@ import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes, re
 import { useGameTimer } from '@/hooks/useGameTimer';
 import type { TimerSyncState } from '@/hooks/useGameTimer';
 import { PreGameCheckin } from './PreGameCheckin';
-import { PenaltyTracker } from '@/lib/scorekeeper/penalty-tracker';
 import { EmptyNetTracker } from '@/lib/scorekeeper/empty-net-tracker';
+import { buildPenaltyTrackerFromEvents } from '@/lib/scorekeeper/event-replay';
 import { GameTimer } from './GameTimer';
 import { PenaltyBox } from './PenaltyBox';
 import { GoalEntry } from './GoalEntry';
@@ -79,7 +79,6 @@ export function ScoringInterface({
   const [notes, setNotes] = useState(initialGame.scorekeeperNotes || '');
   const [showNotes, setShowNotes] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
-  const [expiredPenaltyIds, setExpiredPenaltyIds] = useState<Set<string>>(new Set());
   const [shotMode, setShotMode] = useState<'simple' | 'advanced'>('simple');
   const [eventsCollapsed, setEventsCollapsed] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -102,27 +101,24 @@ export function ScoringInterface({
     syncIntervalMs: 30000,
   });
 
-  const periodLengthSeconds = game.periodLengthMinutes * 60;
-
   // Initialize auto-detection trackers
   const penaltyTracker = useMemo(() => {
-    const tracker = new PenaltyTracker(game.periodLengthMinutes);
-    // Load existing penalties (skip client-side expired ones)
-    events
-      .filter(e => e.eventType === 'penalty' && !e.deletedAt && !expiredPenaltyIds.has(e.id))
-      .forEach(e => {
-        tracker.addPenalty({
-          eventId: e.id,
-          teamType: e.teamType,
-          playerId: e.playerId,
-          penaltyMinutes: e.penaltyMinutes || 2,
-          gameTimeSeconds: e.gameTimeSeconds || 0,
-          period: e.period,
-          penaltyType: e.penaltyType || undefined,
-        });
-      });
-    return tracker;
-  }, [events, game.periodLengthMinutes, expiredPenaltyIds]);
+    return buildPenaltyTrackerFromEvents(
+      events.map((event) => ({
+        id: event.id,
+        eventType: event.eventType,
+        teamType: event.teamType,
+        playerId: event.playerId,
+        period: event.period,
+        gameTimeSeconds: event.gameTimeSeconds,
+        penaltyMinutes: event.penaltyMinutes,
+        penaltyType: event.penaltyType,
+        deletedAt: event.deletedAt,
+        createdAt: event.createdAt,
+      })),
+      game.periodLengthMinutes
+    );
+  }, [events, game.periodLengthMinutes]);
 
   const emptyNetTracker = useMemo(() => {
     const tracker = new EmptyNetTracker();
@@ -150,43 +146,6 @@ export function ScoringInterface({
     setSelectedTeam(null);
     refreshData();
   }, [refreshData]);
-
-  // Goal completion: auto-expire earliest minor on PP goal
-  const handleGoalComplete = useCallback(() => {
-    if (selectedTeam) {
-      const isPPNow = penaltyTracker.isPowerPlay(selectedTeam, timer.timeRemaining, timer.currentPeriod);
-      if (isPPNow) {
-        const penalizedTeam = selectedTeam === 'home' ? 'away' : 'home';
-        const activePenalties = penaltyTracker.getActivePenalties(penalizedTeam, timer.timeRemaining, timer.currentPeriod);
-        const minors = activePenalties
-          .filter(p => p.penaltyMinutes === 2)
-          .sort((a, b) => {
-            const aAbs = penaltyTracker.toAbsoluteSeconds(a.period, a.startTimeSeconds);
-            const bAbs = penaltyTracker.toAbsoluteSeconds(b.period, b.startTimeSeconds);
-            return aAbs - bAbs;
-          });
-        if (minors.length > 0) {
-          const expiredId = minors[0].parentEventId || minors[0].eventId;
-          // Only expire one half if double-minor
-          if (minors[0].parentEventId && minors[0].halfIndex === 0) {
-            // Expire first half only — second half continues
-            setExpiredPenaltyIds(prev => {
-              const next = new Set(prev);
-              next.add(minors[0].eventId);
-              return next;
-            });
-          } else {
-            setExpiredPenaltyIds(prev => {
-              const next = new Set(prev);
-              next.add(expiredId);
-              return next;
-            });
-          }
-        }
-      }
-    }
-    handleEntryComplete();
-  }, [selectedTeam, penaltyTracker, timer.timeRemaining, timer.currentPeriod, handleEntryComplete]);
 
   async function handleUndo(eventId: string) {
     const result = await undoEvent(eventId);
@@ -544,7 +503,7 @@ export function ScoringInterface({
           isPowerPlay={isPP}
           isShortHanded={isSH}
           isEmptyNet={isEN}
-          onComplete={handleGoalComplete}
+          onComplete={handleEntryComplete}
           onCancel={() => setActiveEntry(null)}
         />
       )}
@@ -674,7 +633,8 @@ function EventRow({
 
   let icon: React.ReactNode;
   let bgColor: string;
-  let label: string;
+  let title: string;
+  let details: string | null = null;
 
   switch (event.eventType) {
     case 'goal':
@@ -684,11 +644,12 @@ function EventRow({
         </svg>
       );
       bgColor = 'bg-green-500/10 text-green-400';
-      label = `GOAL - #${event.playerNumber} ${event.playerName}`;
+      title = 'GOAL';
       if (event.assist1Name) {
-        label += ` (${event.assist1Name}`;
-        if (event.assist2Name) label += `, ${event.assist2Name}`;
-        label += ')';
+        details = `Assists: #${event.assist1Number ?? '?'} ${event.assist1Name}`;
+        if (event.assist2Name) {
+          details += `, #${event.assist2Number ?? '?'} ${event.assist2Name}`;
+        }
       }
       break;
     case 'penalty':
@@ -698,7 +659,8 @@ function EventRow({
         </svg>
       );
       bgColor = 'bg-yellow-500/10 text-yellow-400';
-      label = `PENALTY - #${event.playerNumber} ${event.playerName} - ${event.penaltyType} (${event.penaltyMinutes}min)`;
+      title = event.penaltyType ? `PENALTY - ${event.penaltyType}` : 'PENALTY';
+      details = `${event.penaltyMinutes ?? 0} min`;
       break;
     case 'save':
       icon = (
@@ -707,12 +669,12 @@ function EventRow({
         </svg>
       );
       bgColor = 'bg-blue-500/10 text-blue-400';
-      label = `SAVE - #${event.playerNumber} ${event.playerName}`;
+      title = 'SAVE';
       break;
     default:
       icon = null;
       bgColor = 'bg-gray-500/10 text-gray-400';
-      label = event.eventType;
+      title = event.eventType;
   }
 
   const teamColor = event.teamType === 'home' ? homeTeamColor : awayTeamColor;
@@ -729,8 +691,25 @@ function EventRow({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-[var(--color-text-primary)] truncate">
-          {label}
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-flex min-w-9 items-center justify-center rounded-md px-1.5 py-1 text-sm font-black tabular-nums"
+            style={{
+              backgroundColor: teamColor ? `${teamColor}20` : 'var(--color-surface)',
+              color: teamColor || 'var(--color-text-primary)',
+            }}
+          >
+            {event.playerNumber}
+          </span>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+              {title}
+            </div>
+            <div className="truncate text-xs text-[var(--color-text-secondary)]">
+              {event.playerName}
+              {details ? ` • ${details}` : ''}
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs text-[var(--color-text-secondary)]">
