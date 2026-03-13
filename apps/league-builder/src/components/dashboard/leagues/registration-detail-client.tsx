@@ -60,6 +60,11 @@ interface Registration {
     previous_team_name?: string | null;
     team_return_status?: string | null;
     date_of_birth?: string | null;
+    phone?: string | null;
+    emergency_contact_name?: string | null;
+    emergency_contact_phone?: string | null;
+    emergency_contact_relationship?: string | null;
+    medical_notes?: string | null;
   } | null;
   status: string;
   preferred_position: string | null;
@@ -84,10 +89,12 @@ interface Registration {
     full_name: string;
     email: string;
     phone: string | null;
-    emergency_contact_name?: string;
-    emergency_contact_phone?: string;
-    emergency_contact_relationship?: string;
-    medical_notes?: string;
+    avatar_url?: string | null;
+    photo_url?: string | null;
+    emergency_contact_name?: string | null;
+    emergency_contact_phone?: string | null;
+    emergency_contact_relationship?: string | null;
+    medical_notes?: string | null;
   };
   team: {
     id: string;
@@ -183,6 +190,38 @@ function getPaymentStatusLabel(registration: Registration) {
   return 'Pending';
 }
 
+function getRegistrationAvatarUrl(registration: Registration) {
+  return (
+    registration.photo_url ||
+    registration.player.avatar_url ||
+    registration.player.photo_url ||
+    '/blank_player.png'
+  );
+}
+
+function getRequestedTeamLabel(registration: Registration) {
+  return registration.team?.name || registration.draft_data?.requested_team_name || null;
+}
+
+function getPreviousTeamLabel(registration: Registration) {
+  return registration.draft_data?.previous_team_name || null;
+}
+
+function getEmergencyContactValue(
+  registration: Registration,
+  key: 'emergency_contact_name' | 'emergency_contact_phone' | 'emergency_contact_relationship'
+) {
+  return registration.player[key] || registration.draft_data?.[key] || null;
+}
+
+function getMedicalNotes(registration: Registration) {
+  return registration.player.medical_notes || registration.draft_data?.medical_notes || null;
+}
+
+function getRegistrationPhone(registration: Registration) {
+  return registration.player.phone || registration.draft_data?.phone || null;
+}
+
 export function RegistrationDetailClient({
   registration,
   teams,
@@ -255,7 +294,7 @@ export function RegistrationDetailClient({
           {/* Avatar */}
           <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
             <img
-              src={registration.photo_url || '/blank_player.png'}
+              src={getRegistrationAvatarUrl(registration)}
               alt={registration.player.full_name}
               className="w-full h-full object-cover"
             />
@@ -316,8 +355,8 @@ export function RegistrationDetailClient({
         >
           <InfoRow label="Full Name" value={registration.player.full_name} />
           <InfoRow label="Email" value={registration.player.email} />
-          {registration.player.phone && (
-            <InfoRow label="Phone" value={registration.player.phone} />
+          {getRegistrationPhone(registration) && (
+            <InfoRow label="Phone" value={getRegistrationPhone(registration) || '-'} />
           )}
           {registration.draft_data?.date_of_birth && (
             <InfoRow
@@ -341,27 +380,30 @@ export function RegistrationDetailClient({
         >
           <InfoRow
             label="Name"
-            value={registration.player.emergency_contact_name || '-'}
+            value={getEmergencyContactValue(registration, 'emergency_contact_name') || '-'}
           />
           <InfoRow
             label="Phone"
-            value={registration.player.emergency_contact_phone || '-'}
+            value={getEmergencyContactValue(registration, 'emergency_contact_phone') || '-'}
           />
           <InfoRow
             label="Relationship"
             value={
-              registration.player.emergency_contact_relationship
+              getEmergencyContactValue(registration, 'emergency_contact_relationship')
                 ? formatRelationship(
-                    registration.player.emergency_contact_relationship as any
+                    getEmergencyContactValue(
+                      registration,
+                      'emergency_contact_relationship'
+                    ) as any
                   )
                 : '-'
             }
           />
-          {registration.player.medical_notes && (
+          {getMedicalNotes(registration) && (
             <div className="mt-3 pt-3 border-t border-neutral-700">
               <p className="text-xs text-neutral-500 mb-1">Medical Notes</p>
               <p className="text-sm text-neutral-300">
-                {registration.player.medical_notes}
+                {getMedicalNotes(registration)}
               </p>
             </div>
           )}
@@ -418,14 +460,14 @@ export function RegistrationDetailClient({
             value={formatRegistrationIntent(registration.draft_data?.registration_intent)}
           />
           <InfoRow
-            label="Preferred Team"
+            label="Requested Team"
             value={
-              registration.team?.name ||
-              registration.draft_data?.requested_team_name ||
-              registration.draft_data?.previous_team_name ||
-              'None selected'
+              getRequestedTeamLabel(registration) || 'None selected'
             }
           />
+          {getPreviousTeamLabel(registration) && (
+            <InfoRow label="Previous Team" value={getPreviousTeamLabel(registration) || '-'} />
+          )}
           <InfoRow
             label="Team Status"
             value={formatTeamReturnStatus(registration.draft_data?.team_return_status)}

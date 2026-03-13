@@ -53,6 +53,14 @@ export function getRegistrationPaymentMode(
   }
 }
 
+export function isPlayerFeeConfigurationMissing(
+  feeCollectionModel: FeeCollectionModel,
+  feeAmountCents: number,
+  feeBasis: FeeBasis = 'player'
+): boolean {
+  return feeBasis === 'player' && feeCollectionModel !== 'team' && feeAmountCents <= 0;
+}
+
 export async function getSeasonFeeCollectionModel(
   supabase: SupabaseClient<any>,
   seasonId: string

@@ -175,6 +175,29 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
     getRegistrationJourneyData(league.id, activeSeason.id),
   ]);
 
+  if (!registrationConfig.feeConfigured) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-4">
+        <div className="max-w-md text-center">
+          <Clock className="w-12 h-12 mx-auto mb-4 text-[var(--color-text-muted)]" />
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
+            Registration Opening Soon
+          </h1>
+          <p className="text-[var(--color-text-secondary)] mb-6">
+            {league.name} is still setting the player registration fee for {activeSeason.name}.
+            Player registration will open as soon as that fee is configured.
+          </p>
+          <a
+            href={`/${leagueSlug}`}
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity"
+          >
+            Back to League
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   const initialData = draftResult.success ? (draftResult.data ?? null) : null;
   const waiver =
     waiverResult.success && waiverResult.data
