@@ -12,6 +12,9 @@ on:
         required: false
         default: 'false'
 
+permissions:
+  contents: read
+
 env:
   # Supabase test environment
   NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://placeholder.supabase.co' }}
@@ -55,7 +58,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Build application
-        run: pnpm --filter league-builder build
+        run: pnpm --filter @hockey-life/league-builder build
         env:
           NODE_ENV: production
 
@@ -82,7 +85,7 @@ jobs:
           retention-days: 7
 
       - name: Notify on failure
-        if: failure() && github.ref == 'refs/heads/main' && secrets.SLACK_WEBHOOK_URL != ''
+        if: failure() && github.ref == 'refs/heads/main' && env.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v2.1.1
         with:
           payload: |
@@ -163,7 +166,7 @@ jobs:
         run: pnpm exec playwright install --with-deps
 
       - name: Build application
-        run: pnpm --filter league-builder build
+        run: pnpm --filter @hockey-life/league-builder build
         env:
           NODE_ENV: production
 
@@ -206,7 +209,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Build application
-        run: pnpm --filter league-builder build
+        run: pnpm --filter @hockey-life/league-builder build
 
       - name: Run visual tests
         working-directory: e2e

@@ -54,13 +54,15 @@ export function EditRefereeCompensationModal({
   const [singleGameFee, setSingleGameFee] = useState('0.00');
 
   useEffect(() => {
-    setRefereeIdentifier(referee?.referee_identifier || '');
-    setDefaultJerseyNumber(referee?.default_jersey_number || '');
-    setGameFee(centsToInput(referee?.game_fee_cents));
-    setSoloFee(centsToInput(referee?.solo_game_fee_cents));
-    setPairedFee(centsToInput(referee?.paired_game_fee_cents));
-    setLinesmanFee(centsToInput(referee?.linesman_fee_cents));
-    setSingleGameFee(centsToInput(referee?.single_game_fee_cents));
+    queueMicrotask(() => {
+      setRefereeIdentifier(referee?.referee_identifier || '');
+      setDefaultJerseyNumber(referee?.default_jersey_number || '');
+      setGameFee(centsToInput(referee?.game_fee_cents));
+      setSoloFee(centsToInput(referee?.solo_game_fee_cents));
+      setPairedFee(centsToInput(referee?.paired_game_fee_cents));
+      setLinesmanFee(centsToInput(referee?.linesman_fee_cents));
+      setSingleGameFee(centsToInput(referee?.single_game_fee_cents));
+    });
   }, [referee]);
 
   const handleSave = () => {

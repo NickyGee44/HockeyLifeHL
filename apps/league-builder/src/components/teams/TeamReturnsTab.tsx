@@ -143,7 +143,9 @@ export function TeamReturnsTab({ leagueId, seasons }: TeamReturnsTabProps) {
 
   useEffect(() => {
     if (selectedSeasonId) {
-      void loadOverview(selectedSeasonId);
+      queueMicrotask(() => {
+        void loadOverview(selectedSeasonId);
+      });
     }
   }, [selectedSeasonId]);
 

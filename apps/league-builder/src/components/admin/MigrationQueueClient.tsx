@@ -5,6 +5,7 @@ import { useMemo, useOptimistic, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { cn } from '@hockey-life/ui';
+import { MigrationImportPlanner } from '@/components/admin/MigrationImportPlanner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from '@/i18n/navigation';
@@ -113,6 +114,7 @@ function summarize(request: PlatformMigrationQueueRequest) {
     request.source_system,
     request.source_url,
     request.notes,
+    ...(request.uploaded_assets ?? []).map((asset) => asset.name),
   ]
     .filter(Boolean)
     .join(' ')
@@ -193,6 +195,12 @@ export function MigrationQueueClient({
     [effectiveSelectedId, filteredRequests, requestList]
   );
 
+  function handleRequestUpdated(updatedRequest: PlatformMigrationQueueRequest) {
+    updateRequestList(updatedRequest);
+    setSelectedId(updatedRequest.id);
+    router.refresh();
+  }
+
   function saveChanges(selectedRequest: PlatformMigrationQueueRequest, editorState: EditorState) {
     startTransition(async () => {
       const quotedPriceCents = editorState.quotedPrice.trim()
@@ -214,9 +222,7 @@ export function MigrationQueueClient({
       }
 
       toast.success('Migration request updated');
-      updateRequestList(result.data);
-      setSelectedId(result.data.id);
-      router.refresh();
+      handleRequestUpdated(result.data);
     });
   }
 
@@ -416,6 +422,7 @@ export function MigrationQueueClient({
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <DetailChip icon={<Users className="h-4 w-4" />} label="Requester" value={selectedRequest.requester_name || selectedRequest.requester_email || 'Unknown'} />
                 <DetailChip icon={<FileStack className="h-4 w-4" />} label="Estimated volume" value={selectedRequest.estimated_item_count ? `${selectedRequest.estimated_item_count.toLocaleString()} items` : 'Not provided'} />
+                <DetailChip icon={<FileStack className="h-4 w-4" />} label="Uploaded files" value={selectedRequest.uploaded_assets.length ? `${selectedRequest.uploaded_assets.length} attached` : 'None uploaded'} />
                 <DetailChip icon={<Calendar className="h-4 w-4" />} label="Owner target" value={formatDate(selectedRequest.desired_launch_date)} />
                 <DetailChip icon={<CircleDollarSign className="h-4 w-4" />} label="Current quote" value={formatMoney(selectedRequest.quoted_price_cents)} />
               </div>
@@ -473,14 +480,53 @@ export function MigrationQueueClient({
                       )}
                     </div>
                   </div>
+
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">Uploaded source files</p>
+                    <div className="mt-2 space-y-2">
+                      {selectedRequest.uploaded_assets.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-4 text-sm text-neutral-500">
+                          No direct files were uploaded.
+                        </div>
+                      ) : (
+                        selectedRequest.uploaded_assets.map((asset) => (
+                          <div key={asset.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-white">{asset.name}</p>
+                              <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">
+                                {asset.analysis.source_format.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-xs text-neutral-500">
+                              {asset.analysis.detected_scopes.length > 0
+                                ? asset.analysis.detected_scopes.map((scope) => MIGRATION_SCOPE_META[scope].label).join(', ')
+                                : 'No migration tracks detected yet'}
+                            </p>
+                            {asset.analysis.detected_tables.length > 0 && (
+                              <p className="mt-2 text-xs text-neutral-400">
+                                Tables: {asset.analysis.detected_tables.slice(0, 8).join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <MigrationRequestEditor
-                  key={`${selectedRequest.id}:${selectedRequest.updated_at}`}
-                  request={selectedRequest}
-                  isPending={isPending}
-                  onSave={(editorState) => saveChanges(selectedRequest, editorState)}
-                />
+                <div className="space-y-6">
+                  <MigrationImportPlanner
+                    key={`planner:${selectedRequest.id}:${selectedRequest.updated_at}`}
+                    request={selectedRequest}
+                    onRequestUpdated={handleRequestUpdated}
+                  />
+                  <MigrationRequestEditor
+                    key={`${selectedRequest.id}:${selectedRequest.updated_at}`}
+                    request={selectedRequest}
+                    isPending={isPending}
+                    onSave={(editorState) => saveChanges(selectedRequest, editorState)}
+                  />
+                </div>
               </div>
             </div>
           ) : (

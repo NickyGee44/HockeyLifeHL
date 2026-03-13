@@ -149,13 +149,22 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm --filter league-builder dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000, // 2 minutes for dev server startup
-    cwd: path.resolve(__dirname, '..'),
-  },
+  webServer: [
+    {
+      command: 'pnpm --filter @hockey-life/league-builder dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+      cwd: path.resolve(__dirname, '..'),
+    },
+    {
+      command: 'pnpm --filter @hockey-life/league-sites dev',
+      url: 'http://localhost:3001',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+      cwd: path.resolve(__dirname, '..'),
+    },
+  ],
 
   /* Global timeout for each test */
   timeout: 60000,

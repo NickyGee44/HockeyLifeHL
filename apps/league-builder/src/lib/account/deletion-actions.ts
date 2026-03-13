@@ -10,7 +10,7 @@
 
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
@@ -46,6 +46,7 @@ export async function requestAccountDeletion(reason?: string): Promise<{
   error?: string;
 }> {
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
 
   // 1. Verify authentication
   const {
@@ -117,7 +118,7 @@ export async function requestAccountDeletion(reason?: string): Promise<{
   const stripeCustomerId = stripeDataTyped?.stripe_customer_id || null;
 
   // 7. Create deletion log entry (using service role for INSERT)
-  const { error: logError } = await (supabase.from('account_deletion_log') as any).insert({
+  const { error: logError } = await (serviceSupabase.from('account_deletion_log') as any).insert({
     user_id: user.id,
     profile_email: profileData.email,
     requested_at: now.toISOString(),
@@ -135,7 +136,7 @@ export async function requestAccountDeletion(reason?: string): Promise<{
   }
 
   // 8. Update profile with deletion timestamps
-  const { error: updateError } = await (supabase
+  const { error: updateError } = await (serviceSupabase
     .from('profiles') as any)
     .update({
       deletion_requested_at: now.toISOString(),
@@ -149,12 +150,15 @@ export async function requestAccountDeletion(reason?: string): Promise<{
   if (updateError) {
     console.error('Failed to update profile:', updateError);
     // Rollback deletion log
-    await (supabase.from('account_deletion_log') as any).delete().eq('user_id', user.id).eq('status', 'pending');
+    await (serviceSupabase.from('account_deletion_log') as any)
+      .delete()
+      .eq('user_id', user.id)
+      .eq('status', 'pending');
     return { success: false, error: 'Failed to schedule deletion' };
   }
 
   // 9. Invalidate all user sessions (force re-login)
-  await (supabase.from('user_sessions') as any).delete().eq('user_id', user.id);
+  await (serviceSupabase.from('user_sessions') as any).delete().eq('user_id', user.id);
 
   // 10. Send deletion notification email (async, non-blocking)
   // This will be handled by a separate API route or edge function
@@ -191,6 +195,7 @@ export async function cancelAccountDeletion(): Promise<{
   error?: string;
 }> {
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
 
   // 1. Verify authentication
   const {
@@ -235,7 +240,7 @@ export async function cancelAccountDeletion(): Promise<{
   }
 
   // 4. Update deletion log
-  const { error: logError } = await (supabase
+  const { error: logError } = await (serviceSupabase
     .from('account_deletion_log') as any)
     .update({
       status: 'cancelled',
@@ -250,7 +255,7 @@ export async function cancelAccountDeletion(): Promise<{
   }
 
   // 5. Clear deletion fields from profile
-  const { error: updateError } = await (supabase
+  const { error: updateError } = await (serviceSupabase
     .from('profiles') as any)
     .update({
       deletion_requested_at: null,
@@ -280,7 +285,7 @@ export async function cancelAccountDeletion(): Promise<{
     console.error('Failed to send cancellation email:', emailError);
   }
 
-  revalidatePath('/settings');
+  revalidatePath('/dashboard/settings/privacy');
 
   return { success: true };
 }
