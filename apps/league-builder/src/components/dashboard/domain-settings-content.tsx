@@ -1,138 +1,206 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Globe,
-  CheckCircle,
-  ChevronDown,
-  Clock,
   AlertCircle,
-  Copy,
   Check,
-  ExternalLink,
+  CheckCircle,
+  Clock,
+  Copy,
   Crown,
-  RefreshCw,
+  ExternalLink,
+  Globe,
   HelpCircle,
-  Trash2,
+  RefreshCw,
   Search,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@hockey-life/ui';
 import { toast } from 'sonner';
-import { setCustomDomain, verifyCustomDomain, removeCustomDomain } from '@/lib/actions/domain';
+import {
+  removeLeagueCustomDomain,
+  setLeagueCustomDomain,
+  verifyLeagueCustomDomain,
+} from '@/lib/actions/domain';
+import { getDnsInstructions } from '@/lib/domains/dns-instructions';
 import { DomainPurchase } from './domain-purchase';
 
-interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  custom_domain?: string | null;
-  custom_domain_verified?: boolean;
-  subscription_tier?: string;
-  subscription_status?: string;
+interface DomainPurchaseCapability {
+  searchEnabled: boolean;
+  purchaseEnabled: boolean;
+  vercelProjectConfigured: boolean;
+  message: string | null;
+}
+
+interface DomainState {
+  leagueId: string;
+  leagueName: string;
+  leagueSlug: string;
+  leagueSubdomain: string | null;
+  effectiveCustomDomain: string | null;
+  effectiveCustomDomainVerified: boolean;
+  domainSource: 'league' | 'legacy_organization' | null;
+  requiresManualReview: boolean;
+  hasCustomDomainAccess: boolean;
+  legacyOrganizationDomain: string | null;
 }
 
 interface DomainSettingsContentProps {
-  organization: Organization;
-  selectedLeague?: {
-    id: string;
-    name: string;
-    slug: string;
-    subdomain?: string | null;
-  } | null;
+  organizationName: string;
+  purchaseCapability: DomainPurchaseCapability;
+  domainState: DomainState;
 }
 
-export function DomainSettingsContent({ organization, selectedLeague }: DomainSettingsContentProps) {
+function StatusBadge({
+  verificationStatus,
+}: {
+  verificationStatus: 'pending' | 'verified' | 'failed' | null;
+}) {
+  if (verificationStatus === 'verified') {
+    return (
+      <Badge className="bg-green-600/20 text-green-400 border-green-500/30">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Verified
+      </Badge>
+    );
+  }
+
+  if (verificationStatus === 'failed') {
+    return (
+      <Badge className="bg-red-600/20 text-red-400 border-red-500/30">
+        <AlertCircle className="h-3 w-3 mr-1" />
+        Needs Attention
+      </Badge>
+    );
+  }
+
+  if (verificationStatus === 'pending') {
+    return (
+      <Badge className="bg-yellow-600/20 text-yellow-300 border-yellow-500/30">
+        <Clock className="h-3 w-3 mr-1" />
+        Pending
+      </Badge>
+    );
+  }
+
+  return null;
+}
+
+export function DomainSettingsContent({
+  organizationName,
+  purchaseCapability,
+  domainState,
+}: DomainSettingsContentProps) {
+  const router = useRouter();
   const [copied, setCopied] = useState<string | null>(null);
-  const [customDomain, setCustomDomainValue] = useState(organization.custom_domain || '');
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [customDomain, setCustomDomain] = useState(domainState.effectiveCustomDomain || '');
+  const [savedDomain, setSavedDomain] = useState(domainState.effectiveCustomDomain || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
-  const [showDomainSearch, setShowDomainSearch] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [showPurchaseFlow, setShowPurchaseFlow] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'failed' | null>(
-    organization.custom_domain_verified ? 'verified' : organization.custom_domain ? 'pending' : null
+    domainState.effectiveCustomDomainVerified
+      ? 'verified'
+      : domainState.effectiveCustomDomain
+        ? 'pending'
+        : null
+  );
+  const [domainSource, setDomainSource] = useState<'league' | 'legacy_organization' | null>(domainState.domainSource);
+
+  const leagueSubdomain = domainState.leagueSubdomain || domainState.leagueSlug;
+  const subdomainUrl = `${leagueSubdomain}.beerleaguehockey.ca`;
+  const dnsInstructions = useMemo(
+    () => (customDomain ? getDnsInstructions(customDomain) : null),
+    [customDomain]
   );
 
-  // Custom domain setup is included with any active subscription.
-  // Domain purchase cost (~$15-20/yr) is absorbed by the platform — no separate charge to the customer.
-  const isActiveSubscriber = ['active', 'trialing'].includes(organization.subscription_status ?? '');
-  const hasCustomDomainAccess = !!organization.custom_domain || isActiveSubscriber;
-
-  // Use the selected league slug/subdomain rather than the organization slug.
-  const leagueSubdomain = selectedLeague?.subdomain || selectedLeague?.slug || organization.slug;
-  const subdomainUrl = `${leagueSubdomain}.beerleaguehockey.ca`;
-
-  const handleCopy = async (text: string, label: string) => {
+  const handleCopy = async (text: string, key: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(label);
+      setCopied(key);
       setTimeout(() => setCopied(null), 2000);
     } catch {
-      console.error('Failed to copy to clipboard');
+      toast.error('Failed to copy');
     }
   };
 
+  const refreshAfterMutation = () => {
+    router.refresh();
+  };
+
   const handleSetDomain = async () => {
-    if (!customDomain) {
-      toast.error('Please enter a domain');
+    if (!customDomain.trim()) {
+      toast.error('Enter a domain to continue.');
       return;
     }
 
     setIsSaving(true);
     try {
-      const result = await setCustomDomain(organization.id, customDomain);
+      const result = await setLeagueCustomDomain(domainState.leagueId, customDomain);
       if (result.error) {
         toast.error(result.error);
-      } else {
-        toast.success(result.message || 'Domain set successfully');
-        setVerificationStatus('pending');
+        return;
       }
-    } catch {
-      toast.error('An unexpected error occurred');
+
+      setSavedDomain(customDomain.trim().toLowerCase());
+      setVerificationStatus('pending');
+      setDomainSource('league');
+      toast.success(result.message || 'Domain saved.');
+      refreshAfterMutation();
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleVerifyDomain = async () => {
-    if (!customDomain) return;
+    if (!customDomain.trim()) {
+      toast.error('Set a domain before verifying it.');
+      return;
+    }
+
     setIsVerifying(true);
     try {
-      const result = await verifyCustomDomain(organization.id);
+      const result = await verifyLeagueCustomDomain(domainState.leagueId);
       if (result.error) {
-        toast.error(result.error);
-        setVerificationStatus('failed');
-      } else if (result.verified) {
-        toast.success(result.message || 'Domain verified successfully!');
-        setVerificationStatus('verified');
+        setVerificationStatus(result.status === 'pending' ? 'pending' : 'failed');
+        toast.error(result.message || result.error);
+        refreshAfterMutation();
+        return;
       }
-    } catch {
-      toast.error('An unexpected error occurred');
-      setVerificationStatus('failed');
+
+      setVerificationStatus('verified');
+      setDomainSource('league');
+      toast.success(result.message || 'Domain verified.');
+      refreshAfterMutation();
     } finally {
       setIsVerifying(false);
     }
   };
 
   const handleRemoveDomain = async () => {
-    if (!confirm('Are you sure you want to remove this custom domain?')) {
+    if (!confirm(`Remove ${customDomain || 'this custom domain'} from ${domainState.leagueName}?`)) {
       return;
     }
 
     setIsRemoving(true);
     try {
-      const result = await removeCustomDomain(organization.id);
+      const result = await removeLeagueCustomDomain(domainState.leagueId);
       if (result.error) {
         toast.error(result.error);
-      } else {
-        toast.success('Custom domain removed');
-        setCustomDomainValue('');
-        setVerificationStatus(null);
+        return;
       }
-    } catch {
-      toast.error('An unexpected error occurred');
+
+      setCustomDomain('');
+      setSavedDomain('');
+      setVerificationStatus(null);
+      setDomainSource(null);
+      toast.success('Custom domain removed. Your BLH subdomain stays active.');
+      refreshAfterMutation();
     } finally {
       setIsRemoving(false);
     }
@@ -140,89 +208,96 @@ export function DomainSettingsContent({ organization, selectedLeague }: DomainSe
 
   return (
     <div className="space-y-6">
-      {/* Subdomain Section */}
       <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <CardTitle className="text-neutral-100 flex items-center gap-2">
                 <Globe className="h-5 w-5 text-rink-500" />
-                Your League Subdomain
+                Website Domain
               </CardTitle>
               <CardDescription className="text-neutral-400">
-                {selectedLeague
-                  ? `${selectedLeague.name} is accessible at this free subdomain`
-                  : 'Your league is accessible at this free subdomain'}
+                Managing website domains for {domainState.leagueName} in {organizationName}.
               </CardDescription>
             </div>
-            <Badge className="bg-green-600/20 text-green-400 border-green-500/30">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Active
-            </Badge>
+            <StatusBadge verificationStatus={verificationStatus} />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4 text-neutral-400" />
-                <span className="font-mono text-rink-500">{subdomainUrl}</span>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-neutral-500">Default BLH Subdomain</p>
+                <p className="font-mono text-rink-500 text-base">{subdomainUrl}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleCopy(`https://${subdomainUrl}`, 'subdomain')}
-                  className={cn(
-                    'p-2 rounded-lg transition-colors',
-                    'text-neutral-400 hover:text-rink-500 hover:bg-neutral-700'
-                  )}
-                  title="Copy URL"
+                  className="p-2 rounded-lg text-neutral-400 hover:text-rink-500 hover:bg-neutral-700 transition-colors"
+                  title="Copy subdomain"
                 >
-                  {copied === 'subdomain' ? (
-                    <Check className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
+                  {copied === 'subdomain' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                 </button>
                 <a
                   href={`https://${subdomainUrl}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={cn(
-                    'p-2 rounded-lg transition-colors',
-                    'text-neutral-400 hover:text-rink-500 hover:bg-neutral-700'
-                  )}
-                  title="Open in new tab"
+                  className="p-2 rounded-lg text-neutral-400 hover:text-rink-500 hover:bg-neutral-700 transition-colors"
+                  title="Open subdomain"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="h-4 w-4" />
                 </a>
               </div>
             </div>
+            <p className="text-sm text-neutral-400 mt-3">
+              This free BLH address always stays available, even if you add or remove a custom domain.
+            </p>
           </div>
 
-          <div className="text-sm text-neutral-400">
-            This public address is based on your league slug and is available immediately.
-            If you want to use your own branded domain, connect it below.
-          </div>
+          {domainState.requiresManualReview && domainState.legacyOrganizationDomain && !domainState.effectiveCustomDomain && (
+            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-yellow-300 mt-0.5" />
+                <div>
+                  <p className="font-medium text-yellow-200">Legacy organization-level domain needs review</p>
+                  <p className="text-sm text-yellow-100/80 mt-1">
+                    {domainState.legacyOrganizationDomain} is still attached at the organization level. Because this organization has more than one league, BLH will not auto-assign it. Connect the correct domain directly on the league you want to publish.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {domainSource === 'legacy_organization' && customDomain && (
+            <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <HelpCircle className="h-5 w-5 text-blue-300 mt-0.5" />
+                <div>
+                  <p className="font-medium text-blue-200">Legacy organization-level domain detected</p>
+                  <p className="text-sm text-blue-100/80 mt-1">
+                    {customDomain} is currently being read from an older organization-level setting. Any new save or verification here moves management onto {domainState.leagueName} directly.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Custom Domain Section */}
       <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <CardTitle className="text-neutral-100 flex items-center gap-2">
                 <Crown className="h-5 w-5 text-rink-500" />
                 Custom Domain
               </CardTitle>
               <CardDescription className="text-neutral-400">
-                Use your own domain name for your league website
+                Bring your own domain or buy one through BLH when the purchase integration is available.
               </CardDescription>
             </div>
-            {hasCustomDomainAccess ? (
-              <Badge className="bg-green-600/20 text-green-400 border-green-500/30">
-                Included
-              </Badge>
+            {domainState.hasCustomDomainAccess ? (
+              <Badge className="bg-green-600/20 text-green-400 border-green-500/30">Included</Badge>
             ) : (
               <Badge variant="outline" className="border-neutral-600 text-neutral-400">
                 Requires Subscription
@@ -230,233 +305,207 @@ export function DomainSettingsContent({ organization, selectedLeague }: DomainSe
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {hasCustomDomainAccess ? (
-            // User has access to custom domains
+        <CardContent className="space-y-6">
+          {!domainState.hasCustomDomainAccess ? (
+            <div className="rounded-xl border border-rink-500/30 bg-rink-500/10 p-5">
+              <p className="text-sm text-neutral-200">
+                Custom website domains are available with an active platform subscription. Once unlocked, leagues can either connect a domain they already own or buy one through BLH when the registrar integration is available.
+              </p>
+            </div>
+          ) : (
             <>
-              {/* Search & Buy a Domain */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowDomainSearch(!showDomainSearch)}
-                  className="flex items-center gap-2 text-sm text-rink-500 hover:text-rink-400 transition-colors mb-3"
-                >
-                  <Search className="h-4 w-4" />
-                  {showDomainSearch ? 'Hide domain search' : 'Search & buy a domain'}
-                  <ChevronDown className={cn('h-4 w-4 transition-transform', showDomainSearch && 'rotate-180')} />
-                </button>
-                {showDomainSearch && (
-                  <DomainPurchase
-                    organizationId={organization.id}
-                    onPurchase={(domain) => {
-                      setCustomDomainValue(domain);
-                      setVerificationStatus('verified');
-                      setShowDomainSearch(false);
-                      toast.success(`Domain ${domain} is ready to use!`);
-                    }}
-                  />
-                )}
-              </div>
+              <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-5 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-neutral-100">1. Connect a domain you already own</h3>
+                    <p className="text-sm text-neutral-400 mt-1">
+                      Save the exact hostname you want to use, update DNS at your registrar, then verify it from here.
+                    </p>
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-neutral-300">
-                  Domain Name
-                </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-3 lg:flex-row">
                   <input
                     type="text"
-                    placeholder="yourdomain.com"
                     value={customDomain}
-                    onChange={(e) => setCustomDomainValue(e.target.value)}
+                    onChange={(event) => setCustomDomain(event.target.value)}
+                    placeholder="yourleague.com or www.yourleague.com"
                     className={cn(
                       'flex-1 px-4 py-2 bg-black/50 border border-rink-500/30 rounded-xl',
                       'text-neutral-100 placeholder-neutral-500',
                       'focus:outline-none focus:ring-2 focus:ring-rink-500/50'
                     )}
                   />
-                  {!organization.custom_domain || customDomain !== organization.custom_domain ? (
-                    <Button
-                      variant="outline"
-                      onClick={handleSetDomain}
-                      disabled={!customDomain || isSaving}
-                      className="border-rink-500/50 text-rink-500 hover:bg-rink-500/10"
-                    >
-                      {isSaving ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Set Domain'
-                      )}
-                    </Button>
-                  ) : verificationStatus !== 'verified' ? (
-                    <Button
-                      variant="outline"
-                      onClick={handleVerifyDomain}
-                      disabled={isVerifying}
-                      className="border-rink-500/50 text-rink-500 hover:bg-rink-500/10"
-                    >
-                      {isVerifying ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Verifying...
-                        </>
-                      ) : (
-                        'Verify Domain'
-                      )}
-                    </Button>
-                  ) : null}
-                  {organization.custom_domain && (
-                    <Button
-                      variant="outline"
-                      onClick={handleRemoveDomain}
-                      disabled={isRemoving}
-                      className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-                    >
-                      {isRemoving ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
+                  <div className="flex gap-2">
+                    {!savedDomain || normalizeWhitespace(savedDomain) !== normalizeWhitespace(customDomain) ? (
+                      <Button
+                        variant="outline"
+                        onClick={handleSetDomain}
+                        disabled={!customDomain || isSaving}
+                        className="border-rink-500/50 text-rink-500 hover:bg-rink-500/10"
+                      >
+                        {isSaving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : null}
+                        Save Domain
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={handleVerifyDomain}
+                        disabled={!customDomain || isVerifying}
+                        className="border-rink-500/50 text-rink-500 hover:bg-rink-500/10"
+                      >
+                        {isVerifying ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : null}
+                        Verify Domain
+                      </Button>
+                    )}
+                    {domainState.effectiveCustomDomain && (
+                      <Button
+                        variant="outline"
+                        onClick={handleRemoveDomain}
+                        disabled={isRemoving}
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                      >
+                        {isRemoving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </div>
                 </div>
+
+                {verificationStatus && customDomain && (
+                  <div
+                    className={cn(
+                      'rounded-xl border p-4',
+                      verificationStatus === 'verified'
+                        ? 'bg-green-900/20 border-green-500/30'
+                        : verificationStatus === 'failed'
+                          ? 'bg-red-900/20 border-red-500/30'
+                          : 'bg-yellow-900/20 border-yellow-500/30'
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      {verificationStatus === 'verified' ? (
+                        <CheckCircle className="h-5 w-5 text-green-400 mt-0.5" />
+                      ) : verificationStatus === 'failed' ? (
+                        <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
+                      ) : (
+                        <Clock className="h-5 w-5 text-yellow-300 mt-0.5" />
+                      )}
+                      <div>
+                        <p className="font-medium text-neutral-100">
+                          {verificationStatus === 'verified'
+                            ? `${customDomain} is connected`
+                            : verificationStatus === 'failed'
+                              ? 'Verification needs attention'
+                              : 'Waiting for DNS or BLH verification'}
+                        </p>
+                        <p className="text-sm text-neutral-300 mt-1">
+                          {verificationStatus === 'verified'
+                            ? 'The live league site should now resolve on this host.'
+                            : verificationStatus === 'failed'
+                              ? 'Double-check the DNS records below, remove conflicting records, and try verify again.'
+                              : 'Save the domain, add the DNS record below, and then click Verify Domain.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {dnsInstructions && (
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-neutral-100 flex items-center gap-2">
+                        <HelpCircle className="h-4 w-4 text-rink-500" />
+                        DNS records for {dnsInstructions.canonicalHost}
+                      </h4>
+                      <p className="text-sm text-neutral-400 mt-1">
+                        Use the exact record below. Root domains and subdomains are configured differently.
+                      </p>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-neutral-500 border-b border-neutral-800">
+                            <th className="py-2 pr-3">Type</th>
+                            <th className="py-2 pr-3">Host / Name</th>
+                            <th className="py-2 pr-3">Value / Points To</th>
+                            <th className="py-2 pr-3">TTL</th>
+                            <th className="py-2">Why</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[dnsInstructions.primaryRecord, ...dnsInstructions.additionalRecords].map((record, index) => (
+                            <tr key={`${record.type}-${record.host}-${index}`} className="border-b border-neutral-900 align-top">
+                              <td className="py-3 pr-3 font-mono text-neutral-200">{record.type}</td>
+                              <td className="py-3 pr-3 font-mono text-rink-400">{record.host}</td>
+                              <td className="py-3 pr-3 font-mono text-neutral-200">{record.value}</td>
+                              <td className="py-3 pr-3 text-neutral-300">{record.ttl}</td>
+                              <td className="py-3 text-neutral-400">{record.purpose}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-neutral-400">
+                      {dnsInstructions.notes.map((note) => (
+                        <p key={note}>• {note}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Current Custom Domain Status */}
-              {(organization.custom_domain || verificationStatus) && (
-                <div className={cn(
-                  'border rounded-xl p-4',
-                  verificationStatus === 'verified'
-                    ? 'bg-green-900/20 border-green-500/30'
-                    : verificationStatus === 'failed'
-                    ? 'bg-red-900/20 border-red-500/30'
-                    : 'bg-yellow-900/20 border-yellow-500/30'
-                )}>
-                  <div className="flex items-start gap-3">
-                    {verificationStatus === 'verified' ? (
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                    ) : verificationStatus === 'failed' ? (
-                      <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
-                    ) : (
-                      <Clock className="h-5 w-5 text-yellow-500 mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <p className={cn(
-                        'font-medium',
-                        verificationStatus === 'verified' ? 'text-green-400' :
-                        verificationStatus === 'failed' ? 'text-red-400' : 'text-yellow-400'
-                      )}>
-                        {verificationStatus === 'verified' ? 'Domain Verified' :
-                         verificationStatus === 'failed' ? 'Verification Failed' : 'Verification Pending'}
-                      </p>
-                      <p className={cn(
-                        'text-sm mt-1',
-                        verificationStatus === 'verified' ? 'text-green-300' :
-                        verificationStatus === 'failed' ? 'text-red-300' : 'text-yellow-300'
-                      )}>
-                        {verificationStatus === 'verified'
-                          ? `Your league is accessible at ${customDomain}`
-                          : verificationStatus === 'failed'
-                          ? 'Please check your DNS settings and try again'
-                          : 'Please configure your DNS settings and click "Verify Domain"'}
-                      </p>
-                    </div>
+              <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-5 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-neutral-100">2. Search and buy a domain through BLH</h3>
+                    <p className="text-sm text-neutral-400 mt-1">
+                      This path is Vercel-backed. BLH will only promise automatic setup when the registrar connection is healthy in the current environment.
+                    </p>
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowPurchaseFlow((current) => !current)}
+                    disabled={!purchaseCapability.purchaseEnabled}
+                    className="text-rink-500 hover:text-rink-400 hover:bg-rink-500/10"
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    {showPurchaseFlow ? 'Hide Search' : 'Search Domains'}
+                  </Button>
                 </div>
-              )}
 
-              {/* DNS Instructions */}
-              <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4">
-                <h4 className="font-semibold text-neutral-100 mb-3 flex items-center gap-2">
-                  <HelpCircle className="h-4 w-4 text-rink-500" />
-                  DNS Configuration
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <p className="text-neutral-400">
-                    Add one of the following DNS records to your domain:
-                  </p>
-                  <div className="bg-black/30 rounded-lg p-3 font-mono text-xs">
-                    <div className="grid grid-cols-4 gap-2 text-neutral-500 border-b border-neutral-700 pb-2 mb-2">
-                      <span>Type</span>
-                      <span>Name</span>
-                      <span>Value</span>
-                      <span>TTL</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 text-neutral-300">
-                      <span>CNAME</span>
-                      <span>@ or www</span>
-                      <span>cname.vercel-dns.com</span>
-                      <span>3600</span>
-                    </div>
+                {purchaseCapability.message && (
+                  <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100/80">
+                    {purchaseCapability.message}
                   </div>
-                  <p className="text-neutral-500 text-xs">
-                    DNS changes can take up to 48 hours to propagate globally.
+                )}
+
+                {purchaseCapability.purchaseEnabled && showPurchaseFlow ? (
+                  <DomainPurchase
+                    leagueId={domainState.leagueId}
+                    capability={purchaseCapability}
+                    onPurchase={(domain, verified) => {
+                      setCustomDomain(domain);
+                      setSavedDomain(domain);
+                      setVerificationStatus(verified ? 'verified' : 'pending');
+                      setDomainSource('league');
+                      setShowPurchaseFlow(false);
+                      refreshAfterMutation();
+                    }}
+                  />
+                ) : (
+                  <p className="text-sm text-neutral-400">
+                    If you do not see the search flow here, connect a domain you already own. The BYOD path remains fully supported.
                   </p>
-                </div>
+                )}
               </div>
             </>
-          ) : (
-            // User needs to purchase custom domain add-on
-            <div className="space-y-4">
-              <div className="bg-gradient-to-br from-rink-500/10 to-rink-600/5 border border-rink-500/30 rounded-xl p-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-rink-500/20">
-                    <Crown className="h-6 w-6 text-rink-500" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                      <h4 className="font-semibold text-neutral-100">
-                        Custom Domain
-                      </h4>
-                      <span className="text-sm font-semibold text-rink-400 bg-rink-500/10 border border-rink-500/30 rounded-lg px-2.5 py-1 whitespace-nowrap">
-                        Included with subscription
-                      </span>
-                    </div>
-                    <p className="text-sm text-neutral-400 mb-4">
-                      Custom domains are included with any active platform subscription.
-                      Subscribe to unlock the domain search and purchase wizard — no DNS setup required.
-                    </p>
-                    <ul className="text-sm text-neutral-400 space-y-2 mb-5">
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
-                        Search and buy a domain directly (e.g. yourleague.ca)
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
-                        Automatic SSL and DNS — works instantly after purchase
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-rink-500 flex-shrink-0" />
-                        Or bring your own domain and we&apos;ll provide the DNS records
-                      </li>
-                    </ul>
-                    <Button
-                      className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold"
-                      asChild
-                    >
-                      <a href="/dashboard/settings/billing">
-                        Subscribe to Unlock
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Already have a domain? */}
-              <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-4">
-                <p className="text-sm text-neutral-400">
-                  <span className="font-medium text-neutral-300">Already own a domain?</span>{' '}
-                  Subscribe to access the custom domain settings, then point your existing domain at us — we&apos;ll provide the DNS record.
-                </p>
-              </div>
-            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Domain Help Section */}
       <Card className="bg-neutral-800/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-neutral-100 flex items-center gap-2">
@@ -464,54 +513,37 @@ export function DomainSettingsContent({ organization, selectedLeague }: DomainSe
             Domain FAQ
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium text-neutral-200 mb-1">
-                What is a subdomain?
-              </h4>
-              <p className="text-sm text-neutral-400">
-                A subdomain is a free address for your league in the format
-                <code className="mx-1 px-2 py-0.5 bg-neutral-900 rounded text-rink-500">yourleague.beerleaguehockey.ca</code>.
-                All organizations get a free subdomain automatically.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-neutral-200 mb-1">
-                What is a custom domain?
-              </h4>
-              <p className="text-sm text-neutral-400">
-                A custom domain is your own domain name (like
-                <code className="mx-1 px-2 py-0.5 bg-neutral-900 rounded text-rink-500">yourleague.com</code>)
-                that you purchase separately. You can then point it to your league website for
-                professional branding.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-neutral-200 mb-1">
-                How long does DNS verification take?
-              </h4>
-              <p className="text-sm text-neutral-400">
-                DNS changes typically propagate within 5-60 minutes, but can take up to 48 hours
-                in some cases. We&apos;ll automatically check the status and notify you when verification
-                is complete.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-neutral-200 mb-1">
-                Is SSL included?
-              </h4>
-              <p className="text-sm text-neutral-400">
-                Yes! SSL certificates are automatically provisioned for both subdomains and custom
-                domains. Your league website will always be secure with HTTPS.
-              </p>
-            </div>
+        <CardContent className="space-y-4 text-sm text-neutral-400">
+          <div>
+            <h4 className="font-medium text-neutral-200 mb-1">Can we use a domain we already own?</h4>
+            <p>
+              Yes. Save the host you want to use, update DNS at your registrar, and then verify it here. BLH will tell you the exact record type to use.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-medium text-neutral-200 mb-1">Can we buy a domain through BLH?</h4>
+            <p>
+              Yes, when the Vercel registrar integration is configured in the current environment. If it is unavailable, BLH keeps bring-your-own-domain available instead of showing a broken purchase flow.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-medium text-neutral-200 mb-1">What about www?</h4>
+            <p>
+              Root domains and www are separate DNS records. If you connect a root domain, BLH will show the optional www record separately so you can decide which host should be canonical.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-medium text-neutral-200 mb-1">Will removing a custom domain break the league site?</h4>
+            <p>
+              No. Removing a custom domain only disconnects that host. The free BLH subdomain stays live.
+            </p>
           </div>
         </CardContent>
       </Card>
     </div>
   );
+}
+
+function normalizeWhitespace(value: string | null | undefined) {
+  return (value ?? '').trim().toLowerCase();
 }

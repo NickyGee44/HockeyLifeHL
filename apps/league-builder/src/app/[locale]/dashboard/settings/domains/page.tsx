@@ -10,6 +10,7 @@ import { DomainSettingsContent } from '@/components/dashboard/domain-settings-co
 import { setRequestLocale } from 'next-intl/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import { getLeagueDomain } from '@/lib/actions/domain';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,5 +93,40 @@ export default async function DomainSettingsPage({ params, searchParams }: Props
     }
   }
 
-  return <DomainSettingsContent organization={organization} selectedLeague={selectedLeague} />;
+  if (!selectedLeague) {
+    redirect({ href: '/dashboard', locale });
+    return null;
+  }
+
+  const domainResult = await getLeagueDomain(selectedLeague.id);
+  const domainData = domainResult.data;
+
+  return (
+    <DomainSettingsContent
+      organizationName={organization.name}
+      purchaseCapability={
+        domainData?.purchaseCapability ?? {
+          searchEnabled: false,
+          purchaseEnabled: false,
+          vercelProjectConfigured: false,
+          message: 'Domain purchase is not configured in this environment yet.',
+        }
+      }
+      domainState={{
+        leagueId: selectedLeague.id,
+        leagueName: selectedLeague.name,
+        leagueSlug: selectedLeague.slug,
+        leagueSubdomain: selectedLeague.subdomain ?? null,
+        effectiveCustomDomain: domainData?.effectiveCustomDomain ?? null,
+        effectiveCustomDomainVerified: domainData?.effectiveCustomDomainVerified ?? false,
+        domainSource: domainData?.domainSource ?? null,
+        requiresManualReview: domainData?.requiresManualReview ?? false,
+        hasCustomDomainAccess: domainData?.hasCustomDomainAccess ?? false,
+        legacyOrganizationDomain:
+          domainData?.domainSource === 'legacy_organization' || domainData?.requiresManualReview
+            ? domainData.organization?.custom_domain ?? null
+            : null,
+      }}
+    />
+  );
 }

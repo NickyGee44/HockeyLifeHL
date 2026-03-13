@@ -20,6 +20,10 @@ interface StepConfirmationProps {
   leagueName: string;
   seasonName: string;
   registrationFee: number;
+  platformFeeCents: number;
+  platformFeePercent: number;
+  totalChargeCents: number;
+  chargeIncludesPlatformFee: boolean;
   feeCollectionModel: FeeCollectionModel;
   feeBasis: FeeBasis;
   paymentMode: RegistrationPaymentMode;
@@ -51,6 +55,10 @@ export function StepConfirmation({
   leagueName,
   seasonName,
   registrationFee,
+  platformFeeCents,
+  platformFeePercent,
+  totalChargeCents,
+  chargeIncludesPlatformFee,
   feeCollectionModel,
   feeBasis,
   paymentMode,
@@ -198,6 +206,24 @@ export function StepConfirmation({
                   : formatCurrency(registrationFee)}
               </span>
             </div>
+            {chargeIncludesPlatformFee && platformFeeCents > 0 && paymentMode !== 'hidden' && (
+              <>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-sm text-[var(--color-text-muted)]">
+                    BLH Platform Fee ({platformFeePercent.toFixed(2)}%)
+                  </span>
+                  <span className="font-semibold text-[var(--color-text-primary)]">
+                    {formatCurrency(platformFeeCents)}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between border-t border-[var(--color-border)] pt-3">
+                  <span className="text-sm font-medium text-[var(--color-text-primary)]">Total Due Today</span>
+                  <span className="font-bold text-[var(--color-text-primary)]">
+                    {formatCurrency(totalChargeCents)}
+                  </span>
+                </div>
+              </>
+            )}
             <p className="mt-1 text-xs text-green-400">
               {formData.payment_status === 'completed'
                 ? 'Payment completed'

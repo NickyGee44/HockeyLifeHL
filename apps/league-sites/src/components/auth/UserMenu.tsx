@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, LogOut, ChevronDown, CreditCard, FileText, LayoutDashboard, Shield, ClipboardCheck } from 'lucide-react';
+import { User, LogOut, ChevronDown, CreditCard, FileText, LayoutDashboard, Shield, ClipboardCheck, Goal } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { signOut } from '@/lib/supabase/auth';
@@ -172,12 +172,20 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
               onClick={() => setIsOpen(false)}
             />
             {(currentTeam?.is_captain || currentTeam?.is_alternate) && (
-              <MenuItem
-                href={`/${leagueSlug}/captain`}
-                icon={<Shield className="w-4 h-4" />}
-                label="Captain Dashboard"
-                onClick={() => setIsOpen(false)}
-              />
+              <>
+                <MenuItem
+                  href={`/${leagueSlug}/captain`}
+                  icon={<Shield className="w-4 h-4" />}
+                  label="Captain Dashboard"
+                  onClick={() => setIsOpen(false)}
+                />
+                <MenuItem
+                  href={`/${leagueSlug}/captain/goalies`}
+                  icon={<Goal className="w-4 h-4" />}
+                  label="Goalie Marketplace"
+                  onClick={() => setIsOpen(false)}
+                />
+              </>
             )}
             <MenuItem
               href={`/${leagueSlug}/me/payments`}

@@ -23,6 +23,10 @@ import {
   getSeasonPaymentSettings,
   usesTeamBilling,
 } from '@/lib/registration/fee-collection-model';
+import {
+  getRegistrationPaymentQuoteForLeague,
+  type RegistrationPaymentQuote,
+} from '@/lib/registration/payment-pricing';
 
 // ============================================================================
 // Types
@@ -75,6 +79,7 @@ interface RegistrationPaymentRegistration {
     name: string;
     fee_amount_cents: number;
   };
+  payment_quote: RegistrationPaymentQuote;
 }
 
 // ============================================================================
@@ -190,18 +195,6 @@ function generateIdempotencyKey(
     .substring(0, 16);
 
   return `${operation}-${hash}`;
-}
-
-// ============================================================================
-// Helper: Calculate Application Fee (3.5%)
-// ============================================================================
-
-function calculateApplicationFee(amountCents: number): number {
-  const feePercent = 3.5;
-  const fee = Math.round((amountCents * feePercent) / 100);
-
-  // Minimum fee: $0.50
-  return Math.max(fee, 50);
 }
 
 // ============================================================================
@@ -415,18 +408,17 @@ export async function createRegistrationCheckout(
       };
     }
 
-    // Calculate amount owed
-    const feeAmount =
-      registration.fee_amount_cents || playerFeeAmountCents || 0;
+    const feeAmount = registration.fee_amount_cents || playerFeeAmountCents || 0;
     const amountPaid = registration.amount_paid_cents || 0;
-    const amountOwed = feeAmount - amountPaid;
+    const paymentQuote = await getRegistrationPaymentQuoteForLeague(
+      registration.league_id,
+      feeAmount,
+      amountPaid
+    );
 
-    if (amountOwed <= 0) {
+    if (paymentQuote.baseAmountDueCents <= 0 || paymentQuote.outstandingChargeCents <= 0) {
       return { success: false, error: 'No payment is due for this registration.' };
     }
-
-    // Calculate platform application fee (3.5%)
-    const applicationFee = calculateApplicationFee(amountOwed);
 
     // Get or create Stripe customer
     const { data: profile } = await supabase
@@ -471,7 +463,7 @@ export async function createRegistrationCheckout(
     const stripe = getStripeClient();
     const idempotencyKey = generateIdempotencyKey('create_checkout', {
       registration_id: registrationId,
-      amount: amountOwed,
+      amount: paymentQuote.outstandingChargeCents,
     });
 
     const session = await stripe.checkout.sessions.create(
@@ -485,15 +477,30 @@ export async function createRegistrationCheckout(
               currency: registration.currency || paymentSettings.currency || 'cad',
               product_data: {
                 name: `${registration.registration_type} Registration`,
-                description: `${league.name} - Registration Fee`,
+                description: `${league.name} - League Fee`,
               },
-              unit_amount: amountOwed,
+              unit_amount: paymentQuote.baseAmountDueCents,
             },
             quantity: 1,
           },
+          ...(paymentQuote.chargeIncludesPlatformFee && paymentQuote.platformFeeCents > 0
+            ? [
+                {
+                  price_data: {
+                    currency: registration.currency || paymentSettings.currency || 'cad',
+                    product_data: {
+                      name: 'BLH Platform Fee',
+                      description: `Processing and platform fee (${paymentQuote.platformFeePercent.toFixed(2)}%)`,
+                    },
+                    unit_amount: paymentQuote.platformFeeCents,
+                  },
+                  quantity: 1,
+                },
+              ]
+            : []),
         ],
         payment_intent_data: {
-          application_fee_amount: applicationFee,
+          application_fee_amount: paymentQuote.applicationFeeCents,
           transfer_data: {
             destination: league.stripe_account_id,
           },
@@ -502,6 +509,11 @@ export async function createRegistrationCheckout(
             player_id: playerId,
             league_id: registration.league_id,
             season_id: registration.season_id,
+            base_fee_cents: String(paymentQuote.baseAmountDueCents),
+            application_fee_cents: String(paymentQuote.applicationFeeCents),
+            total_charge_cents: String(paymentQuote.outstandingChargeCents),
+            platform_fee_mode: paymentQuote.platformFeeMode,
+            platform_fee_bps: String(paymentQuote.platformFeeBps),
             platform: 'beerleaguehockey',
           },
         },
@@ -509,6 +521,11 @@ export async function createRegistrationCheckout(
         cancel_url: cancelUrl,
         metadata: {
           registration_id: registrationId,
+          base_fee_cents: String(paymentQuote.baseAmountDueCents),
+          application_fee_cents: String(paymentQuote.applicationFeeCents),
+          total_charge_cents: String(paymentQuote.outstandingChargeCents),
+          platform_fee_mode: paymentQuote.platformFeeMode,
+          platform_fee_bps: String(paymentQuote.platformFeeBps),
           type: 'registration_fee', // Used by webhook handler
         },
       },
@@ -647,18 +664,17 @@ export async function createEmbeddedCheckout(
       };
     }
 
-    // Calculate amount owed
-    const feeAmount =
-      registration.fee_amount_cents || playerFeeAmountCents || 0;
+    const feeAmount = registration.fee_amount_cents || playerFeeAmountCents || 0;
     const amountPaid = registration.amount_paid_cents || 0;
-    const amountOwed = feeAmount - amountPaid;
+    const paymentQuote = await getRegistrationPaymentQuoteForLeague(
+      registration.league_id,
+      feeAmount,
+      amountPaid
+    );
 
-    if (amountOwed <= 0) {
+    if (paymentQuote.baseAmountDueCents <= 0 || paymentQuote.outstandingChargeCents <= 0) {
       return { success: false, error: 'No payment is due for this registration.' };
     }
-
-    // Calculate platform application fee (3.5%)
-    const applicationFee = calculateApplicationFee(amountOwed);
 
     // Get or create Stripe customer
     const { data: profile } = await supabase
@@ -700,7 +716,7 @@ export async function createEmbeddedCheckout(
     const stripe = getStripeClient();
     const idempotencyKey = generateIdempotencyKey('create_embedded_checkout', {
       registration_id: registrationId,
-      amount: amountOwed,
+      amount: paymentQuote.outstandingChargeCents,
       timestamp: Math.floor(Date.now() / 60000).toString(), // 1-minute granularity
     });
 
@@ -716,15 +732,30 @@ export async function createEmbeddedCheckout(
               currency: registration.currency || paymentSettings.currency || 'cad',
               product_data: {
                 name: `${registration.registration_type} Registration`,
-                description: `${league.name} - Registration Fee`,
+                description: `${league.name} - League Fee`,
               },
-              unit_amount: amountOwed,
+              unit_amount: paymentQuote.baseAmountDueCents,
             },
             quantity: 1,
           },
+          ...(paymentQuote.chargeIncludesPlatformFee && paymentQuote.platformFeeCents > 0
+            ? [
+                {
+                  price_data: {
+                    currency: registration.currency || paymentSettings.currency || 'cad',
+                    product_data: {
+                      name: 'BLH Platform Fee',
+                      description: `Processing and platform fee (${paymentQuote.platformFeePercent.toFixed(2)}%)`,
+                    },
+                    unit_amount: paymentQuote.platformFeeCents,
+                  },
+                  quantity: 1,
+                },
+              ]
+            : []),
         ],
         payment_intent_data: {
-          application_fee_amount: applicationFee,
+          application_fee_amount: paymentQuote.applicationFeeCents,
           transfer_data: {
             destination: league.stripe_account_id,
           },
@@ -733,12 +764,22 @@ export async function createEmbeddedCheckout(
             player_id: playerId,
             league_id: registration.league_id,
             season_id: registration.season_id,
+            base_fee_cents: String(paymentQuote.baseAmountDueCents),
+            application_fee_cents: String(paymentQuote.applicationFeeCents),
+            total_charge_cents: String(paymentQuote.outstandingChargeCents),
+            platform_fee_mode: paymentQuote.platformFeeMode,
+            platform_fee_bps: String(paymentQuote.platformFeeBps),
             platform: 'hockeylifehl',
           },
         },
         return_url: returnUrl,
         metadata: {
           registration_id: registrationId,
+          base_fee_cents: String(paymentQuote.baseAmountDueCents),
+          application_fee_cents: String(paymentQuote.applicationFeeCents),
+          total_charge_cents: String(paymentQuote.outstandingChargeCents),
+          platform_fee_mode: paymentQuote.platformFeeMode,
+          platform_fee_bps: String(paymentQuote.platformFeeBps),
           type: 'registration_fee',
         },
       },
@@ -857,7 +898,12 @@ export async function getOutstandingBalance(
           payment_status: RegistrationPaymentRegistration['payment_status'];
         }) => ['pending', 'draft'].includes(row.payment_status)
       ) || rows[0];
-    const amountOwed = (reg.fee_amount_cents || 0) - (reg.amount_paid_cents || 0);
+    const paymentQuote = await getRegistrationPaymentQuoteForLeague(
+      reg.league_id,
+      reg.fee_amount_cents || 0,
+      reg.amount_paid_cents || 0
+    );
+    const amountOwed = paymentQuote.outstandingChargeCents;
 
     if (amountOwed <= 0) {
       return { hasBalance: false, amountCents: 0, registrationId: null };
@@ -888,17 +934,31 @@ export async function getRegistrationPaymentHistory(
       return { success: false, error: 'Authentication required.' };
     }
 
-    // Transform to payment history format
-    const history: RegistrationPaymentHistory[] = (rows || []).map((reg: any) => ({
-      id: reg.id,
-      amount: reg.amount_paid_cents || 0,
-      status: reg.payment_status === 'completed' ? 'succeeded' :
-              reg.payment_status === 'failed' ? 'failed' :
-              reg.payment_status === 'refunded' ? 'refunded' : 'pending',
-      description: `${reg.registration_type} Registration`,
-      created_at: reg.created_at,
-      payment_method: reg.stripe_payment_intent_id ? 'Card' : undefined,
-    }));
+    const history: RegistrationPaymentHistory[] = await Promise.all(
+      (rows || []).map(async (reg: any) => {
+        const paymentQuote = await getRegistrationPaymentQuoteForLeague(
+          reg.league_id,
+          reg.fee_amount_cents || 0,
+          reg.amount_paid_cents || 0
+        );
+
+        return {
+          id: reg.id,
+          amount: paymentQuote.totalPaidDisplayCents,
+          status:
+            reg.payment_status === 'completed'
+              ? 'succeeded'
+              : reg.payment_status === 'failed'
+                ? 'failed'
+                : reg.payment_status === 'refunded'
+                  ? 'refunded'
+                  : 'pending',
+          description: `${reg.registration_type} Registration`,
+          created_at: reg.created_at,
+          payment_method: reg.stripe_payment_intent_id ? 'Card' : undefined,
+        };
+      })
+    );
 
     return { success: true, data: history };
   } catch (error) {
@@ -917,34 +977,42 @@ export async function getRegistrationPaymentRegistrations(
       return { success: false, error: 'Authentication required.' };
     }
 
-    const registrations: RegistrationPaymentRegistration[] = (rows || []).map((reg: any) => {
-      const rawTeam = Array.isArray(reg.team) ? reg.team[0] : reg.team;
+    const registrations: RegistrationPaymentRegistration[] = await Promise.all(
+      (rows || []).map(async (reg: any) => {
+        const rawTeam = Array.isArray(reg.team) ? reg.team[0] : reg.team;
+        const paymentQuote = await getRegistrationPaymentQuoteForLeague(
+          reg.league_id,
+          reg.fee_amount_cents || 0,
+          reg.amount_paid_cents || 0
+        );
 
-      return {
-        id: reg.id,
-        season_id: reg.season_id,
-        team_id: reg.team_id,
-        status: reg.status,
-        payment_status: reg.payment_status,
-        fee_amount_cents: reg.fee_amount_cents || 0,
-        currency: reg.currency || 'cad',
-        amount_paid_cents: reg.amount_paid_cents || 0,
-        stripe_payment_intent_id: reg.stripe_payment_intent_id,
-        created_at: reg.created_at,
-        season: Array.isArray(reg.season) ? reg.season[0] : reg.season,
-        team: rawTeam
-          ? {
-              ...rawTeam,
-              logo: rawTeam.logo_url || null,
-            }
-          : null,
-        registration_type: {
+        return {
           id: reg.id,
-          name: `${reg.registration_type} Registration`,
+          season_id: reg.season_id,
+          team_id: reg.team_id,
+          status: reg.status,
+          payment_status: reg.payment_status,
           fee_amount_cents: reg.fee_amount_cents || 0,
-        },
-      };
-    });
+          currency: reg.currency || 'cad',
+          amount_paid_cents: reg.amount_paid_cents || 0,
+          stripe_payment_intent_id: reg.stripe_payment_intent_id,
+          created_at: reg.created_at,
+          season: Array.isArray(reg.season) ? reg.season[0] : reg.season,
+          team: rawTeam
+            ? {
+                ...rawTeam,
+                logo: rawTeam.logo_url || null,
+              }
+            : null,
+          registration_type: {
+            id: reg.id,
+            name: `${reg.registration_type} Registration`,
+            fee_amount_cents: reg.fee_amount_cents || 0,
+          },
+          payment_quote: paymentQuote,
+        };
+      })
+    );
 
     return { success: true, data: registrations };
   } catch (error) {

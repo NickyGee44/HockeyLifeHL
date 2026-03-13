@@ -33,8 +33,8 @@ interface Registration {
   id: string;
   season_id: string;
   team_id: string | null;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'waitlisted';
-  payment_status: 'pending' | 'paid' | 'partial' | 'refunded' | 'failed';
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'waitlisted' | 'pending';
+  payment_status: 'pending' | 'paid' | 'partial' | 'refunded' | 'failed' | 'completed' | 'not_required';
   fee_amount_cents: number;
   currency: string;
   amount_paid_cents: number;
@@ -56,6 +56,18 @@ interface Registration {
     name: string;
     fee_amount_cents: number;
   };
+  payment_quote: {
+    baseFeeCents: number;
+    baseAmountDueCents: number;
+    baseAmountPaidCents: number;
+    platformFeeCents: number;
+    platformFeeOnFullFeeCents: number;
+    outstandingChargeCents: number;
+    totalChargeCents: number;
+    totalPaidDisplayCents: number;
+    platformFeePercent: number;
+    chargeIncludesPlatformFee: boolean;
+  };
 }
 
 interface PaymentsPageProps {
@@ -74,6 +86,9 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
     registrationId: string;
     registrationName: string;
     amount: number;
+    baseFeeCents: number;
+    platformFeeCents: number;
+    platformFeePercent: number;
   } | null>(null);
 
   useEffect(() => {
@@ -156,9 +171,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
 
   const totalOwed = registrations.reduce(
     (sum, reg) => {
-      const feeAmount = reg.fee_amount_cents || 0;
-      const paid = reg.amount_paid_cents || 0;
-      return sum + Math.max(0, feeAmount - paid);
+      return sum + Math.max(0, reg.payment_quote?.outstandingChargeCents || 0);
     },
     0
   );
@@ -168,18 +181,27 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
     .reduce((sum, p) => sum + p.amount, 0);
 
   const outstandingRegistrations = registrations.filter((reg) => {
-    const feeAmount = reg.fee_amount_cents || 0;
-    return feeAmount > (reg.amount_paid_cents || 0);
+    return (reg.payment_quote?.outstandingChargeCents || 0) > 0;
   });
 
   const primaryOutstanding = outstandingRegistrations[0] || null;
 
-  const handlePayNow = (registrationId: string, amount: number, registrationName: string) => {
+  const handlePayNow = (
+    registrationId: string,
+    amount: number,
+    registrationName: string,
+    baseFeeCents: number,
+    platformFeeCents: number,
+    platformFeePercent: number
+  ) => {
     setPaymentModal({
       isOpen: true,
       registrationId,
       registrationName,
       amount,
+      baseFeeCents,
+      platformFeeCents,
+      platformFeePercent,
     });
   };
 
@@ -241,11 +263,11 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
               onClick={() =>
                 handlePayNow(
                   primaryOutstanding.id,
-                  (primaryOutstanding.fee_amount_cents || 0) -
-                    (primaryOutstanding.amount_paid_cents || 0),
-                  primaryOutstanding.registration_type?.name ||
-                    primaryOutstanding.season?.name ||
-                    'Registration'
+                  primaryOutstanding.payment_quote?.outstandingChargeCents || 0,
+                  primaryOutstanding.registration_type?.name || primaryOutstanding.season?.name || 'Registration',
+                  primaryOutstanding.payment_quote?.baseAmountDueCents || 0,
+                  primaryOutstanding.payment_quote?.platformFeeCents || 0,
+                  primaryOutstanding.payment_quote?.platformFeePercent || 0
                 )
               }
               disabled={isProcessing}
@@ -316,8 +338,9 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
           </h2>
           <div className="space-y-3">
             {outstandingRegistrations.map((reg) => {
-                const feeAmount = reg.fee_amount_cents || 0;
-                const balance = feeAmount - (reg.amount_paid_cents || 0);
+                const balance = reg.payment_quote?.outstandingChargeCents || 0;
+                const feeAmount = reg.payment_quote?.baseFeeCents || reg.fee_amount_cents || 0;
+                const platformFee = reg.payment_quote?.platformFeeOnFullFeeCents || 0;
                 return (
                   <div
                     key={reg.id}
@@ -342,14 +365,28 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                           {formatCurrency(balance)}
                         </p>
                         <p className="text-xs text-[var(--color-text-secondary)]">
-                          {(reg.amount_paid_cents || 0) > 0 && (
-                            <>Paid: {formatCurrency(reg.amount_paid_cents || 0)} / </>
+                          {(reg.payment_quote?.totalPaidDisplayCents || 0) > 0 && (
+                            <>Paid: {formatCurrency(reg.payment_quote?.totalPaidDisplayCents || 0)} / </>
                           )}
-                          Total: {formatCurrency(feeAmount)}
+                          Total: {formatCurrency(reg.payment_quote?.totalChargeCents || feeAmount)}
                         </p>
+                        {platformFee > 0 && (
+                          <p className="text-xs text-[var(--color-text-muted)]">
+                            League fee {formatCurrency(feeAmount)} + BLH fee {formatCurrency(platformFee)}
+                          </p>
+                        )}
                       </div>
                       <button
-                        onClick={() => handlePayNow(reg.id, balance, reg.registration_type?.name || reg.season?.name || 'Registration')}
+                        onClick={() =>
+                          handlePayNow(
+                            reg.id,
+                            balance,
+                            reg.registration_type?.name || reg.season?.name || 'Registration',
+                            reg.payment_quote?.baseAmountDueCents || 0,
+                            reg.payment_quote?.platformFeeCents || 0,
+                            reg.payment_quote?.platformFeePercent || 0
+                          )
+                        }
                         disabled={isProcessing}
                         className="flex items-center justify-center gap-2 px-6 py-2 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                       >
@@ -453,6 +490,9 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
           registrationId={paymentModal.registrationId}
           registrationName={paymentModal.registrationName}
           amount={paymentModal.amount}
+          baseFeeCents={paymentModal.baseFeeCents}
+          platformFeeCents={paymentModal.platformFeeCents}
+          platformFeePercent={paymentModal.platformFeePercent}
           leagueSlug={leagueSlug}
           onPaymentComplete={handlePaymentComplete}
         />

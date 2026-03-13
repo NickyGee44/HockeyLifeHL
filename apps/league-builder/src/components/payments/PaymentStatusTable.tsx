@@ -29,6 +29,12 @@ import type {
   PlayerPaymentStatus,
   PaymentPlanType,
 } from '@/lib/payments/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface PaymentStatusTableProps {
   payments: PlayerPaymentWithDetails[];
@@ -137,7 +143,6 @@ export function PaymentStatusTable({
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // Filter and sort payments
   const filteredPayments = useMemo(() => {
@@ -489,86 +494,55 @@ export function PaymentStatusTable({
 
                     {/* Actions */}
                     <td className="px-4 py-3 text-right">
-                      <div className="relative">
-                        <button
-                          onClick={() =>
-                            setOpenMenuId(openMenuId === payment.id ? null : payment.id)
-                          }
-                          className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-lg transition-colors"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
-
-                        {openMenuId === payment.id && (
-                          <>
-                            {/* Backdrop */}
-                            <div
-                              className="fixed inset-0 z-10"
-                              onClick={() => setOpenMenuId(null)}
-                            />
-
-                            {/* Menu */}
-                            <div className="absolute right-0 top-8 z-20 w-48 bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl py-1">
-                              {onViewDetails && (
-                                <button
-                                  onClick={() => {
-                                    onViewDetails(payment);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700 hover:text-white flex items-center gap-2"
-                                >
-                                  <DollarSign className="h-4 w-4" />
-                                  {t('viewDetails')}
-                                </button>
-                              )}
-                              {onMarkAsPaid &&
-                                ['pending', 'partially_paid', 'overdue'].includes(
-                                  payment.status
-                                ) && (
-                                  <button
-                                    onClick={() => {
-                                      onMarkAsPaid(payment);
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm text-green-400 hover:bg-neutral-700 flex items-center gap-2"
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                    {t('markAsPaid')}
-                                  </button>
-                                )}
-                              {onSendReminder &&
-                                ['pending', 'partially_paid', 'overdue'].includes(
-                                  payment.status
-                                ) && (
-                                  <button
-                                    onClick={() => {
-                                      onSendReminder(payment);
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700 hover:text-white flex items-center gap-2"
-                                  >
-                                    <Mail className="h-4 w-4" />
-                                    {t('sendReminder')}
-                                  </button>
-                                )}
-                              {onRefund &&
-                                ['paid', 'partially_paid'].includes(payment.status) &&
-                                payment.amount_paid_cents > 0 && (
-                                  <button
-                                    onClick={() => {
-                                      onRefund(payment);
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-neutral-700 flex items-center gap-2"
-                                  >
-                                    <RefreshCw className="h-4 w-4" />
-                                    {t('issueRefund')}
-                                  </button>
-                                )}
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-lg transition-colors">
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {onViewDetails && (
+                            <DropdownMenuItem
+                              onSelect={() => onViewDetails(payment)}
+                              className="flex items-center gap-2 text-neutral-200"
+                            >
+                              <DollarSign className="h-4 w-4" />
+                              {t('viewDetails')}
+                            </DropdownMenuItem>
+                          )}
+                          {onMarkAsPaid &&
+                            ['pending', 'partially_paid', 'overdue'].includes(payment.status) && (
+                              <DropdownMenuItem
+                                onSelect={() => onMarkAsPaid(payment)}
+                                className="flex items-center gap-2 text-green-400 focus:text-green-300"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                {t('markAsPaid')}
+                              </DropdownMenuItem>
+                            )}
+                          {onSendReminder &&
+                            ['pending', 'partially_paid', 'overdue'].includes(payment.status) && (
+                              <DropdownMenuItem
+                                onSelect={() => onSendReminder(payment)}
+                                className="flex items-center gap-2 text-neutral-200"
+                              >
+                                <Mail className="h-4 w-4" />
+                                {t('sendReminder')}
+                              </DropdownMenuItem>
+                            )}
+                          {onRefund &&
+                            ['paid', 'partially_paid'].includes(payment.status) &&
+                            payment.amount_paid_cents > 0 && (
+                              <DropdownMenuItem
+                                onSelect={() => onRefund(payment)}
+                                className="flex items-center gap-2 text-red-400 focus:text-red-300"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                {t('issueRefund')}
+                              </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 );

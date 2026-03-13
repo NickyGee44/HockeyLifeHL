@@ -187,7 +187,7 @@ export function Step9NextSteps({
         <ActionCard
           icon={<Globe className="h-5 w-5 text-primary" />}
           title="Get Your Own Domain"
-          description="Buy a custom domain (e.g. yourleague.ca) and point it here — no DNS setup required"
+          description="Connect a domain you already own, or use the BLH buy flow when the registrar integration is available"
           buttonLabel="Domain Settings"
           href="/dashboard/settings/domains"
         />

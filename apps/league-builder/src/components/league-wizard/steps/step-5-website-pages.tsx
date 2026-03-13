@@ -29,6 +29,7 @@ import { Switch } from '@/components/ui/switch';
 import { WizardStepContainer } from '../../ui/wizard/wizard-steps';
 import type { WizardFormData } from '@/lib/schemas/league-wizard';
 import { generateSlug } from '@/lib/schemas/league-wizard';
+import { getDnsInstructions } from '@/lib/domains/dns-instructions';
 
 // Theme preset options
 const THEME_PRESETS = [
@@ -125,6 +126,10 @@ export function Step5WebsitePages() {
       : `https://${fullDomain}`
     : '';
   const previewDisplay = subdomain ? previewUrl.replace(/^https?:\/\//, '') : fullDomain;
+  const customDomainInstructions = React.useMemo(
+    () => (ownsDomain && customDomainName ? getDnsInstructions(customDomainName) : null),
+    [customDomainName, ownsDomain]
+  );
 
   // Toggle a page visibility
   const togglePage = (pageKey: string) => {
@@ -441,7 +446,7 @@ export function Step5WebsitePages() {
                     >
                       <h5 className="font-medium mb-1">I need to buy a domain</h5>
                       <p className="text-xs text-muted-foreground">
-                        We&apos;ll help you get started after setup
+                        BLH can help when in-app purchase is available, or you can connect one later
                       </p>
                     </button>
                   </div>
@@ -462,16 +467,25 @@ export function Step5WebsitePages() {
                     </FormField>
                   )}
 
-                  {ownsDomain && customDomainName && (
+                  {customDomainInstructions && (
                     <div className="bg-muted/50 p-4 rounded-lg">
                       <p className="text-sm font-medium mb-2">DNS Setup Instructions</p>
                       <p className="text-xs text-muted-foreground mb-3">
-                        After creating your league, you&apos;ll need to add a CNAME record pointing to our servers.
-                        Detailed instructions will be provided on the next steps page.
+                        After creating your league, BLH will show these same record details in Domain Settings so you can verify the host once DNS is live.
                       </p>
-                      <code className="text-xs bg-neutral-900 p-2 rounded block">
-                        CNAME {customDomainName} → cname.beerleaguehockey.ca
-                      </code>
+                      <div className="space-y-2">
+                        <code className="text-xs bg-neutral-900 p-2 rounded block">
+                          {customDomainInstructions.primaryRecord.type} {customDomainInstructions.primaryRecord.host} → {customDomainInstructions.primaryRecord.value}
+                        </code>
+                        {customDomainInstructions.additionalRecords.map((record) => (
+                          <code
+                            key={`${record.type}-${record.host}`}
+                            className="text-xs bg-neutral-900 p-2 rounded block"
+                          >
+                            {record.type} {record.host} → {record.value}
+                          </code>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -479,8 +493,7 @@ export function Step5WebsitePages() {
                     <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-2">
                       <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                       <p className="text-sm text-muted-foreground">
-                        We recommend purchasing a domain from providers like Namecheap, GoDaddy, or Google Domains.
-                        After creating your league, we&apos;ll guide you through connecting it.
+                        You can always buy a domain from providers like Namecheap, GoDaddy, or Squarespace and connect it later. If BLH&apos;s purchase integration is available in your environment, Domain Settings will show the in-app buy flow too.
                       </p>
                     </div>
                   )}

@@ -1,14 +1,21 @@
 'use server';
 
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
 import dns from 'dns';
 import { promisify } from 'util';
-import { verifyOrganizationAccess } from '@/lib/organizations/access';
+import { revalidatePath } from 'next/cache';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import {
+  getDnsInstructions as buildDnsInstructions,
+  isValidCustomDomainFormat,
+  normalizeDomainInput,
+  VERCEL_APEX_IP,
+  VERCEL_CNAME_TARGET,
+  VERCEL_FALLBACK_IPS,
+} from '@/lib/domains/dns-instructions';
 
 const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
-
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 export type DomainVerificationResult = {
@@ -19,104 +26,318 @@ export type DomainVerificationResult = {
   status?: 'pending' | 'verified' | 'failed';
 };
 
-// Vercel DNS targets
-const VERCEL_CNAME = 'cname.vercel-dns.com';
-const VERCEL_IPS = ['76.76.21.21', '76.76.21.142', '76.76.21.164', '76.223.126.88'];
+export type DomainSearchResult = {
+  name: string;
+  price: number;
+  available: boolean;
+  premium: boolean;
+};
+
+export type DomainPurchaseCapability = {
+  searchEnabled: boolean;
+  purchaseEnabled: boolean;
+  vercelProjectConfigured: boolean;
+  message: string | null;
+};
+
+export type LeagueDomainBindingSource = 'league' | 'legacy_organization' | null;
+
+export type LeagueDomainDetails = {
+  league: {
+    id: string;
+    name: string;
+    slug: string;
+    subdomain: string | null;
+    custom_domain: string | null;
+    custom_domain_verified: boolean;
+    subscription_status: string | null;
+    subscription_tier: string | null;
+  };
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+    custom_domain: string | null;
+    custom_domain_verified: boolean;
+    subscription_status: string | null;
+    subscription_tier: string | null;
+  } | null;
+  effectiveCustomDomain: string | null;
+  effectiveCustomDomainVerified: boolean;
+  domainSource: LeagueDomainBindingSource;
+  requiresManualReview: boolean;
+  hasCustomDomainAccess: boolean;
+  purchaseCapability: DomainPurchaseCapability;
+};
+
+type ManagedLeague = {
+  id: string;
+  name: string;
+  slug: string;
+  subdomain: string | null;
+  organization_id: string | null;
+  custom_domain: string | null;
+  custom_domain_verified: boolean | null;
+  subscription_status: string | null;
+  subscription_tier: string | null;
+};
 
 type ManagedOrganization = {
   id: string;
   name: string;
   slug: string;
-  owner_user_id: string | null;
   custom_domain: string | null;
   custom_domain_verified: boolean | null;
-  subscription_tier?: string | null;
-  subscription_status?: string | null;
+  subscription_status: string | null;
+  subscription_tier: string | null;
 };
 
-async function getOrganizationDomainAccess(organizationId: string): Promise<{
-  userId?: string;
-  organization?: ManagedOrganization;
-  error?: string;
-}> {
-  const access = await verifyOrganizationAccess(organizationId, { requireManagement: true });
-  if (!access.authorized || !access.organization || !access.userId) {
-    return { error: access.error || 'Only league owners and organization admins can manage domains' };
-  }
+type LeagueDomainAccess = {
+  league: ManagedLeague;
+  organization: ManagedOrganization | null;
+  organizationLeagueCount: number;
+  effectiveCustomDomain: string | null;
+  effectiveCustomDomainVerified: boolean;
+  domainSource: LeagueDomainBindingSource;
+  requiresManualReview: boolean;
+  hasCustomDomainAccess: boolean;
+};
 
+type VercelDomainResult = {
+  success: boolean;
+  pending?: boolean;
+  error?: string;
+};
+
+const SEARCH_TLDS = ['.com', '.ca', '.net', '.hockey', '.org'];
+
+function hasActiveSubscription(status: string | null | undefined) {
+  return ['active', 'trialing'].includes(status ?? '');
+}
+
+function getLeagueSitesProjectConfig() {
   return {
-    userId: access.userId,
-    organization: access.organization as ManagedOrganization,
+    projectId: process.env.VERCEL_LEAGUE_SITES_PROJECT_ID ?? '',
+    token: process.env.VERCEL_TOKEN ?? '',
   };
 }
 
-function hasCustomDomainAccess(organization: ManagedOrganization) {
-  return ['active', 'trialing'].includes(organization.subscription_status ?? '') || Boolean(organization.custom_domain);
+export async function getDomainPurchaseCapability(): Promise<DomainPurchaseCapability> {
+  const { projectId, token } = getLeagueSitesProjectConfig();
+  const searchEnabled = Boolean(token);
+  const vercelProjectConfigured = Boolean(projectId);
+  const purchaseEnabled = searchEnabled && vercelProjectConfigured;
+
+  if (purchaseEnabled) {
+    return {
+      searchEnabled: true,
+      purchaseEnabled: true,
+      vercelProjectConfigured: true,
+      message: null,
+    };
+  }
+
+  if (!searchEnabled && !vercelProjectConfigured) {
+    return {
+      searchEnabled: false,
+      purchaseEnabled: false,
+      vercelProjectConfigured: false,
+      message: 'In-app domain search and purchase are not configured in this environment yet. You can still connect a domain you already own.',
+    };
+  }
+
+  if (!vercelProjectConfigured) {
+    return {
+      searchEnabled,
+      purchaseEnabled: false,
+      vercelProjectConfigured: false,
+      message: 'Domain purchase is temporarily unavailable because the league-sites Vercel project is not configured. Bring-your-own domain is still available.',
+    };
+  }
+
+  return {
+    searchEnabled,
+    purchaseEnabled: false,
+    vercelProjectConfigured,
+    message: 'Domain search is temporarily unavailable. You can still connect a domain you already own.',
+  };
 }
 
-// ---------------------------------------------------------------------------
-// Vercel API helpers
-// ---------------------------------------------------------------------------
+async function getLeagueDomainAccess(leagueId: string): Promise<{ error?: string } & Partial<LeagueDomainAccess>> {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { error: access.error || 'Only league owners and league admins can manage website domains.' };
+  }
 
-/**
- * Register a custom domain on the league-sites Vercel project.
- * Best-effort: logs errors but never throws.
- */
-async function registerVercelDomain(domain: string): Promise<void> {
-  const projectId = process.env.VERCEL_LEAGUE_SITES_PROJECT_ID;
-  const token = process.env.VERCEL_TOKEN;
+  const serviceClient = createServiceRoleClient();
+  const { data: league, error: leagueError } = await serviceClient
+    .from('leagues')
+    .select('id, name, slug, subdomain, organization_id, custom_domain, custom_domain_verified, subscription_status, subscription_tier')
+    .eq('id', leagueId)
+    .maybeSingle();
 
-  if (!projectId || !token) {
-    console.warn('[domain] Vercel env vars not set — skipping domain registration', {
-      hasProjectId: Boolean(projectId),
-      hasToken: Boolean(token),
-    });
+  if (leagueError || !league) {
+    return { error: 'League not found' };
+  }
+
+  let organization: ManagedOrganization | null = null;
+  let organizationLeagueCount = 0;
+
+  if (league.organization_id) {
+    const [{ data: org }, { count }] = await Promise.all([
+      serviceClient
+        .from('organizations')
+        .select('id, name, slug, custom_domain, custom_domain_verified, subscription_status, subscription_tier')
+        .eq('id', league.organization_id)
+        .maybeSingle(),
+      serviceClient
+        .from('leagues')
+        .select('id', { head: true, count: 'exact' })
+        .eq('organization_id', league.organization_id)
+        .or('status.is.null,status.neq.archived'),
+    ]);
+
+    organization = (org as ManagedOrganization | null) ?? null;
+    organizationLeagueCount = count ?? 0;
+  }
+
+  const canUseLegacyOrganizationDomain =
+    Boolean(organization?.custom_domain) && !league.custom_domain && organizationLeagueCount === 1;
+  const requiresManualReview =
+    Boolean(organization?.custom_domain) && !league.custom_domain && organizationLeagueCount > 1;
+
+  const effectiveCustomDomain = league.custom_domain ?? (canUseLegacyOrganizationDomain ? organization?.custom_domain ?? null : null);
+  const effectiveCustomDomainVerified = league.custom_domain
+    ? Boolean(league.custom_domain_verified)
+    : canUseLegacyOrganizationDomain
+      ? Boolean(organization?.custom_domain_verified)
+      : false;
+  const domainSource: LeagueDomainBindingSource = league.custom_domain
+    ? 'league'
+    : canUseLegacyOrganizationDomain
+      ? 'legacy_organization'
+      : null;
+
+  const hasCustomDomainAccess =
+    hasActiveSubscription(league.subscription_status) ||
+    hasActiveSubscription(organization?.subscription_status) ||
+    Boolean(effectiveCustomDomain);
+
+  return {
+    league: league as ManagedLeague,
+    organization,
+    organizationLeagueCount,
+    effectiveCustomDomain,
+    effectiveCustomDomainVerified,
+    domainSource,
+    requiresManualReview,
+    hasCustomDomainAccess,
+  };
+}
+
+async function syncLegacyOrganizationDomain(
+  organization: ManagedOrganization | null,
+  organizationLeagueCount: number,
+  domain: string | null,
+  verified: boolean
+) {
+  if (!organization?.id || organizationLeagueCount !== 1) {
     return;
   }
 
-  try {
-    const res = await fetch(
-      `https://api.vercel.com/v9/projects/${projectId}/domains`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: domain }),
-      }
-    );
+  const serviceClient = createServiceRoleClient();
+  const { error } = await serviceClient
+    .from('organizations')
+    .update({
+      custom_domain: domain,
+      custom_domain_verified: domain ? verified : false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organization.id);
 
-    if (!res.ok) {
-      const body = await res.text();
-      console.error('[domain] Vercel domain registration failed', {
-        status: res.status,
-        body,
-        domain,
-      });
-    } else {
-      console.log('[domain] Vercel domain registered:', domain);
+  if (error && isDevelopment) {
+    console.error('[domain] Failed to sync legacy organization domain', error);
+  }
+}
+
+async function findProjectDomain(domain: string): Promise<boolean> {
+  const { projectId, token } = getLeagueSitesProjectConfig();
+  if (!projectId || !token) {
+    return false;
+  }
+
+  const response = await fetch(
+    `https://api.vercel.com/v9/projects/${projectId}/domains/${encodeURIComponent(domain)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: 'no-store',
     }
-  } catch (err) {
-    console.error('[domain] Vercel domain registration threw an error', err);
+  );
+
+  return response.ok;
+}
+
+async function registerVercelDomain(domain: string): Promise<VercelDomainResult> {
+  const { projectId, token } = getLeagueSitesProjectConfig();
+
+  if (!projectId || !token) {
+    return {
+      success: false,
+      pending: true,
+      error: 'Domain attachment is not configured in this environment yet.',
+    };
+  }
+
+  try {
+    const response = await fetch(`https://api.vercel.com/v9/projects/${projectId}/domains`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: domain }),
+    });
+
+    if (response.ok) {
+      return { success: true };
+    }
+
+    if (await findProjectDomain(domain)) {
+      return { success: true };
+    }
+
+    const body = await response.text();
+    console.error('[domain] Vercel domain registration failed', {
+      status: response.status,
+      body,
+      domain,
+    });
+
+    return {
+      success: false,
+      pending: true,
+      error: 'DNS is correct, but BLH could not finish attaching the domain yet. Please try verify again in a minute.',
+    };
+  } catch (error) {
+    console.error('[domain] Vercel domain registration threw', error);
+    return {
+      success: false,
+      pending: true,
+      error: 'Domain attachment failed unexpectedly. Please try again in a minute.',
+    };
   }
 }
 
-/**
- * Remove a custom domain from the league-sites Vercel project.
- * Best-effort: logs errors but never throws.
- */
 async function deregisterVercelDomain(domain: string): Promise<void> {
-  const projectId = process.env.VERCEL_LEAGUE_SITES_PROJECT_ID;
-  const token = process.env.VERCEL_TOKEN;
-
+  const { projectId, token } = getLeagueSitesProjectConfig();
   if (!projectId || !token) {
-    console.warn('[domain] Vercel env vars not set — skipping domain deregistration');
     return;
   }
 
   try {
-    const res = await fetch(
+    const response = await fetch(
       `https://api.vercel.com/v9/projects/${projectId}/domains/${encodeURIComponent(domain)}`,
       {
         method: 'DELETE',
@@ -126,138 +347,227 @@ async function deregisterVercelDomain(domain: string): Promise<void> {
       }
     );
 
-    if (!res.ok && res.status !== 404) {
-      const body = await res.text();
-      console.error('[domain] Vercel domain removal failed', {
-        status: res.status,
-        body,
+    if (!response.ok && response.status !== 404 && isDevelopment) {
+      console.error('[domain] Failed to deregister Vercel domain', {
+        status: response.status,
         domain,
       });
-    } else {
-      console.log('[domain] Vercel domain removed:', domain);
     }
-  } catch (err) {
-    console.error('[domain] Vercel domain removal threw an error', err);
+  } catch (error) {
+    console.error('[domain] Vercel domain removal threw', error);
   }
 }
 
-// ---------------------------------------------------------------------------
-// Public actions
-// ---------------------------------------------------------------------------
+async function checkDNSRecords(domain: string): Promise<{
+  valid: boolean;
+  error?: string;
+  message?: string;
+}> {
+  try {
+    const instructions = buildDnsInstructions(domain);
 
-/**
- * Get domain configuration for an organization
- */
-export async function getOrganizationDomain(organizationId: string) {
-  const access = await getOrganizationDomainAccess(organizationId);
-  if (access.error || !access.organization) {
-    return { error: access.error || 'Failed to fetch organization' };
+    if (instructions.primaryRecord.type === 'CNAME') {
+      try {
+        const cnameRecords = await resolveCname(domain);
+        if (cnameRecords.some((record) => record.toLowerCase() === VERCEL_CNAME_TARGET)) {
+          return {
+            valid: true,
+            message: `CNAME verified: ${instructions.primaryRecord.host} -> ${VERCEL_CNAME_TARGET}`,
+          };
+        }
+
+        return {
+          valid: false,
+          error: 'CNAME record does not point to Vercel',
+          message: `Found ${cnameRecords.join(', ')}. Expected ${VERCEL_CNAME_TARGET}.`,
+        };
+      } catch {
+        return {
+          valid: false,
+          error: 'No CNAME record found',
+          message: `Create a CNAME record for ${instructions.primaryRecord.host} pointing to ${VERCEL_CNAME_TARGET}.`,
+        };
+      }
+    }
+
+    try {
+      const aRecords = await resolve4(domain);
+      if (aRecords.some((ip) => VERCEL_FALLBACK_IPS.includes(ip))) {
+        return {
+          valid: true,
+          message: `A record verified: ${instructions.primaryRecord.host} -> ${VERCEL_APEX_IP}`,
+        };
+      }
+
+      return {
+        valid: false,
+        error: 'A record does not point to Vercel',
+        message: `Found ${aRecords.join(', ')}. Expected ${VERCEL_APEX_IP}.`,
+      };
+    } catch {
+      return {
+        valid: false,
+        error: 'No A record found',
+        message: `Create an A record for ${instructions.primaryRecord.host} pointing to ${VERCEL_APEX_IP}.`,
+      };
+    }
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('[domain] DNS lookup failed', error);
+    }
+
+    return {
+      valid: false,
+      error: 'DNS lookup failed',
+      message: 'Could not complete DNS lookup. Please try again in a minute.',
+    };
   }
-
-  return { data: access.organization };
 }
 
-/**
- * Set a custom domain for an organization (without verification)
- */
-export async function setCustomDomain(
-  organizationId: string,
+async function ensureUniqueDomain(
+  leagueId: string,
+  organizationId: string | null,
+  domain: string
+): Promise<string | null> {
+  const serviceClient = createServiceRoleClient();
+
+  const [{ data: leagueConflict }, { data: orgConflict }] = await Promise.all([
+    serviceClient
+      .from('leagues')
+      .select('id, name')
+      .eq('custom_domain', domain)
+      .neq('id', leagueId)
+      .maybeSingle(),
+    serviceClient
+      .from('organizations')
+      .select('id, name')
+      .eq('custom_domain', domain)
+      .neq('id', organizationId ?? '')
+      .maybeSingle(),
+  ]);
+
+  if (leagueConflict) {
+    return `This domain is already in use by ${leagueConflict.name}.`;
+  }
+
+  if (orgConflict) {
+    return `This domain is already attached to ${orgConflict.name}.`;
+  }
+
+  return null;
+}
+
+function revalidateDomainPaths() {
+  revalidatePath('/dashboard/settings/domains');
+}
+
+export async function getLeagueDomain(leagueId: string): Promise<{ data?: LeagueDomainDetails; error?: string }> {
+  const access = await getLeagueDomainAccess(leagueId);
+  if (access.error || !access.league) {
+    return { error: access.error || 'League not found' };
+  }
+
+  return {
+    data: {
+      league: {
+        id: access.league.id,
+        name: access.league.name,
+        slug: access.league.slug,
+        subdomain: access.league.subdomain,
+        custom_domain: access.league.custom_domain,
+        custom_domain_verified: Boolean(access.league.custom_domain_verified),
+        subscription_status: access.league.subscription_status,
+        subscription_tier: access.league.subscription_tier,
+      },
+      organization: access.organization
+        ? {
+            id: access.organization.id,
+            name: access.organization.name,
+            slug: access.organization.slug,
+            custom_domain: access.organization.custom_domain,
+            custom_domain_verified: Boolean(access.organization.custom_domain_verified),
+            subscription_status: access.organization.subscription_status,
+            subscription_tier: access.organization.subscription_tier,
+          }
+        : null,
+      effectiveCustomDomain: access.effectiveCustomDomain ?? null,
+      effectiveCustomDomainVerified: access.effectiveCustomDomainVerified ?? false,
+      domainSource: access.domainSource ?? null,
+      requiresManualReview: access.requiresManualReview ?? false,
+      hasCustomDomainAccess: access.hasCustomDomainAccess ?? false,
+      purchaseCapability: await getDomainPurchaseCapability(),
+    },
+  };
+}
+
+export async function setLeagueCustomDomain(
+  leagueId: string,
   domain: string
 ): Promise<DomainVerificationResult> {
-  const access = await getOrganizationDomainAccess(organizationId);
-  if (access.error || !access.organization) {
-    return { error: access.error || 'Organization not found' };
+  const access = await getLeagueDomainAccess(leagueId);
+  if (access.error || !access.league) {
+    return { error: access.error || 'League not found' };
   }
 
-  if (!hasCustomDomainAccess(access.organization)) {
+  if (!access.hasCustomDomainAccess) {
     return { error: 'Custom domains are available with an active platform subscription.' };
   }
 
-  const serviceClient = createServiceRoleClient();
-
-  // Validate and clean domain
-  const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
-  const domainRegex = /^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/i;
-
-  if (!domainRegex.test(cleanDomain)) {
-    return {
-      error: 'Invalid domain format. Example: yourleague.com',
-      verified: false,
-    };
+  const cleanDomain = normalizeDomainInput(domain);
+  if (!isValidCustomDomainFormat(cleanDomain)) {
+    return { error: 'Invalid domain format. Example: yourleague.com', verified: false };
   }
 
-  // Check for reserved domains
   if (cleanDomain.includes('beerleaguehockey.ca')) {
-    return {
-      error: 'Cannot use platform domains',
-      verified: false,
-    };
+    return { error: 'Platform domains cannot be used as a custom domain.', verified: false };
   }
 
-  // Check if domain is already in use by another organization
-  const { data: existingOrg } = await serviceClient
-    .from('organizations')
-    .select('id, name')
-    .eq('custom_domain', cleanDomain)
-    .neq('id', organizationId)
-    .maybeSingle();
-
-  if (existingOrg) {
-    return {
-      error: `This domain is already in use by ${existingOrg.name}`,
-      verified: false,
-    };
+  const conflict = await ensureUniqueDomain(leagueId, access.organization?.id ?? null, cleanDomain);
+  if (conflict) {
+    return { error: conflict, verified: false };
   }
 
-  // Set the custom domain (unverified)
-  const { error: updateError } = await serviceClient
-    .from('organizations')
+  const serviceClient = createServiceRoleClient();
+  const { error } = await serviceClient
+    .from('leagues')
     .update({
       custom_domain: cleanDomain,
       custom_domain_verified: false,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', organizationId);
+    .eq('id', leagueId);
 
-  if (updateError) {
+  if (error) {
     if (isDevelopment) {
-      console.error('Error setting custom domain:', updateError);
+      console.error('[domain] Failed to save league custom domain', error);
     }
-    return {
-      error: 'Failed to set custom domain',
-      verified: false,
-    };
+
+    return { error: 'Failed to set custom domain', verified: false };
   }
 
-  revalidatePath('/dashboard/settings/domains');
+  await syncLegacyOrganizationDomain(access.organization ?? null, access.organizationLeagueCount ?? 0, cleanDomain, false);
+  revalidateDomainPaths();
 
   return {
     success: true,
     verified: false,
     status: 'pending',
-    message: 'Custom domain set. Please configure DNS and verify.',
+    message: 'Domain saved. Update your DNS records below, then click Verify Domain.',
   };
 }
 
-/**
- * Verify a custom domain by checking DNS records, then registering it on Vercel.
- */
-export async function verifyCustomDomain(
-  organizationId: string
-): Promise<DomainVerificationResult> {
-  const access = await getOrganizationDomainAccess(organizationId);
-  if (access.error || !access.organization) {
-    return { error: access.error || 'Organization not found' };
+export async function verifyLeagueCustomDomain(leagueId: string): Promise<DomainVerificationResult> {
+  const access = await getLeagueDomainAccess(leagueId);
+  if (access.error || !access.league) {
+    return { error: access.error || 'League not found' };
   }
 
-  const customDomain = access.organization.custom_domain;
+  const customDomain = access.effectiveCustomDomain;
   if (!customDomain) {
-    return { error: 'No custom domain configured' };
+    return { error: 'No custom domain is configured for this league.' };
   }
 
-  // Check DNS records
   const dnsResult = await checkDNSRecords(customDomain);
-
   if (!dnsResult.valid) {
     return {
       error: dnsResult.error || 'DNS verification failed',
@@ -267,338 +577,242 @@ export async function verifyCustomDomain(
     };
   }
 
-  // DNS verification passed — update database
+  const vercelResult = await registerVercelDomain(customDomain);
+  if (!vercelResult.success) {
+    return {
+      error: vercelResult.error,
+      verified: false,
+      status: 'pending',
+      message: vercelResult.error,
+    };
+  }
+
   const serviceClient = createServiceRoleClient();
-  const { error: updateError } = await serviceClient
-    .from('organizations')
+  const { error } = await serviceClient
+    .from('leagues')
     .update({
+      custom_domain: customDomain,
       custom_domain_verified: true,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', organizationId);
+    .eq('id', leagueId);
 
-  if (updateError) {
+  if (error) {
     if (isDevelopment) {
-      console.error('Error updating domain verification:', updateError);
+      console.error('[domain] Failed to persist domain verification', error);
     }
+
     return {
       error: 'Failed to save verification status',
       verified: false,
     };
   }
 
-  // Register domain on Vercel (best-effort — DNS is source of truth)
-  await registerVercelDomain(customDomain);
-
-  revalidatePath('/dashboard/settings/domains');
+  await syncLegacyOrganizationDomain(access.organization ?? null, access.organizationLeagueCount ?? 0, customDomain, true);
+  revalidateDomainPaths();
 
   return {
     success: true,
     verified: true,
     status: 'verified',
-    message: `Domain verified! Your organization is now accessible at ${customDomain}`,
+    message: `${customDomain} is now connected to ${access.league.name}.`,
   };
 }
 
-/**
- * Remove custom domain from an organization and deregister it from Vercel.
- */
-export async function removeCustomDomain(
-  organizationId: string
-): Promise<DomainVerificationResult> {
-  const access = await getOrganizationDomainAccess(organizationId);
-  if (access.error || !access.organization) {
-    return { error: access.error || 'Organization not found' };
+export async function removeLeagueCustomDomain(leagueId: string): Promise<DomainVerificationResult> {
+  const access = await getLeagueDomainAccess(leagueId);
+  if (access.error || !access.league) {
+    return { error: access.error || 'League not found' };
   }
 
-  const customDomain = access.organization.custom_domain;
+  const existingDomain = access.effectiveCustomDomain;
   const serviceClient = createServiceRoleClient();
 
-  // Remove custom domain from DB
-  const { error: updateError } = await serviceClient
-    .from('organizations')
+  const { error } = await serviceClient
+    .from('leagues')
     .update({
       custom_domain: null,
       custom_domain_verified: false,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', organizationId);
+    .eq('id', leagueId);
 
-  if (updateError) {
+  if (error) {
     if (isDevelopment) {
-      console.error('Error removing custom domain:', updateError);
+      console.error('[domain] Failed to remove league custom domain', error);
     }
     return { error: 'Failed to remove custom domain' };
   }
 
-  // Deregister from Vercel (best-effort)
-  if (customDomain) {
-    await deregisterVercelDomain(customDomain);
+  if (access.organization && access.organizationLeagueCount === 1 && access.organization.custom_domain === existingDomain) {
+    await syncLegacyOrganizationDomain(access.organization, access.organizationLeagueCount, null, false);
   }
 
-  revalidatePath('/dashboard/settings/domains');
+  if (existingDomain) {
+    await deregisterVercelDomain(existingDomain);
+  }
 
+  revalidateDomainPaths();
   return { success: true };
 }
 
-/**
- * Check DNS records for a domain
- */
-async function checkDNSRecords(domain: string): Promise<{
-  valid: boolean;
-  error?: string;
-  message?: string;
-}> {
-  try {
-    // Try CNAME first
-    try {
-      const cnameRecords = await resolveCname(domain);
-      if (cnameRecords && cnameRecords.length > 0) {
-        const hasVercelCname = cnameRecords.some(
-          record => record.toLowerCase().includes('vercel') ||
-                   record.toLowerCase() === VERCEL_CNAME
-        );
-
-        if (hasVercelCname) {
-          return {
-            valid: true,
-            message: 'CNAME record verified',
-          };
-        } else {
-          return {
-            valid: false,
-            error: 'CNAME record does not point to Vercel',
-            message: `Found: ${cnameRecords.join(', ')}, expected: ${VERCEL_CNAME}`,
-          };
-        }
-      }
-    } catch {
-      // CNAME not found, try A record
-    }
-
-    // Try A record
-    try {
-      const aRecords = await resolve4(domain);
-      if (aRecords && aRecords.length > 0) {
-        const hasVercelIP = aRecords.some(ip => VERCEL_IPS.includes(ip));
-
-        if (hasVercelIP) {
-          return {
-            valid: true,
-            message: 'A record verified',
-          };
-        } else {
-          return {
-            valid: false,
-            error: 'A record does not point to Vercel',
-            message: `Found: ${aRecords.join(', ')}, expected one of: ${VERCEL_IPS.join(', ')}`,
-          };
-        }
-      }
-    } catch {
-      // A record not found
-    }
-
-    return {
-      valid: false,
-      error: 'No valid DNS records found',
-      message: `Please add a CNAME record pointing to ${VERCEL_CNAME}`,
-    };
-  } catch (error) {
-    if (isDevelopment) {
-      console.error('DNS check error:', error);
-    }
-    return {
-      valid: false,
-      error: 'DNS lookup failed',
-      message: 'Could not perform DNS lookup. Please try again later.',
-    };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Domain search + purchase (Vercel Registrar)
-// ---------------------------------------------------------------------------
-
-export type DomainSearchResult = {
-  name: string;
-  price: number;
-  available: boolean;
-  premium: boolean;
-};
-
-// TLDs to check when searching — ordered by preference for hockey leagues
-const SEARCH_TLDS = ['.com', '.ca', '.net', '.hockey', '.org'];
-
-/**
- * Search available domains by generating TLD variants and checking each via
- * Vercel's /v4/domains/status and /v4/domains/price endpoints in parallel.
- * (Vercel has no bulk domain availability search endpoint.)
- */
 export async function searchDomains(
   query: string
 ): Promise<{ data?: DomainSearchResult[]; error?: string }> {
-  const token = process.env.VERCEL_TOKEN;
-  if (!token) return { error: 'Domain search not configured' };
+  const capability = await getDomainPurchaseCapability();
+  if (!capability.searchEnabled) {
+    return { error: capability.message || 'Domain search is not configured.' };
+  }
 
-  const clean = query
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9.-]/g, '');
+  const clean = normalizeDomainInput(query).replace(/\s+/g, '-').replace(/[^a-z0-9.-]/g, '');
+  if (!clean || clean.length < 2) {
+    return { data: [] };
+  }
 
-  if (!clean || clean.length < 2) return { data: [] };
-
-  // Strip any existing TLD so we always check all variants
   const base = clean.includes('.') ? clean.replace(/\.[^.]+$/, '') : clean;
   const candidates = SEARCH_TLDS.map((tld) => base + tld);
+  const { token } = getLeagueSitesProjectConfig();
 
   try {
     const checks = await Promise.allSettled(
       candidates.map(async (name): Promise<DomainSearchResult> => {
-        const [statusRes, priceRes] = await Promise.allSettled([
-          fetch(
-            `https://api.vercel.com/v4/domains/status?name=${encodeURIComponent(name)}`,
-            { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
-          ),
-          fetch(
-            `https://api.vercel.com/v4/domains/price?name=${encodeURIComponent(name)}&type=new`,
-            { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
-          ),
+        const [statusResponse, priceResponse] = await Promise.allSettled([
+          fetch(`https://api.vercel.com/v4/domains/status?name=${encodeURIComponent(name)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store',
+          }),
+          fetch(`https://api.vercel.com/v4/domains/price?name=${encodeURIComponent(name)}&type=new`, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store',
+          }),
         ]);
 
         const available =
-          statusRes.status === 'fulfilled' && statusRes.value.ok
-            ? ((await statusRes.value.json()) as { available?: boolean }).available ?? false
+          statusResponse.status === 'fulfilled' && statusResponse.value.ok
+            ? ((await statusResponse.value.json()) as { available?: boolean }).available ?? false
             : false;
-
         const price =
-          priceRes.status === 'fulfilled' && priceRes.value.ok
-            ? ((await priceRes.value.json()) as { price?: number }).price ?? 0
+          priceResponse.status === 'fulfilled' && priceResponse.value.ok
+            ? ((await priceResponse.value.json()) as { price?: number }).price ?? 0
             : 0;
 
-        return { name, available, price, premium: price > 50 };
+        return {
+          name,
+          price,
+          available,
+          premium: price > 50,
+        };
       })
     );
 
-    const data = checks
-      .filter((r): r is PromiseFulfilledResult<DomainSearchResult> => r.status === 'fulfilled')
-      .map((r) => r.value)
-      // Available domains first, then alphabetical by TLD
-      .sort((a, b) => Number(b.available) - Number(a.available));
-
-    return { data };
-  } catch (err) {
-    console.error('[domain] searchDomains threw', err);
+    return {
+      data: checks
+        .filter((result): result is PromiseFulfilledResult<DomainSearchResult> => result.status === 'fulfilled')
+        .map((result) => result.value)
+        .sort((left, right) => Number(right.available) - Number(left.available)),
+    };
+  } catch (error) {
+    console.error('[domain] searchDomains threw', error);
     return { error: 'Domain search failed' };
   }
 }
 
-/**
- * Purchase a domain via Vercel's registrar, then auto-configure it for the org.
- * Domains purchased through Vercel point at Vercel automatically — no DNS step needed.
- */
-export async function purchaseDomain(
-  organizationId: string,
+export async function purchaseLeagueDomain(
+  leagueId: string,
   domain: string
-): Promise<{ success?: boolean; error?: string; domain?: string }> {
-  const access = await getOrganizationDomainAccess(organizationId);
-  if (access.error || !access.organization) {
-    return { error: access.error || 'Organization not found' };
+): Promise<{ success?: boolean; error?: string; domain?: string; verified?: boolean; message?: string }> {
+  const access = await getLeagueDomainAccess(leagueId);
+  if (access.error || !access.league) {
+    return { error: access.error || 'League not found' };
   }
 
-  if (!hasCustomDomainAccess(access.organization)) {
+  if (!access.hasCustomDomainAccess) {
     return { error: 'Custom domains are available with an active platform subscription.' };
   }
 
-  const token = process.env.VERCEL_TOKEN;
-  if (!token) return { error: 'Vercel token not configured' };
+  const capability = await getDomainPurchaseCapability();
+  if (!capability.purchaseEnabled) {
+    return { error: capability.message || 'In-app domain purchase is not available right now.' };
+  }
 
-  // Purchase via Vercel Registrar
-  const res = await fetch('https://api.vercel.com/v4/domains/buy', {
+  const cleanDomain = normalizeDomainInput(domain);
+  const conflict = await ensureUniqueDomain(leagueId, access.organization?.id ?? null, cleanDomain);
+  if (conflict) {
+    return { error: conflict };
+  }
+
+  const { token } = getLeagueSitesProjectConfig();
+  const response = await fetch('https://api.vercel.com/v4/domains/buy', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ name: domain }),
+    body: JSON.stringify({ name: cleanDomain }),
   });
 
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as {
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as {
       error?: string | { code?: string; message?: string };
     };
-    const errCode =
+    const errorCode =
       typeof body.error === 'object'
-        ? (body.error?.code ?? 'unknown')
-        : (body.error ?? 'unknown');
+        ? body.error?.code ?? 'unknown'
+        : body.error ?? 'unknown';
 
-    // Treat already-owned as success — just configure it
-    const alreadyOwned = ['domain_already_purchased', 'domain_already_owned'].includes(errCode);
+    const alreadyOwned = ['domain_already_purchased', 'domain_already_owned'].includes(errorCode);
     if (!alreadyOwned) {
-      console.error('[domain] purchaseDomain failed', { status: res.status, body });
-      return { error: `Failed to purchase domain: ${errCode}` };
+      console.error('[domain] purchaseLeagueDomain failed', { status: response.status, body });
+      return { error: `Failed to purchase domain: ${errorCode}` };
     }
-    console.log('[domain] domain already owned by this account — configuring:', domain);
   }
 
-  // Set domain in DB (marks as unverified first)
-  const setResult = await setCustomDomain(organizationId, domain);
-  if (setResult.error) return { error: setResult.error };
-
-  // Immediately mark as verified — Vercel manages DNS, no manual step needed
-  const supabase2 = await createClient();
-  const { error: verifyErr } = await supabase2
-    .from('organizations')
-    .update({ custom_domain_verified: true, updated_at: new Date().toISOString() })
-    .eq('id', organizationId);
-
-  if (verifyErr) {
-    console.error('[domain] failed to mark domain as verified', verifyErr);
+  const setResult = await setLeagueCustomDomain(leagueId, cleanDomain);
+  if (setResult.error) {
+    return { error: setResult.error };
   }
 
-  // Register on the league-sites Vercel project
-  await registerVercelDomain(domain);
+  const vercelResult = await registerVercelDomain(cleanDomain);
+  if (!vercelResult.success) {
+    return {
+      success: true,
+      verified: false,
+      domain: cleanDomain,
+      message: `Domain purchased, but BLH still needs to finish attaching ${cleanDomain}. ${vercelResult.error ?? ''}`.trim(),
+    };
+  }
 
-  revalidatePath('/dashboard/settings/domains');
+  const serviceClient = createServiceRoleClient();
+  const { error } = await serviceClient
+    .from('leagues')
+    .update({
+      custom_domain: cleanDomain,
+      custom_domain_verified: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', leagueId);
 
-  return { success: true, domain };
+  if (error) {
+    console.error('[domain] Failed to mark purchased domain as verified', error);
+    return {
+      success: true,
+      verified: false,
+      domain: cleanDomain,
+      message: `${cleanDomain} was purchased, but BLH still needs to finish verification.`,
+    };
+  }
+
+  await syncLegacyOrganizationDomain(access.organization ?? null, access.organizationLeagueCount ?? 0, cleanDomain, true);
+  revalidateDomainPaths();
+
+  return {
+    success: true,
+    verified: true,
+    domain: cleanDomain,
+    message: `${cleanDomain} is purchased and connected to ${access.league.name}.`,
+  };
 }
 
-/**
- * Get DNS instructions for a domain
- */
 export async function getDNSInstructions(domain: string) {
-  // Remove protocol if present
-  const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
-
-  // Determine if this is an apex domain or subdomain
-  const isApex = cleanDomain.split('.').length === 2;
-
-  if (isApex) {
-    // Apex domain - recommend A record
-    return {
-      instructions: [
-        {
-          type: 'A' as const,
-          name: '@',
-          value: '76.76.21.21',
-          ttl: '3600',
-        },
-      ],
-    };
-  } else {
-    // Subdomain - recommend CNAME
-    return {
-      instructions: [
-        {
-          type: 'CNAME' as const,
-          name: cleanDomain.split('.')[0],
-          value: VERCEL_CNAME,
-          ttl: '3600',
-        },
-      ],
-    };
-  }
+  return buildDnsInstructions(domain);
 }
