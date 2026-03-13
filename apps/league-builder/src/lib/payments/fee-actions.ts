@@ -232,9 +232,10 @@ export async function createSeasonFee(
       return { success: false, error: 'At least one payment plan must be enabled.' };
     }
 
-    const supabase = await createClient();
+    const authSupabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
     const feeBasis = params.feeBasis ?? 'player';
-    const seasonFeeCollectionModel = await getSeasonFeeModelForSeason(supabase, params.seasonId);
+    const seasonFeeCollectionModel = await getSeasonFeeModelForSeason(authSupabase, params.seasonId);
 
     if (seasonFeeCollectionModel === 'individual' && feeBasis === 'team') {
       return {
@@ -244,19 +245,19 @@ export async function createSeasonFee(
     }
 
     // Check for duplicate name
-    const { data: existing } = await supabase
+    const { data: existing } = await serviceSupabase
       .from('season_fees')
       .select('id')
       .eq('league_id', params.leagueId)
       .eq('season_id', params.seasonId)
       .eq('name', params.name)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return { success: false, error: 'A fee with this name already exists for this season.' };
     }
 
-    const { data: fee, error } = await supabase
+    const { data: fee, error } = await serviceSupabase
       .from('season_fees')
       .insert({
         league_id: params.leagueId,
@@ -288,7 +289,7 @@ export async function createSeasonFee(
           };
         }
 
-        const { data: fallbackFee, error: fallbackError } = await supabase
+        const { data: fallbackFee, error: fallbackError } = await serviceSupabase
           .from('season_fees')
           .insert({
             league_id: params.leagueId,
@@ -351,10 +352,11 @@ export async function updateSeasonFee(
   params: UpdateSeasonFeeParams
 ): Promise<ActionResult<SeasonFee>> {
   try {
-    const supabase = await createClient();
+    const authSupabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
 
     // Get existing fee to verify access
-    const { data: existingFee, error: fetchError } = await supabase
+    const { data: existingFee, error: fetchError } = await serviceSupabase
       .from('season_fees')
       .select('*')
       .eq('id', params.feeId)
@@ -371,7 +373,7 @@ export async function updateSeasonFee(
 
     const feeBasis = params.feeBasis ?? (existingFee as any).fee_basis ?? 'player';
     const seasonFeeCollectionModel = await getSeasonFeeModelForSeason(
-      supabase,
+      authSupabase,
       existingFee.season_id
     );
 
@@ -400,7 +402,7 @@ export async function updateSeasonFee(
     if (params.installmentFeeCents !== undefined) updateData.installment_fee_cents = params.installmentFeeCents;
     if (params.isActive !== undefined) updateData.is_active = params.isActive;
 
-    const { data: fee, error } = await supabase
+    const { data: fee, error } = await serviceSupabase
       .from('season_fees')
       .update(updateData)
       .eq('id', params.feeId)
@@ -418,7 +420,7 @@ export async function updateSeasonFee(
 
         delete updateData.fee_basis;
 
-        const { data: fallbackFee, error: fallbackError } = await supabase
+        const { data: fallbackFee, error: fallbackError } = await serviceSupabase
           .from('season_fees')
           .update(updateData)
           .eq('id', params.feeId)
@@ -462,10 +464,10 @@ export async function updateSeasonFee(
 
 export async function deleteSeasonFee(feeId: string): Promise<ActionResult<void>> {
   try {
-    const supabase = await createClient();
+    const serviceSupabase = createServiceRoleClient();
 
     // Get existing fee to verify access
-    const { data: existingFee, error: fetchError } = await supabase
+    const { data: existingFee, error: fetchError } = await serviceSupabase
       .from('season_fees')
       .select('*')
       .eq('id', feeId)
@@ -481,14 +483,14 @@ export async function deleteSeasonFee(feeId: string): Promise<ActionResult<void>
     }
 
     // Check for existing payments
-    const { count: paymentCount } = await supabase
+    const { count: paymentCount } = await serviceSupabase
       .from('player_payments')
       .select('*', { count: 'exact', head: true })
       .eq('season_fee_id', feeId);
 
     if (paymentCount && paymentCount > 0) {
       // Soft delete instead - set to inactive
-      const { error } = await supabase
+      const { error } = await serviceSupabase
         .from('season_fees')
         .update({ is_active: false })
         .eq('id', feeId);
@@ -504,7 +506,7 @@ export async function deleteSeasonFee(feeId: string): Promise<ActionResult<void>
       }, access.userId);
     } else {
       // Hard delete if no payments
-      const { error } = await supabase
+      const { error } = await serviceSupabase
         .from('season_fees')
         .delete()
         .eq('id', feeId);
