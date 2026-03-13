@@ -92,7 +92,7 @@ export const TEST_SEASON_DATA = {
   name: 'E2E Test Season 2026',
   start_date: '2026-03-01',
   end_date: '2026-06-30',
-  registration_type: 'open',
+  registration_type: 'open_registration',
   game_duration_minutes: 60,
   period_count: 3,
 };
@@ -101,10 +101,10 @@ export const TEST_SEASON_DATA = {
  * Test Team Data
  */
 export const TEST_TEAMS = [
-  { name: 'E2E Test Hawks', short_name: 'HAWKS', color: '#FF0000' },
-  { name: 'E2E Test Bears', short_name: 'BEARS', color: '#0000FF' },
-  { name: 'E2E Test Wolves', short_name: 'WOLVES', color: '#00FF00' },
-  { name: 'E2E Test Eagles', short_name: 'EAGLES', color: '#FFD700' },
+  { name: 'E2E Test Hawks', short_name: 'HWKS', primary_color: '#FF0000', secondary_color: '#1A1A1A' },
+  { name: 'E2E Test Bears', short_name: 'BEAR', primary_color: '#0000FF', secondary_color: '#FFFFFF' },
+  { name: 'E2E Test Wolves', short_name: 'WOLF', primary_color: '#00FF00', secondary_color: '#111111' },
+  { name: 'E2E Test Eagles', short_name: 'EAGL', primary_color: '#FFD700', secondary_color: '#1A1A1A' },
 ];
 
 /**
@@ -162,6 +162,20 @@ export class TestDataSeeder {
       throw new Error(`Failed to create test user: ${authError?.message}`);
     }
 
+    // Some environments do not eagerly materialize the matching profile row,
+    // but most application tables reference profiles(id), not auth.users(id).
+    const { error: profileError } = await this.supabase
+      .from('profiles')
+      .upsert({
+        id: authData.user.id,
+        email: uniqueEmail,
+        full_name: userData.fullName,
+      });
+
+    if (profileError) {
+      throw new Error(`Failed to create test profile: ${profileError.message}`);
+    }
+
     return {
       id: authData.user.id,
       email: uniqueEmail,
@@ -185,6 +199,7 @@ export class TestDataSeeder {
         owner_user_id: userId,
         subscription_tier: 'enterprise',
         subscription_status: 'active',
+        bypass_subscription_gate: true,
       })
       .select('id, name, slug')
       .single();
@@ -199,6 +214,16 @@ export class TestDataSeeder {
       user_id: userId,
       role: 'owner',
       status: 'active',
+    });
+
+    await this.supabase.from('organization_addons').insert({
+      organization_id: data.id,
+      addon_type: 'platform_subscription',
+      status: 'active',
+      amount_cents: 0,
+      activated_at: new Date().toISOString(),
+      current_period_start: new Date().toISOString(),
+      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     });
 
     return data as TestOrganization;
@@ -353,12 +378,30 @@ export class TestDataSeeder {
     seasonId: string;
     homeTeamId: string;
     awayTeamId: string;
+    leagueId?: string;
     scheduledAt?: string;
     status?: string;
   }): Promise<{ id: string }> {
+    let leagueId = data.leagueId;
+
+    if (!leagueId) {
+      const { data: season, error: seasonError } = await this.supabase
+        .from('seasons')
+        .select('league_id')
+        .eq('id', data.seasonId)
+        .single();
+
+      if (seasonError || !season?.league_id) {
+        throw new Error(`Failed to resolve game league: ${seasonError?.message || 'Missing league_id on season'}`);
+      }
+
+      leagueId = season.league_id;
+    }
+
     const { data: game, error } = await this.supabase
       .from('games')
       .insert({
+        league_id: leagueId,
         season_id: data.seasonId,
         home_team_id: data.homeTeamId,
         away_team_id: data.awayTeamId,
