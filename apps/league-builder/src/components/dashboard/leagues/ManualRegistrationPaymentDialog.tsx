@@ -22,7 +22,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { recordOfflineRegistrationPayment } from '@/lib/actions/player-registration';
+import {
+  recordOfflineRegistrationPayment,
+  updateRegistrationContributionTarget,
+} from '@/lib/actions/player-registration';
 
 type OfflinePaymentMethod = 'e_transfer' | 'cash' | 'check' | 'other';
 
@@ -67,6 +70,7 @@ export function ManualRegistrationPaymentDialog({
   }, [registration]);
 
   const [amount, setAmount] = useState('');
+  const [contributionTarget, setContributionTarget] = useState('');
   const [paymentMethod, setPaymentMethod] =
     useState<OfflinePaymentMethod>('e_transfer');
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -82,6 +86,11 @@ export function ManualRegistrationPaymentDialog({
       setAmount(
         outstandingCents > 0 ? (outstandingCents / 100).toFixed(2) : ''
       );
+      setContributionTarget(
+        registration?.fee_amount_cents != null
+          ? (registration.fee_amount_cents / 100).toFixed(2)
+          : ''
+      );
       setPaymentMethod('e_transfer');
       setReferenceNumber('');
       setNotes('');
@@ -89,34 +98,65 @@ export function ManualRegistrationPaymentDialog({
   }, [open, registration, outstandingCents]);
 
   const amountCents = Math.round(Number(amount || '0') * 100);
+  const targetAmountCents = Math.round(Number(contributionTarget || '0') * 100);
+  const targetChanged =
+    registration != null && targetAmountCents !== (registration.fee_amount_cents || 0);
+  const effectiveOutstandingCents =
+    registration == null
+      ? 0
+      : Math.max(0, targetAmountCents - (registration.amount_paid_cents || 0));
   const amountIsValid =
-    Number.isFinite(amountCents) && amountCents > 0 && amountCents <= outstandingCents;
+    Number.isFinite(amountCents) &&
+    amountCents > 0 &&
+    amountCents <= effectiveOutstandingCents;
 
   const handleSubmit = async () => {
     if (!registration) {
       return;
     }
 
-    if (!amountIsValid) {
-      toast.error('Enter a valid payment amount within the remaining balance.');
+    if (!Number.isFinite(targetAmountCents) || targetAmountCents < 0) {
+      toast.error('Enter a valid contribution target.');
+      return;
+    }
+
+    if (!targetChanged && !amountIsValid) {
+      toast.error('Adjust the contribution target or enter a valid payment amount.');
       return;
     }
 
     setSubmitting(true);
-    const result = await recordOfflineRegistrationPayment(registration.id, {
-      amountCents,
-      paymentMethod,
-      referenceNumber: referenceNumber.trim() || undefined,
-      notes: notes.trim() || undefined,
-    });
-    setSubmitting(false);
+    if (targetChanged) {
+      const targetResult = await updateRegistrationContributionTarget(
+        registration.id,
+        targetAmountCents
+      );
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
+      if (!targetResult.success) {
+        setSubmitting(false);
+        toast.error(targetResult.error);
+        return;
+      }
     }
 
-    toast.success('Offline payment recorded.');
+    if (amount.trim() && Number(amount) > 0) {
+      const result = await recordOfflineRegistrationPayment(registration.id, {
+        amountCents,
+        paymentMethod,
+        referenceNumber: referenceNumber.trim() || undefined,
+        notes: notes.trim() || undefined,
+      });
+      setSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+    } else {
+      setSubmitting(false);
+    }
+
+    toast.success('Registration payment settings saved.');
     onOpenChange(false);
     onSaved?.();
   };
@@ -152,6 +192,26 @@ export function ManualRegistrationPaymentDialog({
               label="Outstanding"
               value={formatMoney(outstandingCents, registration?.currency || 'CAD')}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="offline-payment-target" className="text-white">
+              Contribution Target
+            </Label>
+            <Input
+              id="offline-payment-target"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              value={contributionTarget}
+              onChange={(event) => setContributionTarget(event.target.value)}
+              className="border-neutral-700 bg-neutral-800"
+              placeholder="0.00"
+            />
+            <p className="text-xs text-neutral-500">
+              Update what this player is expected to contribute toward the team invoice.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -248,14 +308,21 @@ export function ManualRegistrationPaymentDialog({
           >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting || !amountIsValid}>
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              submitting ||
+              (!targetChanged &&
+                (!amount.trim() || !amountIsValid))
+            }
+          >
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (
-              'Record Payment'
+              'Save Changes'
             )}
           </Button>
         </DialogFooter>

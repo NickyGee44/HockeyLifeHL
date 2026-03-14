@@ -28,7 +28,7 @@ export interface ActiveBillingSeasonContext {
   feeCollectionModel: 'individual' | 'team' | 'hybrid';
   feeAmountCents: number;
   feeBasis: 'player' | 'team';
-  paymentMode: 'hidden' | 'required' | 'optional';
+  paymentMode: 'hidden' | 'required' | 'optional' | 'team_contribution';
   currency: string;
   hasActiveFee: boolean;
 }

@@ -42,6 +42,7 @@ export function StepPayment({
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
   const isPaid = formData.payment_status === 'completed';
   const isOptionalPayment = paymentMode === 'optional';
+  const isTeamContribution = paymentMode === 'team_contribution';
 
   const formatCurrency = (cents: number) =>
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
@@ -121,10 +122,16 @@ export function StepPayment({
       <div>
         <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-1 flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-[var(--league-primary)]" />
-          {isOptionalPayment ? 'Optional Player Payment' : 'Registration Fee'}
+          {isTeamContribution
+            ? 'Player Contribution'
+            : isOptionalPayment
+              ? 'Optional Player Payment'
+              : 'Registration Fee'}
         </h2>
         <p className="text-sm text-[var(--color-text-secondary)]">
-          {isOptionalPayment
+          {isTeamContribution
+            ? 'This payment goes toward your team invoice. Pay your contribution now or let your captain track it manually.'
+            : isOptionalPayment
             ? 'Pay now or continue and have your team billing cover the fee later.'
             : 'Complete payment to finalize your registration.'}
         </p>
@@ -133,7 +140,9 @@ export function StepPayment({
       {/* Fee Summary */}
       <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-[var(--color-text-secondary)]">Registration Fee</span>
+          <span className="text-[var(--color-text-secondary)]">
+            {isTeamContribution ? 'Team Contribution Target' : 'Registration Fee'}
+          </span>
           <span className="font-semibold text-[var(--color-text-primary)]">
             {formatCurrency(registrationFee)}
           </span>
@@ -156,10 +165,11 @@ export function StepPayment({
             </div>
           </>
         )}
-        {isOptionalPayment && (
+        {(isOptionalPayment || isTeamContribution) && (
           <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-            Skipping this step keeps your registration valid and leaves the outstanding amount on
-            the team billing side.
+            {isTeamContribution
+              ? 'Skipping this step keeps your registration valid and leaves the contribution outstanding on your team invoice.'
+              : 'Skipping this step keeps your registration valid and leaves the outstanding amount on the team billing side.'}
           </p>
         )}
         {!isOptionalPayment && chargeIncludesPlatformFee && platformFeeCents > 0 && (
@@ -190,13 +200,15 @@ export function StepPayment({
           <p className="mt-3 text-xs text-[var(--color-text-muted)]">
             Payments are securely processed by Stripe.
           </p>
-          {isOptionalPayment && (
+          {(isOptionalPayment || isTeamContribution) && (
             <button
               type="button"
               onClick={handleSkip}
               className="mt-3 text-sm font-medium text-[var(--league-primary)] hover:underline"
             >
-              Skip for now and let my team handle payment
+              {isTeamContribution
+                ? 'Skip for now and let my captain track it manually'
+                : 'Skip for now and let my team handle payment'}
             </button>
           )}
         </div>

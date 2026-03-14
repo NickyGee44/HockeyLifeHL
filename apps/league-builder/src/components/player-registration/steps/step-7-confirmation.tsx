@@ -27,6 +27,7 @@ export function Step7Confirmation() {
 
   const formData = watch();
   const isTeamBilledSeason = usesTeamBilling(feeCollectionModel, feeBasis);
+  const isTeamContribution = paymentMode === 'team_contribution';
 
   // Get team name if applicable
   const selectedTeam = teams.find((t) => t.id === formData.team_id);
@@ -191,7 +192,7 @@ export function Step7Confirmation() {
       </div>
 
       {/* Payment Status */}
-      {(registrationFee > 0 || paymentMode === 'hidden') && (
+      {(registrationFee > 0 || paymentMode === 'hidden' || isTeamContribution) && (
         <div className="p-6 rounded-xl border border-neutral-700 bg-neutral-800/30">
           <div className="flex items-center gap-3 mb-4">
             <CreditCard className="w-5 h-5 text-rink-500" />
@@ -205,7 +206,9 @@ export function Step7Confirmation() {
                   ? isTeamBilledSeason
                     ? 'Team Billing'
                     : 'Registration Fee'
-                  : 'Registration Fee'}
+                  : isTeamContribution
+                    ? 'Player Contribution'
+                    : 'Registration Fee'}
               </p>
               <p className="text-2xl font-bold text-rink-500">
                 {paymentMode === 'hidden' && registrationFee <= 0
@@ -224,6 +227,10 @@ export function Step7Confirmation() {
               <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400">
                 {isTeamBilledSeason ? 'Team Pays' : 'No Payment'}
               </span>
+            ) : isTeamContribution ? (
+              <span className="px-4 py-2 rounded-full bg-sky-500/20 text-sky-400">
+                Team Contribution
+              </span>
             ) : paymentMode === 'optional' ? (
               <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400">
                 Team Can Pay
@@ -241,6 +248,12 @@ export function Step7Confirmation() {
                   ? 'This season uses team billing. Your team captain or league will handle the invoice.'
                   : 'This season uses a flat team fee. Your captain or league can pay the full team invoice after registrations are collected.'
                 : 'No individual player payment has been configured for this season yet.'}
+            </p>
+          )}
+          {isTeamContribution && (
+            <p className="mt-3 text-sm text-neutral-400">
+              This amount is your current contribution target toward the team invoice. Online and
+              offline player payments both reduce the same team balance.
             </p>
           )}
           {paymentMode === 'optional' && formData.payment_status !== 'completed' && (

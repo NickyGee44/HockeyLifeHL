@@ -40,6 +40,10 @@ import {
   isPlayerFeeConfigurationMissing,
   usesTeamBilling,
 } from '@/lib/payments/fee-collection-model';
+import {
+  recalculateTeamInvoiceForTeam,
+  updateFlatTeamContributionTarget,
+} from '@/lib/payments/team-contributions';
 import { getLeagueBillingConfig } from '@/lib/fees/platform-fees';
 import { reconcileSeasonRegistrationFees } from '@/lib/payments/registration-fee-reconciliation';
 import { verifyLeagueOwnerAccess } from './permissions';
@@ -1703,7 +1707,7 @@ export async function recordOfflineRegistrationPayment(
 
     const { data: seasonFee } = await supabase
       .from('season_fees')
-      .select('id, amount_cents, currency')
+      .select('id, amount_cents, currency, fee_basis')
       .eq('league_id', registration.league_id)
       .eq('season_id', registration.season_id)
       .eq('is_active', true)
@@ -1800,9 +1804,20 @@ export async function recordOfflineRegistrationPayment(
       }
     }
 
+    const teamId = registration.assigned_team_id || registration.team_id || null;
+    if (teamId) {
+      await recalculateTeamInvoiceForTeam(supabase as any, {
+        leagueId: registration.league_id,
+        seasonId: registration.season_id,
+        teamId,
+        updatedBy: access.userId,
+      });
+    }
+
     revalidatePath(`/dashboard/leagues/${registration.league_id}/registrations`);
     revalidatePath(`/dashboard/leagues/${registration.league_id}/registrations/${registrationId}`);
     revalidatePath(`/dashboard/leagues/${registration.league_id}/payments`);
+    revalidatePath(`/dashboard/leagues/${registration.league_id}/billing`);
     revalidatePath('/dashboard');
 
     return {
@@ -1816,6 +1831,80 @@ export async function recordOfflineRegistrationPayment(
   } catch (error) {
     console.error('Record offline registration payment error:', error);
     return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+export async function updateRegistrationContributionTarget(
+  registrationId: string,
+  targetAmountCents: number
+): ActionResult<{
+  feeAmountCents: number;
+  amountPaidCents: number;
+  amountOutstandingCents: number;
+}> {
+  try {
+    if (targetAmountCents < 0) {
+      return { success: false, error: 'Contribution target cannot be negative.' };
+    }
+
+    const supabase = createServiceRoleClient();
+
+    const { data: registration } = await supabase
+      .from('registration_submissions')
+      .select('id, league_id, season_id')
+      .eq('id', registrationId)
+      .single();
+
+    if (!registration) {
+      return { success: false, error: 'Registration not found.' };
+    }
+
+    const access = await verifyLeagueAdminAccess(registration.league_id);
+    if ('error' in access) {
+      return { success: false, error: access.error || 'Access denied' };
+    }
+
+    const result = await updateFlatTeamContributionTarget(supabase as any, {
+      registrationId,
+      targetAmountCents,
+    });
+
+    await recalculateTeamInvoiceForTeam(supabase as any, {
+      leagueId: result.registration.league_id,
+      seasonId: result.registration.season_id,
+      teamId: result.teamId,
+      seasonFee: result.seasonFee,
+      updatedBy: access.userId,
+    });
+
+    revalidatePath(`/dashboard/leagues/${result.registration.league_id}/registrations`);
+    revalidatePath(
+      `/dashboard/leagues/${result.registration.league_id}/registrations/${registrationId}`
+    );
+    revalidatePath(`/dashboard/leagues/${result.registration.league_id}/payments`);
+    revalidatePath(`/dashboard/leagues/${result.registration.league_id}/billing`);
+
+    return {
+      success: true,
+      data: {
+        feeAmountCents: result.registration.fee_amount_cents || 0,
+        amountPaidCents: result.registration.amount_paid_cents || 0,
+        amountOutstandingCents: Math.max(
+          0,
+          (result.registration.fee_amount_cents || 0) -
+            (result.registration.amount_paid_cents || 0)
+        ),
+      },
+    };
+  } catch (error) {
+    console.error('Update registration contribution target error:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to update the player contribution target.',
+    };
   }
 }
 
@@ -1836,7 +1925,7 @@ export async function approveRegistration(
 
     const { data: registration } = await supabase
       .from('registration_submissions')
-      .select('league_id, player_id, season_id')
+      .select('league_id, player_id, season_id, team_id, assigned_team_id, amount_paid_cents')
       .eq('id', registrationId)
       .single();
 
@@ -1850,6 +1939,21 @@ export async function approveRegistration(
     }
 
     const { teamId, jerseyNumber, notes } = options;
+    const currentAssignedTeamId =
+      registration.assigned_team_id || registration.team_id || null;
+
+    if (
+      teamId &&
+      currentAssignedTeamId &&
+      currentAssignedTeamId !== teamId &&
+      (registration.amount_paid_cents || 0) > 0
+    ) {
+      return {
+        success: false,
+        error:
+          'This player already has recorded payments. Resolve the billing assignment manually before moving them to another team.',
+      };
+    }
 
     // Update registration status
     const { error } = await supabase
@@ -1904,6 +2008,16 @@ export async function approveRegistration(
     await reconcileSeasonRegistrationFees(registration.league_id, registration.season_id, {
       registrationId,
     });
+
+    const teamsToRefresh = [...new Set([currentAssignedTeamId, teamId].filter(Boolean))] as string[];
+    for (const billingTeamId of teamsToRefresh) {
+      await recalculateTeamInvoiceForTeam(supabase as any, {
+        leagueId: registration.league_id,
+        seasonId: registration.season_id,
+        teamId: billingTeamId,
+        updatedBy: result.userId,
+      });
+    }
 
     // Send approval notification email
     try {
@@ -1972,6 +2086,7 @@ export async function approveRegistration(
     }
 
     revalidatePath('/dashboard');
+    revalidatePath(`/dashboard/leagues/${registration.league_id}/billing`);
 
     return { success: true };
   } catch (error) {

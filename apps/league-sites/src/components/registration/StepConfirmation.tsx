@@ -71,6 +71,7 @@ export function StepConfirmation({
     ? teams.find((t) => t.id === formData.team_id)?.name
     : formData.requested_team_name || formData.previous_team_name || null;
   const isTeamBilledSeason = usesTeamBilling(feeCollectionModel, feeBasis);
+  const isTeamContribution = paymentMode === 'team_contribution';
 
   const formatCurrency = (cents: number) =>
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
@@ -182,7 +183,7 @@ export function StepConfirmation({
         </div>
 
         {/* Payment */}
-        {(registrationFee > 0 || paymentMode === 'hidden') && (
+        {(registrationFee > 0 || paymentMode === 'hidden' || isTeamContribution) && (
           <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
             <div className="flex items-center gap-2 mb-3">
               <CreditCard className="w-4 h-4 text-[var(--league-primary)]" />
@@ -196,7 +197,9 @@ export function StepConfirmation({
                   ? isTeamBilledSeason
                     ? 'Team Billing'
                     : 'Registration Fee'
-                  : 'Registration Fee'}
+                  : isTeamContribution
+                    ? 'Player Contribution'
+                    : 'Registration Fee'}
               </span>
               <span className="font-bold text-[var(--color-text-primary)]">
                 {paymentMode === 'hidden' && registrationFee <= 0
@@ -233,6 +236,8 @@ export function StepConfirmation({
                     ? 'Your team will be billed for this registration'
                     : 'Your captain or league can pay the full team invoice after registrations are collected.'
                     : 'This season does not currently require an individual player payment.'
+                  : isTeamContribution
+                    ? 'This amount counts toward your team invoice. Your captain can still record offline payments later.'
                   : paymentMode === 'optional'
                     ? 'You are registering now and can let your team handle payment later'
                     : formData.payment_status === 'not_required'

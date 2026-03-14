@@ -18,7 +18,11 @@ import {
   Receipt,
   X,
 } from 'lucide-react';
-import { recordCaptainTeamInvoicePayment } from '@/lib/actions/captain-payments';
+import {
+  getCaptainTeamPayments,
+  recordCaptainTeamInvoicePayment,
+  type CaptainPaymentPlayer,
+} from '@/lib/actions/captain-payments';
 
 interface CaptainFeesPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -87,6 +91,7 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
     league?.current_season_id
   );
   const [invoices, setInvoices] = useState<TeamInvoice[]>([]);
+  const [playerPayments, setPlayerPayments] = useState<CaptainPaymentPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeInvoice, setActiveInvoice] = useState<TeamInvoice | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -139,13 +144,24 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
       if (!error && data) {
         setInvoices(data as unknown as TeamInvoice[]);
       }
+
+      if (league?.current_season_id) {
+        const playerPaymentsResult = await getCaptainTeamPayments(
+          currentTeam.team_id,
+          league.current_season_id
+        );
+
+        if (playerPaymentsResult.success && playerPaymentsResult.data) {
+          setPlayerPayments(playerPaymentsResult.data);
+        }
+      }
       setIsLoading(false);
     };
 
     if (!profileLoading) {
       fetchInvoices();
     }
-  }, [currentTeam, isCaptain, profileLoading, refreshKey]);
+  }, [currentTeam, isCaptain, league?.current_season_id, profileLoading, refreshKey]);
 
   if (profileLoading || isLoading) {
     return (
@@ -196,7 +212,7 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
             Team Fees
           </h1>
           <p className="text-[var(--color-text-secondary)]">
-            {currentTeam.team.name} — invoices and payment history
+            {currentTeam.team.name} — invoices, player contributions, and payment history
           </p>
         </div>
       </div>
@@ -219,6 +235,21 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
               invoice.status === 'waived' &&
               invoice.total_amount_cents === 0 &&
               invoice.total_players === 0;
+            const isCurrentSeasonInvoice = invoice.season_id === league?.current_season_id;
+            const teamPaymentTotal = invoice.team_invoice_payments.reduce(
+              (sum, payment) => sum + payment.amount_cents,
+              0
+            );
+            const playerContributionTarget = isCurrentSeasonInvoice
+              ? playerPayments.reduce((sum, player) => sum + player.amountOwedCents, 0)
+              : 0;
+            const playerContributionPaid = isCurrentSeasonInvoice
+              ? playerPayments.reduce((sum, player) => sum + player.amountPaidCents, 0)
+              : 0;
+            const unallocatedTarget = Math.max(
+              0,
+              invoice.total_amount_cents - teamPaymentTotal - playerContributionTarget
+            );
             const config = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.pending;
             const StatusIcon = config.Icon;
 
@@ -264,14 +295,46 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
                       <p className="text-xl font-bold text-green-500">
                         {formatCurrency(invoice.amount_paid_cents, invoice.currency)}
                       </p>
+                      {invoice.fee_basis === 'team' && isCurrentSeasonInvoice && (
+                        <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                          Players {formatCurrency(playerContributionPaid, invoice.currency)} • Team{' '}
+                          {formatCurrency(teamPaymentTotal, invoice.currency)}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm text-[var(--color-text-secondary)]">Balance</p>
                       <p className={`text-xl font-bold ${balance > 0 ? 'text-yellow-500' : 'text-green-500'}`}>
                         {formatCurrency(balance, invoice.currency)}
                       </p>
+                      {invoice.fee_basis === 'team' && isCurrentSeasonInvoice && (
+                        <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                          Unallocated {formatCurrency(unallocatedTarget, invoice.currency)}
+                        </p>
+                      )}
                     </div>
                   </div>
+
+                  {invoice.fee_basis === 'team' && isCurrentSeasonInvoice && (
+                    <div className="grid grid-cols-1 gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4 mb-4 md:grid-cols-4">
+                      <ContributionMetric
+                        label="Invoice Total"
+                        value={formatCurrency(invoice.total_amount_cents, invoice.currency)}
+                      />
+                      <ContributionMetric
+                        label="Targeted From Players"
+                        value={formatCurrency(playerContributionTarget, invoice.currency)}
+                      />
+                      <ContributionMetric
+                        label="Player Contributions Paid"
+                        value={formatCurrency(playerContributionPaid, invoice.currency)}
+                      />
+                      <ContributionMetric
+                        label="Unallocated"
+                        value={formatCurrency(unallocatedTarget, invoice.currency)}
+                      />
+                    </div>
+                  )}
 
                   {/* Admin Notes */}
                   {invoice.notes && (
@@ -287,6 +350,47 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
                       <p className="text-sm text-[var(--color-text-primary)]">
                         Your team invoice is ready, but there is no balance yet. As players are assigned and fees are recorded, this summary will update automatically.
                       </p>
+                    </div>
+                  )}
+
+                  {invoice.fee_basis === 'team' && isCurrentSeasonInvoice && playerPayments.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                        Player Contribution Summary
+                      </p>
+                      <div className="divide-y divide-[var(--color-border)] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)]">
+                        {playerPayments.map((player) => {
+                          const remaining = Math.max(
+                            0,
+                            player.amountOwedCents - player.amountPaidCents
+                          );
+                          return (
+                            <div
+                              key={player.id}
+                              className="flex items-center justify-between gap-3 px-4 py-3"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                                  {player.playerName}
+                                </p>
+                                <p className="text-xs text-[var(--color-text-muted)]">
+                                  Target {formatCurrency(player.amountOwedCents, invoice.currency)} • Paid{' '}
+                                  {formatCurrency(player.amountPaidCents, invoice.currency)}
+                                </p>
+                              </div>
+                              <p
+                                className={`text-sm font-semibold ${
+                                  remaining > 0 ? 'text-yellow-500' : 'text-green-500'
+                                }`}
+                              >
+                                {remaining > 0
+                                  ? `${formatCurrency(remaining, invoice.currency)} left`
+                                  : 'Covered'}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
@@ -348,6 +452,25 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function ContributionMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+        {label}
+      </p>
+      <p className="mt-1 text-lg font-semibold text-[var(--color-text-primary)]">
+        {value}
+      </p>
     </div>
   );
 }

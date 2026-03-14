@@ -21,6 +21,10 @@ import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { stripe } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
 import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
+import {
+  buildRegistrationPaymentStatus,
+  recalculateTeamInvoiceForTeam,
+} from '@/lib/payments/team-contributions';
 import type {
   PlayerPayment,
   PlayerPaymentWithDetails,
@@ -1284,6 +1288,53 @@ export async function markPaymentAsPaid(
       return { success: false, error: 'Failed to mark payment as paid.' };
     }
 
+    const paymentMetadata =
+      payment.metadata && typeof payment.metadata === 'object'
+        ? (payment.metadata as Record<string, unknown>)
+        : {};
+    const registrationId =
+      typeof paymentMetadata.registration_id === 'string'
+        ? paymentMetadata.registration_id
+        : null;
+
+    if (registrationId) {
+      const { data: registration } = await serviceSupabase
+        .from('registration_submissions')
+        .select(
+          'id, league_id, season_id, team_id, assigned_team_id, fee_amount_cents, payment_status'
+        )
+        .eq('id', registrationId)
+        .maybeSingle();
+
+      if (registration) {
+        const feeAmountCents = Math.max(
+          registration.fee_amount_cents || 0,
+          payment.total_amount_cents || 0
+        );
+        await serviceSupabase
+          .from('registration_submissions')
+          .update({
+            amount_paid_cents: feeAmountCents,
+            payment_status: buildRegistrationPaymentStatus(
+              feeAmountCents,
+              feeAmountCents,
+              registration.payment_status
+            ),
+          })
+          .eq('id', registrationId);
+
+        const billingTeamId = registration.assigned_team_id || registration.team_id || null;
+        if (billingTeamId) {
+          await recalculateTeamInvoiceForTeam(serviceSupabase as any, {
+            leagueId: registration.league_id,
+            seasonId: registration.season_id,
+            teamId: billingTeamId,
+            updatedBy: access.userId,
+          });
+        }
+      }
+    }
+
     await logPaymentAuditEvent(
       payment.league_id,
       'payment_marked_paid_manually',
@@ -1298,6 +1349,7 @@ export async function markPaymentAsPaid(
     );
 
     revalidatePath(`/dashboard/leagues/${payment.league_id}/payments`);
+    revalidatePath(`/dashboard/leagues/${payment.league_id}/billing`);
     return { success: true, data: updated as PlayerPayment };
   } catch (error) {
     console.error('[Payments] Unexpected error in markPaymentAsPaid:', sanitizeErrorForLogging(error));

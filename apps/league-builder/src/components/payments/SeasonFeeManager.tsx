@@ -68,6 +68,7 @@ interface FeeFormData {
   description: string;
   amountCents: number;
   feeBasis: FeeBasis;
+  defaultPlayerContributionCents: number;
   currency: 'usd' | 'cad';
   allowFullPayment: boolean;
   allowTwoPay: boolean;
@@ -84,6 +85,7 @@ const initialFormData: FeeFormData = {
   description: '',
   amountCents: 0,
   feeBasis: 'player',
+  defaultPlayerContributionCents: 0,
   currency: 'cad',
   allowFullPayment: true,
   allowTwoPay: false,
@@ -148,6 +150,8 @@ export function SeasonFeeManager({
 
   // Display values for dollar inputs
   const [amountDisplay, setAmountDisplay] = React.useState('0.00');
+  const [defaultContributionDisplay, setDefaultContributionDisplay] =
+    React.useState('0.00');
   const [earlyBirdDisplay, setEarlyBirdDisplay] = React.useState('0.00');
   const [lateFeeDisplay, setLateFeeDisplay] = React.useState('0.00');
   const [installmentFeeDisplay, setInstallmentFeeDisplay] = React.useState('0.00');
@@ -196,6 +200,7 @@ export function SeasonFeeManager({
     setEditingFee(null);
     setFormData(initialFormData);
     setAmountDisplay('0.00');
+    setDefaultContributionDisplay('0.00');
     setEarlyBirdDisplay('0.00');
     setLateFeeDisplay('0.00');
     setInstallmentFeeDisplay('0.00');
@@ -210,6 +215,7 @@ export function SeasonFeeManager({
       description: fee.description || '',
       amountCents: fee.amount_cents,
       feeBasis: fee.fee_basis || 'player',
+      defaultPlayerContributionCents: fee.default_player_contribution_cents || 0,
       currency: fee.currency as 'usd' | 'cad',
       allowFullPayment: fee.allow_full_payment,
       allowTwoPay: fee.allow_two_pay,
@@ -221,6 +227,9 @@ export function SeasonFeeManager({
       installmentFeeCents: fee.installment_fee_cents,
     });
     setAmountDisplay(centsToDollars(fee.amount_cents));
+    setDefaultContributionDisplay(
+      centsToDollars(fee.default_player_contribution_cents || 0)
+    );
     setEarlyBirdDisplay(centsToDollars(fee.early_bird_discount_cents));
     setLateFeeDisplay(centsToDollars(fee.late_fee_cents));
     setInstallmentFeeDisplay(centsToDollars(fee.installment_fee_cents));
@@ -240,6 +249,18 @@ export function SeasonFeeManager({
     if (formData.amountCents <= 0) {
       setError(t('baseAmountRequired'));
       return;
+    }
+
+    if (formData.feeBasis === 'team') {
+      if (formData.defaultPlayerContributionCents < 0) {
+        setError('Default player contribution cannot be negative.');
+        return;
+      }
+
+      if (formData.defaultPlayerContributionCents > formData.amountCents) {
+        setError('Default player contribution cannot exceed the flat team fee.');
+        return;
+      }
     }
 
     if (!formData.allowFullPayment && !formData.allowTwoPay && !formData.allowThreePay) {
@@ -476,6 +497,20 @@ export function SeasonFeeManager({
                     </span>
                   </div>
 
+                  {(fee.fee_basis || 'player') === 'team' && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-neutral-500">Default player contribution</span>
+                      <span className="text-neutral-300">
+                        {fee.default_player_contribution_cents > 0
+                          ? formatCurrency(
+                              fee.default_player_contribution_cents,
+                              fee.currency
+                            )
+                          : 'No default target'}
+                      </span>
+                    </div>
+                  )}
+
                   {fee.early_bird_discount_cents > 0 && fee.early_bird_deadline && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-green-400">{t('earlyBird')}</span>
@@ -645,10 +680,42 @@ export function SeasonFeeManager({
                   </p>
                   {feeCollectionModel === 'hybrid' && formData.feeBasis === 'team' && (
                     <p className="text-xs text-amber-400 mt-2">
-                      Hybrid plus a flat team fee still bills the captain/team invoice as one total.
-                      Individual player checkout stays hidden for this setup.
+                      Hybrid plus a flat team fee keeps one master team invoice while still
+                      allowing player contributions to reduce that balance.
                     </p>
                   )}
+                </div>
+              )}
+
+              {formData.feeBasis === 'team' && (
+                <div>
+                  <label className="text-sm font-medium text-white mb-2 block">
+                    Default player contribution
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                      $
+                    </span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={defaultContributionDisplay}
+                      onChange={(e) => {
+                        setDefaultContributionDisplay(e.target.value);
+                        setFormData({
+                          ...formData,
+                          defaultPlayerContributionCents: dollarsToCents(e.target.value),
+                        });
+                      }}
+                      className="pl-7"
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Assigned players start with this contribution target by default. Captains and
+                    league admins can adjust it per player without changing the master team invoice.
+                  </p>
                 </div>
               )}
             </div>
@@ -659,8 +726,9 @@ export function SeasonFeeManager({
               {formData.feeBasis === 'team' ? (
                 <div className="bg-neutral-800/50 p-4 rounded-lg">
                   <p className="text-sm text-neutral-300">
-                    Flat team fees create one team invoice. Captains can pay the full amount or the
-                    league can record partial payments, but player installment plans do not apply.
+                    Flat team fees create one team invoice. Team chunk payments, player online
+                    contributions, and offline EMT/cash/check entries all reduce the same balance.
+                    Player installment plans do not apply to this setup.
                   </p>
                 </div>
               ) : (
