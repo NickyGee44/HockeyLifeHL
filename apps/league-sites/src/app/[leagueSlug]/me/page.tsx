@@ -239,8 +239,8 @@ function JoinTeamView({
       }
 
       const [teamsData, requestsData] = await Promise.all([
-        getTeamsForJoin(leagueId),
-        getMyJoinRequests(leagueId),
+        getTeamsForJoin(leagueId, seasonId),
+        getMyJoinRequests(leagueId, seasonId),
       ]);
 
       setTeams(teamsData);
@@ -249,7 +249,7 @@ function JoinTeamView({
     };
 
     fetchData();
-  }, [leagueId]);
+  }, [leagueId, seasonId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,7 +265,7 @@ function JoinTeamView({
         setSelectedTeam('');
         setMessage('');
         // Refresh requests
-        const updatedRequests = await getMyJoinRequests(leagueId);
+        const updatedRequests = await getMyJoinRequests(leagueId, seasonId);
         setRequests(updatedRequests);
       } else {
         setSubmitError(result.error || 'Failed to submit request');
@@ -277,7 +277,7 @@ function JoinTeamView({
     startTransition(async () => {
       const result = await cancelJoinRequest(requestId);
       if (result.success) {
-        const updatedRequests = await getMyJoinRequests(leagueId);
+        const updatedRequests = await getMyJoinRequests(leagueId, seasonId);
         setRequests(updatedRequests);
       }
     });

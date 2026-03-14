@@ -1,6 +1,7 @@
 'use server';
 
 import { createAuthClient as createClient } from '@/lib/supabase/server';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 
 export type JoinRequestStatus = 'pending' | 'accepted' | 'rejected' | 'accepted_sub' | 'waitlist';
 
@@ -28,7 +29,105 @@ export interface TeamForJoin {
   roster_count: number;
 }
 
-export async function getMyJoinRequests(leagueId: string): Promise<TeamJoinRequest[]> {
+async function resolveOperationalSeasonId(
+  leagueId: string,
+  explicitSeasonId?: string | null
+): Promise<string | null> {
+  if (explicitSeasonId) {
+    return explicitSeasonId;
+  }
+
+  const supabase = await createClient();
+  const { data: seasons, error } = await supabase
+    .from('seasons')
+    .select('id, status, start_date, end_date, created_at')
+    .eq('league_id', leagueId)
+    .order('start_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to resolve operational season:', error);
+    return null;
+  }
+
+  return pickOperationalSeason(seasons || [])?.id || null;
+}
+
+async function getSeasonParticipationTeamIds(
+  leagueId: string,
+  seasonId: string
+): Promise<string[]> {
+  const supabase = await createClient();
+
+  const [
+    rosterResult,
+    registrationResult,
+    gameResult,
+    joinRequestResult,
+  ] = await Promise.all([
+    supabase
+      .from('team_rosters')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active'),
+    supabase
+      .from('registration_submissions')
+      .select('team_id, assigned_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .not('submitted_at', 'is', null)
+      .in('status', ['pending', 'approved', 'waitlisted']),
+    supabase
+      .from('games')
+      .select('home_team_id, away_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+    supabase
+      .from('team_join_requests')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+  ]);
+
+  const teamIds = new Set<string>();
+
+  (rosterResult.data || []).forEach((row) => {
+    if (row.team_id) {
+      teamIds.add(row.team_id);
+    }
+  });
+
+  (registrationResult.data || []).forEach((row) => {
+    if (row.assigned_team_id) {
+      teamIds.add(row.assigned_team_id);
+    } else if (row.team_id) {
+      teamIds.add(row.team_id);
+    }
+  });
+
+  (gameResult.data || []).forEach((row) => {
+    if (row.home_team_id) {
+      teamIds.add(row.home_team_id);
+    }
+    if (row.away_team_id) {
+      teamIds.add(row.away_team_id);
+    }
+  });
+
+  (joinRequestResult.data || []).forEach((row) => {
+    if (row.team_id) {
+      teamIds.add(row.team_id);
+    }
+  });
+
+  return [...teamIds];
+}
+
+export async function getMyJoinRequests(
+  leagueId: string,
+  seasonId?: string | null
+): Promise<TeamJoinRequest[]> {
   const supabase = await createClient();
 
   const {
@@ -36,6 +135,11 @@ export async function getMyJoinRequests(leagueId: string): Promise<TeamJoinReque
   } = await supabase.auth.getUser();
 
   if (!user) {
+    return [];
+  }
+
+  const resolvedSeasonId = await resolveOperationalSeasonId(leagueId, seasonId);
+  if (!resolvedSeasonId) {
     return [];
   }
 
@@ -52,6 +156,7 @@ export async function getMyJoinRequests(leagueId: string): Promise<TeamJoinReque
     `)
     .eq('player_id', user.id)
     .eq('league_id', leagueId)
+    .eq('season_id', resolvedSeasonId)
     .order('requested_at', { ascending: false });
 
   if (error) {
@@ -65,8 +170,22 @@ export async function getMyJoinRequests(leagueId: string): Promise<TeamJoinReque
   }));
 }
 
-export async function getTeamsForJoin(leagueId: string): Promise<TeamForJoin[]> {
+export async function getTeamsForJoin(
+  leagueId: string,
+  seasonId?: string | null
+): Promise<TeamForJoin[]> {
   const supabase = await createClient();
+  const resolvedSeasonId = await resolveOperationalSeasonId(leagueId, seasonId);
+
+  if (!resolvedSeasonId) {
+    return [];
+  }
+
+  const teamIds = await getSeasonParticipationTeamIds(leagueId, resolvedSeasonId);
+
+  if (teamIds.length === 0) {
+    return [];
+  }
 
   // Get teams with roster counts
   const { data: teams, error } = await supabase
@@ -79,6 +198,7 @@ export async function getTeamsForJoin(leagueId: string): Promise<TeamForJoin[]> 
       division:divisions(name)
     `)
     .eq('league_id', leagueId)
+    .in('id', teamIds)
     .eq('status', 'active')
     .order('name');
 
@@ -92,6 +212,7 @@ export async function getTeamsForJoin(leagueId: string): Promise<TeamForJoin[]> 
     .from('team_rosters')
     .select('team_id')
     .in('team_id', teams.map((t: any) => t.id))
+    .eq('season_id', resolvedSeasonId)
     .eq('status', 'active');
 
   const countMap: Record<string, number> = {};
@@ -126,35 +247,24 @@ export async function submitJoinRequest(
   }
 
   // If no seasonId provided, get the current active season
-  let resolvedSeasonId = seasonId;
-  if (!resolvedSeasonId) {
-    const { data: seasonData } = await supabase
-      .from('seasons')
-      .select('id')
-      .eq('league_id', leagueId)
-      .eq('status', 'active')
-      .order('start_date', { ascending: false })
-      .limit(1)
-      .single();
-
-    resolvedSeasonId = seasonData?.id || null;
-  }
+  const resolvedSeasonId = await resolveOperationalSeasonId(leagueId, seasonId);
 
   if (!resolvedSeasonId) {
-    return { success: false, error: 'No active season found' };
+    return { success: false, error: 'No current season found' };
   }
 
-  // Check if already on a team in this league
+  // Check if already on a team in this season
   const { data: existingMembership } = await supabase
     .from('team_rosters')
     .select('id')
     .eq('player_id', user.id)
     .eq('league_id', leagueId)
+    .eq('season_id', resolvedSeasonId)
     .eq('status', 'active')
     .limit(1);
 
   if (existingMembership && existingMembership.length > 0) {
-    return { success: false, error: 'You are already on a team in this league' };
+    return { success: false, error: 'You are already on a team for the current season' };
   }
 
   // Check for existing pending request to this team
@@ -163,6 +273,7 @@ export async function submitJoinRequest(
     .select('id, status')
     .eq('player_id', user.id)
     .eq('team_id', teamId)
+    .eq('season_id', resolvedSeasonId)
     .eq('status', 'pending')
     .limit(1);
 
