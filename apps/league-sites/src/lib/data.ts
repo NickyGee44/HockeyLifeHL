@@ -40,6 +40,7 @@ import type {
   PlayerBadge,
 } from './types';
 import { getBalancedLeagueColors } from './theme-palette';
+import { pickOperationalSeason } from './seasons/operational';
 
 // Default brand colors from BRAND-KIT.md
 const DEFAULT_PRIMARY = '#D4AF37';
@@ -147,39 +148,27 @@ export function getLeagueTheme(league: League): LeagueTheme {
 }
 
 /**
- * Fetch current season for a league
+ * Fetch the current operational season for a league.
  *
- * Falls back through statuses: active → upcoming → draft → most recent.
- * This ensures a season is always selected when seasons exist, even if
- * no season has been marked active yet.
+ * Prefers active/playoff/registration/draft seasons before falling back to
+ * older completed seasons so public league-sites stay aligned with the next
+ * live season setup.
  */
 export async function getCurrentSeason(leagueId: string): Promise<Season | null> {
   const supabase = await createClient();
 
-  // Try statuses in priority order (Season status: active | playoffs | upcoming | completed)
-  for (const status of ['active', 'playoffs', 'upcoming', 'completed'] as const) {
-    const { data } = await supabase
-      .from('seasons')
-      .select('*')
-      .eq('league_id', leagueId)
-      .eq('status', status)
-      .order('start_date', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (data) return data as Season;
-  }
-
-  // Final fallback: most recent season regardless of status
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('seasons')
     .select('*')
     .eq('league_id', leagueId)
     .order('start_date', { ascending: false })
-    .limit(1)
-    .single();
+    .order('created_at', { ascending: false });
 
-  return (data as Season) || null;
+  if (error || !data || data.length === 0) {
+    return null;
+  }
+
+  return (pickOperationalSeason(data as Season[]) as Season | null) ?? null;
 }
 
 /**

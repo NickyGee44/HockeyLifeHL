@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { pickOperationalSeason } from '@/lib/seasons/operational';
 
 interface League {
   id: string;
@@ -15,7 +16,7 @@ interface League {
   secondary_color: string | null;
   status: string;
   is_public: boolean;
-  current_season_id: string | null; // Computed from active season
+  current_season_id: string | null; // Computed from the operational season
   settings: Record<string, unknown> | null;
 }
 
@@ -68,19 +69,17 @@ export function useLeague(): UseLeagueReturn {
           throw new Error(fetchError.message);
         }
 
-        // Fetch current active season
+        // Fetch current operational season
         let currentSeasonId: string | null = null;
         if (data) {
           const { data: seasonData } = await supabase
             .from('seasons')
-            .select('id')
+            .select('id, status, start_date, end_date, created_at')
             .eq('league_id', data.id)
-            .in('status', ['active', 'playoffs'])
             .order('start_date', { ascending: false })
-            .limit(1)
-            .single();
+            .order('created_at', { ascending: false });
 
-          currentSeasonId = seasonData?.id || null;
+          currentSeasonId = pickOperationalSeason(seasonData || [])?.id || null;
         }
 
         setLeague({ ...data, settings: (data.settings as Record<string, unknown> | null) ?? null, current_season_id: currentSeasonId });
