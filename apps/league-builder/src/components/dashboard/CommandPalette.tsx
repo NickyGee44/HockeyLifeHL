@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Command } from 'cmdk';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
-import { useSidebar } from './SidebarContext';
+import { useAppSidebar } from './AppSidebarContext';
 import { usePathname } from 'next/navigation';
 import {
   Home,
@@ -32,13 +32,13 @@ export function CommandPalette() {
   const router = useRouter();
   const t = useTranslations('commandPalette');
   const pathname = usePathname();
-  const { selected } = useSidebar();
+  const { leagueId: contextLeagueId } = useAppSidebar();
 
   const pathLeagueId = React.useMemo(() => {
     const match = pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i);
     return match ? match[1] : null;
   }, [pathname]);
-  const effectiveLeagueId = pathLeagueId ?? selected.leagueId;
+  const effectiveLeagueId = pathLeagueId ?? contextLeagueId;
 
   const leagueBase = effectiveLeagueId
     ? `/dashboard/leagues/${effectiveLeagueId}`
@@ -67,6 +67,7 @@ export function CommandPalette() {
   const pages = React.useMemo(
     () => [
       { label: t('pages.overview'), icon: Home, href: '/dashboard' },
+      { label: 'Staff Pool', icon: User, href: '/dashboard/staff' },
       ...(effectiveLeagueId ? [{ label: 'Migration Center', icon: Database, href: `${leagueBase}/migration-center` }] : []),
       { label: t('pages.schedule'), icon: Calendar, href: `${leagueBase}/schedule` },
       { label: t('pages.teamsAndDivisions'), icon: Users, href: `${leagueBase}/teams` },

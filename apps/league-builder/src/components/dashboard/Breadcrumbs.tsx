@@ -35,6 +35,13 @@ export function Breadcrumbs({ dashboardData }: BreadcrumbsProps) {
     }
   }
 
+  // Also check admin_leagues
+  if (dashboardData?.admin_leagues) {
+    for (const league of dashboardData.admin_leagues) {
+      leagueNames.set(league.id, league.name);
+    }
+  }
+
   // Segment label mapping keys (segment -> i18n navigation key)
   const segmentLabels: Record<string, string> = {
     dashboard: 'dashboard',
@@ -56,9 +63,16 @@ export function Breadcrumbs({ dashboardData }: BreadcrumbsProps) {
     gallery: 'gallery',
     draft: 'draftRoom',
     profile: 'profile',
+    website: 'websiteEditor',
     'website-editor': 'websiteEditor',
     new: 'createLeague',
     captain: 'teams',
+    rosters: 'rosters',
+    eligibility: 'eligibility',
+    ratings: 'playerRatings',
+    'scorekeeper-schedule': 'scorekeeperSchedule',
+    'contact-inbox': 'contactInbox',
+    bugs: 'bugReports',
   };
 
   // Segments to skip (noise words that don't add value)
