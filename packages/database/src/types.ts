@@ -8931,6 +8931,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          default_player_contribution_cents: number
           description: string | null
           early_bird_deadline: string | null
           early_bird_discount_cents: number | null
@@ -8953,6 +8954,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          default_player_contribution_cents?: number
           description?: string | null
           early_bird_deadline?: string | null
           early_bird_discount_cents?: number | null
@@ -8975,6 +8977,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          default_player_contribution_cents?: number
           description?: string | null
           early_bird_deadline?: string | null
           early_bird_discount_cents?: number | null

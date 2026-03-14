@@ -470,12 +470,32 @@ export function EmbeddedBillingDashboard({
                     <tr key={team.team_id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-white">{team.team_name}</td>
                       <td className="px-6 py-4 text-sm text-neutral-400 text-right">{team.total_players}</td>
-                      <td className="px-6 py-4 text-sm text-neutral-400 text-right">{formatCurrency(team.total_fee_cents)}</td>
-                      <td className="px-6 py-4 text-sm text-emerald-400 text-right">{formatCurrency(team.total_collected_cents)}</td>
+                      <td className="px-6 py-4 text-sm text-neutral-400 text-right">
+                        {formatCurrency(team.total_fee_cents)}
+                        {activeSeason?.feeBasis === 'team' && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            Targets {formatCurrency(team.player_target_total_cents || 0)}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-emerald-400 text-right">
+                        {formatCurrency(team.total_collected_cents)}
+                        {activeSeason?.feeBasis === 'team' && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            Players {formatCurrency(team.player_paid_cents || 0)} • Team{' '}
+                            {formatCurrency(team.team_payment_total_cents || 0)}
+                          </p>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-sm text-right">
                         <span className={team.total_outstanding_cents > 0 ? 'text-amber-400' : 'text-neutral-500'}>
                           {formatCurrency(team.total_outstanding_cents)}
                         </span>
+                        {activeSeason?.feeBasis === 'team' && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            Unallocated {formatCurrency(team.unallocated_target_cents || 0)}
+                          </p>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -516,7 +536,8 @@ export function EmbeddedBillingDashboard({
             <CheckCircle2 className="h-8 w-8 text-emerald-500/50 mx-auto mb-3" />
             <p className="text-emerald-400 font-medium">Flat team fee season</p>
             <p className="text-sm text-neutral-500 mt-1">
-              Individual player balances do not apply. Track payment progress from the team invoices above.
+              Player contributions still count here. The team invoice above combines player-level
+              contributions and team chunk payments into one running balance.
             </p>
           </div>
         ) : unpaidPlayers.length === 0 ? (

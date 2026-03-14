@@ -58,6 +58,10 @@ interface TeamInvoice {
   payment_deadline: string | null;
   notes: string | null;
   team?: { id: string; name: string } | null;
+  player_target_total_cents?: number;
+  player_paid_cents?: number;
+  team_payment_total_cents?: number;
+  unallocated_target_cents?: number;
 }
 
 interface BillingSummary {
@@ -193,12 +197,30 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
   const collectionRate = summary && summary.total_invoiced_cents > 0
     ? Math.round((summary.total_collected_cents / summary.total_invoiced_cents) * 100)
     : 0;
+  const contributionInvoices = invoices.filter((invoice) => invoice.fee_basis === 'team');
+  const contributionTargets = contributionInvoices.reduce(
+    (sum, invoice) => sum + (invoice.player_target_total_cents || 0),
+    0
+  );
+  const contributionPaid = contributionInvoices.reduce(
+    (sum, invoice) => sum + (invoice.player_paid_cents || 0),
+    0
+  );
+  const contributionUnallocated = contributionInvoices.reduce(
+    (sum, invoice) => sum + (invoice.unallocated_target_cents || 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
       {summary && (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div
+          className={cn(
+            'grid gap-4',
+            contributionInvoices.length > 0 ? 'md:grid-cols-4 xl:grid-cols-7' : 'md:grid-cols-4'
+          )}
+        >
           <SummaryCard
             label={t('totalInvoiced')}
             value={formatCurrency(summary.total_invoiced_cents)}
@@ -219,6 +241,25 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
             value={`${collectionRate}%`}
             icon={<TrendingUp className="w-5 h-5 text-blue-500" />}
           />
+          {contributionInvoices.length > 0 && (
+            <>
+              <SummaryCard
+                label="Player Targets"
+                value={formatCurrency(contributionTargets)}
+                icon={<Users className="w-5 h-5 text-sky-400" />}
+              />
+              <SummaryCard
+                label="Player Paid"
+                value={formatCurrency(contributionPaid)}
+                icon={<DollarSign className="w-5 h-5 text-emerald-400" />}
+              />
+              <SummaryCard
+                label="Unallocated"
+                value={formatCurrency(contributionUnallocated)}
+                icon={<AlertCircle className="w-5 h-5 text-amber-400" />}
+              />
+            </>
+          )}
         </div>
       )}
 
@@ -298,12 +339,30 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-white">
                         {formatCurrency(invoice.total_amount_cents)}
+                        {invoice.fee_basis === 'team' && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            Player targets:{' '}
+                            {formatCurrency(invoice.player_target_total_cents || 0)}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-green-500">
                         {formatCurrency(invoice.amount_paid_cents)}
+                        {invoice.fee_basis === 'team' && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            Players {formatCurrency(invoice.player_paid_cents || 0)} • Team{' '}
+                            {formatCurrency(invoice.team_payment_total_cents || 0)}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-white">
                         {formatCurrency(balance)}
+                        {invoice.fee_basis === 'team' && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            Unallocated:{' '}
+                            {formatCurrency(invoice.unallocated_target_cents || 0)}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span

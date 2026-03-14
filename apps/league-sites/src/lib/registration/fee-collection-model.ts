@@ -2,7 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type FeeCollectionModel = 'individual' | 'team' | 'hybrid';
 export type FeeBasis = 'player' | 'team';
-export type RegistrationPaymentMode = 'hidden' | 'required' | 'optional';
+export type RegistrationPaymentMode =
+  | 'hidden'
+  | 'required'
+  | 'optional'
+  | 'team_contribution';
 
 export function normalizeFeeCollectionModel(
   value: string | null | undefined
@@ -38,6 +42,10 @@ export function getRegistrationPaymentMode(
   feeAmountCents: number,
   feeBasis: FeeBasis = 'player'
 ): RegistrationPaymentMode {
+  if (feeBasis === 'team' && feeAmountCents > 0) {
+    return 'team_contribution';
+  }
+
   const playerFeeAmountCents = getPlayerRegistrationFeeAmount(feeBasis, feeAmountCents);
 
   if (playerFeeAmountCents <= 0) return 'hidden';
@@ -58,7 +66,9 @@ export function isPlayerFeeConfigurationMissing(
   feeAmountCents: number,
   feeBasis: FeeBasis = 'player'
 ): boolean {
-  return feeBasis === 'player' && feeCollectionModel !== 'team' && feeAmountCents <= 0;
+  void feeCollectionModel;
+  void feeBasis;
+  return feeAmountCents <= 0;
 }
 
 export async function getSeasonFeeCollectionModel(
@@ -93,13 +103,14 @@ export async function getSeasonPaymentSettings(
   feeAmountCents: number;
   feeCollectionModel: FeeCollectionModel;
   feeBasis: FeeBasis;
+  defaultPlayerContributionCents: number;
   currency: string;
 }> {
   const [feeResult, model] = await Promise.all([
     (async () => {
       const feeQuery = await supabase
         .from('season_fees')
-        .select('amount_cents, currency, fee_basis')
+        .select('amount_cents, currency, fee_basis, default_player_contribution_cents')
         .eq('league_id', leagueId)
         .eq('season_id', seasonId)
         .eq('is_active', true)
@@ -109,7 +120,9 @@ export async function getSeasonPaymentSettings(
 
       if (
         feeQuery.error &&
-        (feeQuery.error.code === '42703' || feeQuery.error.message?.includes('fee_basis'))
+        (feeQuery.error.code === '42703' ||
+          feeQuery.error.message?.includes('fee_basis') ||
+          feeQuery.error.message?.includes('default_player_contribution_cents'))
       ) {
         const fallbackQuery = await supabase
           .from('season_fees')
@@ -123,7 +136,11 @@ export async function getSeasonPaymentSettings(
 
         return {
           data: fallbackQuery.data
-            ? { ...fallbackQuery.data, fee_basis: 'player' as const }
+            ? {
+                ...fallbackQuery.data,
+                fee_basis: 'player' as const,
+                default_player_contribution_cents: 0,
+              }
             : null,
         };
       }
@@ -134,7 +151,12 @@ export async function getSeasonPaymentSettings(
 
       return {
         data: feeQuery.data
-          ? { ...feeQuery.data, fee_basis: normalizeFeeBasis(feeQuery.data.fee_basis) }
+          ? {
+              ...feeQuery.data,
+              fee_basis: normalizeFeeBasis(feeQuery.data.fee_basis),
+              default_player_contribution_cents:
+                feeQuery.data.default_player_contribution_cents ?? 0,
+            }
           : null,
       };
     })(),
@@ -145,6 +167,8 @@ export async function getSeasonPaymentSettings(
     feeAmountCents: feeResult.data?.amount_cents ?? 0,
     feeCollectionModel: model,
     feeBasis: normalizeFeeBasis(feeResult.data?.fee_basis),
+    defaultPlayerContributionCents:
+      feeResult.data?.default_player_contribution_cents ?? 0,
     currency: feeResult.data?.currency ?? 'cad',
   };
 }

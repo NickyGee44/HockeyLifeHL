@@ -22,6 +22,7 @@ import {
   getCaptainPaymentSummary,
   sendCaptainPaymentReminder,
   recordCaptainPlayerPayment,
+  updateCaptainPlayerContributionTarget,
   type CaptainPaymentPlayer,
   type CaptainPaymentSummary,
 } from '@/lib/actions/captain-payments';
@@ -508,6 +509,9 @@ function ManualPlayerPaymentDialog({
 }) {
   const outstandingCents = Math.max(0, player.amountOwedCents - player.amountPaidCents);
   const [amount, setAmount] = useState((outstandingCents / 100).toFixed(2));
+  const [contributionTarget, setContributionTarget] = useState(
+    (player.amountOwedCents / 100).toFixed(2)
+  );
   const [paymentMethod, setPaymentMethod] = useState<'e_transfer' | 'cash' | 'check' | 'other'>(
     'e_transfer'
   );
@@ -518,29 +522,73 @@ function ManualPlayerPaymentDialog({
 
   const handleSubmit = async () => {
     const amountCents = Math.round(Number(amount) * 100);
-    if (!Number.isFinite(amountCents) || amountCents <= 0 || amountCents > outstandingCents) {
-      setError(`Enter an amount between $0.01 and ${formatMoney(outstandingCents)}.`);
+    const targetAmountCents = Math.round(Number(contributionTarget) * 100);
+    const targetChanged = targetAmountCents !== player.amountOwedCents;
+    const hasPaymentAmount = amount.trim().length > 0 && Number(amount) > 0;
+    const effectiveOutstandingCents = Math.max(
+      0,
+      targetAmountCents - player.amountPaidCents
+    );
+
+    if (
+      hasPaymentAmount &&
+      (!Number.isFinite(amountCents) ||
+        amountCents <= 0 ||
+        amountCents > effectiveOutstandingCents)
+    ) {
+      setError(
+        `Enter an amount between $0.01 and ${formatMoney(effectiveOutstandingCents)}.`
+      );
+      return;
+    }
+
+    if (!Number.isFinite(targetAmountCents) || targetAmountCents < 0) {
+      setError('Enter a valid contribution target.');
+      return;
+    }
+
+    if (!targetChanged && !hasPaymentAmount) {
+      setError('Change the contribution target or record a payment to save.');
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
 
-    const result = await recordCaptainPlayerPayment(teamId, {
-      seasonId,
-      playerId: player.id,
-      paymentId: player.paymentId,
-      amountCents,
-      paymentMethod,
-      referenceNumber: referenceNumber.trim() || undefined,
-      notes: notes.trim() || undefined,
-    });
+    if (targetChanged) {
+      const targetResult = await updateCaptainPlayerContributionTarget(teamId, {
+        seasonId,
+        playerId: player.id,
+        paymentId: player.paymentId,
+        targetAmountCents,
+      });
 
-    setIsSubmitting(false);
+      if (!targetResult.success) {
+        setIsSubmitting(false);
+        setError(targetResult.error || 'Failed to update the contribution target.');
+        return;
+      }
+    }
 
-    if (!result.success) {
-      setError(result.error || 'Failed to record payment.');
-      return;
+    if (hasPaymentAmount) {
+      const result = await recordCaptainPlayerPayment(teamId, {
+        seasonId,
+        playerId: player.id,
+        paymentId: player.paymentId,
+        amountCents,
+        paymentMethod,
+        referenceNumber: referenceNumber.trim() || undefined,
+        notes: notes.trim() || undefined,
+      });
+
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        setError(result.error || 'Failed to record payment.');
+        return;
+      }
+    } else {
+      setIsSubmitting(false);
     }
 
     onRecorded();
@@ -567,6 +615,21 @@ function ManualPlayerPaymentDialog({
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Outstanding Balance</p>
             <p className="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
               {formatMoney(outstandingCents)}
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]">
+              Contribution Target
+            </label>
+            <input
+              value={contributionTarget}
+              onChange={(event) => setContributionTarget(event.target.value)}
+              inputMode="decimal"
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+            />
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+              Adjust what this player is expected to contribute toward the team invoice.
             </p>
           </div>
 
@@ -639,7 +702,7 @@ function ManualPlayerPaymentDialog({
             className="inline-flex items-center gap-2 rounded-lg bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Save Payment
+            Save Changes
           </button>
         </div>
       </div>

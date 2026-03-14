@@ -79,6 +79,7 @@ interface RegistrationPaymentRegistration {
     name: string;
     fee_amount_cents: number;
   };
+  payment_mode: 'hidden' | 'required' | 'optional' | 'team_contribution';
   payment_quote: RegistrationPaymentQuote;
 }
 
@@ -246,6 +247,7 @@ async function getPlayerRegistrationRowsForLeague(leagueSlug: string, accessToke
       id,
       season_id,
       team_id,
+      assigned_team_id,
       status,
       submitted_at,
       payment_status,
@@ -268,7 +270,13 @@ async function getPlayerRegistrationRowsForLeague(leagueSlug: string, accessToke
   }
 
   const seasonIds = [...new Set((rows || []).map((row: any) => row.season_id).filter(Boolean))];
-  const teamIds = [...new Set((rows || []).map((row: any) => row.team_id).filter(Boolean))];
+  const teamIds = [
+    ...new Set(
+      (rows || [])
+        .map((row: any) => row.assigned_team_id || row.team_id)
+        .filter(Boolean)
+    ),
+  ];
 
   const [seasonsResult, teamsResult] = await Promise.all([
     seasonIds.length > 0
@@ -299,7 +307,7 @@ async function getPlayerRegistrationRowsForLeague(leagueSlug: string, accessToke
   const hydratedRows = (rows || []).map((row: any) => ({
     ...row,
     season: seasonsById.get(row.season_id) || null,
-    team: teamsById.get(row.team_id) || null,
+    team: teamsById.get(row.assigned_team_id || row.team_id) || null,
   }));
 
   return {
@@ -389,7 +397,11 @@ export async function createRegistrationCheckout(
       };
     }
 
-    if (registration.payment_status === 'not_required' && paymentMode !== 'optional') {
+    if (
+      registration.payment_status === 'not_required' &&
+      paymentMode !== 'optional' &&
+      paymentMode !== 'team_contribution'
+    ) {
       return { success: false, error: 'This registration does not require payment.' };
     }
 
@@ -645,7 +657,11 @@ export async function createEmbeddedCheckout(
       };
     }
 
-    if (registration.payment_status === 'not_required' && paymentMode !== 'optional') {
+    if (
+      registration.payment_status === 'not_required' &&
+      paymentMode !== 'optional' &&
+      paymentMode !== 'team_contribution'
+    ) {
       return { success: false, error: 'This registration does not require payment.' };
     }
 
@@ -976,10 +992,21 @@ export async function getRegistrationPaymentRegistrations(
     if (!playerId) {
       return { success: false, error: 'Authentication required.' };
     }
+    const serviceSupabase = createServiceRoleClient();
 
     const registrations: RegistrationPaymentRegistration[] = await Promise.all(
       (rows || []).map(async (reg: any) => {
         const rawTeam = Array.isArray(reg.team) ? reg.team[0] : reg.team;
+        const paymentSettings = await getSeasonPaymentSettings(
+          serviceSupabase as any,
+          reg.league_id,
+          reg.season_id
+        );
+        const paymentMode = getRegistrationPaymentMode(
+          paymentSettings.feeCollectionModel,
+          paymentSettings.feeAmountCents,
+          paymentSettings.feeBasis
+        );
         const paymentQuote = await getRegistrationPaymentQuoteForLeague(
           reg.league_id,
           reg.fee_amount_cents || 0,
@@ -989,7 +1016,7 @@ export async function getRegistrationPaymentRegistrations(
         return {
           id: reg.id,
           season_id: reg.season_id,
-          team_id: reg.team_id,
+          team_id: reg.assigned_team_id || reg.team_id,
           status: reg.status,
           payment_status: reg.payment_status,
           fee_amount_cents: reg.fee_amount_cents || 0,
@@ -1009,6 +1036,7 @@ export async function getRegistrationPaymentRegistrations(
             name: `${reg.registration_type} Registration`,
             fee_amount_cents: reg.fee_amount_cents || 0,
           },
+          payment_mode: paymentMode,
           payment_quote: paymentQuote,
         };
       })

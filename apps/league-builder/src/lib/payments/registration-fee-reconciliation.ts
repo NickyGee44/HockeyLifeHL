@@ -3,6 +3,11 @@ import {
   getPlayerRegistrationFeeAmount,
   getSeasonPaymentSettings,
 } from '@/lib/payments/fee-collection-model';
+import {
+  buildRegistrationPaymentStatus,
+  getActiveSeasonFeeWithContribution,
+  syncFlatTeamContributionTargets,
+} from '@/lib/payments/team-contributions';
 import type { Json } from '@hockey-life/database';
 import type { Database } from '@hockey-life/database/types';
 
@@ -30,19 +35,6 @@ type ReconciledRegistrationRow = {
   submitted_at: string | null;
   draft_data: Json | null;
 };
-
-function mapRegistrationPaymentStatus(
-  currentStatus: RegistrationPaymentStatus,
-  expectedFeeCents: number,
-  amountPaidCents: number
-): Exclude<RegistrationPaymentStatus, null> {
-  if (currentStatus === 'refunded') return 'refunded';
-  if (currentStatus === 'failed') return 'failed';
-  if (expectedFeeCents <= 0) return 'not_required';
-  if (amountPaidCents >= expectedFeeCents) return 'completed';
-  if (amountPaidCents > 0) return 'partial';
-  return 'pending';
-}
 
 function mapPlayerPaymentStatus(
   registrationPaymentStatus: Exclude<RegistrationPaymentStatus, null>
@@ -93,22 +85,26 @@ export async function reconcileSeasonRegistrationFees(
 ): Promise<ReconcileSeasonRegistrationFeesResult> {
   const supabase = createServiceRoleClient();
   const paymentSettings = await getSeasonPaymentSettings(supabase as any, leagueId, seasonId);
+  const seasonFee = await getActiveSeasonFeeWithContribution(
+    supabase as any,
+    leagueId,
+    seasonId
+  );
+
+  if (paymentSettings.feeBasis === 'team') {
+    const result = await syncFlatTeamContributionTargets(supabase as any, {
+      leagueId,
+      seasonId,
+      registrationId: options?.registrationId ?? null,
+    });
+
+    return result;
+  }
+
   const expectedFeeCents = getPlayerRegistrationFeeAmount(
     paymentSettings.feeBasis,
     paymentSettings.feeAmountCents
   );
-
-  const seasonFeeQuery = await supabase
-    .from('season_fees')
-    .select('id, amount_cents, currency')
-    .eq('league_id', leagueId)
-    .eq('season_id', seasonId)
-    .eq('is_active', true)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const seasonFee = seasonFeeQuery.data;
 
   let registrationQuery = supabase
     .from('registration_submissions')
@@ -160,10 +156,10 @@ export async function reconcileSeasonRegistrationFees(
 
   for (const registration of rows) {
     const amountPaidCents = registration.amount_paid_cents || 0;
-    const nextPaymentStatus = mapRegistrationPaymentStatus(
-      registration.payment_status,
+    const nextPaymentStatus = buildRegistrationPaymentStatus(
       expectedFeeCents,
-      amountPaidCents
+      amountPaidCents,
+      registration.payment_status
     );
     const nextCurrency = paymentSettings.currency || registration.currency || 'cad';
     const needsRegistrationUpdate =

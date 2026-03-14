@@ -42,6 +42,7 @@ export interface SeasonFee {
   description: string | null;
   amount_cents: number;
   fee_basis: FeeBasis;
+  default_player_contribution_cents: number;
   currency: string;
   allow_full_payment: boolean;
   allow_two_pay: boolean;
@@ -73,6 +74,7 @@ export interface CreateSeasonFeeParams {
   description?: string;
   amountCents: number;
   feeBasis?: FeeBasis;
+  defaultPlayerContributionCents?: number;
   currency?: string;
   allowFullPayment?: boolean;
   allowTwoPay?: boolean;

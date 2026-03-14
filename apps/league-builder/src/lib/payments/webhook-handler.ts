@@ -18,6 +18,7 @@ import { stripe } from '@/lib/stripe/client';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { calculateApplicationFee } from '@/lib/leagues/stripe-connect';
+import { recalculateTeamInvoiceForTeam } from '@/lib/payments/team-contributions';
 import {
   sendChargebackAlertEmail,
   sendChargebackResolutionEmail,
@@ -208,6 +209,19 @@ async function handleRegistrationCheckoutCompleted(
     undefined, // No player_payment_id for registration payments
     eventId
   );
+
+  const billingTeamId =
+    (registration as Record<string, any>).assigned_team_id ||
+    (registration as Record<string, any>).team_id ||
+    null;
+
+  if (billingTeamId) {
+    await recalculateTeamInvoiceForTeam(supabase as any, {
+      leagueId: registration.league_id,
+      seasonId: registration.season_id,
+      teamId: billingTeamId,
+    });
+  }
 
   return {
     success: true,

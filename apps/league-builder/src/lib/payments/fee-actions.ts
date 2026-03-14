@@ -26,6 +26,8 @@ import type {
 import type { Json } from '@hockey-life/database';
 import { normalizeFeeCollectionModel } from './fee-collection-model';
 import { reconcileSeasonRegistrationFees } from './registration-fee-reconciliation';
+import { recalculateTeamInvoiceForTeam } from './team-contributions';
+import { getSeasonParticipationTeams } from '@/lib/seasons/team-participation';
 
 // ============================================================================
 // Helper: Verify League Admin Access
@@ -122,6 +124,24 @@ async function getSeasonFeeModelForSeason(
   }
 
   return normalizeFeeCollectionModel(data?.fee_collection_model);
+}
+
+async function syncSeasonTeamInvoices(
+  leagueId: string,
+  seasonId: string,
+  userId: string
+) {
+  const serviceSupabase = createServiceRoleClient();
+  const teams = await getSeasonParticipationTeams(serviceSupabase as any, leagueId, seasonId);
+
+  for (const team of teams) {
+    await recalculateTeamInvoiceForTeam(serviceSupabase as any, {
+      leagueId,
+      seasonId,
+      teamId: team.id,
+      updatedBy: userId,
+    });
+  }
 }
 
 // ============================================================================
@@ -236,12 +256,24 @@ export async function createSeasonFee(
     const authSupabase = await createClient();
     const serviceSupabase = createServiceRoleClient();
     const feeBasis = params.feeBasis ?? 'player';
+    const isFlatTeamFee = feeBasis === 'team';
+    const defaultPlayerContributionCents = Math.max(
+      0,
+      params.defaultPlayerContributionCents ?? 0
+    );
     const seasonFeeCollectionModel = await getSeasonFeeModelForSeason(authSupabase, params.seasonId);
 
-    if (seasonFeeCollectionModel === 'individual' && feeBasis === 'team') {
+    if (seasonFeeCollectionModel === 'individual' && isFlatTeamFee) {
       return {
         success: false,
         error: 'Flat team fees require Team Billing or Hybrid billing for the season.',
+      };
+    }
+
+    if (isFlatTeamFee && defaultPlayerContributionCents > params.amountCents) {
+      return {
+        success: false,
+        error: 'Default player contribution cannot be greater than the team fee total.',
       };
     }
 
@@ -267,6 +299,8 @@ export async function createSeasonFee(
         description: params.description || null,
         amount_cents: params.amountCents,
         fee_basis: feeBasis,
+        default_player_contribution_cents:
+          isFlatTeamFee ? defaultPlayerContributionCents : 0,
         currency: params.currency || 'cad',
         allow_full_payment: allowFull,
         allow_two_pay: allowTwo,
@@ -283,7 +317,7 @@ export async function createSeasonFee(
 
     if (error) {
       if (error.code === '42703' || error.message?.includes('fee_basis')) {
-        if (feeBasis === 'team') {
+        if (isFlatTeamFee) {
           return {
             success: false,
             error: 'Flat team fee support is not available in this environment yet.',
@@ -298,6 +332,7 @@ export async function createSeasonFee(
             name: params.name,
             description: params.description || null,
             amount_cents: params.amountCents,
+            default_player_contribution_cents: 0,
             currency: params.currency || 'cad',
             allow_full_payment: allowFull,
             allow_two_pay: allowTwo,
@@ -324,6 +359,9 @@ export async function createSeasonFee(
         }, access.userId);
 
         await reconcileSeasonRegistrationFees(params.leagueId, params.seasonId);
+        if (isFlatTeamFee) {
+          await syncSeasonTeamInvoices(params.leagueId, params.seasonId, access.userId);
+        }
 
         revalidatePath(`/dashboard/leagues/${params.leagueId}/fees`);
         revalidatePath(`/dashboard/leagues/${params.leagueId}/payments`);
@@ -339,9 +377,14 @@ export async function createSeasonFee(
       fee_id: fee.id,
       name: params.name,
       amount_cents: params.amountCents,
+      default_player_contribution_cents:
+        isFlatTeamFee ? defaultPlayerContributionCents : 0,
     }, access.userId);
 
     await reconcileSeasonRegistrationFees(params.leagueId, params.seasonId);
+    if (isFlatTeamFee) {
+      await syncSeasonTeamInvoices(params.leagueId, params.seasonId, access.userId);
+    }
 
     revalidatePath(`/dashboard/leagues/${params.leagueId}/fees`);
     revalidatePath(`/dashboard/leagues/${params.leagueId}/payments`);
@@ -381,6 +424,12 @@ export async function updateSeasonFee(
     }
 
     const feeBasis = params.feeBasis ?? (existingFee as any).fee_basis ?? 'player';
+    const defaultPlayerContributionCents = Math.max(
+      0,
+      params.defaultPlayerContributionCents ??
+        (existingFee as any).default_player_contribution_cents ??
+        0
+    );
     const seasonFeeCollectionModel = await getSeasonFeeModelForSeason(
       authSupabase,
       existingFee.season_id
@@ -393,6 +442,16 @@ export async function updateSeasonFee(
       };
     }
 
+    if (
+      feeBasis === 'team' &&
+      (params.amountCents ?? existingFee.amount_cents) < defaultPlayerContributionCents
+    ) {
+      return {
+        success: false,
+        error: 'Default player contribution cannot be greater than the team fee total.',
+      };
+    }
+
     // Build update object
     const updateData: Record<string, unknown> = {};
 
@@ -400,6 +459,10 @@ export async function updateSeasonFee(
     if (params.description !== undefined) updateData.description = params.description;
     if (params.amountCents !== undefined) updateData.amount_cents = params.amountCents;
     if (params.feeBasis !== undefined) updateData.fee_basis = params.feeBasis;
+    if (params.defaultPlayerContributionCents !== undefined || feeBasis === 'team') {
+      updateData.default_player_contribution_cents =
+        feeBasis === 'team' ? defaultPlayerContributionCents : 0;
+    }
     if (params.currency !== undefined) updateData.currency = params.currency;
     if (params.allowFullPayment !== undefined) updateData.allow_full_payment = params.allowFullPayment;
     if (params.allowTwoPay !== undefined) updateData.allow_two_pay = params.allowTwoPay;
@@ -428,6 +491,7 @@ export async function updateSeasonFee(
         }
 
         delete updateData.fee_basis;
+        delete updateData.default_player_contribution_cents;
 
         const { data: fallbackFee, error: fallbackError } = await serviceSupabase
           .from('season_fees')
@@ -447,6 +511,9 @@ export async function updateSeasonFee(
         }, access.userId);
 
         await reconcileSeasonRegistrationFees(existingFee.league_id, existingFee.season_id);
+        if (feeBasis === 'team') {
+          await syncSeasonTeamInvoices(existingFee.league_id, existingFee.season_id, access.userId);
+        }
 
         revalidatePath(`/dashboard/leagues/${existingFee.league_id}/fees`);
         revalidatePath(`/dashboard/leagues/${existingFee.league_id}/payments`);
@@ -464,6 +531,9 @@ export async function updateSeasonFee(
     }, access.userId);
 
     await reconcileSeasonRegistrationFees(existingFee.league_id, existingFee.season_id);
+    if (feeBasis === 'team') {
+      await syncSeasonTeamInvoices(existingFee.league_id, existingFee.season_id, access.userId);
+    }
 
     revalidatePath(`/dashboard/leagues/${existingFee.league_id}/fees`);
     revalidatePath(`/dashboard/leagues/${existingFee.league_id}/payments`);

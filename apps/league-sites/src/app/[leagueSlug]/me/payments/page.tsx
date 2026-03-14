@@ -56,6 +56,7 @@ interface Registration {
     name: string;
     fee_amount_cents: number;
   };
+  payment_mode: 'hidden' | 'required' | 'optional' | 'team_contribution';
   payment_quote: {
     baseFeeCents: number;
     baseAmountDueCents: number;
@@ -256,7 +257,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                 {formatCurrency(totalOwed)} outstanding
               </h2>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Open your payment screen and complete your registration balance with Stripe.
+                Open your payment screen and complete your outstanding balance with Stripe.
               </p>
             </div>
             <button
@@ -341,6 +342,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                 const balance = reg.payment_quote?.outstandingChargeCents || 0;
                 const feeAmount = reg.payment_quote?.baseFeeCents || reg.fee_amount_cents || 0;
                 const platformFee = reg.payment_quote?.platformFeeOnFullFeeCents || 0;
+                const isTeamContribution = reg.payment_mode === 'team_contribution';
                 return (
                   <div
                     key={reg.id}
@@ -354,6 +356,11 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                             {reg.registration_type?.name || reg.season?.name || 'Season Registration'}
                           </span>
                         </div>
+                        <p className="text-sm text-[var(--color-text-secondary)]">
+                          {isTeamContribution
+                            ? 'Contribution toward your team invoice'
+                            : 'Registration balance'}
+                        </p>
                         {reg.team && (
                           <p className="text-sm text-[var(--color-text-secondary)]">
                             Team: {reg.team.name}
@@ -372,7 +379,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                         </p>
                         {platformFee > 0 && (
                           <p className="text-xs text-[var(--color-text-muted)]">
-                            League fee {formatCurrency(feeAmount)} + BLH fee {formatCurrency(platformFee)}
+                            {isTeamContribution ? 'Contribution' : 'League fee'} {formatCurrency(feeAmount)} + BLH fee {formatCurrency(platformFee)}
                           </p>
                         )}
                       </div>
