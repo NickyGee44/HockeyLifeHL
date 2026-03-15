@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
@@ -198,6 +198,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [teamLeagueMap, setTeamLeagueMap] = React.useState<Record<string, string>>({});
   const [activeTeams, setActiveTeams] = React.useState<ActiveTeamCard[]>([]);
   const [teamStandings, setTeamStandings] = React.useState<TeamStanding[]>([]);
+  const [isCaptain, setIsCaptain] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -261,6 +262,16 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
       ]);
 
       if (cancelled) return;
+
+      // Check captain status
+      const { data: captainData } = await supabase
+        .from('team_rosters')
+        .select('leadership_role')
+        .eq('player_id', user.id)
+        .eq('status', 'active')
+        .in('leadership_role', ['captain', 'alternate_captain'])
+        .limit(1);
+      setIsCaptain((captainData ?? []).length > 0);
 
       setProfile(profileData as Profile | null);
 
@@ -1101,6 +1112,27 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
               <Text style={styles.settingLabel}>Registration &amp; Payments</Text>
               <Ionicons name="open-outline" size={16} color={colors.textSecondary} />
             </Pressable>
+            <Pressable style={styles.settingRow} onPress={() => navigation.navigate('CareerStats')}>
+              <Ionicons name="trophy-outline" size={18} color={primaryColor} />
+              <Text style={styles.settingLabel}>Career Stats</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </Pressable>
+            {isCaptain && (
+              <Pressable
+                style={styles.settingRow}
+                onPress={() => {
+                  // Navigate to Captain tab
+                  const parent = navigation.getParent();
+                  if (parent) {
+                    parent.navigate('Captain');
+                  }
+                }}
+              >
+                <MaterialCommunityIcons name="shield-crown-outline" size={18} color={colors.brandGold} />
+                <Text style={styles.settingLabel}>Captain Dashboard</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+              </Pressable>
+            )}
             <Pressable style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={() => navigation.navigate('EditProfile')}>
               <Ionicons name="create-outline" size={18} color={primaryColor} />
               <Text style={styles.settingLabel}>Edit Profile</Text>
