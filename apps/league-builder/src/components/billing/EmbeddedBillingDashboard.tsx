@@ -29,9 +29,12 @@ import {
   startConnectOnboarding,
   getStripeDashboardLink,
 } from '@/lib/actions/stripe-connect-payments';
+import { getLeagueBilling } from '@/lib/actions/fees';
 import type { ConnectAccountInfo } from '@/lib/leagues/stripe-connect';
+import type { LeagueBillingConfig } from '@/lib/fees/platform-fees';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 import { TeamFeesDashboard } from './TeamFeesDashboard';
+import { FeeSplitSlider } from './FeeSplitSlider';
 
 interface EmbeddedBillingDashboardProps {
   leagueId: string;
@@ -85,6 +88,7 @@ export function EmbeddedBillingDashboard({
   const [initialLoading, setInitialLoading] = useState(true);
   const [stripeActionLoading, setStripeActionLoading] = useState(false);
   const [activeSeason, setActiveSeason] = useState<BillingSeason | null>(null);
+  const [billingConfig, setBillingConfig] = useState<LeagueBillingConfig | null>(null);
 
   const loadingRef = useRef(false);
 
@@ -95,10 +99,11 @@ export function EmbeddedBillingDashboard({
     setInitialLoading(true);
 
     try {
-      // Load account status + stats in parallel
-      const [accountResult, statsResult] = await Promise.all([
+      // Load account status + stats + billing config in parallel
+      const [accountResult, statsResult, billingResult] = await Promise.all([
         getConnectAccountStatus(leagueId),
         getPaymentStatistics(leagueId),
+        getLeagueBilling(leagueId),
       ]);
 
       if (accountResult.success) {
@@ -106,6 +111,9 @@ export function EmbeddedBillingDashboard({
       }
       if (statsResult.success) {
         setStats(statsResult.data);
+      }
+      if (billingResult.success) {
+        setBillingConfig(billingResult.data);
       }
 
       // Find active season
@@ -405,6 +413,16 @@ export function EmbeddedBillingDashboard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Fee Split Slider ── */}
+      {billingConfig && billingConfig.pricingTier !== 'small' && (
+        <FeeSplitSlider
+          leagueId={leagueId}
+          platformFeeBps={billingConfig.platformFeeBps}
+          initialSharePercent={billingConfig.playerFeeSharePercent}
+          pricingTier={billingConfig.pricingTier}
+        />
       )}
 
       {/* ── Season Fee Setup Link ── */}
