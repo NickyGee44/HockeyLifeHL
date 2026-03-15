@@ -172,6 +172,13 @@ export function AppSidebar({
                 onClick={closeMobileNav}
               />
               <SidebarNavItem
+                href={`${seasonBase}/players`}
+                icon={UserCircle2}
+                label={t('players') || 'Players'}
+                locked={!isSubscribed}
+                onClick={closeMobileNav}
+              />
+              <SidebarNavItem
                 href={`${seasonBase}/ratings`}
                 icon={Star}
                 label={t('playerRatings')}
