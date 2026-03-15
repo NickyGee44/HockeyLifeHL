@@ -31,8 +31,8 @@
     "production": {
       "ios": {
         "appleId": "nick@bridg3.io",
-        "ascAppId": "PLACEHOLDER",
-        "appleTeamId": "PLACEHOLDER"
+        "ascAppId": "TODO_REPLACE_WITH_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "TODO_REPLACE_WITH_APPLE_TEAM_ID"
       }
     }
   }

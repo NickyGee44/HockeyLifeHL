@@ -8,9 +8,12 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   isLoading: boolean;
+  isGuest: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signInWithApple: () => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  continueAsGuest: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -19,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -44,11 +48,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? new Error(error.message) : null };
   };
 
+  const signUpWithEmail = async (email: string, password: string, fullName: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+      },
+    });
+
+    return { error: error ? new Error(error.message) : null };
+  };
+
   const signInWithApple = async () => signInWithOAuth('apple');
 
   const signInWithGoogle = async () => signInWithOAuth('google');
 
+  const continueAsGuest = () => {
+    setIsGuest(true);
+  };
+
   const signOut = async () => {
+    setIsGuest(false);
     await supabase.auth.signOut();
   };
 
@@ -58,9 +79,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         user: session?.user ?? null,
         isLoading,
+        isGuest,
         signInWithEmail,
+        signUpWithEmail,
         signInWithApple,
         signInWithGoogle,
+        continueAsGuest,
         signOut,
       }}
     >

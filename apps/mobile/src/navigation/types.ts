@@ -6,12 +6,14 @@ export type PlayerCardParams = {
 export type ScheduleStackParamList = {
   ScheduleList: undefined;
   GamePreview: { gameId: string };
+  GameRecap: { gameId: string };
 };
 
 export type TeamStackParamList = {
   TeamList: undefined;
   TeamDetail: { teamId: string; leagueId: string };
   PlayerCard: PlayerCardParams;
+  TeamChat: { teamId: string; leagueId: string; teamName: string };
 };
 
 export type ProfileStackParamList = {
@@ -21,4 +23,24 @@ export type ProfileStackParamList = {
   NotificationSettings: undefined;
   LeagueMarketplace: undefined;
   PlayerCard: PlayerCardParams;
+  CareerStats: undefined;
+};
+
+export type DiscoverStackParamList = {
+  DiscoverMain: undefined;
+  LeagueDetail: { leagueId: string };
+};
+
+export type StatsStackParamList = {
+  StatsMain: undefined;
+  Leaderboards: undefined;
+  CareerStats: undefined;
+};
+
+export type CaptainStackParamList = {
+  CaptainDashboard: undefined;
+  GameAvailability: { gameId: string; teamId: string; leagueId: string };
+  InvitePlayers: { teamId: string; leagueId: string; teamName: string };
+  LineupNotes: { gameId: string; teamId: string; opponentName?: string };
+  TeamChat: { teamId: string; leagueId: string; teamName: string };
 };

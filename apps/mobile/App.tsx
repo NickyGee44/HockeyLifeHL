@@ -10,16 +10,23 @@ import { LeagueProvider } from './src/context/LeagueContext';
 import RootNavigation from './src/navigation';
 import LeagueSelectScreen from './src/screens/auth/LeagueSelectScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
+import ForgotPasswordScreen from './src/screens/auth/ForgotPasswordScreen';
+import SignUpScreen from './src/screens/auth/SignUpScreen';
 import SplashScreen from './src/screens/auth/SplashScreen';
 
-type AuthStackParamList = { Splash: undefined; Login: undefined; };
+type AuthStackParamList = {
+  Splash: undefined;
+  Login: undefined;
+  ForgotPassword: undefined;
+  SignUp: undefined;
+};
 type AppStackParamList = { Main: undefined; LeagueSelect: undefined; };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
 
 function AppContent() {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, isGuest } = useAuth();
 
   if (isLoading) {
     return (
@@ -29,7 +36,7 @@ function AppContent() {
     );
   }
 
-  if (session) {
+  if (session || isGuest) {
     return (
       <AppStack.Navigator screenOptions={{ headerShown: false }}>
         <AppStack.Screen name="Main" component={RootNavigation} />
@@ -46,6 +53,8 @@ function AppContent() {
     <AuthStack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Splash" component={SplashScreen} />
       <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="SignUp" component={SignUpScreen} />
     </AuthStack.Navigator>
   );
 }
