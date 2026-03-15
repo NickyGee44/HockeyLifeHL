@@ -39,6 +39,7 @@ import {
   updateTeamInvoice,
   getTeamBillingSummary,
 } from '@/lib/actions/team-billing';
+import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 interface TeamFeesDashboardProps {
@@ -102,16 +103,20 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<TeamInvoice[]>([]);
   const [summary, setSummary] = useState<BillingSummary | null>(null);
-  const [paymentModal, setPaymentModal] = useState<{ open: boolean; invoiceId: string | null }>({
+  const [paymentModal, setPaymentModal] = useState<{ open: boolean; invoiceId: string | null; teamId: string | null }>({
     open: false,
     invoiceId: null,
+    teamId: null,
   });
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
     method: 'e_transfer',
     reference: '',
     notes: '',
+    playerAttribution: '', // 'captain', a player ID, or '' for team-level
   });
+  const [teamPlayers, setTeamPlayers] = useState<{ id: string; name: string }[]>([]);
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
 
   async function loadData() {
     setLoading(true);
@@ -134,6 +139,32 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loadData is a data-fetching function that depends on leagueId and seasonId; also called from event handlers
   }, [leagueId, seasonId]);
 
+  async function loadTeamPlayers(teamId: string) {
+    setLoadingPlayers(true);
+    try {
+      const supabase = createClient();
+      const { data } = await (supabase as any)
+        .from('season_registrations')
+        .select('player_id, profiles:player_id(id, first_name, last_name)')
+        .eq('season_id', seasonId)
+        .eq('team_id', teamId);
+
+      const players = (data ?? [])
+        .map((r: any) => ({
+          id: r.profiles?.id ?? r.player_id,
+          name: `${r.profiles?.first_name ?? ''} ${r.profiles?.last_name ?? ''}`.trim() || 'Unknown Player',
+        }))
+        .filter((p: any) => p.id)
+        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+      setTeamPlayers(players);
+    } catch {
+      setTeamPlayers([]);
+    } finally {
+      setLoadingPlayers(false);
+    }
+  }
+
   function handleGenerateInvoices() {
     startTransition(async () => {
       const result = await generateTeamInvoices(leagueId, seasonId);
@@ -155,18 +186,33 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
       return;
     }
 
+    // Build notes with player attribution
+    let combinedNotes = '';
+    if (paymentForm.playerAttribution === 'captain') {
+      combinedNotes = '[Submitted by team captain]';
+    } else if (paymentForm.playerAttribution && paymentForm.playerAttribution !== '') {
+      const player = teamPlayers.find(p => p.id === paymentForm.playerAttribution);
+      if (player) {
+        combinedNotes = `[Recorded for: ${player.name}]`;
+      }
+    }
+    if (paymentForm.notes) {
+      combinedNotes = combinedNotes ? `${combinedNotes} ${paymentForm.notes}` : paymentForm.notes;
+    }
+
     startTransition(async () => {
       const result = await recordTeamPayment(paymentModal.invoiceId!, {
         amount_cents: amountCents,
         payment_method: paymentForm.method,
         reference_number: paymentForm.reference || undefined,
-        notes: paymentForm.notes || undefined,
+        notes: combinedNotes || undefined,
       });
 
       if (result.success) {
         toast.success(t('paymentRecorded'));
-        setPaymentModal({ open: false, invoiceId: null });
-        setPaymentForm({ amount: '', method: 'e_transfer', reference: '', notes: '' });
+        setPaymentModal({ open: false, invoiceId: null, teamId: null });
+        setPaymentForm({ amount: '', method: 'e_transfer', reference: '', notes: '', playerAttribution: '' });
+        setTeamPlayers([]);
         loadData();
       } else {
         toast.error(result.error || 'Failed to record payment');
@@ -381,9 +427,10 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
                           {invoice.status !== 'paid' && invoice.status !== 'waived' && (
                             <>
                               <button
-                                onClick={() =>
-                                  setPaymentModal({ open: true, invoiceId: invoice.id })
-                                }
+                                onClick={() => {
+                                  setPaymentModal({ open: true, invoiceId: invoice.id, teamId: invoice.team_id });
+                                  if (invoice.team_id) loadTeamPlayers(invoice.team_id);
+                                }}
                                 className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-green-500 transition-colors"
                                 title={t('recordPayment')}
                               >
@@ -415,16 +462,17 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
         open={paymentModal.open}
         onOpenChange={(open) => {
           if (!open) {
-            setPaymentModal({ open: false, invoiceId: null });
-            setPaymentForm({ amount: '', method: 'e_transfer', reference: '', notes: '' });
+            setPaymentModal({ open: false, invoiceId: null, teamId: null });
+            setPaymentForm({ amount: '', method: 'e_transfer', reference: '', notes: '', playerAttribution: '' });
+            setTeamPlayers([]);
           }
         }}
       >
-        <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-md">
+        <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('recordPayment')}</DialogTitle>
             <DialogDescription className="text-neutral-400">
-              {t('recordPayment')}
+              Record a payment received for this team invoice.
             </DialogDescription>
           </DialogHeader>
 
@@ -443,6 +491,37 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
                   className="pl-7 bg-neutral-800 border-white/10 text-white"
                 />
               </div>
+            </div>
+
+            {/* Player Attribution */}
+            <div>
+              <Label className="text-sm text-neutral-300">Recorded for</Label>
+              <p className="text-xs text-neutral-500 mt-0.5 mb-1.5">
+                Which player is this payment for, or was it submitted by a team captain?
+              </p>
+              <Select
+                value={paymentForm.playerAttribution}
+                onValueChange={(value) => setPaymentForm((prev) => ({ ...prev, playerAttribution: value }))}
+              >
+                <SelectTrigger className="mt-1 bg-neutral-800 border-white/10 text-white">
+                  <SelectValue placeholder="Select player or captain..." />
+                </SelectTrigger>
+                <SelectContent className="bg-neutral-900 border-white/10 max-h-60">
+                  <SelectItem value="team_level" className="text-white">Team-level payment (no specific player)</SelectItem>
+                  <SelectItem value="captain" className="text-white">Submitted by team captain</SelectItem>
+                  {loadingPlayers ? (
+                    <SelectItem value="loading" disabled className="text-neutral-500">
+                      Loading players...
+                    </SelectItem>
+                  ) : (
+                    teamPlayers.map((player) => (
+                      <SelectItem key={player.id} value={player.id} className="text-white">
+                        {player.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -488,7 +567,10 @@ export function TeamFeesDashboard({ leagueId, seasonId }: TeamFeesDashboardProps
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setPaymentModal({ open: false, invoiceId: null })}
+              onClick={() => {
+                setPaymentModal({ open: false, invoiceId: null, teamId: null });
+                setTeamPlayers([]);
+              }}
               className="border-white/10 text-neutral-300"
             >
               Cancel
@@ -518,12 +600,12 @@ function SummaryCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="bg-white/[0.04] border border-white/10 rounded-xl p-4">
-      <div className="flex items-center gap-3 mb-2">
-        {icon}
-        <span className="text-sm text-neutral-400">{label}</span>
+    <div className="bg-white/[0.04] border border-white/10 rounded-xl p-4 min-w-0">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="shrink-0">{icon}</div>
+        <span className="text-xs sm:text-sm text-neutral-400 truncate">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
+      <p className="text-lg sm:text-2xl font-bold text-white truncate">{value}</p>
     </div>
   );
 }

@@ -19,8 +19,6 @@ import {
   Clock,
   Loader2,
   ExternalLink,
-  Users,
-  UserX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -31,12 +29,6 @@ import {
   startConnectOnboarding,
   getStripeDashboardLink,
 } from '@/lib/actions/stripe-connect-payments';
-import {
-  getPerTeamPaymentBreakdown,
-  getUnpaidPlayers,
-  type TeamPaymentBreakdown,
-  type UnpaidPlayer,
-} from '@/lib/actions/team-billing';
 import type { ConnectAccountInfo } from '@/lib/leagues/stripe-connect';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 import { TeamFeesDashboard } from './TeamFeesDashboard';
@@ -90,8 +82,6 @@ export function EmbeddedBillingDashboard({
   const t = useTranslations('billing.embedded');
   const [accountInfo, setAccountInfo] = useState<ConnectAccountInfo | null>(null);
   const [stats, setStats] = useState<PaymentStats | null>(null);
-  const [teamBreakdown, setTeamBreakdown] = useState<TeamPaymentBreakdown[]>([]);
-  const [unpaidPlayers, setUnpaidPlayers] = useState<UnpaidPlayer[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [stripeActionLoading, setStripeActionLoading] = useState(false);
   const [activeSeason, setActiveSeason] = useState<BillingSeason | null>(null);
@@ -169,20 +159,6 @@ export function EmbeddedBillingDashboard({
           : null
       );
 
-      // Load team/player data if we have a season
-      if (preferredBillingSeason) {
-        const [teamResult, playerResult] = await Promise.all([
-          getPerTeamPaymentBreakdown(leagueId, preferredBillingSeason.id),
-          getUnpaidPlayers(leagueId, preferredBillingSeason.id),
-        ]);
-
-        if (teamResult.success) {
-          setTeamBreakdown(teamResult.data);
-        }
-        if (playerResult.success) {
-          setUnpaidPlayers(playerResult.data);
-        }
-      }
     } catch (error) {
       console.error('[Billing] Failed to load dashboard data:', error);
     } finally {
@@ -374,55 +350,55 @@ export function EmbeddedBillingDashboard({
 
       {/* ── Quick Stats ── */}
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 sm:p-5 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 rounded-lg bg-green-500/10 shrink-0">
                 <DollarSign className="h-5 w-5 text-green-500" />
               </div>
-              <div>
-                <p className="text-sm text-neutral-400">{t('totalRevenue')}</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-neutral-400 truncate">{t('totalRevenue')}</p>
+                <p className="text-lg sm:text-2xl font-bold text-white truncate">
                   {formatCurrency(stats.totalRevenue)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10">
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 sm:p-5 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10 shrink-0">
                 <Wallet className="h-5 w-5 text-emerald-500" />
               </div>
-              <div>
-                <p className="text-sm text-neutral-400">{t('netEarnings')}</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-neutral-400 truncate">{t('netEarnings')}</p>
+                <p className="text-lg sm:text-2xl font-bold text-white truncate">
                   {formatCurrency(stats.netRevenue)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 sm:p-5 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 rounded-lg bg-blue-500/10 shrink-0">
                 <CreditCard className="h-5 w-5 text-blue-500" />
               </div>
-              <div>
-                <p className="text-sm text-neutral-400">{t('transactions')}</p>
-                <p className="text-2xl font-bold text-white">{stats.paymentCount}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-neutral-400 truncate">{t('transactions')}</p>
+                <p className="text-lg sm:text-2xl font-bold text-white">{stats.paymentCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10">
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 sm:p-5 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10 shrink-0">
                 <Percent className="h-5 w-5 text-amber-500" />
               </div>
-              <div>
-                <p className="text-sm text-neutral-400">{t('platformFees')}</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-neutral-400 truncate">{t('platformFees')}</p>
+                <p className="text-lg sm:text-2xl font-bold text-white truncate">
                   {formatCurrency(stats.totalFeesPaid)}
                 </p>
               </div>
@@ -431,163 +407,31 @@ export function EmbeddedBillingDashboard({
         </div>
       )}
 
-      {/* ── Collection by Team ── */}
-      <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
-        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Users className="h-5 w-5 text-neutral-400" />
-            <h3 className="text-lg font-semibold text-white">{t('collectionByTeam')}</h3>
+      {/* ── Season Fee Setup Link ── */}
+      {activeSeason && (
+        <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-rink-500/10">
+                <DollarSign className="h-5 w-5 text-rink-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-white">Season Fees</h3>
+                <p className="text-xs text-neutral-500">
+                  {activeSeason.name} — {activeSeason.feeCollectionModel === 'individual' ? 'Individual player fees' : activeSeason.feeCollectionModel === 'team' ? 'Team-based fees' : 'Hybrid fees'}
+                </p>
+              </div>
+            </div>
+            <a
+              href={`/${locale}/dashboard/leagues/${leagueId}/seasons`}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-rink-400 border border-rink-500/30 rounded-xl hover:bg-rink-500/10 transition-colors"
+            >
+              <CreditCard className="h-4 w-4" />
+              Manage Fees
+            </a>
           </div>
-          {activeSeason && (
-            <span className="text-sm text-neutral-500">{activeSeason.name}</span>
-          )}
         </div>
-
-        {teamBreakdown.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <Users className="h-8 w-8 text-neutral-600 mx-auto mb-3" />
-            <p className="text-neutral-500">{t('noTeamData')}</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/5">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('teamName')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('players')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('totalOwed')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('collected')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('outstanding')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider w-32">{t('progress')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {teamBreakdown.map((team) => {
-                  const percent = team.total_fee_cents > 0
-                    ? Math.round((team.total_collected_cents / team.total_fee_cents) * 100)
-                    : 0;
-                  return (
-                    <tr key={team.team_id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-white">{team.team_name}</td>
-                      <td className="px-6 py-4 text-sm text-neutral-400 text-right">{team.total_players}</td>
-                      <td className="px-6 py-4 text-sm text-neutral-400 text-right">
-                        {formatCurrency(team.total_fee_cents)}
-                        {activeSeason?.feeBasis === 'team' && (
-                          <p className="mt-1 text-xs text-neutral-500">
-                            Targets {formatCurrency(team.player_target_total_cents || 0)}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-emerald-400 text-right">
-                        {formatCurrency(team.total_collected_cents)}
-                        {activeSeason?.feeBasis === 'team' && (
-                          <p className="mt-1 text-xs text-neutral-500">
-                            Players {formatCurrency(team.player_paid_cents || 0)} • Team{' '}
-                            {formatCurrency(team.team_payment_total_cents || 0)}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-right">
-                        <span className={team.total_outstanding_cents > 0 ? 'text-amber-400' : 'text-neutral-500'}>
-                          {formatCurrency(team.total_outstanding_cents)}
-                        </span>
-                        {activeSeason?.feeBasis === 'team' && (
-                          <p className="mt-1 text-xs text-neutral-500">
-                            Unallocated {formatCurrency(team.unallocated_target_cents || 0)}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-20 h-2 bg-white/[0.06] rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                percent >= 100 ? 'bg-emerald-500' : percent >= 50 ? 'bg-amber-500' : 'bg-red-500'
-                              }`}
-                              style={{ width: `${Math.min(percent, 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-neutral-500 w-8 text-right">{percent}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* ── Unpaid Players ── */}
-      <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden">
-        <div className="px-6 py-5 border-b border-white/5 flex items-center gap-3">
-          <UserX className="h-5 w-5 text-neutral-400" />
-          <h3 className="text-lg font-semibold text-white">{t('unpaidPlayersTitle')}</h3>
-          {unpaidPlayers.length > 0 && (
-            <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              {t('unpaidCount', { count: unpaidPlayers.length })}
-            </span>
-          )}
-        </div>
-
-        {activeSeason?.feeBasis === 'team' ? (
-          <div className="px-6 py-12 text-center">
-            <CheckCircle2 className="h-8 w-8 text-emerald-500/50 mx-auto mb-3" />
-            <p className="text-emerald-400 font-medium">Flat team fee season</p>
-            <p className="text-sm text-neutral-500 mt-1">
-              Player contributions still count here. The team invoice above combines player-level
-              contributions and team chunk payments into one running balance.
-            </p>
-          </div>
-        ) : unpaidPlayers.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <CheckCircle2 className="h-8 w-8 text-emerald-500/50 mx-auto mb-3" />
-            <p className="text-emerald-400 font-medium">{t('allPaid')}</p>
-            <p className="text-sm text-neutral-500 mt-1">{t('allPaidDescription')}</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/5">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('playerName')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('team')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('amountOwed')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('amountPaid')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('outstanding')}</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-neutral-500 uppercase tracking-wider">{t('status')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {unpaidPlayers.map((player) => (
-                  <tr key={player.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-white">{player.player_name}</p>
-                      <p className="text-xs text-neutral-500">{player.player_email}</p>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-400">{player.team_name}</td>
-                    <td className="px-6 py-4 text-sm text-neutral-400 text-right">{formatCurrency(player.fee_amount_cents)}</td>
-                    <td className="px-6 py-4 text-sm text-neutral-400 text-right">{formatCurrency(player.amount_paid_cents)}</td>
-                    <td className="px-6 py-4 text-sm text-amber-400 text-right">{formatCurrency(player.outstanding_cents)}</td>
-                    <td className="px-6 py-4 text-center">
-                      {player.payment_status === 'partial' ? (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                          {t('partial')}
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          {t('pending')}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* ── Platform Fee Notice ── */}
       <div className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4">
