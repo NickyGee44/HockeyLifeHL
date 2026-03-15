@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { updateLeagueFeeShare } from '@/lib/actions/fees';
 
@@ -69,67 +68,54 @@ export function FeeSplitSlider({
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{t('title')}</CardTitle>
-        <CardDescription>
-          {t('description', { percent: feePercent })}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Slider */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-medium text-muted-foreground">
-              {t('leagueAbsorbs')}
-            </span>
-            <span className="text-sm font-medium text-muted-foreground">
-              {t('playersPay')}
-            </span>
-          </div>
-          <div className="relative">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={sharePercent}
-              onChange={handleChange}
-              className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary"
-            />
-          </div>
-          <div className="flex items-center justify-center">
-            <span className="text-sm font-semibold tabular-nums">
-              {sharePercent}%
-            </span>
-            {saving && (
-              <span className="ml-2 text-xs text-muted-foreground animate-pulse">
-                Saving...
-              </span>
-            )}
-          </div>
-        </div>
+    <div className="bg-white/[0.04] border border-white/10 rounded-xl p-4 space-y-3">
+      {/* Header */}
+      <div>
+        <h3 className="text-sm font-semibold text-white">{t('title')}</h3>
+        <p className="text-xs text-neutral-500">{t('description', { percent: feePercent })}</p>
+      </div>
 
-        {/* Preview */}
-        <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
-          <p className="text-sm font-medium">{t('previewTitle')}</p>
-          <div className="grid grid-cols-2 gap-y-1.5 text-sm">
-            <span className="text-muted-foreground">{t('playerCharge')}</span>
-            <span className="text-right font-semibold tabular-nums">
-              {formatDollars(playerPaysCents)}
-            </span>
-            <span className="text-muted-foreground">{t('leagueReceives')}</span>
-            <span className="text-right font-semibold tabular-nums">
-              {formatDollars(leagueReceivesCents)}
-            </span>
-            <span className="text-muted-foreground">{t('platformGets')}</span>
-            <span className="text-right font-semibold tabular-nums">
-              {formatDollars(totalFeeCents)}{' '}
-              <span className="text-xs text-muted-foreground">{t('always')}</span>
-            </span>
+      {/* Slider */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-xs text-neutral-500">{t('leagueAbsorbs')}</span>
+          <span className="text-xs text-neutral-500">{t('playersPay')}</span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={sharePercent}
+          onChange={handleChange}
+          className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-primary bg-white/10"
+        />
+        <div className="flex items-center justify-center gap-1.5">
+          <span className="text-sm font-semibold text-white tabular-nums">{sharePercent}%</span>
+          {saving && (
+            <span className="text-xs text-neutral-500 animate-pulse">Saving...</span>
+          )}
+        </div>
+      </div>
+
+      {/* Compact Preview */}
+      <div className="rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2.5">
+        <p className="text-xs font-medium text-neutral-400 mb-1.5">{t('previewTitle')}</p>
+        <div className="grid grid-cols-3 gap-x-3 text-xs">
+          <div>
+            <p className="text-neutral-500">{t('playerCharge')}</p>
+            <p className="font-semibold text-white tabular-nums">{formatDollars(playerPaysCents)}</p>
+          </div>
+          <div>
+            <p className="text-neutral-500">{t('leagueReceives')}</p>
+            <p className="font-semibold text-white tabular-nums">{formatDollars(leagueReceivesCents)}</p>
+          </div>
+          <div>
+            <p className="text-neutral-500">{t('platformGets')}</p>
+            <p className="font-semibold text-white tabular-nums">{formatDollars(totalFeeCents)}</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

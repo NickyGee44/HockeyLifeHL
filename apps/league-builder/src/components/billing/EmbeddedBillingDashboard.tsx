@@ -352,61 +352,57 @@ export function EmbeddedBillingDashboard({
         )}
       </div>
 
-      {activeSeason && activeSeason.feeCollectionModel !== 'individual' && (
-        <TeamFeesDashboard leagueId={leagueId} seasonId={activeSeason.id} />
-      )}
-
       {/* ── Quick Stats ── */}
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 sm:p-5 min-w-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3 sm:p-4 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10 shrink-0">
-                <DollarSign className="h-5 w-5 text-green-500" />
+              <div className="p-1.5 rounded-lg bg-green-500/10 shrink-0">
+                <DollarSign className="h-4 w-4 text-green-500" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-neutral-400 truncate">{t('totalRevenue')}</p>
-                <p className="text-lg sm:text-2xl font-bold text-white truncate">
+                <p className="text-xs text-neutral-400 truncate">{t('totalRevenue')}</p>
+                <p className="text-base sm:text-xl font-bold text-white truncate">
                   {formatCurrency(stats.totalRevenue)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 sm:p-5 min-w-0">
+          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3 sm:p-4 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10 shrink-0">
-                <Wallet className="h-5 w-5 text-emerald-500" />
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 shrink-0">
+                <Wallet className="h-4 w-4 text-emerald-500" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-neutral-400 truncate">{t('netEarnings')}</p>
-                <p className="text-lg sm:text-2xl font-bold text-white truncate">
+                <p className="text-xs text-neutral-400 truncate">{t('netEarnings')}</p>
+                <p className="text-base sm:text-xl font-bold text-white truncate">
                   {formatCurrency(stats.netRevenue)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 sm:p-5 min-w-0">
+          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3 sm:p-4 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10 shrink-0">
-                <CreditCard className="h-5 w-5 text-blue-500" />
+              <div className="p-1.5 rounded-lg bg-blue-500/10 shrink-0">
+                <CreditCard className="h-4 w-4 text-blue-500" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-neutral-400 truncate">{t('transactions')}</p>
-                <p className="text-lg sm:text-2xl font-bold text-white">{stats.paymentCount}</p>
+                <p className="text-xs text-neutral-400 truncate">{t('transactions')}</p>
+                <p className="text-base sm:text-xl font-bold text-white">{stats.paymentCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 sm:p-5 min-w-0">
+          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3 sm:p-4 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10 shrink-0">
-                <Percent className="h-5 w-5 text-amber-500" />
+              <div className="p-1.5 rounded-lg bg-amber-500/10 shrink-0">
+                <Percent className="h-4 w-4 text-amber-500" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-neutral-400 truncate">{t('platformFees')}</p>
-                <p className="text-lg sm:text-2xl font-bold text-white truncate">
+                <p className="text-xs text-neutral-400 truncate">{t('platformFees')}</p>
+                <p className="text-base sm:text-xl font-bold text-white truncate">
                   {formatCurrency(stats.totalFeesPaid)}
                 </p>
               </div>
@@ -415,51 +411,63 @@ export function EmbeddedBillingDashboard({
         </div>
       )}
 
-      {/* ── Fee Split Slider ── */}
-      {billingConfig && billingConfig.pricingTier !== 'small' && (
-        <FeeSplitSlider
-          leagueId={leagueId}
-          platformFeeBps={billingConfig.platformFeeBps}
-          initialSharePercent={billingConfig.playerFeeSharePercent}
-          pricingTier={billingConfig.pricingTier}
-        />
-      )}
+      {/* ── Fee Settings Row: Split Slider + Season Fees + Platform Notice ── */}
+      {(billingConfig || activeSeason) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* Fee Split Slider */}
+          {billingConfig && billingConfig.pricingTier !== 'small' && (
+            <FeeSplitSlider
+              leagueId={leagueId}
+              platformFeeBps={billingConfig.platformFeeBps}
+              initialSharePercent={billingConfig.playerFeeSharePercent}
+              pricingTier={billingConfig.pricingTier}
+            />
+          )}
 
-      {/* ── Season Fee Setup Link ── */}
-      {activeSeason && (
-        <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-rink-500/10">
-                <DollarSign className="h-5 w-5 text-rink-500" />
+          {/* Season Fees + Platform Notice stacked */}
+          <div className="space-y-3">
+            {activeSeason && (
+              <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-rink-500/10 shrink-0">
+                      <DollarSign className="h-4 w-4 text-rink-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-white">Season Fees</h3>
+                      <p className="text-xs text-neutral-500 truncate">
+                        {activeSeason.name} — {activeSeason.feeCollectionModel === 'individual' ? 'Individual' : activeSeason.feeCollectionModel === 'team' ? 'Team-based' : 'Hybrid'}
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={`/${locale}/dashboard/leagues/${leagueId}/seasons`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-rink-400 border border-rink-500/30 rounded-lg hover:bg-rink-500/10 transition-colors shrink-0"
+                  >
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Manage
+                  </a>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">Season Fees</h3>
+            )}
+
+            {/* Platform Fee Notice */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-lg py-2.5 px-3.5">
+              <div className="flex items-center gap-2">
+                <Percent className="h-3.5 w-3.5 text-neutral-500 flex-shrink-0" />
                 <p className="text-xs text-neutral-500">
-                  {activeSeason.name} — {activeSeason.feeCollectionModel === 'individual' ? 'Individual player fees' : activeSeason.feeCollectionModel === 'team' ? 'Team-based fees' : 'Hybrid fees'}
+                  {t('platformFeeNotice', { percent: platformFeePercent })}
                 </p>
               </div>
             </div>
-            <a
-              href={`/${locale}/dashboard/leagues/${leagueId}/seasons`}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-rink-400 border border-rink-500/30 rounded-xl hover:bg-rink-500/10 transition-colors"
-            >
-              <CreditCard className="h-4 w-4" />
-              Manage Fees
-            </a>
           </div>
         </div>
       )}
 
-      {/* ── Platform Fee Notice ── */}
-      <div className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4">
-        <div className="flex items-start gap-3">
-          <Percent className="h-4 w-4 text-neutral-500 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-neutral-500">
-            {t('platformFeeNotice', { percent: platformFeePercent })}
-          </p>
-        </div>
-      </div>
+      {/* ── Team Fees / Invoices Table ── */}
+      {activeSeason && activeSeason.feeCollectionModel !== 'individual' && (
+        <TeamFeesDashboard leagueId={leagueId} seasonId={activeSeason.id} />
+      )}
     </div>
   );
 }
