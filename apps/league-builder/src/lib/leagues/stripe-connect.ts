@@ -369,6 +369,9 @@ export async function createPaymentIntent(
     feePercent = billing.platformFeePercent;
   }
 
+  // Calculate how much of the platform fee is added to the player's charge
+  const playerShareCents = Math.round(applicationFee * billing.playerFeeSharePercent / 100);
+
   // Idempotency key based on unique transaction parameters
   const idempotencyKey = generateIdempotencyKey('create_payment_intent', {
     league_id: leagueId,
@@ -379,7 +382,7 @@ export async function createPaymentIntent(
 
   const paymentIntent = await stripe.paymentIntents.create(
     {
-      amount: amountCents,
+      amount: amountCents + playerShareCents,
       currency,
       application_fee_amount: applicationFee,
       description,
@@ -389,6 +392,7 @@ export async function createPaymentIntent(
         league_id: leagueId,
         platform: 'beerleaguehockey',
         platform_fee_percent: feePercent.toString(),
+        player_fee_share_percent: billing.playerFeeSharePercent.toString(),
       },
       automatic_payment_methods: {
         enabled: true,
