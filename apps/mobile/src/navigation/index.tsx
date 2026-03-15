@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -8,8 +9,16 @@ import AuthGuestBanner from '../components/AuthGuestBanner';
 import LeagueSwitcher from '../components/LeagueSwitcher';
 import { useAuth } from '../context/AuthContext';
 import { useLeague } from '../context/LeagueContext';
-import { ScheduleStackParamList, TeamStackParamList, ProfileStackParamList } from './types';
+import {
+  ScheduleStackParamList,
+  TeamStackParamList,
+  ProfileStackParamList,
+  DiscoverStackParamList,
+  StatsStackParamList,
+  CaptainStackParamList,
+} from './types';
 import GamePreviewScreen from '../screens/GamePreviewScreen';
+import GameRecapScreen from '../screens/games/GameRecapScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
@@ -21,12 +30,28 @@ import TeamScreen from '../screens/TeamScreen';
 import TeamDetailScreen from '../screens/TeamScreen/TeamDetailScreen';
 import LeagueMarketplace from '../components/LeagueMarketplace';
 import PlayerCardScreen from '../screens/PlayerCardScreen';
+
+// New screens
+import CareerStatsScreen from '../screens/stats/CareerStatsScreen';
+import LeaderboardsScreen from '../screens/stats/LeaderboardsScreen';
+import LeagueDiscoveryScreen from '../screens/discover/LeagueDiscoveryScreen';
+import LeagueDetailScreen from '../screens/discover/LeagueDetailScreen';
+import CaptainDashboardScreen from '../screens/captain/CaptainDashboardScreen';
+import GameAvailabilityScreen from '../screens/captain/GameAvailabilityScreen';
+import InvitePlayersScreen from '../screens/captain/InvitePlayersScreen';
+import LineupNotesScreen from '../screens/captain/LineupNotesScreen';
+import TeamChatScreen from '../screens/team/TeamChatScreen';
+
+import { supabase } from '../lib/supabase/client';
 import colors from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
 const ScheduleStack = createNativeStackNavigator<ScheduleStackParamList>();
 const TeamStack = createNativeStackNavigator<TeamStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const DiscoverStack = createNativeStackNavigator<DiscoverStackParamList>();
+const StatsStack = createNativeStackNavigator<StatsStackParamList>();
+const CaptainStack = createNativeStackNavigator<CaptainStackParamList>();
 
 function AppHeaderBackground() {
   return (
@@ -73,6 +98,7 @@ function ScheduleNavigator() {
     <ScheduleStack.Navigator screenOptions={{ headerShown: false }}>
       <ScheduleStack.Screen name="ScheduleList" component={ScheduleScreen} />
       <ScheduleStack.Screen name="GamePreview" component={GamePreviewScreen} />
+      <ScheduleStack.Screen name="GameRecap" component={GameRecapScreen} />
     </ScheduleStack.Navigator>
   );
 }
@@ -83,6 +109,7 @@ function TeamNavigator() {
       <TeamStack.Screen name="TeamList" component={TeamScreen} />
       <TeamStack.Screen name="TeamDetail" component={TeamDetailScreen} />
       <TeamStack.Screen name="PlayerCard" component={PlayerCardScreen} />
+      <TeamStack.Screen name="TeamChat" component={TeamChatScreen} />
     </TeamStack.Navigator>
   );
 }
@@ -96,13 +123,72 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <ProfileStack.Screen name="LeagueMarketplace" component={LeagueMarketplace} />
       <ProfileStack.Screen name="PlayerCard" component={PlayerCardScreen} />
+      <ProfileStack.Screen name="CareerStats" component={CareerStatsScreen} />
     </ProfileStack.Navigator>
   );
+}
+
+function DiscoverNavigator() {
+  return (
+    <DiscoverStack.Navigator screenOptions={{ headerShown: false }}>
+      <DiscoverStack.Screen name="DiscoverMain" component={LeagueDiscoveryScreen} />
+      <DiscoverStack.Screen name="LeagueDetail" component={LeagueDetailScreen} />
+    </DiscoverStack.Navigator>
+  );
+}
+
+function StatsNavigator() {
+  return (
+    <StatsStack.Navigator screenOptions={{ headerShown: false }}>
+      <StatsStack.Screen name="StatsMain" component={StatsScreen} />
+      <StatsStack.Screen name="Leaderboards" component={LeaderboardsScreen} />
+      <StatsStack.Screen name="CareerStats" component={CareerStatsScreen} />
+    </StatsStack.Navigator>
+  );
+}
+
+function CaptainNavigator() {
+  return (
+    <CaptainStack.Navigator screenOptions={{ headerShown: false }}>
+      <CaptainStack.Screen name="CaptainDashboard" component={CaptainDashboardScreen} />
+      <CaptainStack.Screen name="GameAvailability" component={GameAvailabilityScreen} />
+      <CaptainStack.Screen name="InvitePlayers" component={InvitePlayersScreen} />
+      <CaptainStack.Screen name="LineupNotes" component={LineupNotesScreen} />
+      <CaptainStack.Screen name="TeamChat" component={TeamChatScreen} />
+    </CaptainStack.Navigator>
+  );
+}
+
+// Hook to check if user is a captain on any team
+function useIsCaptain() {
+  const { user } = useAuth();
+  const [isCaptain, setIsCaptain] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!user) {
+      setIsCaptain(false);
+      return;
+    }
+
+    supabase
+      .from('team_rosters')
+      .select('leadership_role')
+      .eq('player_id', user.id)
+      .eq('status', 'active')
+      .in('leadership_role', ['captain', 'alternate_captain'])
+      .limit(1)
+      .then(({ data }) => {
+        setIsCaptain((data ?? []).length > 0);
+      });
+  }, [user?.id]);
+
+  return isCaptain;
 }
 
 export default function RootNavigation() {
   const { activeTheme } = useLeague();
   const { isGuest } = useAuth();
+  const isCaptain = useIsCaptain();
 
   return (
     <View style={{ flex: 1 }}>
@@ -153,18 +239,41 @@ export default function RootNavigation() {
             return <Ionicons name="home-outline" size={iconSize} color={color} />;
           }
 
+          if (route.name === 'Discover') {
+            return <Ionicons name="compass-outline" size={iconSize} color={color} />;
+          }
+
           if (route.name === 'Team') {
             return <MaterialCommunityIcons name="hockey-sticks" size={iconSize} color={color} />;
+          }
+
+          if (route.name === 'Captain') {
+            return (
+              <View>
+                <MaterialCommunityIcons name="shield-crown-outline" size={iconSize} color={color} />
+              </View>
+            );
           }
 
           return <Ionicons name="person-outline" size={iconSize} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Schedule" component={ScheduleNavigator} />
-      <Tab.Screen name="Stats" component={StatsScreen} />
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Schedule" component={ScheduleNavigator} />
+      <Tab.Screen name="Discover" component={DiscoverNavigator} />
+      <Tab.Screen name="Stats" component={StatsNavigator} />
       <Tab.Screen name="Team" component={TeamNavigator} />
+      {isCaptain && (
+        <Tab.Screen
+          name="Captain"
+          component={CaptainNavigator}
+          options={{
+            tabBarBadge: undefined,
+            tabBarActiveTintColor: colors.brandGold,
+          }}
+        />
+      )}
       <Tab.Screen name="Profile" component={ProfileNavigator} />
     </Tab.Navigator>
     </View>
