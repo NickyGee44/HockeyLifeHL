@@ -54,12 +54,15 @@ interface SeasonPlayer {
   teamId: string | null;
   teamName: string;
   teamShortName: string;
+  jerseyNumber: number | null;
+  position: string | null;
+  rosterStatus: string | null;
   paymentStatus: string;
   amountCents: number;
   amountPaidCents: number;
   paymentMethod: string | null;
   feeName: string;
-  paymentId: string;
+  paymentId: string | null;
 }
 
 interface Team {
@@ -92,6 +95,7 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckC
   overdue: { label: 'Overdue', icon: AlertCircle, className: 'bg-red-500/10 text-red-400 border-red-500/20' },
   waived: { label: 'Waived', icon: XCircle, className: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20' },
   refunded: { label: 'Refunded', icon: XCircle, className: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+  none: { label: 'No Fee', icon: XCircle, className: 'bg-neutral-500/10 text-neutral-500 border-neutral-500/20' },
 };
 
 export function SeasonPlayersClient({
@@ -141,6 +145,10 @@ export function SeasonPlayersClient({
   const unassignedCount = players.filter((p) => !p.teamId).length;
 
   async function handleMarkAsPaid(player: SeasonPlayer) {
+    if (!player.paymentId) {
+      toast.error('No payment record exists for this player');
+      return;
+    }
     setProcessing(true);
     try {
       const result = await markPaymentAsPaid(player.paymentId);
@@ -290,6 +298,12 @@ export function SeasonPlayersClient({
                     <th className="text-left px-4 py-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                       Team
                     </th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                      #
+                    </th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                      Pos
+                    </th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                       Fee
                     </th>
@@ -335,13 +349,23 @@ export function SeasonPlayersClient({
                             {player.teamId ? player.teamName : 'Unassigned'}
                           </span>
                         </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="text-sm text-neutral-400">
+                            {player.jerseyNumber ?? '—'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="text-xs text-neutral-400 uppercase">
+                            {player.position ?? '—'}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-right">
-                          <p className="text-sm text-neutral-300">{formatCurrency(player.amountCents)}</p>
+                          <p className="text-sm text-neutral-300">{player.amountCents ? formatCurrency(player.amountCents) : '—'}</p>
                           <p className="text-xs text-neutral-500">{player.feeName}</p>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <p className="text-sm text-neutral-300">{formatCurrency(player.amountPaidCents)}</p>
-                          {balance > 0 && (
+                          <p className="text-sm text-neutral-300">{player.amountPaidCents ? formatCurrency(player.amountPaidCents) : '—'}</p>
+                          {balance > 0 && player.amountCents > 0 && (
                             <p className="text-xs text-amber-400">
                               {formatCurrency(balance)} owing
                             </p>
@@ -371,7 +395,7 @@ export function SeasonPlayersClient({
                                 Email Player
                               </DropdownMenuItem>
                               <DropdownMenuSeparator className="bg-white/10" />
-                              {player.paymentStatus !== 'paid' && player.paymentStatus !== 'waived' && (
+                              {player.paymentId && player.paymentStatus !== 'paid' && player.paymentStatus !== 'waived' && player.paymentStatus !== 'none' && (
                                 <DropdownMenuItem
                                   onClick={() => setMarkPaidDialog({ open: true, player })}
                                   className="text-neutral-300 focus:text-white focus:bg-white/10"

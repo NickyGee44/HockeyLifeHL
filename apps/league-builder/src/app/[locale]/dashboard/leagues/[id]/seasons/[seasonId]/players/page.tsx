@@ -38,24 +38,41 @@ export default async function SeasonPlayersPage({ params, searchParams }: Props)
     notFound();
   }
 
-  // Get all players in this season with their team, registration, and payment info
-  const { data: registrations } = await (serviceClient as any)
-    .from('player_payments')
+  // Get all players from team_rosters for this season (primary source of truth)
+  const { data: rosterEntries } = await (serviceClient as any)
+    .from('team_rosters')
     .select(`
       id,
       player_id,
       team_id,
       season_id,
+      jersey_number,
+      position,
+      leadership_role,
+      status,
+      joined_at,
+      player:player_id(id, full_name, email, avatar_url, phone),
+      team:team_id(id, name, short_name)
+    `)
+    .eq('season_id', seasonId)
+    .eq('league_id', leagueId)
+    .order('joined_at', { ascending: false });
+
+  // Also get payment info for these players
+  const { data: payments } = await (serviceClient as any)
+    .from('player_payments')
+    .select(`
+      id,
+      player_id,
+      team_id,
       amount_cents,
       amount_paid_cents,
       status,
       payment_method,
-      player:player_id(id, full_name, email, avatar_url, phone),
-      team:team_id(id, name, short_name),
       season_fee:season_fee_id(id, name, amount_cents)
     `)
     .eq('season_id', seasonId)
-    .order('created_at', { ascending: false });
+    .eq('league_id', leagueId);
 
   // Get teams for this league (for team assignment)
   const { data: teams } = await supabase
@@ -64,29 +81,70 @@ export default async function SeasonPlayersPage({ params, searchParams }: Props)
     .eq('league_id', leagueId)
     .order('name');
 
-  // Build unique player list from registrations
+  // Index payments by player_id for quick lookup
+  const paymentsByPlayer = new Map<string, any>();
+  for (const p of payments ?? []) {
+    if (p.player_id) paymentsByPlayer.set(p.player_id, p);
+  }
+
+  // Build unique player list from roster entries (primary) + any payment-only players
   const playerMap = new Map<string, any>();
-  for (const reg of registrations ?? []) {
-    if (!reg.player?.id) continue;
-    const existing = playerMap.get(reg.player.id);
-    if (!existing) {
-      playerMap.set(reg.player.id, {
-        id: reg.player.id,
-        fullName: reg.player.full_name || 'Unknown',
-        email: reg.player.email || '',
-        phone: reg.player.phone || '',
-        avatarUrl: reg.player.avatar_url || null,
-        teamId: reg.team_id,
-        teamName: reg.team?.name || 'Unassigned',
-        teamShortName: reg.team?.short_name || '',
-        paymentStatus: reg.status,
-        amountCents: reg.amount_cents,
-        amountPaidCents: reg.amount_paid_cents,
-        paymentMethod: reg.payment_method,
-        feeName: reg.season_fee?.name || '',
-        paymentId: reg.id,
-      });
-    }
+
+  // 1. Players from team_rosters
+  for (const entry of rosterEntries ?? []) {
+    if (!entry.player?.id) continue;
+    if (playerMap.has(entry.player.id)) continue;
+    const payment = paymentsByPlayer.get(entry.player.id);
+    playerMap.set(entry.player.id, {
+      id: entry.player.id,
+      fullName: entry.player.full_name || 'Unknown',
+      email: entry.player.email || '',
+      phone: entry.player.phone || '',
+      avatarUrl: entry.player.avatar_url || null,
+      teamId: entry.team_id,
+      teamName: entry.team?.name || 'Unassigned',
+      teamShortName: entry.team?.short_name || '',
+      jerseyNumber: entry.jersey_number,
+      position: entry.position,
+      rosterStatus: entry.status,
+      paymentStatus: payment?.status || 'none',
+      amountCents: payment?.amount_cents || 0,
+      amountPaidCents: payment?.amount_paid_cents || 0,
+      paymentMethod: payment?.payment_method || null,
+      feeName: payment?.season_fee?.name || '',
+      paymentId: payment?.id || null,
+    });
+  }
+
+  // 2. Players with payments but not on a roster (e.g. registered but unassigned)
+  for (const p of payments ?? []) {
+    if (!p.player_id || playerMap.has(p.player_id)) continue;
+    // Need to fetch player info separately for payment-only entries
+    const { data: playerData } = await (serviceClient as any)
+      .from('users')
+      .select('id, full_name, email, avatar_url, phone')
+      .eq('id', p.player_id)
+      .maybeSingle();
+    if (!playerData) continue;
+    playerMap.set(p.player_id, {
+      id: playerData.id,
+      fullName: playerData.full_name || 'Unknown',
+      email: playerData.email || '',
+      phone: playerData.phone || '',
+      avatarUrl: playerData.avatar_url || null,
+      teamId: p.team_id || null,
+      teamName: 'Unassigned',
+      teamShortName: '',
+      jerseyNumber: null,
+      position: null,
+      rosterStatus: null,
+      paymentStatus: p.status,
+      amountCents: p.amount_cents,
+      amountPaidCents: p.amount_paid_cents,
+      paymentMethod: p.payment_method,
+      feeName: p.season_fee?.name || '',
+      paymentId: p.id,
+    });
   }
 
   const players = Array.from(playerMap.values()).sort((a, b) =>
