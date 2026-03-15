@@ -250,7 +250,7 @@ export default function GameRecapScreen({ route, navigation }: any) {
                 {awayScorers.length > 0 ? (
                   awayScorers.map((s) => (
                     <View key={s.player_id} style={styles.scorerRow}>
-                      <Ionicons name="hockey-puck" size={12} color={colors.textSecondary} />
+                      <Ionicons name="ellipse" size={12} color={colors.textSecondary} />
                       <Text style={styles.scorerName} numberOfLines={1}>{s.full_name}</Text>
                       <Text style={styles.scorerCount}>
                         {s.goals > 1 ? `x${s.goals}` : ''}
@@ -267,7 +267,7 @@ export default function GameRecapScreen({ route, navigation }: any) {
                 {homeScorers.length > 0 ? (
                   homeScorers.map((s) => (
                     <View key={s.player_id} style={styles.scorerRow}>
-                      <Ionicons name="hockey-puck" size={12} color={colors.textSecondary} />
+                      <Ionicons name="ellipse" size={12} color={colors.textSecondary} />
                       <Text style={styles.scorerName} numberOfLines={1}>{s.full_name}</Text>
                       <Text style={styles.scorerCount}>
                         {s.goals > 1 ? `x${s.goals}` : ''}
