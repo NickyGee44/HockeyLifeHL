@@ -10,7 +10,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin, Loader2, Upload } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
-import { ScheduleWizard } from '@/components/schedule-wizard';
+import { SimpleScheduleWizard, ScheduleWizard } from '@/components/schedule-wizard';
 import { ScheduleCalendar } from '@/components/schedule-wizard/ScheduleCalendar';
 import { GameReschedulePanel } from '@/components/dashboard/seasons/GameReschedulePanel';
 import { BulkPostponeDateWizard } from '@/components/dashboard/seasons/BulkPostponeDateWizard';
@@ -108,6 +108,7 @@ export function SchedulePageClient({
 }: SchedulePageClientProps) {
   const router = useRouter();
   const [showWizard, setShowWizard] = useState(false);
+  const [useAdvancedWizard, setUseAdvancedWizard] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [games, setGames] = useState<ScheduledGame[]>(existingGames);
   const [showReschedulePanel, setShowReschedulePanel] = useState(false);
@@ -196,18 +197,34 @@ export function SchedulePageClient({
               <span>{saveError}</span>
             </div>
           )}
-          <ScheduleWizard
-            seasonId={seasonId}
-            leagueId={leagueId}
-            teams={teams}
-            venues={venues}
-            templates={templates}
-            startDate={startDate}
-            endDate={endDate}
-            onComplete={handleWizardComplete}
-            onCancel={() => { setShowWizard(false); setSaveError(null); }}
-            isSaving={isSaving}
-          />
+          {useAdvancedWizard ? (
+            <ScheduleWizard
+              seasonId={seasonId}
+              leagueId={leagueId}
+              teams={teams}
+              venues={venues}
+              templates={templates}
+              startDate={startDate}
+              endDate={endDate}
+              onComplete={handleWizardComplete}
+              onCancel={() => { setShowWizard(false); setSaveError(null); setUseAdvancedWizard(false); }}
+              isSaving={isSaving}
+            />
+          ) : (
+            <SimpleScheduleWizard
+              seasonId={seasonId}
+              leagueId={leagueId}
+              teams={teams}
+              venues={venues}
+              templates={templates}
+              startDate={startDate}
+              endDate={endDate}
+              onComplete={handleWizardComplete}
+              onCancel={() => { setShowWizard(false); setSaveError(null); }}
+              onSwitchToAdvanced={() => setUseAdvancedWizard(true)}
+              isSaving={isSaving}
+            />
+          )}
         </div>
       </div>
     );
