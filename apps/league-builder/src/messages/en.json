@@ -1176,6 +1176,19 @@
       "allPaid": "All Paid!",
       "allPaidDescription": "All registered players are up to date on their fees"
     },
+    "feeSplit": {
+      "title": "Platform Fee Split",
+      "description": "Control how the {percent}% platform fee is shared between players and your league.",
+      "leagueAbsorbs": "League absorbs all",
+      "playersPay": "Players pay all",
+      "previewTitle": "Preview: $100 registration",
+      "playerCharge": "Player pays",
+      "leagueReceives": "League receives",
+      "platformGets": "BLH platform fee",
+      "always": "(always)",
+      "saved": "Fee split updated",
+      "saveFailed": "Failed to update fee split"
+    },
     "league": {
       "title": "League Billing",
       "managePayments": "Manage payments and payouts for {leagueName}",

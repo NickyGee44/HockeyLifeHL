@@ -16,7 +16,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/client';
 import { generateIdempotencyKey } from '@/lib/stripe/idempotency';
-import { calculateApplicationFee, getConnectAccountInfo } from '@/lib/leagues/stripe-connect';
+import { getConnectAccountInfo } from '@/lib/leagues/stripe-connect';
+import { getLeagueBillingConfig } from '@/lib/fees/platform-fees';
 import { capturePaymentError } from '@/lib/sentry/payments';
 import { isAllowedRedirectUrl } from '@/lib/stripe/validate-redirect-url';
 
@@ -165,8 +166,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate platform application fee (3.5%)
-    const applicationFeeCents = await calculateApplicationFee(checkoutAmountCents);
+    // Calculate platform application fee using per-league billing config
+    const billing = await getLeagueBillingConfig(leagueId);
+    const applicationFeeCents = billing.pricingTier === 'small'
+      ? 0
+      : Math.round((checkoutAmountCents * billing.platformFeeBps) / 10000);
+    const playerShareCents = Math.round(applicationFeeCents * billing.playerFeeSharePercent / 100);
 
     const currentInstallment = playerPayment.current_installment ?? 0;
 
@@ -189,7 +194,7 @@ export async function POST(request: NextRequest) {
                 name: fee.name,
                 description: `${league.name} - Registration Fee`,
               },
-              unit_amount: checkoutAmountCents,
+              unit_amount: checkoutAmountCents + playerShareCents,
             },
             quantity: 1,
           },
@@ -204,6 +209,7 @@ export async function POST(request: NextRequest) {
             league_id: leagueId,
             season_id: seasonId,
             installment_number: (currentInstallment + 1).toString(),
+            player_fee_share_percent: billing.playerFeeSharePercent.toString(),
           },
         },
         customer_email: user.email || undefined,

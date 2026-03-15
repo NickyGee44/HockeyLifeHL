@@ -110,6 +110,60 @@ export async function updateLeagueFeeMode(
   }
 }
 
+/**
+ * Server action: update the player fee share percentage for a league.
+ * Only the league owner can change this setting.
+ * The platform_fee_mode is derived for backward compat:
+ *   100 => 'pass_to_player', anything else => 'absorb_by_league'.
+ */
+export async function updateLeagueFeeShare(
+  leagueId: string,
+  playerFeeSharePercent: number
+): Promise<{ success: boolean; error?: string }> {
+  if (!Number.isInteger(playerFeeSharePercent) || playerFeeSharePercent < 0 || playerFeeSharePercent > 100) {
+    return { success: false, error: 'Player fee share must be an integer between 0 and 100.' };
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Authentication required.' };
+
+    const { data: membership } = await supabase
+      .from('league_memberships')
+      .select('role, status')
+      .eq('league_id', leagueId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership || membership.role !== 'owner' || membership.status !== 'active') {
+      return { success: false, error: 'Only league owners can update billing settings.' };
+    }
+
+    // Derive backward-compat mode
+    const derivedMode: PlatformFeeMode = playerFeeSharePercent === 100 ? 'pass_to_player' : 'absorb_by_league';
+
+    const serviceSupabase = createServiceRoleClient();
+    const { error } = await serviceSupabase
+      .from('league_billing_settings')
+      .update({
+        player_fee_share_percent: playerFeeSharePercent,
+        platform_fee_mode: derivedMode,
+      } as any)
+      .eq('league_id', leagueId);
+
+    if (error) {
+      console.error('[Billing] Update fee share error:', error.message);
+      return { success: false, error: 'Failed to update fee split.' };
+    }
+
+    invalidateLeagueBillingCache(leagueId);
+    return { success: true };
+  } catch {
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
 // ============================================================================
 // Auto-Tier Assignment (platform admin or registration-open trigger)
 // ============================================================================

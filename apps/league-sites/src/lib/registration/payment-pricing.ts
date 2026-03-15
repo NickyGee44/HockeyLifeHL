@@ -6,6 +6,7 @@ export interface LeaguePlatformFeeSettings {
   platformFeeBps: number;
   platformFeePercent: number;
   platformFeeMode: PlatformFeeMode;
+  playerFeeSharePercent: number;
 }
 
 export interface RegistrationPaymentQuote {
@@ -29,6 +30,7 @@ const DEFAULT_PLATFORM_FEE_SETTINGS: LeaguePlatformFeeSettings = {
   platformFeeBps: 350,
   platformFeePercent: 3.5,
   platformFeeMode: 'pass_to_player',
+  playerFeeSharePercent: 100,
 };
 
 export function normalizePlatformFeeMode(value: string | null | undefined): PlatformFeeMode {
@@ -49,19 +51,23 @@ export function buildRegistrationPaymentQuote(input: {
   baseAmountPaidCents?: number;
   platformFeeBps: number;
   platformFeeMode: PlatformFeeMode;
+  playerFeeSharePercent?: number;
 }): RegistrationPaymentQuote {
   const baseFeeCents = Math.max(0, input.baseFeeCents || 0);
   const baseAmountPaidCents = Math.max(0, Math.min(input.baseAmountPaidCents || 0, baseFeeCents));
   const baseAmountDueCents = Math.max(0, baseFeeCents - baseAmountPaidCents);
-  const chargeIncludesPlatformFee = input.platformFeeMode === 'pass_to_player';
+  const playerFeeSharePercent = input.playerFeeSharePercent ?? 100;
+  const chargeIncludesPlatformFee = playerFeeSharePercent > 0;
   const applicationFeeCents = calculatePlatformFeeCents(baseAmountDueCents, input.platformFeeBps);
   const platformFeeOnFullFeeCents = chargeIncludesPlatformFee
-    ? calculatePlatformFeeCents(baseFeeCents, input.platformFeeBps)
+    ? Math.round(calculatePlatformFeeCents(baseFeeCents, input.platformFeeBps) * playerFeeSharePercent / 100)
     : 0;
   const platformFeeOnPaidBaseCents = chargeIncludesPlatformFee
-    ? calculatePlatformFeeCents(baseAmountPaidCents, input.platformFeeBps)
+    ? Math.round(calculatePlatformFeeCents(baseAmountPaidCents, input.platformFeeBps) * playerFeeSharePercent / 100)
     : 0;
-  const platformFeeCents = chargeIncludesPlatformFee ? applicationFeeCents : 0;
+  const platformFeeCents = chargeIncludesPlatformFee
+    ? Math.round(applicationFeeCents * playerFeeSharePercent / 100)
+    : 0;
   const totalChargeCents = baseFeeCents + platformFeeOnFullFeeCents;
   const outstandingChargeCents = baseAmountDueCents + platformFeeCents;
   const totalPaidDisplayCents = baseAmountPaidCents + platformFeeOnPaidBaseCents;
@@ -91,7 +97,7 @@ export async function getLeaguePlatformFeeSettings(
     const supabase = createServiceRoleClient();
     const { data, error } = await supabase
       .from('league_billing_settings')
-      .select('platform_fee_bps, platform_fee_mode')
+      .select('platform_fee_bps, platform_fee_mode, player_fee_share_percent')
       .eq('league_id', leagueId)
       .maybeSingle();
 
@@ -109,6 +115,7 @@ export async function getLeaguePlatformFeeSettings(
       platformFeeBps,
       platformFeePercent: platformFeeBps / 100,
       platformFeeMode: normalizePlatformFeeMode(data?.platform_fee_mode),
+      playerFeeSharePercent: (data as any)?.player_fee_share_percent ?? 100,
     };
   } catch (error) {
     console.error('[Registration Pricing] Unexpected billing settings error:', error);
@@ -127,5 +134,6 @@ export async function getRegistrationPaymentQuoteForLeague(
     baseAmountPaidCents,
     platformFeeBps: settings.platformFeeBps,
     platformFeeMode: settings.platformFeeMode,
+    playerFeeSharePercent: settings.playerFeeSharePercent,
   });
 }
