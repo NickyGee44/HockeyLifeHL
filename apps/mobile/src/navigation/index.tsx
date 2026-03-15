@@ -4,7 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import AuthGuestBanner from '../components/AuthGuestBanner';
 import LeagueSwitcher from '../components/LeagueSwitcher';
+import { useAuth } from '../context/AuthContext';
 import { useLeague } from '../context/LeagueContext';
 import { ScheduleStackParamList, TeamStackParamList, ProfileStackParamList } from './types';
 import GamePreviewScreen from '../screens/GamePreviewScreen';
@@ -100,9 +102,12 @@ function ProfileNavigator() {
 
 export default function RootNavigation() {
   const { activeTheme } = useLeague();
+  const { isGuest } = useAuth();
 
   return (
-    <Tab.Navigator
+    <View style={{ flex: 1 }}>
+      {isGuest ? <AuthGuestBanner /> : null}
+      <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }: any) => ({
         headerShown: true,
@@ -162,6 +167,7 @@ export default function RootNavigation() {
       <Tab.Screen name="Team" component={TeamNavigator} />
       <Tab.Screen name="Profile" component={ProfileNavigator} />
     </Tab.Navigator>
+    </View>
   );
 }
 
