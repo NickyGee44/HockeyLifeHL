@@ -17,6 +17,7 @@ import {
   CalendarDays,
   DollarSign,
   CreditCard,
+  Wallet,
   Newspaper,
   Image,
   PartyPopper,
@@ -236,6 +237,14 @@ export function AppSidebar({
 
               {/* Financials group */}
               <SidebarNavGroup groupId="financials" label={t('financials') || 'Financials'} icon={DollarSign}>
+                <SidebarNavItem
+                  href={`${leagueBase}/finance`}
+                  icon={Wallet}
+                  label="Finance"
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
                 <SidebarNavItem
                   href={`${leagueBase}/payments`}
                   icon={DollarSign}

@@ -69,7 +69,7 @@ export function AppSidebarProvider({ children }: { children: React.ReactNode }) 
         path.includes('/gallery') || path.includes('/events') || path.includes('/awards')) {
       autoExpand.add('content');
     }
-    if (path.includes('/payments') || path.includes('/billing')) {
+    if (path.includes('/payments') || path.includes('/billing') || path.includes('/finance')) {
       autoExpand.add('financials');
     }
     if (path.includes('/settings/')) {
