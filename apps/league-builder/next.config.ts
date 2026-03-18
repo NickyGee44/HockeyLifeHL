@@ -33,6 +33,42 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // Redirects for navigation redesign — old routes → new routes
+  async redirects() {
+    return [
+      // Old floating season routes → under league hierarchy
+      {
+        source: '/:locale/dashboard/seasons/:seasonId/standings',
+        destination: '/:locale/dashboard/leagues/:leagueId/seasons/:seasonId/standings',
+        permanent: true,
+        has: [{ type: 'query', key: 'leagueId' }],
+      },
+      {
+        source: '/:locale/dashboard/seasons/:seasonId/eligibility',
+        destination: '/:locale/dashboard/leagues/:leagueId/seasons/:seasonId/eligibility',
+        permanent: true,
+        has: [{ type: 'query', key: 'leagueId' }],
+      },
+      {
+        source: '/:locale/dashboard/seasons/:seasonId/schedule',
+        destination: '/:locale/dashboard/leagues/:leagueId/seasons/:seasonId/schedule',
+        permanent: true,
+        has: [{ type: 'query', key: 'leagueId' }],
+      },
+      // Old company route → settings
+      {
+        source: '/:locale/dashboard/company',
+        destination: '/:locale/dashboard/settings',
+        permanent: true,
+      },
+      // Old staffing route → staff pool
+      {
+        source: '/:locale/dashboard/staffing/:path*',
+        destination: '/:locale/dashboard/staff',
+        permanent: true,
+      },
+    ];
+  },
   // Security headers
   async headers() {
     return [

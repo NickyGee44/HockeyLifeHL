@@ -19,23 +19,31 @@ async function signInWithNativeApple(): Promise<{ error: Error | null }> {
   }
 
   try {
-    const nonce = Crypto.randomUUID();
+    // Generate raw nonce and hash it for Apple
+    const rawNonce = Crypto.randomUUID();
+    const hashedNonce = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      rawNonce
+    );
+
+    // Apple gets the HASHED nonce
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
         AppleAuthentication.AppleAuthenticationScope.EMAIL,
       ],
-      nonce,
+      nonce: hashedNonce,
     });
 
     if (!credential.identityToken) {
       return { error: new Error('Apple sign-in did not return an identity token') };
     }
 
+    // Supabase gets the RAW nonce (it hashes internally to verify)
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: credential.identityToken,
-      nonce,
+      nonce: rawNonce,
       access_token: credential.authorizationCode ?? undefined,
     });
 

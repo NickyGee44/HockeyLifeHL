@@ -2,6 +2,7 @@
  * Schedule Wizard Components
  */
 
+export { SimpleScheduleWizard } from './SimpleScheduleWizard';
 export { ScheduleWizard } from './ScheduleWizard';
 export { ScheduleConfigStep } from './ScheduleConfigStep';
 export { ConstraintStep } from './ConstraintStep';

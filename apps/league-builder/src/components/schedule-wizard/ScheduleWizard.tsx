@@ -16,6 +16,7 @@ import type {
   Venue,
   ScheduleGenerationResult } from '@/lib/schedule/types';
 import { bulkSaveLeagueTeamPreferences } from '@/lib/schedule/actions';
+import { getStandardHolidayGroupsInRange } from '@/lib/schedule/holidays';
 import { ScheduleConfigStep } from './ScheduleConfigStep';
 import { EnhancedConstraintStep, type ConstraintData } from './EnhancedConstraintStep';
 import { PreviewStep } from './PreviewStep';
@@ -93,7 +94,7 @@ function getDefaultConfig(startDate: Date, endDate: Date): ScheduleConfig {
     defaultVenueId: null,
     rotateHomeVenue: true,
     skipHolidays: true,
-    holidayDates: [],
+    holidayDates: getStandardHolidayGroupsInRange(effectiveStart, endDate).flatMap(h => h.dates),
     playoffFormat: 'none',
     playoffTeams: 8,
     playoffQualificationMode: 'count',

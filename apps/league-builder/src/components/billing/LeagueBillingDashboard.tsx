@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { ConnectOnboardingCard } from './ConnectOnboardingCard';
 import { PayoutInfoCard } from './PayoutInfoCard';
 import { PaymentHistoryTable } from './PaymentHistoryTable';
+import { FeeSplitSlider } from './FeeSplitSlider';
 import {
   getConnectAccountStatus,
   getPaymentStatistics,
@@ -414,6 +415,16 @@ export function LeagueBillingDashboard({
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Fee Split Slider - only for percentage-based tiers */}
+      {billingConfig && billingConfig.pricingTier !== 'small' && (
+        <FeeSplitSlider
+          leagueId={leagueId}
+          platformFeeBps={billingConfig.platformFeeBps}
+          initialSharePercent={billingConfig.playerFeeSharePercent}
+          pricingTier={billingConfig.pricingTier}
+        />
       )}
 
       {/* Platform Admin Controls */}

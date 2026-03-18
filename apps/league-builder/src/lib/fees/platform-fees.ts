@@ -51,6 +51,7 @@ export interface LeagueBillingConfig {
   contractTermMonths: number;
   referralDiscountBps: number;
   flatSeasonFeeCents: number;
+  playerFeeSharePercent: number;
   // Floor subscription tracking (added by 20260306_auto_tier_columns migration)
   floorStripeSubscriptionId: string | null;
   floorStripeProductId: string | null;
@@ -262,6 +263,7 @@ export async function getLeagueBillingConfig(leagueId: string): Promise<LeagueBi
         contractTermMonths: TIER_CONTRACT_MONTHS.standard,
         referralDiscountBps: 0,
         flatSeasonFeeCents: 0,
+        playerFeeSharePercent: 100,
         floorStripeSubscriptionId: null,
         floorStripeProductId: null,
         stripeBillingCustomerId: null,
@@ -287,6 +289,7 @@ export async function getLeagueBillingConfig(leagueId: string): Promise<LeagueBi
       contractTermMonths: row.contract_term_months ?? TIER_CONTRACT_MONTHS.standard,
       referralDiscountBps: row.referral_discount_bps ?? 0,
       flatSeasonFeeCents: row.flat_season_fee_cents ?? 0,
+      playerFeeSharePercent: (row as any).player_fee_share_percent ?? 100,
       // Cast to `any` for columns added by 20260306_auto_tier_columns migration
       // (not yet in generated types — regenerate with /sync-types after migration runs)
       floorStripeSubscriptionId: (row as any).floor_stripe_subscription_id ?? null,
@@ -317,6 +320,7 @@ export async function getLeagueBillingConfig(leagueId: string): Promise<LeagueBi
       contractTermMonths: TIER_CONTRACT_MONTHS.standard,
       referralDiscountBps: 0,
       flatSeasonFeeCents: 0,
+      playerFeeSharePercent: 100,
       floorStripeSubscriptionId: null,
       floorStripeProductId: null,
       stripeBillingCustomerId: null,
@@ -354,12 +358,12 @@ export async function calculateApplicationFeeFromConfig(
 export async function calculateLeagueApplicationFee(
   leagueId: string,
   amountCents: number
-): Promise<{ fee: number; percent: number; mode: PlatformFeeMode }> {
-  if (amountCents <= 0) return { fee: 0, percent: 0, mode: 'pass_to_player' };
+): Promise<{ fee: number; percent: number; mode: PlatformFeeMode; playerFeeSharePercent: number }> {
+  if (amountCents <= 0) return { fee: 0, percent: 0, mode: 'pass_to_player', playerFeeSharePercent: 100 };
 
   const billing = await getLeagueBillingConfig(leagueId);
   const fee = Math.round((amountCents * billing.platformFeeBps) / 10000);
-  return { fee, percent: billing.platformFeePercent, mode: billing.platformFeeMode };
+  return { fee, percent: billing.platformFeePercent, mode: billing.platformFeeMode, playerFeeSharePercent: billing.playerFeeSharePercent };
 }
 
 /**

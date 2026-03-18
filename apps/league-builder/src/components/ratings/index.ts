@@ -4,3 +4,4 @@ export * from './TeamRatingsCard';
 export * from './DivisionBalanceDashboard';
 export * from './RecalculateButton';
 export * from './RatingsHelpTooltip';
+export * from './RatingsTabs';

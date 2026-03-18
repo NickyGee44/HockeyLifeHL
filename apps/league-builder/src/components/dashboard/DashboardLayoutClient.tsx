@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { cn } from '@hockey-life/ui';
-import { SidebarProvider, useSidebar } from './SidebarContext';
-import HierarchicalSidebar from './HierarchicalSidebar';
-import { MobileHeader } from './MobileHeader';
-import { MobileBottomNav } from './MobileBottomNav';
+import { AppSidebarProvider } from './AppSidebarContext';
+import { AppSidebar } from './AppSidebar';
+import { MobileAppHeader } from './MobileAppHeader';
+import { MobileTabBar } from './MobileTabBar';
 import { SetupBanner } from './SetupBanner';
 import { Breadcrumbs } from './Breadcrumbs';
 import { CommandPalette } from './CommandPalette';
@@ -37,19 +37,14 @@ function DashboardContent({
   dashboardData: DashboardData | null;
   topBanner?: React.ReactNode;
 }) {
-  const { activeSection, isCollapsed } = useSidebar();
-
-  // Icon rail = 64px (w-16). Secondary panel = 240px (w-60). Total when pinned = 304px.
-  const hasSecondary = !isCollapsed && activeSection !== null;
-
   return (
     <main
       className={cn(
         'transition-all duration-200 ease-in-out aurora-bg min-h-screen',
-        // Mobile: no left margin, top padding for header, bottom padding for nav
+        // Mobile: top padding for header, bottom padding for tab bar
         'pt-14 pb-20 md:pt-0 md:pb-0',
-        // Desktop: collapsed = no sidebar width, expanded icon rail (64px) + optional secondary panel (240px)
-        isCollapsed ? 'md:ml-0' : hasSecondary ? 'md:ml-[304px]' : 'md:ml-16'
+        // Desktop: always 280px sidebar
+        'md:ml-[280px]'
       )}
     >
       {topBanner}
@@ -75,13 +70,13 @@ export default function DashboardLayoutClient({
   topBanner,
 }: DashboardLayoutClientProps) {
   return (
-    <SidebarProvider>
+    <AppSidebarProvider>
       <div className="min-h-screen bg-neutral-950">
         {/* Mobile header — visible on mobile only */}
-        <MobileHeader dashboardData={dashboardData} />
+        <MobileAppHeader dashboardData={dashboardData} />
 
-        {/* Desktop sidebar — hidden on mobile */}
-        <HierarchicalSidebar
+        {/* Sidebar — always visible on desktop, slide-in on mobile */}
+        <AppSidebar
           dashboardData={dashboardData}
           captainTeams={captainTeams}
           isSubscribed={isSubscribed}
@@ -97,8 +92,8 @@ export default function DashboardLayoutClient({
           {children}
         </DashboardContent>
 
-        {/* Mobile bottom nav — visible on mobile only */}
-        <MobileBottomNav />
+        {/* Mobile bottom tab bar — visible on mobile only */}
+        <MobileTabBar />
 
         {/* Command palette (Cmd+K) */}
         <CommandPalette />
@@ -107,6 +102,6 @@ export default function DashboardLayoutClient({
         <InstallPrompt />
         <OfflineBanner />
       </div>
-    </SidebarProvider>
+    </AppSidebarProvider>
   );
 }

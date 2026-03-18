@@ -222,7 +222,26 @@
     "leagueBilling": "Configuration des paiements",
     "financials": "Finances",
     "divisions": "Divisions",
-    "goaliePool": "Bassin de gardiens"
+    "goaliePool": "Bassin de gardiens",
+    "season": "Saison",
+    "league": "Ligue",
+    "organization": "Organisation",
+    "home": "Accueil",
+    "staffPool": "Personnel",
+    "selectLeague": "Choisir une ligue...",
+    "selectSeason": "Choisir une saison...",
+    "noSeasons": "Aucune saison",
+    "loading": "Chargement...",
+    "allSeasons": "Retour a la ligue",
+    "rosters": "Effectifs",
+    "eligibility": "Admissibilite",
+    "general": "General",
+    "gameRules": "Regles de jeu",
+    "waiver": "Decharge",
+    "emailDomain": "Domaine courriel",
+    "captain": "Capitaine",
+    "signOut": "Deconnexion",
+    "leagues": "Ligues"
   },
   "commandPalette": {
     "searchPlaceholder": "Rechercher des pages et actions...",
@@ -1156,6 +1175,19 @@
       "partial": "Partiel",
       "allPaid": "Tous payes !",
       "allPaidDescription": "Tous les joueurs inscrits sont a jour dans leurs frais"
+    },
+    "feeSplit": {
+      "title": "Répartition des frais de plateforme",
+      "description": "Contrôlez comment les frais de {percent}% sont partagés entre les joueurs et votre ligue.",
+      "leagueAbsorbs": "La ligue absorbe tout",
+      "playersPay": "Les joueurs paient tout",
+      "previewTitle": "Aperçu : inscription de 100 $",
+      "playerCharge": "Le joueur paie",
+      "leagueReceives": "La ligue reçoit",
+      "platformGets": "Frais de plateforme BLH",
+      "always": "(toujours)",
+      "saved": "Répartition des frais mise à jour",
+      "saveFailed": "Échec de la mise à jour de la répartition des frais"
     },
     "league": {
       "title": "Facturation de la ligue",

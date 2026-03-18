@@ -120,15 +120,15 @@ export function RefundModal({ payment, isOpen, onClose, onSuccess }: RefundModal
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={handleClose}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 bg-neutral-800 border border-white/10 rounded-2xl shadow-2xl">
+      <div className="relative w-full max-w-lg my-auto bg-neutral-800 border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-neutral-700">
           <div className="flex items-center gap-3">

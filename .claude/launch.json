@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "League Builder",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "pnpm dev:builder"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "League Sites",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "pnpm dev:website"],
+      "port": 3001,
+      "autoPort": true
+    },
+    {
+      "name": "Player Companion (PWA)",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "pnpm --filter @hockey-life/player-companion dev"],
+      "port": 3002,
+      "autoPort": true
+    },
+    {
+      "name": "Mobile (Expo)",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npx expo start"],
+      "port": 8081,
+      "autoPort": true
+    }
+  ]
+}
