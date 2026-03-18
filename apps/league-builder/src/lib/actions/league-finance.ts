@@ -146,6 +146,7 @@ export interface LeagueFinanceDashboardData {
     pendingAmountCents: number;
     unlinkedAssignments: number;
   };
+  manualItemsAvailable: boolean;
   manualItems: LeagueFinanceCustomItem[];
   manualSummary: {
     incomeCents: number;
@@ -210,6 +211,21 @@ type QuickBooksJournalLine = {
 
 function cents(value: number | null | undefined) {
   return Math.max(0, Math.round(value || 0));
+}
+
+function isFinanceCustomItemsUnavailable(error: { code?: string; message?: string } | null | undefined) {
+  if (!error) return false;
+
+  return (
+    error.code === '42P01' ||
+    error.code === '42703' ||
+    error.code === 'PGRST205' ||
+    Boolean(error.message?.includes('league_finance_custom_items'))
+  );
+}
+
+function getFinanceCustomItemsUnavailableMessage() {
+  return 'Manual finance items are temporarily unavailable until the latest finance database migration is applied.';
 }
 
 function escapeCsv(value: string | number | null | undefined) {
@@ -354,10 +370,19 @@ async function getManualFinanceItems(
 
   const { data, error } = await query;
   if (error) {
+    if (isFinanceCustomItemsUnavailable(error)) {
+      return {
+        items: [] as LeagueFinanceCustomItem[],
+        available: false,
+      };
+    }
     throw new Error('Failed to load finance custom items.');
   }
 
-  return (data || []) as LeagueFinanceCustomItem[];
+  return {
+    items: (data || []) as LeagueFinanceCustomItem[],
+    available: true,
+  };
 }
 
 export async function getLeagueFinanceDashboardData(
@@ -408,7 +433,7 @@ export async function getLeagueFinanceDashboardData(
       stripeFilteredBySeasonWindow = true;
     }
 
-    const [playerPaymentsResult, invoicesResult, stripeResult, manualItems, refereePayrollResult] =
+    const [playerPaymentsResult, invoicesResult, stripeResult, manualItemsResult, refereePayrollResult] =
       await Promise.all([
         playerPaymentsQuery,
         invoicesQuery,
@@ -431,6 +456,7 @@ export async function getLeagueFinanceDashboardData(
       throw new Error('Failed to load Stripe payment data.');
     }
 
+    const manualItems = manualItemsResult.items;
     const playerPayments = (playerPaymentsResult.data || []) as PlayerPaymentRow[];
     const invoices = (invoicesResult.data || []) as TeamInvoiceRow[];
     const invoiceIds = invoices.map((invoice) => invoice.id);
@@ -573,6 +599,7 @@ export async function getLeagueFinanceDashboardData(
           pendingAmountCents: refereePayroll.pendingAmountCents,
           unlinkedAssignments: refereePayrollData?.unlinkedAssignments || 0,
         },
+        manualItemsAvailable: manualItemsResult.available,
         manualItems,
         manualSummary,
         snapshot,
@@ -635,6 +662,12 @@ export async function createLeagueFinanceCustomItem(
       .single();
 
     if (error || !data) {
+      if (isFinanceCustomItemsUnavailable(error)) {
+        return {
+          success: false,
+          error: getFinanceCustomItemsUnavailableMessage(),
+        };
+      }
       return { success: false, error: 'Failed to save finance item.' };
     }
 
@@ -667,6 +700,12 @@ export async function deleteLeagueFinanceCustomItem(
       .eq('league_id', leagueId);
 
     if (error) {
+      if (isFinanceCustomItemsUnavailable(error)) {
+        return {
+          success: false,
+          error: getFinanceCustomItemsUnavailableMessage(),
+        };
+      }
       return { success: false, error: 'Failed to delete finance item.' };
     }
 
@@ -775,7 +814,10 @@ export async function exportLeagueFinanceQuickBooksCsv(
         invoicesQuery,
         includeManualItems
           ? getManualFinanceItems(service, leagueId, selectedSeasonId)
-          : Promise.resolve([] as LeagueFinanceCustomItem[]),
+          : Promise.resolve({
+              items: [] as LeagueFinanceCustomItem[],
+              available: false,
+            }),
         getRefereePayrollReport({
           leagueId,
           seasonId: selectedSeasonId || undefined,
@@ -1013,7 +1055,7 @@ export async function exportLeagueFinanceQuickBooksCsv(
       }
     }
 
-    for (const item of manualItemsResult) {
+    for (const item of manualItemsResult.items) {
       if (!item.include_in_quickbooks_export) continue;
 
       const journalNo = nextJournalNo('MANUAL');
