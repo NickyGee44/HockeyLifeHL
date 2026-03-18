@@ -3279,6 +3279,76 @@ export async function getNewsArticleBySlug(leagueId: string, slug: string): Prom
   return data as unknown as NewsArticle;
 }
 
+export interface ArticleLinkContext {
+  players: Array<{ id: string; fullName: string }>;
+  teams: Array<{ id: string; name: string; slug: string }>;
+  relatedGame: {
+    id: string;
+    homeTeamName: string;
+    awayTeamName: string;
+  } | null;
+}
+
+export async function getArticleLinkContext(
+  articleId: string,
+  leagueId: string,
+  relatedGameId?: string | null,
+): Promise<ArticleLinkContext> {
+  const supabase = await createClient();
+
+  const [playerTagsResult, teamsResult, relatedGame] = await Promise.all([
+    supabase
+      .from('article_player_tags')
+      .select('player_id')
+      .eq('article_id', articleId),
+    supabase
+      .from('teams')
+      .select('id, name, slug')
+      .eq('league_id', leagueId)
+      .order('name', { ascending: true }),
+    relatedGameId ? getGamePreview(relatedGameId) : Promise.resolve(null),
+  ]);
+
+  const playerIds = [...new Set((playerTagsResult.data || []).map((tag) => tag.player_id))];
+  const profilesResult = playerIds.length > 0
+    ? await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', playerIds)
+    : { data: [], error: null };
+
+  const players = profilesResult.error || !profilesResult.data
+    ? []
+    : profilesResult.data
+        .filter((profile) => Boolean(profile.full_name))
+        .map((profile) => ({
+          id: profile.id,
+          fullName: profile.full_name as string,
+        }));
+
+  const teams = teamsResult.error || !teamsResult.data
+    ? []
+    : teamsResult.data
+        .filter((team) => Boolean(team.name) && Boolean(team.slug))
+        .map((team) => ({
+          id: team.id,
+          name: team.name as string,
+          slug: team.slug as string,
+        }));
+
+  return {
+    players,
+    teams,
+    relatedGame: relatedGame?.home_team && relatedGame.away_team
+      ? {
+          id: relatedGame.id,
+          homeTeamName: relatedGame.home_team.name,
+          awayTeamName: relatedGame.away_team.name,
+        }
+      : null,
+  };
+}
+
 /**
  * Get tagged players attached to an article
  */

@@ -5,7 +5,8 @@ import { ArrowLeft, Calendar, Clock3, Swords, User } from 'lucide-react';
 import { SubscriptionWall } from '@/components/shared';
 import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
 import { RichArticleContent } from '@/components/news/RichArticleContent';
-import { getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
+import { buildArticleMentions } from '@/lib/articles/linkify';
+import { getArticleLinkContext, getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
 
 interface ArticlePageProps {
   params: Promise<{ leagueSlug: string; slug: string }>;
@@ -39,10 +40,17 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const article = await getNewsArticleBySlug(league.id, slug);
   if (!article) return notFound();
 
-  const [taggedPlayers, relatedGame] = await Promise.all([
+  const [articleLinkContext, taggedPlayers, relatedGame] = await Promise.all([
+    getArticleLinkContext(article.id, league.id, article.game_id),
     getArticlePlayerTags(article.id),
     article.game_id ? getGamePreview(article.game_id) : Promise.resolve(null),
   ]);
+  const articleMentions = buildArticleMentions({
+    leagueSlug,
+    players: articleLinkContext.players,
+    teams: articleLinkContext.teams,
+    relatedGame: articleLinkContext.relatedGame,
+  });
 
   const publishedDate = article.published_at || article.created_at;
   const formattedDate = new Date(publishedDate).toLocaleDateString('en-US', {
@@ -216,7 +224,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </section>
 
             <div className="pt-6">
-              <RichArticleContent content={article.content} />
+              <RichArticleContent content={article.content} mentions={articleMentions} />
             </div>
           </div>
         </article>
