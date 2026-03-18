@@ -206,7 +206,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       {/* 1. Hero + News Side-by-Side */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
         <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
-        <div className="relative flex items-stretch border-b border-l-0 lg:border-l border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_60%,transparent)] backdrop-blur-md p-3 md:p-4 lg:p-5">
+        <div className="relative flex items-stretch border-b border-l-0 lg:border-l border-[var(--color-border)] p-3 md:p-4 lg:p-5">
           <NewsHeadlines articles={newsArticles} leagueSlug={leagueSlug} />
         </div>
       </div>
