@@ -143,6 +143,10 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         year: 'numeric',
       })
     : null;
+  const registrationBannerText =
+    isCurrentSeasonWrappingUp && isNextSeasonRegistration
+      ? `The current season is wrapping up, and registration is already open for ${registrationSeason?.name}${registrationPromoDate ? ` through ${registrationPromoDate}` : ''}.`
+      : `Sign up for ${registrationSeason?.name || 'the upcoming season'} today${registrationPromoDate ? ` before ${registrationPromoDate}` : ''}!`;
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
@@ -202,6 +206,45 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
       {/* Division filter URL sync */}
       <DivisionUrlSync pagePath={`/${leagueSlug}`} />
+
+      {hasOpenRegistration && (
+        <div className="container mx-auto px-4 pt-6">
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--league-primary)]/30 bg-[var(--league-primary)]/6 px-5 py-4 md:px-6">
+            <div className="absolute inset-y-0 right-0 w-48 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--league-primary)_18%,transparent),transparent_70%)]" />
+            <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--league-primary)]/15">
+                  <UserPlus className="h-5 w-5 text-[var(--league-primary)]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--league-primary)]">
+                      Registration Open
+                    </span>
+                    {registrationSeason?.name && (
+                      <span className="text-xs text-[var(--color-text-muted)]">
+                        {registrationSeason.name}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-[var(--color-text-secondary)] md:text-base">
+                    {registrationBannerText}
+                  </p>
+                </div>
+              </div>
+              <Button
+                href={`/${leagueSlug}/register`}
+                variant="primary"
+                glow
+                icon={<UserPlus className="w-4 h-4" />}
+                className="shrink-0"
+              >
+                Register Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 1. Hero + News Side-by-Side */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
@@ -343,33 +386,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                   {upcomingEvents.map((event) => (
                     <EventCard key={event.id} event={event} />
                   ))}
-                </div>
-              </section>
-            )}
-
-            {hasOpenRegistration && (
-              <section className={`${panelClass} p-6 md:p-7`}>
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[var(--league-primary)]/15 mb-3">
-                    <UserPlus className="w-6 h-6 text-[var(--league-primary)]" />
-                  </div>
-                  <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
-                    Registration Open
-                  </h3>
-                  <p className="text-sm text-[var(--color-text-secondary)] mt-1 mb-4">
-                    {isCurrentSeasonWrappingUp && isNextSeasonRegistration
-                      ? `The current season is wrapping up, and registration is already open for ${registrationSeason.name}${registrationPromoDate ? ` through ${registrationPromoDate}` : ''}.`
-                      : `Sign up for ${registrationSeason?.name || 'the upcoming season'} today${registrationPromoDate ? ` before ${registrationPromoDate}` : ''}!`}
-                  </p>
-                  <Button
-                    href={`/${leagueSlug}/register`}
-                    variant="primary"
-                    glow
-                    fullWidth
-                    icon={<UserPlus className="w-4 h-4" />}
-                  >
-                    Register Now
-                  </Button>
                 </div>
               </section>
             )}
