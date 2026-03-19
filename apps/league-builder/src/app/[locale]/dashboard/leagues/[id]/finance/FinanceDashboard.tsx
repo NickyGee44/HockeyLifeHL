@@ -52,6 +52,7 @@ type ExportOptionsState = {
   refereePayableAccount: string;
   refereeCashAccount: string;
   defaultClassName: string;
+  defaultLocationName: string;
   includePendingPayroll: boolean;
   includePaidPayroll: boolean;
   includeManualItems: boolean;
@@ -136,6 +137,7 @@ export function FinanceDashboard({
     refereePayableAccount: 'Accounts Payable',
     refereeCashAccount: 'Checking',
     defaultClassName: data.selectedSeason?.name || '',
+    defaultLocationName: '',
     includePendingPayroll: true,
     includePaidPayroll: true,
     includeManualItems: data.manualItemsAvailable,
@@ -372,112 +374,107 @@ export function FinanceDashboard({
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {!data.manualItemsAvailable && (
-                  <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100 md:col-span-2">
-                    Manual finance items are temporarily unavailable until the latest finance
-                    database migration is applied. The rest of the finance dashboard is still
-                    available.
+              {!data.manualItemsAvailable ? (
+                <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+                  Manual finance items are temporarily unavailable until the latest finance
+                  database migration is applied. You can still use the dashboard totals and
+                  QuickBooks export below.
+                </div>
+              ) : (
+                <>
+                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Type</label>
+                      <select
+                        value={manualItemForm.impactType}
+                        onChange={(event) => setManualItemForm((current) => ({ ...current, impactType: event.target.value as ManualItemFormState['impactType'] }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                        <option value="neutral">Neutral journal item</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Season</label>
+                      <select
+                        value={manualItemForm.seasonId}
+                        onChange={(event) => setManualItemForm((current) => ({ ...current, seasonId: event.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">League-wide</option>
+                        {data.seasons.map((season) => (
+                          <option key={season.id} value={season.id}>{season.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Title</label>
+                      <input
+                        value={manualItemForm.title}
+                        onChange={(event) => setManualItemForm((current) => ({ ...current, title: event.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                        placeholder="Scorekeeper contractor payout"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Date</label>
+                      <input
+                        type="date"
+                        value={manualItemForm.entryDate}
+                        onChange={(event) => setManualItemForm((current) => ({ ...current, entryDate: event.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Amount</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={manualItemForm.amount}
+                        onChange={(event) => setManualItemForm((current) => ({ ...current, amount: event.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Debit account</label>
+                      <input
+                        value={manualItemForm.debitAccountName}
+                        onChange={(event) => setManualItemForm((current) => ({ ...current, debitAccountName: event.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Credit account</label>
+                      <input
+                        value={manualItemForm.creditAccountName}
+                        onChange={(event) => setManualItemForm((current) => ({ ...current, creditAccountName: event.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Notes</label>
+                      <textarea
+                        value={manualItemForm.notes}
+                        onChange={(event) => setManualItemForm((current) => ({ ...current, notes: event.target.value }))}
+                        className="mt-2 min-h-[96px] w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
                   </div>
-                )}
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Type</label>
-                  <select
-                    value={manualItemForm.impactType}
-                    onChange={(event) => setManualItemForm((current) => ({ ...current, impactType: event.target.value as ManualItemFormState['impactType'] }))}
-                    disabled={!data.manualItemsAvailable}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                  >
-                    <option value="expense">Expense</option>
-                    <option value="income">Income</option>
-                    <option value="neutral">Neutral journal item</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Season</label>
-                  <select
-                    value={manualItemForm.seasonId}
-                    onChange={(event) => setManualItemForm((current) => ({ ...current, seasonId: event.target.value }))}
-                    disabled={!data.manualItemsAvailable}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                  >
-                    <option value="">League-wide</option>
-                    {data.seasons.map((season) => (
-                      <option key={season.id} value={season.id}>{season.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Title</label>
-                  <input
-                    value={manualItemForm.title}
-                    onChange={(event) => setManualItemForm((current) => ({ ...current, title: event.target.value }))}
-                    disabled={!data.manualItemsAvailable}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                    placeholder="Scorekeeper contractor payout"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Date</label>
-                  <input
-                    type="date"
-                    value={manualItemForm.entryDate}
-                    onChange={(event) => setManualItemForm((current) => ({ ...current, entryDate: event.target.value }))}
-                    disabled={!data.manualItemsAvailable}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Amount</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={manualItemForm.amount}
-                    onChange={(event) => setManualItemForm((current) => ({ ...current, amount: event.target.value }))}
-                    disabled={!data.manualItemsAvailable}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Debit account</label>
-                  <input
-                    value={manualItemForm.debitAccountName}
-                    onChange={(event) => setManualItemForm((current) => ({ ...current, debitAccountName: event.target.value }))}
-                    disabled={!data.manualItemsAvailable}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Credit account</label>
-                  <input
-                    value={manualItemForm.creditAccountName}
-                    onChange={(event) => setManualItemForm((current) => ({ ...current, creditAccountName: event.target.value }))}
-                    disabled={!data.manualItemsAvailable}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Notes</label>
-                  <textarea
-                    value={manualItemForm.notes}
-                    onChange={(event) => setManualItemForm((current) => ({ ...current, notes: event.target.value }))}
-                    disabled={!data.manualItemsAvailable}
-                    className="mt-2 min-h-[96px] w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                  />
-                </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleCreateItem}
-                disabled={isCreatingItem || !data.manualItemsAvailable}
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rink-500 to-arena-500 px-4 py-3 text-sm font-semibold text-black transition disabled:opacity-60"
-              >
-                {isCreatingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Add finance item
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateItem}
+                    disabled={isCreatingItem}
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rink-500 to-arena-500 px-4 py-3 text-sm font-semibold text-black transition disabled:opacity-60"
+                  >
+                    {isCreatingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Add finance item
+                  </button>
+                </>
+              )}
 
               <div className="mt-6 space-y-3">
                 {data.manualItems.length === 0 ? (
@@ -540,6 +537,7 @@ export function FinanceDashboard({
                   ['Referee payable', 'refereePayableAccount'],
                   ['Referee cash account', 'refereeCashAccount'],
                   ['Default class', 'defaultClassName'],
+                  ['Default location', 'defaultLocationName'],
                 ].map(([label, key]) => (
                   <div key={key}>
                     <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">{label}</label>
@@ -588,7 +586,8 @@ export function FinanceDashboard({
               </button>
 
               <p className="mt-3 text-xs text-neutral-500">
-                Use QuickBooks Online journal-entry import and map the CSV columns once for your company file.
+                Uses QuickBooks Online journal-entry columns with UTF-8 BOM and Windows CSV line
+                endings for cleaner imports.
               </p>
             </section>
 
