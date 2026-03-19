@@ -321,15 +321,6 @@ body::after {
   opacity: 0.7;
 }
 
-.league-home .league-shell-panel,
-.league-home .league-pulse-link {
-  background: color-mix(in srgb, var(--color-background-elevated) 18%, transparent);
-}
-
-.league-home .league-pulse-link:hover {
-  background: color-mix(in srgb, var(--color-background-elevated) 24%, transparent);
-}
-
 .league-shell-panel {
   background: color-mix(in srgb, var(--color-surface) 55%, transparent);
   backdrop-filter: blur(16px);

@@ -265,7 +265,7 @@ function buildQuickBooksCsv(lines: QuickBooksJournalLine[]) {
     line.location,
   ])]
     .map((row) => row.map((value) => escapeCsv(value)).join(','))
-    .join('\n');
+    .join('\r\n');
 }
 
 function normalizeManualEvents(draftData: Json | null): ManualPaymentEvent[] {
@@ -1083,7 +1083,7 @@ export async function exportLeagueFinanceQuickBooksCsv(
       success: true,
       data: {
         fileName,
-        csv: buildQuickBooksCsv(lines),
+        csv: `\uFEFF${buildQuickBooksCsv(lines)}`,
         journalCount: journalCounter,
       },
     };

@@ -19,7 +19,7 @@ export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
   const showFallback = featureFlags.enableHomepageNewsFallback;
 
   return (
-    <div className="league-shell-panel flex h-full w-full flex-col rounded-3xl border border-[var(--color-border)] p-5 md:p-6 lg:p-8">
+    <div className="flex h-full w-full flex-col rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_var(--glass-opacity),transparent)] p-5 shadow-[0_25px_60px_rgba(0,0,0,0.14)] backdrop-blur-xl md:p-6 lg:p-8">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-base font-black uppercase tracking-wide text-[var(--color-text-primary)] md:text-lg">
           <Newspaper className="h-5 w-5 text-[var(--league-primary)]" />
