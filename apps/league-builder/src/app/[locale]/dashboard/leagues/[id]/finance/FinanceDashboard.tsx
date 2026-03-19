@@ -138,7 +138,7 @@ export function FinanceDashboard({
     defaultClassName: data.selectedSeason?.name || '',
     includePendingPayroll: true,
     includePaidPayroll: true,
-    includeManualItems: true,
+    includeManualItems: data.manualItemsAvailable,
   });
 
   const handleSeasonChange = (seasonValue: string) => {
@@ -148,6 +148,11 @@ export function FinanceDashboard({
   };
 
   const handleCreateItem = () => {
+    if (!data.manualItemsAvailable) {
+      toast.error('Manual finance items are temporarily unavailable until the finance database migration is applied.');
+      return;
+    }
+
     const amountCents = Math.round(Number(manualItemForm.amount) * 100);
     if (!Number.isFinite(amountCents) || amountCents <= 0) {
       toast.error('Enter a valid amount.');
@@ -181,6 +186,11 @@ export function FinanceDashboard({
   };
 
   const handleDeleteItem = async (itemId: string) => {
+    if (!data.manualItemsAvailable) {
+      toast.error('Manual finance items are temporarily unavailable until the finance database migration is applied.');
+      return;
+    }
+
     setDeletingItemId(itemId);
     const result = await deleteLeagueFinanceCustomItem(leagueId, itemId);
     setDeletingItemId(null);
@@ -363,11 +373,19 @@ export function FinanceDashboard({
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {!data.manualItemsAvailable && (
+                  <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100 md:col-span-2">
+                    Manual finance items are temporarily unavailable until the latest finance
+                    database migration is applied. The rest of the finance dashboard is still
+                    available.
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Type</label>
                   <select
                     value={manualItemForm.impactType}
                     onChange={(event) => setManualItemForm((current) => ({ ...current, impactType: event.target.value as ManualItemFormState['impactType'] }))}
+                    disabled={!data.manualItemsAvailable}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
                   >
                     <option value="expense">Expense</option>
@@ -380,6 +398,7 @@ export function FinanceDashboard({
                   <select
                     value={manualItemForm.seasonId}
                     onChange={(event) => setManualItemForm((current) => ({ ...current, seasonId: event.target.value }))}
+                    disabled={!data.manualItemsAvailable}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
                   >
                     <option value="">League-wide</option>
@@ -393,6 +412,7 @@ export function FinanceDashboard({
                   <input
                     value={manualItemForm.title}
                     onChange={(event) => setManualItemForm((current) => ({ ...current, title: event.target.value }))}
+                    disabled={!data.manualItemsAvailable}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
                     placeholder="Scorekeeper contractor payout"
                   />
@@ -403,6 +423,7 @@ export function FinanceDashboard({
                     type="date"
                     value={manualItemForm.entryDate}
                     onChange={(event) => setManualItemForm((current) => ({ ...current, entryDate: event.target.value }))}
+                    disabled={!data.manualItemsAvailable}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
                   />
                 </div>
@@ -414,6 +435,7 @@ export function FinanceDashboard({
                     step="0.01"
                     value={manualItemForm.amount}
                     onChange={(event) => setManualItemForm((current) => ({ ...current, amount: event.target.value }))}
+                    disabled={!data.manualItemsAvailable}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
                     placeholder="0.00"
                   />
@@ -423,6 +445,7 @@ export function FinanceDashboard({
                   <input
                     value={manualItemForm.debitAccountName}
                     onChange={(event) => setManualItemForm((current) => ({ ...current, debitAccountName: event.target.value }))}
+                    disabled={!data.manualItemsAvailable}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
                   />
                 </div>
@@ -431,6 +454,7 @@ export function FinanceDashboard({
                   <input
                     value={manualItemForm.creditAccountName}
                     onChange={(event) => setManualItemForm((current) => ({ ...current, creditAccountName: event.target.value }))}
+                    disabled={!data.manualItemsAvailable}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
                   />
                 </div>
@@ -439,6 +463,7 @@ export function FinanceDashboard({
                   <textarea
                     value={manualItemForm.notes}
                     onChange={(event) => setManualItemForm((current) => ({ ...current, notes: event.target.value }))}
+                    disabled={!data.manualItemsAvailable}
                     className="mt-2 min-h-[96px] w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
                   />
                 </div>
@@ -447,7 +472,7 @@ export function FinanceDashboard({
               <button
                 type="button"
                 onClick={handleCreateItem}
-                disabled={isCreatingItem}
+                disabled={isCreatingItem || !data.manualItemsAvailable}
                 className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rink-500 to-arena-500 px-4 py-3 text-sm font-semibold text-black transition disabled:opacity-60"
               >
                 {isCreatingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -545,6 +570,7 @@ export function FinanceDashboard({
                   <input
                     type="checkbox"
                     checked={exportOptions.includeManualItems}
+                    disabled={!data.manualItemsAvailable}
                     onChange={(event) => setExportOptions((current) => ({ ...current, includeManualItems: event.target.checked }))}
                   />
                   Include manual finance items
