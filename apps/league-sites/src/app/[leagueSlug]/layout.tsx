@@ -116,6 +116,21 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
             <SubscriptionProvider isSubscribed={isSubscribed}>
               <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
                 <div className={`relative z-[1] min-h-screen flex flex-col overflow-x-clip ${templateClass}`}>
+                  {league.banner_url && (
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          backgroundImage: `url(${league.banner_url})`,
+                          backgroundPosition: 'center top',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: 'cover',
+                          opacity: 0.14,
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background)_78%,transparent)_0%,color-mix(in_srgb,var(--color-background)_92%,transparent)_30%,var(--color-background)_100%)]" />
+                    </div>
+                  )}
                   {(league as any).settings?.website?.showGameTicker !== false && (
                     <div className="league-site-chrome">
                       <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
