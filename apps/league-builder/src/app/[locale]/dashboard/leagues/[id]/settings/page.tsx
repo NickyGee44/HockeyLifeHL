@@ -140,7 +140,7 @@ export default async function LeagueSettingsPage({ params, searchParams }: Props
         </div>
 
         {/* League Info Card */}
-        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 mb-8">
+        <div className="surface-premium card-hover p-6 mb-8">
           <div className="flex items-center gap-4">
             <LeagueLogo
               logoUrl={league.logo_url}

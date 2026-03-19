@@ -221,7 +221,7 @@ export default async function DashboardPage({ params }: Props) {
             </div>
           </div>
 
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-5">
+          <div className="surface-premium card-hover p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-rink-500" />
@@ -356,9 +356,9 @@ export default async function DashboardPage({ params }: Props) {
               <Link
                 href="/dashboard/leagues/new"
                 className={cn(
-                  'inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base',
+                  'inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base relative overflow-hidden',
                   'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
-                  'hover:shadow-lg hover:shadow-rink-500/20 transition-[transform,box-shadow,opacity]'
+                  'btn-glow hover:scale-105 transition-[transform,shadow,opacity] shadow-glow hover:shadow-glow-hover'
                 )}
               >
                 <Plus className="w-5 h-5" />
@@ -413,7 +413,7 @@ export default async function DashboardPage({ params }: Props) {
           </div>
 
           {organizations.length === 0 ? (
-            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
+            <div className="surface-premium card-hover p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rink-500/10 flex items-center justify-center">
                 <Users className="w-8 h-8 text-rink-500" />
               </div>
@@ -456,7 +456,7 @@ function MiniStatsCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl px-4 py-3 hover:border-white/20 transition-colors">
+    <div className="surface-premium card-hover px-4 py-3">
       <div className="flex items-center gap-2 mb-1">
         <div className="p-1.5 rounded-lg bg-rink-500/10 text-rink-500">{icon}</div>
         <span className="text-xs text-neutral-400 truncate">{title}</span>
@@ -485,8 +485,8 @@ function QuickActionCard({
       className={cn(
         'group flex flex-col p-5 rounded-2xl transition-[transform,box-shadow,border-color,background-color] duration-200',
         primary
-          ? 'bg-gradient-to-br from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20'
-          : 'bg-white/[0.04] border border-white/10 backdrop-blur-xl hover:border-white/20 text-white'
+          ? 'btn-glow bg-gradient-to-br from-rink-500 to-arena-500 text-black shadow-glow hover:shadow-glow-hover hover:-translate-y-1'
+          : 'surface-premium card-hover text-white'
       )}
     >
       <div
@@ -509,7 +509,7 @@ function QuickActionCard({
 
 function CompanyCard({ org, t }: { org: any; t: any }) {
   return (
-    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 hover:border-white/20 transition-colors">
+    <div className="surface-premium card-hover p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-bold text-white text-lg">{org.name}</h3>
@@ -572,10 +572,10 @@ function MigrationCapabilityCard({
   return (
     <div
       className={cn(
-        'rounded-2xl border p-4 backdrop-blur-sm',
+        'p-4',
         accent === 'warning'
-          ? 'border-amber-400/20 bg-amber-400/10'
-          : 'border-white/10 bg-white/[0.04]'
+          ? 'rounded-2xl border border-amber-400/20 bg-amber-400/10 backdrop-blur-sm'
+          : 'surface-premium card-hover'
       )}
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-white mb-1">
@@ -604,7 +604,7 @@ function OwnerLeagueCommandCard({
   locale: string;
 }) {
   return (
-    <article className="group relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-2xl hover:shadow-black/20">
+    <article className="group relative overflow-hidden surface-premium card-hover p-6">
       <div
         className="absolute inset-x-0 top-0 h-24 opacity-60"
         style={{
@@ -698,7 +698,7 @@ function OwnerLeagueCommandCard({
             )}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="surface-premium p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500 mb-2">
               Next Recommended Step
             </p>
@@ -710,7 +710,7 @@ function OwnerLeagueCommandCard({
                   ? 'border-rink-500/30 bg-rink-500/10 text-rink-300 hover:border-rink-400/40 hover:bg-rink-500/15'
                   : league.nextAction.tone === 'warning'
                     ? 'border-amber-500/30 bg-amber-500/10 text-amber-200 hover:border-amber-400/40 hover:bg-amber-500/15'
-                    : 'border-white/10 bg-white/[0.04] text-white hover:border-white/20 hover:bg-white/[0.06]'
+                    : 'surface-premium card-hover text-white'
               )}
             >
               <span>{league.nextAction.label}</span>
@@ -736,10 +736,10 @@ function OwnerLeagueCommandCard({
                 key={action.label}
                 href={action.href}
                 className={cn(
-                  'rounded-2xl border px-4 py-3 transition-[border-color,background-color,color,transform] duration-200',
+                  'px-4 py-3 transition-[border-color,background-color,color,transform] duration-200',
                   action.disabled
-                    ? 'pointer-events-none border-white/10 bg-white/[0.02] text-neutral-500'
-                    : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06] hover:-translate-y-0.5'
+                    ? 'rounded-2xl border pointer-events-none border-white/10 bg-white/[0.02] text-neutral-500'
+                    : 'surface-premium card-hover'
                 )}
               >
                 <div className="flex items-start justify-between gap-3">

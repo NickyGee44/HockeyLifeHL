@@ -226,7 +226,7 @@ export function LeagueTeamsClient({
               ))}
             </div>
           ) : (
-            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
+            <div className="surface-premium card-hover p-12 text-center">
               <Users className="w-16 h-16 text-rink-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">
                 {selectedDivision ? 'No Teams in Division' : 'No Teams Yet'}
@@ -240,9 +240,9 @@ export function LeagueTeamsClient({
                 <Link
                   href={`/dashboard/leagues/${leagueId}/teams/new`}
                   className={cn(
-                    'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
+                    'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm relative overflow-hidden',
                     'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
-                    'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
+                    'btn-glow shadow-glow hover:shadow-glow-hover transition-all hover:scale-105'
                   )}
                 >
                   <Plus className="w-4 h-4" />
@@ -384,7 +384,7 @@ function TeamCardInner({
   const teamRosterHref = `/dashboard/teams/${team.id}?leagueId=${leagueId}&tab=roster`;
 
   return (
-    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5 hover:border-white/20 transition-colors group relative">
+    <div className="surface-premium card-hover p-5 group relative">
       {/* Clickable overlay to navigate to team detail */}
       <Link
         href={teamHref}
