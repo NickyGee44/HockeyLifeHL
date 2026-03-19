@@ -26,7 +26,6 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
   const { isPreviewMode, theme } = usePreviewMode();
 
   const logoUrl = isPreviewMode && theme?.logoUrl !== undefined ? theme.logoUrl : league.logo_url;
-  const bannerUrl = isPreviewMode && theme?.bannerUrl !== undefined ? theme.bannerUrl : league.banner_url;
   const previewTagline = isPreviewMode && theme?.tagline !== undefined ? theme.tagline : null;
   const previewDescription = isPreviewMode && theme?.description !== undefined ? theme.description : null;
 
@@ -40,10 +39,6 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  const backgroundStyle = `radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--league-primary) 24%, transparent), transparent 50%),
-           radial-gradient(circle at 84% -8%, color-mix(in srgb, var(--league-accent) 18%, transparent), transparent 44%),
-           linear-gradient(135deg, var(--color-background) 0%, var(--color-background-elevated) 45%, var(--color-background-sunken) 100%)`;
-
   const panelClass =
     'bg-[color-mix(in_srgb,var(--color-surface)_var(--glass-opacity),transparent)] border-[var(--color-border)] shadow-[0_25px_60px_rgba(0,0,0,0.14)]';
 
@@ -53,38 +48,6 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
 
   return (
     <section className="relative isolate overflow-hidden border-b border-[var(--color-border)]" data-testid="hero-section">
-      <div className="absolute inset-0" style={{ background: backgroundStyle }} />
-
-      {bannerUrl && (
-        <div className="absolute inset-0">
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: `url(${bannerUrl})`,
-              backgroundRepeat: 'repeat',
-              backgroundSize: '25%',
-            }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                'linear-gradient(160deg, color-mix(in srgb, var(--color-background) 78%, transparent) 0%, color-mix(in srgb, var(--color-background) 94%, transparent) 100%)',
-            }}
-          />
-        </div>
-      )}
-
-      <div
-        className="pointer-events-none absolute inset-0 opacity-25"
-        style={{
-          background:
-            'repeating-linear-gradient(125deg, color-mix(in srgb, var(--league-primary) 8%, transparent) 0px, color-mix(in srgb, var(--league-primary) 8%, transparent) 1px, transparent 1px, transparent 28px)',
-        }}
-      />
-      <div className="pointer-events-none absolute -left-20 top-16 h-56 w-56 rounded-full bg-[var(--league-primary)]/20 blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-[var(--league-accent)]/20 blur-3xl" />
-
       <div className="relative container mx-auto px-4 pb-6 pt-3 md:pb-8 md:pt-4 lg:pb-10 lg:pt-5">
         <div className="mx-auto max-w-6xl">
           <div
