@@ -85,7 +85,7 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
       <div className="pointer-events-none absolute -left-20 top-16 h-56 w-56 rounded-full bg-[var(--league-primary)]/20 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-[var(--league-accent)]/20 blur-3xl" />
 
-      <div className="relative container mx-auto px-4 py-6 md:py-8 lg:py-10">
+      <div className="relative container mx-auto px-4 pb-6 pt-3 md:pb-8 md:pt-4 lg:pb-10 lg:pt-5">
         <div className="mx-auto max-w-6xl">
           <div
             className={`rounded-3xl border p-5 backdrop-blur-xl transition-all duration-700 md:p-6 lg:p-8 ${panelClass} ${
