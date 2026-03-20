@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { cn } from '@hockey-life/ui';
 import { MigrationImportPlanner } from '@/components/admin/MigrationImportPlanner';
+import { MigrationImportExecutor } from '@/components/admin/MigrationImportExecutor';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from '@/i18n/navigation';
@@ -519,6 +520,11 @@ export function MigrationQueueClient({
                     key={`planner:${selectedRequest.id}:${selectedRequest.updated_at}`}
                     request={selectedRequest}
                     onRequestUpdated={handleRequestUpdated}
+                  />
+                  <MigrationImportExecutor
+                    key={`executor:${selectedRequest.id}:${selectedRequest.updated_at}`}
+                    request={selectedRequest}
+                    onImportComplete={() => router.refresh()}
                   />
                   <MigrationRequestEditor
                     key={`${selectedRequest.id}:${selectedRequest.updated_at}`}
