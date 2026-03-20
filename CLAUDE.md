@@ -32,21 +32,43 @@
 ---
 
 ## Project Overview
-Multi-tenant SaaS hockey league management platform (70% complete, live at beerleaguehockey.ca)
+Multi-tenant SaaS hockey league management platform (live at beerleaguehockey.ca)
 
 ## Tech Stack
-- Next.js 16.1.1 (App Router), React 19, TypeScript 5
+- Next.js 16.1.5 (App Router), React 19.2, TypeScript 5
 - Supabase (PostgreSQL + RLS), Stripe Connect
 - Turbo monorepo with pnpm 9.0.0
 - next-intl for i18n (English + French)
+- Zod 4 for schema validation
+- Tailwind CSS 4, shadcn/ui components
+- Framer Motion / Motion for animations
+- Resend for transactional emails
+- OpenAI for AI-powered features (news writer)
 
 ## Critical Commands
 ```bash
+# Development
 pnpm dev:builder    # Start league-builder (port 3000)
 pnpm dev:website    # Start league-sites (port 3001)
+pnpm dev:mobile     # Start Expo mobile app
+
+# Build & Checks
 pnpm build          # Build all packages
 pnpm type-check     # TypeScript validation
 pnpm lint           # ESLint check
+pnpm test           # Run Jest unit tests
+pnpm test:watch     # Jest watch mode
+
+# Code Quality
+pnpm knip           # Dead code detection
+
+# Platform Audits
+pnpm audit:platform       # Run all platform audits
+pnpm audit:tenant-queries # Check multi-tenant query scoping
+pnpm audit:content-health # Content health check
+pnpm audit:idempotency    # Idempotency usage audit
+pnpm audit:stripe-pricing # Validate Stripe pricing config
+pnpm release:readiness    # Release readiness check
 ```
 
 ## Claude Code Skills
@@ -77,6 +99,71 @@ packages/
   ui/                 # Shared UI components (shadcn/ui based)
   data/               # Shared data layer (queries, hooks)
   ui-native/          # React Native UI components
+scripts/              # Utility scripts (seeding, migrations, deployment, audits)
+supabase/             # Supabase config, migrations, edge functions, seeds
+docs/                 # Project documentation (see docs/INDEX.md)
+.claude/              # Claude Code config, agents, commands, work logs
+.github/              # CI/CD workflows
+```
+
+## App Routes
+
+### League Builder (`apps/league-builder/src/app/`)
+```
+[locale]/
+  (auth)/              # Auth pages (login, signup, etc.)
+  dashboard/
+    leagues/           # League management (list, [id] detail, new)
+    seasons/           # Season management
+    teams/             # Team management
+    captain/           # Captain tools
+    admin/             # Admin panel
+    analytics/         # Analytics dashboard
+    settings/          # User/org settings
+    staff/             # Staff management
+    staffing/          # Staffing operations
+    company/           # Company/org settings
+    payments/          # Payment management
+  website-editor/      # League website WYSIWYG editor
+  register/            # Registration flow
+  pricing/             # Pricing page
+  verify/              # Email verification
+api/                   # API routes
+register/              # Public registration
+```
+
+### League Sites (`apps/league-sites/src/app/`)
+```
+[leagueSlug]/
+  schedule/            # Week-based schedule with filters
+  games/               # Game details and previews
+  scores/              # Score display
+  standings/           # League standings
+  stats/               # Player/team statistics
+  players/             # Player profiles
+  teams/               # Team pages
+  playoffs/            # Playoff brackets
+  news/                # News articles (AI-generated recaps)
+  events/              # League events
+  gallery/             # Photo galleries
+  goalies/             # Goalie marketplace
+  captain/             # Captain dashboard
+  me/                  # Player personal dashboard
+  scorekeeper/         # Scorekeeper PWA interface
+  checkin/             # Game day check-in
+  referee/             # Referee tools
+  register/            # League registration
+  venues/              # Venue information
+  suspensions/         # Suspension tracking
+  history/             # League history
+  about/               # About the league
+  contact/             # Contact page
+  p/                   # Public player profiles
+  verify/              # Verification flow
+  privacy/             # Privacy policy
+  terms/               # Terms of service
+discover/              # League discovery/directory
+api/                   # League sites API routes
 ```
 
 ## i18n
@@ -89,16 +176,24 @@ packages/
 - Supabase with Row Level Security (RLS)
 - Always use RLS policies for new tables
 - Types source of truth: `packages/database/src/types.ts`
+- Migrations: `supabase/migrations/` (timestamped SQL files)
+- Edge functions: `supabase/functions/`
+- Seeds: `supabase/seeds/`
 - Generate types after migrations: `mcp__supabase__generate_typescript_types`
 - Use `/migrate` skill for structured migration workflow
 - Use `/sync-types` skill when types get out of sync
 
-## Deployment
-- Vercel (auto-deploy)
-- `main` branch → Preview environment
-- `production` branch → Production environment
-- Never push directly to `production` - merge from `main`
-- Use `/ship` skill before production deploys
+## CI/CD
+- **GitHub Actions** (`.github/workflows/`):
+  - `ci.yml` — Lint, type-check, and unit tests on push/PR to `main`
+  - `e2e-tests.yml` — End-to-end test suite
+  - `gitleaks.yml` — Secret scanning (push, PR, daily scheduled scan)
+- **Vercel** (auto-deploy):
+  - `main` branch → Preview environment
+  - `production` branch → Production environment
+  - Never push directly to `production` - merge from `main`
+  - Use `/ship` skill before production deploys
+- Node.js 20 in CI
 
 ## Stripe Payments & Custom Domain
 - **Custom Payment Domain**: `pay.beerleaguehockey.ca`
@@ -118,6 +213,7 @@ packages/
 - **Enum-to-Boolean Transformation Pattern**: Database uses enums (e.g., `leadership_role`), app layer transforms to booleans (e.g., `is_captain`). See `usePlayerProfile.ts` for canonical pattern.
 - **PWA Query Validation**: Type-check doesn't catch database column mismatches in PWA queries. Always test PWA queries with actual database connection.
 - **Trust Database Schema First**: If 99% of code works with schema, the schema is correct. Look for outlier bugs, not wholesale schema problems.
+- **pnpm overrides**: Security patches and version fixes are managed via `pnpm.overrides` in root `package.json` — check there before debugging dependency version issues.
 
 ## Key Features (Active Development)
 - **Captain Dashboard** - roster management, join requests, import roster
@@ -125,30 +221,37 @@ packages/
 - **Stripe Connect Payments** - registration fees (2.99% platform fee), chargebacks, refunds
 - **Website Editor** - theme customization, custom domains, branding
 - **Schedule Management** - game scheduling with conflict detection
-- **League Setup Wizard** - 8-step guided league creation + success screen (see below)
+- **League Setup Wizard** - 9-step guided league creation (see below)
+- **Goalie Marketplace** - goalie availability and request system
+- **AI News Writer** - auto-generated game recaps and league news
+- **Referee Tools** - referee management and payroll
+- **Playoff Brackets** - playoff tournament management
+- **Badge System** - player achievement badges
+- **League Discovery** - public league directory
 
-## League Setup Wizard (8 Steps + Success Screen)
+## League Setup Wizard (9 Steps)
 Location: `apps/league-builder/src/components/league-wizard/`
 
 **Steps:**
-1. League Info - name, location, branding (colors, logo)
-2. Season Settings - dates, registration type, game settings
-3. Teams - optional team creation
-4. Registration Fees - enable/disable paid registration, early bird, late fees
-5. Payment Setup - Stripe Connect integration (if fees enabled)
-6. Website & Branding - visibility, theme, social links
-7. Review & Launch - summary, warnings, create button
-8. Final Configuration - post-launch settings and confirmations
-9. Success Screen - post-creation summary with next steps
+1. Org Info - organization/league owner details
+2. League Info - name, location, branding (colors, logo)
+3. Season & Scorekeeping - dates, game settings, scorekeeping config
+4. Teams - optional team creation
+5. Website & Pages - page visibility and content settings
+6. Add-ons - premium feature selection
+7. Registration & Payments - fees, Stripe Connect, early bird, late fees
+8. Review - summary, warnings, create button
+9. Next Steps - post-creation guidance and onboarding
 
 **Key Files:**
-- `wizard-container.tsx` - Main container, state management, 8-step navigation
-- `steps/step-{1-8}-*.tsx` - Individual step components
-- `wizard-success.tsx` - Post-creation success screen (step 9) with next steps
+- `wizard-container.tsx` - Main container, state management, navigation
+- `wizard-navigation.tsx` - Step navigation controls
+- `wizard-progress.tsx` - Progress indicator
+- `steps/step-{1-9}-*.tsx` - Individual step components
 - `lib/schemas/league-wizard.ts` - Zod validation schemas
 - `lib/actions/league-wizard.ts` - Server actions (saveDraft, createLeague)
 
-## League Sites Templates (Platform 2)
+## League Sites Templates
 Location: `apps/league-sites/`
 
 **BMHL-Style Template Components:**
@@ -161,8 +264,15 @@ Location: `apps/league-sites/`
 **Key Pages:**
 - `/[leagueSlug]/schedule` - Week-based schedule with filters
 - `/[leagueSlug]/games/[gameId]` - Game preview with stats
+- `/[leagueSlug]/standings` - League standings
+- `/[leagueSlug]/stats` - Player and team statistics
+- `/[leagueSlug]/playoffs` - Playoff brackets
 - `/[leagueSlug]/me` - Player dashboard (upcoming games, results, team)
 - `/[leagueSlug]/captain` - Captain duties and roster management
+- `/[leagueSlug]/scorekeeper` - Live game scoring PWA
+- `/[leagueSlug]/goalies` - Goalie marketplace
+- `/[leagueSlug]/news` - League news and AI recaps
+- `/[leagueSlug]/register` - League registration
 
 **CSS Variables for Theming:**
 - `--league-primary`, `--league-secondary` - League colors
@@ -186,9 +296,11 @@ Location: `apps/league-sites/`
 - Commit after each logical chunk
 - No half-finished code
 - Use existing components from packages/ui before creating new ones
-- Keep API routes in apps/league-builder/app/api/
+- Keep API routes in `apps/league-builder/src/app/api/` and `apps/league-sites/src/app/api/`
 - Always verify auth in server actions with `getServerSession`
 - Use `/review` skill before committing to catch issues
+- Use `@hockey-life/data` package for shared queries and hooks
+- Database types are exported from `@hockey-life/database/types`
 
 ## Git Workflow
 - Work on `main` branch for development
@@ -197,9 +309,11 @@ Location: `apps/league-sites/`
 
 ## Documentation
 - All docs live in `docs/` — see `docs/INDEX.md` for a categorized table of contents
+- Key docs: `ARCHITECTURAL_DECISIONS.md`, `DEPLOYMENT_GUIDE.md`, `MONOREPO_SETUP.md`, `GIT_WORKFLOW.md`
 - Work logs: `.claude/work-logs/` — daily session logs for multi-agent coordination
-- Agent configs: `.claude/agents/` — agent role definitions
+- Agent configs: `.claude/agents/` — agent role definitions (bugfix, feature-dev, validator)
 - Skills: `.claude/commands/` — slash command definitions
+- Templates: `.claude/templates/` — reusable templates
 
 ## Design System
 - See `docs/BRAND-KIT.md` for full design system (colors, typography, spacing, components)
@@ -207,3 +321,19 @@ Location: `apps/league-sites/`
 - Inter font family, 4px spacing rhythm
 - Dark and light mode support with CSS variables
 - Multi-tenant theming via league-specific CSS custom properties
+
+## Environment Variables
+Required env vars (set in `.env.local`, referenced in `turbo.json`):
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public key
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-only)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` — Stripe publishable key
+- `STRIPE_SECRET_KEY` — Stripe secret key (server-only)
+- `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
+- `STRIPE_WEBHOOK_SECRET_CONNECT` — Stripe Connect webhook secret
+- `NEXT_PUBLIC_APP_URL` — League builder URL
+- `NEXT_PUBLIC_SITE_URL` — League sites URL
+- `RESEND_API_KEY` — Resend email API key
+- `OPENAI_API_KEY` — OpenAI API key (for AI news writer)
+- `SENTRY_AUTH_TOKEN` — Sentry error tracking token
+- Mobile: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`
