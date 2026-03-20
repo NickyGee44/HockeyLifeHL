@@ -480,8 +480,7 @@ export async function updateTeamInvoice(
     const supabase = createServiceRoleClient();
 
     // Fetch the invoice to get league_id for auth check
-    // Cast to any — team_invoices table not yet in generated types
-    const { data: existing, error: fetchError } = await (supabase as any)
+    const { data: existing, error: fetchError } = await supabase
       .from('team_invoices')
       .select('league_id, total_amount_cents')
       .eq('id', invoiceId)

@@ -17,7 +17,9 @@ import {
 import { ColorPicker } from './ColorPicker';
 import { submitTeamRegistrationRequest } from '@/lib/actions/team-registration-requests';
 import {
-  sendTeamRequestSubmittedEmail} from '@/lib/email/team-request-emails';
+  sendTeamRequestSubmittedEmail,
+  notifyLeagueAdminsOfNewTeamRequest,
+} from '@/lib/email/team-request-emails';
 import { createClient } from '@/lib/supabase/client';
 
 interface Division {
@@ -111,8 +113,51 @@ export function TeamRegistrationForm({
             requestId: result.data.id });
         }
 
-        // TODO: Notify league admins (would need to fetch admin emails)
-        // This would be better handled by a database trigger or background job
+        // Notify league admins of new team request
+        try {
+          const { data: adminMembers } = await supabase
+            .from('league_memberships')
+            .select('profiles!inner(id, full_name, email)')
+            .eq('league_id', leagueId)
+            .in('role', ['owner', 'admin']);
+
+          if (adminMembers && adminMembers.length > 0) {
+            const adminEmails = adminMembers
+              .map((m) => {
+                const p = m.profiles as unknown as { id: string; full_name: string | null; email: string | null };
+                return p?.email ? { email: p.email, name: p.full_name || 'Admin' } : null;
+              })
+              .filter((a): a is { email: string; name: string } => a !== null);
+
+            // Get pending request count for admin alert
+            const { count: pendingCount } = await supabase
+              .from('team_registration_requests')
+              .select('*', { count: 'exact', head: true })
+              .eq('league_id', leagueId)
+              .eq('status', 'pending');
+
+            if (adminEmails.length > 0) {
+              await notifyLeagueAdminsOfNewTeamRequest({
+                adminEmails,
+                leagueName,
+                requesterName: profile?.full_name || 'Team Manager',
+                requesterEmail: profile?.email || '',
+                teamName: teamName.trim(),
+                teamShortName: teamShortName.trim(),
+                teamContactEmail: teamContactEmail.trim() || undefined,
+                requestedDivision: divisions.find((d) => d.id === requestedDivisionId)?.name,
+                message: message.trim() || undefined,
+                submittedAt: new Date(),
+                pendingCount: pendingCount ?? 1,
+                requestId: result.data.id,
+                leagueId,
+              });
+            }
+          }
+        } catch (emailErr) {
+          // Don't fail the submission if admin notification fails
+          console.error('[TeamRegistration] Failed to notify admins:', emailErr);
+        }
 
         setIsSuccess(true);
       } else {

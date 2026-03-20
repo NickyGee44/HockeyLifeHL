@@ -190,6 +190,51 @@ export async function updateSeasonStatus(seasonId: string, newStatus: SeasonStat
 }
 
 /**
+ * Archive the most recent completed season for a league.
+ * Only seasons in "completed" status can be archived.
+ */
+export async function archiveLeagueSeason(leagueId: string) {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { error: access.error || 'Not authorized' };
+  }
+
+  const supabase = createServiceRoleClient();
+
+  // Find the most recent completed season
+  const { data: season, error: fetchError } = await supabase
+    .from('seasons')
+    .select('id, name, status')
+    .eq('league_id', leagueId)
+    .eq('status', 'completed')
+    .order('end_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { error: 'Failed to look up seasons' };
+  }
+
+  if (!season) {
+    return { error: 'No completed season found to archive. Only completed seasons can be archived.' };
+  }
+
+  const { error: updateError } = await supabase
+    .from('seasons')
+    .update({ status: 'archived', updated_at: new Date().toISOString() })
+    .eq('id', season.id);
+
+  if (updateError) {
+    if (isDevelopment) console.error('Error archiving season:', updateError);
+    return { error: 'Failed to archive the season' };
+  }
+
+  revalidatePath(`/dashboard/leagues/${leagueId}`);
+  revalidatePath(`/dashboard/leagues/${leagueId}/seasons`);
+  return { success: true, seasonName: season.name };
+}
+
+/**
  * Update a season's details
  */
 export async function updateSeason(seasonId: string, data: {

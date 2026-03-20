@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@hockey-life/ui';
 
-// TODO: Wire to useSyncState once offline infrastructure is integrated
-// For now, provides a static online indicator that can be extended
+// Uses browser online/offline detection. When offline infrastructure is added,
+// pass a full syncState prop to show pending count and sync progress.
 
 interface SyncState {
   isOnline: boolean;

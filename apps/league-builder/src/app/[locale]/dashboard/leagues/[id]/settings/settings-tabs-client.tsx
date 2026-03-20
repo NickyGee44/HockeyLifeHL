@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import {
@@ -46,7 +47,10 @@ interface SettingsTabsClientProps {
   initialTab: string;
 }
 
+import { archiveLeagueSeason } from '@/lib/actions/seasons';
+
 export function SettingsTabsClient({
+  leagueId,
   leagueSettings,
   orgSettings,
   initialTab,
@@ -56,6 +60,7 @@ export function SettingsTabsClient({
   const pathname = usePathname();
 
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || initialTab);
+  const [isArchiving, startArchiveTransition] = useTransition();
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -138,16 +143,29 @@ export function SettingsTabsClient({
                   Archived seasons can be restored later.
                 </p>
                 <button
-                  disabled
+                  disabled={isArchiving}
+                  onClick={() => {
+                    if (!confirm('Are you sure you want to archive the most recent completed season? It can be restored later.')) return;
+                    startArchiveTransition(async () => {
+                      const result = await archiveLeagueSeason(leagueId);
+                      if ('error' in result) {
+                        toast.error(result.error);
+                      } else {
+                        toast.success(`Season "${result.seasonName}" has been archived`);
+                        router.refresh();
+                      }
+                    });
+                  }}
                   className={cn(
-                    'px-4 py-2.5 rounded-xl font-medium text-sm',
+                    'px-4 py-2.5 rounded-xl font-medium text-sm transition-colors',
                     'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
-                    'opacity-50 cursor-not-allowed'
+                    'hover:bg-yellow-500/30',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
                 >
-                  Archive Season
+                  {isArchiving ? 'Archiving...' : 'Archive Season'}
                 </button>
-                <p className="text-xs text-neutral-500 mt-2">Coming soon</p>
+                <p className="text-xs text-neutral-500 mt-2">Archives the most recent completed season</p>
               </div>
             </div>
           </div>

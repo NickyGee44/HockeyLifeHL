@@ -762,7 +762,7 @@ export async function submitSignedWaiver(
         league_id: leagueId,
         season_id: seasonId,
         signature_data: signatureData,
-        signature_type: signatureType as any, // 'checkbox' added via migration, types not yet regenerated
+        signature_type: signatureType,
         signed_name: signedName,
         waiver_version: template?.version || 'v1',
         waiver_content_hash: waiverContentHash,

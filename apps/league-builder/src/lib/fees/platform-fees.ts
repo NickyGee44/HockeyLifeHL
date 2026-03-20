@@ -289,12 +289,10 @@ export async function getLeagueBillingConfig(leagueId: string): Promise<LeagueBi
       contractTermMonths: row.contract_term_months ?? TIER_CONTRACT_MONTHS.standard,
       referralDiscountBps: row.referral_discount_bps ?? 0,
       flatSeasonFeeCents: row.flat_season_fee_cents ?? 0,
-      playerFeeSharePercent: (row as any).player_fee_share_percent ?? 100,
-      // Cast to `any` for columns added by 20260306_auto_tier_columns migration
-      // (not yet in generated types — regenerate with /sync-types after migration runs)
-      floorStripeSubscriptionId: (row as any).floor_stripe_subscription_id ?? null,
-      floorStripeProductId: (row as any).floor_stripe_product_id ?? null,
-      stripeBillingCustomerId: (row as any).stripe_billing_customer_id ?? null,
+      playerFeeSharePercent: (row as Record<string, unknown>).player_fee_share_percent as number ?? 100,
+      floorStripeSubscriptionId: row.floor_stripe_subscription_id ?? null,
+      floorStripeProductId: row.floor_stripe_product_id ?? null,
+      stripeBillingCustomerId: row.stripe_billing_customer_id ?? null,
     };
 
     leagueBillingCache.set(leagueId, { config, expiresAt: now + CACHE_TTL_MS });
@@ -481,14 +479,13 @@ export async function saveFloorSubscription(
   }
 ): Promise<void> {
   const supabase = createServiceRoleClient();
-  // Cast to `any`: new columns added by 20260306_auto_tier_columns, not yet in generated types
   const { error } = await supabase
     .from('league_billing_settings')
     .update({
       floor_stripe_subscription_id: data.floorStripeSubscriptionId,
       floor_stripe_product_id: data.floorStripeProductId,
       stripe_billing_customer_id: data.stripeBillingCustomerId,
-    } as any)
+    })
     .eq('league_id', leagueId);
 
   if (error) {

@@ -808,8 +808,7 @@ export async function getSeasonFeeCollectionModel(
   try {
     const supabase = await createClient();
 
-    // Cast to any — fee_collection_model not yet in generated types
-    const { data: season, error } = await (supabase as any)
+    const { data: season, error } = await supabase
       .from('seasons')
       .select('fee_collection_model')
       .eq('id', seasonId)

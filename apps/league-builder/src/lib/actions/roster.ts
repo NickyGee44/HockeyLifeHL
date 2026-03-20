@@ -345,6 +345,94 @@ export async function updatePlayerStatus(params: UpdatePlayerStatusParams) {
 }
 
 /**
+ * Switch a player from their current team to a different team within the same season.
+ * Ends the current roster entry and creates a new one on the target team.
+ */
+export async function switchPlayerTeam(params: {
+  playerId: string;
+  currentTeamId: string;
+  newTeamId: string;
+  seasonId: string;
+  leagueId: string;
+}) {
+  const { playerId, currentTeamId, newTeamId, seasonId, leagueId } = params;
+
+  const supabase = createServiceRoleClient();
+
+  try {
+    // Get the current roster entry
+    const { data: currentRoster, error: fetchError } = await supabase
+      .from('team_rosters')
+      .select('id, jersey_number, position, leadership_role')
+      .eq('player_id', playerId)
+      .eq('team_id', currentTeamId)
+      .eq('season_id', seasonId)
+      .is('end_date', null)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (fetchError || !currentRoster) {
+      return { error: 'Current roster entry not found for this player' };
+    }
+
+    // Get the new team's division
+    const { data: newTeam } = await supabase
+      .from('teams')
+      .select('division_id')
+      .eq('id', newTeamId)
+      .single();
+
+    if (!newTeam) {
+      return { error: 'Target team not found' };
+    }
+
+    // End the current roster entry
+    const { error: endError } = await supabase
+      .from('team_rosters')
+      .update({
+        end_date: new Date().toISOString(),
+        status: 'traded' as const,
+      })
+      .eq('id', currentRoster.id);
+
+    if (endError) {
+      if (isDevelopment) console.error('Error ending roster entry:', endError);
+      return { error: 'Failed to remove player from current team' };
+    }
+
+    // Create new roster entry on the target team
+    const { error: insertError } = await (supabase.from('team_rosters') as any)
+      .insert({
+        team_id: newTeamId,
+        player_id: playerId,
+        season_id: seasonId,
+        division_id: newTeam.division_id,
+        jersey_number: currentRoster.jersey_number,
+        position: currentRoster.position,
+        status: 'active',
+        leadership_role: null, // Don't carry over captaincy
+        start_date: new Date().toISOString(),
+      });
+
+    if (insertError) {
+      if (isDevelopment) console.error('Error creating new roster entry:', insertError);
+      // Try to restore the old entry
+      await supabase
+        .from('team_rosters')
+        .update({ end_date: null, status: 'active' as const })
+        .eq('id', currentRoster.id);
+      return { error: 'Failed to add player to new team. Original roster restored.' };
+    }
+
+    revalidatePath(`/dashboard/leagues/${leagueId}`);
+    return { success: true };
+  } catch (error) {
+    if (isDevelopment) console.error('Unexpected error in switchPlayerTeam:', error);
+    return { error: 'An unexpected error occurred' };
+  }
+}
+
+/**
  * Remove player from roster (sets end_date)
  */
 export async function removePlayerFromRoster(rosterId: string) {

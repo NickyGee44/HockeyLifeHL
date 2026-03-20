@@ -44,6 +44,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { markPaymentAsPaid } from '@/lib/payments/payment-actions';
+import { switchPlayerTeam } from '@/lib/actions/roster';
 
 interface SeasonPlayer {
   id: string;
@@ -116,6 +117,11 @@ export function SeasonPlayersClient({
     player: null,
   });
   const [processing, setProcessing] = useState(false);
+  const [switchTeamDialog, setSwitchTeamDialog] = useState<{
+    open: boolean;
+    player: SeasonPlayer | null;
+  }>({ open: false, player: null });
+  const [switchTargetTeamId, setSwitchTargetTeamId] = useState('');
 
   const filteredPlayers = useMemo(() => {
     return players.filter((p) => {
@@ -417,11 +423,14 @@ export function SeasonPlayersClient({
                               </DropdownMenuItem>
                               <DropdownMenuSeparator className="bg-white/10" />
                               <DropdownMenuItem
-                                disabled
-                                className="text-neutral-500"
+                                onClick={() => {
+                                  setSwitchTeamDialog({ open: true, player });
+                                  setSwitchTargetTeamId('');
+                                }}
+                                className="text-neutral-300 focus:text-white focus:bg-white/10"
                               >
                                 <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                Switch Team (coming soon)
+                                Switch Team
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -490,6 +499,94 @@ export function SeasonPlayersClient({
               className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold"
             >
               {processing ? 'Processing...' : 'Mark as Paid'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Switch Team Dialog */}
+      <Dialog
+        open={switchTeamDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setSwitchTeamDialog({ open: false, player: null });
+        }}
+      >
+        <DialogContent className="bg-neutral-900 border-white/10 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Switch Team</DialogTitle>
+            <DialogDescription className="text-neutral-400">
+              Move {switchTeamDialog.player?.fullName} to a different team for this season.
+            </DialogDescription>
+          </DialogHeader>
+
+          {switchTeamDialog.player && (
+            <div className="space-y-4">
+              <div className="bg-white/[0.04] border border-white/10 rounded-xl p-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-neutral-500">Player</p>
+                    <p className="font-medium text-white">{switchTeamDialog.player.fullName}</p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-500">Current Team</p>
+                    <p className="font-medium text-white">{switchTeamDialog.player.teamName}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>New Team</Label>
+                <Select value={switchTargetTeamId} onValueChange={setSwitchTargetTeamId}>
+                  <SelectTrigger className="bg-white/[0.04] border-white/10 text-white">
+                    <SelectValue placeholder="Select a team" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-neutral-900 border-white/10">
+                    {teams
+                      .filter((t) => t.id !== switchTeamDialog.player?.teamId)
+                      .map((t) => (
+                        <SelectItem key={t.id} value={t.id} className="text-white focus:bg-white/10">
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSwitchTeamDialog({ open: false, player: null })}
+              className="border-white/10 text-neutral-300 hover:bg-white/5"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                const player = switchTeamDialog.player;
+                if (!player || !switchTargetTeamId || !player.teamId) return;
+                setProcessing(true);
+                const result = await switchPlayerTeam({
+                  playerId: player.id,
+                  currentTeamId: player.teamId,
+                  newTeamId: switchTargetTeamId,
+                  seasonId,
+                  leagueId,
+                });
+                setProcessing(false);
+                if ('error' in result) {
+                  toast.error(result.error);
+                } else {
+                  toast.success(`${player.fullName} moved to new team`);
+                  setSwitchTeamDialog({ open: false, player: null });
+                  router.refresh();
+                }
+              }}
+              disabled={processing || !switchTargetTeamId}
+              className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold"
+            >
+              {processing ? 'Switching...' : 'Switch Team'}
             </Button>
           </DialogFooter>
         </DialogContent>

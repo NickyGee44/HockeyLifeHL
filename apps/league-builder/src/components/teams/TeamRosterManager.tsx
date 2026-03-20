@@ -5,16 +5,19 @@ import { RosterList } from './RosterList';
 import { StaffList } from './StaffList';
 import { AddPlayerModal } from './AddPlayerModal';
 import { AddStaffModal } from './AddStaffModal';
+import { EditPlayerModal } from './EditPlayerModal';
 
 interface TeamRosterManagerProps {
   teamId: string;
   seasonId: string;
+  leagueId: string;
 }
 
-export function TeamRosterManager({ teamId, seasonId }: TeamRosterManagerProps) {
+export function TeamRosterManager({ teamId, seasonId, leagueId }: TeamRosterManagerProps) {
   const [activeTab, setActiveTab] = useState<'roster' | 'staff'>('roster');
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [editingRosterId, setEditingRosterId] = useState<string | null>(null);
   const [rosterKey, setRosterKey] = useState(0);
   const [staffKey, setStaffKey] = useState(0);
 
@@ -76,8 +79,8 @@ export function TeamRosterManager({ teamId, seasonId }: TeamRosterManagerProps) 
             key={rosterKey}
             teamId={teamId}
             seasonId={seasonId}
-            onEditPlayer={() => {
-              // TODO: Implement edit player functionality
+            onEditPlayer={(rosterId) => {
+              setEditingRosterId(rosterId);
             }}
             onRemovePlayer={() => {
               setRosterKey((prev) => prev + 1);
@@ -101,6 +104,7 @@ export function TeamRosterManager({ teamId, seasonId }: TeamRosterManagerProps) 
         onClose={() => setShowAddPlayerModal(false)}
         teamId={teamId}
         seasonId={seasonId}
+        leagueId={leagueId}
         onPlayerAdded={handlePlayerAdded}
       />
 
@@ -109,7 +113,19 @@ export function TeamRosterManager({ teamId, seasonId }: TeamRosterManagerProps) 
         onClose={() => setShowAddStaffModal(false)}
         teamId={teamId}
         seasonId={seasonId}
+        leagueId={leagueId}
         onStaffAdded={handleStaffAdded}
+      />
+
+      <EditPlayerModal
+        isOpen={!!editingRosterId}
+        onClose={() => setEditingRosterId(null)}
+        teamId={teamId}
+        rosterId={editingRosterId || ''}
+        onPlayerUpdated={() => {
+          setRosterKey((prev) => prev + 1);
+          setEditingRosterId(null);
+        }}
       />
     </div>
   );

@@ -4268,10 +4268,13 @@ export type Database = {
           created_by: string | null
           details_submitted: boolean
           flat_season_fee_cents: number
+          floor_stripe_product_id: string | null
+          floor_stripe_subscription_id: string | null
           id: string
           league_id: string
           monthly_floor_cents: number
           payouts_enabled: boolean
+          player_fee_share_percent: number
           platform_fee_bps: number
           platform_fee_mode: string
           pricing_tier: "small" | "standard" | "large" | "enterprise"
@@ -4286,6 +4289,7 @@ export type Database = {
           setup_fee_waived_reason: string | null
           stripe_account_id: string | null
           stripe_account_status: string | null
+          stripe_billing_customer_id: string | null
           stripe_onboarding_completed_at: string | null
           updated_at: string
         }
@@ -4296,10 +4300,13 @@ export type Database = {
           created_by?: string | null
           details_submitted?: boolean
           flat_season_fee_cents?: number
+          floor_stripe_product_id?: string | null
+          floor_stripe_subscription_id?: string | null
           id?: string
           league_id: string
           monthly_floor_cents?: number
           payouts_enabled?: boolean
+          player_fee_share_percent?: number
           platform_fee_bps?: number
           platform_fee_mode?: string
           pricing_tier?: "small" | "standard" | "large" | "enterprise"
@@ -4314,6 +4321,7 @@ export type Database = {
           setup_fee_waived_reason?: string | null
           stripe_account_id?: string | null
           stripe_account_status?: string | null
+          stripe_billing_customer_id?: string | null
           stripe_onboarding_completed_at?: string | null
           updated_at?: string
         }
@@ -4324,10 +4332,13 @@ export type Database = {
           created_by?: string | null
           details_submitted?: boolean
           flat_season_fee_cents?: number
+          floor_stripe_product_id?: string | null
+          floor_stripe_subscription_id?: string | null
           id?: string
           league_id?: string
           monthly_floor_cents?: number
           payouts_enabled?: boolean
+          player_fee_share_percent?: number
           platform_fee_bps?: number
           platform_fee_mode?: string
           pricing_tier?: "small" | "standard" | "large" | "enterprise"
@@ -4342,6 +4353,7 @@ export type Database = {
           setup_fee_waived_reason?: string | null
           stripe_account_id?: string | null
           stripe_account_status?: string | null
+          stripe_billing_customer_id?: string | null
           stripe_onboarding_completed_at?: string | null
           updated_at?: string
         }
@@ -9150,6 +9162,7 @@ export type Database = {
           default_location: string | null
           draft_scheduled_at: string | null
           end_date: string | null
+          fee_collection_model: Database["public"]["Enums"]["fee_collection_model"]
           game_days: Json | null
           game_duration_minutes: number | null
           game_times: Json | null
@@ -9186,6 +9199,7 @@ export type Database = {
           default_location?: string | null
           draft_scheduled_at?: string | null
           end_date?: string | null
+          fee_collection_model?: Database["public"]["Enums"]["fee_collection_model"]
           game_days?: Json | null
           game_duration_minutes?: number | null
           game_times?: Json | null
@@ -9222,6 +9236,7 @@ export type Database = {
           default_location?: string | null
           draft_scheduled_at?: string | null
           end_date?: string | null
+          fee_collection_model?: Database["public"]["Enums"]["fee_collection_model"]
           game_days?: Json | null
           game_duration_minutes?: number | null
           game_times?: Json | null
@@ -10736,6 +10751,152 @@ export type Database = {
             columns: ["submitted_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_invoice_payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          notes: string | null
+          payment_method: string
+          recorded_by: string | null
+          reference_number: string | null
+          stripe_payment_intent_id: string | null
+          team_invoice_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          recorded_by?: string | null
+          reference_number?: string | null
+          stripe_payment_intent_id?: string | null
+          team_invoice_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          recorded_by?: string | null
+          reference_number?: string | null
+          stripe_payment_intent_id?: string | null
+          team_invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invoice_payments_team_invoice_id_fkey"
+            columns: ["team_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "team_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invoice_payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_invoices: {
+        Row: {
+          amount_paid_cents: number
+          created_at: string
+          currency: string
+          fee_basis: string
+          fee_per_player_cents: number
+          id: string
+          league_id: string
+          notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          payment_deadline: string | null
+          season_id: string
+          status: string
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          team_id: string
+          total_amount_cents: number
+          total_players: number
+          updated_at: string
+        }
+        Insert: {
+          amount_paid_cents?: number
+          created_at?: string
+          currency?: string
+          fee_basis?: string
+          fee_per_player_cents?: number
+          id?: string
+          league_id: string
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_deadline?: string | null
+          season_id: string
+          status?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          team_id: string
+          total_amount_cents?: number
+          total_players?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid_cents?: number
+          created_at?: string
+          currency?: string
+          fee_basis?: string
+          fee_per_player_cents?: number
+          id?: string
+          league_id?: string
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_deadline?: string | null
+          season_id?: string
+          status?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          team_id?: string
+          total_amount_cents?: number
+          total_players?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invoices_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invoices_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invoices_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invoices_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -12910,6 +13071,8 @@ export type Database = {
           charges_enabled: boolean
           contract_term_months: number
           flat_season_fee_cents: number
+          floor_stripe_product_id: string | null
+          floor_stripe_subscription_id: string | null
           league_id: string
           monthly_floor_cents: number
           payouts_enabled: boolean
@@ -12921,8 +13084,10 @@ export type Database = {
           setup_fee_currency: string
           setup_fee_paid_at: string
           setup_fee_status: string
+          setup_fee_stripe_invoice_id: string | null
           stripe_account_id: string
           stripe_account_status: string
+          stripe_billing_customer_id: string | null
         }[]
       }
       get_league_by_hostname: {
@@ -13864,6 +14029,7 @@ export type Database = {
         | "draft_grades"
         | "announcement"
         | "news"
+      fee_collection_model: "individual" | "team" | "hybrid"
       badge_type:
         | "championship"
         | "top_scorer"
@@ -13946,7 +14112,7 @@ export type Database = {
       registration_type_enum: "team_registration" | "free_agent" | "individual"
       roster_status: "active" | "inactive" | "suspended" | "injured" | "traded"
       season_status: "active" | "playoffs" | "completed" | "draft" | "archived"
-      signature_type_enum: "drawn" | "typed"
+      signature_type_enum: "drawn" | "typed" | "checkbox"
       skill_level_enum: "beginner" | "intermediate" | "advanced" | "expert"
       team_staff_role:
         | "Head Coach"
@@ -14090,6 +14256,7 @@ export const Constants = {
         "announcement",
         "news",
       ],
+      fee_collection_model: ["individual", "team", "hybrid"],
       badge_type: [
         "championship",
         "top_scorer",
@@ -14175,7 +14342,7 @@ export const Constants = {
       registration_type_enum: ["team_registration", "free_agent", "individual"],
       roster_status: ["active", "inactive", "suspended", "injured", "traded"],
       season_status: ["active", "playoffs", "completed", "draft", "archived"],
-      signature_type_enum: ["drawn", "typed"],
+      signature_type_enum: ["drawn", "typed", "checkbox"],
       skill_level_enum: ["beginner", "intermediate", "advanced", "expert"],
       team_staff_role: [
         "Head Coach",
