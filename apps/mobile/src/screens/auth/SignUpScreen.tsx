@@ -90,7 +90,7 @@ export default function SignUpScreen() {
               <Ionicons name="checkmark-circle" size={48} color={colors.accentGreen} />
               <Text style={styles.successTitle}>Check your email</Text>
               <Text style={styles.successText}>
-                We've sent a verification link to {email.trim()}. Please verify your email to
+                We&apos;ve sent a verification link to {email.trim()}. Please verify your email to
                 complete registration.
               </Text>
               <Pressable style={styles.backToLoginButton} onPress={() => navigation.goBack()}>
