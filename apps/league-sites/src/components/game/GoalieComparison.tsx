@@ -184,7 +184,7 @@ function GoalieCard({ goalie, color, align, leagueSlug }: GoalieCardProps) {
       <div
         className={`grid grid-cols-3 gap-3 w-full rounded-lg p-2.5`}
         style={{
-          background: 'color-mix(in srgb, var(--color-surface-hover) 60%, transparent)',
+          background: 'color-mix(in srgb, var(--color-background-elevated) 96%, transparent)',
         }}
       >
         <StatCell

@@ -11,9 +11,9 @@ import { CallToAction } from '@/components/marketing/cta';
 import { Footer } from '@/components/marketing/footer';
 
 export const metadata: Metadata = {
-  title: 'The operating system for beer league hockey | BeerLeagueHockey.ca',
+  title: 'BeerLeagueHockey.ca | The hockey league platform with the public website built in',
   description:
-    'BLH gives commissioners one place to run registrations, payments, schedules, standings, stats, and public league websites without spreadsheets, payment chasing, or admin chaos.',
+    "BLH gives commissioners one place to run registrations, payments, schedules, standings, stats, and public league websites. League pays Stripe processing, players pay BLH's platform fee.",
 };
 
 const barlowCondensed = Barlow_Condensed({

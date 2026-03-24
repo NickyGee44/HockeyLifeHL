@@ -214,7 +214,7 @@ function ScoringByPeriod({
                     key={idx}
                     className="flex items-center gap-3 py-2 px-3 rounded-lg"
                     style={{
-                      background: 'color-mix(in srgb, var(--color-surface-hover) 50%, transparent)',
+                      background: 'color-mix(in srgb, var(--color-background-elevated) 95%, transparent)',
                     }}
                   >
                     {/* Time */}
@@ -332,7 +332,7 @@ function PenaltyByPeriod({
                     key={idx}
                     className="flex items-center gap-3 py-2 px-3 rounded-lg"
                     style={{
-                      background: 'color-mix(in srgb, var(--color-surface-hover) 50%, transparent)',
+                      background: 'color-mix(in srgb, var(--color-background-elevated) 95%, transparent)',
                     }}
                   >
                     <span className="text-xs text-[var(--color-text-muted)] font-mono w-12 flex-shrink-0">

@@ -65,10 +65,10 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         ${hover ? 'hover:border-[var(--color-border-emphasis)]' : ''}
       `,
       glass: `
-        bg-[var(--color-surface)]/60
+        bg-[color-mix(in_srgb,var(--color-background-elevated)_92%,var(--color-surface)_8%)]
         backdrop-blur-xl
-        border border-[var(--color-border)]/50
-        ${hover ? 'hover:bg-[var(--color-surface)]/80 hover:border-[var(--color-border-emphasis)]' : ''}
+        border border-[color-mix(in_srgb,var(--color-border)_78%,transparent)]
+        ${hover ? 'hover:bg-[color-mix(in_srgb,var(--color-background-elevated)_96%,var(--color-surface)_4%)] hover:border-[var(--color-border-emphasis)]' : ''}
       `,
       gradient: `
         bg-[var(--color-surface)]

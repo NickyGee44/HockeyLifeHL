@@ -1,3 +1,5 @@
+'use client';
+
 interface LeagueNewsFallbackArtworkProps {
   leagueName: string;
   leagueLogoUrl?: string | null;

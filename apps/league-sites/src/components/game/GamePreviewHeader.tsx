@@ -54,7 +54,7 @@ export function GamePreviewHeader({
     }
     if (isCompleted) {
       return (
-        <span className="px-4 py-2 bg-[var(--color-surface)] text-[var(--color-text)] rounded-full text-sm font-bold">
+        <span className="px-4 py-2 bg-[color-mix(in_srgb,var(--color-background-elevated)_94%,transparent)] text-[var(--color-text-primary)] rounded-full text-sm font-bold">
           FINAL
         </span>
       );

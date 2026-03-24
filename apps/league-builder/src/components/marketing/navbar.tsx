@@ -36,18 +36,18 @@ export function Navbar() {
 
             <nav className="hidden md:flex items-center gap-8">
                 {[
-                    { label: 'Platform', href: '#platform' },
-                    { label: 'Why BLH', href: '#replace' },
-                    { label: 'Migration', href: '#migration' },
-                    { label: 'Pricing', href: '#pricing' }
+                    { label: 'Platform', href: '/#platform' },
+                    { label: 'Why BLH', href: '/#comparison' },
+                    { label: 'Migration', href: '/#migration' },
+                    { label: 'Pricing', href: '/pricing' }
                 ].map((link) => (
-                    <a
+                    <Link
                         key={link.label}
                         href={link.href}
                         className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors hover:-translate-y-[1px] transform"
                     >
                         {link.label}
-                    </a>
+                    </Link>
                 ))}
             </nav>
 

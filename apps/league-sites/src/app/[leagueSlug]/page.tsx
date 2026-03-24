@@ -37,16 +37,15 @@ import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
 import { DivisionStandingsWidget } from '@/components/DivisionStandingsWidget';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
-import { HeroSection } from '@/components/HeroSection';
 import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import { AwardsShowcase } from '@/components/awards/AwardsShowcase';
-import { FeaturedNewsBanner } from '@/components/news/FeaturedNewsBanner';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import {
   HomepagePulseRail,
   type HomepageCountdownCard,
   type HomepagePhotoHighlight,
 } from '@/components/home/HomepagePulseRail';
+import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageLeadersTabs } from '@/components/home/HomepageLeadersTabs';
 import { LeagueAliveBand } from '@/components/home/LeagueAliveBand';
 import { Card } from '@/components/ui';
@@ -277,29 +276,12 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     websiteSettings?.socialTiktok
   );
   const socialSettings = hasSocialLinks ? websiteSettings : null;
+  const hasFutureEvents = events.some((event) => new Date(event.start_time) >= new Date());
 
   // Check if registration is open for any season
   const now = new Date();
   const registrationSeason = pickRegistrationSeason(seasons as any[], now);
-  const hasOpenRegistration = !!registrationSeason;
-  const isCurrentSeasonWrappingUp =
-    (currentSeason as any)?.status === 'playoffs' || (currentSeason as any)?.status === 'completed';
-  const isNextSeasonRegistration =
-    !!registrationSeason && !!currentSeason && registrationSeason.id !== currentSeason.id;
-  const registrationPromoDate = registrationSeason?.registration_closes_at
-    ? new Date(registrationSeason.registration_closes_at).toLocaleDateString('en-CA', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : null;
-  const registrationBannerText =
-    isCurrentSeasonWrappingUp && isNextSeasonRegistration
-      ? `The current season is wrapping up, and registration is already open for ${registrationSeason?.name}${registrationPromoDate ? ` through ${registrationPromoDate}` : ''}.`
-      : `Sign up for ${registrationSeason?.name || 'the upcoming season'} today${registrationPromoDate ? ` before ${registrationPromoDate}` : ''}!`;
-  const featuredArticles = newsArticles.slice(0, 4);
-  const thumbnailStart = Math.max(featuredArticles.length, 1);
-  const thumbnailHeadlines = newsArticles.slice(thumbnailStart, thumbnailStart + 4);
+  const heroArticles = newsArticles.slice(0, 5);
   const homepageCountdown = buildHomepageCountdownCard({
     leagueSlug,
     registrationSeason,
@@ -311,6 +293,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     albums,
     newsArticles,
   });
+  const hasUtilityBand = !!homepageCountdown || !!homepagePhotoHighlight || !!socialSettings || hasFutureEvents;
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
@@ -326,37 +309,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
   const panelClass = 'league-shell-panel rounded-3xl border border-[var(--color-border)] p-6 md:p-8';
 
-  const pulseItems = [
-    {
-      label: 'Teams',
-      value: stats.totalTeams,
-      icon: <Users className="h-4 w-4" />,
-      href: `/${leagueSlug}/teams`,
-      cta: 'View Teams',
-    },
-    {
-      label: 'Players',
-      value: stats.totalPlayers,
-      icon: <Users className="h-4 w-4" />,
-      href: `/${leagueSlug}/players`,
-      cta: 'Player Directory',
-    },
-    {
-      label: 'Games Played',
-      value: stats.gamesPlayed,
-      icon: <Trophy className="h-4 w-4" />,
-      href: `/${leagueSlug}/scores`,
-      cta: 'Recent Scores',
-    },
-    {
-      label: 'Upcoming',
-      value: stats.upcomingGames,
-      icon: <Calendar className="h-4 w-4" />,
-      href: `/${leagueSlug}/schedule`,
-      cta: 'Full Schedule',
-    },
-  ];
-
   const jsonLd = buildSportsOrganizationJsonLd(league);
 
   return (
@@ -371,111 +323,40 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       {/* Division filter URL sync */}
       <DivisionUrlSync pagePath={`/${leagueSlug}`} />
 
-      {hasOpenRegistration && (
-        <div className="container mx-auto px-4 pt-6">
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--league-primary)]/30 bg-[var(--league-primary)]/6 px-5 py-4 md:px-6">
-            <div className="absolute inset-y-0 right-0 w-48 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--league-primary)_18%,transparent),transparent_70%)]" />
-            <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--league-primary)]/15">
-                  <UserPlus className="h-5 w-5 text-[var(--league-primary)]" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--league-primary)]">
-                      Registration Open
-                    </span>
-                    {registrationSeason?.name && (
-                      <span className="text-xs text-[var(--color-text-muted)]">
-                        {registrationSeason.name}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-[var(--color-text-secondary)] md:text-base">
-                    {registrationBannerText}
-                  </p>
-                </div>
-              </div>
-              <Button
-                href={`/${leagueSlug}/register`}
-                variant="primary"
-                glow
-                icon={<UserPlus className="w-4 h-4" />}
-                className="shrink-0"
-              >
-                Register Now
-              </Button>
-            </div>
+      <HomepageStoryHero
+        league={league}
+        leagueSlug={leagueSlug}
+        articles={heroArticles}
+        currentSeason={currentSeason}
+        registrationSeason={registrationSeason}
+        stats={stats}
+        photoFallback={homepagePhotoHighlight}
+      />
+
+      {hasLeaders && (
+        <section className="container mx-auto px-4 pt-8">
+          <div className={`${panelClass} overflow-hidden`}>
+            <HomepageLeadersTabs
+              leagueSlug={leagueSlug}
+              seasonName={currentSeason?.name ?? null}
+              scoringLeaders={scoringLeaders}
+              goalieLeaders={goalieLeaders}
+            />
           </div>
-        </div>
+        </section>
       )}
 
-      <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
-
-      <section className="container mx-auto px-4 pt-8">
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_0.82fr]">
-          <section className={`${panelClass} overflow-hidden`}>
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">
-                  Featured Coverage
-                </p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-primary)]">
-                  Live around the league this season
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm text-[var(--color-text-secondary)]">
-                  Keep the homepage anchored to the current season with live stories, recent photos, and the players setting the pace.
-                </p>
-              </div>
-              <Link
-                href={`/${leagueSlug}/news`}
-                className="hidden items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] md:inline-flex"
-              >
-                All News
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="mt-6">
-              {featuredArticles.length > 0 ? (
-                <FeaturedNewsBanner
-                  articles={featuredArticles}
-                  leagueSlug={leagueSlug}
-                  leagueName={league.name}
-                  leagueLogoUrl={league.logo_url}
-                />
-              ) : (
-                <Card variant="glass" padding="lg" hover={false}>
-                  <p className="text-center text-[var(--color-text-secondary)]">
-                    Publish current-season stories and recaps to light up this homepage feed.
-                  </p>
-                </Card>
-              )}
-            </div>
-
-            {hasLeaders && (
-              <div className="mt-6 border-t border-[var(--color-border)] pt-6">
-                <HomepageLeadersTabs
-                  leagueSlug={leagueSlug}
-                  seasonName={currentSeason?.name ?? null}
-                  scoringLeaders={scoringLeaders}
-                  goalieLeaders={goalieLeaders}
-                />
-              </div>
-            )}
-          </section>
-
+      {hasUtilityBand && (
+        <section className="container mx-auto px-4 pt-6">
           <HomepagePulseRail
             leagueSlug={leagueSlug}
-            leagueName={league.name}
-            leagueLogoUrl={league.logo_url}
-            articles={thumbnailHeadlines}
-            events={upcomingEvents}
+            events={events}
             socialSettings={socialSettings}
             countdown={homepageCountdown}
             photoHighlight={homepagePhotoHighlight}
           />
-        </div>
-      </section>
+        </section>
+      )}
 
       <LeagueAliveBand
         leagueSlug={leagueSlug}
@@ -492,32 +373,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           <AnnouncementBanner announcement={latestAnnouncement} leagueSlug={leagueSlug} />
         </div>
       )}
-
-      {/* 4. Pulse Items */}
-      <section className="container mx-auto px-4 pt-8">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {pulseItems.map((item) => (
-            <Link key={item.label} href={item.href} className="league-pulse-link group rounded-2xl px-4 py-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--league-primary)]/12 text-[var(--league-primary)]">
-                  {item.icon}
-                </span>
-                <ChevronRight className="h-4 w-4 text-[var(--color-text-muted)] transition-transform duration-300 group-hover:translate-x-1 group-hover:text-[var(--league-primary)]" />
-              </div>
-              <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">{item.label}</p>
-              <p className="mt-1 text-2xl font-black leading-none text-[var(--color-text-primary)]">
-                {item.value.toLocaleString()}
-              </p>
-              <p className="mt-2 text-sm font-medium text-[var(--color-text-secondary)]">{item.cta}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Sponsors */}
-      <div className="mt-8">
-        <SponsorBanner sponsors={sponsors} />
-      </div>
 
       {/* 6. Two-column layout */}
       <div className="container mx-auto px-4 py-12">
@@ -645,6 +500,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </section>
           </div>
         </div>
+      </div>
+
+      {/* Sponsors */}
+      <div className="pb-2">
+        <SponsorBanner sponsors={sponsors} />
       </div>
 
       {/* 7. Awards Showcase */}

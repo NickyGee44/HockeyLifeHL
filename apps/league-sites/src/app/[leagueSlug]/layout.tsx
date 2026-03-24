@@ -92,9 +92,8 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     notFound();
   }
 
-  const [theme, tickerGames, divisions, seasons, sponsors, isSubscribed] = await Promise.all([
+  const [theme, divisions, seasons, sponsors, isSubscribed] = await Promise.all([
     Promise.resolve(getLeagueTheme(league)),
-    getTickerGames(league.id),
     getDivisions(league.id),
     getSeasons(league.id),
     getLeagueSponsors(league.id),
@@ -107,6 +106,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
   const operationalSeason = pickOperationalSeason(seasons as any[]);
   const activeSeasonId = (operationalSeason as any)?.id ?? null;
   const isPlayoffSeason = (operationalSeason as any)?.status === 'playoffs';
+  const tickerGames = activeSeasonId ? await getTickerGames(league.id, 10, activeSeasonId) : [];
 
   return (
     <LeagueThemeProvider theme={theme}>
@@ -125,13 +125,13 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                           backgroundPosition: 'center top',
                           backgroundRepeat: 'no-repeat',
                           backgroundSize: 'cover',
-                          opacity: 0.1,
+                          opacity: 0.06,
                         }}
                       />
-                      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background)_88%,transparent)_0%,color-mix(in_srgb,var(--color-background)_96%,transparent)_30%,var(--color-background)_100%)]" />
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background)_92%,transparent)_0%,color-mix(in_srgb,var(--color-background)_98%,transparent)_30%,var(--color-background)_100%)]" />
                     </div>
                   )}
-                  {(league as any).settings?.website?.showGameTicker !== false && (
+                  {(league as any).settings?.website?.showGameTicker !== false && tickerGames.length > 0 && (
                     <div className="league-site-chrome">
                       <PremiumScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
                     </div>

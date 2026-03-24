@@ -921,7 +921,8 @@ export async function getRecentGames(
  */
 export async function getTickerGames(
   leagueId: string,
-  limit = 10
+  limit = 10,
+  seasonId?: string | null,
 ): Promise<TickerGame[]> {
   const supabase = createServiceRoleClient();
   const now = new Date();
@@ -946,24 +947,25 @@ export async function getTickerGames(
 
   const recentCompletedCap = Math.min(Math.max(2, Math.floor(limit / 3)), 4, limit);
 
-  const [liveGamesResult, upcomingGamesResult, recentCompletedResult] = await Promise.all([
-    supabase
+  let liveGamesQuery = supabase
       .from('games')
       .select(tickerSelect)
       .eq('league_id', leagueId)
       .eq('status', 'in_progress')
       .gte('scheduled_at', liveWindowStart.toISOString())
       .order('scheduled_at', { ascending: true })
-      .limit(limit),
-    supabase
+      .limit(limit);
+
+  let upcomingGamesQuery = supabase
       .from('games')
       .select(tickerSelect)
       .eq('league_id', leagueId)
       .eq('status', 'scheduled')
       .gte('scheduled_at', todayStart.toISOString())
       .order('scheduled_at', { ascending: true })
-      .limit(limit),
-    supabase
+      .limit(limit);
+
+  let recentCompletedQuery = supabase
       .from('games')
       .select(tickerSelect)
       .eq('league_id', leagueId)
@@ -971,16 +973,19 @@ export async function getTickerGames(
       .gte('scheduled_at', recentWindowStart.toISOString())
       .lt('scheduled_at', now.toISOString())
       .order('scheduled_at', { ascending: false })
-      .limit(recentCompletedCap),
-  ]);
+      .limit(recentCompletedCap);
 
-  const fallbackResult = await supabase
-    .from('games')
-    .select(tickerSelect)
-    .eq('league_id', leagueId)
-    .in('status', ['scheduled', 'in_progress', 'completed'])
-    .order('scheduled_at', { ascending: false })
-    .limit(limit);
+  if (seasonId) {
+    liveGamesQuery = liveGamesQuery.eq('season_id', seasonId);
+    upcomingGamesQuery = upcomingGamesQuery.eq('season_id', seasonId);
+    recentCompletedQuery = recentCompletedQuery.eq('season_id', seasonId);
+  }
+
+  const [liveGamesResult, upcomingGamesResult, recentCompletedResult] = await Promise.all([
+    liveGamesQuery,
+    upcomingGamesQuery,
+    recentCompletedQuery,
+  ]);
 
   const transformTickerGames = (games: any[] | null | undefined): TickerGame[] =>
     (games ?? []).map((game) => ({
@@ -1002,14 +1007,9 @@ export async function getTickerGames(
     console.error('[ScoreTicker] Failed to fetch recent completed games', recentCompletedResult.error);
   }
 
-  if (fallbackResult.error) {
-    console.error('[ScoreTicker] Failed to fetch fallback games', fallbackResult.error);
-  }
-
   const liveGames = transformTickerGames(liveGamesResult.data);
   const upcomingGames = transformTickerGames(upcomingGamesResult.data);
   const recentCompletedGames = transformTickerGames(recentCompletedResult.data);
-  const fallbackGames = transformTickerGames(fallbackResult.data);
 
   const seen = new Set<string>();
   const dedupe = (games: TickerGame[]) =>
@@ -1020,6 +1020,12 @@ export async function getTickerGames(
     });
 
   const primaryGames = dedupe([...liveGames, ...upcomingGames]);
+
+  // If there are no active or upcoming games for the operational season,
+  // hide the ticker instead of backfilling it with stale finals.
+  if (primaryGames.length === 0) {
+    return [];
+  }
 
   if (primaryGames.length >= limit && recentCompletedGames.length > 0) {
     return dedupe([
@@ -1034,7 +1040,7 @@ export async function getTickerGames(
     return mergedGames;
   }
 
-  return dedupe(fallbackGames).slice(0, limit);
+  return [];
 }
 
 /**
