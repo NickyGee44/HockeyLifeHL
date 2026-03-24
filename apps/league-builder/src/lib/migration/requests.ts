@@ -368,6 +368,27 @@ function normalizeNormalizationProfile(value: unknown): LeagueMigrationNormaliza
   };
 }
 
+export interface MigrationImportRunReport {
+  request_id: string;
+  league_id: string;
+  executed_by: string | null;
+  started_at: string;
+  completed_at: string | null;
+  status: 'running' | 'completed' | 'failed' | 'partial';
+  entity_reports: MigrationEntityImportReport[];
+  errors: string[];
+}
+
+export interface MigrationEntityImportReport {
+  target_entity: MigrationTargetEntity;
+  asset_id: string;
+  created: number;
+  updated: number;
+  skipped: number;
+  errored: number;
+  errors: string[];
+}
+
 export function normalizeLeagueMigrationRequest(record: Record<string, unknown>): LeagueMigrationRequest {
   return {
     id: String(record.id ?? ''),
