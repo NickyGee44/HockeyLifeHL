@@ -81,6 +81,7 @@ export interface MigrationUploadedAsset {
   mime_type: string | null;
   uploaded_at: string;
   uploaded_by: string | null;
+  note: string | null;
   analysis: MigrationUploadedAssetAnalysis;
 }
 
@@ -297,6 +298,7 @@ function normalizeUploadedAssets(value: unknown): MigrationUploadedAsset[] {
       mime_type: typeof item.mime_type === 'string' ? item.mime_type : null,
       uploaded_at: typeof item.uploaded_at === 'string' ? item.uploaded_at : new Date(0).toISOString(),
       uploaded_by: typeof item.uploaded_by === 'string' ? item.uploaded_by : null,
+      note: typeof item.note === 'string' ? item.note : null,
       analysis: normalizeUploadedAssetAnalysis(item.analysis),
     }))
     .filter((item) => item.path);
