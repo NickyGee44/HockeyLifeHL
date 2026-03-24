@@ -195,6 +195,7 @@ export async function importMigrationAssetFromUrl(
       mime_type: contentType || null,
       uploaded_at: new Date().toISOString(),
       uploaded_by: authData.user.id,
+      note: null,
       analysis,
     },
   ];
