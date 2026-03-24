@@ -9,12 +9,10 @@ import {
   TrendingUp,
   ChevronRight,
   ArrowRight,
-  CalendarDays,
   Camera,
   Award,
   Sparkles,
   UserPlus,
-  Share2,
 } from 'lucide-react';
 import {
   getLeagueBySlug,
@@ -41,12 +39,16 @@ import { DivisionStandingsWidget } from '@/components/DivisionStandingsWidget';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 import { HeroSection } from '@/components/HeroSection';
 import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
-import { EventCard } from '@/components/events/EventCard';
 import { AwardsShowcase } from '@/components/awards/AwardsShowcase';
-import { NewsHeadlines } from '@/components/news/NewsHeadlines';
+import { FeaturedNewsBanner } from '@/components/news/FeaturedNewsBanner';
 import { LeadersShowcase } from '@/components/LeadersShowcase';
-import { SocialLinks } from '@/components/SocialLinks';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
+import {
+  HomepagePulseRail,
+  type HomepageCountdownCard,
+  type HomepagePhotoHighlight,
+} from '@/components/home/HomepagePulseRail';
+import { LeagueAliveBand } from '@/components/home/LeagueAliveBand';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
@@ -55,6 +57,89 @@ import { pickRegistrationSeason } from '@/lib/registration/seasons';
 interface HomePageProps {
   params: Promise<{ leagueSlug: string }>;
   searchParams: Promise<{ division?: string }>;
+}
+
+function buildHomepageCountdownCard({
+  leagueSlug,
+  registrationSeason,
+  currentSeason,
+  upcomingEvents,
+}: {
+  leagueSlug: string;
+  registrationSeason: any | null;
+  currentSeason: any | null;
+  upcomingEvents: Array<{ title: string; start_time: string }>;
+}): HomepageCountdownCard | null {
+  if (registrationSeason?.registration_closes_at) {
+    return {
+      eyebrow: 'Registration Countdown',
+      title: registrationSeason.name || 'Season Registration',
+      targetDate: registrationSeason.registration_closes_at,
+      href: `/${leagueSlug}/register`,
+      cta: 'Register',
+    };
+  }
+
+  const nextEvent = upcomingEvents[0];
+  if (nextEvent) {
+    return {
+      eyebrow: 'Next Event',
+      title: nextEvent.title,
+      targetDate: nextEvent.start_time,
+      href: `/${leagueSlug}/events`,
+      cta: 'Events',
+    };
+  }
+
+  if (currentSeason?.end_date && new Date(currentSeason.end_date) > new Date()) {
+    return {
+      eyebrow: (currentSeason as any)?.status === 'playoffs' ? 'Playoff Run' : 'Season Clock',
+      title: currentSeason.name || 'Current Season',
+      targetDate: currentSeason.end_date,
+      href: `/${leagueSlug}/schedule`,
+      cta: 'Schedule',
+    };
+  }
+
+  return null;
+}
+
+function buildHomepagePhotoHighlight({
+  leagueSlug,
+  albums,
+  newsArticles,
+}: {
+  leagueSlug: string;
+  albums: Array<{ id: string; title: string; description: string | null; cover_photo_url: string | null; photo_count?: number }>;
+  newsArticles: Array<{ id: string; title: string; excerpt: string | null; image_url: string | null; slug: string | null; type: string }>;
+}): HomepagePhotoHighlight | null {
+  const featuredAlbum = albums.find((album) => album.cover_photo_url) || albums[0];
+  if (featuredAlbum) {
+    return {
+      eyebrow: 'Community Lens',
+      title: featuredAlbum.title,
+      subtitle:
+        featuredAlbum.description ||
+        `${featuredAlbum.photo_count || 0} photo${featuredAlbum.photo_count === 1 ? '' : 's'} from around the rink.`,
+      imageUrl: featuredAlbum.cover_photo_url,
+      href: `/${leagueSlug}/gallery/${featuredAlbum.id}`,
+      cta: 'Open Album',
+    };
+  }
+
+  const featuredStory = newsArticles.find((article) => article.image_url) || newsArticles[0];
+  if (featuredStory) {
+    return {
+      eyebrow: featuredStory.type === 'game_recap' ? 'Latest Recap' : 'Featured Story',
+      title: featuredStory.title,
+      subtitle: featuredStory.excerpt || 'Fresh league storytelling belongs directly on the homepage.',
+      imageUrl: featuredStory.image_url,
+      href: `/${leagueSlug}/news/${featuredStory.slug || featuredStory.id}`,
+      cta: 'Read Story',
+    };
+  }
+
+  return null;
 }
 
 export default async function HomePage({ params, searchParams }: HomePageProps) {
@@ -89,7 +174,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getRecentGames(league.id, 5, divisionFilter),
     getStandings(league.id, currentSeason?.id),
     getDivisions(league.id),
-    getAllArticles(league.id, 3),
+    getAllArticles(league.id, 7),
     getLeagueSponsors(league.id),
     getLeagueEvents(league.id),
     getLeagueAwards(league.id),
@@ -114,7 +199,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
     .slice(0, 3);
 
-  const hasEvents = upcomingEvents.length > 0;
   const hasAwards = awards.length > 0;
   const hasAlbums = albums.length > 0;
   const hasLeaders = scoringLeaders.length > 0 || goalieLeaders.length > 0;
@@ -147,6 +231,19 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     isCurrentSeasonWrappingUp && isNextSeasonRegistration
       ? `The current season is wrapping up, and registration is already open for ${registrationSeason?.name}${registrationPromoDate ? ` through ${registrationPromoDate}` : ''}.`
       : `Sign up for ${registrationSeason?.name || 'the upcoming season'} today${registrationPromoDate ? ` before ${registrationPromoDate}` : ''}!`;
+  const featuredArticles = newsArticles.slice(0, 3);
+  const thumbnailHeadlines = (newsArticles.length > 5 ? newsArticles.slice(3, 7) : newsArticles.slice(1, 5)).slice(0, 4);
+  const homepageCountdown = buildHomepageCountdownCard({
+    leagueSlug,
+    registrationSeason,
+    currentSeason,
+    upcomingEvents,
+  });
+  const homepagePhotoHighlight = buildHomepagePhotoHighlight({
+    leagueSlug,
+    albums,
+    newsArticles,
+  });
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
@@ -246,18 +343,60 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         </div>
       )}
 
-      {/* 1. Hero + News Side-by-Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
-        <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
-        <div className="relative flex items-stretch border-b border-l-0 lg:border-l border-[var(--color-border)] p-3 md:p-4 lg:p-5">
-          <NewsHeadlines articles={newsArticles} leagueSlug={leagueSlug} />
-        </div>
-      </div>
+      <HeroSection league={league} stats={stats} leagueSlug={leagueSlug} />
 
-      {/* 3. Sponsor Banner */}
-      <div className="mt-8">
-        <SponsorBanner sponsors={sponsors} />
-      </div>
+      <section className="container mx-auto px-4 pt-8">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_0.82fr]">
+          <section className={`${panelClass} overflow-hidden`}>
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">
+                  Featured Coverage
+                </p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-primary)]">
+                  What&apos;s happening around the league
+                </h2>
+              </div>
+              <Link
+                href={`/${leagueSlug}/news`}
+                className="hidden items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] md:inline-flex"
+              >
+                All News
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="mt-6">
+              {featuredArticles.length > 0 ? (
+                <FeaturedNewsBanner articles={featuredArticles} leagueSlug={leagueSlug} />
+              ) : (
+                <Card variant="glass" padding="lg" hover={false}>
+                  <p className="text-center text-[var(--color-text-secondary)]">
+                    Publish league stories and recaps to light up this homepage feed.
+                  </p>
+                </Card>
+              )}
+            </div>
+          </section>
+
+          <HomepagePulseRail
+            leagueSlug={leagueSlug}
+            articles={thumbnailHeadlines}
+            events={upcomingEvents}
+            socialSettings={socialSettings}
+            countdown={homepageCountdown}
+            photoHighlight={homepagePhotoHighlight}
+          />
+        </div>
+      </section>
+
+      <LeagueAliveBand
+        leagueSlug={leagueSlug}
+        newsArticles={newsArticles}
+        scoringLeaders={scoringLeaders}
+        goalieLeaders={goalieLeaders}
+        albums={albums}
+        awards={awards}
+      />
 
       {/* Announcement Banner */}
       {latestAnnouncement && (
@@ -286,6 +425,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           ))}
         </div>
       </section>
+
+      {/* Sponsors */}
+      <div className="mt-8">
+        <SponsorBanner sponsors={sponsors} />
+      </div>
 
       {/* 5. Leaders Showcase (full-width) */}
       {hasLeaders && (
@@ -358,7 +502,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </section>
           </div>
 
-          {/* Right column: Standings, Events, Social, Registration, Quick Links */}
+          {/* Right column: Standings, Registration, Quick Links */}
           <div className="space-y-8">
             <section className={`${panelClass} p-6 md:p-7`}>
               <SectionHeading
@@ -375,33 +519,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                 )}
               </div>
             </section>
-
-            {hasEvents && (
-              <section className={`${panelClass} p-6 md:p-7`}>
-                <SectionHeading
-                  title="Upcoming Events"
-                  icon={<CalendarDays className="w-5 h-5 text-[var(--league-primary)]" />}
-                />
-                <div className="mt-5 space-y-3">
-                  {upcomingEvents.map((event) => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Social Links */}
-            {socialSettings && (
-              <section className={`${panelClass} p-6 md:p-7`}>
-                <SectionHeading
-                  title="Follow Us"
-                  icon={<Share2 className="w-5 h-5 text-[var(--league-primary)]" />}
-                />
-                <div className="mt-4 flex justify-center">
-                  <SocialLinks settings={socialSettings} size="lg" />
-                </div>
-              </section>
-            )}
 
             <section className={`${panelClass} p-6 md:p-7`}>
               <SectionHeading

@@ -121,7 +121,7 @@ export function PremiumScoreTicker({
   }
 
   return (
-    <div className="relative w-full">
+    <div className="score-ticker relative w-full" data-testid="score-ticker">
       {/* Main Ticker Container */}
       <div
         className="relative w-full overflow-hidden backdrop-blur-md"
