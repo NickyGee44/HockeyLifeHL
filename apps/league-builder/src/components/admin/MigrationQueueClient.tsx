@@ -497,6 +497,9 @@ export function MigrationQueueClient({
                                 {asset.analysis.source_format.replace(/_/g, ' ')}
                               </span>
                             </div>
+                            {asset.note && (
+                              <p className="mt-2 text-sm text-neutral-300">{asset.note}</p>
+                            )}
                             <p className="mt-2 text-xs text-neutral-500">
                               {asset.analysis.detected_scopes.length > 0
                                 ? asset.analysis.detected_scopes.map((scope) => MIGRATION_SCOPE_META[scope].label).join(', ')
