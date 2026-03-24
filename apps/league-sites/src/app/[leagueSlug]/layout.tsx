@@ -125,10 +125,10 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                           backgroundPosition: 'center top',
                           backgroundRepeat: 'no-repeat',
                           backgroundSize: 'cover',
-                          opacity: 0.14,
+                          opacity: 0.1,
                         }}
                       />
-                      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background)_78%,transparent)_0%,color-mix(in_srgb,var(--color-background)_92%,transparent)_30%,var(--color-background)_100%)]" />
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background)_88%,transparent)_0%,color-mix(in_srgb,var(--color-background)_96%,transparent)_30%,var(--color-background)_100%)]" />
                     </div>
                   )}
                   {(league as any).settings?.website?.showGameTicker !== false && (

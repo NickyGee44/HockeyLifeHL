@@ -322,11 +322,16 @@ body::after {
 }
 
 .league-shell-panel {
-  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-color: color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
-  box-shadow: 0 18px 44px -14px rgba(0, 0, 0, 0.24);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background-elevated) 96%, var(--color-surface) 4%) 0%,
+      color-mix(in srgb, var(--color-surface) 92%, var(--color-background-elevated) 8%) 100%
+    );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-color: color-mix(in srgb, var(--color-border) 82%, transparent);
+  box-shadow: 0 24px 54px -28px rgba(0, 0, 0, 0.34);
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
@@ -337,10 +342,10 @@ body::after {
 }
 
 .league-pulse-link {
-  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 50%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 92%, var(--color-surface) 8%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
@@ -354,8 +359,8 @@ body::after {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-surface) 82%, transparent) 0%,
-      color-mix(in srgb, var(--color-background-elevated) 90%, transparent) 100%
+      color-mix(in srgb, var(--color-surface) 96%, var(--color-background) 4%) 0%,
+      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-background) 2%) 100%
     );
 }
 
@@ -367,6 +372,33 @@ body::after {
 .league-home-custom .league-shell-panel,
 .league-home-custom .league-pulse-link {
   border-color: color-mix(in srgb, var(--league-primary) 34%, var(--color-border));
+}
+
+.league-reading-panel {
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background-elevated) 97%, var(--color-surface) 3%) 0%,
+      color-mix(in srgb, var(--color-surface) 94%, var(--color-background-elevated) 6%) 100%
+    );
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  box-shadow: 0 28px 72px -42px rgba(0, 0, 0, 0.44);
+}
+
+.league-reading-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: color-mix(in srgb, white 36%, transparent);
+  pointer-events: none;
+}
+
+.league-reading-cell {
+  background: color-mix(in srgb, var(--color-background-elevated) 96%, var(--color-surface) 4%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  box-shadow: 0 18px 40px -32px rgba(0, 0, 0, 0.36);
 }
 
 /* League hero section uses league colors prominently */
@@ -419,15 +451,15 @@ body::after {
 
 /* Cards with league theming + glassmorphism */
 .card {
-  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 94%, var(--color-surface) 6%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
   border-radius: 1rem;
   transition-property: border-color, box-shadow, background-color;
   transition-duration: 0.2s;
   transition-timing-function: ease;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 42px -30px rgba(0, 0, 0, 0.38);
 }
 
 .card:hover {
@@ -488,7 +520,7 @@ body::after {
 }
 
 .standings-table th {
-  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 94%, var(--color-surface) 6%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: var(--color-text-secondary);
@@ -528,12 +560,12 @@ body::after {
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 95%, var(--color-surface) 5%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
   border-radius: 1rem;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 44px -32px rgba(0, 0, 0, 0.4);
   transition:
     transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 0.3s ease,
@@ -608,12 +640,12 @@ body::after {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 95%, var(--color-surface) 5%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
   border-radius: 1rem;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.38);
   transition-property: border-color, box-shadow, background-color;
   transition-duration: 0.2s;
   transition-timing-function: ease;

@@ -16,7 +16,7 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
   const teamColor = team?.primary_color || 'var(--league-primary)';
 
   return (
-    <div className="relative isolate overflow-hidden rounded-2xl border border-[var(--color-border)] mb-6">
+    <div className="league-reading-panel relative isolate overflow-hidden rounded-[30px] mb-6">
       {/* Background: team logo tiled watermark */}
       {team?.logo_url && (
         <div

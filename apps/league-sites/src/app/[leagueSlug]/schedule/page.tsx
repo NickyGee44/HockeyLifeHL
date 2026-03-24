@@ -144,21 +144,19 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
         />
       )}
 
-      {/* Centered BMHL-style white card */}
-      <div
-        className="max-w-[1200px] mx-auto rounded-2xl shadow-xl overflow-hidden"
-        style={{
-          background: 'var(--color-background-elevated)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
+      <div className="league-reading-panel max-w-[1200px] mx-auto overflow-hidden rounded-[32px]">
         {/* Schedule Header */}
         <div className="px-6 md:px-8 pt-6 md:pt-8 pb-4">
           <div className="flex items-center gap-3">
             <Calendar className="w-8 h-8 text-[var(--league-primary)]" />
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
-              Schedule
-            </h1>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                Current slate
+              </p>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
+                Schedule
+              </h1>
+            </div>
           </div>
         </div>
 

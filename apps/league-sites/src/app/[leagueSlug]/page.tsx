@@ -30,9 +30,9 @@ import {
   getGoalieLeaders,
   getCurrentSeason,
   getSeasons,
-  getPlayerBadgesByIds,
   getLatestAnnouncement,
 } from '@/lib/data';
+import type { GalleryAlbum, LeagueEvent, NewsArticle, PlayerStatsWithAvatar, Season } from '@/lib/types';
 import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
 import { DivisionStandingsWidget } from '@/components/DivisionStandingsWidget';
@@ -41,13 +41,13 @@ import { HeroSection } from '@/components/HeroSection';
 import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import { AwardsShowcase } from '@/components/awards/AwardsShowcase';
 import { FeaturedNewsBanner } from '@/components/news/FeaturedNewsBanner';
-import { LeadersShowcase } from '@/components/LeadersShowcase';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import {
   HomepagePulseRail,
   type HomepageCountdownCard,
   type HomepagePhotoHighlight,
 } from '@/components/home/HomepagePulseRail';
+import { HomepageLeadersTabs } from '@/components/home/HomepageLeadersTabs';
 import { LeagueAliveBand } from '@/components/home/LeagueAliveBand';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
@@ -142,6 +142,74 @@ function buildHomepagePhotoHighlight({
   return null;
 }
 
+function isGoaliePosition(position: string | null | undefined) {
+  const normalized = position?.trim().toLowerCase();
+  return normalized === 'g' || normalized === 'goalie';
+}
+
+function isWithinSeasonWindow(dateValue: string | null | undefined, season: Season | null) {
+  if (!season?.start_date || !dateValue) {
+    return false;
+  }
+
+  const targetDate = new Date(dateValue);
+  const seasonStart = new Date(season.start_date);
+
+  if (Number.isNaN(targetDate.getTime()) || Number.isNaN(seasonStart.getTime())) {
+    return false;
+  }
+
+  if (targetDate < seasonStart) {
+    return false;
+  }
+
+  if (!season.end_date) {
+    return true;
+  }
+
+  const seasonEnd = new Date(season.end_date);
+  seasonEnd.setHours(23, 59, 59, 999);
+  return targetDate <= seasonEnd;
+}
+
+function filterArticlesForSeason(articles: NewsArticle[], season: Season | null) {
+  if (!season) {
+    return articles;
+  }
+
+  return articles.filter((article) => {
+    if (article.season_id) {
+      return article.season_id === season.id;
+    }
+    return isWithinSeasonWindow(article.published_at || article.created_at, season);
+  });
+}
+
+function filterAlbumsForSeason(albums: GalleryAlbum[], season: Season | null) {
+  if (!season) {
+    return albums;
+  }
+
+  return albums.filter((album) => {
+    if (album.season_id) {
+      return album.season_id === season.id;
+    }
+    return isWithinSeasonWindow(album.created_at, season);
+  });
+}
+
+function filterEventsForSeason(events: LeagueEvent[], season: Season | null) {
+  if (!season) {
+    return events;
+  }
+
+  return events.filter((event) => isWithinSeasonWindow(event.start_time, season));
+}
+
+function filterCurrentSkaterLeaders(leaders: PlayerStatsWithAvatar[]) {
+  return leaders.filter((leader) => !isGoaliePosition(leader.position));
+}
+
 export default async function HomePage({ params, searchParams }: HomePageProps) {
   const { leagueSlug } = await params;
   const { division: divisionFilter } = await searchParams;
@@ -160,39 +228,37 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     recentGames,
     standings,
     divisions,
-    newsArticles,
+    allNewsArticles,
     sponsors,
-    events,
+    allEvents,
     awards,
-    albums,
-    scoringLeaders,
+    allAlbums,
+    rawScoringLeaders,
     seasons,
     latestAnnouncement,
   ] = await Promise.all([
-    getLeagueStats(league.id),
-    getUpcomingGames(league.id, 5, divisionFilter),
-    getRecentGames(league.id, 5, divisionFilter),
+    getLeagueStats(league.id, currentSeason?.id),
+    getUpcomingGames(league.id, 5, divisionFilter, currentSeason?.id),
+    getRecentGames(league.id, 5, divisionFilter, currentSeason?.id),
     getStandings(league.id, currentSeason?.id),
     getDivisions(league.id),
-    getAllArticles(league.id, 7),
+    getAllArticles(league.id, 18),
     getLeagueSponsors(league.id),
     getLeagueEvents(league.id),
-    getLeagueAwards(league.id),
+    getLeagueAwards(league.id, currentSeason?.id),
     getGalleryAlbums(league.id),
-    getStatsLeadersWithAvatars(league.id, 'points', 5, divisionFilter),
+    getStatsLeadersWithAvatars(league.id, 'points', 12, divisionFilter, currentSeason?.id),
     getSeasons(league.id),
-    getLatestAnnouncement(league.id),
+    getLatestAnnouncement(league.id, currentSeason?.id),
   ]);
 
-  // Fetch goalie leaders (depends on currentSeason)
-  const goalieLeaders = await getGoalieLeaders(league.id, currentSeason?.id, 'wins', 3, divisionFilter);
+  const goalieLeadersRaw = await getGoalieLeaders(league.id, currentSeason?.id, 'wins', 5, divisionFilter);
 
-  // Fetch badges for leaders
-  const leaderPlayerIds = [...new Set([
-    ...scoringLeaders.map(p => p.player_id),
-    ...goalieLeaders.map(p => p.player_id),
-  ])];
-  const leaderBadges = await getPlayerBadgesByIds(leaderPlayerIds);
+  const newsArticles = filterArticlesForSeason(allNewsArticles, currentSeason);
+  const albums = filterAlbumsForSeason(allAlbums, currentSeason);
+  const events = filterEventsForSeason(allEvents, currentSeason);
+  const scoringLeaders = filterCurrentSkaterLeaders(rawScoringLeaders).slice(0, 5);
+  const goalieLeaders = goalieLeadersRaw.slice(0, 5);
 
   const upcomingEvents = events
     .filter((e) => new Date(e.start_time) > new Date())
@@ -231,8 +297,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     isCurrentSeasonWrappingUp && isNextSeasonRegistration
       ? `The current season is wrapping up, and registration is already open for ${registrationSeason?.name}${registrationPromoDate ? ` through ${registrationPromoDate}` : ''}.`
       : `Sign up for ${registrationSeason?.name || 'the upcoming season'} today${registrationPromoDate ? ` before ${registrationPromoDate}` : ''}!`;
-  const featuredArticles = newsArticles.slice(0, 3);
-  const thumbnailHeadlines = (newsArticles.length > 5 ? newsArticles.slice(3, 7) : newsArticles.slice(1, 5)).slice(0, 4);
+  const featuredArticles = newsArticles.slice(0, 4);
+  const thumbnailStart = Math.max(featuredArticles.length, 1);
+  const thumbnailHeadlines = newsArticles.slice(thumbnailStart, thumbnailStart + 4);
   const homepageCountdown = buildHomepageCountdownCard({
     leagueSlug,
     registrationSeason,
@@ -354,8 +421,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                   Featured Coverage
                 </p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-primary)]">
-                  What&apos;s happening around the league
+                  Live around the league this season
                 </h2>
+                <p className="mt-2 max-w-2xl text-sm text-[var(--color-text-secondary)]">
+                  Keep the homepage anchored to the current season with live stories, recent photos, and the players setting the pace.
+                </p>
               </div>
               <Link
                 href={`/${leagueSlug}/news`}
@@ -367,19 +437,37 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </div>
             <div className="mt-6">
               {featuredArticles.length > 0 ? (
-                <FeaturedNewsBanner articles={featuredArticles} leagueSlug={leagueSlug} />
+                <FeaturedNewsBanner
+                  articles={featuredArticles}
+                  leagueSlug={leagueSlug}
+                  leagueName={league.name}
+                  leagueLogoUrl={league.logo_url}
+                />
               ) : (
                 <Card variant="glass" padding="lg" hover={false}>
                   <p className="text-center text-[var(--color-text-secondary)]">
-                    Publish league stories and recaps to light up this homepage feed.
+                    Publish current-season stories and recaps to light up this homepage feed.
                   </p>
                 </Card>
               )}
             </div>
+
+            {hasLeaders && (
+              <div className="mt-6 border-t border-[var(--color-border)] pt-6">
+                <HomepageLeadersTabs
+                  leagueSlug={leagueSlug}
+                  seasonName={currentSeason?.name ?? null}
+                  scoringLeaders={scoringLeaders}
+                  goalieLeaders={goalieLeaders}
+                />
+              </div>
+            )}
           </section>
 
           <HomepagePulseRail
             leagueSlug={leagueSlug}
+            leagueName={league.name}
+            leagueLogoUrl={league.logo_url}
             articles={thumbnailHeadlines}
             events={upcomingEvents}
             socialSettings={socialSettings}
@@ -430,18 +518,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       <div className="mt-8">
         <SponsorBanner sponsors={sponsors} />
       </div>
-
-      {/* 5. Leaders Showcase (full-width) */}
-      {hasLeaders && (
-        <section className="container mx-auto px-4 pt-8">
-          <LeadersShowcase
-            scoringLeaders={scoringLeaders}
-            goalieLeaders={goalieLeaders}
-            leagueSlug={leagueSlug}
-            badges={leaderBadges}
-          />
-        </section>
-      )}
 
       {/* 6. Two-column layout */}
       <div className="container mx-auto px-4 py-12">

@@ -13,7 +13,7 @@ export function PlayerGameLog({ gameLog, isGoalie = false }: PlayerGameLogProps)
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[var(--color-border)]">
+            <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/68">
               <th className="text-left py-3 px-2 font-medium text-[var(--color-text-muted)]">Date</th>
               <th className="text-left py-3 px-2 font-medium text-[var(--color-text-muted)]">Opponent</th>
               <th className="text-center py-3 px-2 font-medium text-[var(--color-text-muted)]">Result</th>
@@ -72,7 +72,7 @@ export function PlayerGameLog({ gameLog, isGoalie = false }: PlayerGameLogProps)
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-[var(--color-border)]">
+          <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/68">
             <th className="text-left py-3 px-2 font-medium text-[var(--color-text-muted)]">Date</th>
             <th className="text-left py-3 px-2 font-medium text-[var(--color-text-muted)]">Opponent</th>
             <th className="text-center py-3 px-2 font-medium text-[var(--color-text-muted)]">Result</th>

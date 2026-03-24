@@ -32,20 +32,37 @@ export default async function NewsPage({ params }: NewsPageProps) {
   return (
     <SubscriptionWall>
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-extrabold text-[var(--color-text-primary)]">
-            News
-          </h1>
-          <Newspaper className="w-7 h-7 text-[var(--league-primary)]" />
-        </div>
+      <div className="mx-auto max-w-6xl">
+        <section className="league-reading-panel mb-8 rounded-[32px] p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                League coverage
+              </p>
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-4xl">
+                {league.name} news
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm text-[var(--color-text-secondary)] md:text-base">
+                Recaps, announcements, and league stories in a readable, image-led feed.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/85 px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)]">
+              <Newspaper className="h-4 w-4 text-[var(--league-primary)]" />
+              {articles.length} {articles.length === 1 ? 'story' : 'stories'}
+            </div>
+          </div>
+        </section>
 
         {/* Articles */}
         {articles.length > 0 ? (
-          <NewsList articles={articles} leagueSlug={leagueSlug} />
+          <NewsList
+            articles={articles}
+            leagueSlug={leagueSlug}
+            leagueName={league.name}
+            leagueLogoUrl={league.logo_url}
+          />
         ) : (
-          <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-2xl p-12 text-center">
+          <div className="league-reading-panel rounded-[28px] p-12 text-center">
             <Newspaper className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
               No News Yet

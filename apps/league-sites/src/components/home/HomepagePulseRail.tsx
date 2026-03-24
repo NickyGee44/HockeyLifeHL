@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CalendarDays, Camera, ChevronRight, Clock3, Newspaper, Sparkles } from 'lucide-react';
 import { SocialLinks } from '@/components/SocialLinks';
+import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
 import type { LeagueEvent, NewsArticle, WebsiteSettings } from '@/lib/types';
 
 export interface HomepageCountdownCard {
@@ -22,6 +23,8 @@ export interface HomepagePhotoHighlight {
 
 interface HomepagePulseRailProps {
   leagueSlug: string;
+  leagueName: string;
+  leagueLogoUrl?: string | null;
   articles: NewsArticle[];
   events: LeagueEvent[];
   socialSettings?: WebsiteSettings | null;
@@ -126,6 +129,8 @@ function buildCalendarMonth(events: LeagueEvent[]) {
 
 export function HomepagePulseRail({
   leagueSlug,
+  leagueName,
+  leagueLogoUrl,
   articles,
   events,
   socialSettings,
@@ -314,9 +319,12 @@ export function HomepagePulseRail({
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-lg font-black text-[var(--league-primary)]">
-                      {article.title.charAt(0)}
-                    </div>
+                    <LeagueNewsFallbackArtwork
+                      leagueName={leagueName}
+                      leagueLogoUrl={leagueLogoUrl}
+                      articleType={article.type}
+                      emphasis="compact"
+                    />
                   )}
                   <span className="absolute left-1.5 top-1.5 rounded-full bg-black/55 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
                     {getArticleTypeLabel(article)}
