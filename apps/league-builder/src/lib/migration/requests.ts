@@ -229,6 +229,27 @@ export function isMigrationStatusEditable(status: LeagueMigrationRequestStatus) 
   return EDITABLE_MIGRATION_REQUEST_STATUSES.includes(status);
 }
 
+export interface MigrationImportRunReport {
+  request_id: string;
+  league_id: string;
+  executed_by: string | null;
+  started_at: string;
+  completed_at: string | null;
+  status: 'running' | 'completed' | 'failed' | 'partial';
+  entity_reports: MigrationEntityImportReport[];
+  errors: string[];
+}
+
+export interface MigrationEntityImportReport {
+  target_entity: MigrationTargetEntity;
+  asset_id: string;
+  created: number;
+  updated: number;
+  skipped: number;
+  errored: number;
+  errors: string[];
+}
+
 function normalizeScopeArray(values: unknown): LeagueMigrationScope[] {
   if (!Array.isArray(values)) return [];
   return values.filter(
