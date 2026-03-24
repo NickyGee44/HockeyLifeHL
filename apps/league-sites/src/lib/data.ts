@@ -11,6 +11,7 @@ import type {
   Player,
   PlayerStats,
   PlayerStatsWithAvatar,
+  HomepageSeasonLeader,
   LeagueStats,
   UpcomingGame,
   RecentGame,
@@ -1538,6 +1539,44 @@ export async function getStatsLeadersWithAvatars(
   return leaders.map((leader) => ({
     ...leader,
     avatar_url: avatarMap.get(leader.player_id) || null,
+  }));
+}
+
+export async function getSeasonPointsLeadersWithDivision(
+  leagueId: string,
+  seasonId: string,
+  limit = 3,
+): Promise<HomepageSeasonLeader[]> {
+  const leaders = await getStatsLeadersWithAvatars(leagueId, 'points', limit, undefined, seasonId);
+  if (leaders.length === 0) {
+    return [];
+  }
+
+  const teamIds = [...new Set(leaders.map((leader) => leader.team_id).filter(Boolean))];
+  if (teamIds.length === 0) {
+    return leaders.map((leader) => ({
+      ...leader,
+      division_name: null,
+    }));
+  }
+
+  const supabase = await createClient();
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, divisions(name)')
+    .in('id', teamIds);
+
+  const divisionMap = new Map<string, string | null>();
+  for (const team of teams || []) {
+    const divisionData = Array.isArray((team as any).divisions)
+      ? (team as any).divisions[0]
+      : (team as any).divisions;
+    divisionMap.set(team.id, divisionData?.name || null);
+  }
+
+  return leaders.map((leader) => ({
+    ...leader,
+    division_name: divisionMap.get(leader.team_id) || null,
   }));
 }
 

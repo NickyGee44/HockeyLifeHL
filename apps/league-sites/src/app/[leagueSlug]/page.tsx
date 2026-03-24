@@ -27,6 +27,7 @@ import {
   getLeagueAwards,
   getGalleryAlbums,
   getStatsLeadersWithAvatars,
+  getSeasonPointsLeadersWithDivision,
   getGoalieLeaders,
   getCurrentSeason,
   getSeasons,
@@ -281,6 +282,13 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   // Check if registration is open for any season
   const now = new Date();
   const registrationSeason = pickRegistrationSeason(seasons as any[], now);
+  const previousCompletedSeason =
+    seasons.find((season) => season.id !== currentSeason?.id && season.status === 'completed') ||
+    seasons.find((season) => season.id !== currentSeason?.id) ||
+    null;
+  const previousSeasonLeaders = previousCompletedSeason
+    ? await getSeasonPointsLeadersWithDivision(league.id, previousCompletedSeason.id, 3)
+    : [];
   const heroArticles = newsArticles.slice(0, 5);
   const homepageCountdown = buildHomepageCountdownCard({
     leagueSlug,
@@ -330,6 +338,8 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         currentSeason={currentSeason}
         registrationSeason={registrationSeason}
         stats={stats}
+        previousSeasonName={previousCompletedSeason?.name ?? null}
+        previousSeasonLeaders={previousSeasonLeaders}
         photoFallback={homepagePhotoHighlight}
       />
 

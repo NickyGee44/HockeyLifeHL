@@ -206,6 +206,10 @@ export interface PlayerStatsWithAvatar extends PlayerStats {
   avatar_url: string | null;
 }
 
+export interface HomepageSeasonLeader extends PlayerStatsWithAvatar {
+  division_name: string | null;
+}
+
 export interface LeagueStats {
   totalTeams: number;
   totalPlayers: number;
