@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -213,18 +213,6 @@ export function HomepageStoryHero({
     }
   }, [slides.length]);
 
-  const advanceSlide = useEffectEvent(() => {
-    if (!hasMultipleSlides) {
-      return;
-    }
-
-    startTransition(() => {
-      setActiveIndex((current) => (current + 1) % slides.length);
-    });
-    setCycleMs(HERO_AUTOPLAY_MS);
-    setRemainingMs(HERO_AUTOPLAY_MS);
-  });
-
   useEffect(() => {
     if (!hasMultipleSlides || isHovered || isFocusPaused) {
       return undefined;
@@ -235,15 +223,17 @@ export function HomepageStoryHero({
     }, HERO_TICK_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [advanceSlide, hasMultipleSlides, isFocusPaused, isHovered]);
+  }, [hasMultipleSlides, isFocusPaused, isHovered]);
 
   useEffect(() => {
     if (!hasMultipleSlides || isHovered || isFocusPaused || remainingMs > 0) {
       return;
     }
 
-    advanceSlide();
-  }, [advanceSlide, hasMultipleSlides, isFocusPaused, isHovered, remainingMs]);
+    setActiveIndex((current) => (current + 1) % slides.length);
+    setCycleMs(HERO_AUTOPLAY_MS);
+    setRemainingMs(HERO_AUTOPLAY_MS);
+  }, [hasMultipleSlides, isFocusPaused, isHovered, remainingMs, slides.length]);
 
   const activeSlide = slides[activeIndex] || fallbackSlide;
   const progress = cycleMs > 0 ? Math.min(1, Math.max(0, 1 - remainingMs / cycleMs)) : 0;
@@ -263,9 +253,7 @@ export function HomepageStoryHero({
     : null;
 
   const jumpToSlide = (nextIndex: number) => {
-    startTransition(() => {
-      setActiveIndex((nextIndex + slides.length) % slides.length);
-    });
+    setActiveIndex((nextIndex + slides.length) % slides.length);
     if (hasMultipleSlides) {
       setCycleMs(HERO_MANUAL_HOLD_MS);
       setRemainingMs(HERO_MANUAL_HOLD_MS);

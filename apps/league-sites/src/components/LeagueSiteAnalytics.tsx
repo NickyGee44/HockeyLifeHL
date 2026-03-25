@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { posthog, initPostHog } from '@/lib/posthog-client';
+import { posthog } from '@/lib/posthog-client';
 
 interface LeagueSiteAnalyticsProps {
   leagueSlug: string;
@@ -9,8 +9,13 @@ interface LeagueSiteAnalyticsProps {
 
 export function LeagueSiteAnalytics({ leagueSlug }: LeagueSiteAnalyticsProps) {
   useEffect(() => {
-    initPostHog();
-    posthog.capture('league_site_viewed', { leagueSlug });
+    const timeoutId = window.setTimeout(() => {
+      if ((posthog as typeof posthog & { __loaded?: boolean }).__loaded) {
+        posthog.capture('league_site_viewed', { leagueSlug });
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [leagueSlug]);
 
   return null;
