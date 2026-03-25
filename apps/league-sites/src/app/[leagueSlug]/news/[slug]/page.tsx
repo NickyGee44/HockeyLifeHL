@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Calendar, Clock3, Swords, User } from 'lucide-react';
 import { SubscriptionWall } from '@/components/shared';
 import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
+import { RichArticleContent } from '@/components/news/RichArticleContent';
 import { getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
 
 interface ArticlePageProps {
@@ -50,12 +51,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     month: 'long',
     day: 'numeric',
   });
-  const contentParagraphs = article.content
-    ? article.content
-        .split(/\n\s*\n/)
-        .map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' ').trim())
-        .filter(Boolean)
-    : [];
 
   return (
     <SubscriptionWall>
@@ -221,20 +216,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </section>
 
             <div className="pt-6">
-              {contentParagraphs.length > 0 ? (
-                contentParagraphs.map((paragraph, index) => (
-                  <p
-                    key={index}
-                    className="mb-5 max-w-3xl text-base leading-8 text-[var(--color-text-secondary)] md:text-[1.0625rem]"
-                  >
-                    {paragraph}
-                  </p>
-                ))
-              ) : (
-                <p className="text-[var(--color-text-muted)] italic">
-                  No content available.
-                </p>
-              )}
+              <RichArticleContent content={article.content} />
             </div>
           </div>
         </article>
