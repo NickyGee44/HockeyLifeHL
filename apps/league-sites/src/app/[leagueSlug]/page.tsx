@@ -16,6 +16,7 @@ import {
   Phone,
   UserPlus,
 } from 'lucide-react';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import {
   getLeagueBySlug,
   getLeagueStats,
@@ -79,7 +80,7 @@ function buildHomepagePhotoHighlight({
     return {
       eyebrow: featuredStory.type === 'game_recap' ? 'Latest Recap' : 'Featured Story',
       title: featuredStory.title,
-      subtitle: featuredStory.excerpt || 'Latest updates and league stories from around the rink.',
+      subtitle: stripMarkdownLinks(featuredStory.excerpt || '') || 'Latest updates and league stories from around the rink.',
       imageUrl: featuredStory.image_url,
       href: `/${leagueSlug}/news/${featuredStory.slug || featuredStory.id}`,
       cta: 'Read Story',

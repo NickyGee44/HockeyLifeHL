@@ -3,6 +3,8 @@ import { Fragment } from 'react';
 
 interface RichArticleContentProps {
   content: string | null | undefined;
+  maxParagraphs?: number;
+  paragraphClassName?: string;
 }
 
 type Segment =
@@ -36,13 +38,18 @@ function parseInlineLinks(text: string): Segment[] {
   return segments;
 }
 
-export function RichArticleContent({ content }: RichArticleContentProps) {
-  const paragraphs = content
+export function RichArticleContent({
+  content,
+  maxParagraphs,
+  paragraphClassName = 'mb-5 max-w-3xl text-base leading-8 text-[var(--color-text-secondary)] md:text-[1.0625rem]',
+}: RichArticleContentProps) {
+  const paragraphs = (content
     ? content
         .split(/\n\s*\n/)
         .map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' ').trim())
         .filter(Boolean)
-    : [];
+    : [])
+    .slice(0, maxParagraphs ?? Number.POSITIVE_INFINITY);
 
   if (paragraphs.length === 0) {
     return <p className="text-[var(--color-text-muted)] italic">No content available.</p>;
@@ -55,7 +62,7 @@ export function RichArticleContent({ content }: RichArticleContentProps) {
         return (
           <p
             key={index}
-            className="mb-5 max-w-3xl text-base leading-8 text-[var(--color-text-secondary)] md:text-[1.0625rem]"
+            className={paragraphClassName}
           >
             {segments.map((segment, segmentIndex) => {
               if (segment.type === 'text') {

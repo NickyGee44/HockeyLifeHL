@@ -3,7 +3,7 @@ import { Newspaper } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getAllArticles } from '@/lib/data';
-import { NewsList } from '@/components/news/NewsList';
+import { NewsFeedClient } from '@/components/news/NewsFeedClient';
 
 interface NewsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -55,7 +55,7 @@ export default async function NewsPage({ params }: NewsPageProps) {
 
         {/* Articles */}
         {articles.length > 0 ? (
-          <NewsList
+          <NewsFeedClient
             articles={articles}
             leagueSlug={leagueSlug}
             leagueName={league.name}

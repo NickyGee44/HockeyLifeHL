@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Sparkles, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
+import { RichArticleContent } from '@/components/news/RichArticleContent';
 
 interface GameRecapSectionProps {
   recap: NewsArticle;
@@ -8,12 +9,6 @@ interface GameRecapSectionProps {
 }
 
 export function GameRecapSection({ recap, leagueSlug }: GameRecapSectionProps) {
-  // Split content into paragraphs for rendering
-  const paragraphs = (recap.content || '')
-    .split(/\n\n+/)
-    .filter(p => p.trim())
-    .slice(0, 4); // Show first 4 paragraphs as preview
-
   const formattedDate = recap.published_at
     ? new Date(recap.published_at).toLocaleDateString('en-US', {
         month: 'long',
@@ -46,23 +41,11 @@ export function GameRecapSection({ recap, leagueSlug }: GameRecapSectionProps) {
 
           {/* Article content preview */}
           <div className="space-y-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-            {paragraphs.map((paragraph, i) => {
-              // Basic markdown bold handling
-              const parts = paragraph.split(/\*\*(.*?)\*\*/g);
-              return (
-                <p key={i}>
-                  {parts.map((part, j) =>
-                    j % 2 === 1 ? (
-                      <strong key={j} className="font-semibold text-[var(--color-text-primary)]">
-                        {part}
-                      </strong>
-                    ) : (
-                      <span key={j}>{part}</span>
-                    )
-                  )}
-                </p>
-              );
-            })}
+            <RichArticleContent
+              content={recap.content}
+              maxParagraphs={4}
+              paragraphClassName="text-sm leading-relaxed text-[var(--color-text-secondary)]"
+            />
           </div>
 
           {/* Read full article link */}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Calendar, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
 import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 
 interface PlayerArticleCardProps {
   article: NewsArticle;
@@ -63,7 +64,7 @@ export function PlayerArticleCard({
         </h4>
         {article.excerpt && (
           <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 mt-0.5">
-            {article.excerpt}
+            {stripMarkdownLinks(article.excerpt)}
           </p>
         )}
       </div>

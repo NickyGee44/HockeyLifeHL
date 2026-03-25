@@ -2686,29 +2686,21 @@ export async function getLatestAnnouncement(leagueId: string, seasonId?: string 
 }
 
 /**
- * Get all published articles (news + AI types)
- * If AI News addon is not active, only returns 'news' type articles
+ * Get all published articles shown on the public news feed.
+ * Public league news should include standard stories plus recap/wrap content.
  */
-export async function getAllArticles(leagueId: string, limit = 20): Promise<NewsArticle[]> {
+export async function getAllArticles(leagueId: string, limit = 50): Promise<NewsArticle[]> {
   const supabase = await createClient();
 
-  const hasAddon = await hasAiNewsAddon(leagueId);
-
-  let query = supabase
+  const { data, error } = await supabase
     .from('articles')
     .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
     .eq('league_id', leagueId)
     .eq('published', true)
+    .in('type', ['news', 'game_recap', 'weekly_wrap'])
     .order('published_at', { ascending: false })
     .limit(limit);
 
-  if (hasAddon) {
-    query = query.in('type', ['news', 'game_recap', 'weekly_wrap']);
-  } else {
-    query = query.eq('type', 'news');
-  }
-
-  const { data, error } = await query;
   if (error || !data) return [];
   return data as unknown as NewsArticle[];
 }

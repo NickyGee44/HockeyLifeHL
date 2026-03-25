@@ -7,6 +7,7 @@ import type {
   NewsArticle,
   PlayerStatsWithAvatar,
 } from '@/lib/types';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 
 interface LeagueAliveBandProps {
   leagueSlug: string;
@@ -73,7 +74,7 @@ export function LeagueAliveBand({
       kind: 'image',
       eyebrow: getArticleEyebrow(featuredStory.type),
       title: featuredStory.title,
-      description: featuredStory.excerpt || 'Fresh reporting, recaps, and league momentum right from the homepage.',
+      description: stripMarkdownLinks(featuredStory.excerpt || '') || 'Fresh reporting, recaps, and league momentum right from the homepage.',
       href: `/${leagueSlug}/news/${featuredStory.slug || featuredStory.id}`,
       cta: 'Read Story',
       imageUrl: featuredStory.image_url,
