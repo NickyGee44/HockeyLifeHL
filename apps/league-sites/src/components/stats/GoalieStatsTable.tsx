@@ -16,6 +16,14 @@ interface GoalieStatsTableProps {
 
 type SortKey = 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts';
 
+function formatSavePercentage(value: number) {
+  if (value > 1) {
+    return `${value.toFixed(1)}%`;
+  }
+
+  return `.${Math.round(value * 1000).toString().padStart(3, '0')}`;
+}
+
 // Extracted SortHeader component to fix lint error (components should not be created during render)
 function SortHeader({
   label,
@@ -90,17 +98,26 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: G
                     className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[var(--color-border)]"
                   />
                   <div className="flex items-center gap-1.5">
-                    <Link
-                      href={`/${leagueSlug}/players/${goalie.player_id}`}
-                      className="flex items-center gap-2 hover:text-[var(--league-primary)] transition-colors"
-                    >
-                      {goalie.jersey_number && (
-                        <span className="text-xs text-[var(--color-text-muted)]">#{goalie.jersey_number}</span>
-                      )}
-                      <span className="font-medium">{goalie.player_name}</span>
-                    </Link>
-                    {badges?.[goalie.player_id] && badges[goalie.player_id].length > 0 && (
-                      <PlayerBadgeGroup badges={badges[goalie.player_id]} maxVisible={3} size="sm" />
+                    {goalie.profile_id ? (
+                      <Link
+                        href={`/${leagueSlug}/players/${goalie.profile_id}`}
+                        className="flex items-center gap-2 hover:text-[var(--league-primary)] transition-colors"
+                      >
+                        {goalie.jersey_number && (
+                          <span className="text-xs text-[var(--color-text-muted)]">#{goalie.jersey_number}</span>
+                        )}
+                        <span className="font-medium">{goalie.player_name}</span>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {goalie.jersey_number && (
+                          <span className="text-xs text-[var(--color-text-muted)]">#{goalie.jersey_number}</span>
+                        )}
+                        <span className="font-medium">{goalie.player_name}</span>
+                      </div>
+                    )}
+                    {goalie.profile_id && badges?.[goalie.profile_id] && badges[goalie.profile_id].length > 0 && (
+                      <PlayerBadgeGroup badges={badges[goalie.profile_id]} maxVisible={3} size="sm" />
                     )}
                   </div>
                 </div>
@@ -133,7 +150,7 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: G
               </td>
               <td className="py-3.5 px-3 text-center">
                 <span className={currentSort === 'save_percentage' ? 'text-[var(--league-primary)] font-semibold' : ''}>
-                  .{Math.round(goalie.save_percentage * 1000).toString().padStart(3, '0')}
+                  {formatSavePercentage(goalie.save_percentage)}
                 </span>
               </td>
               <td className="py-3.5 px-3 text-center">

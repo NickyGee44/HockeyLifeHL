@@ -88,6 +88,7 @@ export function ExpandableLeaderBoard({
 
 interface GoalieLeader {
   player_id: string;
+  profile_id?: string | null;
   player_name: string;
   team_id?: string;
   team_name?: string;
@@ -135,12 +136,18 @@ export function ExpandableGoalieLeaderBoard({
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/${leagueSlug}/players/${goalie.player_id}`}
-                    className="font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] transition-colors"
-                  >
-                    {goalie.player_name}
-                  </Link>
+                  {goalie.profile_id ? (
+                    <Link
+                      href={`/${leagueSlug}/players/${goalie.profile_id}`}
+                      className="font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] transition-colors"
+                    >
+                      {goalie.player_name}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-[var(--color-text-primary)]">
+                      {goalie.player_name}
+                    </span>
+                  )}
                   {goalie.team_name && (
                     goalie.team_id ? (
                       <Link

@@ -9,16 +9,19 @@ interface GoalieStatsFiltersProps {
   seasons: Season[];
   currentFilters: {
     season?: string;
+    view?: string;
     sort?: string;
     division?: string;
   };
   leagueSlug: string;
+  disableDivisionFilter?: boolean;
 }
 
 export function GoalieStatsFilters({
   seasons,
   currentFilters,
   leagueSlug,
+  disableDivisionFilter = false,
 }: GoalieStatsFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,6 +30,10 @@ export function GoalieStatsFilters({
 
   // Sync global division filter → URL param so server-side query picks it up
   useEffect(() => {
+    if (disableDivisionFilter) {
+      return;
+    }
+
     // First render: capture current URL state without navigating
     if (prevDivisionRef.current === undefined) {
       prevDivisionRef.current = searchParams.get('division') || null;
@@ -43,15 +50,30 @@ export function GoalieStatsFilters({
       params.delete('division');
     }
     router.replace(`/${leagueSlug}/stats/goalies?${params.toString()}`);
-  }, [selectedDivisionId, searchParams, router, leagueSlug]);
+  }, [disableDivisionFilter, selectedDivisionId, searchParams, router, leagueSlug]);
 
   const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (value && value !== 'all') {
-      params.set(key, value);
+    if (key === 'season') {
+      if (value === 'all-time') {
+        params.set('view', 'all-time');
+        params.delete('season');
+        params.delete('division');
+      } else {
+        params.delete('view');
+        if (value && value !== 'all') {
+          params.set('season', value);
+        } else {
+          params.delete('season');
+        }
+      }
     } else {
-      params.delete(key);
+      if (value && value !== 'all') {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
     }
 
     router.push(`/${leagueSlug}/stats/goalies?${params.toString()}`);
@@ -69,7 +91,7 @@ export function GoalieStatsFilters({
   return (
     <div className="flex flex-wrap gap-3 mb-6">
       {/* Division Filter */}
-      {divisions.length > 1 && (
+      {!disableDivisionFilter && divisions.length > 1 && (
         <select
           value={selectedDivisionId || ''}
           onChange={(e) => setDivision(e.target.value || null)}
@@ -89,10 +111,11 @@ export function GoalieStatsFilters({
       {/* Season Filter */}
       {seasons.length > 0 && (
         <select
-          value={currentFilters.season || 'all'}
+          value={currentFilters.view === 'all-time' ? 'all-time' : currentFilters.season || 'all'}
           onChange={(e) => handleFilterChange('season', e.target.value)}
           className={selectClass}
         >
+          <option value="all-time">All-Time Career Stats</option>
           <option value="all">Current Season</option>
           {seasons.map((season) => (
             <option key={season.id} value={season.id}>

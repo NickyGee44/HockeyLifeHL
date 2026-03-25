@@ -11,6 +11,7 @@ interface GoalieStatsPageProps {
   params: Promise<{ leagueSlug: string }>;
   searchParams: Promise<{
     season?: string;
+    view?: string;
     sort?: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts';
     division?: string;
   }>;
@@ -23,22 +24,26 @@ export const metadata: Metadata = {
 
 export default async function GoalieStatsPage({ params, searchParams }: GoalieStatsPageProps) {
   const { leagueSlug } = await params;
-  const { season: seasonFilter, sort = 'wins', division: divisionFilter } = await searchParams;
+  const { season: seasonFilter, view, sort = 'wins', division: divisionFilter } = await searchParams;
 
   const league = await getLeagueBySlug(leagueSlug);
   if (!league) notFound();
 
   const currentSeason = await getCurrentSeason(league.id);
-  const seasonId = seasonFilter || currentSeason?.id;
+  const isAllTime = view === 'all-time';
+  const seasonId = isAllTime ? null : (seasonFilter || currentSeason?.id);
+  const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
 
   // Fetch data in parallel, with division filter
   const [seasons, goalieLeaders] = await Promise.all([
     getSeasons(league.id),
-    getGoalieLeaders(league.id, seasonId, sort, 50, divisionFilter),
+    getGoalieLeaders(league.id, seasonId, sort, 50, effectiveDivisionFilter, league.slug),
   ]);
 
   // Fetch badges for goalies
-  const goaliePlayerIds = goalieLeaders.map(g => g.player_id);
+  const goaliePlayerIds = goalieLeaders
+    .map((goalie) => goalie.profile_id)
+    .filter((playerId): playerId is string => Boolean(playerId));
   const badges = await getPlayerBadgesByIds(goaliePlayerIds);
 
   return (
@@ -63,17 +68,22 @@ export default async function GoalieStatsPage({ params, searchParams }: GoalieSt
         </div>
 
         {/* Season Info */}
-        {currentSeason && !seasonFilter && (
+        {isAllTime ? (
+          <p className="text-[var(--color-text-secondary)] mb-4">
+            Career goaltending totals across all seasons
+          </p>
+        ) : currentSeason && !seasonFilter ? (
           <p className="text-[var(--color-text-secondary)] mb-4">
             {currentSeason.name} Season
           </p>
-        )}
+        ) : null}
 
         {/* Filters (includes division sync) */}
         <GoalieStatsFilters
           seasons={seasons}
-          currentFilters={{ season: seasonFilter, sort, division: divisionFilter }}
+          currentFilters={{ season: seasonFilter, view, sort, division: divisionFilter }}
           leagueSlug={leagueSlug}
+          disableDivisionFilter={isAllTime}
         />
 
         {/* Goalie Stats Table */}

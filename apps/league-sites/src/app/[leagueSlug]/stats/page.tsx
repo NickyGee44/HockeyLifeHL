@@ -47,10 +47,12 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
   const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
 
   const [pointsLeaders, goalsLeaders, assistsLeaders, specialTeamsLeaders] = await Promise.all([
-    getStatsLeadersWithAvatars(league.id, 'points', 50, effectiveDivisionFilter, selectedSeasonId),
-    getStatsLeadersWithAvatars(league.id, 'goals', 50, effectiveDivisionFilter, selectedSeasonId),
-    getStatsLeadersWithAvatars(league.id, 'assists', 50, effectiveDivisionFilter, selectedSeasonId),
-    getSpecialTeamsLeaders(league.id, selectedSeasonId || currentSeason?.id, effectiveDivisionFilter),
+    getStatsLeadersWithAvatars(league.id, 'points', 50, effectiveDivisionFilter, selectedSeasonId, league.slug),
+    getStatsLeadersWithAvatars(league.id, 'goals', 50, effectiveDivisionFilter, selectedSeasonId, league.slug),
+    getStatsLeadersWithAvatars(league.id, 'assists', 50, effectiveDivisionFilter, selectedSeasonId, league.slug),
+    isAllTime
+      ? Promise.resolve([])
+      : getSpecialTeamsLeaders(league.id, selectedSeasonId || currentSeason?.id, effectiveDivisionFilter),
   ]);
 
   // Enrich special teams leaders with avatar URLs
@@ -71,9 +73,9 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
 
   // Collect all player IDs for badge lookup
   const allPlayerIds = [...new Set([
-    ...pointsLeaders.map(p => p.player_id),
-    ...goalsLeaders.map(p => p.player_id),
-    ...assistsLeaders.map(p => p.player_id),
+    ...pointsLeaders.map((player) => player.profile_id).filter((playerId): playerId is string => Boolean(playerId)),
+    ...goalsLeaders.map((player) => player.profile_id).filter((playerId): playerId is string => Boolean(playerId)),
+    ...assistsLeaders.map((player) => player.profile_id).filter((playerId): playerId is string => Boolean(playerId)),
   ])];
   const badges = await getPlayerBadgesByIds(allPlayerIds);
 
