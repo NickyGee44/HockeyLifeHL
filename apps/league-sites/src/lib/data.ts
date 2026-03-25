@@ -1670,19 +1670,23 @@ export async function getStatsLeaders(
     })) as PlayerStats[];
   }
 
-  // Try to use stats RPC if available (single season)
-  const { data: rpcData, error: rpcError } = await supabase.rpc(
-    'get_stats_leaders',
-    {
-      p_league_id: leagueId,
-      p_stat_type: statType,
-      p_limit: limit,
-      p_division_id: divisionId || null,
-    }
-  );
+  // Try to use stats RPC only when no specific season is selected.
+  // The RPC path is not season-aware here, so a chosen historical season like
+  // Historical Career Baseline must use the season-scoped view query below.
+  if (!seasonId) {
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      'get_stats_leaders',
+      {
+        p_league_id: leagueId,
+        p_stat_type: statType,
+        p_limit: limit,
+        p_division_id: divisionId || null,
+      }
+    );
 
-  if (!rpcError && rpcData && rpcData.length > 0) {
-    return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
+    if (!rpcError && rpcData && rpcData.length > 0) {
+      return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
+    }
   }
 
   // Fallback: Query player_season_stats view for specific or current season
