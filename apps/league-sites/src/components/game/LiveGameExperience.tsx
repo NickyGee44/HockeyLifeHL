@@ -28,7 +28,7 @@ function eventAccent(event: LiveGameEvent): string {
   if (event.eventType === 'goal') return 'border-green-500/30 bg-green-500/5';
   if (event.eventType === 'penalty') return 'border-yellow-500/30 bg-yellow-500/5';
   if (event.eventType === 'save') return 'border-blue-500/30 bg-blue-500/5';
-  return 'border-[var(--color-border)] bg-[var(--color-surface)]/60';
+  return 'border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_94%,transparent)]';
 }
 
 function eventLabel(event: LiveGameEvent): string {
@@ -102,10 +102,10 @@ export function LiveGameExperience({
         awayTeam={awayTeam}
         leagueSlug={leagueSlug}
         timezone={timezone}
-      />
+      /> 
 
       {showLivePanel ? (
-        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/30">
+        <div className="border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_94%,transparent)] backdrop-blur-md">
           <div className="container mx-auto px-4 py-5">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -194,7 +194,7 @@ export function LiveGameExperience({
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)]/70 px-3 py-2">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_96%,transparent)] px-3 py-2">
       <div className="text-lg font-bold tabular-nums text-[var(--color-text-primary)]">{value}</div>
       <div className="text-[11px] uppercase tracking-wide text-[var(--color-text-secondary)]">{label}</div>
     </div>
@@ -203,7 +203,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 function PenaltyColumn({ title, penalties }: { title: string; penalties: LivePenaltyState[] }) {
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)]/70 p-3">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_96%,transparent)] p-3">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">{title}</h3>
       <div className="mt-3 grid gap-2">
         {penalties.map((penalty) => (

@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
-import { ChevronLeft, ChevronRight, Clock, MapPin, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { TickerGame } from '@/lib/types';
 
@@ -11,51 +11,77 @@ interface PremiumScoreTickerProps {
   games: TickerGame[];
   leagueSlug: string;
   autoScroll?: boolean;
-  scrollSpeed?: number; // pixels per second
+  scrollSpeed?: number;
 }
 
-/**
- * PremiumScoreTicker - ESPN/NHL-style premium horizontal score ticker
- *
- * Features:
- * - Glass morphism design with smooth animations
- * - Live game pulsing indicators
- * - Auto-scroll with pause on hover
- * - Click to expand game details
- * - Team color accents
- * - Mobile-friendly touch scrolling
- * - Uses CSS variables for league theming
- */
+function getTeamColor(colors: string | null): string | null {
+  if (!colors) return null;
+  if (colors.startsWith('#')) return colors;
+
+  try {
+    const parsed = JSON.parse(colors);
+    return parsed.primary || parsed.color || null;
+  } catch {
+    return null;
+  }
+}
+
+function formatGameDate(gameDate: Date) {
+  if (isToday(gameDate)) return 'Today';
+  if (isTomorrow(gameDate)) return 'Tomorrow';
+  if (isYesterday(gameDate)) return 'Yesterday';
+  return format(gameDate, 'MMM d');
+}
+
 export function PremiumScoreTicker({
   games,
   leagueSlug,
   autoScroll = true,
-  scrollSpeed = 40,
+  scrollSpeed = 36,
 }: PremiumScoreTickerProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const [expandedGameId, setExpandedGameId] = useState<string | null>(null);
-  const [scrollPosition, setScrollPosition] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
 
-  // Separate games by status for smart ordering (compute even if empty to keep hooks order consistent)
-  const liveGames = (games || []).filter((g) => g.status === 'in_progress');
-  const upcomingGames = (games || []).filter((g) => g.status === 'scheduled');
-  const completedGames = (games || []).filter((g) => g.status === 'completed');
-
-  // Order: Live games first, then upcoming, then completed
+  const liveGames = (games || []).filter((game) => game.status === 'in_progress');
+  const upcomingGames = (games || []).filter((game) => game.status === 'scheduled');
+  const completedGames = (games || []).filter((game) => game.status === 'completed');
   const orderedGames = [...liveGames, ...upcomingGames, ...completedGames];
 
-  // Duplicate for seamless looping
-  const duplicatedGames = [...orderedGames, ...orderedGames];
-
-  // Smooth scroll animation using requestAnimationFrame
   useEffect(() => {
-    if (!autoScroll) return;
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const syncDesktopState = () => setIsDesktop(mediaQuery.matches);
+
+    syncDesktopState();
+    mediaQuery.addEventListener('change', syncDesktopState);
+
+    return () => mediaQuery.removeEventListener('change', syncDesktopState);
+  }, []);
+
+  const shouldAutoScroll = autoScroll && isDesktop && orderedGames.length > 1;
+  const displayGames = shouldAutoScroll ? [...orderedGames, ...orderedGames] : orderedGames;
+  const showControls = isDesktop && orderedGames.length > 1;
+
+  useEffect(() => {
+    setScrollPosition(0);
+    lastTimeRef.current = 0;
+  }, [shouldAutoScroll, orderedGames.length]);
+
+  useEffect(() => {
+    if (!shouldAutoScroll) {
+      return undefined;
+    }
 
     const animate = (currentTime: number) => {
-      if (!scrollRef.current || isPaused) {
+      if (!trackRef.current) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      if (isPaused) {
         lastTimeRef.current = currentTime;
         animationRef.current = requestAnimationFrame(animate);
         return;
@@ -68,15 +94,14 @@ export function PremiumScoreTicker({
       const deltaTime = (currentTime - lastTimeRef.current) / 1000;
       lastTimeRef.current = currentTime;
 
-      const scrollWidth = scrollRef.current.scrollWidth / 2;
-      setScrollPosition((prev) => {
-        let newPosition = prev + scrollSpeed * deltaTime;
-        // Reset to beginning when we've scrolled through half (the original set)
-        if (newPosition >= scrollWidth) {
-          newPosition = 0;
+      const scrollWidth = trackRef.current.scrollWidth / 2;
+      setScrollPosition((previous) => {
+        if (scrollWidth <= 0) {
+          return 0;
         }
-        return newPosition;
+        return (previous + scrollSpeed * deltaTime) % scrollWidth;
       });
+
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -87,172 +112,158 @@ export function PremiumScoreTicker({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [autoScroll, isPaused, scrollSpeed]);
+  }, [isPaused, scrollSpeed, shouldAutoScroll]);
 
-  const handleScrollLeft = () => {
-    setScrollPosition((prev) => Math.max(0, prev - 350));
-  };
-
-  const handleScrollRight = () => {
-    if (scrollRef.current) {
-      const maxScroll = scrollRef.current.scrollWidth / 2;
-      setScrollPosition((prev) => Math.min(maxScroll, prev + 350));
-    }
-  };
-
-  const handleGameClick = (gameId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    setExpandedGameId(expandedGameId === gameId ? null : gameId);
-    setIsPaused(true);
-  };
-
-  const handleCloseExpanded = () => {
-    setExpandedGameId(null);
-  };
-
-  // Find the expanded game
-  const expandedGame = expandedGameId
-    ? orderedGames.find((g) => g.id === expandedGameId)
-    : null;
-
-  // Don't render if no games (check after all hooks to satisfy rules of hooks)
   if (!games || games.length === 0) {
     return null;
   }
 
+  const nudgeTrack = (direction: -1 | 1) => {
+    const amount = 262;
+
+    if (shouldAutoScroll) {
+      if (!trackRef.current) {
+        return;
+      }
+
+      const maxScroll = trackRef.current.scrollWidth / 2;
+      setScrollPosition((previous) => {
+        if (direction < 0) {
+          return previous <= 0 ? Math.max(0, maxScroll - amount) : Math.max(0, previous - amount);
+        }
+        return previous + amount >= maxScroll ? 0 : previous + amount;
+      });
+      return;
+    }
+
+    if (!trackRef.current) {
+      return;
+    }
+
+    const maxNativeScroll = trackRef.current.scrollWidth - trackRef.current.clientWidth;
+    const currentScroll = trackRef.current.scrollLeft;
+
+    if (direction < 0) {
+      trackRef.current.scrollTo({
+        left: currentScroll <= 0 ? maxNativeScroll : Math.max(0, currentScroll - amount),
+        behavior: 'smooth',
+      });
+      return;
+    }
+
+    trackRef.current.scrollTo({
+      left: currentScroll + amount >= maxNativeScroll ? 0 : currentScroll + amount,
+      behavior: 'smooth',
+    });
+  };
+
   return (
-    <div className="relative w-full">
-      {/* Main Ticker Container */}
+    <div className="score-ticker relative w-full" data-testid="score-ticker">
       <div
         className="relative w-full overflow-hidden backdrop-blur-md"
         style={{
           background:
-            'linear-gradient(180deg, color-mix(in srgb, var(--color-background) 95%, transparent) 0%, color-mix(in srgb, var(--color-background) 85%, transparent) 100%)',
+            'linear-gradient(180deg, color-mix(in srgb, var(--color-background) 96%, transparent) 0%, color-mix(in srgb, var(--color-background) 89%, transparent) 100%)',
           borderBottom: '1px solid var(--color-border-muted)',
         }}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => {
-          if (!expandedGameId) setIsPaused(false);
-        }}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => {
-          if (!expandedGameId) {
-            setTimeout(() => setIsPaused(false), 3000);
+        onMouseEnter={() => {
+          if (showControls) {
+            setIsPaused(true);
           }
         }}
+        onMouseLeave={() => setIsPaused(false)}
         role="region"
         aria-label="Live scores and upcoming games ticker"
       >
-        {/* Live indicator bar at top */}
         {liveGames.length > 0 && (
           <div
-            className="absolute top-0 left-0 right-0 h-0.5"
+            className="absolute inset-x-0 top-0 h-px"
             style={{
-              background: `linear-gradient(90deg, transparent, var(--league-primary), transparent)`,
-              animation: 'pulse-glow 2s ease-in-out infinite',
+              background: 'linear-gradient(90deg, transparent, #ef4444, transparent)',
             }}
           />
         )}
 
-        {/* Left Navigation Button */}
-        <button
-          onClick={handleScrollLeft}
-          className="absolute left-0 top-0 bottom-0 z-30 flex items-center justify-center w-12 transition-all duration-300 opacity-0 hover:opacity-100 focus:opacity-100 group"
-          style={{
-            background:
-              'linear-gradient(to right, color-mix(in srgb, var(--color-background) 95%, transparent) 40%, transparent)',
-          }}
-          aria-label="Scroll left"
-        >
-          <div
-            className="p-2 rounded-full transition-all duration-200 group-hover:scale-110"
+        {showControls && (
+          <button
+            type="button"
+            onClick={() => nudgeTrack(-1)}
+            className="absolute left-0 top-0 bottom-0 z-30 hidden w-10 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
             style={{
-              backgroundColor: 'var(--color-surface-hover)',
-              backdropFilter: 'blur(4px)',
+              background:
+                'linear-gradient(to right, color-mix(in srgb, var(--color-background) 96%, transparent) 34%, transparent)',
             }}
+            aria-label="Scroll left"
           >
-            <ChevronLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
-          </div>
-        </button>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border-muted)] bg-[var(--color-surface)]/88 text-[var(--color-text-secondary)] backdrop-blur-sm transition-colors duration-200 hover:text-[var(--color-text-primary)]">
+              <ChevronLeft className="h-4 w-4" />
+            </span>
+          </button>
+        )}
 
-        {/* Scrolling Track */}
         <div
-          ref={scrollRef}
-          className="flex gap-3 py-3 px-14 overflow-x-auto scrollbar-hide touch-pan-x"
-          style={{
-            transform: `translateX(-${scrollPosition}px)`,
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
+          ref={trackRef}
+          className={`flex gap-2 px-3 py-2 sm:px-4 ${shouldAutoScroll ? 'overflow-hidden' : 'overflow-x-auto scrollbar-hide touch-pan-x snap-x snap-mandatory lg:snap-none'}`}
+          style={
+            shouldAutoScroll
+              ? {
+                  transform: `translateX(-${scrollPosition}px)`,
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                }
+              : {
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                }
+          }
         >
-          {duplicatedGames.map((game, index) => (
+          {displayGames.map((game, index) => (
             <TickerGameCard
               key={`${game.id}-${index}`}
               game={game}
               leagueSlug={leagueSlug}
-              isExpanded={expandedGameId === game.id}
-              onExpand={handleGameClick}
             />
           ))}
         </div>
 
-        {/* Right Navigation Button */}
-        <button
-          onClick={handleScrollRight}
-          className="absolute right-0 top-0 bottom-0 z-30 flex items-center justify-center w-12 transition-all duration-300 opacity-0 hover:opacity-100 focus:opacity-100 group"
-          style={{
-            background:
-              'linear-gradient(to left, color-mix(in srgb, var(--color-background) 95%, transparent) 40%, transparent)',
-          }}
-          aria-label="Scroll right"
-        >
-          <div
-            className="p-2 rounded-full transition-all duration-200 group-hover:scale-110"
+        {showControls && (
+          <button
+            type="button"
+            onClick={() => nudgeTrack(1)}
+            className="absolute right-0 top-0 bottom-0 z-30 hidden w-10 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
             style={{
-              backgroundColor: 'var(--color-surface-hover)',
-              backdropFilter: 'blur(4px)',
+              background:
+                'linear-gradient(to left, color-mix(in srgb, var(--color-background) 96%, transparent) 34%, transparent)',
             }}
+            aria-label="Scroll right"
           >
-            <ChevronRight className="w-5 h-5 text-[var(--color-text-secondary)]" />
-          </div>
-        </button>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border-muted)] bg-[var(--color-surface)]/88 text-[var(--color-text-secondary)] backdrop-blur-sm transition-colors duration-200 hover:text-[var(--color-text-primary)]">
+              <ChevronRight className="h-4 w-4" />
+            </span>
+          </button>
+        )}
 
-        {/* Edge Fade Gradients */}
-        <div
-          className="absolute left-12 top-0 bottom-0 w-6 pointer-events-none z-10"
-          style={{
-            background: 'linear-gradient(to right, color-mix(in srgb, var(--color-background) 90%, transparent), transparent)',
-          }}
-        />
-        <div
-          className="absolute right-12 top-0 bottom-0 w-6 pointer-events-none z-10"
-          style={{
-            background: 'linear-gradient(to left, color-mix(in srgb, var(--color-background) 90%, transparent), transparent)',
-          }}
-        />
+        {showControls && (
+          <>
+            <div
+              className="pointer-events-none absolute left-10 top-0 bottom-0 z-10 hidden w-6 lg:block"
+              style={{
+                background:
+                  'linear-gradient(to right, color-mix(in srgb, var(--color-background) 90%, transparent), transparent)',
+              }}
+            />
+            <div
+              className="pointer-events-none absolute right-10 top-0 bottom-0 z-10 hidden w-6 lg:block"
+              style={{
+                background:
+                  'linear-gradient(to left, color-mix(in srgb, var(--color-background) 90%, transparent), transparent)',
+              }}
+            />
+          </>
+        )}
       </div>
 
-      {/* Expanded Game Details Overlay */}
-      {expandedGame && (
-        <ExpandedGameDetails
-          game={expandedGame}
-          leagueSlug={leagueSlug}
-          onClose={handleCloseExpanded}
-        />
-      )}
-
-      {/* Styles */}
       <style jsx>{`
-        @keyframes pulse-glow {
-          0%,
-          100% {
-            opacity: 0.5;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
-
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
@@ -261,210 +272,117 @@ export function PremiumScoreTicker({
   );
 }
 
-// =============================================================================
-// Ticker Game Card Component
-// =============================================================================
-
 interface TickerGameCardProps {
   game: TickerGame;
   leagueSlug: string;
-  isExpanded: boolean;
-  onExpand: (gameId: string, e: React.MouseEvent) => void;
 }
 
-function TickerGameCard({
-  game,
-  isExpanded,
-  onExpand,
-}: TickerGameCardProps) {
+function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
   const isCompleted = game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const isScheduled = game.status === 'scheduled';
   const gameDate = new Date(game.scheduled_at);
-
-  // Parse team colors
-  const getTeamColor = (colors: string | null): string | null => {
-    if (!colors) return null;
-    if (colors.startsWith('#')) return colors;
-    try {
-      const parsed = JSON.parse(colors);
-      return parsed.primary || parsed.color || null;
-    } catch {
-      return null;
-    }
-  };
-
   const awayColor = getTeamColor(game.away_team?.colors || null);
   const homeColor = getTeamColor(game.home_team?.colors || null);
-
-  // Score comparison
   const awayScore = game.away_score ?? 0;
   const homeScore = game.home_score ?? 0;
   const awayWinning = awayScore > homeScore;
   const homeWinning = homeScore > awayScore;
-
-  // Smart date formatting
-  const formatGameDate = () => {
-    if (isToday(gameDate)) return 'Today';
-    if (isTomorrow(gameDate)) return 'Tomorrow';
-    if (isYesterday(gameDate)) return 'Yesterday';
-    return format(gameDate, 'MMM d');
-  };
+  const divisionLabel = game.home_team?.divisions?.name || game.away_team?.divisions?.name || null;
 
   return (
-    <div
-      onClick={(e) => onExpand(game.id, e)}
-      className="flex-shrink-0 relative group cursor-pointer"
-      style={{ minWidth: '280px' }}
+    <Link
+      href={`/${leagueSlug}/games/${game.id}`}
+      className="group relative flex-shrink-0 snap-start"
+      style={{ minWidth: '248px' }}
     >
-      {/* Card Container with Glass Effect */}
-      <div
-        className={`relative rounded-xl overflow-hidden transition-all duration-300 ${
-          isExpanded ? 'ring-2 ring-[var(--color-border-emphasis)]' : 'hover:ring-1 hover:ring-[var(--color-border)]'
-        }`}
+      <article
+        className="overflow-hidden rounded-[18px] border border-[var(--color-border-muted)] px-3 py-2.5 transition-all duration-200 group-hover:border-[var(--league-primary)]/45 group-hover:bg-[var(--color-surface)]"
         style={{
           background: isLive
-            ? 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, color-mix(in srgb, var(--color-surface) 95%, transparent) 50%)'
-            : 'linear-gradient(135deg, color-mix(in srgb, var(--color-surface-hover) 40%, transparent) 0%, color-mix(in srgb, var(--color-surface) 95%, transparent) 100%)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid var(--color-border-muted)',
+            ? 'linear-gradient(135deg, rgba(239,68,68,0.11) 0%, color-mix(in srgb, var(--color-surface) 96%, transparent) 48%, color-mix(in srgb, var(--color-surface) 92%, transparent) 100%)'
+            : 'linear-gradient(135deg, color-mix(in srgb, var(--color-surface-hover) 28%, transparent) 0%, color-mix(in srgb, var(--color-surface) 95%, transparent) 100%)',
         }}
       >
-        {/* Team Color Accent Bars */}
-        <div className="absolute top-0 left-0 right-0 h-1 flex">
+        <div className="absolute inset-x-0 top-0 h-[2px] overflow-hidden">
           <div
-            className="w-1/2 transition-all duration-300"
+            className="h-full"
             style={{
-              backgroundColor: awayColor || 'var(--league-secondary)',
-              opacity: awayWinning || isScheduled ? 1 : 0.4,
-            }}
-          />
-          <div
-            className="w-1/2 transition-all duration-300"
-            style={{
-              backgroundColor: homeColor || 'var(--league-primary)',
-              opacity: homeWinning || isScheduled ? 1 : 0.4,
+              background: `linear-gradient(90deg, ${awayColor || 'var(--league-secondary)'}, ${homeColor || 'var(--league-primary)'})`,
+              opacity: isCompleted || isLive ? 1 : 0.8,
             }}
           />
         </div>
 
-        {/* Content */}
-        <div className="pt-3 pb-2.5 px-3">
-          {/* Status Row */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-              {formatGameDate()}
+        <div className="flex items-center justify-between gap-2 pt-0.5">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+            {formatGameDate(gameDate)}
+          </span>
+          <GameStatusBadge status={game.status} gameDate={gameDate} />
+        </div>
+
+        <div className="mt-2 space-y-1.5">
+          <TeamRow
+            team={game.away_team}
+            score={game.away_score}
+            isWinning={awayWinning && (isCompleted || isLive)}
+            showScore={isCompleted || isLive}
+            teamColor={awayColor}
+            isLive={isLive}
+          />
+          <TeamRow
+            team={game.home_team}
+            score={game.home_score}
+            isWinning={homeWinning && (isCompleted || isLive)}
+            showScore={isCompleted || isLive}
+            teamColor={homeColor}
+            isLive={isLive}
+          />
+        </div>
+
+        <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--color-border-muted)] pt-2">
+          <span className="flex min-w-0 items-center gap-1 text-[10px] text-[var(--color-text-secondary)]">
+            <MapPin className="h-3 w-3 shrink-0 text-[var(--color-text-muted)]" />
+            <span className="truncate">{game.venue || 'Venue TBA'}</span>
+          </span>
+          {divisionLabel && (
+            <span className="shrink-0 rounded-full bg-[var(--league-primary)]/12 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--league-primary)]">
+              {divisionLabel}
             </span>
-            <GameStatusBadge status={game.status} gameDate={gameDate} />
-          </div>
-
-          {/* Teams and Scores */}
-          <div className="space-y-1.5">
-            {/* Away Team */}
-            <TeamRow
-              team={game.away_team}
-              score={game.away_score}
-              isWinning={awayWinning && (isCompleted || isLive)}
-              isLive={isLive}
-              showScore={isCompleted || isLive}
-              teamColor={awayColor}
-            />
-
-            {/* Divider */}
-            <div className="flex items-center gap-2 px-1">
-              <div className="flex-1 h-px bg-[var(--color-border-muted)]" />
-              {isScheduled && (
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
-                  vs
-                </span>
-              )}
-              <div className="flex-1 h-px bg-[var(--color-border-muted)]" />
-            </div>
-
-            {/* Home Team */}
-            <TeamRow
-              team={game.home_team}
-              score={game.home_score}
-              isWinning={homeWinning && (isCompleted || isLive)}
-              isLive={isLive}
-              showScore={isCompleted || isLive}
-              teamColor={homeColor}
-              isHome
-            />
-          </div>
-
-          {/* Venue (subtle) */}
-          {game.venue && (
-            <div className="mt-2 pt-2 border-t border-[var(--color-border-muted)] flex items-center gap-1">
-              <MapPin className="w-2.5 h-2.5 text-[var(--color-text-muted)]" />
-              <span className="text-[9px] text-[var(--color-text-secondary)] truncate">
-                {game.venue}
-              </span>
-            </div>
           )}
         </div>
 
-        {/* Hover Shimmer Effect */}
-        <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(105deg, transparent 40%, color-mix(in srgb, var(--color-surface-hover) 20%, transparent) 50%, transparent 60%)',
-          }}
-        />
-      </div>
-    </div>
+        {isScheduled && (
+          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <div className="absolute inset-0 bg-[linear-gradient(100deg,transparent_30%,rgba(255,255,255,0.08)_50%,transparent_70%)]" />
+          </div>
+        )}
+      </article>
+    </Link>
   );
 }
-
-// =============================================================================
-// Team Row Component
-// =============================================================================
 
 interface TeamRowProps {
   team: TickerGame['home_team'];
   score: number | null;
   isWinning: boolean;
-  isLive: boolean;
   showScore: boolean;
   teamColor: string | null;
-  isHome?: boolean;
+  isLive: boolean;
 }
 
-function TeamRow({
-  team,
-  score,
-  isWinning,
-  isLive,
-  showScore,
-  teamColor,
-  isHome = false,
-}: TeamRowProps) {
+function TeamRow({ team, score, isWinning, showScore, teamColor, isLive }: TeamRowProps) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2.5 flex-1 min-w-0">
-        {/* Team Logo */}
-        <div className="relative flex-shrink-0">
-          <TeamLogo
-            logoUrl={team?.logo || null}
-            teamName={team?.name || 'TBD'}
-            teamColor={teamColor}
-            size="sm"
-          />
-          {/* Home indicator */}
-          {isHome && (
-            <div
-              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-[var(--color-border)] flex items-center justify-center"
-              style={{ backgroundColor: 'var(--league-primary)' }}
-            >
-              <span className="text-[6px] font-bold text-[var(--color-text-inverse)]">H</span>
-            </div>
-          )}
-        </div>
-
-        {/* Team Name */}
+      <div className="flex min-w-0 items-center gap-2">
+        <TeamLogo
+          logoUrl={team?.logo || null}
+          teamName={team?.name || 'TBD'}
+          teamColor={teamColor}
+          size="sm"
+        />
         <span
-          className={`text-sm font-semibold truncate transition-all duration-200 ${
+          className={`truncate text-sm font-semibold ${
             isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
           }`}
         >
@@ -472,35 +390,32 @@ function TeamRow({
         </span>
       </div>
 
-      {/* Score */}
-      {showScore && (
+      {showScore ? (
         <div className="flex items-center gap-1.5">
-          {/* Win indicator dot */}
           {isWinning && (
-            <div
-              className="w-1.5 h-1.5 rounded-full"
+            <span
+              className="h-1.5 w-1.5 rounded-full"
               style={{
                 backgroundColor: isLive ? '#ef4444' : 'var(--league-primary)',
-                boxShadow: isLive ? '0 0 6px #ef4444' : 'none',
               }}
             />
           )}
           <span
-            className={`text-xl font-bold tabular-nums ${
+            className={`text-lg font-black tabular-nums ${
               isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}
           >
             {score ?? '-'}
           </span>
         </div>
+      ) : (
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+          {isLive ? 'Live' : ''}
+        </span>
       )}
     </div>
   );
 }
-
-// =============================================================================
-// Game Status Badge Component
-// =============================================================================
 
 interface GameStatusBadgeProps {
   status: TickerGame['status'];
@@ -510,21 +425,16 @@ interface GameStatusBadgeProps {
 function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
   if (status === 'in_progress') {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/20">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-        </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">
-          Live
-        </span>
-      </div>
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/12 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+        Live
+      </span>
     );
   }
 
-  if (status === 'completed') {
+  if (status === 'completed' || status === 'pending_verification') {
     return (
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] px-2 py-0.5 rounded-full bg-[var(--color-surface-hover)]">
+      <span className="rounded-full bg-[var(--color-surface-hover)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-secondary)]">
         Final
       </span>
     );
@@ -532,7 +442,7 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
 
   if (status === 'postponed') {
     return (
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/80 px-2 py-0.5 rounded-full bg-amber-500/10">
+      <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-400">
         PPD
       </span>
     );
@@ -540,288 +450,17 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
 
   if (status === 'cancelled') {
     return (
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] px-2 py-0.5 rounded-full bg-[var(--color-surface-hover)] line-through">
+      <span className="rounded-full bg-[var(--color-surface-hover)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-secondary)] line-through">
         Cancelled
       </span>
     );
   }
 
-  // Scheduled - show time
   return (
-    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-surface-hover)]">
-      <Clock className="w-2.5 h-2.5 text-[var(--color-text-secondary)]" />
-      <span
-        className="text-[10px] font-bold"
-        style={{ color: 'var(--league-primary)' }}
-      >
-        {format(gameDate, 'h:mm a')}
-      </span>
-    </div>
-  );
-}
-
-// =============================================================================
-// Expanded Game Details Component
-// =============================================================================
-
-interface ExpandedGameDetailsProps {
-  game: TickerGame;
-  leagueSlug: string;
-  onClose: () => void;
-}
-
-function ExpandedGameDetails({
-  game,
-  leagueSlug,
-  onClose,
-}: ExpandedGameDetailsProps) {
-  const isCompleted = game.status === 'completed';
-  const isLive = game.status === 'in_progress';
-  const gameDate = new Date(game.scheduled_at);
-
-  const getTeamColor = (colors: string | null): string | null => {
-    if (!colors) return null;
-    if (colors.startsWith('#')) return colors;
-    try {
-      const parsed = JSON.parse(colors);
-      return parsed.primary || parsed.color || null;
-    } catch {
-      return null;
-    }
-  };
-
-  const awayColor = getTeamColor(game.away_team?.colors || null);
-  const homeColor = getTeamColor(game.home_team?.colors || null);
-
-  const awayScore = game.away_score ?? 0;
-  const homeScore = game.home_score ?? 0;
-  const awayWinning = awayScore > homeScore;
-  const homeWinning = homeScore > awayScore;
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* Details Panel */}
-      <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg mt-4 mx-4 animate-slide-down"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="rounded-2xl overflow-hidden shadow-2xl"
-          style={{
-            background:
-              'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 98%, transparent) 0%, color-mix(in srgb, var(--color-background) 98%, transparent) 100%)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          {/* Team Color Header Bar */}
-          <div className="h-1.5 flex">
-            <div
-              className="w-1/2"
-              style={{
-                backgroundColor: awayColor || 'var(--league-secondary)',
-              }}
-            />
-            <div
-              className="w-1/2"
-              style={{
-                backgroundColor: homeColor || 'var(--league-primary)',
-              }}
-            />
-          </div>
-
-          {/* Header */}
-          <div className="relative px-6 pt-4 pb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <GameStatusBadge status={game.status} gameDate={gameDate} />
-              <span className="text-xs text-[var(--color-text-secondary)]">
-                {format(gameDate, 'EEEE, MMMM d, yyyy')}
-              </span>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-[var(--color-border-muted)] transition-colors"
-            >
-              <X className="w-4 h-4 text-[var(--color-text-muted)]" />
-            </button>
-          </div>
-
-          {/* Main Content */}
-          <div className="px-6 py-6">
-            <div className="flex items-center justify-between gap-4">
-              {/* Away Team */}
-              <div className="flex-1 text-center">
-                <div className="flex justify-center mb-3">
-                  <div
-                    className="p-1 rounded-xl"
-                    style={{
-                      background: awayWinning
-                        ? `linear-gradient(135deg, ${awayColor || 'var(--league-primary)'}40, transparent)`
-                        : 'transparent',
-                    }}
-                  >
-                    <TeamLogo
-                      logoUrl={game.away_team?.logo || null}
-                      teamName={game.away_team?.name || 'TBD'}
-                      teamColor={awayColor}
-                      size="xl"
-                    />
-                  </div>
-                </div>
-                <h3
-                  className={`text-lg font-bold ${awayWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}
-                >
-                  {game.away_team?.name || 'TBD'}
-                </h3>
-                {game.away_team?.divisions?.name && (
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                    {game.away_team.divisions.name}
-                  </p>
-                )}
-              </div>
-
-              {/* Score / VS */}
-              <div className="flex flex-col items-center">
-                {isCompleted || isLive ? (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`text-5xl font-black tabular-nums ${
-                          awayWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
-                        }`}
-                      >
-                        {game.away_score ?? '-'}
-                      </span>
-                      <span className="text-2xl text-[var(--color-text-muted)] font-light">-</span>
-                      <span
-                        className={`text-5xl font-black tabular-nums ${
-                          homeWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
-                        }`}
-                      >
-                        {game.home_score ?? '-'}
-                      </span>
-                    </div>
-                    {isLive && (
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                        </span>
-                        <span className="text-xs font-bold text-red-400 uppercase">
-                          In Progress
-                        </span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className="text-3xl font-black"
-                      style={{ color: 'var(--league-primary)' }}
-                    >
-                      VS
-                    </div>
-                    <div className="mt-2 text-center">
-                      <div className="text-xl font-bold text-[var(--color-text-primary)]">
-                        {format(gameDate, 'h:mm a')}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Home Team */}
-              <div className="flex-1 text-center">
-                <div className="flex justify-center mb-3">
-                  <div
-                    className="p-1 rounded-xl"
-                    style={{
-                      background: homeWinning
-                        ? `linear-gradient(135deg, ${homeColor || 'var(--league-primary)'}40, transparent)`
-                        : 'transparent',
-                    }}
-                  >
-                    <TeamLogo
-                      logoUrl={game.home_team?.logo || null}
-                      teamName={game.home_team?.name || 'TBD'}
-                      teamColor={homeColor}
-                      size="xl"
-                    />
-                  </div>
-                </div>
-                <h3
-                  className={`text-lg font-bold ${homeWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}
-                >
-                  {game.home_team?.name || 'TBD'}
-                </h3>
-                {game.home_team?.divisions?.name && (
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                    {game.home_team.divisions.name}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-[var(--color-border)] flex items-center justify-between">
-            {game.venue && (
-              <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">{game.venue}</span>
-              </div>
-            )}
-            <Link
-              href={`/${leagueSlug}/games/${game.id}`}
-              className="px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 hover:scale-105"
-              style={{
-                backgroundColor: 'var(--league-primary)',
-                color: 'var(--color-text-inverse)',
-              }}
-            >
-              View Full Details
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Animation Styles */}
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes slide-down {
-          from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out forwards;
-        }
-
-        .animate-slide-down {
-          animation: slide-down 0.3s ease-out forwards;
-        }
-      `}</style>
-    </>
+    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-hover)] px-2 py-1 text-[10px] font-bold text-[var(--league-primary)]">
+      <Clock className="h-3 w-3 text-[var(--color-text-secondary)]" />
+      {format(gameDate, 'h:mm a')}
+    </span>
   );
 }
 

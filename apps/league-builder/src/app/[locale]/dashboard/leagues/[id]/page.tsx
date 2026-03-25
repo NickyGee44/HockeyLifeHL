@@ -175,28 +175,28 @@ export default async function LeagueDetailPage({ params }: Props) {
 
         {/* Quick Stats */}
         <div className="grid gap-4 md:grid-cols-5 mb-8">
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
+          <div className="surface-premium card-hover p-5">
             <div className="flex items-center gap-3 mb-2">
               <Users className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">{t('teams')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{teamsCount || 0}</p>
           </div>
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
+          <div className="surface-premium card-hover p-5">
             <div className="flex items-center gap-3 mb-2">
               <LayoutGrid className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">{t('divisions')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{divisionsCount || 0}</p>
           </div>
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
+          <div className="surface-premium card-hover p-5">
             <div className="flex items-center gap-3 mb-2">
               <Calendar className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">{t('seasons')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{league.seasons?.length || 0}</p>
           </div>
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
+          <div className="surface-premium card-hover p-5">
             <div className="flex items-center gap-3 mb-2">
               <Globe className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">{t('location')}</span>
@@ -205,7 +205,7 @@ export default async function LeagueDetailPage({ params }: Props) {
               {league.city || t('unknown')}{league.city && league.state_province ? ', ' : ''}{league.state_province || ''}
             </p>
           </div>
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
+          <div className="surface-premium card-hover p-5">
             <div className="flex items-center gap-3 mb-2">
               <BarChart3 className="w-5 h-5 text-rink-500" />
               <span className="text-sm text-neutral-400">{t('timezone')}</span>
@@ -326,7 +326,7 @@ export default async function LeagueDetailPage({ params }: Props) {
         </div>
 
         <div className="mb-8">
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-5">
+          <div className="surface-premium card-hover p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-500">
@@ -354,7 +354,7 @@ export default async function LeagueDetailPage({ params }: Props) {
                 {signedWaivers.map((waiver) => (
                   <div
                     key={waiver.id}
-                    className="rounded-xl border border-white/10 bg-black/20 px-4 py-3"
+                    className="surface-premium px-4 py-3"
                   >
                     <p className="font-semibold text-white">{waiver.player_name}</p>
                     <p className="text-sm text-neutral-400">{waiver.player_email || 'Email unavailable'}</p>
@@ -393,7 +393,7 @@ export default async function LeagueDetailPage({ params }: Props) {
               ))}
             </div>
           ) : (
-            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
+            <div className="surface-premium card-hover p-8 text-center">
               <Calendar className="w-12 h-12 text-rink-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white mb-2">{t('noSeasonsYet')}</h3>
               <p className="text-neutral-400 mb-4">
@@ -402,9 +402,9 @@ export default async function LeagueDetailPage({ params }: Props) {
               <Link
                 href={`/${locale}/dashboard/leagues/${leagueId}/seasons/new`}
                 className={cn(
-                  'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm',
+                  'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm relative overflow-hidden',
                   'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
-                  'hover:shadow-lg hover:shadow-rink-500/20 transition-all'
+                  'btn-glow shadow-glow hover:shadow-glow-hover transition-all hover:scale-105'
                 )}
               >
                 <Plus className="w-4 h-4" />
@@ -435,12 +435,11 @@ function QuickActionButton({
     <Link
       href={href}
       className={cn(
-        'flex items-start gap-4 p-5 rounded-2xl transition-all duration-200',
-        'backdrop-blur-xl',
+        'flex items-start gap-4 p-5 transition-all duration-200',
         'group',
         highlight
-          ? 'bg-gradient-to-br from-rink-500/10 to-arena-500/10 border border-rink-500/30 hover:border-rink-500/50'
-          : 'bg-white/[0.04] border border-white/10 hover:border-white/20'
+          ? 'surface-premium border-glow card-hover bg-gradient-to-br from-rink-500/10 to-arena-500/10 shadow-glow'
+          : 'surface-premium card-hover'
       )}
     >
       <div className={cn(
@@ -470,7 +469,7 @@ function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: st
   };
 
   return (
-    <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5 hover:border-white/20 transition-colors">
+    <div className="surface-premium card-hover p-5">
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-semibold text-white">{season.name}</h3>

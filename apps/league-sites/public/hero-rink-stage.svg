@@ -1,0 +1,81 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#06111F"/>
+  <rect width="1600" height="420" fill="url(#ceiling)"/>
+  <path d="M0 370H1600V900H0V370Z" fill="url(#ice)"/>
+  <path d="M310 0H1290L1170 320H430L310 0Z" fill="url(#roof)"/>
+  <path d="M420 320H1180L1400 900H200L420 320Z" fill="url(#floorGlow)" opacity="0.55"/>
+  <path d="M430 320H1170L1320 900H280L430 320Z" fill="url(#iceSurface)"/>
+  <path d="M800 332L1500 900H100L800 332Z" fill="url(#reflection)"/>
+  <path d="M240 190L410 320V900H120L240 190Z" fill="url(#sideWallLeft)" opacity="0.85"/>
+  <path d="M1360 190L1190 320V900H1480L1360 190Z" fill="url(#sideWallRight)" opacity="0.85"/>
+  <path d="M420 320H1180" stroke="rgba(214,227,241,0.28)" stroke-width="2"/>
+  <path d="M800 332V900" stroke="#E16868" stroke-opacity="0.2" stroke-width="3"/>
+  <path d="M620 490C690 450 910 450 980 490" stroke="#89BBDD" stroke-opacity="0.22" stroke-width="3"/>
+  <path d="M620 490C690 530 910 530 980 490" stroke="#89BBDD" stroke-opacity="0.22" stroke-width="3"/>
+  <circle cx="800" cy="510" r="74" stroke="#E16868" stroke-opacity="0.2" stroke-width="3"/>
+  <path d="M250 520H390V695H250" stroke="#E16868" stroke-opacity="0.18" stroke-width="3"/>
+  <path d="M1210 520H1350V695H1210" stroke="#E16868" stroke-opacity="0.18" stroke-width="3"/>
+  <g opacity="0.95">
+    <rect x="530" y="104" width="540" height="22" rx="11" fill="url(#lightGlow)"/>
+    <rect x="560" y="116" width="480" height="5" rx="2.5" fill="#F7FBFF"/>
+    <rect x="350" y="145" width="70" height="8" rx="4" fill="#DCE9F4" fill-opacity="0.78"/>
+    <rect x="454" y="145" width="70" height="8" rx="4" fill="#DCE9F4" fill-opacity="0.78"/>
+    <rect x="558" y="145" width="70" height="8" rx="4" fill="#DCE9F4" fill-opacity="0.78"/>
+    <rect x="972" y="145" width="70" height="8" rx="4" fill="#DCE9F4" fill-opacity="0.78"/>
+    <rect x="1076" y="145" width="70" height="8" rx="4" fill="#DCE9F4" fill-opacity="0.78"/>
+    <rect x="1180" y="145" width="70" height="8" rx="4" fill="#DCE9F4" fill-opacity="0.78"/>
+  </g>
+  <g opacity="0.45">
+    <path d="M355 0L445 320" stroke="#7C93A8" stroke-width="4"/>
+    <path d="M540 0L590 320" stroke="#7C93A8" stroke-width="4"/>
+    <path d="M1060 0L1010 320" stroke="#7C93A8" stroke-width="4"/>
+    <path d="M1245 0L1155 320" stroke="#7C93A8" stroke-width="4"/>
+  </g>
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+  <defs>
+    <linearGradient id="ceiling" x1="800" y1="0" x2="800" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12253A"/>
+      <stop offset="1" stop-color="#0A1727"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="800" y1="0" x2="800" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#223D58"/>
+      <stop offset="1" stop-color="#15283D"/>
+    </linearGradient>
+    <linearGradient id="ice" x1="800" y1="370" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D7EBFB"/>
+      <stop offset="0.35" stop-color="#C2DCF3"/>
+      <stop offset="1" stop-color="#A4C8E6"/>
+    </linearGradient>
+    <linearGradient id="floorGlow" x1="800" y1="320" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5FBFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#E8F6FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="iceSurface" x1="800" y1="320" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4FBFF" stop-opacity="0.25"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#8BB2D1" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="reflection" x1="800" y1="332" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sideWallLeft" x1="265" y1="190" x2="265" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#182B40"/>
+      <stop offset="1" stop-color="#0A1828"/>
+    </linearGradient>
+    <linearGradient id="sideWallRight" x1="1335" y1="190" x2="1335" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#182B40"/>
+      <stop offset="1" stop-color="#0A1828"/>
+    </linearGradient>
+    <linearGradient id="lightGlow" x1="800" y1="104" x2="800" y2="126" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6FBFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#F6FBFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#F6FBFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(800 450) rotate(90) scale(520 900)">
+      <stop offset="0.6" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.46"/>
+    </radialGradient>
+  </defs>
+</svg>

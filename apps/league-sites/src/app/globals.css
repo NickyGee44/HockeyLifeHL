@@ -132,7 +132,7 @@ body::before {
   background-image: url('/bg.png');
   background-repeat: repeat;
   background-size: 300px;
-  opacity: 0.25;
+  opacity: 0.18;
   mix-blend-mode: luminosity;
 }
 
@@ -157,7 +157,7 @@ body::after {
 }
 
 [data-theme='light'] body::before {
-  opacity: 0.18;
+  opacity: 0.12;
   mix-blend-mode: multiply;
 }
 
@@ -293,6 +293,32 @@ body::after {
   position: relative;
 }
 
+.league-site-main {
+  position: relative;
+  isolation: isolate;
+}
+
+.league-site-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background) 76%, transparent) 0%,
+      color-mix(in srgb, var(--color-background) 88%, transparent) 18%,
+      color-mix(in srgb, var(--color-background) 94%, transparent) 42%,
+      var(--color-background) 100%
+    );
+  z-index: 0;
+}
+
+.league-site-main > * {
+  position: relative;
+  z-index: 1;
+}
+
 .league-home-light .card,
 .league-home-light [class*='variant-glass'] {
   box-shadow: 0 20px 40px rgba(37, 66, 130, 0.08);
@@ -322,11 +348,16 @@ body::after {
 }
 
 .league-shell-panel {
-  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-color: color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
-  box-shadow: 0 18px 44px -14px rgba(0, 0, 0, 0.24);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%) 0%,
+      color-mix(in srgb, var(--color-surface) 96%, var(--color-background-elevated) 4%) 100%
+    );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-color: color-mix(in srgb, var(--color-border) 90%, transparent);
+  box-shadow: 0 28px 68px -36px rgba(0, 0, 0, 0.44);
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
@@ -337,10 +368,10 @@ body::after {
 }
 
 .league-pulse-link {
-  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 50%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 92%, var(--color-surface) 8%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
@@ -354,8 +385,8 @@ body::after {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-surface) 82%, transparent) 0%,
-      color-mix(in srgb, var(--color-background-elevated) 90%, transparent) 100%
+      color-mix(in srgb, var(--color-surface) 96%, var(--color-background) 4%) 0%,
+      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-background) 2%) 100%
     );
 }
 
@@ -367,6 +398,33 @@ body::after {
 .league-home-custom .league-shell-panel,
 .league-home-custom .league-pulse-link {
   border-color: color-mix(in srgb, var(--league-primary) 34%, var(--color-border));
+}
+
+.league-reading-panel {
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%) 0%,
+      color-mix(in srgb, var(--color-surface) 96%, var(--color-background-elevated) 4%) 100%
+    );
+  border: 1px solid color-mix(in srgb, var(--color-border) 92%, transparent);
+  box-shadow: 0 30px 78px -42px rgba(0, 0, 0, 0.48);
+}
+
+.league-reading-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: color-mix(in srgb, white 36%, transparent);
+  pointer-events: none;
+}
+
+.league-reading-cell {
+  background: color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  box-shadow: 0 18px 44px -32px rgba(0, 0, 0, 0.4);
 }
 
 /* League hero section uses league colors prominently */
@@ -419,15 +477,20 @@ body::after {
 
 /* Cards with league theming + glassmorphism */
 .card {
-  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%) 0%,
+      color-mix(in srgb, var(--color-surface) 96%, var(--color-background-elevated) 4%) 100%
+    );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
   border-radius: 1rem;
   transition-property: border-color, box-shadow, background-color;
   transition-duration: 0.2s;
   transition-timing-function: ease;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 52px -34px rgba(0, 0, 0, 0.44);
 }
 
 .card:hover {
@@ -488,7 +551,7 @@ body::after {
 }
 
 .standings-table th {
-  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 94%, var(--color-surface) 6%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: var(--color-text-secondary);
@@ -528,12 +591,12 @@ body::after {
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 95%, var(--color-surface) 5%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
   border-radius: 1rem;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 44px -32px rgba(0, 0, 0, 0.4);
   transition:
     transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 0.3s ease,
@@ -608,12 +671,12 @@ body::after {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 95%, var(--color-surface) 5%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
   border-radius: 1rem;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.38);
   transition-property: border-color, box-shadow, background-color;
   transition-duration: 0.2s;
   transition-timing-function: ease;
@@ -1055,12 +1118,17 @@ body::after {
 }
 
 .schedule-card {
-  background: color-mix(in srgb, var(--color-background-elevated) var(--glass-opacity), transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%) 0%,
+      color-mix(in srgb, var(--color-surface) 96%, var(--color-background-elevated) 4%) 100%
+    );
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid color-mix(in srgb, var(--color-border) var(--glass-border-opacity), transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
   border-radius: 1rem;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 54px -34px rgba(0, 0, 0, 0.4);
   padding: 2rem;
   overflow: hidden;
   transition-property: border-color, box-shadow, background-color;
@@ -1479,24 +1547,24 @@ body::after {
    ============================================================================= */
 
 .glass {
-  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 92%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
 }
 
 .glass-strong {
-  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 96%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--color-border);
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
 }
 
 .glass-subtle {
-  background: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 88%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
 }
 
 /* =============================================================================

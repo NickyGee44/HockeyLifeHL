@@ -20,7 +20,7 @@ export function PlayerBadgesSection({ badges, seasonId }: PlayerBadgesSectionPro
   const grouped = groupBySeasonSorted(filtered);
 
   return (
-    <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6 mb-6">
+    <div className="league-reading-panel rounded-[28px] p-6 mb-6">
       <h2 className="flex items-center gap-2 text-lg font-bold mb-4">
         <Trophy className="w-5 h-5 text-amber-500" />
         Achievements

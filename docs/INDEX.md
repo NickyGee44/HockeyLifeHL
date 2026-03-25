@@ -20,6 +20,7 @@
 |----------|-------------|
 | [BRAND-KIT](BRAND-KIT.md) | Full design system: colors (OKLCH), typography, spacing, tokens |
 | [BHL-brand-kit](BHL-brand-kit.md) | BHL-specific brand assets and colors |
+| [LEAGUE_BUILDER_HOMEPAGE_UPGRADE_PLAN](LEAGUE_BUILDER_HOMEPAGE_UPGRADE_PLAN.md) | Public homepage strategy, section plan, and rollout phases for League Builder |
 | [UI_UX_GUIDE](UI_UX_GUIDE.md) | UI/UX patterns, component guidelines |
 | [TEMPLATE_SYSTEM](TEMPLATE_SYSTEM.md) | League site template architecture |
 | [MULTI_TENANT_BRANDING](MULTI_TENANT_BRANDING.md) | Multi-tenant theme system with CSS variables |

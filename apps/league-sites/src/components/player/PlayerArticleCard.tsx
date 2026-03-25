@@ -1,13 +1,21 @@
 import Link from 'next/link';
 import { Calendar, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
+import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
 
 interface PlayerArticleCardProps {
   article: NewsArticle;
   leagueSlug: string;
+  leagueName: string;
+  leagueLogoUrl?: string | null;
 }
 
-export function PlayerArticleCard({ article, leagueSlug }: PlayerArticleCardProps) {
+export function PlayerArticleCard({
+  article,
+  leagueSlug,
+  leagueName,
+  leagueLogoUrl,
+}: PlayerArticleCardProps) {
   const formattedDate = new Date(article.published_at || article.created_at).toLocaleDateString(
     'en-US',
     { month: 'short', day: 'numeric', year: 'numeric' }
@@ -22,8 +30,24 @@ export function PlayerArticleCard({ article, leagueSlug }: PlayerArticleCardProp
   return (
     <Link
       href={`/${leagueSlug}/news/${article.slug || article.id}`}
-      className="group flex items-start gap-4 rounded-lg p-3 -mx-3 transition-colors hover:bg-[var(--color-surface-hover)]"
+      className="group flex items-start gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/76 p-3 transition-colors hover:border-[var(--league-primary)]/35 hover:bg-[var(--color-surface)]"
     >
+      <div className="hidden h-20 w-20 shrink-0 overflow-hidden rounded-2xl sm:block">
+        {article.image_url ? (
+          <img
+            src={article.image_url}
+            alt={article.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <LeagueNewsFallbackArtwork
+            leagueName={leagueName}
+            leagueLogoUrl={leagueLogoUrl}
+            articleType={article.type}
+            emphasis="compact"
+          />
+        )}
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full border ${typeBadge.className}`}>

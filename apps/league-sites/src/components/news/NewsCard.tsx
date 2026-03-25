@@ -3,13 +3,22 @@
 import Link from 'next/link';
 import { Calendar, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
+import { LeagueNewsFallbackArtwork } from './LeagueNewsFallbackArtwork';
 
 interface NewsCardProps {
   article: NewsArticle;
   leagueSlug: string;
+  leagueName: string;
+  leagueLogoUrl?: string | null;
 }
 
-export function NewsCard({ article, leagueSlug }: NewsCardProps) {
+function getArticleTypeLabel(type: string) {
+  if (type === 'game_recap') return 'Game Recap';
+  if (type === 'weekly_wrap') return 'Weekly Wrap';
+  return 'News';
+}
+
+export function NewsCard({ article, leagueSlug, leagueName, leagueLogoUrl }: NewsCardProps) {
   const formattedDate = new Date(article.created_at).toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -19,11 +28,11 @@ export function NewsCard({ article, leagueSlug }: NewsCardProps) {
   return (
     <Link
       href={`/${leagueSlug}/news/${article.slug || article.id}`}
-      className="card group block overflow-hidden"
+      className="group block overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]/96 shadow-[0_22px_54px_-34px_rgba(15,23,42,0.42)] transition-colors hover:border-[var(--league-primary)]/35"
     >
       {/* Image */}
       {article.image_url ? (
-        <div className="relative aspect-[16/9] overflow-hidden">
+        <div className="relative aspect-[16/9.5] overflow-hidden">
           <img
             src={article.image_url}
             alt={article.title}
@@ -34,23 +43,25 @@ export function NewsCard({ article, leagueSlug }: NewsCardProps) {
             article.type === 'weekly_wrap' ? 'bg-purple-600/70' :
             'bg-black/50'
           }`}>
-            {article.type === 'game_recap' ? 'Game Recap' :
-             article.type === 'weekly_wrap' ? 'Weekly Wrap' :
-             'News'}
+            {getArticleTypeLabel(article.type)}
           </div>
         </div>
       ) : (
-        <div className="aspect-[16/9] bg-gradient-to-br from-[var(--league-primary)]/10 to-[var(--league-primary)]/5 flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-[var(--league-primary)]/10 flex items-center justify-center">
-            <span className="text-3xl font-bold text-[var(--league-primary)]">
-              {article.title.charAt(0)}
-            </span>
-          </div>
+        <div className="relative aspect-[16/9.5] overflow-hidden">
+          <LeagueNewsFallbackArtwork
+            leagueName={leagueName}
+            leagueLogoUrl={leagueLogoUrl}
+            articleType={article.type}
+            emphasis="card"
+          />
         </div>
       )}
 
       {/* Content */}
       <div className="p-5">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
+          {getArticleTypeLabel(article.type)}
+        </p>
         <h3 className="text-lg font-bold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors line-clamp-2 mb-2">
           {article.title}
         </h3>

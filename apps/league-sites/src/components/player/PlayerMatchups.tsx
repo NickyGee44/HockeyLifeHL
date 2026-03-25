@@ -27,7 +27,7 @@ export function PlayerMatchups({ matchups, isGoalie, leagueSlug: _leagueSlug }: 
   const nameHeader = isGoalie ? 'Skater' : 'Goalie';
 
   return (
-    <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6 mb-6">
+    <div className="league-reading-panel rounded-[28px] p-6 mb-6">
       <div className="flex items-center gap-2 mb-4">
         {icon}
         <h2 className="text-xl font-bold">{title}</h2>

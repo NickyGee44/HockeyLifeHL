@@ -6,109 +6,96 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+const comparisonRows = [
+  {
+    label: 'Public website',
+    typical: 'Often sold as a separate website builder, template tier, or add-on.',
+    blh: 'Included as part of the league system, fed by live schedules, stats, standings, sponsors, and news.',
+  },
+  {
+    label: 'Pricing model',
+    typical: 'Frequently hidden behind demos, annual bundles, or extra admin software costs.',
+    blh: 'Built so the platform fee can ride with player checkout while Stripe processing stays with the league.',
+  },
+  {
+    label: 'Operations',
+    typical: 'Registration, payments, scheduling, and communications are usually split across multiple surfaces.',
+    blh: 'Commissioners run registrations, payments, schedules, reminders, and reporting in one hockey-first workflow.',
+  },
+  {
+    label: 'Player experience',
+    typical: 'Players bounce between form links, team chats, admin emails, and a stale public site.',
+    blh: 'Players get one source of truth for schedules, standings, stats, balances, and weekly updates.',
+  },
+];
+
 export function Philosophy() {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const textRef1 = useRef<HTMLHeadingElement>(null);
-    const textRef2 = useRef<HTMLHeadingElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const ctx = gsap.context(() => {
-            // Background parallax
-            gsap.to('.philosophy-bg', {
-                scrollTrigger: {
-                    trigger: containerRef.current,
-                    start: 'top bottom',
-                    end: 'bottom top',
-                    scrub: true,
-                },
-                y: 100,
-                ease: 'none',
-            });
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from('.comparison-row', {
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: 'top 75%',
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.9,
+        stagger: 0.1,
+        ease: 'power3.out',
+      });
+    }, containerRef);
 
-            // Text reveal for paragraph 1
-            const p1Words = textRef1.current?.querySelectorAll('.word');
-            if (p1Words) {
-                gsap.from(p1Words, {
-                    scrollTrigger: {
-                        trigger: textRef1.current,
-                        start: 'top 80%',
-                    },
-                    y: 30,
-                    opacity: 0,
-                    duration: 1,
-                    stagger: 0.05,
-                    ease: 'power3.out',
-                });
-            }
+    return () => ctx.revert();
+  }, []);
 
-            // Text reveal for paragraph 2
-            const p2Words = textRef2.current?.querySelectorAll('.word');
-            if (p2Words) {
-                gsap.from(p2Words, {
-                    scrollTrigger: {
-                        trigger: textRef2.current,
-                        start: 'top 80%',
-                    },
-                    y: 40,
-                    opacity: 0,
-                    duration: 1.2,
-                    stagger: 0.08,
-                    ease: 'power3.out',
-                });
-            }
-        }, containerRef);
+  return (
+    <section
+      id="comparison"
+      ref={containerRef}
+      className="relative w-full overflow-hidden border-t border-white/[0.07] bg-[#07101a] py-24 md:py-32"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_34%)]" />
 
-        return () => ctx.revert();
-    }, []);
+      <div className="relative z-10 mx-auto max-w-7xl px-6">
+        <div className="max-w-3xl">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent">
+            Why the public story matters
+          </p>
+          <h2 className="mt-4 font-heading text-4xl font-bold uppercase tracking-tight text-white sm:text-5xl md:text-6xl">
+            Most competitor sites sell the same checklist.
+          </h2>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-neutral-300">
+            Registration, payments, schedules, websites, communication, apps. That part is no
+            longer unique. The sharper public message is how cleanly the website, operations, and
+            fee model work together once the league actually launches.
+          </p>
+        </div>
 
-    // Helper to split text into word spans for animation without importing external SplitText plugin
-    const splitText = (text: string) => {
-        return text.split(' ').map((word, i) => (
-            <span key={i} className="word inline-block mr-[0.25em] whitespace-nowrap">
-                {word}
-            </span>
-        ));
-    };
+        <div className="mt-14 overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/20 backdrop-blur-sm">
+          <div className="grid gap-0 border-b border-white/10 px-6 py-5 text-xs uppercase tracking-[0.24em] text-neutral-500 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)] md:px-8">
+            <span>Focus area</span>
+            <span className="md:px-6">Typical public competitor pattern</span>
+            <span className="md:px-6">BLH</span>
+          </div>
 
-    return (
-        <section
-            id="replace"
-            ref={containerRef}
-            className="relative w-full py-24 md:py-56 bg-deep-black overflow-hidden flex items-center justify-center"
-        >
-            {/* Background Texture */}
-            <div className="absolute inset-0 z-0 opacity-20 mix-blend-screen pointer-events-none">
-                <div
-                    className="philosophy-bg absolute inset-[-20%] w-[140%] h-[140%] bg-[url('https://images.unsplash.com/photo-1515781358327-14fa156bcda3?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-deep-black via-transparent to-deep-black" />
+          {comparisonRows.map((row, index) => (
+            <div
+              key={row.label}
+              className={`comparison-row grid gap-4 px-6 py-7 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)] md:px-8 ${
+                index > 0 ? 'border-t border-white/[0.08]' : ''
+              }`}
+            >
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-rink-300">
+                {row.label}
+              </p>
+              <p className="text-sm leading-7 text-neutral-400 md:px-6">{row.typical}</p>
+              <p className="text-sm leading-7 text-white md:px-6">{row.blh}</p>
             </div>
-
-            {/* Content */}
-            <div className="relative z-10 w-full max-w-5xl mx-auto px-6">
-                <div className="max-w-4xl mx-auto space-y-20 text-center md:text-left">
-                    <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent text-center md:text-left">
-                        What BLH Replaces
-                    </p>
-
-                    <h2
-                        ref={textRef1}
-                        className="font-sans text-xl sm:text-2xl md:text-3xl text-neutral-400 font-medium leading-relaxed md:leading-tight tracking-tight"
-                    >
-                        {splitText("Stop juggling spreadsheets, scattered payment apps, and messy group chats.")}
-                    </h2>
-
-                    <h3
-                        ref={textRef2}
-                        className="font-sans text-2xl sm:text-3xl md:text-6xl text-white font-medium leading-tight tracking-tight"
-                    >
-                        {splitText("Run your entire league from a")}
-                        <br className="hidden md:block" />
-                        <span className="inline-block mr-[0.25em] text-accent">single, purpose-built platform.</span>
-                    </h3>
-
-                </div>
-            </div>
-        </section>
-    );
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }

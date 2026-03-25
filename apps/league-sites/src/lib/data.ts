@@ -11,6 +11,7 @@ import type {
   Player,
   PlayerStats,
   PlayerStatsWithAvatar,
+  HomepageSeasonLeader,
   LeagueStats,
   UpcomingGame,
   RecentGame,
@@ -821,11 +822,12 @@ export async function getStandings(
 export async function getUpcomingGames(
   leagueId: string,
   limit = 10,
-  divisionId?: string
+  divisionId?: string,
+  seasonId?: string | null,
 ): Promise<UpcomingGame[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('games')
     .select(`
       *,
@@ -838,6 +840,12 @@ export async function getUpcomingGames(
     .gte('scheduled_at', new Date().toISOString())
     .order('scheduled_at', { ascending: true })
     .limit(divisionId ? limit * 3 : limit);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) {
     return [];
@@ -865,11 +873,12 @@ export async function getUpcomingGames(
 export async function getRecentGames(
   leagueId: string,
   limit = 10,
-  divisionId?: string
+  divisionId?: string,
+  seasonId?: string | null,
 ): Promise<RecentGame[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('games')
     .select(`
       *,
@@ -881,6 +890,12 @@ export async function getRecentGames(
     .in('status', ['completed'])
     .order('scheduled_at', { ascending: false })
     .limit(divisionId ? limit * 3 : limit);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) {
     return [];
@@ -907,7 +922,8 @@ export async function getRecentGames(
  */
 export async function getTickerGames(
   leagueId: string,
-  limit = 10
+  limit = 10,
+  seasonId?: string | null,
 ): Promise<TickerGame[]> {
   const supabase = createServiceRoleClient();
   const now = new Date();
@@ -932,24 +948,25 @@ export async function getTickerGames(
 
   const recentCompletedCap = Math.min(Math.max(2, Math.floor(limit / 3)), 4, limit);
 
-  const [liveGamesResult, upcomingGamesResult, recentCompletedResult] = await Promise.all([
-    supabase
+  let liveGamesQuery = supabase
       .from('games')
       .select(tickerSelect)
       .eq('league_id', leagueId)
       .eq('status', 'in_progress')
       .gte('scheduled_at', liveWindowStart.toISOString())
       .order('scheduled_at', { ascending: true })
-      .limit(limit),
-    supabase
+      .limit(limit);
+
+  let upcomingGamesQuery = supabase
       .from('games')
       .select(tickerSelect)
       .eq('league_id', leagueId)
       .eq('status', 'scheduled')
       .gte('scheduled_at', todayStart.toISOString())
       .order('scheduled_at', { ascending: true })
-      .limit(limit),
-    supabase
+      .limit(limit);
+
+  let recentCompletedQuery = supabase
       .from('games')
       .select(tickerSelect)
       .eq('league_id', leagueId)
@@ -957,16 +974,19 @@ export async function getTickerGames(
       .gte('scheduled_at', recentWindowStart.toISOString())
       .lt('scheduled_at', now.toISOString())
       .order('scheduled_at', { ascending: false })
-      .limit(recentCompletedCap),
-  ]);
+      .limit(recentCompletedCap);
 
-  const fallbackResult = await supabase
-    .from('games')
-    .select(tickerSelect)
-    .eq('league_id', leagueId)
-    .in('status', ['scheduled', 'in_progress', 'completed'])
-    .order('scheduled_at', { ascending: false })
-    .limit(limit);
+  if (seasonId) {
+    liveGamesQuery = liveGamesQuery.eq('season_id', seasonId);
+    upcomingGamesQuery = upcomingGamesQuery.eq('season_id', seasonId);
+    recentCompletedQuery = recentCompletedQuery.eq('season_id', seasonId);
+  }
+
+  const [liveGamesResult, upcomingGamesResult, recentCompletedResult] = await Promise.all([
+    liveGamesQuery,
+    upcomingGamesQuery,
+    recentCompletedQuery,
+  ]);
 
   const transformTickerGames = (games: any[] | null | undefined): TickerGame[] =>
     (games ?? []).map((game) => ({
@@ -988,14 +1008,9 @@ export async function getTickerGames(
     console.error('[ScoreTicker] Failed to fetch recent completed games', recentCompletedResult.error);
   }
 
-  if (fallbackResult.error) {
-    console.error('[ScoreTicker] Failed to fetch fallback games', fallbackResult.error);
-  }
-
   const liveGames = transformTickerGames(liveGamesResult.data);
   const upcomingGames = transformTickerGames(upcomingGamesResult.data);
   const recentCompletedGames = transformTickerGames(recentCompletedResult.data);
-  const fallbackGames = transformTickerGames(fallbackResult.data);
 
   const seen = new Set<string>();
   const dedupe = (games: TickerGame[]) =>
@@ -1006,6 +1021,12 @@ export async function getTickerGames(
     });
 
   const primaryGames = dedupe([...liveGames, ...upcomingGames]);
+
+  // If there are no active or upcoming games for the operational season,
+  // hide the ticker instead of backfilling it with stale finals.
+  if (primaryGames.length === 0) {
+    return [];
+  }
 
   if (primaryGames.length >= limit && recentCompletedGames.length > 0) {
     return dedupe([
@@ -1020,7 +1041,7 @@ export async function getTickerGames(
     return mergedGames;
   }
 
-  return dedupe(fallbackGames).slice(0, limit);
+  return [];
 }
 
 /**
@@ -1521,51 +1542,119 @@ export async function getStatsLeadersWithAvatars(
   }));
 }
 
+export async function getSeasonPointsLeadersWithDivision(
+  leagueId: string,
+  seasonId: string,
+  limit = 3,
+): Promise<HomepageSeasonLeader[]> {
+  const leaders = await getStatsLeadersWithAvatars(leagueId, 'points', limit, undefined, seasonId);
+  if (leaders.length === 0) {
+    return [];
+  }
+
+  const teamIds = [...new Set(leaders.map((leader) => leader.team_id).filter(Boolean))];
+  if (teamIds.length === 0) {
+    return leaders.map((leader) => ({
+      ...leader,
+      division_name: null,
+    }));
+  }
+
+  const supabase = await createClient();
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, divisions(name)')
+    .in('id', teamIds);
+
+  const divisionMap = new Map<string, string | null>();
+  for (const team of teams || []) {
+    const divisionData = Array.isArray((team as any).divisions)
+      ? (team as any).divisions[0]
+      : (team as any).divisions;
+    divisionMap.set(team.id, divisionData?.name || null);
+  }
+
+  return leaders.map((leader) => ({
+    ...leader,
+    division_name: divisionMap.get(leader.team_id) || null,
+  }));
+}
+
 /**
  * Fetch league stats summary
  */
-export async function getLeagueStats(leagueId: string): Promise<LeagueStats> {
+export async function getLeagueStats(leagueId: string, seasonId?: string | null): Promise<LeagueStats> {
   const supabase = await createClient();
 
-  // Count teams
-  const { count: teamCount } = await supabase
-    .from('teams')
-    .select('*', { count: 'exact', head: true })
-    .eq('league_id', leagueId);
-
-  // Count players via team rosters
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('id')
-    .eq('league_id', leagueId);
-
   let playerCount = 0;
-  if (teams && teams.length > 0) {
-    const teamIds = teams.map((t) => t.id);
-    const { count } = await supabase
+  let teamCount = 0;
+
+  if (seasonId) {
+    const { data: seasonRosters } = await supabase
       .from('team_rosters')
-      .select('*', { count: 'exact', head: true })
-      .in('team_id', teamIds);
-    playerCount = count || 0;
+      .select('team_id, player_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active');
+
+    if (seasonRosters && seasonRosters.length > 0) {
+      playerCount = new Set(seasonRosters.map((row) => row.player_id).filter(Boolean)).size;
+      teamCount = new Set(seasonRosters.map((row) => row.team_id).filter(Boolean)).size;
+    }
   }
 
-  // Count games
-  const { count: totalGames } = await supabase
+  if (teamCount === 0) {
+    const { count } = await supabase
+      .from('teams')
+      .select('*', { count: 'exact', head: true })
+      .eq('league_id', leagueId);
+    teamCount = count || 0;
+  }
+
+  if (!seasonId) {
+    const { data: teams } = await supabase
+      .from('teams')
+      .select('id')
+      .eq('league_id', leagueId);
+
+    if (teams && teams.length > 0) {
+      const teamIds = teams.map((team) => team.id);
+      const { count } = await supabase
+        .from('team_rosters')
+        .select('*', { count: 'exact', head: true })
+        .in('team_id', teamIds);
+      playerCount = count || 0;
+    }
+  }
+
+  let totalGamesQuery = supabase
     .from('games')
     .select('*', { count: 'exact', head: true })
     .eq('league_id', leagueId);
 
-  const { count: gamesPlayed } = await supabase
+  let gamesPlayedQuery = supabase
     .from('games')
     .select('*', { count: 'exact', head: true })
     .eq('league_id', leagueId)
     .in('status', ['completed']);
 
-  const { count: upcomingGames } = await supabase
+  let upcomingGamesQuery = supabase
     .from('games')
     .select('*', { count: 'exact', head: true })
     .eq('league_id', leagueId)
     .in('status', ['scheduled', 'in_progress']);
+
+  if (seasonId) {
+    totalGamesQuery = totalGamesQuery.eq('season_id', seasonId);
+    gamesPlayedQuery = gamesPlayedQuery.eq('season_id', seasonId);
+    upcomingGamesQuery = upcomingGamesQuery.eq('season_id', seasonId);
+  }
+
+  const [
+    { count: totalGames },
+    { count: gamesPlayed },
+    { count: upcomingGames },
+  ] = await Promise.all([totalGamesQuery, gamesPlayedQuery, upcomingGamesQuery]);
 
   return {
     totalTeams: teamCount || 0,
@@ -2371,6 +2460,66 @@ export async function getNewsArticleBySlug(leagueId: string, slug: string): Prom
 }
 
 /**
+ * Get tagged players attached to an article
+ */
+export async function getArticlePlayerTags(articleId: string): Promise<Array<{
+  id: string;
+  mention_type: string;
+  player: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  } | null;
+}>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('article_player_tags')
+    .select(`
+      id,
+      mention_type,
+      player:profiles!article_player_tags_player_id_fkey(
+        id,
+        full_name,
+        avatar_url
+      )
+    `)
+    .eq('article_id', articleId)
+    .order('created_at', { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data
+    .map((row: any) => {
+      const player = Array.isArray(row.player) ? row.player[0] : row.player;
+      if (!player?.id || !player.full_name) {
+        return null;
+      }
+
+      return {
+        id: row.id,
+        mention_type: row.mention_type || 'mention',
+        player: {
+          id: player.id,
+          full_name: player.full_name,
+          avatar_url: player.avatar_url || null,
+        },
+      };
+    })
+    .filter(Boolean) as Array<{
+      id: string;
+      mention_type: string;
+      player: {
+        id: string;
+        full_name: string;
+        avatar_url: string | null;
+      } | null;
+    }>;
+}
+
+/**
  * Check if a league has an active AI News addon
  */
 export async function hasAiNewsAddon(leagueId: string): Promise<boolean> {
@@ -2465,7 +2614,7 @@ export async function hasPlatformSubscription(leagueId: string): Promise<boolean
 /**
  * Get the latest published announcement for a league
  */
-export async function getLatestAnnouncement(leagueId: string): Promise<{
+export async function getLatestAnnouncement(leagueId: string, seasonId?: string | null): Promise<{
   id: string;
   title: string;
   excerpt: string | null;
@@ -2475,15 +2624,20 @@ export async function getLatestAnnouncement(leagueId: string): Promise<{
 } | null> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('articles')
     .select('id, title, excerpt, content, published_at, slug')
     .eq('league_id', leagueId)
     .eq('type', 'announcement')
     .eq('published', true)
     .order('published_at', { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query.single();
 
   if (error || !data) return null;
 

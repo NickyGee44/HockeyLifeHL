@@ -138,7 +138,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
         {stats ? (
           <PlayerStatsCards stats={stats} isGoalie={isGoalie} />
         ) : (
-          <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-8 text-center mb-8">
+          <div className="league-reading-panel rounded-[28px] p-8 text-center mb-8">
             <User className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Stats Available</h3>
             <p className="text-[var(--color-text-secondary)]">
@@ -148,7 +148,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
         )}
 
         {/* Game Log */}
-        <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6 mb-6">
+        <div className="league-reading-panel rounded-[28px] p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
             <h2 className="text-xl font-bold">Game Log</h2>
@@ -173,7 +173,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
 
         {/* In The News */}
         {playerArticles && playerArticles.length > 0 && (
-          <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6 mb-6">
+          <div className="league-reading-panel rounded-[28px] p-6 mb-6">
             <div className="flex items-center gap-2 mb-4">
               <Newspaper className="w-5 h-5 text-[var(--league-primary)]" />
               <h2 className="text-xl font-bold">In The News</h2>
@@ -184,6 +184,8 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
                   key={article.id}
                   article={article}
                   leagueSlug={leagueSlug}
+                  leagueName={league.name}
+                  leagueLogoUrl={league.logo_url}
                 />
               ))}
             </div>
@@ -192,7 +194,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
 
         {/* Season History (show other seasons this player has) */}
         {seasons.length > 1 && (
-          <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6">
+          <div className="league-reading-panel rounded-[28px] p-6">
             <div className="flex items-center gap-2 mb-4">
               <History className="w-5 h-5 text-[var(--league-primary)]" />
               <h2 className="text-xl font-bold">Season History</h2>

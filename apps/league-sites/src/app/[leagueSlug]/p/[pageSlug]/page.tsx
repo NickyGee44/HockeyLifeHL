@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import DOMPurify from 'isomorphic-dompurify';
 import { getLeagueBySlug, getCustomPage } from '@/lib/data';
 
 interface CustomPageRouteProps {
@@ -62,22 +61,92 @@ type CustomPage = {
   content?: ContentBlock[];
 };
 
+const ALLOWED_TAGS = new Set([
+  'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'ul', 'ol', 'li',
+  'blockquote', 'pre', 'code',
+  'a', 'hr', 'span', 'div',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+]);
+
+const ALLOWED_ATTRS = new Set(['href', 'target', 'rel', 'class']);
+
+function sanitizeAttributeValue(name: string, rawValue: string | undefined): string | null {
+  if (!rawValue) return null;
+
+  const unquoted = rawValue.replace(/^['"]|['"]$/g, '').trim();
+  if (!unquoted) return null;
+
+  if (name === 'href') {
+    if (/^(?:javascript|data):/i.test(unquoted)) {
+      return null;
+    }
+  }
+
+  if (name === 'target') {
+    if (!['_blank', '_self', '_parent', '_top'].includes(unquoted)) {
+      return null;
+    }
+  }
+
+  if (name === 'rel') {
+    const safeRel = unquoted
+      .split(/\s+/)
+      .filter((token) => ['noopener', 'noreferrer', 'nofollow'].includes(token.toLowerCase()))
+      .join(' ');
+    return safeRel ? `"${safeRel}"` : null;
+  }
+
+  const escaped = unquoted.replace(/"/g, '&quot;');
+  return `"${escaped}"`;
+}
+
+function sanitizeTagAttributes(attrs: string): string {
+  const attributePattern = /([a-zA-Z0-9:-]+)(?:\s*=\s*(".*?"|'.*?'|[^\s"'=<>`]+))?/g;
+  const sanitized: string[] = [];
+
+  for (const match of attrs.matchAll(attributePattern)) {
+    const name = match[1]?.toLowerCase();
+    if (!name || !ALLOWED_ATTRS.has(name)) {
+      continue;
+    }
+
+    const safeValue = sanitizeAttributeValue(name, match[2]);
+    if (!safeValue) {
+      continue;
+    }
+
+    sanitized.push(`${name}=${safeValue}`);
+  }
+
+  return sanitized.join(' ');
+}
+
 function sanitizeContent(content: string | undefined): string {
   if (!content) return '';
 
-  return DOMPurify.sanitize(content, {
-    ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li',
-      'blockquote', 'pre', 'code',
-      'a', 'hr', 'span', 'div',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td',
-    ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-    ALLOW_DATA_ATTR: false,
-    RETURN_TRUSTED_TYPE: false,
-  }) as string;
+  const withoutBlockedElements = content
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    .replace(/<(iframe|object|embed|form|input|button|textarea|select)[^>]*>/gi, '')
+    .replace(/<\/(iframe|object|embed|form|input|button|textarea|select)>/gi, '');
+
+  return withoutBlockedElements.replace(/<\/?([a-zA-Z0-9-]+)([^>]*)>/g, (fullMatch, rawTagName, rawAttrs) => {
+    const tagName = rawTagName.toLowerCase();
+    if (!ALLOWED_TAGS.has(tagName)) {
+      return '';
+    }
+
+    const isClosing = fullMatch.startsWith('</');
+    if (isClosing) {
+      return `</${tagName}>`;
+    }
+
+    const sanitizedAttrs = sanitizeTagAttributes(rawAttrs || '');
+    const selfClosing = /\/>$/.test(fullMatch) || tagName === 'br' || tagName === 'hr';
+    return `<${tagName}${sanitizedAttrs ? ` ${sanitizedAttrs}` : ''}${selfClosing ? ' /' : ''}>`;
+  });
 }
 
 function renderHeading(block: HeadingBlock, key: string) {

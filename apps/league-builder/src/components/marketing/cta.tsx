@@ -2,68 +2,51 @@
 
 import { Link } from '@/i18n/navigation';
 
-const pricingCards = [
+const pricingColumns = [
   {
-    title: 'Standard',
-    label: 'Ready to run fully online',
-    price: 'Custom platform pricing',
-    description:
-      'For leagues ready to run registrations, payments, schedules, standings, stats, and league websites in one system.',
-    bullets: [
-      'Best fit for leagues already committed to online registration and payments.',
-      'Pricing is scoped around league setup, season structure, and rollout needs.',
-      'Built for leagues that want one operating system instead of another patchwork tool.',
-    ],
+    label: 'League pays',
+    title: 'Stripe processing fees',
+    body: "The league's connected Stripe account covers Stripe processing. That keeps the payment processor separate from BLH's software pricing.",
   },
   {
-    title: 'First Season Partner',
-    label: 'Qualified switching offer',
-    price: 'As low as 1.5%',
-    description:
-      'Flexible year-one pricing for qualified leagues based on league size, payment mix, and onboarding needs.',
-    bullets: [
-      'Designed to keep first-season costs predictable while your league transitions.',
-      'Supports mixed payment workflows, including leagues still using some e-transfer.',
-      'Built to reduce switching friction for leagues moving off spreadsheets and manual admin.',
-    ],
-    finePrint:
-      'Available for qualified leagues. Final first-season pricing depends on league size, payment mix, and onboarding scope.',
-    featured: true,
+    label: 'Players pay',
+    title: 'The BLH platform fee at checkout',
+    body: 'BLH is designed so the platform fee can ride with online player checkout instead of showing up as a second software bill for the commissioner.',
   },
   {
-    title: 'Association / Multi-League',
-    label: 'Volume and operational support',
-    price: 'Custom pricing',
-    description:
-      'For associations, operators running multiple leagues, or organizations that need a broader rollout plan.',
-    bullets: [
-      'Volume-based commercial structure.',
-      'Supports centralized operations, multiple properties, and staged onboarding.',
-      'Best fit for leagues that need more than a single-season launch plan.',
-    ],
+    label: 'Switching leagues',
+    title: 'Partner pricing for qualified migrations',
+    body: 'Qualified leagues can access first-season partner pricing as low as 1.5% while we scope migration, payment mix, and onboarding around the rollout.',
   },
+];
+
+const includedItems = [
+  'Registrations and player checkout',
+  'Schedules, standings, skater stats, and goalie stats',
+  'Public league website, sponsors, and news',
+  'Commissioner controls for balances, reminders, and season setup',
 ];
 
 const faqItems = [
   {
-    question: 'How does first season partner pricing work?',
+    question: 'Does the league pay Stripe or BLH?',
     answer:
-      'It is a year-one commercial offer for qualified leagues switching to BLH. We scope it around league size, payment mix, and onboarding needs so the first season is easier to budget and easier to launch.',
+      "Stripe processing fees are paid by the league through its connected Stripe account. BLH's platform fee is separate from Stripe.",
   },
   {
-    question: 'Is the 1.5% rate available to every league?',
+    question: 'Who pays the BLH fee?',
     answer:
-      'No. It is not an automatic public rate. Qualified leagues may access first-season pricing as low as 1.5%, but the final structure depends on how the league actually operates.',
+      'BLH is built so the platform fee can be passed through player checkout by default for leagues running online registration.',
   },
   {
-    question: 'What happens after season one?',
+    question: 'Is the website included?',
     answer:
-      'After the first season, pricing is revisited based on real usage, payment volume, and how much of the league is running through BLH. The goal is to start with a workable transition, then settle into the right long-term structure.',
+      'Yes. The public league website is part of the platform, not a separate website vendor or add-on product.',
   },
   {
-    question: 'Can we still use e-transfer?',
+    question: 'What if we are switching from spreadsheets or another platform?',
     answer:
-      'Yes. For the right leagues, BLH can support a mixed first-season payment workflow while you transition operations into the platform. That is part of the onboarding and pricing conversation.',
+      'That is where first-season partner pricing and migration scoping come in. We plan the transition around your payment mix, current data, and season timing.',
   },
 ];
 
@@ -71,90 +54,85 @@ export function CallToAction() {
   return (
     <section
       id="pricing"
-      className="relative w-full overflow-hidden border-t border-white/5 bg-background py-20 md:py-32"
+      className="relative w-full overflow-hidden border-t border-white/[0.07] bg-[#05080d] py-24 md:py-32"
     >
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_58%)]" />
 
-      <div className="relative z-10 mx-auto max-w-6xl px-6">
-        <div className="mx-auto max-w-4xl text-center">
+      <div className="relative z-10 mx-auto max-w-7xl px-6">
+        <div className="max-w-3xl">
           <p className="font-mono text-xs uppercase tracking-[0.24em] text-accent">
-            Pricing for leagues switching to BLH
+            Pricing the league can actually explain
           </p>
-          <h2 className="mt-5 font-heading text-4xl font-bold tracking-tight text-white uppercase sm:text-5xl md:text-7xl">
-            First season partner pricing <br className="hidden md:block" />
-            <span className="bg-gradient-to-r from-ice to-steel bg-clip-text text-transparent">
-              as low as 1.5%
-            </span>
+          <h2 className="mt-4 font-heading text-4xl font-bold uppercase tracking-tight text-white sm:text-5xl md:text-6xl">
+            League pays Stripe. Players pay BLH.
           </h2>
-          <p className="mx-auto mt-6 max-w-3xl text-lg font-medium text-neutral-400 md:text-xl">
-            Flexible year-one pricing for qualified leagues based on league size, payment mix,
-            and onboarding needs.
-          </p>
-          <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-neutral-500 md:text-base">
-            Built to make switching easy, keep year-one costs predictable, and avoid forcing a
-            one-size-fits-all pricing model on leagues with different payment realities.
+          <p className="mt-5 text-lg leading-8 text-neutral-300">
+            That is the cleanest public version of the model. The website is included, the public
+            league experience is included, and the software cost does not need to sit entirely on
+            the commissioner's budget.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-5 lg:grid-cols-3">
-          {pricingCards.map((card) => (
-            <article
-              key={card.title}
-              className={`rounded-[2rem] border p-7 text-left shadow-surface ${
-                card.featured
-                  ? 'border-accent/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.12),rgba(255,255,255,0.04))]'
-                  : 'border-white/10 bg-white/[0.03]'
-              }`}
-            >
-              <p className={`font-mono text-xs uppercase tracking-[0.2em] ${card.featured ? 'text-accent' : 'text-ice'}`}>
-                {card.label}
-              </p>
-              <h3 className="mt-4 text-2xl font-bold tracking-tight text-white">{card.title}</h3>
-              <p className="mt-4 text-3xl font-bold text-white">{card.price}</p>
-              <p className="mt-4 text-sm leading-7 text-neutral-300">{card.description}</p>
-              <ul className="mt-6 space-y-3 text-sm leading-7 text-neutral-400">
-                {card.bullets.map((bullet) => (
-                  <li key={bullet}>• {bullet}</li>
-                ))}
-              </ul>
-              {card.finePrint ? (
-                <p className="mt-6 rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-4 text-xs leading-6 text-neutral-400">
-                  {card.finePrint}
+        <div className="mt-14 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[0.03]">
+          <div className="grid gap-0 lg:grid-cols-3">
+            {pricingColumns.map((column, index) => (
+              <article
+                key={column.title}
+                className={`px-6 py-8 md:px-8 md:py-10 ${
+                  index > 0 ? 'border-t border-white/[0.08] lg:border-l lg:border-t-0' : ''
+                }`}
+              >
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-rink-300">
+                  {column.label}
                 </p>
-              ) : null}
-            </article>
-          ))}
+                <h3 className="mt-4 text-2xl font-bold tracking-tight text-white">{column.title}</h3>
+                <p className="mt-4 text-sm leading-7 text-neutral-300">{column.body}</p>
+              </article>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-8 rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(34,211,238,0.08),rgba(17,24,39,0.9),rgba(59,130,246,0.1))] p-6 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs uppercase tracking-[0.18em] text-rink-300">
-                Predictable first-season structure
-              </p>
-              <h3 className="mt-2 text-2xl font-bold text-white">
-                If your league is switching from spreadsheets, e-transfer-heavy workflows, or a
-                patchwork stack, we can scope year one to match the transition.
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-neutral-400">
-                We keep the public message simple on purpose. The detailed structure is scoped in
-                the demo and migration conversation so it fits how your league actually collects
-                money and runs operations.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row lg:shrink-0">
+        <div className="mt-8 grid gap-10 border-y border-white/[0.08] py-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
+              Included in the platform
+            </p>
+            <ul className="mt-5 space-y-4">
+              {includedItems.map((item) => (
+                <li key={item} className="flex gap-4 text-sm leading-7 text-neutral-300 md:text-base">
+                  <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-accent" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-[2.2rem] border border-accent/[0.18] bg-[linear-gradient(135deg,rgba(34,211,238,0.12),rgba(255,255,255,0.03),rgba(59,130,246,0.1))] p-7 md:p-8">
+            <p className="font-mono text-xs uppercase tracking-[0.22em] text-accent">
+              Stripe note
+            </p>
+            <h3 className="mt-3 text-2xl font-bold text-white">
+              Stripe processing is separate from BLH platform fees.
+            </h3>
+            <p className="mt-4 text-sm leading-7 text-neutral-200">
+              The league pays Stripe processing fees through its connected Stripe account. Players
+              pay BLH platform fees at checkout when the league is running the default pass-through
+              model. That keeps the public pricing story much simpler than paying for software,
+              website, and payment processing as separate line items.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/pricing"
+                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-4 text-base font-semibold text-[#0B1420] transition-all duration-300 hover:scale-[1.03]"
+              >
+                View Pricing Details
+              </Link>
               <Link
                 href="/book-demo"
-                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-4 text-base font-semibold text-[#0B1420] transition-all duration-300 hover:scale-[1.03] md:px-8"
+                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] px-6 py-4 text-base font-semibold text-white transition-all duration-300 hover:-translate-y-[1px] hover:bg-white/10"
               >
-                Book a Demo
+                Talk Through Your League
               </Link>
-              <a
-                href="mailto:support@beerleaguehockey.ca?subject=BLH%20First%20Season%20Partner%20Pricing"
-                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-4 text-base font-semibold text-white transition-all duration-300 hover:-translate-y-[1px] hover:bg-white/10 md:px-8"
-              >
-                Talk Through Pricing
-              </a>
             </div>
           </div>
         </div>

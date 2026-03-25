@@ -37,7 +37,7 @@ export function SeasonSelector({
         onChange={(e) => handleSeasonChange(e.target.value)}
         className="
           px-4 py-2 rounded-lg
-          bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+          bg-[var(--color-background-elevated)] border border-[var(--color-border)]
           text-[var(--color-text-primary)] text-sm
           focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50
           cursor-pointer transition-all duration-200

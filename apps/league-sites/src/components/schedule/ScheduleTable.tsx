@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { Eye, FileText, Clock } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { Game, ScheduleGame } from '@/lib/types';
@@ -61,7 +60,7 @@ export function ScheduleTable({
             <tr
               className="text-[var(--color-text-muted)]"
               style={{
-                background: 'color-mix(in srgb, var(--color-surface) 60%, transparent)',
+                background: 'color-mix(in srgb, var(--color-background-elevated) 92%, var(--color-surface) 8%)',
               }}
             >
               <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider">
@@ -99,7 +98,7 @@ export function ScheduleTable({
       </div>
 
       {/* Mobile Card View */}
-      <div className="md:hidden divide-y divide-[var(--color-border-muted)]">
+      <div className="md:hidden divide-y divide-[var(--color-border-muted)] overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/78">
         {games.map((game) => (
           <ScheduleCard
             key={game.id}

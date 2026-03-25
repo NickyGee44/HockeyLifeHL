@@ -5,7 +5,7 @@ import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
 import { PreviewModeProvider } from '@/components/PreviewModeProvider';
 import { AuthProvider } from '@/components/auth';
-import { ScoreTicker } from '@/components/ScoreTicker';
+import { PremiumScoreTicker } from '@/components/PremiumScoreTicker';
 import { DivisionFilterProvider } from '@/components/DivisionFilterProvider';
 import { SponsorFooterStrip } from '@/components/sponsors/SponsorFooterStrip';
 import { BugReportProvider } from '@/components/bug-report/BugReportProvider';
@@ -92,9 +92,8 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     notFound();
   }
 
-  const [theme, tickerGames, divisions, seasons, sponsors, isSubscribed] = await Promise.all([
+  const [theme, divisions, seasons, sponsors, isSubscribed] = await Promise.all([
     Promise.resolve(getLeagueTheme(league)),
-    getTickerGames(league.id),
     getDivisions(league.id),
     getSeasons(league.id),
     getLeagueSponsors(league.id),
@@ -107,6 +106,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
   const operationalSeason = pickOperationalSeason(seasons as any[]);
   const activeSeasonId = (operationalSeason as any)?.id ?? null;
   const isPlayoffSeason = (operationalSeason as any)?.status === 'playoffs';
+  const tickerGames = activeSeasonId ? await getTickerGames(league.id, 10, activeSeasonId) : [];
 
   return (
     <LeagueThemeProvider theme={theme}>
@@ -125,15 +125,15 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                           backgroundPosition: 'center top',
                           backgroundRepeat: 'no-repeat',
                           backgroundSize: 'cover',
-                          opacity: 0.14,
+                          opacity: 0.06,
                         }}
                       />
-                      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background)_78%,transparent)_0%,color-mix(in_srgb,var(--color-background)_92%,transparent)_30%,var(--color-background)_100%)]" />
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background)_92%,transparent)_0%,color-mix(in_srgb,var(--color-background)_98%,transparent)_30%,var(--color-background)_100%)]" />
                     </div>
                   )}
-                  {(league as any).settings?.website?.showGameTicker !== false && (
+                  {(league as any).settings?.website?.showGameTicker !== false && tickerGames.length > 0 && (
                     <div className="league-site-chrome">
-                      <ScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+                      <PremiumScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
                     </div>
                   )}
                   <div className="league-site-chrome">

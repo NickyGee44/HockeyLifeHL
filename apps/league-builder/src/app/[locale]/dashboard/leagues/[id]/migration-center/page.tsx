@@ -8,6 +8,7 @@ import { cn } from '@hockey-life/ui';
 import { Link } from '@/i18n/navigation';
 import { MigrationBackupPanel } from '@/components/migration/MigrationBackupPanel';
 import { MigrationRequestIntake } from '@/components/migration/MigrationRequestIntake';
+import { MigrationWizard } from '@/components/migration/MigrationWizard';
 import { redirect as nextRedirect, notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import {
@@ -382,6 +383,12 @@ export default async function LeagueMigrationCenterPage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        <MigrationWizard
+          leagueId={leagueId}
+          locale={locale}
+          requests={migrationRequests}
+        />
 
         <MigrationRequestIntake
           leagueId={leagueId}
