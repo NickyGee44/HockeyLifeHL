@@ -1,0 +1,109 @@
+{
+  "generated_at": "2026-03-25T15:32:51.349Z",
+  "source_table": "public.legacy_players",
+  "source_fields": [
+    "id",
+    "first_name",
+    "last_name",
+    "full_name",
+    "is_goalie",
+    "games_played",
+    "goals",
+    "assists",
+    "points",
+    "points_per_game",
+    "wins",
+    "ties",
+    "win_percentage",
+    "moosehead_cup_wins",
+    "goals_against",
+    "goals_against_average",
+    "saves",
+    "shutouts",
+    "save_percentage",
+    "matched_to_profile_id",
+    "matched_at",
+    "imported_from",
+    "created_at",
+    "updated_at"
+  ],
+  "counts": {
+    "total_rows": 923,
+    "skaters": 795,
+    "goalies": 128,
+    "matched_profiles": 923,
+    "unmatched_profiles": 0
+  },
+  "repo_expected_counts": {
+    "total_rows": 923,
+    "skaters": 795,
+    "goalies": 128
+  },
+  "repo_expected_count_match": {
+    "total_rows": true,
+    "skaters": true,
+    "goalies": true
+  },
+  "stat_totals": {
+    "skaters": {
+      "games_played": 38045,
+      "goals": 20982,
+      "assists": 25713,
+      "points": 46695,
+      "moosehead_cup_wins": 0
+    },
+    "goalies": {
+      "games_played": 3880,
+      "wins": 1732,
+      "ties": 390,
+      "saves": 0,
+      "goals_against": 20058,
+      "shutouts": 71
+    }
+  },
+  "data_quality": {
+    "skater_point_mismatches": 0,
+    "blank_full_names": 0
+  },
+  "imported_from_breakdown": {
+    "excel_historical_import": 923
+  },
+  "key_fields": {
+    "identity": [
+      "legacy_player_id",
+      "profile_id",
+      "full_name",
+      "first_name",
+      "last_name",
+      "player_type"
+    ],
+    "skater_stats": [
+      "games_played",
+      "goals",
+      "assists",
+      "points",
+      "points_per_game",
+      "wins",
+      "ties",
+      "win_percentage",
+      "moosehead_cup_wins"
+    ],
+    "goalie_stats": [
+      "games_played",
+      "wins",
+      "ties",
+      "win_percentage",
+      "saves",
+      "goals_against",
+      "goals_against_average",
+      "shutouts",
+      "save_percentage"
+    ],
+    "provenance": [
+      "imported_from",
+      "matched_at",
+      "created_at",
+      "updated_at"
+    ]
+  }
+}
