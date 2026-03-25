@@ -67,10 +67,10 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     leagueStats,
   ] = await Promise.all([
     getSeasons(league.id),
-    getStatsLeaders(league.id, 'points', 25),
-    getStatsLeaders(league.id, 'goals', 25),
-    getStatsLeaders(league.id, 'assists', 25),
-    getGoalieLeaders(league.id, undefined, 'wins', 25),
+    getStatsLeaders(league.id, 'points', 25, undefined, null, league.slug),
+    getStatsLeaders(league.id, 'goals', 25, undefined, null, league.slug),
+    getStatsLeaders(league.id, 'assists', 25, undefined, null, league.slug),
+    getGoalieLeaders(league.id, null, 'wins', 25, undefined, league.slug),
     getLeagueAwards(league.id),
     getLeagueStats(league.id),
   ]);
@@ -275,7 +275,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                   name: p.player_name,
                   value: p.points,
                   team: p.team_name,
-                  playerId: p.player_id,
+                  playerId: p.profile_id,
                   teamId: p.team_id,
                 }))}
               />
@@ -287,7 +287,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                   name: p.player_name,
                   value: p.goals,
                   team: p.team_name,
-                  playerId: p.player_id,
+                  playerId: p.profile_id,
                   teamId: p.team_id,
                 }))}
               />
@@ -299,7 +299,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                   name: p.player_name,
                   value: p.assists,
                   team: p.team_name,
-                  playerId: p.player_id,
+                  playerId: p.profile_id,
                   teamId: p.team_id,
                 }))}
               />
