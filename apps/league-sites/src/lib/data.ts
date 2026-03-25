@@ -3340,7 +3340,7 @@ export async function getChampionshipGame(
 
 // ========== LEGACY CHAMPION PHOTOS ==========
 
-const LEGACY_CHAMPIONS: Record<string, { year: string; photo: string; teamName?: string }[]> = {
+const LEGACY_CHAMPIONS: Record<string, { year: string; photo: string; teamName?: string; caption?: string }[]> = {
   woha: [
     { year: '1986-87', photo: '/leagues/woha/history/86_87.jpg' },
     { year: '1988-92', photo: '/leagues/woha/history/88_92.jpg' },
@@ -3349,6 +3349,30 @@ const LEGACY_CHAMPIONS: Record<string, { year: string; photo: string; teamName?:
     { year: '1999-00', photo: '/leagues/woha/history/99_00.jpg' },
     { year: '2016-17', photo: '/leagues/woha/history/16_17.jpg' },
     { year: '2024-25', photo: '/leagues/woha/history/2025_champs_universal.jpg', teamName: 'Universal' },
+  ],
+  'hockey-life': [
+    { year: '2014 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/HL_98312.jpg', teamName: 'AB Transport', caption: '2014 Winter Winners – AB Transport' },
+    { year: '2014 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/HL_3046.jpg', teamName: 'Fitzray’s Flyers', caption: '2014 Spring Winners – Fitzray’s Flyers' },
+    { year: '2014 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/HL_8855.jpg', teamName: 'AB Transport', caption: '2014 Summer Winners – AB Transport' },
+    { year: '2014 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/01/IMG_1976.jpg', teamName: 'Fitzray’s Premier', caption: '2014 Fall Winners – Fitzray’s Premier' },
+    { year: '2015 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/HL_3806.jpg', teamName: 'Fitzray’s Premier', caption: '2015 Winter Winners – Fitzray’s Premier' },
+    { year: '2015 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/07/IMG_7009.jpg', teamName: 'Superior Tax Solutions', caption: '2015 Spring Winners – Superior Tax Solutions' },
+    { year: '2015 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/IMG_9245.jpg', teamName: 'Superior Tax Solutions', caption: '2015 Summer Champs – Superior Tax Solutions' },
+    { year: '2015 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/IMG_6773.jpg', teamName: 'Eco Roofing', caption: '2015 Fall Champs – Eco Roofing' },
+    { year: '2016 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/1934698_10156675694910403_6584438279454643210_n.jpg', teamName: 'Fitzray’s Flyers', caption: '2016 Winter Champs – Fitzray’s Flyers' },
+    { year: '2016 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/image.jpeg', teamName: 'Superior Tax Solutions', caption: '2016 Spring Champs – Superior Tax Solutions' },
+    { year: '2016 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2016/09/IMG_6082.jpg', teamName: 'Precision Auto Works', caption: '2016 Summer Champs – Precision Auto Works' },
+    { year: '2016 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2016/12/IMG_6924.jpg', teamName: 'Fitzray’s Flyers', caption: '2016 Fall Champs – Fitzray’s Flyers' },
+    { year: '2017 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/IMG_7731.jpg', teamName: 'LiUNA 1059’ers', caption: '2017 Winter Champs – LiUNA 1059’ers' },
+    { year: '2017 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2017/06/IMG_8826.jpg', teamName: 'LiUNA 1059’ers', caption: '2017 Spring Champs – LiUNA 1059’ers' },
+    { year: '2017 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2017/09/IMG_1132.jpg', teamName: 'LiUNA 1059’ers', caption: '2017 Summer Champs – LiUNA 1059’ers' },
+    { year: '2017 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2017/12/IMG_1795.jpg', teamName: 'First Generals', caption: '2017 Fall Champs – First Generals' },
+    { year: '2018 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2018/03/IMG_2808.jpg', teamName: 'First Generals', caption: '2018 Winter Champs – First Generals' },
+    { year: '2018 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2018/07/IMG_4031.jpg', teamName: 'First General London', caption: '2018 Spring Champs – First General London' },
+    { year: '2018 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2018/09/IMG_4703.jpg', teamName: 'London Eco-Metal', caption: '2018 Summer Champs – London Eco-Metal' },
+    { year: '2018 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2018/12/IMG_5333.jpg', teamName: 'First General London', caption: '2018 Fall Champs – First General London' },
+    { year: '2019 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2019/03/IMG_7285.jpg', teamName: 'First General London', caption: '2019 Winter Champs – First General London' },
+    { year: '2019 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2019/06/IMG_7591.jpg', teamName: 'First General London', caption: '2019 Spring Champs – First General London' },
   ],
 };
 
