@@ -156,7 +156,7 @@ export function HomepageStoryHero({
         eyebrow: 'League Front Page',
         snippet:
           league.description ||
-          'Bring current stories, league identity, and the next key action into one clear opening frame.',
+          'Schedules, standings, scores, and the latest league coverage in one place.',
         imageUrl: null,
         href: `/${leagueSlug}/schedule`,
         cta: 'View Schedule',

@@ -5,6 +5,8 @@ import { DEFAULT_BLH_SPONSOR } from '@/lib/constants';
 
 interface SponsorBannerProps {
   sponsors: LeagueSponsor[];
+  eyebrow?: string;
+  title?: string;
 }
 
 function getSponsorSize(tier: string): string {
@@ -22,7 +24,11 @@ function getSponsorSize(tier: string): string {
   }
 }
 
-export function SponsorBanner({ sponsors }: SponsorBannerProps) {
+export function SponsorBanner({
+  sponsors,
+  eyebrow = 'League Partners',
+  title = 'All sponsors across the league',
+}: SponsorBannerProps) {
   const sponsorsWithLogos = sponsors.filter((s) => s.logo_url);
 
   // Fall back to BLH default sponsor if none have logos
@@ -38,19 +44,29 @@ export function SponsorBanner({ sponsors }: SponsorBannerProps) {
   }
 
   return (
-    <div
-      className="w-full overflow-hidden bg-[var(--color-surface)] border-y border-[var(--color-border)] py-6"
-    >
-      <div className="sponsor-marquee-track flex items-center gap-16 md:gap-24 w-max">
-        {/* First copy */}
-        <div className="flex items-center gap-16 md:gap-24 shrink-0">
+    <section className="w-full overflow-hidden border-y border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 xl:px-8">
+        <div className="flex flex-col gap-1 pb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+            {eyebrow}
+          </p>
+          <h2 className="text-lg font-black tracking-tight text-[var(--color-text-primary)]">
+            {title}
+          </h2>
+        </div>
+      </div>
+      <div className="relative overflow-hidden py-4">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-20 bg-[linear-gradient(90deg,var(--color-surface)_0%,transparent_100%)]" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-20 bg-[linear-gradient(270deg,var(--color-surface)_0%,transparent_100%)]" />
+        <div className="sponsor-marquee-track flex w-max items-center gap-16 md:gap-24">
+          <div className="flex shrink-0 items-center gap-16 md:gap-24">
           {repeatedSponsors.map((sponsor, index) => (
             <a
               key={`a-${sponsor.id}-${index}`}
               href={sponsor.website_url || '#'}
               target={sponsor.website_url ? '_blank' : undefined}
               rel={sponsor.website_url ? 'noopener noreferrer' : undefined}
-              className="shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-300"
+              className="shrink-0 opacity-60 transition-opacity duration-300 hover:opacity-100"
               title={sponsor.name}
             >
               <img
@@ -60,16 +76,15 @@ export function SponsorBanner({ sponsors }: SponsorBannerProps) {
               />
             </a>
           ))}
-        </div>
-        {/* Duplicate for seamless loop */}
-        <div className="flex items-center gap-16 md:gap-24 shrink-0" aria-hidden>
+          </div>
+          <div className="flex shrink-0 items-center gap-16 md:gap-24" aria-hidden>
           {repeatedSponsors.map((sponsor, index) => (
             <a
               key={`b-${sponsor.id}-${index}`}
               href={sponsor.website_url || '#'}
               target={sponsor.website_url ? '_blank' : undefined}
               rel={sponsor.website_url ? 'noopener noreferrer' : undefined}
-              className="shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-300"
+              className="shrink-0 opacity-60 transition-opacity duration-300 hover:opacity-100"
               title={sponsor.name}
               tabIndex={-1}
             >
@@ -80,8 +95,9 @@ export function SponsorBanner({ sponsors }: SponsorBannerProps) {
               />
             </a>
           ))}
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

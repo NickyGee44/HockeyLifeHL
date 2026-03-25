@@ -10,8 +10,10 @@ import {
   ChevronRight,
   ArrowRight,
   Camera,
-  Award,
-  Sparkles,
+  BookOpen,
+  Mail,
+  MapPin,
+  Phone,
   UserPlus,
 } from 'lucide-react';
 import {
@@ -23,33 +25,22 @@ import {
   getDivisions,
   getAllArticles,
   getLeagueSponsors,
-  getLeagueEvents,
-  getLeagueAwards,
   getGalleryAlbums,
-  getStatsLeadersWithAvatars,
-  getSeasonPointsLeadersWithDivision,
-  getGoalieLeaders,
+  getPointsLeadersWithDivision,
+  getGoalieLeadersWithDivision,
   getCurrentSeason,
   getSeasons,
-  getLatestAnnouncement,
 } from '@/lib/data';
-import type { GalleryAlbum, LeagueEvent, NewsArticle, PlayerStatsWithAvatar, Season } from '@/lib/types';
+import type { GalleryAlbum, NewsArticle, Season } from '@/lib/types';
 import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
 import { DivisionStandingsWidget } from '@/components/DivisionStandingsWidget';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
-import { AwardsShowcase } from '@/components/awards/AwardsShowcase';
-import { AnnouncementBanner } from '@/components/AnnouncementBanner';
-import {
-  HomepagePulseRail,
-  type HomepageCountdownCard,
-  type HomepagePhotoHighlight,
-} from '@/components/home/HomepagePulseRail';
+import { SocialLinks } from '@/components/SocialLinks';
+import type { HomepagePhotoHighlight } from '@/components/home/HomepagePulseRail';
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
-import { HomepagePreviousSeasonLeaders } from '@/components/home/HomepagePreviousSeasonLeaders';
-import { HomepageLeadersTabs } from '@/components/home/HomepageLeadersTabs';
-import { LeagueAliveBand } from '@/components/home/LeagueAliveBand';
+import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
@@ -58,51 +49,6 @@ import { pickRegistrationSeason } from '@/lib/registration/seasons';
 interface HomePageProps {
   params: Promise<{ leagueSlug: string }>;
   searchParams: Promise<{ division?: string }>;
-}
-
-function buildHomepageCountdownCard({
-  leagueSlug,
-  registrationSeason,
-  currentSeason,
-  upcomingEvents,
-}: {
-  leagueSlug: string;
-  registrationSeason: any | null;
-  currentSeason: any | null;
-  upcomingEvents: Array<{ title: string; start_time: string }>;
-}): HomepageCountdownCard | null {
-  if (registrationSeason?.registration_closes_at) {
-    return {
-      eyebrow: 'Registration Countdown',
-      title: registrationSeason.name || 'Season Registration',
-      targetDate: registrationSeason.registration_closes_at,
-      href: `/${leagueSlug}/register`,
-      cta: 'Register',
-    };
-  }
-
-  const nextEvent = upcomingEvents[0];
-  if (nextEvent) {
-    return {
-      eyebrow: 'Next Event',
-      title: nextEvent.title,
-      targetDate: nextEvent.start_time,
-      href: `/${leagueSlug}/events`,
-      cta: 'Events',
-    };
-  }
-
-  if (currentSeason?.end_date && new Date(currentSeason.end_date) > new Date()) {
-    return {
-      eyebrow: (currentSeason as any)?.status === 'playoffs' ? 'Playoff Run' : 'Season Clock',
-      title: currentSeason.name || 'Current Season',
-      targetDate: currentSeason.end_date,
-      href: `/${leagueSlug}/schedule`,
-      cta: 'Schedule',
-    };
-  }
-
-  return null;
 }
 
 function buildHomepagePhotoHighlight({
@@ -133,7 +79,7 @@ function buildHomepagePhotoHighlight({
     return {
       eyebrow: featuredStory.type === 'game_recap' ? 'Latest Recap' : 'Featured Story',
       title: featuredStory.title,
-      subtitle: featuredStory.excerpt || 'Fresh league storytelling belongs directly on the homepage.',
+      subtitle: featuredStory.excerpt || 'Latest updates and league stories from around the rink.',
       imageUrl: featuredStory.image_url,
       href: `/${leagueSlug}/news/${featuredStory.slug || featuredStory.id}`,
       cta: 'Read Story',
@@ -199,15 +145,7 @@ function filterAlbumsForSeason(albums: GalleryAlbum[], season: Season | null) {
   });
 }
 
-function filterEventsForSeason(events: LeagueEvent[], season: Season | null) {
-  if (!season) {
-    return events;
-  }
-
-  return events.filter((event) => isWithinSeasonWindow(event.start_time, season));
-}
-
-function filterCurrentSkaterLeaders(leaders: PlayerStatsWithAvatar[]) {
+function filterCurrentSkaterLeaders<T extends { position: string | null | undefined }>(leaders: T[]) {
   return leaders.filter((leader) => !isGoaliePosition(leader.position));
 }
 
@@ -231,12 +169,10 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     divisions,
     allNewsArticles,
     sponsors,
-    allEvents,
-    awards,
     allAlbums,
-    rawScoringLeaders,
+    currentScoringLeadersRaw,
+    currentGoalieLeadersRaw,
     seasons,
-    latestAnnouncement,
   ] = await Promise.all([
     getLeagueStats(league.id, currentSeason?.id),
     getUpcomingGames(league.id, 5, divisionFilter, currentSeason?.id),
@@ -245,30 +181,18 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getDivisions(league.id),
     getAllArticles(league.id, 18),
     getLeagueSponsors(league.id),
-    getLeagueEvents(league.id),
-    getLeagueAwards(league.id, currentSeason?.id),
     getGalleryAlbums(league.id),
-    getStatsLeadersWithAvatars(league.id, 'points', 12, divisionFilter, currentSeason?.id),
+    getPointsLeadersWithDivision(league.id, currentSeason?.id, 12, divisionFilter),
+    getGoalieLeadersWithDivision(league.id, currentSeason?.id, 'wins', 5, divisionFilter),
     getSeasons(league.id),
-    getLatestAnnouncement(league.id, currentSeason?.id),
   ]);
-
-  const goalieLeadersRaw = await getGoalieLeaders(league.id, currentSeason?.id, 'wins', 5, divisionFilter);
 
   const newsArticles = filterArticlesForSeason(allNewsArticles, currentSeason);
   const albums = filterAlbumsForSeason(allAlbums, currentSeason);
-  const events = filterEventsForSeason(allEvents, currentSeason);
-  const scoringLeaders = filterCurrentSkaterLeaders(rawScoringLeaders).slice(0, 5);
-  const goalieLeaders = goalieLeadersRaw.slice(0, 5);
+  const currentScoringLeaders = filterCurrentSkaterLeaders(currentScoringLeadersRaw).slice(0, 5);
+  const currentGoalieLeaders = currentGoalieLeadersRaw.slice(0, 5);
 
-  const upcomingEvents = events
-    .filter((e) => new Date(e.start_time) > new Date())
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-    .slice(0, 3);
-
-  const hasAwards = awards.length > 0;
   const hasAlbums = albums.length > 0;
-  const hasLeaders = scoringLeaders.length > 0 || goalieLeaders.length > 0;
   const websiteSettings = league.settings?.website;
   const hasSocialLinks = !!(
     websiteSettings?.socialFacebook ||
@@ -278,7 +202,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     websiteSettings?.socialTiktok
   );
   const socialSettings = hasSocialLinks ? websiteSettings : null;
-  const hasFutureEvents = events.some((event) => new Date(event.start_time) >= new Date());
 
   // Check if registration is open for any season
   const now = new Date();
@@ -287,36 +210,69 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     seasons.find((season) => season.id !== currentSeason?.id && season.status === 'completed') ||
     seasons.find((season) => season.id !== currentSeason?.id) ||
     null;
-  const previousSeasonLeaders = previousCompletedSeason
-    ? await getSeasonPointsLeadersWithDivision(league.id, previousCompletedSeason.id, 3)
-    : [];
+  const [previousScoringLeadersRaw, previousGoalieLeadersRaw] = previousCompletedSeason
+    ? await Promise.all([
+        getPointsLeadersWithDivision(league.id, previousCompletedSeason.id, 12, divisionFilter),
+        getGoalieLeadersWithDivision(league.id, previousCompletedSeason.id, 'wins', 5, divisionFilter),
+      ])
+    : [[], []];
   const heroArticles = newsArticles.slice(0, 5);
-  const homepageCountdown = buildHomepageCountdownCard({
-    leagueSlug,
-    registrationSeason,
-    currentSeason,
-    upcomingEvents,
-  });
   const homepagePhotoHighlight = buildHomepagePhotoHighlight({
     leagueSlug,
     albums,
     newsArticles,
   });
-  const hasUtilityBand = !!homepageCountdown || !!homepagePhotoHighlight || !!socialSettings || hasFutureEvents;
+  const previousScoringLeaders = filterCurrentSkaterLeaders(previousScoringLeadersRaw).slice(0, 5);
+  const previousGoalieLeaders = previousGoalieLeadersRaw.slice(0, 5);
+
+  const showPreviousLeaders = Boolean(
+    registrationSeason &&
+      previousCompletedSeason &&
+      (previousScoringLeaders.length > 0 || previousGoalieLeaders.length > 0)
+  );
+  const displayScoringLeaders = showPreviousLeaders ? previousScoringLeaders : currentScoringLeaders;
+  const displayGoalieLeaders = showPreviousLeaders ? previousGoalieLeaders : currentGoalieLeaders;
+  const leadersEyebrow = showPreviousLeaders ? 'Previous Season' : 'Current Season';
+  const leadersSeasonName = showPreviousLeaders
+    ? previousCompletedSeason?.name ?? null
+    : currentSeason?.name ?? null;
+  const leadersDescription = showPreviousLeaders
+    ? 'Registration is open, so last season’s top skaters and goalies stay visible until the new race begins.'
+    : 'Top skaters and goalies update with the current season’s stat race.';
+
+  const seasonSpotlight = registrationSeason
+    ? {
+        type: 'registration' as const,
+        seasonName: registrationSeason.name || 'Season Registration',
+        href: `/${leagueSlug}/register`,
+        opensAt: (registrationSeason as any).registration_opens_at ?? null,
+        closesAt: registrationSeason.registration_closes_at ?? null,
+      }
+    : recentGames.length > 0
+      ? {
+          type: 'results' as const,
+          title: 'Latest finals from around the rink',
+          href: `/${leagueSlug}/scores`,
+          games: recentGames.slice(0, 2),
+        }
+      : homepagePhotoHighlight
+        ? {
+            type: 'gallery' as const,
+            title: 'Latest gallery',
+            highlight: homepagePhotoHighlight,
+          }
+        : null;
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
       ? league.settings.website.themePreset
       : 'dark';
 
-  const contentGridClass =
-    templateVariant === 'custom'
-      ? 'grid grid-cols-1 gap-8 xl:grid-cols-[1.3fr_1fr]'
-      : templateVariant === 'light'
-        ? 'grid grid-cols-1 gap-8 xl:grid-cols-[1.4fr_0.95fr]'
-        : 'grid grid-cols-1 gap-8 xl:grid-cols-[1.48fr_0.9fr]';
-
   const panelClass = 'league-shell-panel rounded-3xl border border-[var(--color-border)] p-6 md:p-8';
+  const rulesContent = typeof (league.settings as Record<string, unknown> | null | undefined)?.rules === 'string'
+    ? ((league.settings as Record<string, unknown>).rules as string)
+    : '';
+  const hasRulesContent = rulesContent.trim().length > 0;
 
   const jsonLd = buildSportsOrganizationJsonLd(league);
 
@@ -342,247 +298,244 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         photoFallback={homepagePhotoHighlight}
       />
 
-      {hasLeaders && (
-        <section className="container mx-auto px-4 pt-6">
-          <div className={`${panelClass} overflow-hidden`}>
-            <HomepageLeadersTabs
-              leagueSlug={leagueSlug}
-              seasonName={currentSeason?.name ?? null}
-              scoringLeaders={scoringLeaders}
-              goalieLeaders={goalieLeaders}
-            />
-          </div>
-        </section>
-      )}
-
-      {hasUtilityBand && (
-        <section className="container mx-auto px-4 pt-5">
-          <HomepagePulseRail
-            leagueSlug={leagueSlug}
-            events={events}
-            socialSettings={socialSettings}
-            countdown={homepageCountdown}
-            photoHighlight={homepagePhotoHighlight}
-          />
-        </section>
-      )}
-
-      <LeagueAliveBand
+      <HomepageSeasonBand
         leagueSlug={leagueSlug}
-        newsArticles={newsArticles}
-        scoringLeaders={scoringLeaders}
-        goalieLeaders={goalieLeaders}
-        albums={albums}
-        awards={awards}
+        leadersEyebrow={leadersEyebrow}
+        leadersSeasonName={leadersSeasonName}
+        leadersDescription={leadersDescription}
+        scoringLeaders={displayScoringLeaders}
+        goalieLeaders={displayGoalieLeaders}
+        spotlight={seasonSpotlight}
       />
 
-      {/* Announcement Banner */}
-      {latestAnnouncement && (
-        <div className="container mx-auto px-4 pt-8">
-          <AnnouncementBanner announcement={latestAnnouncement} leagueSlug={leagueSlug} />
-        </div>
-      )}
-
-      {previousSeasonLeaders.length > 0 && (
-        <HomepagePreviousSeasonLeaders
-          leagueSlug={leagueSlug}
-          seasonName={previousCompletedSeason?.name ?? null}
-          leaders={previousSeasonLeaders}
+      <div className="pt-6">
+        <SponsorBanner
+          sponsors={sponsors}
+          eyebrow="League Sponsors"
+          title="All sponsors supporting the league"
         />
-      )}
+      </div>
 
-      {/* 6. Two-column layout */}
-      <div className="container mx-auto px-4 py-12">
-        <div className={contentGridClass}>
-          {/* Left column: Games */}
-          <div className="space-y-8">
+      <div className="container mx-auto space-y-8 px-4 py-8 md:py-10">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
+          <section className={panelClass}>
+            <SectionHeading
+              title="Upcoming Games"
+              icon={<Calendar className="w-5 h-5 text-[var(--league-primary)]" />}
+              href={`/${leagueSlug}/schedule`}
+              cta="View Full Schedule"
+            />
+
+            {upcomingGames.length > 0 ? (
+              <div className="mt-6 space-y-4">
+                {upcomingGames.map((game) => (
+                  <GameCard key={game.id} game={game} leagueSlug={leagueSlug} />
+                ))}
+                <div className="pt-2">
+                  <Button
+                    href={`/${leagueSlug}/schedule`}
+                    variant="primary"
+                    glow
+                    fullWidth
+                    iconRight={<ArrowRight className="w-4 h-4" />}
+                  >
+                    View Full Schedule
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Card variant="glass" padding="lg" hover={false} className="mt-6">
+                <p className="text-center text-[var(--color-text-secondary)]">No upcoming games scheduled</p>
+              </Card>
+            )}
+          </section>
+
+          <section className={`${panelClass} p-6 md:p-7`}>
+            <SectionHeading
+              title="Standings"
+              icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
+              href={`/${leagueSlug}/standings`}
+              cta="Full Standings"
+            />
+            <div className="mt-6">
+              {divisions.length > 1 ? (
+                <DivisionStandingsWidget standings={standings} divisions={divisions} />
+              ) : (
+                <StandingsWidget standings={standings.slice(0, 5)} />
+              )}
+            </div>
+          </section>
+        </div>
+
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
+          <section className={panelClass}>
+            <SectionHeading
+              title="Recent Results"
+              icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
+              href={`/${leagueSlug}/scores`}
+              cta="All Scores"
+            />
+
+            {recentGames.length > 0 ? (
+              <div className="mt-6 space-y-4">
+                {recentGames.map((game) => (
+                  <GameCard key={game.id} game={game} leagueSlug={leagueSlug} showScore />
+                ))}
+              </div>
+            ) : (
+              <Card variant="glass" padding="lg" hover={false} className="mt-6">
+                <p className="text-center text-[var(--color-text-secondary)]">No games played yet</p>
+              </Card>
+            )}
+          </section>
+
+          <section className={`${panelClass} p-6 md:p-7`}>
+            <SectionHeading
+              title="Quick Links"
+              icon={<BookOpen className="w-5 h-5 text-[var(--league-primary)]" />}
+            />
+            <nav className="mt-5 grid gap-2 sm:grid-cols-2">
+              {hasRulesContent && (
+                <QuickLink href={`/${leagueSlug}/about`} icon={<BookOpen className="w-4 h-4" />} label="League Rules" />
+              )}
+              <QuickLink href={`/${leagueSlug}/teams`} icon={<Users className="w-4 h-4" />} label="View All Teams" />
+              <QuickLink href={`/${leagueSlug}/stats`} icon={<TrendingUp className="w-4 h-4" />} label="Stats Leaders" />
+              <QuickLink href={`/${leagueSlug}/schedule`} icon={<Calendar className="w-4 h-4" />} label="Schedule" />
+              {hasAlbums && (
+                <QuickLink href={`/${leagueSlug}/gallery`} icon={<Camera className="w-4 h-4" />} label="Photo Gallery" />
+              )}
+              <QuickLink href={`/${leagueSlug}/contact`} icon={<Mail className="w-4 h-4" />} label="Contact League" />
+              <QuickLink href={`/${leagueSlug}/goalies/register`} icon={<UserPlus className="w-4 h-4" />} label="Sub Goalie Signup" />
+            </nav>
+          </section>
+        </div>
+
+        <div className={`grid gap-8 ${hasAlbums ? 'xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]' : ''}`}>
+          {hasAlbums && (
             <section className={panelClass}>
               <SectionHeading
-                title="Upcoming Games"
-                icon={<Calendar className="w-5 h-5 text-[var(--league-primary)]" />}
-                href={`/${leagueSlug}/schedule`}
-                cta="View Full Schedule"
+                title="Galleries"
+                icon={<Camera className="w-5 h-5 text-[var(--league-primary)]" />}
+                href={`/${leagueSlug}/gallery`}
+                cta="View All Albums"
               />
 
-              {upcomingGames.length > 0 ? (
-                <div className="mt-6 space-y-4">
-                  {upcomingGames.map((game) => (
-                    <GameCard key={game.id} game={game} leagueSlug={leagueSlug} />
-                  ))}
-                  <div className="pt-2">
-                    <Button
-                      href={`/${leagueSlug}/schedule`}
-                      variant="primary"
-                      glow
-                      fullWidth
-                      iconRight={<ArrowRight className="w-4 h-4" />}
-                    >
-                      View Full Schedule
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Card variant="glass" padding="lg" hover={false} className="mt-6">
-                  <p className="text-center text-[var(--color-text-secondary)]">No upcoming games scheduled</p>
-                </Card>
-              )}
-            </section>
-
-            <section className={panelClass}>
-              <SectionHeading
-                title="Recent Results"
-                icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
-                href={`/${leagueSlug}/scores`}
-                cta="All Scores"
-              />
-
-              {recentGames.length > 0 ? (
-                <div className="mt-6 space-y-4">
-                  {recentGames.map((game) => (
-                    <GameCard key={game.id} game={game} leagueSlug={leagueSlug} showScore />
-                  ))}
-                </div>
-              ) : (
-                <Card variant="glass" padding="lg" hover={false} className="mt-6">
-                  <p className="text-center text-[var(--color-text-secondary)]">No games played yet</p>
-                </Card>
-              )}
-            </section>
-          </div>
-
-          {/* Right column: Standings, Registration, Quick Links */}
-          <div className="space-y-8">
-            <section className={`${panelClass} p-6 md:p-7`}>
-              <SectionHeading
-                title="Standings"
-                icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
-                href={`/${leagueSlug}/standings`}
-                cta="Full Standings"
-              />
-              <div className="mt-6">
-                {divisions.length > 1 ? (
-                  <DivisionStandingsWidget standings={standings} divisions={divisions} />
-                ) : (
-                  <StandingsWidget standings={standings.slice(0, 5)} />
-                )}
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                {albums.slice(0, 3).map((album) => (
+                  <Link
+                    key={album.id}
+                    href={`/${leagueSlug}/gallery/${album.id}`}
+                    className="group relative aspect-[4/3] overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary)]"
+                  >
+                    {album.cover_photo_url ? (
+                      <img
+                        src={album.cover_photo_url}
+                        alt={album.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-[var(--color-surface-hover)]">
+                        <Camera className="h-8 w-8 text-[var(--color-text-muted)]" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-85 transition-opacity group-hover:opacity-95" />
+                    <div className="absolute inset-x-0 bottom-0 p-4">
+                      <h3 className="truncate text-sm font-semibold text-white">{album.title}</h3>
+                      {(album.photo_count ?? 0) > 0 && (
+                        <p className="mt-1 text-xs text-white/68">
+                          {album.photo_count} photo{album.photo_count !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
               </div>
             </section>
+          )}
 
-            <section className={`${panelClass} p-6 md:p-7`}>
-              <SectionHeading
-                title="Quick Links"
-                icon={<Sparkles className="w-5 h-5 text-[var(--league-primary)]" />}
-              />
-              <nav className="mt-4 space-y-1">
-                <QuickLink href={`/${leagueSlug}/teams`} icon={<Users className="w-4 h-4" />} label="View All Teams" />
-                <QuickLink
-                  href={`/${leagueSlug}/stats`}
-                  icon={<TrendingUp className="w-4 h-4" />}
-                  label="Stats Leaders"
-                />
-                {hasAlbums && (
-                  <QuickLink
-                    href={`/${leagueSlug}/gallery`}
-                    icon={<Camera className="w-4 h-4" />}
-                    label="Photo Gallery"
-                  />
-                )}
-                <QuickLink
-                  href={`/${leagueSlug}/contact`}
-                  icon={<Calendar className="w-4 h-4" />}
-                  label="Contact League"
-                />
-              </nav>
-            </section>
-
-            {/* Sub Goalie Banner */}
-            <section className={`${panelClass} p-5`}>
-              <Link
-                href={`/${leagueSlug}/goalies/register`}
-                className="flex items-center gap-3 group"
-              >
-                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[var(--league-primary)]/15 flex items-center justify-center">
-                  <UserPlus className="w-5 h-5 text-[var(--league-primary)]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">
-                    Register as a Sub Goalie
-                  </p>
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                    Join the goalie pool and get called up when teams need coverage.
-                  </p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0 group-hover:text-[var(--league-primary)] transition-colors" />
-              </Link>
-            </section>
-          </div>
-        </div>
-      </div>
-
-      {/* Sponsors */}
-      <div className="pb-2">
-        <SponsorBanner sponsors={sponsors} />
-      </div>
-
-      {/* 7. Awards Showcase */}
-      {hasAwards && (
-        <section className="league-feature-band border-y border-[var(--color-border)]">
-          <div className="container mx-auto px-4 py-12">
+          <section className={`${panelClass} p-6 md:p-7`}>
             <SectionHeading
-              title="Season Awards"
-              icon={<Award className="w-6 h-6 text-[var(--league-primary)]" />}
-            />
-            <div className="mt-7">
-              <AwardsShowcase awards={awards} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 8. Photo Gallery */}
-      {hasAlbums && (
-        <section className="border-t border-[var(--color-border)]">
-          <div className="container mx-auto px-4 py-12">
-            <SectionHeading
-              title="Photo Gallery"
-              icon={<Camera className="w-6 h-6 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/gallery`}
-              cta="View All Albums"
+              title="Contact Information"
+              icon={<Mail className="w-5 h-5 text-[var(--league-primary)]" />}
+              href={`/${leagueSlug}/contact`}
+              cta="Contact Page"
             />
 
-            <div className="mt-7 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-              {albums.slice(0, 4).map((album) => (
-                <Link
-                  key={album.id}
-                  href={`/${leagueSlug}/gallery/${album.id}`}
-                  className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary)]"
+            <div className="mt-6 space-y-4">
+              {league.contact_email && (
+                <a
+                  href={`mailto:${league.contact_email}`}
+                  className="flex items-start gap-3 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-4 py-4 transition-colors duration-200 hover:border-[var(--league-primary)]"
                 >
-                  {album.cover_photo_url ? (
-                    <img
-                      src={album.cover_photo_url}
-                      alt={album.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Camera className="h-8 w-8 text-[var(--color-text-muted)]" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 transition-opacity group-hover:opacity-90" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <h3 className="truncate text-sm font-semibold text-white">{album.title}</h3>
-                    {(album.photo_count ?? 0) > 0 && (
-                      <p className="mt-0.5 text-xs text-white/60">
-                        {album.photo_count} photo{album.photo_count !== 1 ? 's' : ''}
-                      </p>
+                  <span className="rounded-2xl bg-[var(--league-primary)]/12 p-2 text-[var(--league-primary)]">
+                    <Mail className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Email</span>
+                    <span className="mt-1 block truncate text-sm font-semibold text-[var(--color-text-primary)]">{league.contact_email}</span>
+                  </span>
+                </a>
+              )}
+
+              {league.contact_phone && (
+                <div className="flex items-start gap-3 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-4 py-4">
+                  <span className="rounded-2xl bg-[var(--league-primary)]/12 p-2 text-[var(--league-primary)]">
+                    <Phone className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Phone</span>
+                    <span className="mt-1 block text-sm font-semibold text-[var(--color-text-primary)]">{league.contact_phone}</span>
+                  </span>
+                </div>
+              )}
+
+              {(league.address || league.city || league.state || league.zip_code) && (
+                <div className="flex items-start gap-3 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-4 py-4">
+                  <span className="rounded-2xl bg-[var(--league-primary)]/12 p-2 text-[var(--league-primary)]">
+                    <MapPin className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Location</span>
+                    {league.address && (
+                      <span className="mt-1 block text-sm font-semibold text-[var(--color-text-primary)]">{league.address}</span>
                     )}
-                  </div>
-                </Link>
-              ))}
+                    <span className="mt-1 block text-sm text-[var(--color-text-secondary)]">
+                      {[league.city, league.state, league.zip_code].filter(Boolean).join(', ')}
+                    </span>
+                  </span>
+                </div>
+              )}
+
+              {!league.contact_email && !league.contact_phone && !league.address && !league.city && !league.state && !league.zip_code && (
+                <Card variant="glass" padding="lg" hover={false}>
+                  <p className="text-center text-[var(--color-text-secondary)]">
+                    Reach the league through the contact page for questions, registration help, and rink details.
+                  </p>
+                </Card>
+              )}
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        </div>
+
+        {socialSettings && (
+          <section className={`${panelClass} p-6 md:p-8`}>
+            <div className="flex flex-col items-center text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                Social Media
+              </p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+                Follow the league
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">
+                Click through to the league&apos;s social profiles for photos, updates, and game-night posts.
+              </p>
+              <div className="mt-6">
+                <SocialLinks settings={socialSettings} size="lg" className="justify-center" />
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
 
     </div>
     </SubscriptionWall>

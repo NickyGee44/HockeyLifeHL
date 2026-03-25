@@ -446,6 +446,10 @@ export interface GoalieStats {
   goals_against?: number;
 }
 
+export interface GoalieStatsWithDivision extends GoalieStats {
+  division_name: string | null;
+}
+
 /**
  * Player Game Log Entry
  */
