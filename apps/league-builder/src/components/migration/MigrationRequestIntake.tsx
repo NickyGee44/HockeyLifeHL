@@ -13,6 +13,7 @@ import {
   finalizeMigrationAssetUpload,
   getMigrationAssetDownloadUrl,
   prepareMigrationAssetUpload,
+  updateMigrationAssetNote,
   upsertLeagueMigrationRequest,
 } from '@/lib/actions/migration-requests';
 import {
@@ -314,6 +315,7 @@ function MigrationRequestForm({
   const [isUploading, setIsUploading] = useState(false);
   const [downloadingAssetId, setDownloadingAssetId] = useState<string | null>(null);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [savingNoteAssetId, setSavingNoteAssetId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [formState, setFormState] = useState<FormState>(() => createFormState(editableRequest));
 
@@ -474,6 +476,29 @@ function MigrationRequestForm({
       router.refresh();
     } finally {
       setDeletingAssetId(null);
+    }
+  }
+
+  async function handleUpdateNote(asset: MigrationUploadedAsset, note: string) {
+    if (!editableRequest) return;
+    setSavingNoteAssetId(asset.id);
+    try {
+      const result = await updateMigrationAssetNote({
+        leagueId,
+        locale,
+        requestId: editableRequest.id,
+        assetId: asset.id,
+        note,
+      });
+
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      router.refresh();
+    } finally {
+      setSavingNoteAssetId(null);
     }
   }
 
@@ -721,6 +746,24 @@ function MigrationRequestForm({
                         </button>
                       )}
                     </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="block">
+                      <span className="text-xs font-semibold text-neutral-400">What is this file?</span>
+                      <Input
+                        defaultValue={asset.note ?? ''}
+                        onBlur={(event) => {
+                          const value = event.target.value.trim();
+                          if (value !== (asset.note ?? '')) {
+                            handleUpdateNote(asset, value);
+                          }
+                        }}
+                        placeholder="e.g. Player stats from 2019-2023, exported from SportsEngine"
+                        className="mt-1 border-white/10 bg-black/20 text-sm text-white placeholder:text-neutral-500"
+                        disabled={!editableRequest || savingNoteAssetId === asset.id}
+                      />
+                    </label>
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-[1.1fr_0.9fr]">

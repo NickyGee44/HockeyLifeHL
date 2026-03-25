@@ -93,6 +93,7 @@ type FinalizeMigrationAssetInput = {
   fileName: string;
   fileSize: number;
   fileType?: string | null;
+  note?: string;
 };
 
 type DeleteMigrationAssetInput = {
@@ -628,6 +629,7 @@ export async function finalizeMigrationAssetUpload(
       mime_type: input.fileType?.trim() || null,
       uploaded_at: new Date().toISOString(),
       uploaded_by: userId,
+      note: input.note?.trim() || null,
       analysis,
     },
   ];
@@ -749,4 +751,57 @@ export async function getMigrationAssetDownloadUrl(
   }
 
   return { success: true, data: { url: data.signedUrl, fileName: asset.name } };
+}
+
+type UpdateMigrationAssetNoteInput = {
+  leagueId: string;
+  locale: string;
+  requestId: string;
+  assetId: string;
+  note: string;
+};
+
+export async function updateMigrationAssetNote(
+  input: UpdateMigrationAssetNoteInput
+): Promise<ActionResult<LeagueMigrationRequest>> {
+  const access = await verifyLeagueOwnerAccess(input.leagueId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  const serviceSupabase = createServiceRoleClient() as any;
+  const requestResult = await getEditableRequest(serviceSupabase, input.leagueId, input.requestId);
+  if (!requestResult.success || !requestResult.data) {
+    return { success: false, error: requestResult.success ? 'Migration request not found.' : requestResult.error };
+  }
+
+  const request = requestResult.data;
+  if (!EDITABLE_MIGRATION_REQUEST_STATUSES.includes(request.status)) {
+    return { success: false, error: 'This migration request is already being processed and notes can no longer be changed here.' };
+  }
+
+  const assetIndex = request.uploaded_assets.findIndex((asset) => asset.id === input.assetId);
+  if (assetIndex === -1) {
+    return { success: false, error: 'Uploaded file not found.' };
+  }
+
+  const nextAssets = request.uploaded_assets.map((asset) =>
+    asset.id === input.assetId ? { ...asset, note: input.note.trim() || null } : asset
+  );
+
+  const { data, error } = await serviceSupabase
+    .from('league_migration_requests')
+    .update({ uploaded_assets: nextAssets })
+    .eq('id', request.id)
+    .eq('league_id', input.leagueId)
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    if (isDevelopment) console.error('Error updating migration asset note:', error);
+    return { success: false, error: 'Failed to save the file note.' };
+  }
+
+  revalidateMigrationPaths(input.locale, input.leagueId);
+  return { success: true, data: normalizeLeagueMigrationRequest(data as Record<string, unknown>) };
 }

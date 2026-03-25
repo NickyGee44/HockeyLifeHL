@@ -5,6 +5,7 @@ import { useMemo, useOptimistic, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { cn } from '@hockey-life/ui';
+import { MigrationImportExecutor } from '@/components/admin/MigrationImportExecutor';
 import { MigrationImportPlanner } from '@/components/admin/MigrationImportPlanner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -497,6 +498,9 @@ export function MigrationQueueClient({
                                 {asset.analysis.source_format.replace(/_/g, ' ')}
                               </span>
                             </div>
+                            {asset.note && (
+                              <p className="mt-2 text-sm text-neutral-300">{asset.note}</p>
+                            )}
                             <p className="mt-2 text-xs text-neutral-500">
                               {asset.analysis.detected_scopes.length > 0
                                 ? asset.analysis.detected_scopes.map((scope) => MIGRATION_SCOPE_META[scope].label).join(', ')
@@ -520,6 +524,15 @@ export function MigrationQueueClient({
                     request={selectedRequest}
                     onRequestUpdated={handleRequestUpdated}
                   />
+                  {(selectedRequest.status === 'reviewing' ||
+                    selectedRequest.status === 'scheduled' ||
+                    selectedRequest.status === 'in_progress') && (
+                    <MigrationImportExecutor
+                      key={`executor:${selectedRequest.id}:${selectedRequest.updated_at}`}
+                      request={selectedRequest}
+                      onRequestUpdated={handleRequestUpdated}
+                    />
+                  )}
                   <MigrationRequestEditor
                     key={`${selectedRequest.id}:${selectedRequest.updated_at}`}
                     request={selectedRequest}

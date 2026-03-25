@@ -219,6 +219,9 @@ export function MigrationImportPlanner({ request, onRequestUpdated }: Props) {
                       )}
                     </div>
                     <p className="mt-3 text-lg font-bold text-white">{asset.name}</p>
+                    {asset.note && (
+                      <p className="mt-1 text-sm text-neutral-300">{asset.note}</p>
+                    )}
                     <p className="mt-1 text-sm text-neutral-400">
                       {asset.analysis.detected_tables.length > 0
                         ? `Detected tables: ${asset.analysis.detected_tables.slice(0, 5).join(', ')}`
