@@ -119,7 +119,7 @@ export function PremiumScoreTicker({
   }
 
   const nudgeTrack = (direction: -1 | 1) => {
-    const amount = 262;
+    const amount = 212;
 
     if (shouldAutoScroll) {
       if (!trackRef.current) {
@@ -188,22 +188,22 @@ export function PremiumScoreTicker({
           <button
             type="button"
             onClick={() => nudgeTrack(-1)}
-            className="absolute left-0 top-0 bottom-0 z-30 hidden w-10 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
+            className="absolute bottom-0 left-0 top-0 z-30 hidden w-7 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
             style={{
               background:
                 'linear-gradient(to right, color-mix(in srgb, var(--color-background) 96%, transparent) 34%, transparent)',
             }}
             aria-label="Scroll left"
           >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border-muted)] bg-[var(--color-surface)]/88 text-[var(--color-text-secondary)] backdrop-blur-sm transition-colors duration-200 hover:text-[var(--color-text-primary)]">
-              <ChevronLeft className="h-4 w-4" />
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--color-border-muted)] bg-[var(--color-surface)]/88 text-[var(--color-text-secondary)] backdrop-blur-sm transition-colors duration-200 hover:text-[var(--color-text-primary)]">
+              <ChevronLeft className="h-3 w-3" />
             </span>
           </button>
         )}
 
         <div
           ref={trackRef}
-          className={`flex gap-2 px-3 py-2 sm:px-4 ${shouldAutoScroll ? 'overflow-hidden' : 'overflow-x-auto scrollbar-hide touch-pan-x snap-x snap-mandatory lg:snap-none'}`}
+          className={`flex gap-1 px-1.5 py-1 sm:px-2 ${shouldAutoScroll ? 'overflow-hidden' : 'overflow-x-auto scrollbar-hide touch-pan-x snap-x snap-mandatory lg:snap-none'}`}
           style={
             shouldAutoScroll
               ? {
@@ -230,15 +230,15 @@ export function PremiumScoreTicker({
           <button
             type="button"
             onClick={() => nudgeTrack(1)}
-            className="absolute right-0 top-0 bottom-0 z-30 hidden w-10 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
+            className="absolute bottom-0 right-0 top-0 z-30 hidden w-7 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
             style={{
               background:
                 'linear-gradient(to left, color-mix(in srgb, var(--color-background) 96%, transparent) 34%, transparent)',
             }}
             aria-label="Scroll right"
           >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border-muted)] bg-[var(--color-surface)]/88 text-[var(--color-text-secondary)] backdrop-blur-sm transition-colors duration-200 hover:text-[var(--color-text-primary)]">
-              <ChevronRight className="h-4 w-4" />
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--color-border-muted)] bg-[var(--color-surface)]/88 text-[var(--color-text-secondary)] backdrop-blur-sm transition-colors duration-200 hover:text-[var(--color-text-primary)]">
+              <ChevronRight className="h-3 w-3" />
             </span>
           </button>
         )}
@@ -246,14 +246,14 @@ export function PremiumScoreTicker({
         {showControls && (
           <>
             <div
-              className="pointer-events-none absolute left-10 top-0 bottom-0 z-10 hidden w-6 lg:block"
+              className="pointer-events-none absolute bottom-0 left-7 top-0 z-10 hidden w-3 lg:block"
               style={{
                 background:
                   'linear-gradient(to right, color-mix(in srgb, var(--color-background) 90%, transparent), transparent)',
               }}
             />
             <div
-              className="pointer-events-none absolute right-10 top-0 bottom-0 z-10 hidden w-6 lg:block"
+              className="pointer-events-none absolute bottom-0 right-7 top-0 z-10 hidden w-3 lg:block"
               style={{
                 background:
                   'linear-gradient(to left, color-mix(in srgb, var(--color-background) 90%, transparent), transparent)',
@@ -293,11 +293,11 @@ function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
   return (
     <Link
       href={`/${leagueSlug}/games/${game.id}`}
-      className="group relative flex-shrink-0 snap-start"
-      style={{ minWidth: '248px' }}
+      className="group relative min-w-0 flex-shrink-0 snap-start"
+      style={{ minWidth: '208px' }}
     >
       <article
-        className="overflow-hidden rounded-[18px] border border-[var(--color-border-muted)] px-3 py-2.5 transition-all duration-200 group-hover:border-[var(--league-primary)]/45 group-hover:bg-[var(--color-surface)]"
+        className="overflow-hidden rounded-[14px] border border-[var(--color-border-muted)] px-2 py-1.5 transition-all duration-200 group-hover:border-[var(--league-primary)]/45 group-hover:bg-[var(--color-surface)]"
         style={{
           background: isLive
             ? 'linear-gradient(135deg, rgba(239,68,68,0.11) 0%, color-mix(in srgb, var(--color-surface) 96%, transparent) 48%, color-mix(in srgb, var(--color-surface) 92%, transparent) 100%)'
@@ -314,14 +314,14 @@ function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
           />
         </div>
 
-        <div className="flex items-center justify-between gap-2 pt-0.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+        <div className="flex items-center justify-between gap-1 pt-0.5">
+          <span className="truncate text-[8px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
             {formatGameDate(gameDate)}
           </span>
           <GameStatusBadge status={game.status} gameDate={gameDate} />
         </div>
 
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-1 space-y-0.5">
           <TeamRow
             team={game.away_team}
             score={game.away_score}
@@ -340,13 +340,16 @@ function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
           />
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--color-border-muted)] pt-2">
-          <span className="flex min-w-0 items-center gap-1 text-[10px] text-[var(--color-text-secondary)]">
-            <MapPin className="h-3 w-3 shrink-0 text-[var(--color-text-muted)]" />
-            <span className="truncate">{game.venue || 'Venue TBA'}</span>
+        <div className="mt-1 flex items-center justify-between gap-1 border-t border-[var(--color-border-muted)] pt-1">
+          <span className="flex min-w-0 flex-1 items-center gap-1 text-[8px] text-[var(--color-text-secondary)]">
+            <MapPin className="h-2.5 w-2.5 shrink-0 text-[var(--color-text-muted)]" />
+            <span className="truncate" title={game.venue || 'Venue TBA'}>{game.venue || 'Venue TBA'}</span>
           </span>
           {divisionLabel && (
-            <span className="shrink-0 rounded-full bg-[var(--league-primary)]/12 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--league-primary)]">
+            <span
+              className="max-w-[72px] shrink rounded-full bg-[var(--league-primary)]/12 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-[var(--league-primary)] truncate"
+              title={divisionLabel}
+            >
               {divisionLabel}
             </span>
           )}
@@ -373,25 +376,26 @@ interface TeamRowProps {
 
 function TeamRow({ team, score, isWinning, showScore, teamColor, isLive }: TeamRowProps) {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-2">
+    <div className="flex min-w-0 items-center justify-between gap-1.5">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
         <TeamLogo
           logoUrl={team?.logo || null}
           teamName={team?.name || 'TBD'}
           teamColor={teamColor}
-          size="sm"
+          size="xs"
         />
         <span
-          className={`truncate text-sm font-semibold ${
+          className={`block min-w-0 truncate text-[12px] font-semibold leading-tight ${
             isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
           }`}
+          title={team?.name || 'TBD'}
         >
           {team?.name || 'TBD'}
         </span>
       </div>
 
       {showScore ? (
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1">
           {isWinning && (
             <span
               className="h-1.5 w-1.5 rounded-full"
@@ -401,7 +405,7 @@ function TeamRow({ team, score, isWinning, showScore, teamColor, isLive }: TeamR
             />
           )}
           <span
-            className={`text-lg font-black tabular-nums ${
+            className={`text-[15px] font-black tabular-nums ${
               isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}
           >
@@ -409,7 +413,7 @@ function TeamRow({ team, score, isWinning, showScore, teamColor, isLive }: TeamR
           </span>
         </div>
       ) : (
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+        <span className="shrink-0 text-[8px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
           {isLive ? 'Live' : ''}
         </span>
       )}
@@ -425,8 +429,8 @@ interface GameStatusBadgeProps {
 function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
   if (status === 'in_progress') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/12 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-500/12 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-red-400">
+        <span className="h-1 w-1 rounded-full bg-red-400" />
         Live
       </span>
     );
@@ -434,7 +438,7 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
 
   if (status === 'completed' || status === 'pending_verification') {
     return (
-      <span className="rounded-full bg-[var(--color-surface-hover)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-secondary)]">
+      <span className="shrink-0 rounded-full bg-[var(--color-surface-hover)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
         Final
       </span>
     );
@@ -442,7 +446,7 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
 
   if (status === 'postponed') {
     return (
-      <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-400">
+      <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-amber-400">
         PPD
       </span>
     );
@@ -450,15 +454,15 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
 
   if (status === 'cancelled') {
     return (
-      <span className="rounded-full bg-[var(--color-surface-hover)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-secondary)] line-through">
+      <span className="shrink-0 rounded-full bg-[var(--color-surface-hover)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)] line-through">
         Cancelled
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-hover)] px-2 py-1 text-[10px] font-bold text-[var(--league-primary)]">
-      <Clock className="h-3 w-3 text-[var(--color-text-secondary)]" />
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--color-surface-hover)] px-1.5 py-0.5 text-[8px] font-bold text-[var(--league-primary)]">
+      <Clock className="h-2 w-2 text-[var(--color-text-secondary)]" />
       {format(gameDate, 'h:mm a')}
     </span>
   );
