@@ -81,6 +81,7 @@ export interface MigrationUploadedAsset {
   mime_type: string | null;
   uploaded_at: string;
   uploaded_by: string | null;
+  note: string | null;
   analysis: MigrationUploadedAssetAnalysis;
 }
 
@@ -229,6 +230,27 @@ export function isMigrationStatusEditable(status: LeagueMigrationRequestStatus) 
   return EDITABLE_MIGRATION_REQUEST_STATUSES.includes(status);
 }
 
+export interface MigrationImportRunReport {
+  request_id: string;
+  league_id: string;
+  executed_by: string | null;
+  started_at: string;
+  completed_at: string | null;
+  status: 'running' | 'completed' | 'failed' | 'partial';
+  entity_reports: MigrationEntityImportReport[];
+  errors: string[];
+}
+
+export interface MigrationEntityImportReport {
+  target_entity: MigrationTargetEntity;
+  asset_id: string;
+  created: number;
+  updated: number;
+  skipped: number;
+  errored: number;
+  errors: string[];
+}
+
 function normalizeScopeArray(values: unknown): LeagueMigrationScope[] {
   if (!Array.isArray(values)) return [];
   return values.filter(
@@ -297,6 +319,7 @@ function normalizeUploadedAssets(value: unknown): MigrationUploadedAsset[] {
       mime_type: typeof item.mime_type === 'string' ? item.mime_type : null,
       uploaded_at: typeof item.uploaded_at === 'string' ? item.uploaded_at : new Date(0).toISOString(),
       uploaded_by: typeof item.uploaded_by === 'string' ? item.uploaded_by : null,
+      note: typeof item.note === 'string' ? item.note : null,
       analysis: normalizeUploadedAssetAnalysis(item.analysis),
     }))
     .filter((item) => item.path);
