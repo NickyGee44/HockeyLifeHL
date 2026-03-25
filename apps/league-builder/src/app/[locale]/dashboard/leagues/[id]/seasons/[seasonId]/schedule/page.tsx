@@ -5,6 +5,7 @@ import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { SchedulePageClient } from '@/components/dashboard/seasons/SchedulePageClient';
 import { getSeasonParticipationTeamIds } from '@/lib/seasons/team-participation';
+import { isAggregateStatsGameLocation } from '@/lib/seasons/game-visibility';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Calendar } from 'lucide-react';
@@ -60,7 +61,7 @@ export default async function SeasonSchedulePage({ params, searchParams }: Props
     .eq('league_id', leagueId)
     .order('name');
 
-  const { data: games } = await supabase
+  const { data: allGames } = await supabase
     .from('games')
     .select(`
       id, home_team_id, away_team_id, scheduled_at, location,
@@ -68,6 +69,8 @@ export default async function SeasonSchedulePage({ params, searchParams }: Props
     `)
     .eq('season_id', seasonId)
     .order('scheduled_at');
+
+  const games = (allGames ?? []).filter((game: any) => !isAggregateStatsGameLocation(game.location));
 
   const { data: templates } = await supabase
     .from('schedule_templates')
