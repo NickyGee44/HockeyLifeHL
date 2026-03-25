@@ -47,6 +47,7 @@ import {
   type HomepagePhotoHighlight,
 } from '@/components/home/HomepagePulseRail';
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
+import { HomepagePreviousSeasonLeaders } from '@/components/home/HomepagePreviousSeasonLeaders';
 import { HomepageLeadersTabs } from '@/components/home/HomepageLeadersTabs';
 import { LeagueAliveBand } from '@/components/home/LeagueAliveBand';
 import { Card } from '@/components/ui';
@@ -338,13 +339,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         currentSeason={currentSeason}
         registrationSeason={registrationSeason}
         stats={stats}
-        previousSeasonName={previousCompletedSeason?.name ?? null}
-        previousSeasonLeaders={previousSeasonLeaders}
         photoFallback={homepagePhotoHighlight}
       />
 
       {hasLeaders && (
-        <section className="container mx-auto px-4 pt-8">
+        <section className="container mx-auto px-4 pt-6">
           <div className={`${panelClass} overflow-hidden`}>
             <HomepageLeadersTabs
               leagueSlug={leagueSlug}
@@ -357,7 +356,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       )}
 
       {hasUtilityBand && (
-        <section className="container mx-auto px-4 pt-6">
+        <section className="container mx-auto px-4 pt-5">
           <HomepagePulseRail
             leagueSlug={leagueSlug}
             events={events}
@@ -382,6 +381,14 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         <div className="container mx-auto px-4 pt-8">
           <AnnouncementBanner announcement={latestAnnouncement} leagueSlug={leagueSlug} />
         </div>
+      )}
+
+      {previousSeasonLeaders.length > 0 && (
+        <HomepagePreviousSeasonLeaders
+          leagueSlug={leagueSlug}
+          seasonName={previousCompletedSeason?.name ?? null}
+          leaders={previousSeasonLeaders}
+        />
       )}
 
       {/* 6. Two-column layout */}
