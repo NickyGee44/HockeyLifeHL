@@ -24,6 +24,8 @@ export {
   createCheckoutSession,
   getMyPayments,
   getLeaguePlayerPayments,
+  archivePlayerPayment,
+  permanentlyDeletePlayerPayment,
   refundPlayerPayment,
   getPaymentSummary,
   exportPaymentReport,

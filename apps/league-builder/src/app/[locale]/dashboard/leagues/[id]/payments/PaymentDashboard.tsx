@@ -13,7 +13,7 @@
  * - Payment detail slide-over sheet
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -31,11 +31,14 @@ import {
 } from 'lucide-react';
 import { PaymentStatusTable } from '@/components/payments/PaymentStatusTable';
 import { PaymentDetailSheet } from '@/components/payments/PaymentDetailSheet';
+import { PaymentCleanupDialog } from '@/components/payments/PaymentCleanupDialog';
 import { RefundModal } from '@/components/payments/RefundModal';
 import { PaymentReportExport } from '@/components/payments/PaymentReportExport';
 import {
+  archivePlayerPayment,
   sendPaymentReminder,
   markPaymentAsPaid,
+  permanentlyDeletePlayerPayment,
   sendBulkPaymentReminders,
 } from '@/lib/payments/payment-actions';
 import type { BillingReadiness } from '@/lib/payments/billing-readiness';
@@ -69,8 +72,11 @@ interface PaymentDashboardProps {
   currentPage: number;
   limit: number;
   statusFilter?: string;
+  includeArchived: boolean;
   teams: { id: string; name: string }[];
   billingReadiness: BillingReadiness;
+  focusedPayment: PlayerPaymentWithDetails | null;
+  viewerRole: 'owner' | 'admin';
 }
 
 export function PaymentDashboard({
@@ -85,20 +91,47 @@ export function PaymentDashboard({
   currentPage,
   limit,
   statusFilter,
+  includeArchived,
   teams,
   billingReadiness,
+  focusedPayment,
+  viewerRole,
 }: PaymentDashboardProps) {
   const router = useRouter();
   const t = useTranslations('payments.dashboard');
-  const [payments] = useState(initialPayments);
-  const [selectedPayment, setSelectedPayment] = useState<PlayerPaymentWithDetails | null>(null);
+  const payments = initialPayments;
+  const [selectedPayment, setSelectedPayment] = useState<PlayerPaymentWithDetails | null>(
+    focusedPayment
+  );
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
-  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(Boolean(focusedPayment));
   const [_sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false);
+  const [cleanupMode, setCleanupMode] = useState<'archive' | 'delete'>('archive');
+  const [cleanupTarget, setCleanupTarget] = useState<PlayerPaymentWithDetails | null>(null);
+  const [cleanupReason, setCleanupReason] = useState('');
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+  const [cleanupPending, setCleanupPending] = useState(false);
+
+  useEffect(() => {
+    setSelectedPayment(focusedPayment);
+    setIsDetailSheetOpen(Boolean(focusedPayment));
+  }, [focusedPayment]);
+
+  const buildListParams = () => {
+    const params = new URLSearchParams();
+    if (selectedSeason) params.set('season', selectedSeason.id);
+    if (statusFilter) params.set('status', statusFilter);
+    if (includeArchived) params.set('archived', '1');
+    return params;
+  };
 
   const handleSeasonChange = (seasonId: string) => {
-    router.push(`/${locale}/dashboard/leagues/${leagueId}/payments?season=${seasonId}`);
+    const params = new URLSearchParams();
+    params.set('season', seasonId);
+    if (statusFilter) params.set('status', statusFilter);
+    if (includeArchived) params.set('archived', '1');
+    router.push(`/${locale}/dashboard/leagues/${leagueId}/payments?${params.toString()}`);
   };
 
   const handleSendReminder = async (payment: PlayerPaymentWithDetails) => {
@@ -167,6 +200,69 @@ export function PaymentDashboard({
     router.refresh();
   };
 
+  const openCleanupDialog = (
+    payment: PlayerPaymentWithDetails,
+    mode: 'archive' | 'delete'
+  ) => {
+    setCleanupMode(mode);
+    setCleanupTarget(payment);
+    setCleanupReason('');
+    setDeleteConfirmationText('');
+  };
+
+  const handleConfirmCleanup = async () => {
+    if (!cleanupTarget) return;
+
+    setCleanupPending(true);
+    try {
+      const result =
+        cleanupMode === 'archive'
+          ? await archivePlayerPayment({
+              paymentId: cleanupTarget.id,
+              reason: cleanupReason,
+            })
+          : await permanentlyDeletePlayerPayment({
+              paymentId: cleanupTarget.id,
+              reason: cleanupReason,
+              confirmationText: deleteConfirmationText,
+            });
+
+      if (!result.success) {
+        toast.error(result.error || t('cleanupFailed'));
+        return;
+      }
+
+      if (cleanupMode === 'archive') {
+        toast.success(t('paymentArchived'));
+      } else {
+        toast.success(t('paymentDeleted'));
+        if (selectedPayment?.id === cleanupTarget.id) {
+          setIsDetailSheetOpen(false);
+          setSelectedPayment(null);
+        }
+      }
+
+      setCleanupTarget(null);
+      setCleanupReason('');
+      setDeleteConfirmationText('');
+      router.refresh();
+    } catch {
+      toast.error(t('cleanupFailed'));
+    } finally {
+      setCleanupPending(false);
+    }
+  };
+
+  const handleArchivedToggle = () => {
+    const params = new URLSearchParams();
+    if (selectedSeason) params.set('season', selectedSeason.id);
+    if (statusFilter) params.set('status', statusFilter);
+    if (!includeArchived) {
+      params.set('archived', '1');
+    }
+    router.push(`/${locale}/dashboard/leagues/${leagueId}/payments?${params.toString()}`);
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   const collectionPercent =
@@ -175,9 +271,7 @@ export function PaymentDashboard({
       : 0;
 
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams();
-    if (selectedSeason) params.set('season', selectedSeason.id);
-    if (statusFilter) params.set('status', statusFilter);
+    const params = buildListParams();
     if (page > 1) params.set('page', page.toString());
     router.push(`/${locale}/dashboard/leagues/${leagueId}/payments?${params.toString()}`);
   };
@@ -234,6 +328,17 @@ export function PaymentDashboard({
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={handleArchivedToggle}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm transition-colors ${
+                  includeArchived
+                    ? 'border-amber-400/30 bg-amber-400/10 text-amber-100'
+                    : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white'
+                }`}
+              >
+                {includeArchived ? t('hideArchived') : t('showArchived')}
+              </button>
+
               {/* Send All Reminders */}
               <button
                 onClick={handleBulkReminders}
@@ -396,6 +501,7 @@ export function PaymentDashboard({
           onSendReminder={handleSendReminder}
           onViewDetails={handleViewDetails}
           onMarkAsPaid={handleMarkAsPaid}
+          onArchive={(payment) => openCleanupDialog(payment, 'archive')}
           isLoading={false}
         />
 
@@ -452,6 +558,27 @@ export function PaymentDashboard({
             if (!open) setSelectedPayment(null);
           }}
           payment={selectedPayment}
+          canPermanentlyDelete={viewerRole === 'owner' && Boolean(selectedPayment?.archived_at)}
+          onRequestPermanentDelete={(payment) => openCleanupDialog(payment, 'delete')}
+        />
+
+        <PaymentCleanupDialog
+          open={Boolean(cleanupTarget)}
+          mode={cleanupMode}
+          payment={cleanupTarget}
+          reason={cleanupReason}
+          confirmationText={deleteConfirmationText}
+          pending={cleanupPending}
+          onReasonChange={setCleanupReason}
+          onConfirmationTextChange={setDeleteConfirmationText}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCleanupTarget(null);
+              setCleanupReason('');
+              setDeleteConfirmationText('');
+            }
+          }}
+          onConfirm={handleConfirmCleanup}
         />
       </div>
     </div>

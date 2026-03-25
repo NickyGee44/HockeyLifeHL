@@ -102,6 +102,9 @@ export interface PlayerPayment {
   team_id: string | null;
   league_id: string;
   season_id: string;
+  archived_at: string | null;
+  archived_by: string | null;
+  archived_reason: string | null;
   payment_plan: PaymentPlanType;
   base_amount_cents: number;
   discount_cents: number;
@@ -220,6 +223,15 @@ export interface PaymentSummary {
   playersPartial: number;
   playersPending: number;
   playersOverdue: number;
+}
+
+export interface ArchivePlayerPaymentParams {
+  paymentId: string;
+  reason: string;
+}
+
+export interface PermanentlyDeletePlayerPaymentParams extends ArchivePlayerPaymentParams {
+  confirmationText: string;
 }
 
 export interface PaymentReportRow {

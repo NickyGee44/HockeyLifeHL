@@ -1746,6 +1746,7 @@ export async function recordOfflineRegistrationPayment(
         .eq('season_id', registration.season_id)
         .eq('player_id', registration.player_id)
         .eq('season_fee_id', seasonFee.id)
+        .is('archived_at', null)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

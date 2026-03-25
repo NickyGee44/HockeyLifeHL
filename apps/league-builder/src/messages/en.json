@@ -2742,6 +2742,8 @@
       "sendReminder": "Send Reminder",
       "issueRefund": "Issue Refund",
       "markAsPaid": "Mark as Paid",
+      "archivePayment": "Archive Payment",
+      "archived": "Archived",
       "allTeams": "All Teams"
     },
     "dashboard": {
@@ -2766,6 +2768,9 @@
       "bulkReminderFailed": "Failed to send bulk reminders",
       "markedAsPaid": "Payment marked as paid",
       "markAsPaidFailed": "Failed to mark payment as paid",
+      "paymentArchived": "Payment archived",
+      "paymentDeleted": "Payment permanently deleted",
+      "cleanupFailed": "Failed to update payment cleanup status",
       "refundProcessed": "Refund processed: ${amount}",
       "unexpectedError": "An unexpected error occurred",
       "noStripeTitle": "Stripe Connect Not Set Up",
@@ -2774,6 +2779,8 @@
       "noSeasonsTitle": "No Seasons Found",
       "noSeasonsDescription": "Create a season first to start tracking player payments.",
       "createSeason": "Create Season",
+      "showArchived": "Show Archived",
+      "hideArchived": "Hide Archived",
       "pageOf": "Page {current} of {total}",
       "showing": "Showing {from} to {to} of {total} payments"
     },
@@ -2797,7 +2804,26 @@
       "remindersSent": "Reminders Sent",
       "lastReminderSent": "Last Reminder",
       "notes": "Notes",
-      "feeName": "Fee"
+      "feeName": "Fee",
+      "archivedTitle": "Archived payment",
+      "archivedOn": "Archived on {date}",
+      "permanentDeleteTitle": "Permanent delete",
+      "permanentDeleteDescription": "Only use this for archived unpaid records that should be removed entirely.",
+      "permanentDelete": "Delete Permanently"
+    },
+    "cleanupDialog": {
+      "archiveTitle": "Archive Payment",
+      "archiveDescription": "Hide this payment from active payment and finance views for {player}.",
+      "deleteTitle": "Delete Payment Permanently",
+      "deleteDescription": "This permanently removes the archived record for {player}. This cannot be undone.",
+      "reasonLabel": "Reason",
+      "archiveReasonPlaceholder": "Explain why this payment should be archived.",
+      "deleteReasonPlaceholder": "Explain why this payment must be permanently deleted.",
+      "confirmLabel": "Type {keyword} to confirm",
+      "cancel": "Cancel",
+      "working": "Working...",
+      "archiveCta": "Archive Payment",
+      "deleteCta": "Delete Permanently"
     },
     "refund": {
       "title": "Issue Refund",

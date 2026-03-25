@@ -142,6 +142,7 @@ export async function reconcileSeasonRegistrationFees(
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
       .eq('season_fee_id', seasonFee.id)
+      .is('archived_at', null)
       .in('player_id', paymentPlayerIds);
 
     for (const payment of existingPayments || []) {

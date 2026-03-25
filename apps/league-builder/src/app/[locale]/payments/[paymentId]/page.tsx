@@ -42,6 +42,7 @@ export default async function PlayerPaymentPage({ params, searchParams }: Props)
     )
     .eq('id', paymentId)
     .eq('player_id', user.id)
+    .is('archived_at', null)
     .single();
 
   if (error || !payment) {
