@@ -35,6 +35,24 @@ export function LeagueNewsFallbackArtwork({
   const leagueInitials = getLeagueInitials(leagueName);
   const articleLabel = getArticleLabel(articleType);
 
+  if (hero) {
+    return (
+      <div className="relative isolate h-full w-full overflow-hidden bg-slate-950">
+        <img src="/rink.png" alt="" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,13,24,0.18)_0%,rgba(7,13,24,0.32)_36%,rgba(7,13,24,0.58)_100%)]" />
+        {leagueLogoUrl ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <img
+              src={leagueLogoUrl}
+              alt={`${leagueName} logo`}
+              className="h-28 w-28 object-contain opacity-[0.22] drop-shadow-[0_24px_48px_rgba(0,0,0,0.42)] md:h-40 md:w-40"
+            />
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="relative isolate h-full w-full overflow-hidden bg-[linear-gradient(180deg,#edf4fb_0%,#d7e5f4_100%)] text-slate-950">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.92),transparent_48%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.12),transparent_42%)]" />

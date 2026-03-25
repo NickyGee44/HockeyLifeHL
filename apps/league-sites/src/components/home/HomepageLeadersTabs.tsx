@@ -18,7 +18,7 @@ interface HomepageLeadersTabsProps {
 
 function LeaderAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null | undefined }) {
   return (
-    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80">
+    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80">
       {avatarUrl ? (
         <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
       ) : (
@@ -44,10 +44,10 @@ function SkaterRow({
   return (
     <Link
       href={`/${leagueSlug}/players/${player.player_id}`}
-      className="group grid grid-cols-[auto_1fr] gap-3 rounded-2xl px-1 py-3 transition-colors hover:bg-[var(--color-surface)]/65 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+      className="group grid grid-cols-[auto_1fr] gap-2.5 rounded-xl px-1 py-2.5 transition-colors hover:bg-[var(--color-surface)]/65 sm:grid-cols-[auto_1fr_auto] sm:items-center"
     >
       <span
-        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-black ${
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black ${
           rank === 1
             ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
             : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
@@ -61,26 +61,26 @@ function SkaterRow({
           <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
             {player.player_name}
           </p>
-          <p className="truncate text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+          <p className="truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
             {teamLine}
           </p>
         </div>
       </div>
-      <div className="col-span-2 ml-11 grid grid-cols-4 gap-2 text-left sm:col-span-1 sm:ml-0 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-1 sm:text-right">
+      <div className="col-span-2 ml-9 grid grid-cols-4 gap-2 text-left sm:col-span-1 sm:ml-0 sm:min-w-[196px] sm:grid-cols-4 sm:gap-3 sm:text-right">
         <div>
-          <p className="text-lg font-black leading-none text-[var(--color-text-primary)]">{player.points}</p>
+          <p className="text-base font-black leading-none text-[var(--color-text-primary)]">{player.points}</p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">PTS</p>
         </div>
         <div>
-          <p className="text-sm font-semibold leading-none text-[var(--color-text-primary)]">{player.goals}</p>
+          <p className="text-[13px] font-semibold leading-none text-[var(--color-text-primary)]">{player.goals}</p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">G</p>
         </div>
         <div>
-          <p className="text-sm font-semibold leading-none text-[var(--color-text-primary)]">{player.assists}</p>
+          <p className="text-[13px] font-semibold leading-none text-[var(--color-text-primary)]">{player.assists}</p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">A</p>
         </div>
         <div>
-          <p className="text-sm font-semibold leading-none text-[var(--color-text-primary)]">{player.games_played}</p>
+          <p className="text-[13px] font-semibold leading-none text-[var(--color-text-primary)]">{player.games_played}</p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">GP</p>
         </div>
       </div>
@@ -104,10 +104,10 @@ function GoalieRow({
   return (
     <Link
       href={`/${leagueSlug}/players/${goalie.player_id}`}
-      className="group grid grid-cols-[auto_1fr] gap-3 rounded-2xl px-1 py-3 transition-colors hover:bg-[var(--color-surface)]/65 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+      className="group grid grid-cols-[auto_1fr] gap-2.5 rounded-xl px-1 py-2.5 transition-colors hover:bg-[var(--color-surface)]/65 sm:grid-cols-[auto_1fr_auto] sm:items-center"
     >
       <span
-        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-black ${
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black ${
           rank === 1
             ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
             : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
@@ -121,28 +121,28 @@ function GoalieRow({
           <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
             {goalie.player_name}
           </p>
-          <p className="truncate text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+          <p className="truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
             {teamLine}
           </p>
         </div>
       </div>
-      <div className="col-span-2 ml-11 grid grid-cols-4 gap-2 text-left sm:col-span-1 sm:ml-0 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-1 sm:text-right">
+      <div className="col-span-2 ml-9 grid grid-cols-4 gap-2 text-left sm:col-span-1 sm:ml-0 sm:min-w-[196px] sm:grid-cols-4 sm:gap-3 sm:text-right">
         <div>
-          <p className="text-lg font-black leading-none text-[var(--color-text-primary)]">{goalie.wins}</p>
+          <p className="text-base font-black leading-none text-[var(--color-text-primary)]">{goalie.wins}</p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">W</p>
         </div>
         <div>
-          <p className="text-sm font-semibold leading-none text-[var(--color-text-primary)]">{goalie.games_played}</p>
+          <p className="text-[13px] font-semibold leading-none text-[var(--color-text-primary)]">{goalie.games_played}</p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">GP</p>
         </div>
         <div>
-          <p className="text-sm font-semibold leading-none text-[var(--color-text-primary)]">
+          <p className="text-[13px] font-semibold leading-none text-[var(--color-text-primary)]">
             {goalie.save_percentage.toFixed(1)}%
           </p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">SV%</p>
         </div>
         <div>
-          <p className="text-sm font-semibold leading-none text-[var(--color-text-primary)]">
+          <p className="text-[13px] font-semibold leading-none text-[var(--color-text-primary)]">
             {goalie.goals_against_average.toFixed(2)}
           </p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">GAA</p>
@@ -175,15 +175,15 @@ export function HomepageLeadersTabs({
 
   return (
     <div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
             {eyebrow}
           </p>
-          <h3 className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
+          <h3 className="mt-1 text-lg font-black tracking-tight text-[var(--color-text-primary)] md:text-[1.15rem]">
             {seasonName ? `${seasonName} leaders` : 'Top players right now'}
           </h3>
-          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--color-text-secondary)]">
             {description}
           </p>
         </div>
@@ -197,11 +197,11 @@ export function HomepageLeadersTabs({
       </div>
 
       {hasSkaters && hasGoalies && (
-        <div className="mt-5 inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/70 p-1">
+        <div className="mt-4 inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/70 p-1">
           <button
             type="button"
             onClick={() => setActiveTab('skaters')}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-all ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-all ${
               !isGoalieTab
                 ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -213,7 +213,7 @@ export function HomepageLeadersTabs({
           <button
             type="button"
             onClick={() => setActiveTab('goalies')}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-all ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-all ${
               isGoalieTab
                 ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -225,7 +225,7 @@ export function HomepageLeadersTabs({
         </div>
       )}
 
-      <div className="mt-5 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+      <div className="mt-4 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
         {isGoalieTab
           ? goalieLeaders.slice(0, 5).map((goalie, index) => (
               <GoalieRow
