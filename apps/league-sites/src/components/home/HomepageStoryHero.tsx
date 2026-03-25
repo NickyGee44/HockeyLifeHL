@@ -93,7 +93,7 @@ function clipText(value: string, maxLength: number) {
 }
 
 function deriveSnippet(article: NewsArticle) {
-  const excerpt = article.excerpt?.trim();
+  const excerpt = stripStoryMarkup(article.excerpt?.trim() || '');
   if (excerpt) {
     return clipText(excerpt, 140);
   }

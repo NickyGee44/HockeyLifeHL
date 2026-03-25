@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Calendar, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
 import { LeagueNewsFallbackArtwork } from './LeagueNewsFallbackArtwork';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 
 interface FeaturedNewsBannerProps {
   articles: NewsArticle[];
@@ -66,7 +67,7 @@ export function FeaturedNewsBanner({
             </h3>
             {featured.excerpt && (
               <p className="mt-2 max-w-xl text-sm text-white/80 line-clamp-2">
-                {featured.excerpt}
+                {stripMarkdownLinks(featured.excerpt)}
               </p>
             )}
             <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-white/65">

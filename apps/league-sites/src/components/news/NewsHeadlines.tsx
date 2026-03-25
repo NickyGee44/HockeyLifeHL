@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Newspaper, Calendar, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import { featureFlags } from '@/lib/config/feature-flags';
 
 interface NewsHeadlinesProps {
@@ -48,7 +49,7 @@ export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
                 </h4>
                 {article.excerpt && (
                   <p className="mt-1 text-xs text-[var(--color-text-secondary)] line-clamp-2 md:text-sm">
-                    {article.excerpt}
+                    {stripMarkdownLinks(article.excerpt)}
                   </p>
                 )}
                 <div className="mt-1.5 flex items-center gap-2 text-xs text-[var(--color-text-muted)]">

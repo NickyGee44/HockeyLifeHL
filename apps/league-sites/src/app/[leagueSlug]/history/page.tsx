@@ -145,12 +145,13 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     id: `legacy-${i}`,
     type: 'legacy' as const,
     year: lc.year,
-    seasonName: `${lc.year} Season`,
+    seasonName: lc.caption || `${lc.year} Season`,
     teamName: lc.teamName || `${lc.year} Champions`,
     photo: lc.photo,
     record: null,
     roster: [],
     finalGame: null,
+    legacyCaption: lc.caption || null,
   }));
 
   // Merge and sort: oldest first (left) → newest (right)

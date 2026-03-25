@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Calendar, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
 import { LeagueNewsFallbackArtwork } from './LeagueNewsFallbackArtwork';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -24,6 +25,7 @@ export function NewsCard({ article, leagueSlug, leagueName, leagueLogoUrl }: New
     day: 'numeric',
     year: 'numeric',
   });
+  const safeExcerpt = stripMarkdownLinks(article.excerpt);
 
   return (
     <Link
@@ -66,9 +68,9 @@ export function NewsCard({ article, leagueSlug, leagueName, leagueLogoUrl }: New
           {article.title}
         </h3>
 
-        {article.excerpt && (
+        {safeExcerpt && (
           <p className="text-sm text-[var(--color-text-secondary)] line-clamp-3 mb-3">
-            {article.excerpt}
+            {safeExcerpt}
           </p>
         )}
 

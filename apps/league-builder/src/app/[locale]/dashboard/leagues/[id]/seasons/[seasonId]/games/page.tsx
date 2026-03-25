@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getGames, getTeamsForLeague, getSeasonsForLeague } from '@/lib/actions/games';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import { isAggregateStatsGameLocation } from '@/lib/seasons/game-visibility';
 import { CompletedGamesTabs } from '@/components/games';
 import { cn } from '@hockey-life/ui';
 import { CheckCircle2 } from 'lucide-react';
@@ -53,8 +54,8 @@ export default async function SeasonGamesPage({ params }: Props) {
   ]);
 
   const allGames = gamesResult.success ? gamesResult.data.games : [];
-  // Filter to this season's games
-  const games = allGames.filter((g: any) => g.season_id === seasonId);
+  // Filter to this season's visible schedule games (exclude aggregate stat carrier games)
+  const games = allGames.filter((g: any) => g.season_id === seasonId && !isAggregateStatsGameLocation((g as any).location));
   const teams = teamsResult.success ? teamsResult.data : [];
   const seasons = seasonsResult.success ? seasonsResult.data : [];
 

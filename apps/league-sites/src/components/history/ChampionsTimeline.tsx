@@ -17,6 +17,7 @@ export interface TimelineChampion {
   roster?: { playerId: string; fullName: string; jerseyNumber: number | null; position: string | null; leadershipRole: string | null }[];
   finalGame?: { homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; date: string } | null;
   seasonSummary?: string | null;
+  legacyCaption?: string | null;
 }
 
 interface ChampionsTimelineProps {
@@ -214,8 +215,8 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
                   </p>
                 )}
                 {!champ.record && champ.type === 'legacy' && (
-                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                    League Champions
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5 line-clamp-2">
+                    {champ.legacyCaption || 'League Champions'}
                   </p>
                 )}
               </div>
@@ -253,6 +254,11 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
             {selected.record && (
               <p className="text-sm text-[var(--color-text-secondary)] mt-1">
                 Season Record: {selected.record.wins}W-{selected.record.losses}L-{selected.record.ties}T
+              </p>
+            )}
+            {!selected.record && selected.legacyCaption && (
+              <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                {selected.legacyCaption}
               </p>
             )}
           </div>
