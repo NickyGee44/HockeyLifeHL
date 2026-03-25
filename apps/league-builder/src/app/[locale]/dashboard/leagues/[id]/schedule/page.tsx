@@ -43,12 +43,7 @@ async function getSeasonScheduleData(supabase: any, serviceClient: any, seasonId
         .select('id, name, short_name, division_id, home_venue_id')
         .in('id', seasonTeamIds)
         .order('name')
-    : await supabase
-        .from('teams')
-        .select('id, name, short_name, division_id, home_venue_id')
-        .eq('league_id', season.league_id)
-        .neq('status', 'inactive')
-        .order('name');
+    : { data: [] };
 
   const { data: venues } = await supabase
     .from('venues')
