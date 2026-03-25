@@ -7,9 +7,25 @@ interface SponsorBannerProps {
   sponsors: LeagueSponsor[];
   eyebrow?: string;
   title?: string;
+  compact?: boolean;
 }
 
-function getSponsorSize(tier: string): string {
+function getSponsorSize(tier: string, compact: boolean): string {
+  if (compact) {
+    switch (tier) {
+      case 'premier':
+        return 'h-10 md:h-12 max-w-[152px]';
+      case 'gold':
+        return 'h-8 md:h-10 max-w-[132px]';
+      case 'silver':
+        return 'h-7 md:h-8 max-w-[112px]';
+      case 'bronze':
+        return 'h-6 md:h-7 max-w-[96px]';
+      default:
+        return 'h-7 md:h-8 max-w-[112px]';
+    }
+  }
+
   switch (tier) {
     case 'premier':
       return 'h-20 md:h-24 max-w-[280px]';
@@ -28,6 +44,7 @@ export function SponsorBanner({
   sponsors,
   eyebrow = 'League Partners',
   title = 'All sponsors across the league',
+  compact = false,
 }: SponsorBannerProps) {
   const sponsorsWithLogos = sponsors.filter((s) => s.logo_url);
 
@@ -44,57 +61,67 @@ export function SponsorBanner({
   }
 
   return (
-    <section className="w-full overflow-hidden border-y border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 xl:px-8">
-        <div className="flex flex-col gap-1 pb-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-            {eyebrow}
-          </p>
-          <h2 className="text-lg font-black tracking-tight text-[var(--color-text-primary)]">
-            {title}
-          </h2>
-        </div>
-      </div>
-      <div className="relative overflow-hidden py-4">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-20 bg-[linear-gradient(90deg,var(--color-surface)_0%,transparent_100%)]" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-20 bg-[linear-gradient(270deg,var(--color-surface)_0%,transparent_100%)]" />
-        <div className="sponsor-marquee-track flex w-max items-center gap-16 md:gap-24">
-          <div className="flex shrink-0 items-center gap-16 md:gap-24">
-          {repeatedSponsors.map((sponsor, index) => (
-            <a
-              key={`a-${sponsor.id}-${index}`}
-              href={sponsor.website_url || '#'}
-              target={sponsor.website_url ? '_blank' : undefined}
-              rel={sponsor.website_url ? 'noopener noreferrer' : undefined}
-              className="shrink-0 opacity-60 transition-opacity duration-300 hover:opacity-100"
-              title={sponsor.name}
-            >
-              <img
-                src={sponsor.logo_url!}
-                alt={sponsor.name}
-                className={`${getSponsorSize(sponsor.tier || 'silver')} object-contain`}
-              />
-            </a>
-          ))}
+    <section
+      className="w-full overflow-hidden border-y border-[var(--color-border)]"
+      style={{
+        background: compact
+          ? 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 90%, transparent) 0%, color-mix(in srgb, var(--color-surface) 84%, transparent) 100%)'
+          : 'var(--color-surface)',
+      }}
+    >
+      {!compact && (
+        <div className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 xl:px-8">
+          <div className="flex flex-col gap-1 pb-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+              {eyebrow}
+            </p>
+            <h2 className="text-lg font-black tracking-tight text-[var(--color-text-primary)]">
+              {title}
+            </h2>
           </div>
-          <div className="flex shrink-0 items-center gap-16 md:gap-24" aria-hidden>
-          {repeatedSponsors.map((sponsor, index) => (
-            <a
-              key={`b-${sponsor.id}-${index}`}
-              href={sponsor.website_url || '#'}
-              target={sponsor.website_url ? '_blank' : undefined}
-              rel={sponsor.website_url ? 'noopener noreferrer' : undefined}
-              className="shrink-0 opacity-60 transition-opacity duration-300 hover:opacity-100"
-              title={sponsor.name}
-              tabIndex={-1}
-            >
-              <img
-                src={sponsor.logo_url!}
-                alt={sponsor.name}
-                className={`${getSponsorSize(sponsor.tier || 'silver')} object-contain`}
-              />
-            </a>
-          ))}
+        </div>
+      )}
+      <div className={`relative overflow-hidden ${compact ? 'py-1.5 md:py-2' : 'py-4'}`}>
+        <div className={`pointer-events-none absolute inset-y-0 left-0 z-[1] ${compact ? 'w-6 md:w-10' : 'w-20'} bg-[linear-gradient(90deg,var(--color-surface)_0%,transparent_100%)]`} />
+        <div className={`pointer-events-none absolute inset-y-0 right-0 z-[1] ${compact ? 'w-6 md:w-10' : 'w-20'} bg-[linear-gradient(270deg,var(--color-surface)_0%,transparent_100%)]`} />
+        <div className={`sponsor-marquee-track flex w-max items-center ${compact ? 'gap-7 md:gap-10' : 'gap-16 md:gap-24'}`}>
+          <div className={`flex shrink-0 items-center ${compact ? 'gap-7 md:gap-10' : 'gap-16 md:gap-24'}`}>
+            {repeatedSponsors.map((sponsor, index) => (
+              <a
+                key={`a-${sponsor.id}-${index}`}
+                href={sponsor.website_url || '#'}
+                target={sponsor.website_url ? '_blank' : undefined}
+                rel={sponsor.website_url ? 'noopener noreferrer' : undefined}
+                className={`shrink-0 transition-all duration-300 hover:opacity-100 ${compact ? 'opacity-80 saturate-[0.92] hover:saturate-100' : 'opacity-60'}`}
+                title={sponsor.name}
+                aria-label={sponsor.name}
+              >
+                <img
+                  src={sponsor.logo_url!}
+                  alt={sponsor.name}
+                  className={`${getSponsorSize(sponsor.tier || 'silver', compact)} object-contain`}
+                />
+              </a>
+            ))}
+          </div>
+          <div className={`flex shrink-0 items-center ${compact ? 'gap-7 md:gap-10' : 'gap-16 md:gap-24'}`} aria-hidden>
+            {repeatedSponsors.map((sponsor, index) => (
+              <a
+                key={`b-${sponsor.id}-${index}`}
+                href={sponsor.website_url || '#'}
+                target={sponsor.website_url ? '_blank' : undefined}
+                rel={sponsor.website_url ? 'noopener noreferrer' : undefined}
+                className={`shrink-0 transition-all duration-300 hover:opacity-100 ${compact ? 'opacity-80 saturate-[0.92] hover:saturate-100' : 'opacity-60'}`}
+                title={sponsor.name}
+                tabIndex={-1}
+              >
+                <img
+                  src={sponsor.logo_url!}
+                  alt={sponsor.name}
+                  className={`${getSponsorSize(sponsor.tier || 'silver', compact)} object-contain`}
+                />
+              </a>
+            ))}
           </div>
         </div>
       </div>
