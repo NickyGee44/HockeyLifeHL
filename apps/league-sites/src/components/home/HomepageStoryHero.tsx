@@ -235,14 +235,6 @@ export function HomepageStoryHero({
     setRemainingMs(HERO_AUTOPLAY_MS);
   }, [hasMultipleSlides, isFocusPaused, isHovered, remainingMs, slides.length]);
 
-  useEffect(() => {
-    if (!hasMultipleSlides || isHovered || isFocusPaused || remainingMs > 0) {
-      return;
-    }
-
-    advanceSlide();
-  }, [advanceSlide, hasMultipleSlides, isFocusPaused, isHovered, remainingMs]);
-
   const activeSlide = slides[activeIndex] || fallbackSlide;
   const progress = cycleMs > 0 ? Math.min(1, Math.max(0, 1 - remainingMs / cycleMs)) : 0;
   const locationLine = getLocationLine(league, currentSeason);
