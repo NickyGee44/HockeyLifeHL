@@ -22,6 +22,7 @@ import type {
   TeamSeasonStats,
   PlayerStat,
   GoalieStats,
+  GoalieStatsWithDivision,
   PlayerGameLogEntry,
   SpecialTeamsLeader,
   Suspension,
@@ -1542,22 +1543,9 @@ export async function getStatsLeadersWithAvatars(
   }));
 }
 
-export async function getSeasonPointsLeadersWithDivision(
-  leagueId: string,
-  seasonId: string,
-  limit = 3,
-): Promise<HomepageSeasonLeader[]> {
-  const leaders = await getStatsLeadersWithAvatars(leagueId, 'points', limit, undefined, seasonId);
-  if (leaders.length === 0) {
-    return [];
-  }
-
-  const teamIds = [...new Set(leaders.map((leader) => leader.team_id).filter(Boolean))];
+async function getTeamDivisionNameMap(teamIds: string[]): Promise<Map<string, string | null>> {
   if (teamIds.length === 0) {
-    return leaders.map((leader) => ({
-      ...leader,
-      division_name: null,
-    }));
+    return new Map();
   }
 
   const supabase = await createClient();
@@ -1573,6 +1561,52 @@ export async function getSeasonPointsLeadersWithDivision(
       : (team as any).divisions;
     divisionMap.set(team.id, divisionData?.name || null);
   }
+
+  return divisionMap;
+}
+
+export async function getPointsLeadersWithDivision(
+  leagueId: string,
+  seasonId?: string | null,
+  limit = 5,
+  divisionId?: string
+): Promise<HomepageSeasonLeader[]> {
+  const leaders = await getStatsLeadersWithAvatars(leagueId, 'points', limit, divisionId, seasonId);
+  if (leaders.length === 0) {
+    return [];
+  }
+
+  const teamIds = [...new Set(leaders.map((leader) => leader.team_id).filter(Boolean))];
+  const divisionMap = await getTeamDivisionNameMap(teamIds);
+
+  return leaders.map((leader) => ({
+    ...leader,
+    division_name: divisionMap.get(leader.team_id) || null,
+  }));
+}
+
+export async function getSeasonPointsLeadersWithDivision(
+  leagueId: string,
+  seasonId: string,
+  limit = 3,
+): Promise<HomepageSeasonLeader[]> {
+  return getPointsLeadersWithDivision(leagueId, seasonId, limit);
+}
+
+export async function getGoalieLeadersWithDivision(
+  leagueId: string,
+  seasonId?: string | null,
+  sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts' = 'wins',
+  limit = 20,
+  divisionId?: string
+): Promise<GoalieStatsWithDivision[]> {
+  const leaders = await getGoalieLeaders(leagueId, seasonId, sortBy, limit, divisionId);
+  if (leaders.length === 0) {
+    return [];
+  }
+
+  const teamIds = [...new Set(leaders.map((leader) => leader.team_id).filter(Boolean))];
+  const divisionMap = await getTeamDivisionNameMap(teamIds);
 
   return leaders.map((leader) => ({
     ...leader,

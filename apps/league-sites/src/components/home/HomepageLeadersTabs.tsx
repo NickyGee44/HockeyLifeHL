@@ -3,15 +3,17 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { ChevronRight, Shield, TrendingUp } from 'lucide-react';
-import type { GoalieStats, PlayerStatsWithAvatar } from '@/lib/types';
+import type { GoalieStatsWithDivision, HomepageSeasonLeader } from '@/lib/types';
 
 type LeaderTab = 'skaters' | 'goalies';
 
 interface HomepageLeadersTabsProps {
   leagueSlug: string;
+  eyebrow?: string;
   seasonName?: string | null;
-  scoringLeaders: PlayerStatsWithAvatar[];
-  goalieLeaders: GoalieStats[];
+  description?: string;
+  scoringLeaders: HomepageSeasonLeader[];
+  goalieLeaders: GoalieStatsWithDivision[];
 }
 
 function LeaderAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null | undefined }) {
@@ -34,9 +36,11 @@ function SkaterRow({
   rank,
 }: {
   leagueSlug: string;
-  player: PlayerStatsWithAvatar;
+  player: HomepageSeasonLeader;
   rank: number;
 }) {
+  const teamLine = player.division_name ? `${player.division_name} | ${player.team_name}` : player.team_name;
+
   return (
     <Link
       href={`/${leagueSlug}/players/${player.player_id}`}
@@ -58,7 +62,7 @@ function SkaterRow({
             {player.player_name}
           </p>
           <p className="truncate text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-            {player.team_name}
+            {teamLine}
           </p>
         </div>
       </div>
@@ -90,9 +94,13 @@ function GoalieRow({
   rank,
 }: {
   leagueSlug: string;
-  goalie: GoalieStats;
+  goalie: GoalieStatsWithDivision;
   rank: number;
 }) {
+  const teamLine = goalie.division_name
+    ? `${goalie.division_name} | ${goalie.team_name || 'Goalie Leader'}`
+    : goalie.team_name || 'Goalie Leader';
+
   return (
     <Link
       href={`/${leagueSlug}/players/${goalie.player_id}`}
@@ -114,7 +122,7 @@ function GoalieRow({
             {goalie.player_name}
           </p>
           <p className="truncate text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-            {goalie.team_name || 'Goalie Leader'}
+            {teamLine}
           </p>
         </div>
       </div>
@@ -146,7 +154,9 @@ function GoalieRow({
 
 export function HomepageLeadersTabs({
   leagueSlug,
+  eyebrow = 'This Season',
   seasonName,
+  description = 'See the skaters and goalies setting the pace this season.',
   scoringLeaders,
   goalieLeaders,
 }: HomepageLeadersTabsProps) {
@@ -168,13 +178,13 @@ export function HomepageLeadersTabs({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-            This Season
+            {eyebrow}
           </p>
           <h3 className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
             {seasonName ? `${seasonName} leaders` : 'Top players right now'}
           </h3>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-            Keep the homepage grounded in the skaters and goalies driving the current season.
+            {description}
           </p>
         </div>
         <Link

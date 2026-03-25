@@ -36,7 +36,9 @@ export function SponsorFooterStrip({ sponsors }: SponsorFooterStripProps) {
   // Hydration-safe: render in stable order on server, shuffle only after mount
   const stableSponsors = useMemo(() => {
     const withLogos = sponsors.filter((s) => s.logo_url);
-    return withLogos.length === 0 ? [DEFAULT_BLH_SPONSOR] : withLogos;
+    const featuredTiers = withLogos.filter((s) => s.tier === 'premier' || s.tier === 'gold');
+    const selectedSponsors = featuredTiers.length > 0 ? featuredTiers : withLogos;
+    return selectedSponsors.length === 0 ? [DEFAULT_BLH_SPONSOR] : selectedSponsors;
   }, [sponsors]);
 
   const [displaySponsors, setDisplaySponsors] = useState(stableSponsors);
@@ -45,12 +47,18 @@ export function SponsorFooterStrip({ sponsors }: SponsorFooterStripProps) {
   }, [stableSponsors]);
 
   const isDefaultOnly = displaySponsors.length === 1 && displaySponsors[0].id === 'blh-default';
+  const hasPremierTier = displaySponsors.some((sponsor) => sponsor.tier === 'premier');
+  const title = isDefaultOnly
+    ? 'Powered by'
+    : hasPremierTier
+      ? 'Premier Partners'
+      : 'Featured Sponsors';
 
   return (
     <section className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="container mx-auto px-4 py-8">
         <h3 className="mb-5 text-center text-xs font-medium uppercase tracking-widest text-[var(--color-text-muted)]">
-          {isDefaultOnly ? 'Powered by' : 'League Sponsors'}
+          {title}
         </h3>
         <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
           {displaySponsors.map((sponsor) => (
