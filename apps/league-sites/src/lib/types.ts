@@ -822,6 +822,9 @@ export interface LeagueAward {
   image_url: string | null;
   created_at: string;
   player?: { full_name: string; avatar_url: string | null } | null;
-  team?: { name: string; logo_url: string | null } | null;
+  team?: { name: string; logo_url: string | null; division?: { name: string | null } | null } | null;
   season?: { name: string } | null;
+  roster_position?: string | null;
+  roster_jersey_number?: number | null;
+  division_name?: string | null;
 }

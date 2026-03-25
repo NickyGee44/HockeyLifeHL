@@ -3303,13 +3303,97 @@ export async function getLeagueAwards(leagueId: string, seasonId?: string): Prom
   const supabase = await createClient();
   let query = supabase
     .from('league_awards')
-    .select('*, player:profiles(full_name, avatar_url), team:teams(name, logo_url), season:seasons(name)')
+    .select('*, player:profiles(full_name, avatar_url), team:teams(name, logo_url, division:divisions(name)), season:seasons(name)')
     .eq('league_id', leagueId)
     .order('created_at', { ascending: false });
   if (seasonId) query = query.eq('season_id', seasonId);
   const { data, error } = await query;
   if (error || !data) return [];
-  return data as unknown as LeagueAward[];
+
+  const awards = data as unknown as LeagueAward[];
+  const playerIds = [...new Set(awards.map((award) => award.player_id).filter(Boolean))] as string[];
+  const seasonIds = [...new Set(awards.map((award) => award.season_id).filter(Boolean))] as string[];
+
+  if (playerIds.length === 0) {
+    return awards.map((award) => ({
+      ...award,
+      division_name: award.team?.division?.name || null,
+    }));
+  }
+
+  let rosterQuery = supabase
+    .from('team_rosters')
+    .select(`
+      player_id,
+      team_id,
+      season_id,
+      position,
+      jersey_number,
+      is_goalie,
+      team:teams(name, logo_url, division:divisions(name))
+    `)
+    .in('player_id', playerIds);
+
+  if (seasonIds.length > 0) {
+    rosterQuery = rosterQuery.in('season_id', seasonIds);
+  }
+
+  type AwardRosterRow = {
+    player_id: string;
+    team_id: string;
+    season_id: string | null;
+    position: string | null;
+    jersey_number: number | null;
+    is_goalie?: boolean | null;
+    team?: {
+      name?: string | null;
+      logo_url?: string | null;
+      division?: { name?: string | null } | { name?: string | null }[] | null;
+    } | {
+      name?: string | null;
+      logo_url?: string | null;
+      division?: { name?: string | null } | { name?: string | null }[] | null;
+    }[] | null;
+  };
+
+  const { data: rosterRows } = await rosterQuery;
+  const rosterMap = new Map<string, AwardRosterRow[]>();
+
+  for (const row of (rosterRows || []) as unknown as AwardRosterRow[]) {
+    const key = `${row.player_id}:${row.season_id ?? 'any'}`;
+    const existing = rosterMap.get(key) || [];
+    existing.push(row);
+    rosterMap.set(key, existing);
+  }
+
+  return awards.map((award) => {
+    const candidates = award.player_id
+      ? rosterMap.get(`${award.player_id}:${award.season_id ?? 'any'}`) || rosterMap.get(`${award.player_id}:any`) || []
+      : [];
+    const matchedRoster =
+      candidates.find((row) => !award.team_id || row.team_id === award.team_id) ||
+      candidates[0] ||
+      null;
+    const rosterTeam = unwrapJoinedRecord(matchedRoster?.team);
+    const divisionName =
+      award.team?.division?.name ||
+      getJoinedDivisionName(rosterTeam?.division) ||
+      null;
+
+    return {
+      ...award,
+      team: award.team || (rosterTeam
+        ? {
+            name: rosterTeam.name || 'Unknown Team',
+            logo_url: rosterTeam.logo_url || null,
+            division: divisionName ? { name: divisionName } : null,
+          }
+        : null),
+      roster_position: matchedRoster?.position || (matchedRoster?.is_goalie ? 'Goalie' : null),
+      roster_jersey_number: matchedRoster?.jersey_number ?? null,
+      division_name: divisionName,
+    };
+  });
 }
 
 // ========== SPECIAL TEAMS STATS ==========
