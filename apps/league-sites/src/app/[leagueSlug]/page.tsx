@@ -312,8 +312,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       <div className="pt-6">
         <SponsorBanner
           sponsors={sponsors}
-          eyebrow="League Sponsors"
-          title="All sponsors supporting the league"
+          compact
         />
       </div>
 
