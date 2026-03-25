@@ -56,12 +56,12 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
   const [skaterRows, goalieRows] =
     mode === 'skaters'
       ? await Promise.all([
-          getUnifiedSkaterStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter),
+          getUnifiedSkaterStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter, league.slug),
           Promise.resolve([]),
         ])
       : await Promise.all([
           Promise.resolve([]),
-          getUnifiedGoalieStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter),
+          getUnifiedGoalieStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter, league.slug),
         ]);
 
   const activePlayerIds = [...new Set((mode === 'skaters' ? skaterRows : goalieRows).map((row) => row.player_id))];
