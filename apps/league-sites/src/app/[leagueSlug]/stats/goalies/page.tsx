@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 interface GoalieStatsRedirectPageProps {
   params: Promise<{ leagueSlug: string }>;
   searchParams: Promise<{

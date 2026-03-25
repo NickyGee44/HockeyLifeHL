@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   description: 'League player and goalie statistics',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function StatsPage({ params, searchParams }: StatsPageProps) {
   const { leagueSlug } = await params;
   const {
