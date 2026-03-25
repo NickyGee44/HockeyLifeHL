@@ -102,17 +102,18 @@ export function AddPlayerModalEnhanced({
 
     try {
       const response = await fetch(
-        `/api/leagues/${leagueId}/players/search?q=${encodeURIComponent(query)}`
+        `/api/leagues/${leagueId}/players/search?q=${encodeURIComponent(query)}&teamId=${encodeURIComponent(teamId)}`
       );
 
       if (!response.ok) {
-        throw new Error('Failed to search players');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Failed to search players');
       }
 
       const data = await response.json();
       setSearchResults(data);
-    } catch {
-      setError('Failed to search players');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to search players');
       setSearchResults([]);
     } finally {
       setIsSearching(false);

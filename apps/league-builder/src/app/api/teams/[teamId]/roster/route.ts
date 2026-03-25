@@ -11,6 +11,35 @@ function normalizeRosterRows(rows: any[] | null | undefined) {
   }));
 }
 
+const POSITION_MAP = {
+  forward: 'Forward',
+  defense: 'Defense',
+  goalie: 'Goalie',
+} as const;
+
+function normalizeRosterPosition(position: unknown) {
+  if (typeof position !== 'string') return null;
+
+  const normalizedPosition = position.trim().toLowerCase() as keyof typeof POSITION_MAP;
+  return POSITION_MAP[normalizedPosition] ?? null;
+}
+
+function normalizeLeadershipRole(leadershipRole: unknown) {
+  if (leadershipRole === undefined || leadershipRole === null || leadershipRole === '') {
+    return null;
+  }
+
+  if (leadershipRole === 'captain') {
+    return 'captain' as const;
+  }
+
+  if (leadershipRole === 'alternate' || leadershipRole === 'alternate_captain') {
+    return 'alternate_captain' as const;
+  }
+
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ teamId: string }> }
@@ -142,6 +171,9 @@ export async function POST(
   try {
     const body = await request.json();
     const { playerId, seasonId, jerseyNumber, position, leadershipRole } = body;
+    const parsedJerseyNumber = typeof jerseyNumber === 'string' ? parseInt(jerseyNumber, 10) : jerseyNumber;
+    const normalizedPosition = normalizeRosterPosition(position);
+    const normalizedLeadershipRole = normalizeLeadershipRole(leadershipRole);
 
     // Validate required fields
     if (!playerId || !seasonId || !jerseyNumber || !position) {
@@ -152,7 +184,7 @@ export async function POST(
     }
 
     // Validate jersey number
-    if (typeof jerseyNumber !== 'number' || jerseyNumber < 1 || jerseyNumber > 99) {
+    if (typeof parsedJerseyNumber !== 'number' || Number.isNaN(parsedJerseyNumber) || parsedJerseyNumber < 1 || parsedJerseyNumber > 99) {
       return NextResponse.json(
         { error: 'Jersey number must be between 1 and 99' },
         { status: 400 }
@@ -160,17 +192,17 @@ export async function POST(
     }
 
     // Validate position
-    if (!['forward', 'defense', 'goalie'].includes(position)) {
+    if (!normalizedPosition) {
       return NextResponse.json(
-        { error: 'Position must be forward, defense, or goalie' },
+        { error: 'Position must be Forward, Defense, or Goalie' },
         { status: 400 }
       );
     }
 
     // Validate leadership role if provided
-    if (leadershipRole && !['captain', 'alternate'].includes(leadershipRole)) {
+    if (leadershipRole !== undefined && leadershipRole !== null && leadershipRole !== '' && !normalizedLeadershipRole) {
       return NextResponse.json(
-        { error: 'Leadership role must be captain or alternate' },
+        { error: 'Leadership role must be captain or alternate captain' },
         { status: 400 }
       );
     }
@@ -179,9 +211,9 @@ export async function POST(
       teamId,
       playerId,
       seasonId,
-      jerseyNumber,
-      position,
-      leadershipRole: leadershipRole || null,
+      jerseyNumber: parsedJerseyNumber,
+      position: normalizedPosition,
+      leadershipRole: normalizedLeadershipRole,
     });
 
     if (result.error) {
