@@ -81,6 +81,8 @@ export default async function LeagueTeamsPage({ params, searchParams }: Props) {
 
     if (teamIds.length > 0) {
       teamsQuery = teamsQuery.in('id', teamIds);
+    } else {
+      teamsQuery = teamsQuery.in('id', []);
     }
   }
 
