@@ -15,12 +15,12 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
-import type { HomepageSeasonLeader, League, LeagueStats, NewsArticle, Season } from '@/lib/types';
+import type { League, LeagueStats, NewsArticle, Season } from '@/lib/types';
 
 const HERO_AUTOPLAY_MS = 7000;
 const HERO_MANUAL_HOLD_MS = 12000;
 const HERO_TICK_MS = 100;
-const NO_STORY_HERO_IMAGE = '/hero-rink-stage.svg';
+const NO_STORY_HERO_IMAGE = '/rink.png';
 
 export interface HomepageStoryFallback {
   eyebrow: string;
@@ -42,8 +42,6 @@ interface HomepageStoryHeroProps {
     registration_closes_at?: string | null;
   } | null;
   stats: LeagueStats;
-  previousSeasonName?: string | null;
-  previousSeasonLeaders?: HomepageSeasonLeader[];
   photoFallback?: HomepageStoryFallback | null;
 }
 
@@ -115,54 +113,6 @@ function formatStoryDate(article: NewsArticle) {
   });
 }
 
-function PreviousSeasonLeaderRow({
-  leagueSlug,
-  leader,
-  rank,
-}: {
-  leagueSlug: string;
-  leader: HomepageSeasonLeader;
-  rank: number;
-}) {
-  return (
-    <Link
-      href={`/${leagueSlug}/players/${leader.player_id}`}
-      className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-3 transition-colors duration-200 hover:border-white/20 hover:bg-white/8"
-    >
-      <span
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${
-          rank === 1
-            ? 'bg-white text-slate-950'
-            : 'bg-white/10 text-white/74'
-        }`}
-      >
-        {rank}
-      </span>
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-white/10">
-          {leader.avatar_url ? (
-            <img src={leader.avatar_url} alt={leader.player_name} className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-sm font-black text-white">{leader.player_name.charAt(0)}</span>
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white transition-colors duration-200 group-hover:text-[var(--league-primary)]">
-            {leader.player_name}
-          </p>
-          <p className="truncate text-[11px] uppercase tracking-[0.14em] text-white/56">
-            {leader.division_name ? `${leader.division_name} | ${leader.team_name}` : leader.team_name}
-          </p>
-        </div>
-      </div>
-      <div className="text-right">
-        <p className="text-lg font-black leading-none text-white">{leader.points}</p>
-        <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-white/52">PTS</p>
-      </div>
-    </Link>
-  );
-}
-
 export function HomepageStoryHero({
   league,
   leagueSlug,
@@ -170,8 +120,6 @@ export function HomepageStoryHero({
   currentSeason,
   registrationSeason,
   stats,
-  previousSeasonName,
-  previousSeasonLeaders = [],
   photoFallback,
 }: HomepageStoryHeroProps) {
   const storySlides = useMemo(
@@ -275,6 +223,12 @@ export function HomepageStoryHero({
   const progress = cycleMs > 0 ? Math.min(1, Math.max(0, 1 - remainingMs / cycleMs)) : 0;
   const locationLine = getLocationLine(league, currentSeason);
   const seasonNote = getSeasonNote(currentSeason, stats);
+  const heroOverlayClass = hasStorySlides
+    ? 'bg-[linear-gradient(90deg,rgba(6,12,22,0.88)_0%,rgba(6,12,22,0.64)_42%,rgba(6,12,22,0.32)_70%,rgba(6,12,22,0.58)_100%)]'
+    : 'bg-[linear-gradient(90deg,rgba(8,14,24,0.34)_0%,rgba(8,14,24,0.18)_34%,rgba(8,14,24,0.14)_58%,rgba(8,14,24,0.72)_100%)]';
+  const heroGlowClass = hasStorySlides
+    ? 'bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,color-mix(in_srgb,var(--league-primary)_26%,transparent),transparent_34%)]'
+    : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_36%,rgba(4,10,18,0.12)_64%,rgba(4,10,18,0.36)_100%)]';
   const registrationLabel = registrationSeason?.registration_closes_at
     ? new Date(registrationSeason.registration_closes_at).toLocaleDateString('en-US', {
         month: 'short',
@@ -362,8 +316,8 @@ export function HomepageStoryHero({
             )}
           </motion.div>
         </AnimatePresence>
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,12,22,0.88)_0%,rgba(6,12,22,0.64)_42%,rgba(6,12,22,0.32)_70%,rgba(6,12,22,0.58)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,color-mix(in_srgb,var(--league-primary)_26%,transparent),transparent_34%)]" />
+        <div className={`absolute inset-0 ${heroOverlayClass}`} />
+        <div className={`absolute inset-0 ${heroGlowClass}`} />
       </div>
 
       {hasStorySlides && (
@@ -374,8 +328,20 @@ export function HomepageStoryHero({
         />
       )}
 
-      <div className="relative mx-auto flex min-h-[560px] max-w-[1440px] items-end px-4 py-6 sm:px-5 md:min-h-[620px] md:px-6 md:py-8 xl:px-8 xl:py-10">
-        <div className={`grid w-full gap-5 ${hasStorySlides ? 'items-end lg:grid-cols-[minmax(0,1.45fr)_340px] xl:grid-cols-[minmax(0,1.55fr)_360px]' : 'items-stretch lg:grid-cols-[minmax(0,1.55fr)_360px]'}`}>
+      <div
+        className={`relative mx-auto flex max-w-[1440px] px-4 py-6 sm:px-5 md:px-6 xl:px-8 ${
+          hasStorySlides
+            ? 'min-h-[560px] items-end md:min-h-[620px] md:py-8 xl:py-10'
+            : 'min-h-[320px] items-center md:min-h-[380px] md:py-5 xl:py-6'
+        }`}
+      >
+        <div
+          className={`grid w-full gap-5 ${
+            hasStorySlides
+              ? 'items-end lg:grid-cols-[minmax(0,1.45fr)_340px] xl:grid-cols-[minmax(0,1.55fr)_360px]'
+              : 'items-center lg:grid-cols-[minmax(0,1.5fr)_340px] xl:grid-cols-[minmax(0,1.65fr)_360px]'
+          }`}
+        >
           {hasStorySlides ? (
             <div className="relative z-20 max-w-4xl">
               <AnimatePresence mode="wait">
@@ -474,12 +440,12 @@ export function HomepageStoryHero({
               )}
             </div>
           ) : (
-            <div className="relative z-20 flex min-h-[280px] items-center justify-center lg:min-h-[520px]">
-              <div className="flex h-36 w-36 items-center justify-center rounded-full border border-white/18 bg-white/88 p-5 shadow-[0_30px_90px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm lg:h-48 lg:w-48 lg:p-6">
+            <div className="relative z-20 flex min-h-[180px] items-center justify-center lg:min-h-[250px]">
+              <div className="relative flex h-28 w-28 items-center justify-center rounded-full border border-white/22 bg-white/92 p-4 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.9)] lg:h-36 lg:w-36 lg:p-5">
                 {league.logo_url ? (
                   <img src={league.logo_url} alt={`${league.name} logo`} className="h-full w-full object-contain" />
                 ) : (
-                  <span className="text-5xl font-black text-slate-950">{league.name.charAt(0)}</span>
+                  <span className="text-4xl font-black text-slate-950 lg:text-5xl">{league.name.charAt(0)}</span>
                 )}
               </div>
             </div>
@@ -554,39 +520,6 @@ export function HomepageStoryHero({
                   ))}
                 </div>
               </div>
-
-              {previousSeasonLeaders.length > 0 && (
-                <div className="mt-6 border-t border-white/10 pt-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                        Previous Season
-                      </p>
-                      <h3 className="mt-2 text-lg font-black tracking-tight text-white">
-                        {previousSeasonName ? `${previousSeasonName} points leaders` : 'Top scorers'}
-                      </h3>
-                    </div>
-                    <Link
-                      href={`/${leagueSlug}/stats`}
-                      className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/68 transition-colors duration-200 hover:text-white"
-                    >
-                      Stats
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    {previousSeasonLeaders.slice(0, 3).map((leader, index) => (
-                      <PreviousSeasonLeaderRow
-                        key={`${leader.player_id}-${leader.team_id}-${index}`}
-                        leagueSlug={leagueSlug}
-                        leader={leader}
-                        rank={index + 1}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
             </motion.div>
           </div>
         </div>
