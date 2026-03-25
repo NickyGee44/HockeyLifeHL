@@ -452,6 +452,90 @@ export interface GoalieStatsWithDivision extends GoalieStats {
   division_name: string | null;
 }
 
+export type StatsMode = 'skaters' | 'goalies';
+export type StatsSortDirection = 'asc' | 'desc';
+
+export type SkaterStatKey =
+  | 'games_played'
+  | 'goals'
+  | 'assists'
+  | 'points'
+  | 'points_per_game'
+  | 'goals_per_game'
+  | 'assists_per_game'
+  | 'penalty_minutes'
+  | 'plus_minus'
+  | 'power_play_goals'
+  | 'power_play_assists'
+  | 'power_play_points'
+  | 'short_handed_goals'
+  | 'short_handed_assists'
+  | 'game_winning_goals'
+  | 'empty_net_goals'
+  | 'shots'
+  | 'shots_per_game';
+
+export type GoalieStatKey =
+  | 'games_played'
+  | 'wins'
+  | 'losses'
+  | 'save_percentage'
+  | 'goals_against_average'
+  | 'shutouts'
+  | 'saves'
+  | 'goals_against';
+
+export type StatsTableColumnKey = SkaterStatKey | GoalieStatKey;
+
+export interface StatsTableColumn<TKey extends string> {
+  key: TKey;
+  label: string;
+  align?: 'left' | 'center' | 'right';
+  defaultSortDirection?: StatsSortDirection;
+}
+
+export interface UnifiedStatsRowBase {
+  player_id: string;
+  player_name: string;
+  avatar_url: string | null;
+  team_id: string;
+  team_name: string;
+  division_name: string | null;
+  position: string | null;
+}
+
+export interface UnifiedSkaterStatsRow extends UnifiedStatsRowBase {
+  games_played: number;
+  goals: number;
+  assists: number;
+  points: number;
+  points_per_game: number;
+  goals_per_game: number;
+  assists_per_game: number;
+  penalty_minutes: number;
+  plus_minus: number;
+  power_play_goals: number;
+  power_play_assists: number;
+  power_play_points: number;
+  short_handed_goals: number;
+  short_handed_assists: number;
+  game_winning_goals: number;
+  empty_net_goals: number;
+  shots: number;
+  shots_per_game: number;
+}
+
+export interface UnifiedGoalieStatsRow extends UnifiedStatsRowBase {
+  games_played: number;
+  wins: number;
+  losses: number;
+  saves: number;
+  goals_against: number;
+  save_percentage: number | null;
+  goals_against_average: number | null;
+  shutouts: number;
+}
+
 /**
  * Player Game Log Entry
  */
