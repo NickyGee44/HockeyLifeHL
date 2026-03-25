@@ -2049,14 +2049,12 @@ export async function getUnifiedSkaterStatsRows(
       short_handed_assists,
       empty_net_goals,
       game_winning_goals,
-      game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified),
+      game:games!inner(league_id, season_id, status),
       player:profiles!player_stats_player_id_fkey(full_name, avatar_url),
       team:teams!player_stats_team_id_fkey(name, divisions(name))
     `)
     .eq('game.league_id', leagueId)
-    .eq('game.status', 'completed')
-    .eq('game.home_captain_verified', true)
-    .eq('game.away_captain_verified', true);
+    .eq('game.status', 'completed');
 
   if (seasonId) {
     query = query.eq('game.season_id', seasonId);
@@ -2211,14 +2209,12 @@ export async function getUnifiedGoalieStatsRows(
       goals_against,
       shutout,
       game_result,
-      game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified, home_team_id, away_team_id, home_score, away_score),
+      game:games!inner(league_id, season_id, status, home_team_id, away_team_id, home_score, away_score),
       player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url),
       team:teams!goalie_stats_team_id_fkey(name, divisions(name))
     `)
     .eq('game.league_id', leagueId)
-    .eq('game.status', 'completed')
-    .eq('game.home_captain_verified', true)
-    .eq('game.away_captain_verified', true);
+    .eq('game.status', 'completed');
 
   if (seasonId) {
     query = query.eq('game.season_id', seasonId);
