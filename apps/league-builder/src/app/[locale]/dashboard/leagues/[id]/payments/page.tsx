@@ -81,6 +81,8 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
   const search = await searchParams;
   const selectedSeasonId = search?.season as string | undefined;
   const statusFilter = search?.status as string | undefined;
+  const includeArchived = search?.archived === '1';
+  const focusedPaymentId = search?.payment as string | undefined;
   const page = Number(search?.page || '1');
   const limit = 50;
   const offset = (page - 1) * limit;
@@ -95,6 +97,7 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
   let payments: any[] = [];
   let total = 0;
   let summary = null;
+  let focusedPayment: any = null;
 
   if (activeSeason) {
     await reconcileSeasonRegistrationFees(leagueId, activeSeason.id);
@@ -105,6 +108,7 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
       status: statusFilter,
       limit,
       offset,
+      includeArchived,
     });
 
     if (paymentsResult.success) {
@@ -116,6 +120,30 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
     const summaryResult = await getPaymentSummary(leagueId, activeSeason.id);
     if (summaryResult.success) {
       summary = summaryResult.data;
+    }
+
+    if (focusedPaymentId) {
+      const focusedPaymentResult = await supabase
+        .from('player_payments')
+        .select(
+          `
+          *,
+          player:player_id (id, full_name, email, avatar_url),
+          season_fee:season_fee_id (id, name, amount_cents),
+          team:team_id (id, name, short_name)
+        `
+        )
+        .eq('id', focusedPaymentId)
+        .eq('league_id', leagueId)
+        .eq('season_id', activeSeason.id)
+        .maybeSingle();
+
+      if (!focusedPaymentResult.error && focusedPaymentResult.data) {
+        const paymentRow = focusedPaymentResult.data as any;
+        if (includeArchived || !paymentRow.archived_at) {
+          focusedPayment = paymentRow;
+        }
+      }
     }
   }
 
@@ -134,8 +162,11 @@ export default async function PaymentTrackingPage({ params, searchParams }: Prop
       currentPage={page}
       limit={limit}
       statusFilter={statusFilter}
+      includeArchived={includeArchived}
       teams={(teams || []).map((t) => ({ id: t.id, name: t.name }))}
       billingReadiness={billingReadiness}
+      focusedPayment={focusedPayment}
+      viewerRole={membership.role as 'owner' | 'admin'}
     />
   );
 }

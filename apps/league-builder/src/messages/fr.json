@@ -2742,6 +2742,8 @@
       "sendReminder": "Envoyer un rappel",
       "issueRefund": "Emettre un remboursement",
       "markAsPaid": "Marquer comme paye",
+      "archivePayment": "Archiver le paiement",
+      "archived": "Archive",
       "allTeams": "Toutes les equipes"
     },
     "dashboard": {
@@ -2766,6 +2768,9 @@
       "bulkReminderFailed": "Echec de l'envoi des rappels en masse",
       "markedAsPaid": "Paiement marque comme paye",
       "markAsPaidFailed": "Echec du marquage du paiement",
+      "paymentArchived": "Paiement archive",
+      "paymentDeleted": "Paiement supprime definitivement",
+      "cleanupFailed": "Echec de la mise a jour du nettoyage du paiement",
       "refundProcessed": "Remboursement traite : {amount} $",
       "unexpectedError": "Une erreur inattendue s'est produite",
       "noStripeTitle": "Stripe Connect non configure",
@@ -2774,6 +2779,8 @@
       "noSeasonsTitle": "Aucune saison trouvee",
       "noSeasonsDescription": "Creez d'abord une saison pour commencer a suivre les paiements des joueurs.",
       "createSeason": "Creer une saison",
+      "showArchived": "Afficher les archives",
+      "hideArchived": "Masquer les archives",
       "pageOf": "Page {current} de {total}",
       "showing": "Affichage de {from} a {to} sur {total} paiements"
     },
@@ -2797,7 +2804,26 @@
       "remindersSent": "Rappels envoyes",
       "lastReminderSent": "Dernier rappel",
       "notes": "Notes",
-      "feeName": "Frais"
+      "feeName": "Frais",
+      "archivedTitle": "Paiement archive",
+      "archivedOn": "Archive le {date}",
+      "permanentDeleteTitle": "Suppression definitive",
+      "permanentDeleteDescription": "A utiliser seulement pour un dossier archive non paye qui doit etre retire completement.",
+      "permanentDelete": "Supprimer definitivement"
+    },
+    "cleanupDialog": {
+      "archiveTitle": "Archiver le paiement",
+      "archiveDescription": "Masquez ce paiement des vues actives pour {player}.",
+      "deleteTitle": "Supprimer definitivement le paiement",
+      "deleteDescription": "Cette action supprime de facon definitive le dossier archive de {player}.",
+      "reasonLabel": "Raison",
+      "archiveReasonPlaceholder": "Expliquez pourquoi ce paiement doit etre archive.",
+      "deleteReasonPlaceholder": "Expliquez pourquoi ce paiement doit etre supprime definitivement.",
+      "confirmLabel": "Tapez {keyword} pour confirmer",
+      "cancel": "Annuler",
+      "working": "Traitement...",
+      "archiveCta": "Archiver le paiement",
+      "deleteCta": "Supprimer definitivement"
     },
     "refund": {
       "title": "Emettre un remboursement",

@@ -28,6 +28,8 @@ import {
   RefreshCw,
   XCircle,
   FileText,
+  Archive,
+  Trash2,
 } from 'lucide-react';
 import type {
   PlayerPaymentWithDetails,
@@ -39,6 +41,8 @@ interface PaymentDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payment: PlayerPaymentWithDetails | null;
+  canPermanentlyDelete?: boolean;
+  onRequestPermanentDelete?: (payment: PlayerPaymentWithDetails) => void;
 }
 
 const STATUS_ICON: Record<PlayerPaymentStatus, typeof CheckCircle> = {
@@ -90,6 +94,8 @@ export function PaymentDetailSheet({
   open,
   onOpenChange,
   payment,
+  canPermanentlyDelete = false,
+  onRequestPermanentDelete,
 }: PaymentDetailSheetProps) {
   const t = useTranslations('payments.detailSheet');
   const tStatus = useTranslations('payments.history.statusLabels');
@@ -149,6 +155,25 @@ export function PaymentDetailSheet({
                 {tStatus(payment.status === 'partially_paid' ? 'partiallyPaid' : payment.status === 'partially_refunded' ? 'partiallyRefunded' : payment.status)}
               </span>
             </div>
+
+            {payment.archived_at && (
+              <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
+                <div className="flex items-start gap-3">
+                  <Archive className="mt-0.5 h-4 w-4 text-amber-300" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-200">{t('archivedTitle')}</p>
+                    <p className="mt-1 text-sm text-amber-100/80">
+                      {t('archivedOn', { date: formatDate(payment.archived_at) })}
+                    </p>
+                    {payment.archived_reason && (
+                      <p className="mt-2 text-sm text-amber-100">
+                        {payment.archived_reason}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Progress */}
             <div>
@@ -275,6 +300,23 @@ export function PaymentDetailSheet({
               <h4 className="text-sm font-medium text-neutral-300 mb-1">{t('feeName')}</h4>
               <p className="text-sm text-white">{payment.season_fee.name}</p>
             </div>
+
+            {payment.archived_at && canPermanentlyDelete && onRequestPermanentDelete && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+                <p className="text-sm font-semibold text-red-200">{t('permanentDeleteTitle')}</p>
+                <p className="mt-1 text-sm text-red-100/80">
+                  {t('permanentDeleteDescription')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onRequestPermanentDelete(payment)}
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200 transition hover:bg-red-500/20"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {t('permanentDelete')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
