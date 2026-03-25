@@ -130,6 +130,8 @@ export function StatsLeadersTabs({
                   player.player_name.toLowerCase().includes(normalizedSearch) ||
                   player.team_name.toLowerCase().includes(normalizedSearch)
                 );
+                const playerProfileId = player.profile_id || null;
+                const playerBadges = playerProfileId ? badges?.[playerProfileId] : undefined;
 
                 return (
                   <tr
@@ -163,14 +165,20 @@ export function StatsLeadersTabs({
                         />
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <Link
-                              href={`/${leagueSlug}/players/${player.player_id}`}
-                              className={`font-medium hover:text-[var(--league-primary)] transition-colors ${isHighlighted ? 'text-[var(--league-primary)]' : ''}`}
-                            >
-                              {player.player_name}
-                            </Link>
-                            {badges?.[player.player_id] && badges[player.player_id].length > 0 && (
-                              <PlayerBadgeGroup badges={badges[player.player_id]} maxVisible={3} size="sm" />
+                            {playerProfileId ? (
+                              <Link
+                                href={`/${leagueSlug}/players/${playerProfileId}`}
+                                className={`font-medium hover:text-[var(--league-primary)] transition-colors ${isHighlighted ? 'text-[var(--league-primary)]' : ''}`}
+                              >
+                                {player.player_name}
+                              </Link>
+                            ) : (
+                              <span className={`font-medium ${isHighlighted ? 'text-[var(--league-primary)]' : ''}`}>
+                                {player.player_name}
+                              </span>
+                            )}
+                            {playerBadges && playerBadges.length > 0 && (
+                              <PlayerBadgeGroup badges={playerBadges} maxVisible={3} size="sm" />
                             )}
                           </div>
                           {player.position && (

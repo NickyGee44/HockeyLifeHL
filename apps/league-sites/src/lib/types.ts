@@ -183,6 +183,7 @@ export interface Player {
 
 export interface PlayerStats {
   player_id: string;
+  profile_id?: string | null;
   player_name: string;
   team_name: string;
   team_id: string;
@@ -429,6 +430,7 @@ export interface SeasonSeries {
  */
 export interface GoalieStats {
   player_id: string;
+  profile_id?: string | null;
   player_name: string;
   jersey_number: string | null;
   avatar_url?: string | null;
