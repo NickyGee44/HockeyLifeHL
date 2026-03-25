@@ -14,7 +14,6 @@ import {
   TrendingUp,
   UserPlus,
 } from 'lucide-react';
-import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
 import type { League, LeagueStats, NewsArticle, Season } from '@/lib/types';
 
 const HERO_AUTOPLAY_MS = 7000;
@@ -29,6 +28,29 @@ export interface HomepageStoryFallback {
   imageUrl: string | null;
   href: string;
   cta: string;
+}
+
+function HeroStageFallback({
+  leagueName,
+  leagueLogoUrl,
+}: {
+  leagueName: string;
+  leagueLogoUrl?: string | null;
+}) {
+  return (
+    <div className="relative h-full w-full">
+      <img src={NO_STORY_HERO_IMAGE} alt="" className="h-full w-full object-cover" />
+      {leagueLogoUrl ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <img
+            src={leagueLogoUrl}
+            alt={`${leagueName} logo`}
+            className="h-28 w-28 object-contain opacity-[0.22] drop-shadow-[0_24px_48px_rgba(0,0,0,0.42)] sm:h-36 sm:w-36 lg:h-44 lg:w-44"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 interface HomepageStoryHeroProps {
@@ -301,11 +323,9 @@ export function HomepageStoryHero({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <LeagueNewsFallbackArtwork
+                <HeroStageFallback
                   leagueName={league.name}
                   leagueLogoUrl={league.logo_url}
-                  articleType={activeSlide.article?.type || null}
-                  emphasis="hero"
                 />
               )
             ) : (
@@ -458,7 +478,7 @@ export function HomepageStoryHero({
             </div>
           )}
 
-          <div className="relative z-20">
+          <div className={`relative z-20 ${hasEditorialStage ? 'lg:self-center lg:-translate-y-6 xl:-translate-y-8' : ''}`}>
             <motion.div
               className="overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(8,15,27,0.78)_0%,rgba(8,15,27,0.9)_100%)] p-5 shadow-[0_24px_60px_-32px_rgba(0,0,0,0.72)] backdrop-blur-xl md:p-6"
               initial={{ opacity: 0, y: 24 }}
