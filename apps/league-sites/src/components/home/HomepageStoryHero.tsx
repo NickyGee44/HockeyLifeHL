@@ -166,6 +166,7 @@ export function HomepageStoryHero({
 
   const hasStorySlides = storySlides.length > 0;
   const slides = hasStorySlides ? storySlides : [fallbackSlide];
+  const hasEditorialStage = hasStorySlides || fallbackSlide.id === 'photo-fallback';
   const hasMultipleSlides = slides.length > 1;
   const [activeIndex, setActiveIndex] = useState(0);
   const [remainingMs, setRemainingMs] = useState(hasMultipleSlides ? HERO_AUTOPLAY_MS : 0);
@@ -223,10 +224,10 @@ export function HomepageStoryHero({
   const progress = cycleMs > 0 ? Math.min(1, Math.max(0, 1 - remainingMs / cycleMs)) : 0;
   const locationLine = getLocationLine(league, currentSeason);
   const seasonNote = getSeasonNote(currentSeason, stats);
-  const heroOverlayClass = hasStorySlides
+  const heroOverlayClass = hasEditorialStage
     ? 'bg-[linear-gradient(90deg,rgba(6,12,22,0.88)_0%,rgba(6,12,22,0.64)_42%,rgba(6,12,22,0.32)_70%,rgba(6,12,22,0.58)_100%)]'
     : 'bg-[linear-gradient(90deg,rgba(8,14,24,0.34)_0%,rgba(8,14,24,0.18)_34%,rgba(8,14,24,0.14)_58%,rgba(8,14,24,0.72)_100%)]';
-  const heroGlowClass = hasStorySlides
+  const heroGlowClass = hasEditorialStage
     ? 'bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,color-mix(in_srgb,var(--league-primary)_26%,transparent),transparent_34%)]'
     : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_36%,rgba(4,10,18,0.12)_64%,rgba(4,10,18,0.36)_100%)]';
   const registrationLabel = registrationSeason?.registration_closes_at
@@ -292,7 +293,7 @@ export function HomepageStoryHero({
             exit={{ opacity: 0, scale: 1.02 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            {hasStorySlides ? (
+            {hasEditorialStage ? (
               activeSlide.imageUrl ? (
                 <img
                   src={activeSlide.imageUrl}
@@ -320,7 +321,7 @@ export function HomepageStoryHero({
         <div className={`absolute inset-0 ${heroGlowClass}`} />
       </div>
 
-      {hasStorySlides && (
+      {hasEditorialStage && (
         <Link
           href={activeSlide.href}
           aria-label={activeSlide.title}
@@ -330,19 +331,19 @@ export function HomepageStoryHero({
 
       <div
         className={`relative mx-auto flex max-w-[1440px] px-4 py-6 sm:px-5 md:px-6 xl:px-8 ${
-          hasStorySlides
+          hasEditorialStage
             ? 'min-h-[560px] items-end md:min-h-[620px] md:py-8 xl:py-10'
             : 'min-h-[320px] items-center md:min-h-[380px] md:py-5 xl:py-6'
         }`}
       >
         <div
           className={`grid w-full gap-5 ${
-            hasStorySlides
+            hasEditorialStage
               ? 'items-end lg:grid-cols-[minmax(0,1.45fr)_340px] xl:grid-cols-[minmax(0,1.55fr)_360px]'
               : 'items-center lg:grid-cols-[minmax(0,1.5fr)_340px] xl:grid-cols-[minmax(0,1.65fr)_360px]'
           }`}
         >
-          {hasStorySlides ? (
+          {hasEditorialStage ? (
             <div className="relative z-20 max-w-4xl">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -375,13 +376,15 @@ export function HomepageStoryHero({
                       {activeSlide.cta}
                       <ArrowRight className="h-4 w-4" />
                     </Link>
-                    <Link
-                      href={`/${leagueSlug}/news`}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-black/18 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/82 backdrop-blur-sm transition-colors duration-200 hover:border-white/32 hover:text-white"
-                    >
-                      All News
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
+                    {hasStorySlides && (
+                      <Link
+                        href={`/${leagueSlug}/news`}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-black/18 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/82 backdrop-blur-sm transition-colors duration-200 hover:border-white/32 hover:text-white"
+                      >
+                        All News
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    )}
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -441,9 +444,13 @@ export function HomepageStoryHero({
             </div>
           ) : (
             <div className="relative z-20 flex min-h-[180px] items-center justify-center lg:min-h-[250px]">
-              <div className="relative flex h-28 w-28 items-center justify-center rounded-full border border-white/22 bg-white/92 p-4 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.9)] lg:h-36 lg:w-36 lg:p-5">
+              <div className="relative flex items-center justify-center drop-shadow-[0_28px_64px_rgba(0,0,0,0.55)]">
                 {league.logo_url ? (
-                  <img src={league.logo_url} alt={`${league.name} logo`} className="h-full w-full object-contain" />
+                  <img
+                    src={league.logo_url}
+                    alt={`${league.name} logo`}
+                    className="h-28 w-28 object-contain lg:h-40 lg:w-40"
+                  />
                 ) : (
                   <span className="text-4xl font-black text-slate-950 lg:text-5xl">{league.name.charAt(0)}</span>
                 )}
@@ -459,8 +466,8 @@ export function HomepageStoryHero({
               transition={{ duration: 0.5, delay: 0.12 }}
             >
               <div className="flex items-start gap-4">
-                {hasStorySlides && (
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[22px] border border-white/12 bg-white/9 p-3">
+                {hasEditorialStage && (
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[22px] border border-white/12 bg-black/18 p-3">
                     {league.logo_url ? (
                       <img src={league.logo_url} alt={`${league.name} logo`} className="h-full w-full object-contain" />
                     ) : (
@@ -470,7 +477,7 @@ export function HomepageStoryHero({
                 )}
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                    {hasStorySlides ? 'League Central' : 'League Hub'}
+                    {hasEditorialStage ? 'League Central' : 'League Hub'}
                   </p>
                   <h2 className="mt-2 text-3xl font-black leading-none tracking-tight text-white">
                     {league.name}

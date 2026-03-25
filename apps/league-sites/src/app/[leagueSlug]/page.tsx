@@ -216,7 +216,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         getGoalieLeadersWithDivision(league.id, previousCompletedSeason.id, 'wins', 5, divisionFilter),
       ])
     : [[], []];
-  const heroArticles = newsArticles.slice(0, 5);
+  const heroArticles = (newsArticles.length > 0 ? newsArticles : allNewsArticles).slice(0, 5);
   const homepagePhotoHighlight = buildHomepagePhotoHighlight({
     leagueSlug,
     albums,
