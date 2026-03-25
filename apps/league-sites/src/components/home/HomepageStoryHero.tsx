@@ -222,6 +222,7 @@ export function HomepageStoryHero({
       setActiveIndex((current) => (current + 1) % slides.length);
     });
     setCycleMs(HERO_AUTOPLAY_MS);
+    setRemainingMs(HERO_AUTOPLAY_MS);
   });
 
   useEffect(() => {
@@ -230,17 +231,19 @@ export function HomepageStoryHero({
     }
 
     const intervalId = window.setInterval(() => {
-      setRemainingMs((current) => {
-        if (current <= HERO_TICK_MS) {
-          advanceSlide();
-          return HERO_AUTOPLAY_MS;
-        }
-        return current - HERO_TICK_MS;
-      });
+      setRemainingMs((current) => Math.max(0, current - HERO_TICK_MS));
     }, HERO_TICK_MS);
 
     return () => window.clearInterval(intervalId);
   }, [advanceSlide, hasMultipleSlides, isFocusPaused, isHovered]);
+
+  useEffect(() => {
+    if (!hasMultipleSlides || isHovered || isFocusPaused || remainingMs > 0) {
+      return;
+    }
+
+    advanceSlide();
+  }, [advanceSlide, hasMultipleSlides, isFocusPaused, isHovered, remainingMs]);
 
   const activeSlide = slides[activeIndex] || fallbackSlide;
   const progress = cycleMs > 0 ? Math.min(1, Math.max(0, 1 - remainingMs / cycleMs)) : 0;
