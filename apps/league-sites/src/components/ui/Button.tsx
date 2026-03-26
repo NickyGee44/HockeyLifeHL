@@ -64,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       relative inline-flex items-center justify-center
       font-semibold rounded-lg
       transition-all duration-300 ease-out
-      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--league-primary)]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--league-primary-border)]
       ${sizeClasses[size]}
       ${fullWidth ? 'w-full' : ''}
       ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -72,18 +72,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantClasses = {
       primary: `
-        text-[var(--color-accent-text)]
-        bg-gradient-to-r from-[var(--league-primary)] to-[var(--league-primary)]
-        hover:from-[var(--league-primary)] hover:to-[color-mix(in_srgb,var(--league-primary)_80%,white)]
+        text-[var(--league-on-primary)]
+        bg-gradient-to-r from-[var(--league-primary-strong)] to-[var(--league-primary-hover)]
+        border border-[var(--league-primary-border)]
         ${!isDisabled ? 'hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]' : ''}
         ${glow && !isDisabled ? 'hover:shadow-[0_0_30px_var(--league-glow-color)]' : ''}
       `,
       secondary: `
-        text-[var(--league-primary)]
+        text-[var(--color-accent)]
         bg-transparent
-        border border-[var(--league-primary)]/50
-        hover:border-[var(--league-primary)]
-        hover:bg-[var(--league-primary)]/10
+        border border-[var(--league-primary-border)]
+        hover:border-[var(--league-primary-strong)]
+        hover:bg-[var(--league-primary-muted)]
         ${!isDisabled ? 'hover:scale-[1.02] active:scale-[0.98]' : ''}
       `,
       ghost: `
@@ -128,7 +128,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {glow && variant === 'primary' && !isDisabled && (
           <span
             className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none -z-10 blur-xl rounded-lg"
-            style={{ background: 'var(--league-primary)' }}
+            style={{ background: 'var(--league-primary-strong)' }}
           />
         )}
       </>

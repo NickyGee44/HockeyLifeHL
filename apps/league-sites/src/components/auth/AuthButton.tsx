@@ -36,7 +36,7 @@ export function AuthButton({ leagueSlug, leagueId }: AuthButtonProps) {
 
       <button
         onClick={openSignup}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--league-primary)] text-[var(--color-accent-text)] hover:opacity-90 transition-opacity"
+        className="flex items-center gap-2 rounded-lg border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-4 py-2 text-sm font-medium text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
       >
         <UserPlus className="w-4 h-4 hidden sm:inline" />
         <span>Join</span>

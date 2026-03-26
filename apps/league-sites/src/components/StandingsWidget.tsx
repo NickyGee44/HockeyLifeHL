@@ -103,7 +103,7 @@ export function StandingsWidget({
                       transition-all duration-300
                       ${
                         isTopThree
-                          ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)] font-bold'
+                          ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)] font-bold'
                           : 'text-[var(--color-text-muted)]'
                       }
                     `}
@@ -124,7 +124,7 @@ export function StandingsWidget({
                       {/* Subtle shine on hover */}
                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover/team:opacity-100 transition-opacity duration-300" />
                     </div>
-                    <span className="font-medium truncate max-w-[120px] transition-colors duration-300 group-hover/team:text-[var(--league-primary)]">
+                    <span className="font-medium truncate max-w-[120px] transition-colors duration-300 group-hover/team:text-[var(--color-accent)]">
                       {team.team_name || 'Unknown Team'}
                     </span>
                   </div>
@@ -132,7 +132,7 @@ export function StandingsWidget({
                 <td className="text-center tabular-nums">{team.wins}</td>
                 <td className="text-center tabular-nums">{team.losses}</td>
                 <td className="text-center">
-                  <span className="font-bold text-[var(--league-primary)] tabular-nums transition-all duration-300 hover:scale-110 inline-block">
+                  <span className="inline-block font-bold tabular-nums text-[var(--color-accent)] transition-all duration-300 hover:scale-110">
                     {team.points}
                   </span>
                 </td>

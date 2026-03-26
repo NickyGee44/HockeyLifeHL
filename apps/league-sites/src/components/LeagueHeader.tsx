@@ -214,11 +214,11 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 className="h-12 w-12 rounded-xl object-contain drop-shadow-lg sm:h-14 sm:w-14 md:h-16 md:w-16 lg:h-[72px] lg:w-[72px]"
               />
             ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--league-primary)] text-lg font-black text-[var(--color-accent-text)] drop-shadow-lg sm:h-14 sm:w-14 sm:text-xl md:h-16 md:w-16 md:text-2xl lg:h-[72px] lg:w-[72px]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--league-primary-strong)] text-lg font-black text-[var(--league-on-primary)] drop-shadow-lg sm:h-14 sm:w-14 sm:text-xl md:h-16 md:w-16 md:text-2xl lg:h-[72px] lg:w-[72px]">
                 {initials.slice(0, 3)}
               </div>
             )}
-            <span className="hidden truncate text-base font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--league-primary)] sm:block lg:hidden">
+            <span className="hidden truncate text-base font-black tracking-wide text-[var(--header-text)] group-hover:text-[var(--color-accent)] sm:block lg:hidden">
               {displayName}
             </span>
           </Link>
@@ -238,14 +238,14 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 const href = getItemHref(item);
                 const baseClasses = `inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${
                   active
-                    ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                    ? 'border border-[var(--league-primary-border)] bg-[var(--league-primary-soft)] text-[var(--header-text)]'
                     : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
                 }`;
 
                 const content = (
                   <>
                     {item.icon && (
-                      <item.icon className={`h-3.5 w-3.5 hidden xl:block ${active ? 'text-[var(--league-primary)]' : 'text-[var(--league-primary)]/80'}`} />
+                      <item.icon className={`h-3.5 w-3.5 hidden xl:block ${active ? 'text-[var(--color-accent)]' : 'text-[var(--header-text-muted)]'}`} />
                     )}
                     {item.label}
                   </>
@@ -282,7 +282,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                     type="button"
                     className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${
                       isMoreActive || isMoreMenuOpen
-                        ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                        ? 'border border-[var(--league-primary-border)] bg-[var(--league-primary-soft)] text-[var(--header-text)]'
                         : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
                     }`}
                     aria-expanded={isMoreMenuOpen}
@@ -303,13 +303,13 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                         const href = getItemHref(item);
                         const itemClasses = `flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors ${
                           active
-                            ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                            ? 'bg-[var(--league-primary-soft)] text-[var(--header-text)]'
                             : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
                         }`;
 
                         const content = (
                           <>
-                            {item.icon && <item.icon className="h-4 w-4 text-[var(--league-primary)]" />}
+                            {item.icon && <item.icon className="h-4 w-4 text-[var(--color-accent)]" />}
                             {item.label}
                           </>
                         );
@@ -358,11 +358,11 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 <select
                   value={selectedDivisionId || ''}
                   onChange={(e) => setDivision(e.target.value || null)}
-                  className="appearance-none pl-2.5 pr-6 py-1.5 rounded-lg text-xs font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 transition-colors"
+                  className="appearance-none rounded-lg px-2.5 py-1.5 pr-6 text-xs font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary-border)]"
                   style={{
-                    background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
-                    color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
-                    border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
+                    background: selectedDivisionId ? 'var(--league-primary-strong)' : 'var(--header-surface)',
+                    color: selectedDivisionId ? 'var(--league-on-primary)' : 'var(--header-text-secondary)',
+                    border: selectedDivisionId ? '1px solid var(--league-primary-border)' : '1px solid var(--header-border)',
                   }}
                   aria-label="Filter by division"
                   data-testid="division-filter"
@@ -372,13 +372,13 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                     <option key={div.id} value={div.id}>{div.name}</option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 opacity-60" style={{ color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)' }} />
+                <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 opacity-60" style={{ color: selectedDivisionId ? 'var(--league-on-primary)' : 'var(--header-text-secondary)' }} />
               </div>
             )}
             {registrationOpen && (
               <Link
                 href={`/${leagueSlug}/register`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-[var(--league-primary)] text-[var(--color-accent-text)] hover:opacity-90 transition-opacity"
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-3 py-1.5 text-sm font-semibold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
               >
                 <UserPlus className="w-4 h-4" />
                 Register
@@ -410,11 +410,11 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 <select
                   value={selectedDivisionId || ''}
                   onChange={(e) => setDivision(e.target.value || null)}
-                  className="w-full appearance-none rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                  className="w-full appearance-none rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary-border)]"
                   style={{
-                    background: selectedDivisionId ? 'var(--league-primary)' : 'var(--header-surface)',
-                    color: selectedDivisionId ? 'var(--color-accent-text)' : 'var(--header-text-secondary)',
-                    border: selectedDivisionId ? 'none' : '1px solid var(--header-border)',
+                    background: selectedDivisionId ? 'var(--league-primary-strong)' : 'var(--header-surface)',
+                    color: selectedDivisionId ? 'var(--league-on-primary)' : 'var(--header-text-secondary)',
+                    border: selectedDivisionId ? '1px solid var(--league-primary-border)' : '1px solid var(--header-border)',
                   }}
                   aria-label="Filter by division"
                   data-testid="division-filter-mobile"
@@ -432,13 +432,13 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 const href = getItemHref(item);
                 const baseClasses = `inline-flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-[var(--league-primary)]/16 text-[var(--header-text)]'
+                    ? 'border border-[var(--league-primary-border)] bg-[var(--league-primary-soft)] text-[var(--header-text)]'
                     : 'text-[var(--header-text-secondary)] hover:bg-[var(--header-surface-hover)] hover:text-[var(--header-text)]'
                 }`;
 
                 const content = (
                   <>
-                    {item.icon && <item.icon className="h-4 w-4 text-[var(--league-primary)]" />}
+                    {item.icon && <item.icon className="h-4 w-4 text-[var(--color-accent)]" />}
                     {item.label}
                   </>
                 );
@@ -473,7 +473,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
             {registrationOpen && (
               <Link
                 href={`/${leagueSlug}/register`}
-                className="mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-[var(--league-primary)] text-[var(--color-accent-text)] hover:opacity-90 transition-opacity"
+                className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-4 py-2.5 text-sm font-semibold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <UserPlus className="w-4 h-4" />

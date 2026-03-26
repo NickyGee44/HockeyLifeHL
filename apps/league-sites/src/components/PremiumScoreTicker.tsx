@@ -297,7 +297,7 @@ function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
       style={{ minWidth: '208px' }}
     >
       <article
-        className="overflow-hidden rounded-[14px] border border-[var(--color-border-muted)] px-2 py-1.5 transition-all duration-200 group-hover:border-[var(--league-primary)]/45 group-hover:bg-[var(--color-surface)]"
+        className="overflow-hidden rounded-[14px] border border-[var(--color-border-muted)] px-2 py-1.5 transition-all duration-200 group-hover:border-[var(--league-primary-border)] group-hover:bg-[var(--color-surface)]"
         style={{
           background: isLive
             ? 'linear-gradient(135deg, rgba(239,68,68,0.11) 0%, color-mix(in srgb, var(--color-surface) 96%, transparent) 48%, color-mix(in srgb, var(--color-surface) 92%, transparent) 100%)'
@@ -347,7 +347,7 @@ function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
           </span>
           {divisionLabel && (
             <span
-              className="max-w-[72px] shrink rounded-full bg-[var(--league-primary)]/12 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-[var(--league-primary)] truncate"
+              className="max-w-[72px] shrink rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary-soft)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent)] truncate"
               title={divisionLabel}
             >
               {divisionLabel}
@@ -400,7 +400,7 @@ function TeamRow({ team, score, isWinning, showScore, teamColor, isLive }: TeamR
             <span
               className="h-1.5 w-1.5 rounded-full"
               style={{
-                backgroundColor: isLive ? '#ef4444' : 'var(--league-primary)',
+                backgroundColor: isLive ? '#ef4444' : 'var(--league-primary-strong)',
               }}
             />
           )}
@@ -461,7 +461,7 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
   }
 
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--color-surface-hover)] px-1.5 py-0.5 text-[8px] font-bold text-[var(--league-primary)]">
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary-soft)] px-1.5 py-0.5 text-[8px] font-bold text-[var(--color-accent)]">
       <Clock className="h-2 w-2 text-[var(--color-text-secondary)]" />
       {format(gameDate, 'h:mm a')}
     </span>

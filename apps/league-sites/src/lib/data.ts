@@ -51,212 +51,6 @@ const DEFAULT_PRIMARY = '#D4AF37';
 const DEFAULT_SECONDARY = '#1a1a1a';
 const DEFAULT_ACCENT = '#D4AF37';
 const DEFAULT_FONT_FAMILY = '"Rajdhani", "Sora", "Inter", system-ui, -apple-system, sans-serif';
-const LEGACY_ALL_TIME_LEAGUE_SLUGS = new Set(['hockey-life', 'hockeylifehl', 'hockeylifehl-original', 'pilot']);
-const LEGACY_ALL_TIME_TEAM_LABEL = 'Legacy career totals';
-
-type LegacyPlayerRow = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  full_name: string | null;
-  is_goalie: boolean | null;
-  games_played: number | null;
-  goals: number | null;
-  assists: number | null;
-  points: number | null;
-  wins: number | null;
-  ties: number | null;
-  goals_against: number | null;
-  goals_against_average: number | null;
-  saves: number | null;
-  shutouts: number | null;
-  save_percentage: number | null;
-  matched_to_profile_id: string | null;
-  imported_from: string | null;
-};
-
-function supportsLegacyAllTimeStats(leagueSlug?: string): boolean {
-  return Boolean(leagueSlug && LEGACY_ALL_TIME_LEAGUE_SLUGS.has(leagueSlug.toLowerCase()));
-}
-
-function getLegacyPlayerName(row: LegacyPlayerRow): string {
-  const composed = `${row.first_name} ${row.last_name}`.trim();
-  return (row.full_name || composed || 'Unknown').trim();
-}
-
-function toSafeNumber(value: number | null | undefined): number {
-  return Number.isFinite(value) ? Number(value) : 0;
-}
-
-function normalizeSavePercentage(value: number | null | undefined): number {
-  const numeric = toSafeNumber(value);
-  return numeric > 1 ? numeric / 100 : numeric;
-}
-
-function compareLegacySkaters(left: PlayerStats, right: PlayerStats, statType: 'points' | 'goals' | 'assists') {
-  const primary = right[statType] - left[statType];
-  if (primary !== 0) return primary;
-
-  const pointDiff = right.points - left.points;
-  if (pointDiff !== 0) return pointDiff;
-
-  const goalDiff = right.goals - left.goals;
-  if (goalDiff !== 0) return goalDiff;
-
-  const assistDiff = right.assists - left.assists;
-  if (assistDiff !== 0) return assistDiff;
-
-  const gpDiff = right.games_played - left.games_played;
-  if (gpDiff !== 0) return gpDiff;
-
-  return left.player_name.localeCompare(right.player_name);
-}
-
-function compareLegacyGoalies(
-  left: GoalieStats,
-  right: GoalieStats,
-  sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts',
-) {
-  switch (sortBy) {
-    case 'save_percentage': {
-      const svDiff = right.save_percentage - left.save_percentage;
-      if (svDiff !== 0) return svDiff;
-      break;
-    }
-    case 'goals_against_average': {
-      const gaaDiff = left.goals_against_average - right.goals_against_average;
-      if (gaaDiff !== 0) return gaaDiff;
-      break;
-    }
-    case 'shutouts': {
-      const shutoutDiff = right.shutouts - left.shutouts;
-      if (shutoutDiff !== 0) return shutoutDiff;
-      break;
-    }
-    case 'wins':
-    default: {
-      const winDiff = right.wins - left.wins;
-      if (winDiff !== 0) return winDiff;
-      break;
-    }
-  }
-
-  const winDiff = right.wins - left.wins;
-  if (winDiff !== 0) return winDiff;
-
-  const shutoutDiff = right.shutouts - left.shutouts;
-  if (shutoutDiff !== 0) return shutoutDiff;
-
-  const svDiff = right.save_percentage - left.save_percentage;
-  if (svDiff !== 0) return svDiff;
-
-  const gaaDiff = left.goals_against_average - right.goals_against_average;
-  if (gaaDiff !== 0) return gaaDiff;
-
-  const gpDiff = right.games_played - left.games_played;
-  if (gpDiff !== 0) return gpDiff;
-
-  return left.player_name.localeCompare(right.player_name);
-}
-
-async function getLegacyAllTimePlayers(): Promise<LegacyPlayerRow[]> {
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from('legacy_players')
-    .select(
-      'id, first_name, last_name, full_name, is_goalie, games_played, goals, assists, points, wins, ties, goals_against, goals_against_average, saves, shutouts, save_percentage, matched_to_profile_id, imported_from'
-    )
-    .order('full_name', { ascending: true });
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data as LegacyPlayerRow[];
-}
-
-async function getLegacyAllTimeSkaterLeaders(
-  statType: 'points' | 'goals' | 'assists',
-  limit: number,
-): Promise<PlayerStats[]> {
-  const rows = await getLegacyAllTimePlayers();
-
-  return rows
-    .filter((row) => !row.is_goalie)
-    .map((row) => ({
-      player_id: row.matched_to_profile_id || row.id,
-      profile_id: row.matched_to_profile_id,
-      player_name: getLegacyPlayerName(row),
-      team_name: LEGACY_ALL_TIME_TEAM_LABEL,
-      team_id: '',
-      position: null,
-      games_played: toSafeNumber(row.games_played),
-      goals: toSafeNumber(row.goals),
-      assists: toSafeNumber(row.assists),
-      points: toSafeNumber(row.points),
-      penalty_minutes: 0,
-      plus_minus: 0,
-    }))
-    .sort((left, right) => compareLegacySkaters(left, right, statType))
-    .slice(0, limit);
-}
-
-async function getLegacyAllTimeGoalieLeaders(
-  sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts',
-  limit: number,
-): Promise<GoalieStats[]> {
-  const rows = await getLegacyAllTimePlayers();
-  const supabase = createServiceRoleClient();
-
-  const goalies: GoalieStats[] = rows
-    .filter((row) => Boolean(row.is_goalie))
-    .map((row) => {
-      const gamesPlayed = toSafeNumber(row.games_played);
-      const wins = toSafeNumber(row.wins);
-      const ties = toSafeNumber(row.ties);
-
-      return {
-        player_id: row.matched_to_profile_id || row.id,
-        profile_id: row.matched_to_profile_id,
-        player_name: getLegacyPlayerName(row),
-        jersey_number: null,
-        avatar_url: null,
-        team_id: '',
-        team_name: LEGACY_ALL_TIME_TEAM_LABEL,
-        team_logo: null,
-        games_played: gamesPlayed,
-        wins,
-        losses: Math.max(gamesPlayed - wins - ties, 0),
-        ties,
-        save_percentage: normalizeSavePercentage(row.save_percentage),
-        goals_against_average: toSafeNumber(row.goals_against_average),
-        shutouts: toSafeNumber(row.shutouts),
-        saves: toSafeNumber(row.saves),
-        goals_against: toSafeNumber(row.goals_against),
-      };
-    });
-
-  const profileIds = goalies
-    .map((goalie) => goalie.profile_id)
-    .filter((profileId): profileId is string => Boolean(profileId));
-
-  if (profileIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, avatar_url')
-      .in('id', profileIds);
-
-    const avatarMap = new Map<string, string | null>(
-      (profiles || []).map((profile: { id: string; avatar_url: string | null }) => [profile.id, profile.avatar_url]),
-    );
-
-    for (const goalie of goalies) {
-      goalie.avatar_url = goalie.profile_id ? avatarMap.get(goalie.profile_id) || null : null;
-    }
-  }
-
-  return goalies.sort((left, right) => compareLegacyGoalies(left, right, sortBy)).slice(0, limit);
-}
 
 function getThemePreset(league: League): ThemePreset {
   const preset = (league.settings?.website as { themePreset?: string } | undefined)?.themePreset;
@@ -404,6 +198,15 @@ export function getLeagueTheme(league: League): LeagueTheme {
     primaryColor: colors.primaryColor,
     secondaryColor: colors.secondaryColor,
     accentColor: colors.accentColor,
+    primaryStrong: colors.primaryStrong,
+    primarySoft: colors.primarySoft,
+    primaryBorder: colors.primaryBorder,
+    primaryMuted: colors.primaryMuted,
+    secondarySafe: colors.secondarySafe,
+    onPrimary: colors.onPrimary,
+    onSecondary: colors.onSecondary,
+    surfaceTint: colors.surfaceTint,
+    surfaceTintStrong: colors.surfaceTintStrong,
     logoUrl: league.logo_url,
     bannerUrl: league.banner_url,
     fontFamily: league.settings?.website?.themePreset === 'light'
@@ -1660,17 +1463,12 @@ export async function getStatsLeaders(
   statType: 'points' | 'goals' | 'assists' | 'saves' = 'points',
   limit = 10,
   divisionId?: string,
-  seasonId?: string | null, // null = all-time career stats
-  leagueSlug?: string,
+  seasonId?: string | null // null = all-time career stats
 ): Promise<PlayerStats[]> {
   const supabase = await createClient();
 
   // If seasonId is explicitly null, fetch all-time career stats
   if (seasonId === null) {
-    if (supportsLegacyAllTimeStats(leagueSlug) && statType !== 'saves') {
-      return getLegacyAllTimeSkaterLeaders(statType, limit);
-    }
-
     // Query all seasons for this league and aggregate
     const { data: stats, error } = await supabase
       .from('player_season_stats')
@@ -1682,7 +1480,6 @@ export async function getStatsLeaders(
     // Aggregate stats by player_id
     const playerMap = new Map<string, {
       player_id: string;
-      profile_id: string | null;
       player_name: string;
       team_name: string;
       team_id: string;
@@ -1703,7 +1500,6 @@ export async function getStatsLeaders(
       } else {
         playerMap.set(s.player_id, {
           player_id: s.player_id,
-          profile_id: s.player_id,
           player_name: s.full_name || 'Unknown',
           team_name: s.team_name || 'Unknown',
           team_id: s.team_id || '',
@@ -1728,23 +1524,19 @@ export async function getStatsLeaders(
     })) as PlayerStats[];
   }
 
-  // Try to use stats RPC only when no specific season is selected.
-  // The RPC path is not season-aware here, so a chosen historical season like
-  // Historical Career Baseline must use the season-scoped view query below.
-  if (!seasonId) {
-    const { data: rpcData, error: rpcError } = await supabase.rpc(
-      'get_stats_leaders',
-      {
-        p_league_id: leagueId,
-        p_stat_type: statType,
-        p_limit: limit,
-        p_division_id: divisionId || null,
-      }
-    );
-
-    if (!rpcError && rpcData && rpcData.length > 0) {
-      return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
+  // Try to use stats RPC if available (single season)
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    'get_stats_leaders',
+    {
+      p_league_id: leagueId,
+      p_stat_type: statType,
+      p_limit: limit,
+      p_division_id: divisionId || null,
     }
+  );
+
+  if (!rpcError && rpcData && rpcData.length > 0) {
+    return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
   }
 
   // Fallback: Query player_season_stats view for specific or current season
@@ -1772,7 +1564,6 @@ export async function getStatsLeaders(
 
   const mapped = stats.map((s) => ({
     player_id: s.player_id,
-    profile_id: s.player_id,
     player_name: s.full_name || 'Unknown',
     team_name: s.team_name || 'Unknown',
     team_id: s.team_id || '',
@@ -1796,23 +1587,13 @@ export async function getStatsLeadersWithAvatars(
   statType: 'points' | 'goals' | 'assists' = 'points',
   limit = 5,
   divisionId?: string,
-  seasonId?: string | null,
-  leagueSlug?: string,
+  seasonId?: string | null
 ): Promise<PlayerStatsWithAvatar[]> {
-  const leaders = await getStatsLeaders(leagueId, statType, limit, divisionId, seasonId, leagueSlug);
+  const leaders = await getStatsLeaders(leagueId, statType, limit, divisionId, seasonId);
   if (leaders.length === 0) return [];
 
   const supabase = await createClient();
-  const playerIds = leaders
-    .map((leader) => leader.profile_id)
-    .filter((playerId): playerId is string => Boolean(playerId));
-
-  if (playerIds.length === 0) {
-    return leaders.map((leader) => ({
-      ...leader,
-      avatar_url: null,
-    }));
-  }
+  const playerIds = leaders.map((l) => l.player_id);
 
   const { data: profiles } = await supabase
     .from('profiles')
@@ -1825,7 +1606,7 @@ export async function getStatsLeadersWithAvatars(
 
   return leaders.map((leader) => ({
     ...leader,
-    avatar_url: leader.profile_id ? avatarMap.get(leader.profile_id) || null : null,
+    avatar_url: avatarMap.get(leader.player_id) || null,
   }));
 }
 
@@ -2025,48 +1806,7 @@ export async function getUnifiedSkaterStatsRows(
   leagueId: string,
   seasonId?: string | null,
   divisionId?: string,
-  leagueSlug?: string,
 ): Promise<UnifiedSkaterStatsRow[]> {
-  if (seasonId === null && supportsLegacyAllTimeStats(leagueSlug)) {
-    const legacyRows = await getLegacyAllTimePlayers();
-
-    return legacyRows
-      .filter((row) => !row.is_goalie)
-      .map((row) => {
-        const gamesPlayed = toSafeNumber(row.games_played);
-        const goals = toSafeNumber(row.goals);
-        const assists = toSafeNumber(row.assists);
-        const points = toSafeNumber(row.points);
-
-        return {
-          player_id: row.matched_to_profile_id || row.id,
-          player_name: getLegacyPlayerName(row),
-          avatar_url: null,
-          team_id: '',
-          team_name: LEGACY_ALL_TIME_TEAM_LABEL,
-          division_name: null,
-          position: null,
-          games_played: gamesPlayed,
-          goals,
-          assists,
-          points,
-          points_per_game: gamesPlayed > 0 ? roundStatValue(points / gamesPlayed) : 0,
-          goals_per_game: gamesPlayed > 0 ? roundStatValue(goals / gamesPlayed) : 0,
-          assists_per_game: gamesPlayed > 0 ? roundStatValue(assists / gamesPlayed) : 0,
-          penalty_minutes: 0,
-          plus_minus: 0,
-          power_play_goals: 0,
-          power_play_assists: 0,
-          power_play_points: 0,
-          short_handed_goals: 0,
-          short_handed_assists: 0,
-          game_winning_goals: 0,
-          empty_net_goals: 0,
-          shots: 0,
-          shots_per_game: 0,
-        } satisfies UnifiedSkaterStatsRow;
-      });
-  }
   const filteredTeamIds = await getFilteredTeamIds(leagueId, divisionId);
   if (divisionId && filteredTeamIds && filteredTeamIds.length === 0) {
     return [];
@@ -2090,12 +1830,14 @@ export async function getUnifiedSkaterStatsRows(
       short_handed_assists,
       empty_net_goals,
       game_winning_goals,
-      game:games!inner(league_id, season_id, status),
+      game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified),
       player:profiles!player_stats_player_id_fkey(full_name, avatar_url),
       team:teams!player_stats_team_id_fkey(name, divisions(name))
     `)
     .eq('game.league_id', leagueId)
-    .eq('game.status', 'completed');
+    .eq('game.status', 'completed')
+    .eq('game.home_captain_verified', true)
+    .eq('game.away_captain_verified', true);
 
   if (seasonId) {
     query = query.eq('game.season_id', seasonId);
@@ -2232,56 +1974,7 @@ export async function getUnifiedGoalieStatsRows(
   leagueId: string,
   seasonId?: string | null,
   divisionId?: string,
-  leagueSlug?: string,
 ): Promise<UnifiedGoalieStatsRow[]> {
-  if (seasonId === null && supportsLegacyAllTimeStats(leagueSlug)) {
-    const legacyRows = await getLegacyAllTimePlayers();
-    const supabase = createServiceRoleClient();
-
-    const goalies: UnifiedGoalieStatsRow[] = legacyRows
-      .filter((row) => Boolean(row.is_goalie))
-      .map((row) => ({
-        player_id: row.matched_to_profile_id || row.id,
-        player_name: getLegacyPlayerName(row),
-        avatar_url: null,
-        team_id: '',
-        team_name: LEGACY_ALL_TIME_TEAM_LABEL,
-        division_name: null,
-        position: 'G',
-        games_played: toSafeNumber(row.games_played),
-        wins: toSafeNumber(row.wins),
-        losses: Math.max(toSafeNumber(row.games_played) - toSafeNumber(row.wins) - toSafeNumber(row.ties), 0),
-        saves: toSafeNumber(row.saves),
-        goals_against: toSafeNumber(row.goals_against),
-        save_percentage: (() => {
-          const normalized = normalizeSavePercentage(row.save_percentage);
-          return normalized > 0 ? roundStatValue(normalized * 100, 1) : null;
-        })(),
-        goals_against_average: row.goals_against_average == null ? null : roundStatValue(toSafeNumber(row.goals_against_average)),
-        shutouts: toSafeNumber(row.shutouts),
-      } satisfies UnifiedGoalieStatsRow));
-
-    const profileIds = goalies
-      .map((goalie) => goalie.player_id)
-      .filter((profileId) => Boolean(profileId) && profileId.includes('-'));
-
-    if (profileIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, avatar_url')
-        .in('id', profileIds);
-
-      const avatarMap = new Map<string, string | null>(
-        (profiles || []).map((profile: { id: string; avatar_url: string | null }) => [profile.id, profile.avatar_url]),
-      );
-
-      for (const goalie of goalies) {
-        goalie.avatar_url = avatarMap.get(goalie.player_id) || null;
-      }
-    }
-
-    return goalies;
-  }
   const filteredTeamIds = await getFilteredTeamIds(leagueId, divisionId);
   if (divisionId && filteredTeamIds && filteredTeamIds.length === 0) {
     return [];
@@ -2299,12 +1992,14 @@ export async function getUnifiedGoalieStatsRows(
       goals_against,
       shutout,
       game_result,
-      game:games!inner(league_id, season_id, status, home_team_id, away_team_id, home_score, away_score),
+      game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified, home_team_id, away_team_id, home_score, away_score),
       player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url),
       team:teams!goalie_stats_team_id_fkey(name, divisions(name))
     `)
     .eq('game.league_id', leagueId)
-    .eq('game.status', 'completed');
+    .eq('game.status', 'completed')
+    .eq('game.home_captain_verified', true)
+    .eq('game.away_captain_verified', true);
 
   if (seasonId) {
     query = query.eq('game.season_id', seasonId);
@@ -3073,17 +2768,12 @@ export async function getGoalieLeaders(
   seasonId?: string | null, // null = all-time career stats
   sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts' = 'wins',
   limit = 20,
-  divisionId?: string,
-  leagueSlug?: string,
+  divisionId?: string
 ): Promise<GoalieStats[]> {
   const supabase = await createClient();
 
   // If seasonId is explicitly null, fetch all-time career stats
   if (seasonId === null) {
-    if (supportsLegacyAllTimeStats(leagueSlug)) {
-      return getLegacyAllTimeGoalieLeaders(sortBy, limit);
-    }
-
     // Query all seasons for this league and aggregate
     const { data: stats, error } = await supabase
       .from('goalie_season_stats')
@@ -3095,7 +2785,6 @@ export async function getGoalieLeaders(
     // Aggregate stats by player_id
     const goalieMap = new Map<string, {
       player_id: string;
-      profile_id: string | null;
       player_name: string;
       team_name: string;
       team_id: string;
@@ -3120,7 +2809,6 @@ export async function getGoalieLeaders(
       } else {
         goalieMap.set(s.player_id, {
           player_id: s.player_id,
-          profile_id: s.player_id,
           player_name: s.full_name || 'Unknown',
           team_name: s.team_name || 'Unknown',
           team_id: s.team_id || '',
@@ -3193,7 +2881,6 @@ export async function getGoalieLeaders(
   // Transform RPC response to expected format and apply client-side sorting/limiting
   const results = (data as any[]).map((row) => ({
     player_id: row.player_id,
-    profile_id: row.player_id,
     player_name: row.full_name || 'Unknown',
     team_id: row.team_id || '',
     team_name: row.team_name || '',
@@ -3472,21 +3159,29 @@ export async function getLatestAnnouncement(leagueId: string, seasonId?: string 
 }
 
 /**
- * Get all published articles shown on the public news feed.
- * Public league news should include standard stories plus recap/wrap content.
+ * Get all published articles (news + AI types)
+ * If AI News addon is not active, only returns 'news' type articles
  */
-export async function getAllArticles(leagueId: string, limit = 50): Promise<NewsArticle[]> {
+export async function getAllArticles(leagueId: string, limit = 20): Promise<NewsArticle[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const hasAddon = await hasAiNewsAddon(leagueId);
+
+  let query = supabase
     .from('articles')
     .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
     .eq('league_id', leagueId)
     .eq('published', true)
-    .in('type', ['news', 'game_recap', 'weekly_wrap'])
     .order('published_at', { ascending: false })
     .limit(limit);
 
+  if (hasAddon) {
+    query = query.in('type', ['news', 'game_recap', 'weekly_wrap']);
+  } else {
+    query = query.eq('type', 'news');
+  }
+
+  const { data, error } = await query;
   if (error || !data) return [];
   return data as unknown as NewsArticle[];
 }
@@ -4210,7 +3905,7 @@ export async function getChampionshipGame(
 
 // ========== LEGACY CHAMPION PHOTOS ==========
 
-const LEGACY_CHAMPIONS: Record<string, { year: string; photo: string; teamName?: string; caption?: string }[]> = {
+const LEGACY_CHAMPIONS: Record<string, { year: string; photo: string; teamName?: string }[]> = {
   woha: [
     { year: '1986-87', photo: '/leagues/woha/history/86_87.jpg' },
     { year: '1988-92', photo: '/leagues/woha/history/88_92.jpg' },
@@ -4219,30 +3914,6 @@ const LEGACY_CHAMPIONS: Record<string, { year: string; photo: string; teamName?:
     { year: '1999-00', photo: '/leagues/woha/history/99_00.jpg' },
     { year: '2016-17', photo: '/leagues/woha/history/16_17.jpg' },
     { year: '2024-25', photo: '/leagues/woha/history/2025_champs_universal.jpg', teamName: 'Universal' },
-  ],
-  'hockey-life': [
-    { year: '2014 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/HL_98312.jpg', teamName: 'AB Transport', caption: '2014 Winter Winners – AB Transport' },
-    { year: '2014 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/HL_3046.jpg', teamName: 'Fitzray’s Flyers', caption: '2014 Spring Winners – Fitzray’s Flyers' },
-    { year: '2014 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/HL_8855.jpg', teamName: 'AB Transport', caption: '2014 Summer Winners – AB Transport' },
-    { year: '2014 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/01/IMG_1976.jpg', teamName: 'Fitzray’s Premier', caption: '2014 Fall Winners – Fitzray’s Premier' },
-    { year: '2015 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/HL_3806.jpg', teamName: 'Fitzray’s Premier', caption: '2015 Winter Winners – Fitzray’s Premier' },
-    { year: '2015 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/07/IMG_7009.jpg', teamName: 'Superior Tax Solutions', caption: '2015 Spring Winners – Superior Tax Solutions' },
-    { year: '2015 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/IMG_9245.jpg', teamName: 'Superior Tax Solutions', caption: '2015 Summer Champs – Superior Tax Solutions' },
-    { year: '2015 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/IMG_6773.jpg', teamName: 'Eco Roofing', caption: '2015 Fall Champs – Eco Roofing' },
-    { year: '2016 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/1934698_10156675694910403_6584438279454643210_n.jpg', teamName: 'Fitzray’s Flyers', caption: '2016 Winter Champs – Fitzray’s Flyers' },
-    { year: '2016 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/image.jpeg', teamName: 'Superior Tax Solutions', caption: '2016 Spring Champs – Superior Tax Solutions' },
-    { year: '2016 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2016/09/IMG_6082.jpg', teamName: 'Precision Auto Works', caption: '2016 Summer Champs – Precision Auto Works' },
-    { year: '2016 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2016/12/IMG_6924.jpg', teamName: 'Fitzray’s Flyers', caption: '2016 Fall Champs – Fitzray’s Flyers' },
-    { year: '2017 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2015/03/IMG_7731.jpg', teamName: 'LiUNA 1059’ers', caption: '2017 Winter Champs – LiUNA 1059’ers' },
-    { year: '2017 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2017/06/IMG_8826.jpg', teamName: 'LiUNA 1059’ers', caption: '2017 Spring Champs – LiUNA 1059’ers' },
-    { year: '2017 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2017/09/IMG_1132.jpg', teamName: 'LiUNA 1059’ers', caption: '2017 Summer Champs – LiUNA 1059’ers' },
-    { year: '2017 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2017/12/IMG_1795.jpg', teamName: 'First Generals', caption: '2017 Fall Champs – First Generals' },
-    { year: '2018 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2018/03/IMG_2808.jpg', teamName: 'First Generals', caption: '2018 Winter Champs – First Generals' },
-    { year: '2018 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2018/07/IMG_4031.jpg', teamName: 'First General London', caption: '2018 Spring Champs – First General London' },
-    { year: '2018 Summer', photo: 'https://hockeylifehl.com/wp-content/uploads/2018/09/IMG_4703.jpg', teamName: 'London Eco-Metal', caption: '2018 Summer Champs – London Eco-Metal' },
-    { year: '2018 Fall', photo: 'https://hockeylifehl.com/wp-content/uploads/2018/12/IMG_5333.jpg', teamName: 'First General London', caption: '2018 Fall Champs – First General London' },
-    { year: '2019 Winter', photo: 'https://hockeylifehl.com/wp-content/uploads/2019/03/IMG_7285.jpg', teamName: 'First General London', caption: '2019 Winter Champs – First General London' },
-    { year: '2019 Spring', photo: 'https://hockeylifehl.com/wp-content/uploads/2019/06/IMG_7591.jpg', teamName: 'First General London', caption: '2019 Spring Champs – First General London' },
   ],
 };
 

@@ -25,11 +25,24 @@
   --color-gold-900: #4D3D00;
 
   /* League-specific colors (can be overridden per-league) */
-  --league-primary: var(--color-gold-500);
-  --league-secondary: #1a1a1a;
-  --league-accent: var(--league-primary);
-  --league-glow-color: rgba(212, 175, 55, 0.2);
-  --league-secondary-contrast: #ffffff;
+  --league-primary-raw: var(--color-gold-500);
+  --league-secondary-raw: #1a1a1a;
+  --league-accent-raw: var(--color-gold-500);
+  --league-primary-strong: #8f6a00;
+  --league-primary-soft: rgba(143, 106, 0, 0.16);
+  --league-primary-border: rgba(143, 106, 0, 0.3);
+  --league-primary-muted: rgba(143, 106, 0, 0.08);
+  --league-secondary-safe: #1a1a1a;
+  --league-on-primary: #ffffff;
+  --league-on-secondary: #ffffff;
+  --league-surface-tint: rgba(143, 106, 0, 0.05);
+  --league-surface-tint-strong: rgba(143, 106, 0, 0.11);
+  --league-primary: var(--league-primary-strong);
+  --league-secondary: var(--league-secondary-safe);
+  --league-accent: var(--league-primary-strong);
+  --league-primary-hover: #7a5c00;
+  --league-glow-color: var(--league-primary-soft);
+  --league-secondary-contrast: var(--league-on-secondary);
   --league-font-family: "Rajdhani", "Sora", "Inter", system-ui, -apple-system, sans-serif;
 }
 
@@ -48,19 +61,19 @@
   --color-surface-hover: #242424;
   --color-surface-active: #2e2e2e;
 
-  --color-border: rgba(212, 175, 55, 0.2);
+  --color-border: color-mix(in srgb, var(--league-primary-border) 80%, rgba(255, 255, 255, 0.12));
   --color-border-muted: rgba(255, 255, 255, 0.1);
-  --color-border-emphasis: rgba(212, 175, 55, 0.4);
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary-strong) 32%, rgba(255, 255, 255, 0.18));
 
   --color-text-primary: #fafafa;
   --color-text-secondary: #a3a3a3;
   --color-text-muted: #737373; /* Improved contrast: ~5:1 vs #0a0a0a background */
   --color-text-inverse: #0a0a0a;
 
-  --color-accent: var(--league-primary, #D4AF37);
+  --color-accent: var(--league-primary-strong, #8F6A00);
   --color-accent-hover: var(--league-primary-hover, #C19A00);
-  --color-accent-muted: rgba(212, 175, 55, 0.15);
-  --color-accent-text: #0a0a0a;
+  --color-accent-muted: var(--league-primary-muted);
+  --color-accent-text: var(--league-on-primary);
 
   --glass-opacity: 72%;
   --glass-border-opacity: 60%;
@@ -80,19 +93,19 @@
   --color-surface-hover: #f5f5f5;
   --color-surface-active: #ededed;
 
-  --color-border: #e5e5e5;
+  --color-border: color-mix(in srgb, var(--league-primary-strong) 10%, #e5e5e5);
   --color-border-muted: #f0f0f0;
-  --color-border-emphasis: #d4d4d4;
+  --color-border-emphasis: color-mix(in srgb, var(--league-primary-strong) 22%, #d4d4d4);
 
   --color-text-primary: #171717;
   --color-text-secondary: #525252;
   --color-text-muted: #a3a3a3;
   --color-text-inverse: #fafafa;
 
-  --color-accent: var(--league-primary, #B8960F);
+  --color-accent: var(--league-primary-strong, #8F6A00);
   --color-accent-hover: var(--league-primary-hover, #9A7B00);
-  --color-accent-muted: rgba(212, 175, 55, 0.1);
-  --color-accent-text: #ffffff;
+  --color-accent-muted: var(--league-primary-muted);
+  --color-accent-text: var(--league-on-primary);
 
   --glass-opacity: 78%;
   --glass-border-opacity: 70%;
@@ -110,9 +123,9 @@ body {
   font-family: var(--league-font-family);
   background-color: var(--color-background);
   background-image:
-    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--league-primary) 24%, transparent) 0%, transparent 50%),
-    radial-gradient(circle at 88% -12%, color-mix(in srgb, var(--league-accent) 20%, transparent) 0%, transparent 45%),
-    radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--league-primary) 8%, transparent) 0%, transparent 55%);
+    radial-gradient(circle at 12% 8%, var(--league-surface-tint-strong) 0%, transparent 50%),
+    radial-gradient(circle at 88% -12%, var(--league-surface-tint) 0%, transparent 45%),
+    radial-gradient(circle at 50% 60%, var(--league-primary-muted) 0%, transparent 55%);
   background-repeat: no-repeat;
   background-attachment: fixed;
   color: var(--color-text-primary);
@@ -144,16 +157,16 @@ body::after {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 600px 400px at 5% 15%, color-mix(in srgb, var(--league-primary) 12%, transparent), transparent),
-    radial-gradient(ellipse 500px 350px at 92% 80%, color-mix(in srgb, var(--league-accent) 10%, transparent), transparent),
-    radial-gradient(ellipse 400px 300px at 50% 50%, color-mix(in srgb, var(--league-primary) 5%, transparent), transparent);
+    radial-gradient(ellipse 600px 400px at 5% 15%, var(--league-surface-tint-strong), transparent),
+    radial-gradient(ellipse 500px 350px at 92% 80%, var(--league-surface-tint), transparent),
+    radial-gradient(ellipse 400px 300px at 50% 50%, var(--league-primary-muted), transparent);
 }
 
 [data-theme='light'] body {
   background-image:
-    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--league-primary) 14%, transparent) 0%, transparent 50%),
-    radial-gradient(circle at 88% -12%, color-mix(in srgb, var(--league-accent) 10%, transparent) 0%, transparent 45%),
-    radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--league-primary) 6%, transparent) 0%, transparent 60%);
+    radial-gradient(circle at 12% 8%, var(--league-surface-tint) 0%, transparent 50%),
+    radial-gradient(circle at 88% -12%, var(--league-primary-muted) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--league-surface-tint) 70%, transparent) 0%, transparent 60%);
 }
 
 [data-theme='light'] body::before {
@@ -163,9 +176,9 @@ body::after {
 
 [data-theme='light'] body::after {
   background:
-    radial-gradient(ellipse 600px 400px at 5% 15%, color-mix(in srgb, var(--league-primary) 8%, transparent), transparent),
-    radial-gradient(ellipse 500px 350px at 92% 80%, color-mix(in srgb, var(--league-accent) 6%, transparent), transparent),
-    radial-gradient(ellipse 400px 300px at 50% 50%, color-mix(in srgb, var(--league-primary) 3%, transparent), transparent);
+    radial-gradient(ellipse 600px 400px at 5% 15%, color-mix(in srgb, var(--league-surface-tint) 90%, transparent), transparent),
+    radial-gradient(ellipse 500px 350px at 92% 80%, color-mix(in srgb, var(--league-primary-muted) 90%, transparent), transparent),
+    radial-gradient(ellipse 400px 300px at 50% 50%, color-mix(in srgb, var(--league-primary-muted) 60%, transparent), transparent);
 }
 
 /* =============================================================================
@@ -175,10 +188,11 @@ body::after {
 /* League colors are applied via CSS variables set in the layout based on DB */
 [data-league-theme] {
   /* Primary color is used for accents, buttons, links */
-  --color-accent: var(--league-primary);
+  --color-accent: var(--league-primary-strong);
+  --color-accent-muted: var(--league-primary-muted);
 
   /* Adjust glow color based on league primary */
-  --league-glow-color: color-mix(in srgb, var(--league-primary) 20%, transparent);
+  --league-glow-color: var(--league-primary-soft);
 }
 
 /* -----------------------------------------------------------------------------
@@ -342,8 +356,8 @@ body::after {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--league-primary) 10%, transparent), transparent 55%),
-    radial-gradient(circle at 88% 100%, color-mix(in srgb, var(--league-accent) 8%, transparent), transparent 50%);
+    radial-gradient(circle at 16% 0%, var(--league-surface-tint-strong), transparent 55%),
+    radial-gradient(circle at 88% 100%, var(--league-surface-tint), transparent 50%);
   opacity: 0.7;
 }
 
@@ -351,12 +365,12 @@ body::after {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%) 0%,
-      color-mix(in srgb, var(--color-surface) 96%, var(--color-background-elevated) 4%) 100%
+      color-mix(in srgb, var(--color-background-elevated) 97%, var(--league-surface-tint) 3%) 0%,
+      color-mix(in srgb, var(--color-surface) 93%, var(--league-surface-tint) 7%) 100%
     );
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-color: color-mix(in srgb, var(--color-border) 90%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 86%, var(--league-primary-border));
   box-shadow: 0 28px 68px -36px rgba(0, 0, 0, 0.44);
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
@@ -368,8 +382,8 @@ body::after {
 }
 
 .league-pulse-link {
-  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
-  background: color-mix(in srgb, var(--color-background-elevated) 92%, var(--color-surface) 8%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--league-primary-border));
+  background: color-mix(in srgb, var(--color-background-elevated) 90%, var(--league-surface-tint) 10%);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
@@ -385,8 +399,8 @@ body::after {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-surface) 96%, var(--color-background) 4%) 0%,
-      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-background) 2%) 100%
+      color-mix(in srgb, var(--color-surface) 94%, var(--league-surface-tint) 6%) 0%,
+      color-mix(in srgb, var(--color-background-elevated) 96%, var(--league-surface-tint) 4%) 100%
     );
 }
 
@@ -397,7 +411,7 @@ body::after {
 
 .league-home-custom .league-shell-panel,
 .league-home-custom .league-pulse-link {
-  border-color: color-mix(in srgb, var(--league-primary) 34%, var(--color-border));
+  border-color: color-mix(in srgb, var(--league-primary-border) 80%, var(--color-border));
 }
 
 .league-reading-panel {
@@ -405,10 +419,10 @@ body::after {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%) 0%,
-      color-mix(in srgb, var(--color-surface) 96%, var(--color-background-elevated) 4%) 100%
+      color-mix(in srgb, var(--color-background-elevated) 97%, var(--league-surface-tint) 3%) 0%,
+      color-mix(in srgb, var(--color-surface) 94%, var(--league-surface-tint) 6%) 100%
     );
-  border: 1px solid color-mix(in srgb, var(--color-border) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, var(--league-primary-border));
   box-shadow: 0 30px 78px -42px rgba(0, 0, 0, 0.48);
 }
 
@@ -422,8 +436,8 @@ body::after {
 }
 
 .league-reading-cell {
-  background: color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%);
-  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 96%, var(--league-surface-tint) 4%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, var(--league-primary-border));
   box-shadow: 0 18px 44px -32px rgba(0, 0, 0, 0.4);
 }
 
@@ -438,12 +452,12 @@ body::after {
 
 /* League accent elements */
 .league-accent {
-  color: var(--league-primary);
+  color: var(--color-accent);
 }
 
 .league-accent-bg {
-  background-color: var(--league-primary);
-  color: var(--color-accent-text);
+  background-color: var(--league-primary-strong);
+  color: var(--league-on-primary);
 }
 
 /* =============================================================================
@@ -452,23 +466,23 @@ body::after {
    ============================================================================= */
 
 .league-header {
-  --header-bg: var(--color-background-elevated);
-  --header-surface: var(--color-surface);
-  --header-surface-hover: var(--color-surface-hover);
+  --header-bg: color-mix(in srgb, var(--color-background-elevated) 94%, var(--league-surface-tint) 6%);
+  --header-surface: color-mix(in srgb, var(--color-surface) 96%, var(--league-surface-tint) 4%);
+  --header-surface-hover: color-mix(in srgb, var(--color-surface-hover) 92%, var(--league-surface-tint) 8%);
   --header-text: var(--color-text-primary);
   --header-text-secondary: var(--color-text-secondary);
   --header-text-muted: var(--color-text-muted);
-  --header-border: var(--color-border);
+  --header-border: color-mix(in srgb, var(--color-border) 84%, var(--league-primary-border));
 }
 
 [data-theme='light'] .league-header {
-  --header-bg: color-mix(in srgb, var(--color-background-elevated) 94%, var(--league-primary) 6%);
+  --header-bg: color-mix(in srgb, var(--color-background-elevated) 95%, var(--league-surface-tint) 5%);
   --header-surface: var(--color-background-elevated);
-  --header-surface-hover: color-mix(in srgb, var(--league-primary) 10%, var(--color-surface-hover));
+  --header-surface-hover: color-mix(in srgb, var(--color-surface-hover) 92%, var(--league-surface-tint) 8%);
   --header-text: var(--color-text-primary);
   --header-text-secondary: var(--color-text-secondary);
   --header-text-muted: var(--color-text-muted);
-  --header-border: color-mix(in srgb, var(--league-primary) 20%, var(--color-border));
+  --header-border: color-mix(in srgb, var(--color-border) 82%, var(--league-primary-border));
 }
 
 /* =============================================================================
@@ -480,12 +494,12 @@ body::after {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-background-elevated) 98%, var(--color-surface) 2%) 0%,
-      color-mix(in srgb, var(--color-surface) 96%, var(--color-background-elevated) 4%) 100%
+      color-mix(in srgb, var(--color-background-elevated) 97%, var(--league-surface-tint) 3%) 0%,
+      color-mix(in srgb, var(--color-surface) 94%, var(--league-surface-tint) 6%) 100%
     );
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, var(--league-primary-border));
   border-radius: 1rem;
   transition-property: border-color, box-shadow, background-color;
   transition-duration: 0.2s;
@@ -509,11 +523,12 @@ body::after {
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(to right, var(--league-primary), var(--league-primary-hover, var(--league-primary)));
-  color: var(--color-accent-text);
+  background: linear-gradient(to right, var(--league-primary-strong), var(--league-primary-hover, var(--league-primary-strong)));
+  color: var(--league-on-primary);
   font-weight: 600;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--league-primary-border) 88%, transparent);
   transition-property: transform, box-shadow, background-image;
   transition-duration: 0.3s;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -526,8 +541,8 @@ body::after {
 
 .btn-secondary {
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--league-primary) 50%, transparent);
-  color: var(--league-primary);
+  border: 1px solid var(--league-primary-border);
+  color: var(--color-accent);
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   transition-property: background-color, border-color, color;
@@ -536,8 +551,8 @@ body::after {
 }
 
 .btn-secondary:hover {
-  background: color-mix(in srgb, var(--league-primary) 10%, transparent);
-  border-color: var(--league-primary);
+  background: var(--league-primary-muted);
+  border-color: var(--league-primary-strong);
 }
 
 /* =============================================================================
@@ -551,7 +566,7 @@ body::after {
 }
 
 .standings-table th {
-  background: color-mix(in srgb, var(--color-background-elevated) 94%, var(--color-surface) 6%);
+  background: color-mix(in srgb, var(--color-background-elevated) 92%, var(--league-surface-tint) 8%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: var(--color-text-secondary);
@@ -561,7 +576,7 @@ body::after {
   letter-spacing: 0.05em;
   padding: 0.875rem 1rem;
   text-align: left;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 84%, var(--league-primary-border));
 }
 
 .standings-table td {
@@ -575,8 +590,8 @@ body::after {
 
 /* Highlight current team row */
 .standings-table tr.highlight td {
-  background: color-mix(in srgb, var(--league-primary) 10%, transparent);
-  border-color: var(--league-primary);
+  background: var(--league-primary-muted);
+  border-color: var(--league-primary-border);
 }
 
 /* =============================================================================
@@ -904,13 +919,13 @@ body::after {
 }
 
 .week-picker-day.selected {
-  background: var(--league-primary);
-  border-color: var(--league-primary);
-  color: var(--color-accent-text);
+  background: var(--league-primary-strong);
+  border-color: var(--league-primary-strong);
+  color: var(--league-on-primary);
 }
 
 .week-picker-day.selected .week-picker-day-name {
-  color: var(--color-accent-text);
+  color: var(--league-on-primary);
 }
 
 .week-picker-day-name {
@@ -930,13 +945,13 @@ body::after {
   padding: 0.125rem 0.375rem;
   border-radius: 9999px;
   background: var(--color-accent-muted);
-  color: var(--league-primary);
+  color: var(--color-accent);
   margin-top: 0.25rem;
 }
 
 .week-picker-day.selected .week-picker-day-count {
-  background: color-mix(in srgb, var(--color-accent-text) 20%, transparent);
-  color: var(--color-accent-text);
+  background: color-mix(in srgb, var(--league-on-primary) 20%, transparent);
+  color: var(--league-on-primary);
 }
 
 /* Game Preview Header */
@@ -990,7 +1005,7 @@ body::after {
 
 .game-preview-center {
   text-align: center;
-  color: var(--color-accent-text);
+  color: var(--league-on-primary);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -1066,10 +1081,14 @@ body::after {
 }
 
 .schedule-table th {
-  background: color-mix(in srgb, var(--league-primary) 90%, transparent);
+  background: linear-gradient(
+    180deg,
+    var(--league-primary-strong) 0%,
+    var(--league-primary-hover, var(--league-primary-strong)) 100%
+  );
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: var(--color-accent-text, #0a0a0a);
+  color: var(--league-on-primary);
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -1241,9 +1260,9 @@ body::after {
 }
 
 .weekday-summary-day.selected {
-  background: var(--league-primary);
-  border-color: var(--league-primary);
-  color: var(--color-accent-text);
+  background: var(--league-primary-strong);
+  border-color: var(--league-primary-strong);
+  color: var(--league-on-primary);
 }
 
 .weekday-summary-day.no-games {
@@ -1258,7 +1277,7 @@ body::after {
 }
 
 .weekday-summary-day.selected .day-name {
-  color: var(--color-accent-text);
+  color: var(--league-on-primary);
 }
 
 .weekday-summary-day .day-number {
@@ -1271,13 +1290,13 @@ body::after {
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
   background: var(--color-accent-muted);
-  color: var(--league-primary);
+  color: var(--color-accent);
   margin-top: 0.25rem;
 }
 
 .weekday-summary-day.selected .game-count {
-  background: color-mix(in srgb, var(--color-accent-text) 20%, transparent);
-  color: var(--color-accent-text);
+  background: color-mix(in srgb, var(--league-on-primary) 20%, transparent);
+  color: var(--league-on-primary);
 }
 
 /* =============================================================================
@@ -1547,24 +1566,24 @@ body::after {
    ============================================================================= */
 
 .glass {
-  background: color-mix(in srgb, var(--color-background-elevated) 92%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 90%, var(--league-surface-tint) 10%);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, var(--league-primary-border));
 }
 
 .glass-strong {
-  background: color-mix(in srgb, var(--color-background-elevated) 96%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 94%, var(--league-surface-tint) 6%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, var(--league-primary-border));
 }
 
 .glass-subtle {
-  background: color-mix(in srgb, var(--color-background-elevated) 88%, transparent);
+  background: color-mix(in srgb, var(--color-background-elevated) 86%, var(--league-surface-tint) 14%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, var(--league-primary-border));
 }
 
 /* =============================================================================
@@ -1572,7 +1591,7 @@ body::after {
    ============================================================================= */
 
 .text-gradient-primary {
-  background: linear-gradient(135deg, var(--league-primary), var(--league-accent));
+  background: linear-gradient(135deg, var(--league-primary-strong), color-mix(in srgb, var(--league-primary-strong) 70%, white));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

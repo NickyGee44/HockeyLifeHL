@@ -114,12 +114,12 @@ export function SocialLinks({
             inline-flex items-center justify-center
             rounded-full
             bg-[var(--color-surface)]
-             text-[var(--color-text-secondary)]
-             hover:bg-[var(--league-primary)]
-             hover:text-[var(--color-accent-text)]
+            text-[var(--color-text-secondary)]
+            hover:bg-[var(--league-primary-strong)]
+            hover:text-[var(--league-on-primary)]
              transition-all duration-300
             border border-[var(--color-border)]
-            hover:border-[var(--league-primary)]
+            hover:border-[var(--league-primary-border)]
             hover:scale-110
           `}
         >

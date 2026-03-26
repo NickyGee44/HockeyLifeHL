@@ -4,6 +4,11 @@ const DEFAULT_PRIMARY = '#D4AF37';
 const DEFAULT_SECONDARY = '#1A1A1A';
 const DEFAULT_ACCENT = '#D4AF37';
 const DARK_BASE = '#08111F';
+const SAFE_PRIMARY_TARGET_LUMINANCE = 0.18;
+const SAFE_PRIMARY_MIN_LUMINANCE = 0.16;
+const SAFE_PRIMARY_MAX_LUMINANCE = 0.22;
+const SAFE_SECONDARY_TARGET_LUMINANCE = 0.08;
+const SAFE_SECONDARY_MAX_LUMINANCE = 0.12;
 
 type RgbColor = { r: number; g: number; b: number };
 
@@ -37,13 +42,28 @@ export function getBalancedLeagueColors(params: {
   accentColor?: string | null;
   themePreset: ThemePreset;
 }) {
+  const primaryColor = normalizeHexColor(params.primaryColor, DEFAULT_PRIMARY);
+  const secondaryColor = balanceSecondaryColor(
+    normalizeHexColor(params.secondaryColor, DEFAULT_SECONDARY),
+    params.themePreset
+  );
+  const accentColor = normalizeHexColor(params.accentColor, DEFAULT_ACCENT);
+  const primaryStrong = createReadableAccent(accentColor);
+  const secondarySafe = createSafeSecondary(secondaryColor);
+
   return {
-    primaryColor: normalizeHexColor(params.primaryColor, DEFAULT_PRIMARY),
-    secondaryColor: balanceSecondaryColor(
-      normalizeHexColor(params.secondaryColor, DEFAULT_SECONDARY),
-      params.themePreset
-    ),
-    accentColor: normalizeHexColor(params.accentColor, DEFAULT_ACCENT),
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    primaryStrong,
+    primarySoft: hexToRgba(primaryStrong, 0.16),
+    primaryBorder: hexToRgba(primaryStrong, 0.3),
+    primaryMuted: hexToRgba(primaryStrong, 0.08),
+    secondarySafe,
+    onPrimary: getContrastTextColor(primaryStrong),
+    onSecondary: getContrastTextColor(secondarySafe),
+    surfaceTint: hexToRgba(primaryStrong, 0.05),
+    surfaceTintStrong: hexToRgba(primaryStrong, 0.11),
   };
 }
 
@@ -89,6 +109,12 @@ function mixHexColors(from: string, to: string, ratio: number): string {
   });
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const rgb = parseHexColor(hex) ?? parseHexColor(DEFAULT_PRIMARY)!;
+  const clamped = Math.max(0, Math.min(1, alpha));
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clamped})`;
+}
+
 function rgbToHex(rgb: RgbColor): string {
   return `#${[rgb.r, rgb.g, rgb.b]
     .map((value) => value.toString(16).padStart(2, '0'))
@@ -123,4 +149,86 @@ function getRelativeLuminance({ r, g, b }: RgbColor): number {
   });
 
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function getContrastTextColor(hex: string): string {
+  const rgb = parseHexColor(hex);
+  if (!rgb) return '#ffffff';
+
+  const luminance = getRelativeLuminance(rgb);
+  return luminance > 0.18 ? '#0A0A0A' : '#FFFFFF';
+}
+
+function createReadableAccent(color: string): string {
+  const safeColor = normalizeHexColor(color, DEFAULT_PRIMARY);
+  const rgb = parseHexColor(safeColor);
+  if (!rgb) {
+    return '#8F6A00';
+  }
+
+  const luminance = getRelativeLuminance(rgb);
+  if (luminance < SAFE_PRIMARY_MIN_LUMINANCE) {
+    return moveColorToTargetLuminance(safeColor, '#FFFFFF', SAFE_PRIMARY_TARGET_LUMINANCE, 'lighter');
+  }
+
+  if (luminance > SAFE_PRIMARY_MAX_LUMINANCE) {
+    return moveColorToTargetLuminance(safeColor, DARK_BASE, SAFE_PRIMARY_TARGET_LUMINANCE, 'darker');
+  }
+
+  return safeColor;
+}
+
+function createSafeSecondary(color: string): string {
+  const safeColor = normalizeHexColor(color, DEFAULT_SECONDARY);
+  const rgb = parseHexColor(safeColor);
+  if (!rgb) {
+    return mixHexColors(DEFAULT_SECONDARY, DARK_BASE, 0.4);
+  }
+
+  const luminance = getRelativeLuminance(rgb);
+  if (luminance > SAFE_SECONDARY_MAX_LUMINANCE) {
+    return moveColorToTargetLuminance(safeColor, DARK_BASE, SAFE_SECONDARY_TARGET_LUMINANCE, 'darker');
+  }
+
+  return safeColor;
+}
+
+function moveColorToTargetLuminance(
+  from: string,
+  toward: string,
+  targetLuminance: number,
+  mode: 'lighter' | 'darker',
+): string {
+  let low = 0;
+  let high = 1;
+  let best = from;
+
+  for (let index = 0; index < 18; index += 1) {
+    const mid = (low + high) / 2;
+    const mixed = mixHexColors(from, toward, mid);
+    const rgb = parseHexColor(mixed);
+    if (!rgb) {
+      break;
+    }
+
+    const luminance = getRelativeLuminance(rgb);
+    best = mixed;
+
+    if (mode === 'lighter') {
+      if (luminance < targetLuminance) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+      continue;
+    }
+
+    if (luminance > targetLuminance) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  return best;
 }
