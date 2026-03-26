@@ -1,12 +1,10 @@
 import Link from 'next/link';
 import { Fragment } from 'react';
-import { splitArticleParagraphIntoSegments, type ArticleMention } from '@/lib/articles/linkify';
 
 interface RichArticleContentProps {
   content: string | null | undefined;
   maxParagraphs?: number;
   paragraphClassName?: string;
-  mentions?: ArticleMention[];
 }
 
 type Segment =
@@ -44,7 +42,6 @@ export function RichArticleContent({
   content,
   maxParagraphs,
   paragraphClassName = 'mb-5 max-w-3xl text-base leading-8 text-[var(--color-text-secondary)] md:text-[1.0625rem]',
-  mentions = [],
 }: RichArticleContentProps) {
   const paragraphs = (content
     ? content
@@ -69,34 +66,7 @@ export function RichArticleContent({
           >
             {segments.map((segment, segmentIndex) => {
               if (segment.type === 'text') {
-                if (mentions.length === 0) {
-                  return <Fragment key={segmentIndex}>{segment.value}</Fragment>;
-                }
-
-                const mentionSegments = splitArticleParagraphIntoSegments(segment.value, mentions);
-                return (
-                  <Fragment key={segmentIndex}>
-                    {mentionSegments.map((mentionSegment, mentionSegmentIndex) => {
-                      if (!mentionSegment.href) {
-                        return (
-                          <Fragment key={`${segmentIndex}-${mentionSegmentIndex}`}>
-                            {mentionSegment.text}
-                          </Fragment>
-                        );
-                      }
-
-                      return (
-                        <Link
-                          key={`${segmentIndex}-${mentionSegmentIndex}-${mentionSegment.href}`}
-                          href={mentionSegment.href}
-                          className="font-semibold text-[var(--league-primary)] underline decoration-[var(--league-primary)]/35 underline-offset-4 transition-colors hover:text-[var(--color-text-primary)]"
-                        >
-                          {mentionSegment.text}
-                        </Link>
-                      );
-                    })}
-                  </Fragment>
-                );
+                return <Fragment key={segmentIndex}>{segment.value}</Fragment>;
               }
 
               return (
