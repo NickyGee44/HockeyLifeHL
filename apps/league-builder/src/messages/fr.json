@@ -2663,6 +2663,62 @@
       "assignSelected": "Assigner la selection"
     }
   },
+  "financialWorkspace": {
+    "eyebrow": "Espace financier",
+    "title": "Finances",
+    "subtitle": "Un seul espace pour le suivi des paiements, la finance et les actions comptables.",
+    "seasonScope": "Portee de saison",
+    "backToLeague": "Retour a la ligue",
+    "onlinePayments": "Paiements en ligne",
+    "allSeasons": "Toutes les saisons",
+    "openPayments": "Ouvrir les paiements",
+    "tabs": {
+      "overview": "Apercu",
+      "payments": "Paiements",
+      "accounting": "Comptabilite"
+    },
+    "payments": {
+      "live": "Actif",
+      "needsAttention": "Attention requise",
+      "noSeasonSelected": "Aucune saison selectionnee"
+    },
+    "overview": {
+      "metrics": {
+        "cashIn": "Entrees",
+        "cashInNote": "Paiements joueurs, paiements d'equipe et revenus manuels.",
+        "outstanding": "Montants dus",
+        "outstandingNote": "{pending} soldes joueurs demandent encore un suivi.",
+        "expenses": "Frais et depenses",
+        "expensesNote": "Frais Stripe, paie des arbitres et depenses manuelles.",
+        "net": "Net suivi",
+        "netNote": "Position operationnelle pour les activites financieres suivies.",
+        "overdue": "En retard",
+        "overdueNote": "Soldes joueurs qui demandent une action rapide."
+      },
+      "attentionLabel": "Attention",
+      "attentionTitle": "Ce qui demande une action",
+      "attentionDescription": "Utilisez ces raccourcis pour passer de l'apercu a la bonne vue de travail.",
+      "recentLabel": "Activite recente",
+      "recentTitle": "Derniers mouvements d'argent",
+      "recentDescription": "Passez directement de la derniere ecriture au dossier source.",
+      "noMovement": "Aucune activite financiere n'a encore ete enregistree.",
+      "unknownCounterparty": "Contrepartie inconnue",
+      "allClear": "Rien d'urgent ne ressort pour le moment.",
+      "attentionItems": {
+        "overdueTitle": "{count} soldes joueurs en retard",
+        "overdueDescription": "{amount} reste impaye dans les paiements des joueurs.",
+        "billingTitle": "Les paiements demandent une attention de configuration",
+        "quickbooksDisabledTitle": "La synchronisation directe QuickBooks n'est pas encore activee",
+        "quickbooksDisabledDescription": "L'export CSV reste disponible depuis Comptabilite.",
+        "quickbooksConnectTitle": "QuickBooks n'est pas connecte",
+        "quickbooksConnectDescription": "Connectez une entreprise QuickBooks avant d'executer une synchronisation directe.",
+        "quickbooksMappingsTitle": "Les correspondances QuickBooks demandent encore une revue",
+        "quickbooksMappingsDescription": "{count} correspondances requises sont encore manquantes.",
+        "teamInvoicesTitle": "Des factures d'equipe ont encore un solde ouvert",
+        "teamInvoicesDescription": "{amount} reste ouvert du cote de la facturation d'equipe."
+      }
+    }
+  },
   "payments": {
     "exportReport": "Exporter le rapport de paiements",
     "exportFormat": "Format d'exportation",
@@ -2744,7 +2800,8 @@
       "markAsPaid": "Marquer comme paye",
       "archivePayment": "Archiver le paiement",
       "archived": "Archive",
-      "allTeams": "Toutes les equipes"
+      "allTeams": "Toutes les equipes",
+      "created": "Cree"
     },
     "dashboard": {
       "title": "Suivi des paiements",
@@ -2781,6 +2838,9 @@
       "createSeason": "Creer une saison",
       "showArchived": "Afficher les archives",
       "hideArchived": "Masquer les archives",
+      "exportAction": "Exporter le rapport",
+      "exportDialogTitle": "Exporter le rapport des paiements joueurs",
+      "exportDialogDescription": "Choisissez un format et telechargez le rapport de paiement de la saison courante.",
       "pageOf": "Page {current} de {total}",
       "showing": "Affichage de {from} a {to} sur {total} paiements"
     },
@@ -2805,6 +2865,10 @@
       "lastReminderSent": "Dernier rappel",
       "notes": "Notes",
       "feeName": "Frais",
+      "summaryTitle": "Resume du paiement",
+      "timelineTitle": "Chronologie et statut",
+      "actionsTitle": "Actions",
+      "actionsDescription": "Envoyez un rappel, consignez un paiement ou nettoyez le dossier depuis un seul endroit.",
       "archivedTitle": "Paiement archive",
       "archivedOn": "Archive le {date}",
       "permanentDeleteTitle": "Suppression definitive",

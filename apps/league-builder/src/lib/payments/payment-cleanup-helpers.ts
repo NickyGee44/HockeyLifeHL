@@ -1,6 +1,11 @@
 import type { PlayerPayment } from './types';
 
-export const ARCHIVABLE_PAYMENT_STATUSES = ['pending', 'overdue', 'cancelled', 'failed'] as const;
+export const ARCHIVABLE_PAYMENT_STATUSES = [
+  'pending',
+  'overdue',
+  'cancelled',
+  'failed',
+] as const;
 export const ARCHIVE_REASON_CONFIRMATION = 'DELETE';
 
 export type PaymentCleanupTransaction = {
@@ -78,3 +83,9 @@ export function canPermanentlyDeletePayment(
 
   return null;
 }
+
+export const paymentCleanupTestables = {
+  canArchivePayment,
+  canPermanentlyDeletePayment,
+  getArchivedPaymentError,
+};

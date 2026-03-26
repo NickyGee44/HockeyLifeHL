@@ -41,6 +41,10 @@ interface PaymentDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payment: PlayerPaymentWithDetails | null;
+  onSendReminder?: (payment: PlayerPaymentWithDetails) => void;
+  onMarkAsPaid?: (payment: PlayerPaymentWithDetails) => void;
+  onRefund?: (payment: PlayerPaymentWithDetails) => void;
+  onArchive?: (payment: PlayerPaymentWithDetails) => void;
   canPermanentlyDelete?: boolean;
   onRequestPermanentDelete?: (payment: PlayerPaymentWithDetails) => void;
 }
@@ -94,11 +98,16 @@ export function PaymentDetailSheet({
   open,
   onOpenChange,
   payment,
+  onSendReminder,
+  onMarkAsPaid,
+  onRefund,
+  onArchive,
   canPermanentlyDelete = false,
   onRequestPermanentDelete,
 }: PaymentDetailSheetProps) {
   const t = useTranslations('payments.detailSheet');
   const tStatus = useTranslations('payments.history.statusLabels');
+  const tTable = useTranslations('payments.statusTable');
 
   if (!payment) return null;
 
@@ -107,6 +116,14 @@ export function PaymentDetailSheet({
     payment.total_amount_cents > 0
       ? Math.round((payment.amount_paid_cents / payment.total_amount_cents) * 100)
       : 0;
+
+  const canRemind = ['pending', 'partially_paid', 'overdue'].includes(payment.status);
+  const canMarkPaid = ['pending', 'partially_paid', 'overdue'].includes(payment.status);
+  const canRefund = ['paid', 'partially_paid'].includes(payment.status) && payment.amount_paid_cents > 0;
+  const canArchive =
+    !payment.archived_at &&
+    payment.amount_paid_cents <= 0 &&
+    ['pending', 'overdue', 'cancelled', 'failed'].includes(payment.status);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -199,13 +216,12 @@ export function PaymentDetailSheet({
               </p>
             </div>
 
-            {/* Amount Breakdown */}
-            <div className="bg-neutral-800/50 rounded-xl p-4 space-y-3">
-              <h4 className="text-sm font-medium text-neutral-300 flex items-center gap-2">
+            <div className="rounded-xl border border-white/[0.06] bg-neutral-800/50 p-4">
+              <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
-                {t('amountBreakdown')}
-              </h4>
-              <div className="space-y-2 text-sm">
+                <h4 className="text-sm font-medium text-neutral-300">{t('summaryTitle')}</h4>
+              </div>
+              <div className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-neutral-400">{t('baseFee')}</span>
                   <span className="text-white">{formatCurrency(payment.base_amount_cents)}</span>
@@ -235,59 +251,60 @@ export function PaymentDetailSheet({
               </div>
             </div>
 
-            {/* Details Grid */}
-            <div className="space-y-3">
-              <DetailRow
-                icon={Users}
-                label={t('team')}
-                value={payment.team?.name || t('noTeam')}
-              />
-              <DetailRow
-                icon={FileText}
-                label={t('paymentPlan')}
-                value={PLAN_LABELS[payment.payment_plan]}
-              />
-              {payment.total_installments > 1 && (
+            <div className="rounded-xl border border-white/[0.06] bg-neutral-800/50 p-4">
+              <h4 className="text-sm font-medium text-neutral-300">{t('timelineTitle')}</h4>
+              <div className="mt-4 space-y-3">
                 <DetailRow
-                  icon={DollarSign}
-                  label={t('installmentProgress')}
-                  value={`${payment.current_installment} / ${payment.total_installments}`}
+                  icon={Users}
+                  label={t('team')}
+                  value={payment.team?.name || t('noTeam')}
                 />
-              )}
-              <DetailRow
-                icon={Calendar}
-                label={t('created')}
-                value={formatDate(payment.created_at)}
-              />
-              {payment.paid_at && (
                 <DetailRow
-                  icon={CheckCircle}
-                  label={t('paidOn')}
-                  value={formatDate(payment.paid_at)}
+                  icon={FileText}
+                  label={t('paymentPlan')}
+                  value={PLAN_LABELS[payment.payment_plan]}
                 />
-              )}
-              {payment.next_payment_date && payment.status !== 'paid' && (
+                {payment.total_installments > 1 && (
+                  <DetailRow
+                    icon={DollarSign}
+                    label={t('installmentProgress')}
+                    value={`${payment.current_installment} / ${payment.total_installments}`}
+                  />
+                )}
                 <DetailRow
-                  icon={Clock}
-                  label={t('nextPaymentDue')}
-                  value={formatDate(payment.next_payment_date)}
+                  icon={Calendar}
+                  label={t('created')}
+                  value={formatDate(payment.created_at)}
                 />
-              )}
-              <DetailRow
-                icon={Mail}
-                label={t('remindersSent')}
-                value={String(payment.reminder_sent_count || 0)}
-              />
-              {payment.last_reminder_sent_at && (
+                {payment.paid_at && (
+                  <DetailRow
+                    icon={CheckCircle}
+                    label={t('paidOn')}
+                    value={formatDate(payment.paid_at)}
+                  />
+                )}
+                {payment.next_payment_date && payment.status !== 'paid' && (
+                  <DetailRow
+                    icon={Clock}
+                    label={t('nextPaymentDue')}
+                    value={formatDate(payment.next_payment_date)}
+                  />
+                )}
                 <DetailRow
-                  icon={Clock}
-                  label={t('lastReminderSent')}
-                  value={formatDate(payment.last_reminder_sent_at)}
+                  icon={Mail}
+                  label={t('remindersSent')}
+                  value={String(payment.reminder_sent_count || 0)}
                 />
-              )}
+                {payment.last_reminder_sent_at && (
+                  <DetailRow
+                    icon={Clock}
+                    label={t('lastReminderSent')}
+                    value={formatDate(payment.last_reminder_sent_at)}
+                  />
+                )}
+              </div>
             </div>
 
-            {/* Notes */}
             {payment.notes && (
               <div className="bg-neutral-800/50 rounded-xl p-4">
                 <h4 className="text-sm font-medium text-neutral-300 mb-2">{t('notes')}</h4>
@@ -295,10 +312,56 @@ export function PaymentDetailSheet({
               </div>
             )}
 
-            {/* Fee Name */}
             <div className="bg-neutral-800/50 rounded-xl p-4">
               <h4 className="text-sm font-medium text-neutral-300 mb-1">{t('feeName')}</h4>
               <p className="text-sm text-white">{payment.season_fee.name}</p>
+            </div>
+
+            <div className="rounded-xl border border-white/[0.06] bg-neutral-800/50 p-4">
+              <h4 className="text-sm font-medium text-neutral-300">{t('actionsTitle')}</h4>
+              <p className="mt-1 text-sm text-neutral-400">{t('actionsDescription')}</p>
+              <div className="mt-4 grid gap-3">
+                {canRemind && onSendReminder && (
+                  <button
+                    type="button"
+                    onClick={() => onSendReminder(payment)}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-medium text-white transition hover:bg-black/30"
+                  >
+                    <span>{tTable('sendReminder')}</span>
+                    <Mail className="h-4 w-4 text-neutral-400" />
+                  </button>
+                )}
+                {canMarkPaid && onMarkAsPaid && (
+                  <button
+                    type="button"
+                    onClick={() => onMarkAsPaid(payment)}
+                    className="flex items-center justify-between rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition hover:bg-emerald-400/15"
+                  >
+                    <span>{tTable('markAsPaid')}</span>
+                    <CheckCircle className="h-4 w-4" />
+                  </button>
+                )}
+                {canRefund && onRefund && (
+                  <button
+                    type="button"
+                    onClick={() => onRefund(payment)}
+                    className="flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-100 transition hover:bg-red-500/15"
+                  >
+                    <span>{tTable('issueRefund')}</span>
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                )}
+                {canArchive && onArchive && (
+                  <button
+                    type="button"
+                    onClick={() => onArchive(payment)}
+                    className="flex items-center justify-between rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/15"
+                  >
+                    <span>{tTable('archivePayment')}</span>
+                    <Archive className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {payment.archived_at && canPermanentlyDelete && onRequestPermanentDelete && (

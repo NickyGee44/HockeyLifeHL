@@ -240,15 +240,7 @@ export function AppSidebar({
                 <SidebarNavItem
                   href={`${leagueBase}/finance`}
                   icon={Wallet}
-                  label="Finance"
-                  locked={!isSubscribed}
-                  indent
-                  onClick={closeMobileNav}
-                />
-                <SidebarNavItem
-                  href={`${leagueBase}/payments`}
-                  icon={DollarSign}
-                  label={t('paymentTracking')}
+                  label={t('financials') || 'Financials'}
                   locked={!isSubscribed}
                   indent
                   onClick={closeMobileNav}

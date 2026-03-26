@@ -75,7 +75,8 @@ export function Breadcrumbs({ dashboardData }: BreadcrumbsProps) {
     bugs: 'bugReports',
     scorekeepers: 'scorekeeperSchedule',
     domains: 'domains',
-    payments: 'paymentTracking',
+    finance: 'financials',
+    payments: 'financials',
   };
 
   // Segments to skip (noise words that don't add value)
