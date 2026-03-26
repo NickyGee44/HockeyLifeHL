@@ -1,0 +1,39 @@
+{
+  "name": "@hockey-life/league-builder-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reusable Remotion demos for League Builder.",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@fontsource/barlow-condensed": "5.2.8",
+    "@fontsource/ibm-plex-mono": "5.2.7",
+    "@remotion/cli": "4.0.436",
+    "@remotion/tailwind-v4": "4.0.436",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.436",
+    "tailwindcss": "4.0.0"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.436",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "lint": "eslint src && tsc",
+    "render:vertical": "remotion render LeagueBuilderVertical out/league-builder-vertical.mp4",
+    "render:wide": "remotion render LeagueBuilderWide out/league-builder-wide.mp4",
+    "render:square": "remotion render LeagueBuilderSquare out/league-builder-square.mp4",
+    "render:poster": "remotion still LeagueBuilderVertical out/league-builder-poster.png --frame=210",
+    "type-check": "tsc --noEmit",
+    "upgrade": "remotion upgrade"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
+}

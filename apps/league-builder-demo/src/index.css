@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+@import "@fontsource/barlow-condensed/800.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+:root {
+  --demo-bg: #04121d;
+  --demo-panel: rgba(7, 20, 33, 0.78);
+  --demo-panel-strong: rgba(10, 27, 43, 0.94);
+  --demo-ink: #f4fbff;
+  --demo-muted: #8da6ba;
+  --demo-rink: #57d2ff;
+  --demo-arena: #94f6c7;
+  --demo-gold: #ffd36b;
+  --demo-danger: #ff7d7d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--demo-bg);
+  color: var(--demo-ink);
+  font-family: "Barlow Condensed", sans-serif;
+}
+
+.demo-noise {
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(87, 210, 255, 0.2), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(148, 246, 199, 0.16), transparent 24%),
+    radial-gradient(circle at 50% 82%, rgba(255, 211, 107, 0.14), transparent 24%),
+    linear-gradient(180deg, #04121d 0%, #061726 48%, #05111c 100%);
+}
+
+.demo-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 120px 120px;
+}
+
