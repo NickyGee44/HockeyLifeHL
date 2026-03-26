@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
 import { hasAiNewsAddon } from '@/lib/utils/addon-helpers';
+import {
+  AnthropicRouteError,
+  callAnthropicMessages,
+} from '@/lib/ai/anthropic';
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -54,15 +58,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'AI News Writer addon is required. Upgrade at Settings > Billing.' },
       { status: 403 }
-    );
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('ANTHROPIC_API_KEY is not configured');
-    return NextResponse.json(
-      { error: 'AI generation is not configured. Please contact support.' },
-      { status: 503 }
     );
   }
 
@@ -185,61 +180,43 @@ You must respond with ONLY a valid JSON object in this exact format, with no oth
   const userPrompt = `Write a ${typeLabel} based on the following description:\n\n${prompt}${seasonId ? `\n\nSeason ID for reference: ${seasonId}` : ''}${gameId ? `\n\nGame ID for reference: ${gameId}` : ''}`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: userPrompt,
-          },
-        ],
-      }),
+    const data = await callAnthropicMessages({
+      feature: 'articleGeneration',
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+      maxTokens: 1500,
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Anthropic API error:', response.status, errorData);
-      return NextResponse.json(
-        { error: 'Failed to generate article. Please try again.' },
-        { status: 502 }
-      );
-    }
-
-    const data = await response.json();
     const textContent = data.content?.[0]?.text;
 
     if (!textContent) {
+      console.error('Anthropic article generation returned no text content.');
       return NextResponse.json(
-        { error: 'No content generated. Please try again.' },
+        { error: 'AI article generation is temporarily unavailable.' },
         { status: 502 }
       );
     }
 
-    // Parse the JSON response from Claude
     let article: { title: string; content: string; excerpt: string };
     try {
       article = JSON.parse(textContent);
     } catch {
-      // If JSON parsing fails, try to extract from the text
-      console.error('Failed to parse AI response as JSON:', textContent);
+      console.error('Failed to parse AI article response as JSON:', textContent);
       return NextResponse.json(
-        { error: 'Failed to parse generated content. Please try again.' },
+        { error: 'AI article generation is temporarily unavailable.' },
         { status: 502 }
       );
     }
 
     if (!article.title || !article.content) {
+      console.error('Anthropic article generation returned incomplete content.');
       return NextResponse.json(
-        { error: 'Generated content was incomplete. Please try again.' },
+        { error: 'AI article generation is temporarily unavailable.' },
         { status: 502 }
       );
     }
@@ -250,9 +227,16 @@ You must respond with ONLY a valid JSON object in this exact format, with no oth
       excerpt: article.excerpt || '',
     });
   } catch (error) {
-    console.error('Error calling Anthropic API:', error);
+    if (error instanceof AnthropicRouteError) {
+      return NextResponse.json(
+        { error: error.userMessage },
+        { status: error.status }
+      );
+    }
+
+    console.error('Unexpected article generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate article. Please try again.' },
+      { error: 'AI article generation is temporarily unavailable.' },
       { status: 500 }
     );
   }
