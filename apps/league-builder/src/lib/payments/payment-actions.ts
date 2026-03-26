@@ -64,6 +64,12 @@ type LegacyCompatibleQueryResult<T> = {
   legacySchema: boolean;
 };
 
+type LegacyCompatibleQueryResponse<T> = {
+  data: T | null;
+  error: QueryCompatibilityError | null;
+  count?: number | null;
+};
+
 function getQueryCompatibilityErrorText(error: QueryCompatibilityError | null | undefined) {
   return `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase();
 }
@@ -89,8 +95,8 @@ function hasPaymentCleanupSchema(payment: Record<string, unknown>) {
 }
 
 async function runLegacyCompatibleQuery<T>(
-  primary: () => Promise<{ data: T | null; error: QueryCompatibilityError | null; count?: number | null }>,
-  legacy: () => Promise<{ data: T | null; error: QueryCompatibilityError | null; count?: number | null }>
+  primary: () => PromiseLike<LegacyCompatibleQueryResponse<T>>,
+  legacy: () => PromiseLike<LegacyCompatibleQueryResponse<T>>
 ): Promise<LegacyCompatibleQueryResult<T>> {
   const primaryResult = await primary();
   if (!primaryResult.error || !isPaymentCleanupSchemaUnavailable(primaryResult.error)) {
