@@ -45,7 +45,10 @@ jest.mock('@/lib/payments/team-contributions', () => ({
 import { revalidatePath } from 'next/cache';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import {
-  __paymentCleanupTestables,
+  canArchivePayment,
+  canPermanentlyDeletePayment,
+} from '../payment-cleanup-helpers';
+import {
   archivePlayerPayment,
   getPaymentSummary,
   permanentlyDeletePlayerPayment,
@@ -265,14 +268,14 @@ describe('payment cleanup actions', () => {
 
   it('blocks archiving when a payment has successful or refund history', () => {
     expect(
-      __paymentCleanupTestables.canArchivePayment(
+      canArchivePayment(
         buildPayment(),
         [{ id: 'txn-1', status: 'succeeded', transaction_type: 'payment' }]
       )
     ).toBe('Payments with successful charge or refund history cannot be archived.');
 
     expect(
-      __paymentCleanupTestables.canArchivePayment(
+      canArchivePayment(
         buildPayment(),
         [{ id: 'txn-2', status: 'pending', transaction_type: 'refund' }]
       )
@@ -281,7 +284,7 @@ describe('payment cleanup actions', () => {
 
   it('blocks permanent deletion when the payment still has dispute history', () => {
     expect(
-      __paymentCleanupTestables.canPermanentlyDeletePayment(
+      canPermanentlyDeletePayment(
         buildPayment({
           status: 'cancelled',
           archived_at: '2026-03-25T12:30:00.000Z',
