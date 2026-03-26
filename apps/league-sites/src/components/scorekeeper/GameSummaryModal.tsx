@@ -5,11 +5,15 @@ import {
   getGameSummary,
   submitGameForVerification,
   type GameData,
+  type CaptainVerificationMode,
+  type ScorekeeperSession,
 } from '@/lib/actions/scorekeeper';
 
 interface GameSummaryModalProps {
   gameId: string;
   game: GameData;
+  leagueSlug: string;
+  session: ScorekeeperSession;
   onClose: () => void;
 }
 
@@ -20,15 +24,23 @@ interface GameSummaryModalProps {
 export function GameSummaryModal({
   gameId,
   game,
+  leagueSlug,
+  session,
   onClose,
 }: GameSummaryModalProps) {
+  const isCaptainSelfScoring = session.sessionOrigin === 'captain_self_score';
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [verificationLinks, setVerificationLinks] = useState<{
-    homeToken: string;
-    awayToken: string;
+    verificationMode: CaptainVerificationMode;
+    autoVerifiedTeamType?: 'home' | 'away';
+    homeToken?: string;
+    awayToken?: string;
   } | null>(null);
+  const [homeVerifiedAt, setHomeVerifiedAt] = useState<string | null>(game.homeVerifiedAt);
+  const [awayVerifiedAt, setAwayVerifiedAt] = useState<string | null>(game.awayVerifiedAt);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [summary, setSummary] = useState<{
     homeGoals: number;
     awayGoals: number;
@@ -79,17 +91,36 @@ export function GameSummaryModal({
     loadSummary();
   }, [gameId]);
 
+  useEffect(() => {
+    setHomeVerifiedAt(game.homeVerifiedAt);
+    setAwayVerifiedAt(game.awayVerifiedAt);
+  }, [game.awayVerifiedAt, game.homeVerifiedAt]);
+
   const handleSubmitForVerification = async () => {
     setIsSubmitting(true);
+    setSubmitError(null);
 
     const result = await submitGameForVerification(gameId);
 
-    if (result.success && result.homeToken && result.awayToken) {
+    if (result.success && result.verificationMode) {
       setVerificationLinks({
+        verificationMode: result.verificationMode,
+        autoVerifiedTeamType: result.autoVerifiedTeamType,
         homeToken: result.homeToken,
         awayToken: result.awayToken,
       });
+
+      if (result.autoVerifiedTeamType === 'home') {
+        setHomeVerifiedAt(new Date().toISOString());
+      }
+
+      if (result.autoVerifiedTeamType === 'away') {
+        setAwayVerifiedAt(new Date().toISOString());
+      }
+
       setSubmitted(true);
+    } else {
+      setSubmitError(result.error || 'Failed to submit for verification');
     }
 
     setIsSubmitting(false);
@@ -101,6 +132,35 @@ export function GameSummaryModal({
     }
     return '';
   };
+
+  const getVerificationUrl = (token: string) => `${getBaseUrl()}/${leagueSlug}/verify/${token}`;
+  const autoVerifiedTeamName = verificationLinks?.autoVerifiedTeamType === 'home'
+    ? game.homeTeam.name
+    : verificationLinks?.autoVerifiedTeamType === 'away'
+      ? game.awayTeam.name
+      : null;
+  const opposingTeamName = verificationLinks?.autoVerifiedTeamType === 'home'
+    ? game.awayTeam.name
+    : verificationLinks?.autoVerifiedTeamType === 'away'
+      ? game.homeTeam.name
+      : null;
+
+  const verificationLinkCards = [
+    verificationLinks?.homeToken
+      ? {
+          key: 'home',
+          label: `${game.homeTeam.shortName || 'Home'} Captain Link`,
+          token: verificationLinks.homeToken,
+        }
+      : null,
+    verificationLinks?.awayToken
+      ? {
+          key: 'away',
+          label: `${game.awayTeam.shortName || 'Away'} Captain Link`,
+          token: verificationLinks.awayToken,
+        }
+      : null,
+  ].filter(Boolean) as Array<{ key: string; label: string; token: string }>;
 
   if (isLoading) {
     return (
@@ -138,6 +198,12 @@ export function GameSummaryModal({
 
         {/* Content */}
         <div className="flex-1 overflow-auto p-4 space-y-6">
+          {submitError && (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {submitError}
+            </div>
+          )}
+
           {/* Final Score */}
           <div className="bg-neutral-800 rounded-2xl p-6">
             <h3 className="text-xs text-neutral-500 uppercase tracking-wider text-center mb-4">
@@ -369,45 +435,44 @@ export function GameSummaryModal({
                 <div>
                   <p className="text-cyan-400 font-semibold">Submitted for Verification</p>
                   <p className="text-sm text-neutral-400">
-                    Share these links with team captains to verify the stats
+                    {verificationLinks.verificationMode === 'opponent_only'
+                      ? `${autoVerifiedTeamName || 'Your team'} is already verified. Share the remaining link with ${opposingTeamName || 'the opposing captain'}.`
+                      : isCaptainSelfScoring
+                        ? 'Share these links with both captains to finish verification.'
+                        : 'Share these links with both team captains to verify the stats.'}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="bg-neutral-900/50 rounded-lg p-3">
-                  <p className="text-xs text-neutral-500 mb-1">Home Captain Link</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 text-sm text-white bg-neutral-950 px-3 py-2 rounded break-all">
-                      {getBaseUrl()}/verify/{verificationLinks.homeToken}
-                    </code>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(`${getBaseUrl()}/verify/${verificationLinks.homeToken}`)}
-                      className="p-2 text-cyan-400 hover:text-cyan-300 transition-colors touch-manipulation"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
+              {verificationLinks.verificationMode === 'opponent_only' && verificationLinks.autoVerifiedTeamType && (
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+                  {autoVerifiedTeamName || 'Submitting team'} was auto-verified when the score was submitted.
                 </div>
+              )}
 
-                <div className="bg-neutral-900/50 rounded-lg p-3">
-                  <p className="text-xs text-neutral-500 mb-1">Away Captain Link</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 text-sm text-white bg-neutral-950 px-3 py-2 rounded break-all">
-                      {getBaseUrl()}/verify/{verificationLinks.awayToken}
-                    </code>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(`${getBaseUrl()}/verify/${verificationLinks.awayToken}`)}
-                      className="p-2 text-cyan-400 hover:text-cyan-300 transition-colors touch-manipulation"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+              <div className="space-y-3">
+                {verificationLinkCards.map((link) => {
+                  const url = getVerificationUrl(link.token);
+
+                  return (
+                    <div key={link.key} className="bg-neutral-900/50 rounded-lg p-3">
+                      <p className="text-xs text-neutral-500 mb-1">{link.label}</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-sm text-white bg-neutral-950 px-3 py-2 rounded break-all">
+                          {url}
+                        </code>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(url)}
+                          className="p-2 text-cyan-400 hover:text-cyan-300 transition-colors touch-manipulation"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -416,9 +481,9 @@ export function GameSummaryModal({
           <div className="bg-neutral-800 rounded-xl p-4">
             <h3 className="text-sm font-medium text-neutral-300 mb-3">Verification Status</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className={`p-3 rounded-lg border ${game.homeVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-900 border-neutral-700'}`}>
+              <div className={`p-3 rounded-lg border ${homeVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-900 border-neutral-700'}`}>
                 <div className="flex items-center gap-2 mb-1">
-                  {game.homeVerifiedAt ? (
+                  {homeVerifiedAt ? (
                     <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
@@ -427,18 +492,22 @@ export function GameSummaryModal({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   )}
-                  <span className={game.homeVerifiedAt ? 'text-emerald-400' : 'text-neutral-400'}>
+                  <span className={homeVerifiedAt ? 'text-emerald-400' : 'text-neutral-400'}>
                     {game.homeTeam.shortName || 'Home'} Captain
                   </span>
                 </div>
                 <p className="text-xs text-neutral-500">
-                  {game.homeVerifiedAt ? 'Verified' : 'Pending verification'}
+                  {homeVerifiedAt
+                    ? verificationLinks?.autoVerifiedTeamType === 'home'
+                      ? 'Verified when score was submitted'
+                      : 'Verified'
+                    : 'Pending verification'}
                 </p>
               </div>
 
-              <div className={`p-3 rounded-lg border ${game.awayVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-900 border-neutral-700'}`}>
+              <div className={`p-3 rounded-lg border ${awayVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-900 border-neutral-700'}`}>
                 <div className="flex items-center gap-2 mb-1">
-                  {game.awayVerifiedAt ? (
+                  {awayVerifiedAt ? (
                     <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
@@ -447,12 +516,16 @@ export function GameSummaryModal({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   )}
-                  <span className={game.awayVerifiedAt ? 'text-emerald-400' : 'text-neutral-400'}>
+                  <span className={awayVerifiedAt ? 'text-emerald-400' : 'text-neutral-400'}>
                     {game.awayTeam.shortName || 'Away'} Captain
                   </span>
                 </div>
                 <p className="text-xs text-neutral-500">
-                  {game.awayVerifiedAt ? 'Verified' : 'Pending verification'}
+                  {awayVerifiedAt
+                    ? verificationLinks?.autoVerifiedTeamType === 'away'
+                      ? 'Verified when score was submitted'
+                      : 'Verified'
+                    : 'Pending verification'}
                 </p>
               </div>
             </div>

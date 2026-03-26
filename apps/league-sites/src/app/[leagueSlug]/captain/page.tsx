@@ -17,10 +17,12 @@ import {
   CheckCircle2,
   Mail,
   Goal,
+  PlayCircle,
 } from 'lucide-react';
 import { RosterManager } from '@/components/captain/RosterManager';
 import { TeamAttendance } from '@/components/captain/TeamAttendance';
 import { SubInviteModal } from '@/components/captain/SubInviteModal';
+import { getOrCreateCaptainScorekeeperSession } from '@/lib/actions/scorekeeper';
 import {
   getTeamRoster,
   getJoinRequests,
@@ -61,8 +63,11 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   const [nextLineupGame, setNextLineupGame] = useState<UpcomingLineupGame | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [subInviteGameId, setSubInviteGameId] = useState<string | null>(null);
+  const [startingScore, setStartingScore] = useState(false);
+  const [scoreError, setScoreError] = useState<string | null>(null);
 
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
+  const selfScorekeeperEnabled = league?.settings?.self_scorekeeper_enabled === true;
 
   const teamId = currentTeam?.team_id;
 
@@ -172,6 +177,28 @@ export default function CaptainPage({ params }: CaptainPageProps) {
       fetchData();
     }
   }, [currentTeam, isCaptain, profileLoading, fetchRosterData, league]);
+
+  const handleStartScoring = useCallback(async () => {
+    if (!teamId || !nextLineupGame) return;
+
+    setScoreError(null);
+    setStartingScore(true);
+
+    try {
+      const result = await getOrCreateCaptainScorekeeperSession(nextLineupGame.id, teamId);
+
+      if (result.success && result.token) {
+        window.location.href = `/${result.leagueSlug ?? leagueSlug}/scorekeeper?token=${result.token}`;
+        return;
+      }
+
+      setScoreError(result.error || 'Failed to start scoring session');
+    } catch {
+      setScoreError('Failed to start scoring session. Please try again.');
+    } finally {
+      setStartingScore(false);
+    }
+  }, [leagueSlug, nextLineupGame, teamId]);
 
   if (profileLoading || isLoading) {
     return (
@@ -335,6 +362,12 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         </div>
       </div>
 
+      {scoreError && (
+        <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {scoreError}
+        </div>
+      )}
+
       {/* Team Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <StatCard
@@ -361,10 +394,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
 
       <div className="mb-8">
         {nextLineupGame ? (
-          <Link
-            href={`/${leagueSlug}/captain/lineups/${nextLineupGame.id}`}
-            className="block rounded-3xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(34,211,238,0.16),rgba(15,23,42,0.92))] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.28)] transition-transform hover:-translate-y-0.5"
-          >
+          <div className="rounded-3xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(34,211,238,0.16),rgba(15,23,42,0.92))] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.28)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/80">
@@ -396,11 +426,31 @@ export default function CaptainPage({ params }: CaptainPageProps) {
                   </span>
                 </div>
               </div>
-              <div className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white">
-                Open lineup studio
+              <div className="flex flex-wrap items-center gap-3">
+                {selfScorekeeperEnabled && (
+                  <button
+                    type="button"
+                    onClick={handleStartScoring}
+                    disabled={startingScore}
+                    className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 text-sm font-semibold text-emerald-50 transition-colors hover:bg-emerald-400/25 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {startingScore ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <PlayCircle className="h-4 w-4" />
+                    )}
+                    {startingScore ? 'Starting...' : 'Score Game'}
+                  </button>
+                )}
+                <Link
+                  href={`/${leagueSlug}/captain/lineups/${nextLineupGame.id}`}
+                  className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15"
+                >
+                  Open lineup studio
+                </Link>
               </div>
             </div>
-          </Link>
+          </div>
         ) : (
           <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">

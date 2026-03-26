@@ -3,7 +3,12 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import type { GameData, GameEventData, CheckinPlayer } from '@/lib/actions/scorekeeper';
+import type {
+  GameData,
+  GameEventData,
+  CheckinPlayer,
+  ScorekeeperSession,
+} from '@/lib/actions/scorekeeper';
 import { undoEvent, toggleGoaliePull, updateGameStatus, saveScorekeeperNotes, refreshGameEvents, syncTimerState } from '@/lib/actions/scorekeeper';
 import { useGameTimer } from '@/hooks/useGameTimer';
 import type { TimerSyncState } from '@/hooks/useGameTimer';
@@ -29,7 +34,7 @@ interface ScoringInterfaceProps {
   game: GameData;
   events: GameEventData[];
   leagueSlug: string;
-  sessionType: 'single' | 'multi';
+  session: ScorekeeperSession;
   checkins?: { homeTeam: CheckinPlayer[]; awayTeam: CheckinPlayer[] };
 }
 
@@ -42,7 +47,7 @@ export function ScoringInterface({
   game: initialGame,
   events: initialEvents,
   leagueSlug,
-  sessionType,
+  session,
   checkins,
 }: ScoringInterfaceProps) {
   const router = useRouter();
@@ -252,7 +257,7 @@ export function ScoringInterface({
 
       {/* Top Bar: Back + Multi-game nav */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)]">
-        {sessionType === 'multi' ? (
+        {session.sessionType === 'multi' ? (
           <button
             onClick={() => router.push(`/${leagueSlug}/scorekeeper`)}
             className="flex items-center gap-1 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
@@ -558,6 +563,8 @@ export function ScoringInterface({
         <GameSummaryModal
           gameId={game.id}
           game={game}
+          leagueSlug={leagueSlug}
+          session={session}
           onClose={() => setShowGameSummary(false)}
         />
       )}

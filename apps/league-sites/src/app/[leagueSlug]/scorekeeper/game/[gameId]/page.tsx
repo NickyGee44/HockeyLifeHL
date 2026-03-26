@@ -35,7 +35,7 @@ export default async function GameScoringPage({ params }: GameScoringPageProps) 
       game={gameResult.game}
       events={eventsResult.events || []}
       leagueSlug={leagueSlug}
-      sessionType={sessionResult.session.sessionType}
+      session={sessionResult.session}
       checkins={checkinsResult?.checkins}
     />
   );
