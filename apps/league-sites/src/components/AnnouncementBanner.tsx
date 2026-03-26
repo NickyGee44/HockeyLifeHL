@@ -22,14 +22,14 @@ export function AnnouncementBanner({ announcement, leagueSlug }: AnnouncementBan
 
   return (
     <Link href={href} className="group block">
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--league-primary)]/30 bg-[var(--league-primary)]/5 px-5 py-4 transition-all hover:border-[var(--league-primary)]/50 hover:bg-[var(--league-primary)]/8">
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--league-primary-border)] bg-[var(--league-primary-muted)] px-5 py-4 transition-all hover:border-[var(--league-primary-strong)] hover:bg-[var(--league-primary-soft)]">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--league-primary)]/15">
-            <Megaphone className="h-4.5 w-4.5 text-[var(--league-primary)]" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--league-primary-soft)]">
+            <Megaphone className="h-4.5 w-4.5 text-[var(--color-accent)]" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--league-primary)]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-accent)]">
                 Announcement
               </span>
               {timeAgo && (
@@ -38,7 +38,7 @@ export function AnnouncementBanner({ announcement, leagueSlug }: AnnouncementBan
                 </span>
               )}
             </div>
-            <h3 className="font-bold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">
+            <h3 className="font-bold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--color-accent)]">
               {announcement.title}
             </h3>
             {displayText && (
@@ -47,7 +47,7 @@ export function AnnouncementBanner({ announcement, leagueSlug }: AnnouncementBan
               </p>
             )}
           </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-[var(--color-text-muted)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--league-primary)]" />
+          <ChevronRight className="h-5 w-5 shrink-0 text-[var(--color-text-muted)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--color-accent)]" />
         </div>
       </div>
     </Link>

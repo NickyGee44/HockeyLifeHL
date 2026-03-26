@@ -33,21 +33,7 @@ export function LeagueThemeProvider({ theme, children }: LeagueThemeProviderProp
     const previousTemplateVariant = root.getAttribute('data-league-template');
     const previousLeagueTheme = root.getAttribute('data-league-theme');
 
-    // Set league colors as CSS variables
-    root.style.setProperty('--league-primary', theme.primaryColor);
-    root.style.setProperty('--league-secondary', theme.secondaryColor);
-    root.style.setProperty('--league-accent', theme.accentColor);
-    root.style.setProperty('--league-font-family', theme.fontFamily);
-
-    // Calculate a hover color (slightly darker)
-    const hoverColor = adjustBrightness(theme.primaryColor, -15);
-    root.style.setProperty('--league-primary-hover', hoverColor);
-
-    // Calculate glow color (primary with transparency)
-    const glowColor = hexToRgba(theme.primaryColor, 0.2);
-    root.style.setProperty('--league-glow-color', glowColor);
-    root.style.setProperty('--color-accent-text', getContrastTextColor(theme.primaryColor));
-    root.style.setProperty('--league-secondary-contrast', getContrastTextColor(theme.secondaryColor));
+    applyLeagueCssVariables(root, theme);
 
     // Add league theme attributes (data-theme is owned by next-themes for visitor toggle)
     root.setAttribute('data-league-theme', 'true');
@@ -55,14 +41,9 @@ export function LeagueThemeProvider({ theme, children }: LeagueThemeProviderProp
 
     return () => {
       // Cleanup on unmount
-      root.style.removeProperty('--league-primary');
-      root.style.removeProperty('--league-secondary');
-      root.style.removeProperty('--league-accent');
-      root.style.removeProperty('--league-font-family');
-      root.style.removeProperty('--league-primary-hover');
-      root.style.removeProperty('--league-glow-color');
-      root.style.removeProperty('--color-accent-text');
-      root.style.removeProperty('--league-secondary-contrast');
+      for (const property of LEAGUE_THEME_CSS_PROPERTIES) {
+        root.style.removeProperty(property);
+      }
 
       if (previousLeagueTheme === null) {
         root.removeAttribute('data-league-theme');
@@ -82,54 +63,48 @@ export function LeagueThemeProvider({ theme, children }: LeagueThemeProviderProp
   return <>{children}</>;
 }
 
-/**
- * Adjust brightness of a hex color
- */
-function adjustBrightness(hex: string, percent: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
-  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
-  const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
-  return `#${((1 << 24) | (R << 16) | (G << 8) | B).toString(16).slice(1)}`;
-}
+const LEAGUE_THEME_CSS_PROPERTIES = [
+  '--league-primary-raw',
+  '--league-secondary-raw',
+  '--league-accent-raw',
+  '--league-primary',
+  '--league-secondary',
+  '--league-accent',
+  '--league-primary-strong',
+  '--league-primary-soft',
+  '--league-primary-border',
+  '--league-primary-muted',
+  '--league-secondary-safe',
+  '--league-on-primary',
+  '--league-on-secondary',
+  '--league-surface-tint',
+  '--league-surface-tint-strong',
+  '--league-font-family',
+  '--league-primary-hover',
+  '--league-glow-color',
+  '--color-accent-text',
+  '--league-secondary-contrast',
+] as const;
 
-/**
- * Convert hex to rgba
- */
-function hexToRgba(hex: string, alpha: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = (num >> 16) & 255;
-  const g = (num >> 8) & 255;
-  const b = num & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function getContrastTextColor(hex: string): string {
-  const rgb = parseHexColor(hex);
-  if (!rgb) return '#ffffff';
-
-  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-  return luminance > 0.62 ? '#0a0a0a' : '#ffffff';
-}
-
-function parseHexColor(hex: string): { r: number; g: number; b: number } | null {
-  const trimmed = hex.trim();
-  if (!trimmed.startsWith('#')) return null;
-
-  let normalized = trimmed.slice(1);
-  if (normalized.length === 3) {
-    normalized = normalized
-      .split('')
-      .map((char) => char + char)
-      .join('');
-  }
-
-  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
-
-  return {
-    r: parseInt(normalized.slice(0, 2), 16),
-    g: parseInt(normalized.slice(2, 4), 16),
-    b: parseInt(normalized.slice(4, 6), 16),
-  };
+function applyLeagueCssVariables(root: HTMLElement, theme: LeagueTheme) {
+  root.style.setProperty('--league-primary-raw', theme.primaryColor);
+  root.style.setProperty('--league-secondary-raw', theme.secondaryColor);
+  root.style.setProperty('--league-accent-raw', theme.accentColor);
+  root.style.setProperty('--league-primary', theme.primaryStrong);
+  root.style.setProperty('--league-secondary', theme.secondarySafe);
+  root.style.setProperty('--league-accent', theme.primaryStrong);
+  root.style.setProperty('--league-primary-strong', theme.primaryStrong);
+  root.style.setProperty('--league-primary-soft', theme.primarySoft);
+  root.style.setProperty('--league-primary-border', theme.primaryBorder);
+  root.style.setProperty('--league-primary-muted', theme.primaryMuted);
+  root.style.setProperty('--league-secondary-safe', theme.secondarySafe);
+  root.style.setProperty('--league-on-primary', theme.onPrimary);
+  root.style.setProperty('--league-on-secondary', theme.onSecondary);
+  root.style.setProperty('--league-surface-tint', theme.surfaceTint);
+  root.style.setProperty('--league-surface-tint-strong', theme.surfaceTintStrong);
+  root.style.setProperty('--league-font-family', theme.fontFamily);
+  root.style.setProperty('--league-primary-hover', theme.primaryStrong);
+  root.style.setProperty('--league-glow-color', theme.primarySoft);
+  root.style.setProperty('--color-accent-text', theme.onPrimary);
+  root.style.setProperty('--league-secondary-contrast', theme.onSecondary);
 }

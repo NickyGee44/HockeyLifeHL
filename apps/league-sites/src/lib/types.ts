@@ -73,6 +73,15 @@ export interface LeagueTheme {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  primaryStrong: string;
+  primarySoft: string;
+  primaryBorder: string;
+  primaryMuted: string;
+  secondarySafe: string;
+  onPrimary: string;
+  onSecondary: string;
+  surfaceTint: string;
+  surfaceTintStrong: string;
   logoUrl: string | null;
   bannerUrl: string | null;
   fontFamily: string;
@@ -183,7 +192,6 @@ export interface Player {
 
 export interface PlayerStats {
   player_id: string;
-  profile_id?: string | null;
   player_name: string;
   team_name: string;
   team_id: string;
@@ -430,7 +438,6 @@ export interface SeasonSeries {
  */
 export interface GoalieStats {
   player_id: string;
-  profile_id?: string | null;
   player_name: string;
   jersey_number: string | null;
   avatar_url?: string | null;
@@ -635,6 +642,30 @@ export interface NewsArticle {
   game_id?: string | null;
   division_id?: string | null;
   season_id?: string | null;
+}
+
+export interface ArticleLinkablePlayer {
+  id: string;
+  fullName: string;
+}
+
+export interface ArticleLinkableTeam {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface ArticleLinkableGame {
+  id: string;
+  homeTeamName: string;
+  awayTeamName: string;
+}
+
+export interface ArticleLinkContext {
+  players: ArticleLinkablePlayer[];
+  teams: ArticleLinkableTeam[];
+  games: ArticleLinkableGame[];
+  primaryGame: ArticleLinkableGame | null;
 }
 
 /** League event */

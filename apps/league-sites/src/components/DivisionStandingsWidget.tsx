@@ -46,7 +46,7 @@ export function DivisionStandingsWidget({
               px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all duration-200
               ${
                 activeDivision === division.id
-                  ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
+                  ? 'border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'
                   : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]'
               }
             `}

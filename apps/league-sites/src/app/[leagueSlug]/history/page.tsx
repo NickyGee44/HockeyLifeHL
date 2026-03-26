@@ -67,10 +67,10 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     leagueStats,
   ] = await Promise.all([
     getSeasons(league.id),
-    getStatsLeaders(league.id, 'points', 25, undefined, null, league.slug),
-    getStatsLeaders(league.id, 'goals', 25, undefined, null, league.slug),
-    getStatsLeaders(league.id, 'assists', 25, undefined, null, league.slug),
-    getGoalieLeaders(league.id, null, 'wins', 25, undefined, league.slug),
+    getStatsLeaders(league.id, 'points', 25, undefined, null),
+    getStatsLeaders(league.id, 'goals', 25, undefined, null),
+    getStatsLeaders(league.id, 'assists', 25, undefined, null),
+    getGoalieLeaders(league.id, null, 'wins', 25, undefined),
     getLeagueAwards(league.id),
     getLeagueStats(league.id),
   ]);
@@ -145,13 +145,13 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     id: `legacy-${i}`,
     type: 'legacy' as const,
     year: lc.year,
-    seasonName: lc.caption || `${lc.year} Season`,
+    seasonName: `${lc.year} Season`,
     teamName: lc.teamName || `${lc.year} Champions`,
     photo: lc.photo,
     record: null,
     roster: [],
     finalGame: null,
-    legacyCaption: lc.caption || null,
+    legacyCaption: lc.teamName || null,
   }));
 
   // Merge and sort: oldest first (left) → newest (right)
@@ -275,7 +275,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                   name: p.player_name,
                   value: p.points,
                   team: p.team_name,
-                  playerId: p.profile_id,
+                  playerId: p.player_id,
                   teamId: p.team_id,
                 }))}
               />
@@ -287,7 +287,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                   name: p.player_name,
                   value: p.goals,
                   team: p.team_name,
-                  playerId: p.profile_id,
+                  playerId: p.player_id,
                   teamId: p.team_id,
                 }))}
               />
@@ -299,7 +299,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                   name: p.player_name,
                   value: p.assists,
                   team: p.team_name,
-                  playerId: p.profile_id,
+                  playerId: p.player_id,
                   teamId: p.team_id,
                 }))}
               />

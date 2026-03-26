@@ -329,6 +329,81 @@ export type Database = {
           },
         ]
       }
+      article_team_tags: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          team_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          team_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_team_tags_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_team_tags_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      article_game_tags: {
+        Row: {
+          article_id: string
+          created_at: string
+          game_id: string
+          id: string
+          is_primary: boolean
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          game_id: string
+          id?: string
+          is_primary?: boolean
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          game_id?: string
+          id?: string
+          is_primary?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_game_tags_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_game_tags_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles: {
         Row: {
           author_id: string | null

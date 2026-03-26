@@ -2663,6 +2663,62 @@
       "assignSelected": "Assign Selected"
     }
   },
+  "financialWorkspace": {
+    "eyebrow": "Financial workspace",
+    "title": "Financials",
+    "subtitle": "One place for collection work, finance tracking, and accounting actions.",
+    "seasonScope": "Season scope",
+    "backToLeague": "Back to league",
+    "onlinePayments": "Online payments",
+    "allSeasons": "All seasons",
+    "openPayments": "Open payments",
+    "tabs": {
+      "overview": "Overview",
+      "payments": "Payments",
+      "accounting": "Accounting"
+    },
+    "payments": {
+      "live": "Live",
+      "needsAttention": "Needs attention",
+      "noSeasonSelected": "No season selected"
+    },
+    "overview": {
+      "metrics": {
+        "cashIn": "Cash in",
+        "cashInNote": "Player collections, team-side invoice cash, and manual income.",
+        "outstanding": "Outstanding",
+        "outstandingNote": "{pending} player balances still need follow-up.",
+        "expenses": "Fees and expenses",
+        "expensesNote": "Stripe fees, referee payroll, and manual expenses.",
+        "net": "Net tracked",
+        "netNote": "Operational position across tracked finance activity.",
+        "overdue": "Overdue",
+        "overdueNote": "Player balances that need attention now."
+      },
+      "attentionLabel": "Attention",
+      "attentionTitle": "What needs action",
+      "attentionDescription": "Use these shortcuts to move from overview into the right operating view.",
+      "recentLabel": "Recent activity",
+      "recentTitle": "Latest money movement",
+      "recentDescription": "Jump straight from the latest entry into the source record.",
+      "noMovement": "No finance activity has been recorded yet.",
+      "unknownCounterparty": "Unknown counterparty",
+      "allClear": "Nothing urgent is surfacing right now.",
+      "attentionItems": {
+        "overdueTitle": "{count} overdue player balances",
+        "overdueDescription": "{amount} is still outstanding in player collections.",
+        "billingTitle": "Payments need setup attention",
+        "quickbooksDisabledTitle": "Direct QuickBooks sync is not enabled yet",
+        "quickbooksDisabledDescription": "CSV export is still available from Accounting.",
+        "quickbooksConnectTitle": "QuickBooks is not connected",
+        "quickbooksConnectDescription": "Connect one QuickBooks company before running direct journal sync.",
+        "quickbooksMappingsTitle": "QuickBooks mappings still need review",
+        "quickbooksMappingsDescription": "{count} required mappings are still missing.",
+        "teamInvoicesTitle": "Team invoices still have open balances",
+        "teamInvoicesDescription": "{amount} remains open on team-side billing."
+      }
+    }
+  },
   "payments": {
     "exportReport": "Export Payment Report",
     "exportFormat": "Export Format",
@@ -2744,7 +2800,8 @@
       "markAsPaid": "Mark as Paid",
       "archivePayment": "Archive Payment",
       "archived": "Archived",
-      "allTeams": "All Teams"
+      "allTeams": "All Teams",
+      "created": "Created"
     },
     "dashboard": {
       "title": "Payment Tracking",
@@ -2781,6 +2838,9 @@
       "createSeason": "Create Season",
       "showArchived": "Show Archived",
       "hideArchived": "Hide Archived",
+      "exportAction": "Export report",
+      "exportDialogTitle": "Export player payment report",
+      "exportDialogDescription": "Choose a file format and download the current season payment report.",
       "pageOf": "Page {current} of {total}",
       "showing": "Showing {from} to {to} of {total} payments"
     },
@@ -2805,6 +2865,10 @@
       "lastReminderSent": "Last Reminder",
       "notes": "Notes",
       "feeName": "Fee",
+      "summaryTitle": "Payment summary",
+      "timelineTitle": "Timeline and status",
+      "actionsTitle": "Actions",
+      "actionsDescription": "Run reminders, record payment, or clean up the payment record from one place.",
       "archivedTitle": "Archived payment",
       "archivedOn": "Archived on {date}",
       "permanentDeleteTitle": "Permanent delete",

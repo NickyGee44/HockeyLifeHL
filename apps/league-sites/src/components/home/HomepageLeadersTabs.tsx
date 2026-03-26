@@ -22,7 +22,7 @@ function LeaderAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | n
       {avatarUrl ? (
         <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-[var(--league-primary)]/10 text-sm font-black text-[var(--league-primary)]">
+        <div className="flex h-full w-full items-center justify-center bg-[var(--league-primary-soft)] text-sm font-black text-[var(--color-accent)]">
           {name.charAt(0)}
         </div>
       )}
@@ -49,7 +49,7 @@ function SkaterRow({
       <span
         className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black ${
           rank === 1
-            ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
+            ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'
             : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
         }`}
       >
@@ -58,7 +58,7 @@ function SkaterRow({
       <div className="flex min-w-0 items-center gap-3">
         <LeaderAvatar name={player.player_name} avatarUrl={player.avatar_url} />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
+          <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--color-accent)]">
             {player.player_name}
           </p>
           <p className="truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
@@ -109,7 +109,7 @@ function GoalieRow({
       <span
         className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black ${
           rank === 1
-            ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
+            ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'
             : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
         }`}
       >
@@ -118,7 +118,7 @@ function GoalieRow({
       <div className="flex min-w-0 items-center gap-3">
         <LeaderAvatar name={goalie.player_name} avatarUrl={goalie.avatar_url} />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
+          <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--color-accent)]">
             {goalie.player_name}
           </p>
           <p className="truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
@@ -177,7 +177,7 @@ export function HomepageLeadersTabs({
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
             {eyebrow}
           </p>
           <h3 className="mt-1 text-lg font-black tracking-tight text-[var(--color-text-primary)] md:text-[1.15rem]">
@@ -189,7 +189,7 @@ export function HomepageLeadersTabs({
         </div>
         <Link
           href={statHref}
-          className="group inline-flex items-center gap-1 text-sm font-semibold text-[var(--league-primary)]"
+          className="group inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-accent)]"
         >
           Full Stats
           <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -203,7 +203,7 @@ export function HomepageLeadersTabs({
             onClick={() => setActiveTab('skaters')}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-all ${
               !isGoalieTab
-                ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
+                ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
             }`}
           >
@@ -215,7 +215,7 @@ export function HomepageLeadersTabs({
             onClick={() => setActiveTab('goalies')}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-all ${
               isGoalieTab
-                ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
+                ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
             }`}
           >

@@ -345,6 +345,9 @@ export async function gatherWeeklyWrapData(
       }));
 
     return {
+      id: g.id,
+      homeTeamId: g.home_team?.id || g.home_team_id || null,
+      awayTeamId: g.away_team?.id || g.away_team_id || null,
       homeTeam: g.home_team?.name || 'Unknown',
       awayTeam: g.away_team?.name || 'Unknown',
       homeScore: g.home_score,

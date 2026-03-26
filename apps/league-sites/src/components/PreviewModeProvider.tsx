@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, createContext, useContext } from 'react';
 import type { ThemePreset } from '@/lib/types';
+import { getBalancedLeagueColors } from '@/lib/theme-palette';
 
 /**
  * Full preview theme state received from the website editor via postMessage.
@@ -163,22 +164,35 @@ export function PreviewModeProvider({ children }: PreviewModeProviderProps) {
  */
 function applyThemeToDocument(theme: PreviewTheme): void {
   const root = document.documentElement;
+  const derivedColors = getBalancedLeagueColors({
+    primaryColor: theme.primaryColor,
+    secondaryColor: theme.secondaryColor,
+    accentColor: theme.accentColor,
+    themePreset: normalizeThemePreset(theme.themePreset),
+  });
 
   // Set league colors as CSS variables
-  root.style.setProperty('--league-primary', theme.primaryColor);
-  root.style.setProperty('--league-secondary', theme.secondaryColor);
-  root.style.setProperty('--league-accent', theme.accentColor);
+  root.style.setProperty('--league-primary-raw', derivedColors.primaryColor);
+  root.style.setProperty('--league-secondary-raw', derivedColors.secondaryColor);
+  root.style.setProperty('--league-accent-raw', derivedColors.accentColor);
+  root.style.setProperty('--league-primary', derivedColors.primaryStrong);
+  root.style.setProperty('--league-secondary', derivedColors.secondarySafe);
+  root.style.setProperty('--league-accent', derivedColors.primaryStrong);
+  root.style.setProperty('--league-primary-strong', derivedColors.primaryStrong);
+  root.style.setProperty('--league-primary-soft', derivedColors.primarySoft);
+  root.style.setProperty('--league-primary-border', derivedColors.primaryBorder);
+  root.style.setProperty('--league-primary-muted', derivedColors.primaryMuted);
+  root.style.setProperty('--league-secondary-safe', derivedColors.secondarySafe);
+  root.style.setProperty('--league-on-primary', derivedColors.onPrimary);
+  root.style.setProperty('--league-on-secondary', derivedColors.onSecondary);
+  root.style.setProperty('--league-surface-tint', derivedColors.surfaceTint);
+  root.style.setProperty('--league-surface-tint-strong', derivedColors.surfaceTintStrong);
   root.setAttribute('data-league-template', normalizeThemePreset(theme.themePreset));
 
-  // Calculate hover color (slightly darker)
-  const hoverColor = adjustBrightness(theme.primaryColor, -15);
-  root.style.setProperty('--league-primary-hover', hoverColor);
-
-  // Calculate glow color (primary with transparency)
-  const glowColor = hexToRgba(theme.primaryColor, 0.2);
-  root.style.setProperty('--league-glow-color', glowColor);
-  root.style.setProperty('--color-accent-text', getContrastTextColor(theme.primaryColor));
-  root.style.setProperty('--league-secondary-contrast', getContrastTextColor(theme.secondaryColor));
+  root.style.setProperty('--league-primary-hover', derivedColors.primaryStrong);
+  root.style.setProperty('--league-glow-color', derivedColors.primarySoft);
+  root.style.setProperty('--color-accent-text', derivedColors.onPrimary);
+  root.style.setProperty('--league-secondary-contrast', derivedColors.onSecondary);
 
   // Set font family
   if (theme.fontFamily) {
@@ -214,52 +228,6 @@ function applyThemeToDocument(theme: PreviewTheme): void {
 
   // Mark as preview mode
   root.setAttribute('data-preview-mode', 'true');
-}
-
-function adjustBrightness(hex: string, percent: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
-  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
-  const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
-  return `#${((1 << 24) | (R << 16) | (G << 8) | B).toString(16).slice(1)}`;
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = (num >> 16) & 255;
-  const g = (num >> 8) & 255;
-  const b = num & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function getContrastTextColor(hex: string): string {
-  const rgb = parseHexColor(hex);
-  if (!rgb) return '#ffffff';
-
-  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-  return luminance > 0.62 ? '#0a0a0a' : '#ffffff';
-}
-
-function parseHexColor(hex: string): { r: number; g: number; b: number } | null {
-  const trimmed = hex.trim();
-  if (!trimmed.startsWith('#')) return null;
-
-  let normalized = trimmed.slice(1);
-  if (normalized.length === 3) {
-    normalized = normalized
-      .split('')
-      .map((char) => char + char)
-      .join('');
-  }
-
-  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
-
-  return {
-    r: parseInt(normalized.slice(0, 2), 16),
-    g: parseInt(normalized.slice(2, 4), 16),
-    b: parseInt(normalized.slice(4, 6), 16),
-  };
 }
 
 function getOriginFromUrl(url: string | undefined): string | null {

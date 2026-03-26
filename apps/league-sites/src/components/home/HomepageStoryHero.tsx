@@ -93,7 +93,7 @@ function clipText(value: string, maxLength: number) {
 }
 
 function deriveSnippet(article: NewsArticle) {
-  const excerpt = stripStoryMarkup(article.excerpt?.trim() || '');
+  const excerpt = article.excerpt?.trim();
   if (excerpt) {
     return clipText(excerpt, 140);
   }
@@ -269,24 +269,24 @@ export function HomepageStoryHero({
         {
           href: `/${leagueSlug}/schedule`,
           label: 'Schedule',
-          icon: <Calendar className="h-4 w-4 text-[var(--league-primary)]" />,
+          icon: <Calendar className="h-4 w-4 text-[var(--color-accent)]" />,
         },
         {
           href: dockSecondaryCta,
           label: 'Standings',
-          icon: <Trophy className="h-4 w-4 text-[var(--league-primary)]" />,
+          icon: <Trophy className="h-4 w-4 text-[var(--color-accent)]" />,
         },
       ]
     : [
         {
           href: dockSecondaryCta,
           label: 'Standings',
-          icon: <Trophy className="h-4 w-4 text-[var(--league-primary)]" />,
+          icon: <Trophy className="h-4 w-4 text-[var(--color-accent)]" />,
         },
         {
           href: dockTertiaryCta,
           label: 'Scores',
-          icon: <TrendingUp className="h-4 w-4 text-[var(--league-primary)]" />,
+          icon: <TrendingUp className="h-4 w-4 text-[var(--color-accent)]" />,
         },
       ];
 
@@ -487,14 +487,14 @@ export function HomepageStoryHero({
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
                     {hasEditorialStage ? 'League Central' : 'League Hub'}
                   </p>
                   <h2 className="mt-2 text-3xl font-black leading-none tracking-tight text-white">
                     {league.name}
                   </h2>
                   <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-white/72">
-                    <MapPin className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+                    <MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" />
                     {locationLine}
                   </p>
                 </div>
@@ -503,8 +503,8 @@ export function HomepageStoryHero({
               <p className="mt-5 text-sm leading-6 text-white/76">{seasonNote}</p>
 
               {registrationSeason && (
-                <div className="mt-5 rounded-2xl border border-[var(--league-primary)]/28 bg-[var(--league-primary)]/10 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                <div className="mt-5 rounded-2xl border border-[var(--league-primary-border)] bg-[var(--league-primary-muted)] px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
                     Registration Open
                   </p>
                   <p className="mt-2 text-sm text-white/82">

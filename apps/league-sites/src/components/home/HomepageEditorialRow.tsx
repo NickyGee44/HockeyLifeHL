@@ -105,7 +105,7 @@ function TeamLogoBadge({
       {logoUrl ? (
         <img src={logoUrl} alt={name || 'Team logo'} className="h-full w-full object-cover" />
       ) : (
-        <span className="text-xs font-black text-[var(--league-primary)]">{name?.charAt(0) || '?'}</span>
+        <span className="text-xs font-black text-[var(--color-accent)]">{name?.charAt(0) || '?'}</span>
       )}
     </div>
   );
@@ -133,7 +133,7 @@ export function HomepageEditorialRow({
         <section className="league-shell-panel rounded-[30px] border border-[var(--color-border)] px-4 py-5 md:px-6 md:py-6">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
                 Players of the Month
               </p>
               <h2 className="mt-2 text-[1.85rem] font-black tracking-tight text-[var(--color-text-primary)]">
@@ -155,19 +155,19 @@ export function HomepageEditorialRow({
                 <Link
                   key={`${card.role}-${card.playerId}`}
                   href={card.href}
-                  className="group flex items-center gap-4 rounded-[26px] border border-[var(--color-border)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--color-surface)_88%,transparent),color-mix(in_srgb,var(--league-primary)_10%,transparent))] px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary)]"
+                  className="group flex items-center gap-4 rounded-[26px] border border-[var(--color-border)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--color-surface)_90%,transparent),color-mix(in_srgb,var(--league-surface-tint)_100%,transparent))] px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary-border)]"
                 >
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/92">
                     {card.avatarUrl ? (
                       <img src={card.avatarUrl} alt={card.playerName} className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xl font-black text-[var(--league-primary)]">{card.playerName.charAt(0)}</span>
+                      <span className="text-xl font-black text-[var(--color-accent)]">{card.playerName.charAt(0)}</span>
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-[var(--league-primary)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-accent-text)]">
+                      <span className="rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--league-on-primary)]">
                         {card.role} of the Month
                       </span>
                       {card.sourceLabel ? (
@@ -202,13 +202,13 @@ export function HomepageEditorialRow({
                         </div>
                       </div>
 
-                      <span className="rounded-full border border-[var(--league-primary)]/24 bg-[var(--league-primary)]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--league-primary)]">
+                      <span className="rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-accent)]">
                         {card.statLine}
                       </span>
                     </div>
                   </div>
 
-                  <ArrowUpRight className="hidden h-4 w-4 shrink-0 text-[var(--league-primary)] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 md:block" />
+                  <ArrowUpRight className="hidden h-4 w-4 shrink-0 text-[var(--color-accent)] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 md:block" />
                 </Link>
               );
             })}
@@ -218,7 +218,7 @@ export function HomepageEditorialRow({
         <section className="league-shell-panel rounded-[30px] border border-[var(--color-border)] px-4 py-5 md:px-6 md:py-6">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
                 Around the League
               </p>
               <h2 className="mt-2 text-[1.85rem] font-black tracking-tight text-[var(--color-text-primary)]">
@@ -227,7 +227,7 @@ export function HomepageEditorialRow({
             </div>
             <Link
               href={`/${leagueSlug}/news`}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary)] hover:text-[var(--league-primary)]"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary-border)] hover:text-[var(--color-accent)]"
             >
               All News
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -240,7 +240,7 @@ export function HomepageEditorialRow({
                 <Link
                   key={article.id}
                   href={`/${leagueSlug}/news/${article.slug || article.id}`}
-                  className="group flex gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/74 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary)]"
+                  className="group flex gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/74 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary-border)]"
                 >
                   <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)]">
                     {article.image_url ? (
@@ -260,7 +260,7 @@ export function HomepageEditorialRow({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
                       {getArticleLabel(article.type)} | {formatArticleDate(article.published_at || article.created_at)}
                     </p>
                     <h3 className="mt-1.5 line-clamp-2 text-base font-black leading-tight text-[var(--color-text-primary)]">
@@ -281,7 +281,7 @@ export function HomepageEditorialRow({
 
           {displayEvents.length > 0 ? (
             <div className="mt-5 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 p-4">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
                 <CalendarDays className="h-4 w-4" />
                 Next on the Calendar
               </div>
@@ -291,7 +291,7 @@ export function HomepageEditorialRow({
                   <Link
                     key={event.id}
                     href={`/${leagueSlug}/events`}
-                    className="flex items-start justify-between gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 px-3.5 py-3 transition-colors duration-200 hover:border-[var(--league-primary)]"
+                    className="flex items-start justify-between gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 px-3.5 py-3 transition-colors duration-200 hover:border-[var(--league-primary-border)]"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{event.title}</p>

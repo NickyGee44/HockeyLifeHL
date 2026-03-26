@@ -15,13 +15,12 @@ import {
   Filter,
   ChevronDown,
   ChevronUp,
-  MoreVertical,
-  Mail,
-  RefreshCw,
-  DollarSign,
+  ArrowUpRight,
   AlertCircle,
   CheckCircle,
   Clock,
+  DollarSign,
+  RefreshCw,
   XCircle,
   Users,
 } from 'lucide-react';
@@ -30,21 +29,11 @@ import type {
   PlayerPaymentStatus,
   PaymentPlanType,
 } from '@/lib/payments/types';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface PaymentStatusTableProps {
   payments: PlayerPaymentWithDetails[];
   teams?: { id: string; name: string }[];
-  onRefund?: (payment: PlayerPaymentWithDetails) => void;
-  onSendReminder?: (payment: PlayerPaymentWithDetails) => void;
   onViewDetails?: (payment: PlayerPaymentWithDetails) => void;
-  onMarkAsPaid?: (payment: PlayerPaymentWithDetails) => void;
-  onArchive?: (payment: PlayerPaymentWithDetails) => void;
   isLoading?: boolean;
 }
 
@@ -131,11 +120,7 @@ function SortIcon({ field, currentSortField, sortDirection }: SortIconProps) {
 export function PaymentStatusTable({
   payments,
   teams,
-  onRefund,
-  onSendReminder,
   onViewDetails,
-  onMarkAsPaid,
-  onArchive,
   isLoading = false,
 }: PaymentStatusTableProps) {
   const t = useTranslations('payments.statusTable');
@@ -219,18 +204,6 @@ export function PaymentStatusTable({
     return `$${(cents / 100).toFixed(2)}`;
   };
 
-  // Calculate summary stats
-  const stats = useMemo(() => {
-    const total = payments.length;
-    const paid = payments.filter((p) => p.status === 'paid').length;
-    const partial = payments.filter((p) => p.status === 'partially_paid').length;
-    const overdue = payments.filter((p) => p.status === 'overdue').length;
-    const totalExpected = payments.reduce((sum, p) => sum + p.total_amount_cents, 0);
-    const totalCollected = payments.reduce((sum, p) => sum + p.amount_paid_cents, 0);
-
-    return { total, paid, partial, overdue, totalExpected, totalCollected };
-  }, [payments]);
-
   if (isLoading) {
     return (
       <div className="bg-neutral-800 border border-white/10 rounded-2xl p-8">
@@ -243,47 +216,15 @@ export function PaymentStatusTable({
   }
 
   return (
-    <div className="bg-neutral-800 border border-white/10 rounded-2xl overflow-hidden">
-      {/* Header with Stats */}
-      <div className="p-6 border-b border-neutral-700">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <h3 className="text-lg font-semibold text-white">{t('title')}</h3>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="px-3 py-1 bg-neutral-700 rounded-lg text-neutral-300">
-              {t('total', { count: stats.total })}
-            </span>
-            <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400">
-              {t('paid', { count: stats.paid })}
-            </span>
-            {stats.overdue > 0 && (
-              <span className="px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
-                {t('overdue', { count: stats.overdue })}
-              </span>
-            )}
+    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/20">
+      <div className="border-b border-white/10 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">{t('title')}</h3>
+            <p className="mt-1 text-sm text-neutral-400">{t('showing', { shown: filteredPayments.length, total: payments.length })}</p>
           </div>
-        </div>
 
-        {/* Collection Progress */}
-        <div className="mb-4">
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-neutral-400">{t('collectionProgress')}</span>
-            <span className="text-white">
-              {formatCurrency(stats.totalCollected)} / {formatCurrency(stats.totalExpected)}
-            </span>
-          </div>
-          <div className="h-2 bg-neutral-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-rink-500 to-arena-500 rounded-full transition-all"
-              style={{
-                width: `${stats.totalExpected > 0 ? (stats.totalCollected / stats.totalExpected) * 100 : 0}%`,
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search */}
+          <div className="flex flex-col gap-3 lg:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
             <input
@@ -295,7 +236,6 @@ export function PaymentStatusTable({
             />
           </div>
 
-          {/* Status Filter */}
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
             <select
@@ -313,7 +253,6 @@ export function PaymentStatusTable({
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none" />
           </div>
 
-          {/* Team Filter */}
           {teams && teams.length > 0 && (
             <div className="relative">
               <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
@@ -334,12 +273,12 @@ export function PaymentStatusTable({
           )}
         </div>
       </div>
+      </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-neutral-900/50">
+            <tr className="bg-neutral-900/70">
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-white"
                 onClick={() => handleSort('player')}
@@ -388,6 +327,9 @@ export function PaymentStatusTable({
               <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider">
                 {t('plan')}
               </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider">
+                {t('created')}
+              </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-neutral-400 uppercase tracking-wider">
                 {t('actions')}
               </th>
@@ -396,7 +338,7 @@ export function PaymentStatusTable({
           <tbody className="divide-y divide-neutral-700">
             {filteredPayments.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
                   {searchQuery || statusFilter !== 'all' || teamFilter !== 'all'
                     ? t('noMatchingFilters')
                     : t('noPaymentsYet')}
@@ -414,9 +356,8 @@ export function PaymentStatusTable({
                 return (
                   <tr
                     key={payment.id}
-                    className="hover:bg-neutral-700/30 transition-colors"
+                    className="border-t border-white/5 hover:bg-white/[0.03] transition-colors"
                   >
-                    {/* Player */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
@@ -433,14 +374,12 @@ export function PaymentStatusTable({
                       </div>
                     </td>
 
-                    {/* Team */}
                     <td className="px-4 py-3">
                       <span className="text-sm text-neutral-300">
                         {payment.team?.name || '-'}
                       </span>
                     </td>
 
-                    {/* Amount */}
                     <td className="px-4 py-3">
                       <div>
                         <p className="text-sm font-medium text-white">
@@ -452,7 +391,6 @@ export function PaymentStatusTable({
                       </div>
                     </td>
 
-                    {/* Progress */}
                     <td className="px-4 py-3">
                       <div className="w-24">
                         <div className="flex justify-between text-xs mb-1">
@@ -478,7 +416,6 @@ export function PaymentStatusTable({
                       </div>
                     </td>
 
-                    {/* Status */}
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-1.5">
                         <span
@@ -496,76 +433,27 @@ export function PaymentStatusTable({
                       </div>
                     </td>
 
-                    {/* Payment Plan */}
                     <td className="px-4 py-3">
                       <span className="text-sm text-neutral-300">
                         {tPlan(PAYMENT_PLAN_KEYS[payment.payment_plan])}
                       </span>
                     </td>
 
-                    {/* Actions */}
+                    <td className="px-4 py-3 text-sm text-neutral-400">
+                      {new Date(payment.created_at).toLocaleDateString()}
+                    </td>
+
                     <td className="px-4 py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-lg transition-colors">
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          {onViewDetails && (
-                            <DropdownMenuItem
-                              onSelect={() => onViewDetails(payment)}
-                              className="flex items-center gap-2 text-neutral-200"
-                            >
-                              <DollarSign className="h-4 w-4" />
-                              {t('viewDetails')}
-                            </DropdownMenuItem>
-                          )}
-                          {onMarkAsPaid &&
-                            ['pending', 'partially_paid', 'overdue'].includes(payment.status) && (
-                              <DropdownMenuItem
-                                onSelect={() => onMarkAsPaid(payment)}
-                                className="flex items-center gap-2 text-green-400 focus:text-green-300"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                {t('markAsPaid')}
-                              </DropdownMenuItem>
-                            )}
-                          {onSendReminder &&
-                            ['pending', 'partially_paid', 'overdue'].includes(payment.status) && (
-                              <DropdownMenuItem
-                                onSelect={() => onSendReminder(payment)}
-                                className="flex items-center gap-2 text-neutral-200"
-                              >
-                                <Mail className="h-4 w-4" />
-                                {t('sendReminder')}
-                              </DropdownMenuItem>
-                            )}
-                          {onRefund &&
-                            ['paid', 'partially_paid'].includes(payment.status) &&
-                            payment.amount_paid_cents > 0 && (
-                              <DropdownMenuItem
-                                onSelect={() => onRefund(payment)}
-                                className="flex items-center gap-2 text-red-400 focus:text-red-300"
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                                {t('issueRefund')}
-                              </DropdownMenuItem>
-                            )}
-                          {onArchive &&
-                            !payment.archived_at &&
-                            payment.amount_paid_cents <= 0 &&
-                            ['pending', 'overdue', 'cancelled', 'failed'].includes(payment.status) && (
-                              <DropdownMenuItem
-                                onSelect={() => onArchive(payment)}
-                                className="flex items-center gap-2 text-amber-300 focus:text-amber-200"
-                              >
-                                <Archive className="h-4 w-4" />
-                                {t('archivePayment')}
-                              </DropdownMenuItem>
-                            )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {onViewDetails ? (
+                        <button
+                          type="button"
+                          onClick={() => onViewDetails(payment)}
+                          className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-neutral-100 transition hover:bg-white/[0.08]"
+                        >
+                          {t('viewDetails')}
+                          <ArrowUpRight className="h-4 w-4" />
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 );
@@ -575,14 +463,6 @@ export function PaymentStatusTable({
         </table>
       </div>
 
-      {/* Footer */}
-      {filteredPayments.length > 0 && (
-        <div className="px-4 py-3 border-t border-neutral-700 bg-neutral-900/30">
-          <p className="text-xs text-neutral-500">
-            {t('showing', { shown: filteredPayments.length, total: payments.length })}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
