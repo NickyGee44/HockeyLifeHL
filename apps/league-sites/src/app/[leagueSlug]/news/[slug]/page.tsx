@@ -5,7 +5,8 @@ import { ArrowLeft, Calendar, Clock3, Swords, User } from 'lucide-react';
 import { SubscriptionWall } from '@/components/shared';
 import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
 import { RichArticleContent } from '@/components/news/RichArticleContent';
-import { getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
+import { buildArticleMentions } from '@/lib/articles/linkify';
+import { getArticleLinkContext, getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
 
 interface ArticlePageProps {
   params: Promise<{ leagueSlug: string; slug: string }>;
@@ -39,10 +40,18 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const article = await getNewsArticleBySlug(league.id, slug);
   if (!article) return notFound();
 
+  const articleLinkContext = await getArticleLinkContext(article.id, league.id, article.game_id);
+  const primaryGameId = articleLinkContext.primaryGame?.id || article.game_id || null;
   const [taggedPlayers, relatedGame] = await Promise.all([
     getArticlePlayerTags(article.id),
-    article.game_id ? getGamePreview(article.game_id) : Promise.resolve(null),
+    primaryGameId ? getGamePreview(primaryGameId) : Promise.resolve(null),
   ]);
+  const articleMentions = buildArticleMentions({
+    leagueSlug,
+    players: articleLinkContext.players,
+    teams: articleLinkContext.teams,
+    games: articleLinkContext.games,
+  });
 
   const publishedDate = article.published_at || article.created_at;
   const formattedDate = new Date(publishedDate).toLocaleDateString('en-US', {
@@ -199,9 +208,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       </Link>
                     </div>
                   </div>
-                ) : article.game_id ? (
+                ) : primaryGameId ? (
                   <Link
-                    href={`/${leagueSlug}/games/${article.game_id}`}
+                    href={`/${leagueSlug}/games/${primaryGameId}`}
                     className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 px-4 py-2 text-sm font-semibold text-[var(--league-primary)]"
                   >
                     <Swords className="h-4 w-4" />
@@ -216,7 +225,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </section>
 
             <div className="pt-6">
-              <RichArticleContent content={article.content} />
+              <RichArticleContent content={article.content} mentions={articleMentions} />
             </div>
           </div>
         </article>

@@ -54,6 +54,66 @@ async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<any
   };
 }
 
+function uniqueIds(values: Array<string | null | undefined>) {
+  return [...new Set(values.filter(Boolean) as string[])];
+}
+
+async function insertArticleEntityTags(
+  supabase: any,
+  args: {
+    articleId: string;
+    linkedPlayerIds?: string[];
+    starPlayerIds?: string[];
+    linkedTeamIds?: string[];
+    linkedGameIds?: string[];
+    primaryGameId?: string | null;
+  },
+) {
+  const linkedPlayerIds = uniqueIds([
+    ...(args.linkedPlayerIds || []),
+    ...(args.starPlayerIds || []),
+  ]);
+  const linkedTeamIds = uniqueIds(args.linkedTeamIds || []);
+  const linkedGameIds = uniqueIds(args.linkedGameIds || []);
+  const primaryGameId = args.primaryGameId && linkedGameIds.includes(args.primaryGameId)
+    ? args.primaryGameId
+    : null;
+
+  if (linkedPlayerIds.length > 0) {
+    const tags = linkedPlayerIds.map((playerId: string) => ({
+      article_id: args.articleId,
+      player_id: playerId,
+      mention_type: (args.starPlayerIds || []).includes(playerId) ? 'star' : 'mentioned',
+    }));
+    await supabase.from('article_player_tags').insert(tags);
+  }
+
+  if (linkedTeamIds.length > 0) {
+    const tags = linkedTeamIds.map((teamId: string) => ({
+      article_id: args.articleId,
+      team_id: teamId,
+    }));
+    await supabase.from('article_team_tags').insert(tags);
+  }
+
+  if (linkedGameIds.length > 0) {
+    const tags = linkedGameIds.map((gameId: string) => ({
+      article_id: args.articleId,
+      game_id: gameId,
+      is_primary: primaryGameId ? gameId === primaryGameId : false,
+    }));
+    await supabase.from('article_game_tags').insert(tags);
+  }
+
+  await supabase
+    .from('articles')
+    .update({
+      game_id: primaryGameId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', args.articleId);
+}
+
 async function handleGameRecap(supabase: any, gameId: string) {
   // Check dedup
   const { data: existing } = await supabase
@@ -123,17 +183,14 @@ async function handleGameRecap(supabase: any, gameId: string) {
 
     if (articleError) throw articleError;
 
-    // Insert player tags
-    const allTaggedIds = [...new Set([...tagged_player_ids, ...star_player_ids])];
-    if (allTaggedIds.length > 0) {
-      const tags = allTaggedIds.map((playerId: string) => ({
-        article_id: article.id,
-        player_id: playerId,
-        mention_type: star_player_ids.includes(playerId) ? 'star' : 'mentioned',
-      }));
-
-      await supabase.from('article_player_tags').insert(tags);
-    }
+    await insertArticleEntityTags(supabase, {
+      articleId: article.id,
+      linkedPlayerIds: tagged_player_ids,
+      starPlayerIds: star_player_ids,
+      linkedTeamIds: uniqueIds([gameData.homeTeam?.id, gameData.awayTeam?.id]),
+      linkedGameIds: [gameId],
+      primaryGameId: gameId,
+    });
 
     // Update log
     const generationTime = Date.now() - startTime;
@@ -276,6 +333,11 @@ async function handleWeeklyWrapAll(supabase: any) {
 
         const { title, excerpt, content, tagged_player_ids = [], star_player_ids = [] } = parsed;
 
+        const linkedGameIds = uniqueIds(weeklyData.games.map((game: any) => game.id));
+        const linkedTeamIds = uniqueIds(
+          weeklyData.games.flatMap((game: any) => [game.homeTeamId, game.awayTeamId]),
+        );
+
         // Insert article
         const { data: article } = await supabase
           .from('articles')
@@ -283,6 +345,7 @@ async function handleWeeklyWrapAll(supabase: any) {
             league_id: league.id,
             season_id: weeklyData.season_id,
             division_id: division.id,
+            game_id: null,
             title,
             excerpt,
             content,
@@ -294,15 +357,15 @@ async function handleWeeklyWrapAll(supabase: any) {
           .select('id')
           .single();
 
-        // Insert player tags
-        const allTaggedIds = [...new Set([...tagged_player_ids, ...star_player_ids])];
-        if (allTaggedIds.length > 0 && article) {
-          const tags = allTaggedIds.map((playerId: string) => ({
-            article_id: article.id,
-            player_id: playerId,
-            mention_type: star_player_ids.includes(playerId) ? 'star' : 'mentioned',
-          }));
-          await supabase.from('article_player_tags').insert(tags);
+        if (article) {
+          await insertArticleEntityTags(supabase, {
+            articleId: article.id,
+            linkedPlayerIds: tagged_player_ids,
+            starPlayerIds: star_player_ids,
+            linkedTeamIds,
+            linkedGameIds,
+            primaryGameId: null,
+          });
         }
 
         // Update log

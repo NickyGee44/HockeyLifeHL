@@ -644,6 +644,30 @@ export interface NewsArticle {
   season_id?: string | null;
 }
 
+export interface ArticleLinkablePlayer {
+  id: string;
+  fullName: string;
+}
+
+export interface ArticleLinkableTeam {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface ArticleLinkableGame {
+  id: string;
+  homeTeamName: string;
+  awayTeamName: string;
+}
+
+export interface ArticleLinkContext {
+  players: ArticleLinkablePlayer[];
+  teams: ArticleLinkableTeam[];
+  games: ArticleLinkableGame[];
+  primaryGame: ArticleLinkableGame | null;
+}
+
 /** League event */
 export interface LeagueEvent {
   id: string;

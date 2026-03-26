@@ -1,8 +1,9 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { verifyLeagueOwnerAccess } from './permissions';
+import { syncArticleEntityTags } from './article-entities';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -18,9 +19,12 @@ export interface NewsArticle {
   excerpt: string | null;
   slug: string | null;
   image_url: string | null;
-  article_type: string;
+  type: string;
+  article_type?: string;
   published: boolean;
   author_id: string | null;
+  season_id: string | null;
+  game_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +36,11 @@ export interface CreateNewsArticleParams {
   excerpt?: string;
   imageUrl?: string;
   slug?: string;
+  seasonId?: string | null;
+  linkedPlayerIds?: string[];
+  linkedTeamIds?: string[];
+  linkedGameIds?: string[];
+  primaryGameId?: string | null;
 }
 
 export interface UpdateNewsArticleParams {
@@ -41,6 +50,11 @@ export interface UpdateNewsArticleParams {
   imageUrl?: string;
   slug?: string;
   published?: boolean;
+  seasonId?: string | null;
+  linkedPlayerIds?: string[];
+  linkedTeamIds?: string[];
+  linkedGameIds?: string[];
+  primaryGameId?: string | null;
 }
 
 export type ActionResult<T = void> =
@@ -57,6 +71,17 @@ function generateSlug(title: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .substring(0, 100);
+}
+
+function normalizeNewsArticle(article: any): NewsArticle {
+  return {
+    ...article,
+    type: article.type,
+    article_type: article.type,
+    published: Boolean(article.published),
+    season_id: article.season_id || null,
+    game_id: article.game_id || null,
+  };
 }
 
 // ==============================================================================
@@ -84,7 +109,7 @@ export async function getNewsArticles(leagueId: string): Promise<ActionResult<Ne
       return { success: false, error: 'Failed to fetch articles' };
     }
 
-    return { success: true, data: (articles || []) as unknown as NewsArticle[] };
+    return { success: true, data: (articles || []).map(normalizeNewsArticle) };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in getNewsArticles:', error);
@@ -97,14 +122,13 @@ export async function getNewsArticles(leagueId: string): Promise<ActionResult<Ne
  * Get a single news article by ID
  */
 export async function getNewsArticle(articleId: string): Promise<ActionResult<NewsArticle>> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
     const { data: article, error } = await supabase
       .from('articles')
       .select('*')
       .eq('id', articleId)
-      .eq('type', 'news')
       .single();
 
     if (error || !article) {
@@ -114,7 +138,12 @@ export async function getNewsArticle(articleId: string): Promise<ActionResult<Ne
       return { success: false, error: 'Article not found' };
     }
 
-    return { success: true, data: article as unknown as NewsArticle };
+    const access = await verifyLeagueOwnerAccess(article.league_id);
+    if (!access.authorized) {
+      return { success: false, error: access.error || 'Not authorized' };
+    }
+
+    return { success: true, data: normalizeNewsArticle(article) };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in getNewsArticle:', error);
@@ -127,7 +156,12 @@ export async function getNewsArticle(articleId: string): Promise<ActionResult<Ne
  * Get all articles for a league (all types, for admin dashboard)
  */
 export async function getAllLeagueArticles(leagueId: string): Promise<ActionResult<NewsArticle[]>> {
-  const supabase = await createClient();
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  const supabase = createServiceRoleClient();
 
   try {
     const { data: articles, error } = await supabase
@@ -143,7 +177,7 @@ export async function getAllLeagueArticles(leagueId: string): Promise<ActionResu
       return { success: false, error: 'Failed to fetch articles' };
     }
 
-    return { success: true, data: (articles || []) as unknown as NewsArticle[] };
+    return { success: true, data: (articles || []).map(normalizeNewsArticle) };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in getAllLeagueArticles:', error);
@@ -160,7 +194,19 @@ export async function getAllLeagueArticles(leagueId: string): Promise<ActionResu
  * Create a new news article
  */
 export async function createNewsArticle(params: CreateNewsArticleParams): Promise<ActionResult<NewsArticle>> {
-  const { leagueId, title, content, excerpt, imageUrl, slug } = params;
+  const {
+    leagueId,
+    title,
+    content,
+    excerpt,
+    imageUrl,
+    slug,
+    seasonId,
+    linkedPlayerIds,
+    linkedTeamIds,
+    linkedGameIds,
+    primaryGameId,
+  } = params;
 
   // Verify access
   const access = await verifyLeagueOwnerAccess(leagueId);
@@ -169,6 +215,7 @@ export async function createNewsArticle(params: CreateNewsArticleParams): Promis
   }
 
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
 
   try {
     // Get current user for author_id
@@ -176,7 +223,7 @@ export async function createNewsArticle(params: CreateNewsArticleParams): Promis
 
     const articleSlug = slug || generateSlug(title);
 
-    const { data: article, error } = await (supabase
+    const { data: article, error } = await (serviceSupabase
       .from('articles') as any)
       .insert({
         league_id: leagueId,
@@ -188,6 +235,7 @@ export async function createNewsArticle(params: CreateNewsArticleParams): Promis
         type: 'news',
         published: false,
         author_id: user?.id || null,
+        season_id: seasonId || null,
       })
       .select()
       .single();
@@ -199,8 +247,16 @@ export async function createNewsArticle(params: CreateNewsArticleParams): Promis
       return { success: false, error: 'Failed to create article' };
     }
 
+    await syncArticleEntityTags({
+      articleId: article.id,
+      linkedPlayerIds,
+      linkedTeamIds,
+      linkedGameIds,
+      primaryGameId,
+    });
+
     revalidatePath(`/dashboard/leagues/${leagueId}/news`);
-    return { success: true, data: article as NewsArticle };
+    return { success: true, data: normalizeNewsArticle(article) };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in createNewsArticle:', error);
@@ -221,14 +277,14 @@ export async function updateNewsArticle(
   updates: UpdateNewsArticleParams
 ): Promise<ActionResult<NewsArticle>> {
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
 
   try {
     // Get article to verify league ownership
-    const { data: existingArticle, error: fetchError } = await supabase
+    const { data: existingArticle, error: fetchError } = await serviceSupabase
       .from('articles')
-      .select('league_id')
+      .select('league_id, type')
       .eq('id', articleId)
-      .eq('type', 'news')
       .single();
 
     if (fetchError || !existingArticle) {
@@ -251,8 +307,9 @@ export async function updateNewsArticle(
     if (updates.imageUrl !== undefined) updateData.image_url = updates.imageUrl;
     if (updates.slug !== undefined) updateData.slug = updates.slug;
     if (updates.published !== undefined) updateData.published = updates.published;
+    if (updates.seasonId !== undefined) updateData.season_id = updates.seasonId;
 
-    const { data: article, error } = await supabase
+    const { data: article, error } = await serviceSupabase
       .from('articles')
       .update(updateData)
       .eq('id', articleId)
@@ -266,8 +323,16 @@ export async function updateNewsArticle(
       return { success: false, error: 'Failed to update article' };
     }
 
+    await syncArticleEntityTags({
+      articleId,
+      linkedPlayerIds: updates.linkedPlayerIds,
+      linkedTeamIds: updates.linkedTeamIds,
+      linkedGameIds: updates.linkedGameIds,
+      primaryGameId: updates.primaryGameId,
+    });
+
     revalidatePath(`/dashboard/leagues/${existingArticle.league_id}/news`);
-    return { success: true, data: article as unknown as NewsArticle };
+    return { success: true, data: normalizeNewsArticle(article) };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in updateNewsArticle:', error);
@@ -298,7 +363,7 @@ export async function unpublishNewsArticle(articleId: string): Promise<ActionRes
  * Delete a news article
  */
 export async function deleteNewsArticle(articleId: string): Promise<ActionResult<void>> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
     // Get article to verify league ownership
@@ -306,7 +371,6 @@ export async function deleteNewsArticle(articleId: string): Promise<ActionResult
       .from('articles')
       .select('league_id')
       .eq('id', articleId)
-      .eq('type', 'news')
       .single();
 
     if (fetchError || !article) {
