@@ -2025,7 +2025,48 @@ export async function getUnifiedSkaterStatsRows(
   leagueId: string,
   seasonId?: string | null,
   divisionId?: string,
+  leagueSlug?: string,
 ): Promise<UnifiedSkaterStatsRow[]> {
+  if (seasonId === null && supportsLegacyAllTimeStats(leagueSlug)) {
+    const legacyRows = await getLegacyAllTimePlayers();
+
+    return legacyRows
+      .filter((row) => !row.is_goalie)
+      .map((row) => {
+        const gamesPlayed = toSafeNumber(row.games_played);
+        const goals = toSafeNumber(row.goals);
+        const assists = toSafeNumber(row.assists);
+        const points = toSafeNumber(row.points);
+
+        return {
+          player_id: row.matched_to_profile_id || row.id,
+          player_name: getLegacyPlayerName(row),
+          avatar_url: null,
+          team_id: '',
+          team_name: LEGACY_ALL_TIME_TEAM_LABEL,
+          division_name: null,
+          position: null,
+          games_played: gamesPlayed,
+          goals,
+          assists,
+          points,
+          points_per_game: gamesPlayed > 0 ? roundStatValue(points / gamesPlayed) : 0,
+          goals_per_game: gamesPlayed > 0 ? roundStatValue(goals / gamesPlayed) : 0,
+          assists_per_game: gamesPlayed > 0 ? roundStatValue(assists / gamesPlayed) : 0,
+          penalty_minutes: 0,
+          plus_minus: 0,
+          power_play_goals: 0,
+          power_play_assists: 0,
+          power_play_points: 0,
+          short_handed_goals: 0,
+          short_handed_assists: 0,
+          game_winning_goals: 0,
+          empty_net_goals: 0,
+          shots: 0,
+          shots_per_game: 0,
+        } satisfies UnifiedSkaterStatsRow;
+      });
+  }
   const filteredTeamIds = await getFilteredTeamIds(leagueId, divisionId);
   if (divisionId && filteredTeamIds && filteredTeamIds.length === 0) {
     return [];
@@ -2191,7 +2232,56 @@ export async function getUnifiedGoalieStatsRows(
   leagueId: string,
   seasonId?: string | null,
   divisionId?: string,
+  leagueSlug?: string,
 ): Promise<UnifiedGoalieStatsRow[]> {
+  if (seasonId === null && supportsLegacyAllTimeStats(leagueSlug)) {
+    const legacyRows = await getLegacyAllTimePlayers();
+    const supabase = createServiceRoleClient();
+
+    const goalies: UnifiedGoalieStatsRow[] = legacyRows
+      .filter((row) => Boolean(row.is_goalie))
+      .map((row) => ({
+        player_id: row.matched_to_profile_id || row.id,
+        player_name: getLegacyPlayerName(row),
+        avatar_url: null,
+        team_id: '',
+        team_name: LEGACY_ALL_TIME_TEAM_LABEL,
+        division_name: null,
+        position: 'G',
+        games_played: toSafeNumber(row.games_played),
+        wins: toSafeNumber(row.wins),
+        losses: Math.max(toSafeNumber(row.games_played) - toSafeNumber(row.wins) - toSafeNumber(row.ties), 0),
+        saves: toSafeNumber(row.saves),
+        goals_against: toSafeNumber(row.goals_against),
+        save_percentage: (() => {
+          const normalized = normalizeSavePercentage(row.save_percentage);
+          return normalized > 0 ? roundStatValue(normalized * 100, 1) : null;
+        })(),
+        goals_against_average: row.goals_against_average == null ? null : roundStatValue(toSafeNumber(row.goals_against_average)),
+        shutouts: toSafeNumber(row.shutouts),
+      } satisfies UnifiedGoalieStatsRow));
+
+    const profileIds = goalies
+      .map((goalie) => goalie.player_id)
+      .filter((profileId) => Boolean(profileId) && profileId.includes('-'));
+
+    if (profileIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, avatar_url')
+        .in('id', profileIds);
+
+      const avatarMap = new Map<string, string | null>(
+        (profiles || []).map((profile: { id: string; avatar_url: string | null }) => [profile.id, profile.avatar_url]),
+      );
+
+      for (const goalie of goalies) {
+        goalie.avatar_url = avatarMap.get(goalie.player_id) || null;
+      }
+    }
+
+    return goalies;
+  }
   const filteredTeamIds = await getFilteredTeamIds(leagueId, divisionId);
   if (divisionId && filteredTeamIds && filteredTeamIds.length === 0) {
     return [];
@@ -3527,13 +3617,97 @@ export async function getLeagueAwards(leagueId: string, seasonId?: string): Prom
   const supabase = await createClient();
   let query = supabase
     .from('league_awards')
-    .select('*, player:profiles(full_name, avatar_url), team:teams(name, logo_url), season:seasons(name)')
+    .select('*, player:profiles(full_name, avatar_url), team:teams(name, logo_url, division:divisions(name)), season:seasons(name)')
     .eq('league_id', leagueId)
     .order('created_at', { ascending: false });
   if (seasonId) query = query.eq('season_id', seasonId);
   const { data, error } = await query;
   if (error || !data) return [];
-  return data as unknown as LeagueAward[];
+
+  const awards = data as unknown as LeagueAward[];
+  const playerIds = [...new Set(awards.map((award) => award.player_id).filter(Boolean))] as string[];
+  const seasonIds = [...new Set(awards.map((award) => award.season_id).filter(Boolean))] as string[];
+
+  if (playerIds.length === 0) {
+    return awards.map((award) => ({
+      ...award,
+      division_name: award.team?.division?.name || null,
+    }));
+  }
+
+  let rosterQuery = supabase
+    .from('team_rosters')
+    .select(`
+      player_id,
+      team_id,
+      season_id,
+      position,
+      jersey_number,
+      is_goalie,
+      team:teams(name, logo_url, division:divisions(name))
+    `)
+    .in('player_id', playerIds);
+
+  if (seasonIds.length > 0) {
+    rosterQuery = rosterQuery.in('season_id', seasonIds);
+  }
+
+  type AwardRosterRow = {
+    player_id: string;
+    team_id: string;
+    season_id: string | null;
+    position: string | null;
+    jersey_number: number | null;
+    is_goalie?: boolean | null;
+    team?: {
+      name?: string | null;
+      logo_url?: string | null;
+      division?: { name?: string | null } | { name?: string | null }[] | null;
+    } | {
+      name?: string | null;
+      logo_url?: string | null;
+      division?: { name?: string | null } | { name?: string | null }[] | null;
+    }[] | null;
+  };
+
+  const { data: rosterRows } = await rosterQuery;
+  const rosterMap = new Map<string, AwardRosterRow[]>();
+
+  for (const row of (rosterRows || []) as unknown as AwardRosterRow[]) {
+    const key = `${row.player_id}:${row.season_id ?? 'any'}`;
+    const existing = rosterMap.get(key) || [];
+    existing.push(row);
+    rosterMap.set(key, existing);
+  }
+
+  return awards.map((award) => {
+    const candidates = award.player_id
+      ? rosterMap.get(`${award.player_id}:${award.season_id ?? 'any'}`) || rosterMap.get(`${award.player_id}:any`) || []
+      : [];
+    const matchedRoster =
+      candidates.find((row) => !award.team_id || row.team_id === award.team_id) ||
+      candidates[0] ||
+      null;
+    const rosterTeam = unwrapJoinedRecord(matchedRoster?.team);
+    const divisionName =
+      award.team?.division?.name ||
+      getJoinedDivisionName(rosterTeam?.division) ||
+      null;
+
+    return {
+      ...award,
+      team: award.team || (rosterTeam
+        ? {
+            name: rosterTeam.name || 'Unknown Team',
+            logo_url: rosterTeam.logo_url || null,
+            division: divisionName ? { name: divisionName } : null,
+          }
+        : null),
+      roster_position: matchedRoster?.position || (matchedRoster?.is_goalie ? 'Goalie' : null),
+      roster_jersey_number: matchedRoster?.jersey_number ?? null,
+      division_name: divisionName,
+    };
+  });
 }
 
 // ========== SPECIAL TEAMS STATS ==========

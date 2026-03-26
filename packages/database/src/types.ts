@@ -6994,9 +6994,105 @@ export type Database = {
           },
         ]
       }
+      player_payment_deletion_log: {
+        Row: {
+          delete_reason: string
+          deleted_at: string
+          deleted_by: string | null
+          id: string
+          league_id: string
+          payment_snapshot: Json
+          player_id: string | null
+          player_payment_id: string
+          season_id: string | null
+        }
+        Insert: {
+          delete_reason: string
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          league_id: string
+          payment_snapshot?: Json
+          player_id?: string | null
+          player_payment_id: string
+          season_id?: string | null
+        }
+        Update: {
+          delete_reason?: string
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          league_id?: string
+          payment_snapshot?: Json
+          player_id?: string | null
+          player_payment_id?: string
+          season_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_payment_deletion_log_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_payment_deletion_log_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_payment_deletion_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_payment_deletion_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_payment_deletion_log_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_payment_deletion_log_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_payment_deletion_log_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_payment_deletion_log_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_payments: {
         Row: {
           amount_paid_cents: number
+          archived_at: string | null
+          archived_by: string | null
+          archived_reason: string | null
           base_amount_cents: number
           created_at: string
           currency: string
@@ -7027,6 +7123,9 @@ export type Database = {
         }
         Insert: {
           amount_paid_cents?: number
+          archived_at?: string | null
+          archived_by?: string | null
+          archived_reason?: string | null
           base_amount_cents: number
           created_at?: string
           currency?: string
@@ -7057,6 +7156,9 @@ export type Database = {
         }
         Update: {
           amount_paid_cents?: number
+          archived_at?: string | null
+          archived_by?: string | null
+          archived_reason?: string | null
           base_amount_cents?: number
           created_at?: string
           currency?: string
@@ -7086,6 +7188,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "player_payments_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_payments_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "player_payments_league_id_fkey"
             columns: ["league_id"]

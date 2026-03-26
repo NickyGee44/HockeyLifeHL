@@ -738,6 +738,7 @@ export async function getAvailableFeesForPlayer(
       .select('season_fee_id')
       .eq('player_id', playerId)
       .eq('season_id', seasonId)
+      .is('archived_at', null)
       .not('status', 'in', '(cancelled)');
 
     const paidFeeIds = new Set(existingPayments?.map((p) => p.season_fee_id) || []);

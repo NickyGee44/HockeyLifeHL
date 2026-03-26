@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('id', playerPaymentId)
       .eq('player_id', user.id)
+      .is('archived_at', null)
       .single();
 
     if (paymentError || !playerPayment) {

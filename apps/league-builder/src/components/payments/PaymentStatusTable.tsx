@@ -10,6 +10,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import {
+  Archive,
   Search,
   Filter,
   ChevronDown,
@@ -43,6 +44,7 @@ interface PaymentStatusTableProps {
   onSendReminder?: (payment: PlayerPaymentWithDetails) => void;
   onViewDetails?: (payment: PlayerPaymentWithDetails) => void;
   onMarkAsPaid?: (payment: PlayerPaymentWithDetails) => void;
+  onArchive?: (payment: PlayerPaymentWithDetails) => void;
   isLoading?: boolean;
 }
 
@@ -133,6 +135,7 @@ export function PaymentStatusTable({
   onSendReminder,
   onViewDetails,
   onMarkAsPaid,
+  onArchive,
   isLoading = false,
 }: PaymentStatusTableProps) {
   const t = useTranslations('payments.statusTable');
@@ -477,12 +480,20 @@ export function PaymentStatusTable({
 
                     {/* Status */}
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full border ${statusConfig.className}`}
-                      >
-                        <StatusIcon className="h-3 w-3" />
-                        {tStatus(statusConfig.labelKey)}
-                      </span>
+                      <div className="flex flex-col items-start gap-1.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full border ${statusConfig.className}`}
+                        >
+                          <StatusIcon className="h-3 w-3" />
+                          {tStatus(statusConfig.labelKey)}
+                        </span>
+                        {payment.archived_at && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-neutral-600 bg-neutral-800 px-2 py-0.5 text-[11px] font-medium text-neutral-300">
+                            <Archive className="h-3 w-3" />
+                            {t('archived')}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Payment Plan */}
@@ -539,6 +550,18 @@ export function PaymentStatusTable({
                               >
                                 <RefreshCw className="h-4 w-4" />
                                 {t('issueRefund')}
+                              </DropdownMenuItem>
+                            )}
+                          {onArchive &&
+                            !payment.archived_at &&
+                            payment.amount_paid_cents <= 0 &&
+                            ['pending', 'overdue', 'cancelled', 'failed'].includes(payment.status) && (
+                              <DropdownMenuItem
+                                onSelect={() => onArchive(payment)}
+                                className="flex items-center gap-2 text-amber-300 focus:text-amber-200"
+                              >
+                                <Archive className="h-4 w-4" />
+                                {t('archivePayment')}
                               </DropdownMenuItem>
                             )}
                         </DropdownMenuContent>

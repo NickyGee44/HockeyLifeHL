@@ -70,7 +70,9 @@ type ManualPlayoffGameInput = {
   location?: string | null;
 };
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+type AuthenticatedSupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type ServiceRoleSupabaseClient = ReturnType<typeof createServiceRoleClient>;
+type SupabaseQueryClient = AuthenticatedSupabaseClient | ServiceRoleSupabaseClient;
 
 type PlayoffSeriesCapabilities = {
   hasDivisionScope: boolean;
@@ -86,6 +88,12 @@ type ScheduledPlayoffGameSummary = {
 const OVERALL_BRACKET_KEY = 'overall';
 const PLAYOFF_SERIES_DIVISION_ID_MISSING =
   "Could not find the 'division_id' column of 'playoff_series' in the schema cache";
+const PLAYOFF_BRACKET_WRITE_FAILURE =
+  'Playoff bracket changes are temporarily unavailable. Please try again after playoff access is updated.';
+const PLAYOFF_GAME_WRITE_FAILURE =
+  'Playoff game scheduling is temporarily unavailable. Please try again after playoff access is updated.';
+const PLAYOFF_RESULT_WRITE_FAILURE =
+  'Playoff results could not be saved right now. Please try again in a moment.';
 
 function isMissingPlayoffSeriesDivisionScopeError(
   error: { message?: string | null } | null | undefined,
@@ -93,8 +101,34 @@ function isMissingPlayoffSeriesDivisionScopeError(
   return error?.message?.includes(PLAYOFF_SERIES_DIVISION_ID_MISSING) ?? false;
 }
 
+function isPlayoffSeriesRlsError(
+  error: { message?: string | null } | null | undefined,
+) {
+  const message = error?.message?.toLowerCase() ?? '';
+  return message.includes('row-level security') && message.includes('playoff_series');
+}
+
+function logPlayoffWriteError(context: string, error: unknown) {
+  console.error(`[playoff-bracket] ${context}:`, error);
+}
+
+function normalizePlayoffWriteError(
+  fallbackMessage: string,
+  error: { message?: string | null } | null | undefined,
+) {
+  if (isMissingPlayoffSeriesDivisionScopeError(error)) {
+    return 'This environment is missing division-scoped playoff support. Apply the playoff_series division migration, then try again.';
+  }
+
+  if (isPlayoffSeriesRlsError(error)) {
+    return fallbackMessage;
+  }
+
+  return fallbackMessage;
+}
+
 async function getPlayoffSeriesCapabilities(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseQueryClient,
 ): Promise<PlayoffSeriesCapabilities> {
   const { error } = await supabase
     .from('playoff_series')
@@ -119,7 +153,7 @@ function applyDivisionScope(query: any, divisionId: string | null, capabilities:
 }
 
 async function getDivisionNameMap(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseQueryClient,
   divisionIds: string[],
 ) {
   if (divisionIds.length === 0) {
@@ -135,7 +169,7 @@ async function getDivisionNameMap(
 }
 
 async function getScheduledPlayoffGameMap(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseQueryClient,
   leagueId: string,
   seasonId: string,
 ) {
@@ -179,7 +213,7 @@ async function getScheduledPlayoffGameMap(
 }
 
 async function fetchPlayoffBracketData(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseQueryClient,
   leagueId: string,
   seasonId: string,
   capabilities: PlayoffSeriesCapabilities,
@@ -330,7 +364,7 @@ function addDays(dateString: string, days: number) {
 }
 
 async function revalidatePlayoffPaths(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseQueryClient,
   leagueId: string,
   seasonId: string,
 ) {
@@ -351,7 +385,7 @@ async function revalidatePlayoffPaths(
 }
 
 async function finalizeSeasonIfReady(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseQueryClient,
   seasonId: string,
   capabilities: PlayoffSeriesCapabilities,
 ) {
@@ -400,17 +434,21 @@ async function finalizeSeasonIfReady(
     ? [...championsByScope.values()][0] ?? null
     : null;
 
-  await supabase
+  const { error: seasonUpdateError } = await supabase
     .from('seasons')
     .update({
       champion_team_id: championTeamId,
       status: 'completed',
     })
     .eq('id', seasonId);
+
+  if (seasonUpdateError) {
+    throw new Error(seasonUpdateError.message);
+  }
 }
 
 async function createPlayoffGamesFromManualEntries(
-  supabase: SupabaseServerClient,
+  supabase: SupabaseQueryClient,
   leagueId: string,
   seasonId: string,
   entries: ManualPlayoffGameInput[],
@@ -620,6 +658,7 @@ export async function generatePlayoffBracket(
   }
 
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
   const capabilities = await getPlayoffSeriesCapabilities(supabase);
 
   const [seasonResult, configResult] = await Promise.all([
@@ -674,8 +713,26 @@ export async function generatePlayoffBracket(
     };
   }
 
-  await supabase.from('games').delete().eq('season_id', seasonId).eq('game_type', 'playoff');
-  await supabase.from('playoff_series').delete().eq('season_id', seasonId);
+  const { error: deleteGamesError } = await serviceClient
+    .from('games')
+    .delete()
+    .eq('season_id', seasonId)
+    .eq('game_type', 'playoff');
+
+  if (deleteGamesError) {
+    logPlayoffWriteError('delete existing playoff games', deleteGamesError);
+    return { success: false, error: PLAYOFF_BRACKET_WRITE_FAILURE };
+  }
+
+  const { error: deleteSeriesError } = await serviceClient
+    .from('playoff_series')
+    .delete()
+    .eq('season_id', seasonId);
+
+  if (deleteSeriesError) {
+    logPlayoffWriteError('delete existing playoff series', deleteSeriesError);
+    return { success: false, error: PLAYOFF_BRACKET_WRITE_FAILURE };
+  }
 
   const seriesToInsert = generationResult.data.flatMap((scope) =>
     scope.series.map((series) => ({
@@ -693,20 +750,26 @@ export async function generatePlayoffBracket(
     })),
   );
 
-  const { error: insertError } = await supabase.from('playoff_series').insert(seriesToInsert);
+  const { error: insertError } = await serviceClient.from('playoff_series').insert(seriesToInsert);
   if (insertError) {
-    const errorMessage = isMissingPlayoffSeriesDivisionScopeError(insertError)
-      ? 'This environment is missing division-scoped playoff support. Apply the playoff_series division migration, then try again.'
-      : insertError.message;
-    return { success: false, error: `Failed to create bracket: ${errorMessage}` };
+    logPlayoffWriteError('insert playoff series', insertError);
+    return {
+      success: false,
+      error: normalizePlayoffWriteError(PLAYOFF_BRACKET_WRITE_FAILURE, insertError),
+    };
   }
 
-  await supabase
+  const { error: seasonUpdateError } = await serviceClient
     .from('seasons')
     .update({ status: 'playoffs' })
     .eq('id', seasonId);
 
-  const bracketResult = await fetchPlayoffBracketData(supabase, leagueId, seasonId, capabilities);
+  if (seasonUpdateError) {
+    logPlayoffWriteError('update season to playoffs', seasonUpdateError);
+    return { success: false, error: PLAYOFF_BRACKET_WRITE_FAILURE };
+  }
+
+  const bracketResult = await fetchPlayoffBracketData(serviceClient, leagueId, seasonId, capabilities);
   if (!bracketResult.success || !bracketResult.data) {
     return {
       success: false,
@@ -738,6 +801,7 @@ export async function autoScheduleOpeningPlayoffGames(
   }
 
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
   const capabilities = await getPlayoffSeriesCapabilities(supabase);
   const bracketResult = await fetchPlayoffBracketData(supabase, leagueId, seasonId, capabilities);
 
@@ -821,17 +885,23 @@ export async function autoScheduleOpeningPlayoffGames(
     slots,
   );
 
-  const result = await createPlayoffGamesFromManualEntries(
-    supabase,
-    leagueId,
-    seasonId,
-    assignments.map((entry) => ({
-      seriesId: entry.seriesId,
-      scheduledAt: entry.scheduledAt,
-      venueId: entry.venueId,
-      location: entry.location,
-    })),
-  );
+  let result;
+  try {
+    result = await createPlayoffGamesFromManualEntries(
+      serviceClient,
+      leagueId,
+      seasonId,
+      assignments.map((entry) => ({
+        seriesId: entry.seriesId,
+        scheduledAt: entry.scheduledAt,
+        venueId: entry.venueId,
+        location: entry.location,
+      })),
+    );
+  } catch (error) {
+    logPlayoffWriteError('auto schedule opening playoff games', error);
+    return { success: false, error: PLAYOFF_GAME_WRITE_FAILURE };
+  }
 
   await revalidatePlayoffPaths(supabase, leagueId, seasonId);
 
@@ -868,14 +938,16 @@ export async function scheduleOpeningPlayoffGames(
   }
 
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
   let result;
 
   try {
-    result = await createPlayoffGamesFromManualEntries(supabase, leagueId, seasonId, validSchedules);
+    result = await createPlayoffGamesFromManualEntries(serviceClient, leagueId, seasonId, validSchedules);
   } catch (error) {
+    logPlayoffWriteError('schedule opening playoff games', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to schedule playoff games',
+      error: PLAYOFF_GAME_WRITE_FAILURE,
     };
   }
 
@@ -918,9 +990,10 @@ export async function recordSeriesWin(
   }
 
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
   const capabilities = await getPlayoffSeriesCapabilities(supabase);
 
-  const { data: series, error } = await supabase
+  const { data: series, error } = await serviceClient
     .from('playoff_series')
     .select('*')
     .eq('id', seriesId)
@@ -934,7 +1007,7 @@ export async function recordSeriesWin(
     return { success: false, error: 'Series already completed' };
   }
 
-  const formatResult = await supabase
+  const formatResult = await serviceClient
     .from('seasons')
     .select('playoff_format')
     .eq('id', seasonId)
@@ -950,7 +1023,7 @@ export async function recordSeriesWin(
   const winnerId = highWon ? series.high_seed_id : lowWon ? series.low_seed_id : null;
   const newStatus: string = highWon || lowWon ? 'completed' : 'in_progress';
 
-  await supabase
+  const { error: updateSeriesError } = await serviceClient
     .from('playoff_series')
     .update({
       high_seed_wins: newHighWins,
@@ -960,11 +1033,16 @@ export async function recordSeriesWin(
     })
     .eq('id', seriesId);
 
+  if (updateSeriesError) {
+    logPlayoffWriteError('record series win', updateSeriesError);
+    return { success: false, error: PLAYOFF_RESULT_WRITE_FAILURE };
+  }
+
   if (winnerId) {
     const nextRound = series.round_number + 1;
     const nextSeriesNumber = Math.ceil(series.series_number / 2);
 
-    let nextSeriesQuery = supabase
+    let nextSeriesQuery = serviceClient
       .from('playoff_series')
       .select('*')
       .eq('season_id', seasonId)
@@ -977,13 +1055,23 @@ export async function recordSeriesWin(
 
     if (nextSeries) {
       const isHighSlot = series.series_number % 2 === 1;
-      await supabase
+      const { error: advanceError } = await serviceClient
         .from('playoff_series')
         .update(isHighSlot ? { high_seed_id: winnerId } : { low_seed_id: winnerId })
         .eq('id', nextSeries.id);
+
+      if (advanceError) {
+        logPlayoffWriteError('advance winner to next series', advanceError);
+        return { success: false, error: PLAYOFF_RESULT_WRITE_FAILURE };
+      }
     }
 
-    await finalizeSeasonIfReady(supabase, seasonId, capabilities);
+    try {
+      await finalizeSeasonIfReady(serviceClient, seasonId, capabilities);
+    } catch (error) {
+      logPlayoffWriteError('finalize playoff season', error);
+      return { success: false, error: PLAYOFF_RESULT_WRITE_FAILURE };
+    }
   }
 
   await revalidatePlayoffPaths(supabase, leagueId, seasonId);
@@ -1003,8 +1091,9 @@ export async function schedulePlayoffGame(
   }
 
   const supabase = await createClient();
+  const serviceClient = createServiceRoleClient();
 
-  const { data: series, error: seriesError } = await supabase
+  const { data: series, error: seriesError } = await serviceClient
     .from('playoff_series')
     .select('*')
     .eq('id', seriesId)
@@ -1022,7 +1111,7 @@ export async function schedulePlayoffGame(
     return { success: false, error: 'Series is already complete' };
   }
 
-  const { data: game, error: insertError } = await supabase
+  const { data: game, error: insertError } = await serviceClient
     .from('games')
     .insert({
       league_id: leagueId,
@@ -1041,14 +1130,22 @@ export async function schedulePlayoffGame(
     .single();
 
   if (insertError || !game) {
-    return { success: false, error: insertError?.message ?? 'Failed to create game' };
+    if (insertError) {
+      logPlayoffWriteError('schedule playoff game', insertError);
+    }
+    return { success: false, error: PLAYOFF_GAME_WRITE_FAILURE };
   }
 
   if (series.status === 'pending') {
-    await supabase
+    const { error: markSeriesError } = await serviceClient
       .from('playoff_series')
       .update({ status: 'in_progress' })
       .eq('id', seriesId);
+
+    if (markSeriesError) {
+      logPlayoffWriteError('mark playoff series in progress', markSeriesError);
+      return { success: false, error: PLAYOFF_RESULT_WRITE_FAILURE };
+    }
   }
 
   await revalidatePlayoffPaths(supabase, leagueId, seasonId);

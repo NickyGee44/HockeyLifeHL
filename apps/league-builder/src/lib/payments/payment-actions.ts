@@ -25,6 +25,13 @@ import {
   buildRegistrationPaymentStatus,
   recalculateTeamInvoiceForTeam,
 } from '@/lib/payments/team-contributions';
+import {
+  ARCHIVE_REASON_CONFIRMATION,
+  canArchivePayment,
+  canPermanentlyDeletePayment,
+  getArchivedPaymentError,
+  type PaymentCleanupTransaction,
+} from './payment-cleanup-helpers';
 import type {
   PlayerPayment,
   PlayerPaymentWithDetails,
@@ -38,8 +45,16 @@ import type {
   PaymentPlanType,
   ActionResult,
   PlayerPaymentStatus,
+  ArchivePlayerPaymentParams,
+  PermanentlyDeletePlayerPaymentParams,
 } from './types';
 import type { Json } from '@hockey-life/database';
+
+function revalidatePaymentManagementPaths(leagueId: string) {
+  revalidatePath(`/dashboard/leagues/${leagueId}/payments`);
+  revalidatePath(`/dashboard/leagues/${leagueId}/finance`);
+  revalidatePath(`/dashboard/leagues/${leagueId}/billing`);
+}
 
 // ============================================================================
 // Helper: Get Current User
@@ -85,6 +100,38 @@ async function verifyLeagueAdminAccess(
 
   if (!['owner', 'admin'].includes(membership.role)) {
     return { error: 'Only league owners and admins can perform this action.' };
+  }
+
+  if (membership.status !== 'active') {
+    return { error: 'Your league membership is not active.' };
+  }
+
+  return { userId: user.id };
+}
+
+async function verifyLeagueOwnerAccess(
+  leagueId: string
+): Promise<{ userId: string } | { error: string }> {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return { error: 'Authentication required. Please sign in.' };
+  }
+
+  const { data: membership, error: membershipError } = await supabase
+    .from('league_memberships')
+    .select('role, status')
+    .eq('league_id', leagueId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (membershipError || !membership) {
+    return { error: 'You do not have access to this league.' };
+  }
+
+  if (membership.role !== 'owner') {
+    return { error: 'Only league owners can permanently delete payment records.' };
   }
 
   if (membership.status !== 'active') {
@@ -220,7 +267,10 @@ export async function createPlayerPayment(
       .select('id, status')
       .eq('player_id', params.playerId)
       .eq('season_fee_id', params.seasonFeeId)
-      .single();
+      .is('archived_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (existingPayment && existingPayment.status !== 'cancelled') {
       return { success: false, error: 'You already have a payment record for this fee.' };
@@ -366,6 +416,7 @@ export async function createCheckoutSession(
       `
       )
       .eq('id', params.playerPaymentId)
+      .is('archived_at', null)
       .single();
 
     if (paymentError || !payment) {
@@ -534,6 +585,7 @@ export async function getMyPayments(): Promise<ActionResult<PlayerPaymentWithDet
       `
       )
       .eq('player_id', user.id)
+      .is('archived_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -541,7 +593,7 @@ export async function getMyPayments(): Promise<ActionResult<PlayerPaymentWithDet
       return { success: false, error: 'Failed to fetch payments.' };
     }
 
-    return { success: true, data: (payments || []) as PlayerPaymentWithDetails[] };
+    return { success: true, data: (payments || []) as unknown as PlayerPaymentWithDetails[] };
   } catch (error) {
     console.error('[Payments] Unexpected error in getMyPayments:', sanitizeErrorForLogging(error));
     return { success: false, error: 'An unexpected error occurred.' };
@@ -554,7 +606,13 @@ export async function getMyPayments(): Promise<ActionResult<PlayerPaymentWithDet
 
 export async function getLeaguePlayerPayments(
   leagueId: string,
-  options?: { seasonId?: string; status?: string; limit?: number; offset?: number }
+  options?: {
+    seasonId?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+    includeArchived?: boolean;
+  }
 ): Promise<ActionResult<{ payments: PlayerPaymentWithDetails[]; total: number }>> {
   try {
     const access = await verifyLeagueAdminAccess(leagueId);
@@ -562,7 +620,7 @@ export async function getLeaguePlayerPayments(
       return { success: false, error: access.error };
     }
 
-    const { limit = 50, offset = 0 } = options || {};
+    const { limit = 50, offset = 0, includeArchived = false } = options || {};
     const supabase = await createClient();
 
     let query = supabase
@@ -579,6 +637,10 @@ export async function getLeaguePlayerPayments(
       .eq('league_id', leagueId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
+
+    if (!includeArchived) {
+      query = query.is('archived_at', null);
+    }
 
     if (options?.seasonId) {
       query = query.eq('season_id', options.seasonId);
@@ -598,7 +660,7 @@ export async function getLeaguePlayerPayments(
     return {
       success: true,
       data: {
-        payments: (payments || []) as PlayerPaymentWithDetails[],
+        payments: (payments || []) as unknown as PlayerPaymentWithDetails[],
         total: count || 0,
       },
     };
@@ -633,6 +695,11 @@ export async function refundPlayerPayment(
     const access = await verifyLeagueAdminAccess(payment.league_id);
     if ('error' in access) {
       return { success: false, error: access.error };
+    }
+
+    const archivedError = getArchivedPaymentError(payment as PlayerPayment);
+    if (archivedError) {
+      return { success: false, error: archivedError };
     }
 
     // Check payment status
@@ -771,7 +838,7 @@ export async function refundPlayerPayment(
       params.playerPaymentId
     );
 
-    revalidatePath(`/dashboard/leagues/${payment.league_id}/payments`);
+    revalidatePaymentManagementPaths(payment.league_id);
 
     return {
       success: true,
@@ -804,36 +871,43 @@ export async function getPaymentSummary(
 
     const supabase = await createClient();
 
-    const { data, error } = await supabase.rpc('get_payment_summary', {
-      p_league_id: leagueId,
-      p_season_id: seasonId,
-    });
+    const { data, error } = await supabase
+      .from('player_payments')
+      .select('status, total_amount_cents, amount_paid_cents')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .is('archived_at', null);
 
     if (error) {
       console.error('[Payments] Get payment summary error:', sanitizeErrorForLogging(error));
       return { success: false, error: 'Failed to get payment summary.' };
     }
 
-    const row = data?.[0] || {
-      total_expected_cents: 0,
-      total_collected_cents: 0,
-      total_outstanding_cents: 0,
-      players_paid_full: 0,
-      players_partial: 0,
-      players_pending: 0,
-      players_overdue: 0,
-    };
+    const payments = data || [];
 
     return {
       success: true,
       data: {
-        totalExpectedCents: row.total_expected_cents,
-        totalCollectedCents: row.total_collected_cents,
-        totalOutstandingCents: row.total_outstanding_cents,
-        playersPaidFull: row.players_paid_full,
-        playersPartial: row.players_partial,
-        playersPending: row.players_pending,
-        playersOverdue: row.players_overdue,
+        totalExpectedCents: payments.reduce(
+          (sum, payment) => sum + (payment.total_amount_cents ?? 0),
+          0
+        ),
+        totalCollectedCents: payments.reduce(
+          (sum, payment) => sum + (payment.amount_paid_cents ?? 0),
+          0
+        ),
+        totalOutstandingCents: payments.reduce(
+          (sum, payment) =>
+            sum +
+            Math.max(0, (payment.total_amount_cents ?? 0) - (payment.amount_paid_cents ?? 0)),
+          0
+        ),
+        playersPaidFull: payments.filter((payment) => payment.status === 'paid').length,
+        playersPartial: payments.filter((payment) => payment.status === 'partially_paid').length,
+        playersPending: payments.filter((payment) =>
+          ['pending', 'processing'].includes(payment.status)
+        ).length,
+        playersOverdue: payments.filter((payment) => payment.status === 'overdue').length,
       },
     };
   } catch (error) {
@@ -870,6 +944,7 @@ export async function exportPaymentReport(
       )
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
+      .is('archived_at', null)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -946,6 +1021,11 @@ export async function sendPaymentReminder(
       return { success: false, error: access.error };
     }
 
+    const archivedError = getArchivedPaymentError(payment as PlayerPayment);
+    if (archivedError) {
+      return { success: false, error: archivedError };
+    }
+
     // Check if payment needs a reminder
     if (['paid', 'cancelled', 'refunded'].includes(payment.status)) {
       return { success: false, error: 'This payment does not need a reminder.' };
@@ -1003,7 +1083,7 @@ export async function sendPaymentReminder(
       paymentId
     );
 
-    revalidatePath(`/dashboard/leagues/${payment.league_id}/payments`);
+    revalidatePaymentManagementPaths(payment.league_id);
     return { success: true, data: { remindersSent: 1 } };
   } catch (error) {
     console.error('[Payments] Unexpected error in sendPaymentReminder:', sanitizeErrorForLogging(error));
@@ -1040,6 +1120,11 @@ export async function updatePaymentStatus(
       return { success: false, error: access.error };
     }
 
+    const archivedError = getArchivedPaymentError(payment as PlayerPayment);
+    if (archivedError) {
+      return { success: false, error: archivedError };
+    }
+
     // Update status
     const serviceSupabase = createServiceRoleClient();
     const { data: updated, error: updateError } = await serviceSupabase
@@ -1069,7 +1154,7 @@ export async function updatePaymentStatus(
       paymentId
     );
 
-    revalidatePath(`/dashboard/leagues/${payment.league_id}/payments`);
+    revalidatePaymentManagementPaths(payment.league_id);
     return { success: true, data: updated as PlayerPayment };
   } catch (error) {
     console.error('[Payments] Unexpected error in updatePaymentStatus:', sanitizeErrorForLogging(error));
@@ -1131,6 +1216,7 @@ export async function getTeamPayments(
         { count: 'exact' }
       )
       .eq('team_id', teamId)
+      .is('archived_at', null)
       .order('created_at', { ascending: false });
 
     if (options?.seasonId) {
@@ -1151,7 +1237,7 @@ export async function getTeamPayments(
     return {
       success: true,
       data: {
-        payments: (payments || []) as PlayerPaymentWithDetails[],
+        payments: (payments || []) as unknown as PlayerPaymentWithDetails[],
         total: count || 0,
       },
     };
@@ -1180,7 +1266,8 @@ export async function getTeamPaymentSummary(
     let query = supabase
       .from('player_payments')
       .select('status, total_amount_cents, amount_paid_cents')
-      .eq('team_id', teamId);
+      .eq('team_id', teamId)
+      .is('archived_at', null);
 
     if (seasonId) {
       query = query.eq('season_id', seasonId);
@@ -1348,8 +1435,7 @@ export async function markPaymentAsPaid(
       paymentId
     );
 
-    revalidatePath(`/dashboard/leagues/${payment.league_id}/payments`);
-    revalidatePath(`/dashboard/leagues/${payment.league_id}/billing`);
+    revalidatePaymentManagementPaths(payment.league_id);
     return { success: true, data: updated as PlayerPayment };
   } catch (error) {
     console.error('[Payments] Unexpected error in markPaymentAsPaid:', sanitizeErrorForLogging(error));
@@ -1385,6 +1471,7 @@ export async function sendBulkPaymentReminders(
       )
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
+      .is('archived_at', null)
       .in('status', ['pending', 'partially_paid', 'overdue']);
 
     if (fetchError) {
@@ -1456,7 +1543,7 @@ export async function sendBulkPaymentReminders(
       access.userId,
     );
 
-    revalidatePath(`/dashboard/leagues/${leagueId}/payments`);
+    revalidatePaymentManagementPaths(leagueId);
     return { success: true, data: { remindersSent, failed } };
   } catch (error) {
     console.error(
@@ -1468,7 +1555,215 @@ export async function sendBulkPaymentReminders(
 }
 
 // ============================================================================
-// 14. Season Settlement Invoice (platform admin)
+// 14. Archive / Delete Payment Records
+// ============================================================================
+
+export async function archivePlayerPayment(
+  params: ArchivePlayerPaymentParams
+): Promise<ActionResult<PlayerPayment>> {
+  try {
+    const reason = params.reason.trim();
+    if (!reason) {
+      return { success: false, error: 'An archive reason is required.' };
+    }
+
+    const supabase = await createClient();
+    const { data: payment, error: paymentError } = await supabase
+      .from('player_payments')
+      .select('*')
+      .eq('id', params.paymentId)
+      .single();
+
+    if (paymentError || !payment) {
+      return { success: false, error: 'Payment not found.' };
+    }
+
+    const access = await verifyLeagueAdminAccess(payment.league_id);
+    if ('error' in access) {
+      return { success: false, error: access.error };
+    }
+
+    const serviceSupabase = createServiceRoleClient();
+    const { data: transactions, error: transactionsError } = await serviceSupabase
+      .from('payment_transactions')
+      .select('id, transaction_type, status')
+      .eq('player_payment_id', payment.id);
+
+    if (transactionsError) {
+      console.error('[Payments] Archive payment transaction lookup error:', sanitizeErrorForLogging(transactionsError));
+      return { success: false, error: 'Failed to validate payment history.' };
+    }
+
+    const archiveError = canArchivePayment(
+      payment as PlayerPayment,
+      (transactions || []) as PaymentCleanupTransaction[]
+    );
+    if (archiveError) {
+      return { success: false, error: archiveError };
+    }
+
+    const archivedAt = new Date().toISOString();
+    const archiveNote = `[Archived] ${reason}`;
+    const { data: updated, error: updateError } = await serviceSupabase
+      .from('player_payments')
+      .update({
+        status: 'cancelled',
+        archived_at: archivedAt,
+        archived_by: access.userId,
+        archived_reason: reason,
+        notes: payment.notes ? `${payment.notes}\n${archiveNote}` : archiveNote,
+      })
+      .eq('id', payment.id)
+      .select()
+      .single();
+
+    if (updateError || !updated) {
+      console.error('[Payments] Archive payment update error:', sanitizeErrorForLogging(updateError));
+      return { success: false, error: 'Failed to archive payment.' };
+    }
+
+    await logPaymentAuditEvent(
+      payment.league_id,
+      'payment_archived',
+      {
+        old_status: payment.status,
+        archived_at: archivedAt,
+        archived_reason: reason,
+      },
+      access.userId,
+      payment.id
+    );
+
+    revalidatePaymentManagementPaths(payment.league_id);
+    return { success: true, data: updated as PlayerPayment };
+  } catch (error) {
+    console.error('[Payments] Unexpected error in archivePlayerPayment:', sanitizeErrorForLogging(error));
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+export async function permanentlyDeletePlayerPayment(
+  params: PermanentlyDeletePlayerPaymentParams
+): Promise<ActionResult<void>> {
+  try {
+    const reason = params.reason.trim();
+    if (!reason) {
+      return { success: false, error: 'A delete reason is required.' };
+    }
+
+    if (params.confirmationText.trim().toUpperCase() !== ARCHIVE_REASON_CONFIRMATION) {
+      return {
+        success: false,
+        error: `Type ${ARCHIVE_REASON_CONFIRMATION} to confirm permanent deletion.`,
+      };
+    }
+
+    const supabase = await createClient();
+    const { data: payment, error: paymentError } = await supabase
+      .from('player_payments')
+      .select('*')
+      .eq('id', params.paymentId)
+      .single();
+
+    if (paymentError || !payment) {
+      return { success: false, error: 'Payment not found.' };
+    }
+
+    const access = await verifyLeagueOwnerAccess(payment.league_id);
+    if ('error' in access) {
+      return { success: false, error: access.error };
+    }
+
+    const serviceSupabase = createServiceRoleClient();
+    const [{ data: transactions, error: transactionsError }, { count: disputeCount, error: disputeError }] =
+      await Promise.all([
+        serviceSupabase
+          .from('payment_transactions')
+          .select('id, transaction_type, status')
+          .eq('player_payment_id', payment.id),
+        serviceSupabase
+          .from('payment_disputes')
+          .select('id', { count: 'exact', head: true })
+          .eq('player_payment_id', payment.id),
+      ]);
+
+    if (transactionsError) {
+      console.error('[Payments] Permanent delete transaction lookup error:', sanitizeErrorForLogging(transactionsError));
+      return { success: false, error: 'Failed to validate payment history.' };
+    }
+    if (disputeError) {
+      console.error('[Payments] Permanent delete dispute lookup error:', sanitizeErrorForLogging(disputeError));
+      return { success: false, error: 'Failed to validate dispute history.' };
+    }
+
+    const deleteError = canPermanentlyDeletePayment(
+      payment as PlayerPayment,
+      (transactions || []) as PaymentCleanupTransaction[],
+      disputeCount || 0
+    );
+    if (deleteError) {
+      return { success: false, error: deleteError };
+    }
+
+    const paymentSnapshot = {
+      payment,
+      transactions: transactions || [],
+      disputeCount: disputeCount || 0,
+    };
+
+    const { data: deletionLog, error: deletionLogError } = await serviceSupabase
+      .from('player_payment_deletion_log')
+      .insert({
+        player_payment_id: payment.id,
+        league_id: payment.league_id,
+        season_id: payment.season_id,
+        player_id: payment.player_id,
+        deleted_by: access.userId,
+        delete_reason: reason,
+        payment_snapshot: paymentSnapshot as Json,
+      })
+      .select('id')
+      .single();
+
+    if (deletionLogError || !deletionLog) {
+      console.error('[Payments] Permanent delete log insert error:', sanitizeErrorForLogging(deletionLogError));
+      return { success: false, error: 'Failed to store the deletion snapshot.' };
+    }
+
+    await logPaymentAuditEvent(
+      payment.league_id,
+      'payment_permanently_deleted',
+      {
+        deletion_log_id: deletionLog.id,
+        archived_reason: payment.archived_reason,
+        delete_reason: reason,
+        previous_status: payment.status,
+      },
+      access.userId,
+      payment.id
+    );
+
+    const { error: deletePaymentError } = await serviceSupabase
+      .from('player_payments')
+      .delete()
+      .eq('id', payment.id)
+      .eq('league_id', payment.league_id);
+
+    if (deletePaymentError) {
+      console.error('[Payments] Permanent delete payment error:', sanitizeErrorForLogging(deletePaymentError));
+      return { success: false, error: 'Failed to permanently delete payment.' };
+    }
+
+    revalidatePaymentManagementPaths(payment.league_id);
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error('[Payments] Unexpected error in permanentlyDeletePlayerPayment:', sanitizeErrorForLogging(error));
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+// ============================================================================
+// 15. Season Settlement Invoice (platform admin)
 // ============================================================================
 
 export interface SettlementInvoiceResult {
@@ -1532,6 +1827,7 @@ export async function settleSeasonInvoice(
         .select('total_amount_cents')
         .eq('league_id', leagueId)
         .eq('season_id', seasonId)
+        .is('archived_at', null)
         .eq('status', 'paid');
 
       const grossFeesCents =
