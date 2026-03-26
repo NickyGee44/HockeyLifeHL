@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import {
+  AnthropicRouteError,
+  callAnthropicMessagesStream,
+} from '@/lib/ai/anthropic';
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -37,15 +41,6 @@ export async function POST(request: NextRequest) {
   const access = await verifyLeagueOwnerAccess(leagueId);
   if (!access.authorized) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('ANTHROPIC_API_KEY is not configured');
-    return NextResponse.json(
-      { error: 'AI chat is not configured. Please contact support.' },
-      { status: 503 }
-    );
   }
 
   // Fetch teams, venues, and season data server-side
@@ -147,71 +142,27 @@ RULES:
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-20250414',
-        max_tokens: 1024,
-        stream: true,
-        system: systemPrompt,
-        messages: validatedMessages,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Anthropic API error:', response.status, errorData);
-      return NextResponse.json(
-        { error: 'Failed to get AI response. Please try again.' },
-        { status: 502 }
-      );
-    }
-
-    // Stream text deltas back to client
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = response.body!.getReader();
-        const decoder = new TextDecoder();
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            // Parse SSE events, extract text deltas from content_block_delta events
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6);
-                if (data === '[DONE]') continue;
-                try {
-                  const event = JSON.parse(data);
-                  if (event.type === 'content_block_delta' && event.delta?.text) {
-                    controller.enqueue(new TextEncoder().encode(event.delta.text));
-                  }
-                } catch {
-                  // Skip non-JSON lines (e.g. event: type lines)
-                }
-              }
-            }
-          }
-        } finally {
-          controller.close();
-        }
-      },
+    const stream = await callAnthropicMessagesStream({
+      feature: 'scheduleChat',
+      system: systemPrompt,
+      messages: validatedMessages,
+      maxTokens: 1024,
     });
 
     return new Response(stream, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   } catch (error) {
-    console.error('Error calling Anthropic API:', error);
+    if (error instanceof AnthropicRouteError) {
+      return NextResponse.json(
+        { error: error.userMessage },
+        { status: error.status }
+      );
+    }
+
+    console.error('Unexpected schedule chat error:', error);
     return NextResponse.json(
-      { error: 'Failed to get AI response. Please try again.' },
+      { error: 'AI assistant is temporarily unavailable.' },
       { status: 500 }
     );
   }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import {
+  AnthropicRouteError,
+  callAnthropicMessages,
+} from '@/lib/ai/anthropic';
 
 type BlockType = 'heading' | 'text' | 'divider' | 'callout' | 'link';
 type HeadingLevel = 'h1' | 'h2' | 'h3';
@@ -71,11 +75,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'AI is not configured. Contact support.' }, { status: 503 });
-  }
-
   const { data: league } = await supabase
     .from('leagues')
     .select('name')
@@ -105,40 +104,32 @@ Respond with ONLY a valid JSON object in this exact format, no other text:
 {"title": "Page Title", "blocks": [...array of block objects...]}`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20251001',
-        max_tokens: 2000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: `Create a page about: ${prompt}` }],
-      }),
+    const data = await callAnthropicMessages({
+      feature: 'pageBlocks',
+      system: systemPrompt,
+      messages: [{ role: 'user', content: `Create a page about: ${prompt}` }],
+      maxTokens: 2000,
     });
 
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('Anthropic API error:', response.status, err);
-      return NextResponse.json({ error: 'AI generation failed. Please try again.' }, { status: 502 });
-    }
-
-    const data = await response.json();
     const textContent = data.content?.[0]?.text;
 
     if (!textContent) {
-      return NextResponse.json({ error: 'No content generated. Please try again.' }, { status: 502 });
+      console.error('Anthropic page block generation returned no text content.');
+      return NextResponse.json(
+        { error: 'AI page generation is temporarily unavailable.' },
+        { status: 502 }
+      );
     }
 
     let parsed: { title?: string; blocks?: unknown[] };
     try {
       parsed = JSON.parse(textContent);
     } catch {
-      console.error('Failed to parse AI response as JSON:', textContent.slice(0, 300));
-      return NextResponse.json({ error: 'Failed to parse AI output. Please try again.' }, { status: 502 });
+      console.error('Failed to parse AI page block response as JSON:', textContent.slice(0, 300));
+      return NextResponse.json(
+        { error: 'AI page generation is temporarily unavailable.' },
+        { status: 502 }
+      );
     }
 
     const blocks = normalizeBlocks(Array.isArray(parsed.blocks) ? parsed.blocks : []);
@@ -148,7 +139,17 @@ Respond with ONLY a valid JSON object in this exact format, no other text:
       blocks,
     });
   } catch (error) {
-    console.error('Error calling Anthropic API:', error);
-    return NextResponse.json({ error: 'AI generation failed. Please try again.' }, { status: 500 });
+    if (error instanceof AnthropicRouteError) {
+      return NextResponse.json(
+        { error: error.userMessage },
+        { status: error.status }
+      );
+    }
+
+    console.error('Unexpected page block generation error:', error);
+    return NextResponse.json(
+      { error: 'AI page generation is temporarily unavailable.' },
+      { status: 500 }
+    );
   }
 }

@@ -13,6 +13,7 @@ import { cn } from '@hockey-life/ui/lib/utils';
 import { Send, Bot, User, Loader2, Sparkles, SkipForward, Settings2 } from 'lucide-react';
 import type { ScheduleConfig, ScheduleConstraint, ScheduleConstraintConfig } from '@/lib/schedule/types';
 import { extractConfigPatch, applyConfigPatch, normalizeConstraints, type ConfigPatch } from '@/lib/schedule/ai-config-parser';
+import { formatScheduleAssistantError } from '@/lib/schedule/ai-chat-error';
 
 interface AIAssistantStepProps {
   leagueId: string;
@@ -174,10 +175,9 @@ export function AIAssistantStep({
         });
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Something went wrong';
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: `Sorry, I ran into an issue: ${errorMessage}. Please try again.` },
+        { role: 'assistant', content: formatScheduleAssistantError(err) },
       ]);
     } finally {
       setIsStreaming(false);
