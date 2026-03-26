@@ -32,6 +32,11 @@ import {
   pickOperationalSeason,
 } from '@/lib/seasons/operational';
 import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
+import {
+  buildLeagueHubHref,
+  buildLeagueSeasonsHref,
+  buildSeasonWorkspaceHref,
+} from '@/lib/dashboard/workspace-routes';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -777,11 +782,11 @@ function OwnerLeagueCommandCard({
             League Overview
           </Link>
           <Link
-            href={`/dashboard/leagues/${league.id}/payments`}
+            href={`/dashboard/leagues/${league.id}/finance`}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-neutral-200 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
           >
             <CreditCard className="w-3.5 h-3.5" />
-            Payments
+            Financials
           </Link>
           <Link
             href={`/dashboard/leagues/${league.id}/settings`}
@@ -831,8 +836,8 @@ function getLeagueNextAction({
 
   if (league.team_count === 0) {
     return {
-      label: 'Import teams or add them manually',
-      href: `/dashboard/leagues/${league.id}/teams?tool=import-teams`,
+      label: 'Open the league hub',
+      href: buildLeagueHubHref('', league.id),
       tone: 'warning' as const,
     };
   }
@@ -840,15 +845,15 @@ function getLeagueNextAction({
   if (!currentSeason) {
     return {
       label: 'Create the first season for this league',
-      href: `/dashboard/leagues/${league.id}/seasons/new`,
+      href: `${buildLeagueSeasonsHref('', league.id)}/new`,
       tone: 'warning' as const,
     };
   }
 
   if (!isOperationalSeasonStatus(currentSeason.status)) {
     return {
-      label: 'Create the next season for this league',
-      href: `/dashboard/leagues/${league.id}/seasons/new`,
+      label: 'Choose a season workspace',
+      href: buildLeagueHubHref('', league.id),
       tone: 'warning' as const,
     };
   }
@@ -859,15 +864,15 @@ function getLeagueNextAction({
   ) {
     return {
       label: 'Create the next season before playoffs end',
-      href: `/dashboard/leagues/${league.id}/seasons/new`,
+      href: `${buildLeagueSeasonsHref('', league.id)}/new`,
       tone: 'primary' as const,
     };
   }
 
   if (league.player_count === 0) {
     return {
-      label: 'Import players into the current season',
-      href: `/dashboard/leagues/${league.id}/registrations?season=${currentSeason.id}&tool=import-players`,
+      label: 'Open registrations in the active season',
+      href: `${buildSeasonWorkspaceHref('', league.id, currentSeason.id, 'registrations')}?tool=import-players`,
       tone: 'warning' as const,
     };
   }
@@ -875,14 +880,14 @@ function getLeagueNextAction({
   if (!currentSeason.schedule_generated) {
     return {
       label: 'Import or build the schedule',
-      href: `/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}&tool=import-schedule`,
+      href: `${buildSeasonWorkspaceHref('', league.id, currentSeason.id, 'schedule')}?tool=import-schedule`,
       tone: 'primary' as const,
     };
   }
 
   return {
-    label: 'Open the league workspace',
-    href: `/dashboard/leagues/${league.id}`,
+    label: 'Open the league hub',
+    href: buildLeagueHubHref('', league.id),
     tone: 'neutral' as const,
   };
 }
@@ -903,15 +908,15 @@ function getLeagueMigrationActions({
     },
     {
       label: 'Import teams CSV',
-      href: `/dashboard/leagues/${league.id}/teams?tool=import-teams`,
-      description: 'Upload teams, divisions, and captain emails from a template.',
+      href: buildLeagueHubHref('', league.id),
+      description: 'Open the league hub and season carry-forward tools before importing operating teams.',
       icon: <Upload className="w-4 h-4" />,
     },
     {
       label: 'Import players CSV',
       href: currentSeason
-        ? `/dashboard/leagues/${league.id}/registrations?season=${currentSeason.id}&tool=import-players`
-        : `/dashboard/leagues/${league.id}/seasons/new`,
+        ? `${buildSeasonWorkspaceHref('', league.id, currentSeason.id, 'registrations')}?tool=import-players`
+        : `${buildLeagueSeasonsHref('', league.id)}/new`,
       description: currentSeason
         ? `Bulk import players into ${currentSeason.name}.`
         : 'Create a season first to unlock player import.',
@@ -921,8 +926,8 @@ function getLeagueMigrationActions({
     {
       label: 'Import schedule CSV',
       href: currentSeason
-        ? `/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}&tool=import-schedule`
-        : `/dashboard/leagues/${league.id}/seasons/new`,
+        ? `${buildSeasonWorkspaceHref('', league.id, currentSeason.id, 'schedule')}?tool=import-schedule`
+        : `${buildLeagueSeasonsHref('', league.id)}/new`,
       description: currentSeason
         ? 'Open schedule import with template download and preview.'
         : 'Create a season first to unlock schedule import.',
@@ -932,9 +937,9 @@ function getLeagueMigrationActions({
     {
       label: 'Review schedule tools',
       href: currentSeason
-        ? `/dashboard/leagues/${league.id}/schedule?season=${currentSeason.id}`
-        : `/dashboard/leagues/${league.id}/schedule`,
-      description: 'Templates, generator, and bulk schedule operations live here.',
+        ? buildSeasonWorkspaceHref('', league.id, currentSeason.id, 'schedule')
+        : buildLeagueHubHref('', league.id),
+      description: 'Schedule tools now live inside the season workspace.',
       icon: <Database className="w-4 h-4" />,
     },
   ];

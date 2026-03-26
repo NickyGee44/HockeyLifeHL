@@ -7,6 +7,15 @@ import { cn } from '@hockey-life/ui';
 import { ChevronDown, Check, CalendarDays } from 'lucide-react';
 import { useAppSidebar } from './AppSidebarContext';
 import { createClient } from '@/lib/supabase/client';
+import {
+  ACTIVE_SEASON_WORKSPACE_COOKIE,
+  clearActiveSeasonWorkspaceEntry,
+  setActiveSeasonWorkspaceEntry,
+} from '@/lib/dashboard/workspace-cookie';
+import {
+  buildEquivalentSeasonWorkspaceHref,
+  buildLeagueHubHref,
+} from '@/lib/dashboard/workspace-routes';
 
 interface Season {
   id: string;
@@ -39,29 +48,35 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-/**
- * Pick the "best" season to auto-select:
- * active > playoffs > upcoming > most recent completed
- */
-function pickOperationalSeason(seasons: Season[]): Season | null {
-  if (seasons.length === 0) return null;
+function writeSeasonWorkspaceCookie(
+  leagueId: string,
+  season: Pick<Season, 'id' | 'name'>
+) {
+  const currentCookie = document.cookie
+    .split('; ')
+    .find((item) => item.startsWith(`${ACTIVE_SEASON_WORKSPACE_COOKIE}=`))
+    ?.split('=')
+    .slice(1)
+    .join('=');
 
-  const active = seasons.find((s) => s.status === 'active');
-  if (active) return active;
-
-  const playoffs = seasons.find((s) => s.status === 'playoffs');
-  if (playoffs) return playoffs;
-
-  const upcoming = seasons.find((s) => s.status === 'upcoming');
-  if (upcoming) return upcoming;
-
-  // Fall back to most recent by start_date
-  const sorted = [...seasons].sort((a, b) => {
-    const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
-    const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
-    return bDate - aDate;
+  const nextValue = setActiveSeasonWorkspaceEntry(currentCookie, leagueId, {
+    seasonId: season.id,
+    seasonName: season.name,
   });
-  return sorted[0];
+
+  document.cookie = `${ACTIVE_SEASON_WORKSPACE_COOKIE}=${nextValue}; path=/; max-age=7776000; SameSite=Lax`;
+}
+
+function clearSeasonWorkspaceCookie(leagueId: string) {
+  const currentCookie = document.cookie
+    .split('; ')
+    .find((item) => item.startsWith(`${ACTIVE_SEASON_WORKSPACE_COOKIE}=`))
+    ?.split('=')
+    .slice(1)
+    .join('=');
+
+  const nextValue = clearActiveSeasonWorkspaceEntry(currentCookie, leagueId);
+  document.cookie = `${ACTIVE_SEASON_WORKSPACE_COOKIE}=${nextValue}; path=/; max-age=7776000; SameSite=Lax`;
 }
 
 export function SeasonPicker({ onMobileNavClose }: SeasonPickerProps) {
@@ -109,18 +124,6 @@ export function SeasonPicker({ onMobileNavClose }: SeasonPickerProps) {
     return () => { cancelled = true; };
   }, [leagueId]);
 
-  // Auto-navigate to operational season if none selected
-  React.useEffect(() => {
-    if (seasonId || seasons.length === 0 || !leagueId) return;
-
-    // Only auto-select if user is at a league-level page that could have season context
-    const path = pathname.replace(`/${locale}`, '');
-    const isLeaguePage = path.includes(`/dashboard/leagues/`) && !path.includes('/seasons/');
-
-    // Don't auto-navigate — just let the picker show the suggestion
-    // The user can click to enter a season
-  }, [seasonId, seasons, leagueId, pathname, locale]);
-
   // Close dropdown on outside click
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -135,29 +138,28 @@ export function SeasonPicker({ onMobileNavClose }: SeasonPickerProps) {
   if (!leagueId) return null;
 
   const selectedSeason = seasons.find((s) => s.id === seasonId);
-  const operationalSeason = pickOperationalSeason(seasons);
-
   const handleSeasonSelect = (season: Season) => {
     setIsOpen(false);
     onMobileNavClose?.();
 
     if (season.id === seasonId) return;
 
-    // If currently on a season-scoped page, swap the season ID
-    if (seasonId && pathname.includes(`/seasons/${seasonId}`)) {
-      const newPath = pathname.replace(`/seasons/${seasonId}`, `/seasons/${season.id}`);
-      router.push(newPath);
-    } else {
-      // Navigate to the season's schedule page (primary entry point)
-      router.push(`/${locale}/dashboard/leagues/${leagueId}/seasons/${season.id}/schedule`);
-    }
+    writeSeasonWorkspaceCookie(leagueId, season);
+
+    const destination = buildEquivalentSeasonWorkspaceHref({
+      locale,
+      leagueId,
+      seasonId: season.id,
+      pathname,
+    });
+    router.push(destination);
   };
 
   const handleClearSeason = () => {
     setIsOpen(false);
     onMobileNavClose?.();
-    // Navigate back to league overview
-    router.push(`/${locale}/dashboard/leagues/${leagueId}`);
+    clearSeasonWorkspaceCookie(leagueId);
+    router.push(buildLeagueHubHref(locale, leagueId));
   };
 
   return (
@@ -177,7 +179,7 @@ export function SeasonPicker({ onMobileNavClose }: SeasonPickerProps) {
             : selectedSeason
             ? selectedSeason.name
             : seasons.length > 0
-            ? t('selectSeason') || 'Select season...'
+            ? t('selectSeason') || 'Choose season workspace'
             : t('noSeasons') || 'No seasons'
           }
         </span>
@@ -193,7 +195,7 @@ export function SeasonPicker({ onMobileNavClose }: SeasonPickerProps) {
               onClick={handleClearSeason}
               className="flex items-center gap-2 w-full px-3 py-2 text-left text-[13px] text-neutral-500 hover:text-neutral-300 hover:bg-neutral-700 transition-colors"
             >
-              <span>{t('allSeasons') || 'Back to league view'}</span>
+              <span>{t('allSeasons') || 'Back to league hub'}</span>
             </button>
           )}
           {selectedSeason && <div className="border-t border-white/[0.06] my-1" />}

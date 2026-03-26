@@ -1,10 +1,15 @@
 'use client';
 
+import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ChevronRight } from 'lucide-react';
 import type { DashboardData } from '@/lib/actions/dashboard';
+import {
+  ACTIVE_SEASON_WORKSPACE_COOKIE,
+  parseActiveSeasonWorkspaceCookie,
+} from '@/lib/dashboard/workspace-cookie';
 
 // UUID v4 pattern
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -17,6 +22,27 @@ export function Breadcrumbs({ dashboardData }: BreadcrumbsProps) {
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations('navigation');
+  const [storedSeasonNames, setStoredSeasonNames] = React.useState<Map<string, string>>(new Map());
+
+  React.useEffect(() => {
+    const raw = document.cookie
+      .split('; ')
+      .find((item) => item.startsWith(`${ACTIVE_SEASON_WORKSPACE_COOKIE}=`))
+      ?.split('=')
+      .slice(1)
+      .join('=');
+
+    const parsed = parseActiveSeasonWorkspaceCookie(raw);
+    const next = new Map<string, string>();
+
+    for (const [leagueId, entry] of Object.entries(parsed)) {
+      if (entry.seasonName) {
+        next.set(`${leagueId}:${entry.seasonId}`, entry.seasonName);
+      }
+    }
+
+    setStoredSeasonNames(next);
+  }, [pathname]);
 
   // Strip locale prefix
   const stripped = pathname.replace(new RegExp(`^/${locale}`), '') || '/';
@@ -75,11 +101,28 @@ export function Breadcrumbs({ dashboardData }: BreadcrumbsProps) {
     bugs: 'bugReports',
     scorekeepers: 'scorekeeperSchedule',
     domains: 'domains',
-    payments: 'paymentTracking',
+    finance: 'financials',
+    payments: 'financials',
   };
 
+  const leagueSegmentIndex = segments.indexOf('leagues');
+  const seasonSegmentIndex = segments.indexOf('seasons');
+  const leagueIdFromPath =
+    leagueSegmentIndex >= 0 && UUID_RE.test(segments[leagueSegmentIndex + 1] || '')
+      ? segments[leagueSegmentIndex + 1]
+      : null;
+
+  const seasonLabels = new Map<string, string>();
+  if (leagueIdFromPath) {
+    for (const [key, value] of storedSeasonNames.entries()) {
+      if (key.startsWith(`${leagueIdFromPath}:`)) {
+        seasonLabels.set(key.split(':')[1], value);
+      }
+    }
+  }
+
   // Segments to skip (noise words that don't add value)
-  const skipSegments = new Set(['leagues', 'seasons']);
+  const skipSegments = new Set(['leagues']);
 
   // Build crumbs
   const crumbs: Array<{ label: string; href: string }> = [];
@@ -93,6 +136,15 @@ export function Breadcrumbs({ dashboardData }: BreadcrumbsProps) {
 
     // UUID segment — try to resolve to a league name
     if (UUID_RE.test(seg)) {
+      const isSeasonId = segments[i - 1] === 'seasons';
+      if (isSeasonId) {
+        crumbs.push({
+          label: seasonLabels.get(seg) || 'Season',
+          href: pathSoFar,
+        });
+        continue;
+      }
+
       const leagueName = leagueNames.get(seg);
       if (leagueName) {
         crumbs.push({ label: leagueName, href: pathSoFar });

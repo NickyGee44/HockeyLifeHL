@@ -7,7 +7,6 @@ import { cn } from '@hockey-life/ui';
 import {
   Home,
   Calendar,
-  CheckCircle2,
   BarChart3,
   ClipboardCheck,
   Users as UsersIcon,
@@ -45,6 +44,11 @@ import { SidebarNavGroup, SidebarSectionLabel } from './SidebarNavGroup';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import type { CaptainTeamOverview } from '@/lib/actions/captain';
 import type { DashboardData } from '@/lib/actions/dashboard';
+import {
+  buildLeagueHubHref,
+  buildLeagueSeasonsHref,
+  buildSeasonWorkspaceHref,
+} from '@/lib/dashboard/workspace-routes';
 
 interface AppSidebarProps {
   dashboardData: DashboardData | null;
@@ -64,8 +68,9 @@ export function AppSidebar({
   const t = useTranslations('navigation');
   const { leagueId, seasonId, isMobileSidebarOpen, toggleMobileSidebar } = useAppSidebar();
 
-  const leagueBase = leagueId ? `/dashboard/leagues/${leagueId}` : null;
-  const seasonBase = leagueBase && seasonId ? `${leagueBase}/seasons/${seasonId}` : null;
+  const leagueHub = leagueId ? buildLeagueHubHref('', leagueId).replace(/^\/$/, '') : null;
+  const leagueSeasons = leagueId ? buildLeagueSeasonsHref('', leagueId).replace(/^\/$/, '') : null;
+  const seasonHome = leagueId && seasonId ? buildSeasonWorkspaceHref('', leagueId, seasonId).replace(/^\/$/, '') : null;
 
   const orgName = dashboardData?.organizations?.[0]?.name || 'Organization';
 
@@ -134,103 +139,120 @@ export function AppSidebar({
         <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
 
           {/* ---------- SEASON SECTION ---------- */}
-          {seasonBase && (
+          {seasonHome && leagueId && seasonId && (
             <>
-              <SidebarSectionLabel>{t('season') || 'Season'}</SidebarSectionLabel>
+              <SidebarSectionLabel>Season Workspace</SidebarSectionLabel>
               <SidebarNavItem
-                href={`${seasonBase}/schedule`}
-                icon={Calendar}
-                label={t('schedule')}
+                href={seasonHome}
+                icon={Home}
+                label="Season Home"
                 locked={!isSubscribed}
                 onClick={closeMobileNav}
               />
-              <SidebarNavItem
-                href={`${seasonBase}/games`}
-                icon={CheckCircle2}
-                label={t('games') || 'Games'}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
-              <SidebarNavItem
-                href={`${seasonBase}/standings`}
-                icon={BarChart3}
-                label={t('standings')}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
-              <SidebarNavItem
-                href={`${seasonBase}/registrations`}
-                icon={ClipboardCheck}
-                label={t('registration')}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
-              <SidebarNavItem
-                href={`${seasonBase}/rosters`}
-                icon={UsersIcon}
-                label={t('rosters') || 'Rosters'}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
-              <SidebarNavItem
-                href={`${seasonBase}/players`}
-                icon={UserCircle2}
-                label={t('players') || 'Players'}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
-              <SidebarNavItem
-                href={`${seasonBase}/ratings`}
-                icon={Star}
-                label={t('playerRatings')}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
-              <SidebarNavItem
-                href={`${seasonBase}/eligibility`}
-                icon={FileText}
-                label={t('eligibility') || 'Eligibility'}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
-              <SidebarNavItem
-                href={`${seasonBase}/draft`}
-                icon={Dices}
-                label={t('draftRoom')}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
-              <SidebarNavItem
-                href={`${seasonBase}/scorekeeper-schedule`}
-                icon={ClipboardList}
-                label={t('scorekeeperSchedule')}
-                locked={!isSubscribed}
-                onClick={closeMobileNav}
-              />
+
+              <SidebarNavGroup groupId="season-registrations" label="Registrations & Teams" icon={ClipboardCheck}>
+                <SidebarNavItem
+                  href={buildSeasonWorkspaceHref('', leagueId, seasonId, 'registrations').replace(/^\/$/, '')}
+                  icon={ClipboardCheck}
+                  label={t('registration')}
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
+                <SidebarNavItem
+                  href={buildSeasonWorkspaceHref('', leagueId, seasonId, 'teams').replace(/^\/$/, '')}
+                  icon={UsersIcon}
+                  label={t('teams') || 'Teams'}
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
+                <SidebarNavItem
+                  href={buildSeasonWorkspaceHref('', leagueId, seasonId, 'rosters').replace(/^\/$/, '')}
+                  icon={UsersIcon}
+                  label={t('rosters') || 'Rosters'}
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
+                <SidebarNavItem
+                  href={buildSeasonWorkspaceHref('', leagueId, seasonId, 'players').replace(/^\/$/, '')}
+                  icon={UserCircle2}
+                  label={t('players') || 'Players'}
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
+              </SidebarNavGroup>
+
+              <SidebarNavGroup groupId="season-game-ops" label="Scheduling & Game Ops" icon={Calendar}>
+                <SidebarNavItem
+                  href={buildSeasonWorkspaceHref('', leagueId, seasonId, 'schedule').replace(/^\/$/, '')}
+                  icon={Calendar}
+                  label={t('schedule')}
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
+                <SidebarNavItem
+                  href={buildSeasonWorkspaceHref('', leagueId, seasonId, 'games').replace(/^\/$/, '')}
+                  icon={Trophy}
+                  label={t('games') || 'Games'}
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
+                <SidebarNavItem
+                  href={buildSeasonWorkspaceHref('', leagueId, seasonId, 'scorekeepers').replace(/^\/$/, '')}
+                  icon={ClipboardList}
+                  label={t('scorekeeperSchedule')}
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
+              </SidebarNavGroup>
+
+              <SidebarNavGroup groupId="season-settings" label="Season Settings" icon={Settings}>
+                <SidebarNavItem
+                  href={buildSeasonWorkspaceHref('', leagueId, seasonId, 'settings').replace(/^\/$/, '')}
+                  icon={Settings}
+                  label="Edit Season"
+                  locked={!isSubscribed}
+                  indent
+                  onClick={closeMobileNav}
+                />
+              </SidebarNavGroup>
             </>
           )}
 
           {/* ---------- LEAGUE SECTION ---------- */}
-          {leagueBase && (
+          {leagueHub && leagueId && (
             <>
-              <SidebarSectionLabel>{t('league') || 'League'}</SidebarSectionLabel>
+              <SidebarSectionLabel>League Hub</SidebarSectionLabel>
               <SidebarNavItem
-                href={leagueBase}
-                icon={Home}
-                label={t('leagueOverview') || 'Overview'}
+                href={leagueHub}
+                icon={Building2}
+                label={t('leagueOverview') || 'League Hub'}
                 onClick={closeMobileNav}
               />
               <SidebarNavItem
-                href={`${leagueBase}/seasons`}
+                href={leagueSeasons || `${leagueHub}/seasons`}
                 icon={CalendarDays}
                 label={t('seasons')}
                 locked={!isSubscribed}
                 onClick={closeMobileNav}
               />
               <SidebarNavItem
-                href={`${leagueBase}/teams`}
+                href={`${leagueHub}/divisions`}
                 icon={UsersIcon}
-                label={t('teamsAndDivisions')}
+                label={t('teamsAndDivisions') || 'Divisions'}
+                locked={!isSubscribed}
+                onClick={closeMobileNav}
+              />
+              <SidebarNavItem
+                href={`${leagueHub}/staff`}
+                icon={Flag}
+                label={t('staff') || 'Staff Directory'}
                 locked={!isSubscribed}
                 onClick={closeMobileNav}
               />
@@ -238,23 +260,15 @@ export function AppSidebar({
               {/* Financials group */}
               <SidebarNavGroup groupId="financials" label={t('financials') || 'Financials'} icon={DollarSign}>
                 <SidebarNavItem
-                  href={`${leagueBase}/finance`}
+                  href={`${leagueHub}/finance`}
                   icon={Wallet}
-                  label="Finance"
+                  label={t('financials') || 'Financials'}
                   locked={!isSubscribed}
                   indent
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/payments`}
-                  icon={DollarSign}
-                  label={t('paymentTracking')}
-                  locked={!isSubscribed}
-                  indent
-                  onClick={closeMobileNav}
-                />
-                <SidebarNavItem
-                  href={`${leagueBase}/billing`}
+                  href={`${leagueHub}/billing`}
                   icon={CreditCard}
                   label={t('leagueBilling') || 'League Billing'}
                   indent
@@ -265,7 +279,7 @@ export function AppSidebar({
               {/* Content group */}
               <SidebarNavGroup groupId="content" label={t('sectionContent')} icon={Newspaper}>
                 <SidebarNavItem
-                  href={`${leagueBase}/news`}
+                  href={`${leagueHub}/news`}
                   icon={Newspaper}
                   label={t('news')}
                   locked={!isSubscribed}
@@ -273,7 +287,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/pages`}
+                  href={`${leagueHub}/pages`}
                   icon={FileText}
                   label={t('pages')}
                   locked={!isSubscribed}
@@ -281,7 +295,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/sponsors`}
+                  href={`${leagueHub}/sponsors`}
                   icon={Star}
                   label={t('sponsors')}
                   locked={!isSubscribed}
@@ -289,7 +303,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/gallery`}
+                  href={`${leagueHub}/gallery`}
                   icon={Image}
                   label={t('gallery')}
                   locked={!isSubscribed}
@@ -297,7 +311,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/events`}
+                  href={`${leagueHub}/events`}
                   icon={PartyPopper}
                   label={t('events')}
                   locked={!isSubscribed}
@@ -305,7 +319,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/awards`}
+                  href={`${leagueHub}/awards`}
                   icon={Award}
                   label={t('awards')}
                   locked={!isSubscribed}
@@ -315,21 +329,21 @@ export function AppSidebar({
               </SidebarNavGroup>
 
               <SidebarNavItem
-                href={`${leagueBase}/website`}
+                href={`${leagueHub}/website`}
                 icon={Globe}
                 label={t('websiteEditor')}
                 locked={!isSubscribed}
                 onClick={closeMobileNav}
               />
               <SidebarNavItem
-                href={`${leagueBase}/contact-inbox`}
+                href={`${leagueHub}/contact-inbox`}
                 icon={Mail}
                 label={t('contactInbox')}
                 locked={!isSubscribed}
                 onClick={closeMobileNav}
               />
               <SidebarNavItem
-                href={`${leagueBase}/bugs`}
+                href={`${leagueHub}/bugs`}
                 icon={Bug}
                 label={t('bugReports')}
                 onClick={closeMobileNav}
@@ -338,7 +352,7 @@ export function AppSidebar({
               {/* League Settings group */}
               <SidebarNavGroup groupId="league-settings" label={t('leagueSettings')} icon={Settings}>
                 <SidebarNavItem
-                  href={`${leagueBase}/settings/general`}
+                  href={`${leagueHub}/settings/general`}
                   icon={Settings}
                   label={t('general') || 'General'}
                   locked={!isSubscribed}
@@ -346,15 +360,15 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/settings/game-rules`}
-                  icon={CheckCircle2}
+                  href={`${leagueHub}/settings/game-rules`}
+                  icon={ClipboardCheck}
                   label={t('gameRules') || 'Game Rules'}
                   locked={!isSubscribed}
                   indent
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/settings/registration`}
+                  href={`${leagueHub}/settings/registration`}
                   icon={ClipboardCheck}
                   label={t('registration')}
                   locked={!isSubscribed}
@@ -362,7 +376,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/settings/waiver`}
+                  href={`${leagueHub}/settings/waiver`}
                   icon={FileText}
                   label={t('waiver') || 'Waiver'}
                   locked={!isSubscribed}
@@ -370,7 +384,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/settings/venues`}
+                  href={`${leagueHub}/settings/venues`}
                   icon={MapPin}
                   label={t('venues')}
                   locked={!isSubscribed}
@@ -378,7 +392,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/settings/goalie-pool`}
+                  href={`${leagueHub}/settings/goalie-pool`}
                   icon={UserCircle2}
                   label={t('goaliePool') || 'Goalie Pool'}
                   locked={!isSubscribed}
@@ -386,7 +400,7 @@ export function AppSidebar({
                   onClick={closeMobileNav}
                 />
                 <SidebarNavItem
-                  href={`${leagueBase}/settings/email-domain`}
+                  href={`${leagueHub}/settings/email-domain`}
                   icon={Mail}
                   label={t('emailDomain') || 'Email Domain'}
                   locked={!isSubscribed}

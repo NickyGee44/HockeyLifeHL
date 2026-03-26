@@ -9,9 +9,9 @@ import { useAppSidebar } from './AppSidebarContext';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import type { DashboardData } from '@/lib/actions/dashboard';
 import {
-  buildLeagueScopedDashboardTarget,
   buildPlatformOwnerViewHref,
 } from '@/lib/auth/platform-owner-view-routing';
+import { buildLeagueHubHref } from '@/lib/dashboard/workspace-routes';
 
 interface LeagueSwitcherProps {
   dashboardData: DashboardData | null;
@@ -109,20 +109,13 @@ export function LeagueSwitcher({
 
     if (newLeagueId === leagueId) return;
 
-    const search = '';
-
     if (ownerViewLeagueId) {
-      const redirectTo = buildLeagueScopedDashboardTarget({
-        pathname,
-        search,
-        leagueId: newLeagueId,
-      });
+      const redirectTo = buildLeagueHubHref(locale, newLeagueId);
       router.push(`/${locale}${buildPlatformOwnerViewHref({ leagueId: newLeagueId, redirectTo })}`);
       return;
     }
 
-    // Navigate to new league's overview
-    router.push(`/${locale}/dashboard/leagues/${newLeagueId}`);
+    router.push(buildLeagueHubHref(locale, newLeagueId));
   };
 
   // No league selected — show prompt

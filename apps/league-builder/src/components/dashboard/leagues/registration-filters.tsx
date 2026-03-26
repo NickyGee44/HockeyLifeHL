@@ -19,6 +19,7 @@ interface RegistrationFiltersProps {
   currentType?: string;
   currentSeason?: string;
   currentSearch?: string;
+  hideSeasonFilter?: boolean;
 }
 
 export function RegistrationFilters({
@@ -27,6 +28,7 @@ export function RegistrationFilters({
   currentType,
   currentSeason,
   currentSearch,
+  hideSeasonFilter = false,
 }: RegistrationFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,7 +70,7 @@ export function RegistrationFilters({
   };
 
   const hasFilters =
-    currentStatus || currentType || currentSeason || currentSearch;
+    currentStatus || currentType || (!hideSeasonFilter && currentSeason) || currentSearch;
 
   return (
     <div className="space-y-4">
@@ -133,7 +135,7 @@ export function RegistrationFilters({
         )}
 
         {/* Season Filter */}
-        {seasons.length > 0 && (
+        {!hideSeasonFilter && seasons.length > 0 && (
           mounted ? (
             <Select
               value={currentSeason || 'all'}
@@ -176,7 +178,7 @@ export function RegistrationFilters({
                 onRemove={() => updateFilters('type', null)}
               />
             )}
-            {currentSeason && (
+            {!hideSeasonFilter && currentSeason && (
               <FilterBadge
                 label={`Season: ${seasons.find((s) => s.id === currentSeason)?.name || currentSeason}`}
                 onRemove={() => updateFilters('season', null)}

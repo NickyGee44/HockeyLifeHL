@@ -8,14 +8,19 @@ import { cn } from '@hockey-life/ui';
 import {
   Home,
   Calendar,
-  CheckCircle2,
-  BarChart3,
   Users,
   CalendarDays,
   Settings,
   Flag,
+  ClipboardCheck,
+  Trophy,
 } from 'lucide-react';
 import { useAppSidebar } from './AppSidebarContext';
+import {
+  buildLeagueHubHref,
+  buildLeagueSeasonsHref,
+  buildSeasonWorkspaceHref,
+} from '@/lib/dashboard/workspace-routes';
 
 interface TabItem {
   label: string;
@@ -29,8 +34,8 @@ export function MobileTabBar() {
   const pathname = usePathname();
   const { leagueId, seasonId } = useAppSidebar();
 
-  const leagueBase = leagueId ? `/dashboard/leagues/${leagueId}` : null;
-  const seasonBase = leagueBase && seasonId ? `${leagueBase}/seasons/${seasonId}` : null;
+  const leagueBase = leagueId ? buildLeagueHubHref('', leagueId) : null;
+  const seasonBase = leagueId && seasonId ? buildSeasonWorkspaceHref('', leagueId, seasonId) : null;
 
   const isActive = (href: string) => {
     const localizedPath = `/${locale}${href}`;
@@ -42,22 +47,21 @@ export function MobileTabBar() {
 
   // Contextual tabs based on scope
   const tabs: TabItem[] = React.useMemo(() => {
-    if (seasonBase) {
-      // Season scope: most-used season features
+    if (seasonBase && leagueId && seasonId) {
       return [
-        { label: t('schedule'), href: `${seasonBase}/schedule`, icon: Calendar },
-        { label: t('games') || 'Games', href: `${seasonBase}/games`, icon: CheckCircle2 },
-        { label: t('standings'), href: `${seasonBase}/standings`, icon: BarChart3 },
-        { label: t('rosters') || 'Rosters', href: `${seasonBase}/rosters`, icon: Users },
+        { label: t('leagueOverview') || 'Season', href: seasonBase, icon: Home },
+        { label: t('schedule'), href: buildSeasonWorkspaceHref('', leagueId, seasonId, 'schedule'), icon: Calendar },
+        { label: t('registration'), href: buildSeasonWorkspaceHref('', leagueId, seasonId, 'registrations'), icon: ClipboardCheck },
+        { label: t('teams') || 'Teams', href: buildSeasonWorkspaceHref('', leagueId, seasonId, 'teams'), icon: Users },
+        { label: t('games') || 'Games', href: buildSeasonWorkspaceHref('', leagueId, seasonId, 'games'), icon: Trophy },
       ];
     }
 
-    if (leagueBase) {
-      // League scope: league-level features
+    if (leagueBase && leagueId) {
       return [
-        { label: t('leagueOverview') || 'Overview', href: leagueBase, icon: Home },
-        { label: t('teamsAndDivisions'), href: `${leagueBase}/teams`, icon: Users },
-        { label: t('seasons'), href: `${leagueBase}/seasons`, icon: CalendarDays },
+        { label: t('leagueOverview') || 'League', href: leagueBase, icon: Home },
+        { label: t('seasons'), href: buildLeagueSeasonsHref('', leagueId), icon: CalendarDays },
+        { label: t('websiteEditor'), href: `${leagueBase}/website`, icon: Calendar },
         { label: t('settings'), href: `${leagueBase}/settings/general`, icon: Settings },
       ];
     }

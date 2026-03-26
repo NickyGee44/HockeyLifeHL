@@ -25,8 +25,12 @@ import { LeagueLogo } from '@/components/ui/league-logo';
 import { AnnouncementComposerButton } from '@/components/news/AnnouncementComposerButton';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 import { getSignedWaivers } from '@/lib/actions/waiver-management';
-import { pickOperationalSeason } from '@/lib/seasons/operational';
 import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
+import {
+  buildLeagueSeasonsHref,
+  buildSeasonWorkspaceHref,
+} from '@/lib/dashboard/workspace-routes';
+import { getPreferredSeasonWorkspace } from '@/lib/dashboard/server-workspace';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -79,7 +83,7 @@ export default async function LeagueDetailPage({ params }: Props) {
     .eq('league_id', leagueId);
 
   // Pending action counts — all run in parallel
-  const currentSeason = pickOperationalSeason((league.seasons as any[]) ?? []);
+  const currentSeason = await getPreferredSeasonWorkspace(leagueId, (league.seasons as any[]) ?? []);
 
   const [
     { count: pendingRegistrations },
@@ -118,9 +122,27 @@ export default async function LeagueDetailPage({ params }: Props) {
   const signedWaiversTotal = signedWaiversResult.success ? signedWaiversResult.data?.total || 0 : 0;
 
   const pendingActions = [
-    pendingRegistrations && { label: `${pendingRegistrations} pending registration${pendingRegistrations === 1 ? '' : 's'}`, href: `/${locale}/dashboard/leagues/${leagueId}/registrations?status=pending`, color: 'yellow' },
-    pendingGames && { label: `${pendingGames} game${pendingGames === 1 ? '' : 's'} awaiting verification`, href: `/${locale}/dashboard/leagues/${leagueId}/games`, color: 'blue' },
-    activeSuspensions && { label: `${activeSuspensions} active suspension${activeSuspensions === 1 ? '' : 's'}`, href: `/${locale}/dashboard/leagues/${leagueId}/games`, color: 'red' },
+    pendingRegistrations && {
+      label: `${pendingRegistrations} pending registration${pendingRegistrations === 1 ? '' : 's'}`,
+      href: currentSeason
+        ? `${buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'registrations')}?status=pending`
+        : buildLeagueSeasonsHref(locale, leagueId),
+      color: 'yellow',
+    },
+    pendingGames && {
+      label: `${pendingGames} game${pendingGames === 1 ? '' : 's'} awaiting verification`,
+      href: currentSeason
+        ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'games')
+        : buildLeagueSeasonsHref(locale, leagueId),
+      color: 'blue',
+    },
+    activeSuspensions && {
+      label: `${activeSuspensions} active suspension${activeSuspensions === 1 ? '' : 's'}`,
+      href: currentSeason
+        ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'games')
+        : buildLeagueSeasonsHref(locale, leagueId),
+      color: 'red',
+    },
     unreadMessages && { label: `${unreadMessages} new contact message${unreadMessages === 1 ? '' : 's'}`, href: `/${locale}/dashboard/leagues/${leagueId}/contact-inbox`, color: 'purple' },
   ].filter(Boolean) as Array<{ label: string; href: string; color: string }>;
 
@@ -240,89 +262,141 @@ export default async function LeagueDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          {(league.seasons as any[])?.some((s: any) => s.registration_type === 'draft') && (
+        {currentSeason && (
+          <div className="mb-8 rounded-2xl border border-rink-500/20 bg-gradient-to-br from-rink-500/8 to-white/[0.03] p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rink-300/80">
+                  Recommended Season Workspace
+                </p>
+                <h2 className="mt-2 text-xl font-bold text-white">{currentSeason.name}</h2>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Day-to-day operations now live inside a season workspace. Pick up where league staff actually work.
+                </p>
+              </div>
+              <Link
+                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id)}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold',
+                  'bg-rink-500 text-black transition-colors hover:bg-rink-400'
+                )}
+              >
+                <Play className="w-4 h-4" />
+                Open {currentSeason.name}
+              </Link>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <QuickActionButton
+                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'schedule')}
+                icon={<Calendar className="w-5 h-5" />}
+                title="Schedule Workspace"
+                description="Build, adjust, and manage this season&apos;s schedule"
+              />
+              <QuickActionButton
+                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'registrations')}
+                icon={<ClipboardCheck className="w-5 h-5" />}
+                title="Registrations"
+                description="Review submissions and roster intake for this season"
+              />
+              <QuickActionButton
+                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'teams')}
+                icon={<Users className="w-5 h-5" />}
+                title="Season Teams"
+                description="See the teams and carry-forward state for this season"
+              />
+              <QuickActionButton
+                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'games')}
+                icon={<Trophy className="w-5 h-5" />}
+                title="Games"
+                description="Track scheduled and completed games for this season"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="mb-8">
+          <div className="mb-4">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-500">
+              League Setup & Content
+            </p>
+            <h2 className="mt-2 text-xl font-bold text-white">League hub tools</h2>
+            <p className="mt-1 text-sm text-neutral-400">
+              Keep configuration, content, and publishing here. Operational work should happen from a season workspace.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {(league.seasons as any[])?.some((s: any) => s.registration_type === 'draft') && (
+              <QuickActionButton
+                href={`/${locale}/dashboard/leagues/${leagueId}/draft`}
+                icon={<Shuffle className="w-5 h-5" />}
+                title={t('draftRoom')}
+                description={t('draftRoomDescription')}
+                highlight
+              />
+            )}
             <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/draft`}
-              icon={<Shuffle className="w-5 h-5" />}
-              title={t('draftRoom')}
-              description={t('draftRoomDescription')}
+              href={`/${locale}/dashboard/leagues/${leagueId}/divisions`}
+              icon={<LayoutGrid className="w-5 h-5" />}
+              title={t('divisionsAction')}
+              description={t('divisionsDescription')}
+            />
+            <QuickActionButton
+              href={`/${locale}/dashboard/leagues/${leagueId}/migration-center`}
+              icon={<Database className="w-5 h-5" />}
+              title="Migration Center"
+              description="Track legacy stats, records, news, and media migration."
               highlight
             />
-          )}
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/teams`}
-            icon={<Users className="w-5 h-5" />}
-            title={t('manageTeams')}
-            description={t('manageTeamsDescription')}
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/divisions`}
-            icon={<LayoutGrid className="w-5 h-5" />}
-            title={t('divisionsAction')}
-            description={t('divisionsDescription')}
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/schedule`}
-            icon={<Calendar className="w-5 h-5" />}
-            title={t('schedule')}
-            description={t('scheduleDescription')}
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/migration-center`}
-            icon={<Database className="w-5 h-5" />}
-            title="Migration Center"
-            description="Track legacy stats, records, news, and media migration."
-            highlight
-          />
-          <QuickActionButton
-            href={`/${locale}/website-editor?league=${leagueId}`}
-            icon={<Globe className="w-5 h-5" />}
-            title={t('websiteEditor')}
-            description={t('websiteEditorDescription')}
-            highlight
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/payments`}
-            icon={<CreditCard className="w-5 h-5" />}
-            title={t('playerPayments')}
-            description={t('playerPaymentsDescription')}
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/settings/waiver`}
-            icon={<ClipboardCheck className="w-5 h-5" />}
-            title="Waivers"
-            description={
-              signedWaiversTotal > 0
-                ? `${signedWaiversTotal} signature${signedWaiversTotal === 1 ? '' : 's'} on file`
-                : 'Manage the waiver and track signatures'
-            }
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/settings`}
-            icon={<Settings className="w-5 h-5" />}
-            title={t('settings')}
-            description={t('settingsDescription')}
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/news`}
-            icon={<Newspaper className="w-5 h-5" />}
-            title={t('newsArticles')}
-            description={t('newsArticlesDescription')}
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/sponsors`}
-            icon={<Handshake className="w-5 h-5" />}
-            title={t('sponsors')}
-            description={t('sponsorsDescription')}
-          />
-          <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/awards`}
-            icon={<Trophy className="w-5 h-5" />}
-            title={t('awards')}
-            description={t('awardsDescription')}
-          />
+            <QuickActionButton
+              href={`/${locale}/website-editor?league=${leagueId}`}
+              icon={<Globe className="w-5 h-5" />}
+              title={t('websiteEditor')}
+              description={t('websiteEditorDescription')}
+              highlight
+            />
+            <QuickActionButton
+              href={`/${locale}/dashboard/leagues/${leagueId}/finance`}
+              icon={<CreditCard className="w-5 h-5" />}
+              title={t('playerPayments')}
+              description={t('playerPaymentsDescription')}
+            />
+            <QuickActionButton
+              href={`/${locale}/dashboard/leagues/${leagueId}/settings/waiver`}
+              icon={<ClipboardCheck className="w-5 h-5" />}
+              title="Waivers"
+              description={
+                signedWaiversTotal > 0
+                  ? `${signedWaiversTotal} signature${signedWaiversTotal === 1 ? '' : 's'} on file`
+                  : 'Manage the waiver and track signatures'
+              }
+            />
+            <QuickActionButton
+              href={`/${locale}/dashboard/leagues/${leagueId}/settings`}
+              icon={<Settings className="w-5 h-5" />}
+              title={t('settings')}
+              description={t('settingsDescription')}
+            />
+            <QuickActionButton
+              href={`/${locale}/dashboard/leagues/${leagueId}/news`}
+              icon={<Newspaper className="w-5 h-5" />}
+              title={t('newsArticles')}
+              description={t('newsArticlesDescription')}
+            />
+            <QuickActionButton
+              href={`/${locale}/dashboard/leagues/${leagueId}/sponsors`}
+              icon={<Handshake className="w-5 h-5" />}
+              title={t('sponsors')}
+              description={t('sponsorsDescription')}
+            />
+            <QuickActionButton
+              href={`/${locale}/dashboard/leagues/${leagueId}/awards`}
+              icon={<Trophy className="w-5 h-5" />}
+              title={t('awards')}
+              description={t('awardsDescription')}
+            />
+          </div>
         </div>
 
         <div className="mb-8">
@@ -498,7 +572,7 @@ function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: st
           )}
         >
           <Play className="w-4 h-4" />
-          {t('manage')}
+          Open workspace
         </Link>
         <Link
           href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${season.id}/edit`}

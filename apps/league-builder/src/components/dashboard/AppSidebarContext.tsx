@@ -72,6 +72,18 @@ export function AppSidebarProvider({ children }: { children: React.ReactNode }) 
     if (path.includes('/payments') || path.includes('/billing') || path.includes('/finance')) {
       autoExpand.add('financials');
     }
+    if (path.includes('/registrations') || path.includes('/teams') || path.includes('/rosters') || path.includes('/players')) {
+      autoExpand.add('season-registrations');
+    }
+    if (path.includes('/schedule') || path.includes('/games') || path.includes('/scorekeeper-schedule') || path.includes('/scorekeepers')) {
+      autoExpand.add('season-game-ops');
+    }
+    if (path.includes('/standings') || path.includes('/ratings') || path.includes('/eligibility') || path.includes('/draft')) {
+      autoExpand.add('season-competition');
+    }
+    if (path.includes('/seasons/') && path.includes('/edit')) {
+      autoExpand.add('season-settings');
+    }
     if (path.includes('/settings/')) {
       autoExpand.add('league-settings');
     }

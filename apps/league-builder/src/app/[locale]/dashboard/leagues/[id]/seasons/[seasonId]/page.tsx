@@ -33,6 +33,10 @@ import {
   getSeasonParticipationTeams,
 } from '@/lib/seasons/team-participation';
 import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
+import {
+  buildLeagueHubHref,
+  buildSeasonWorkspaceHref,
+} from '@/lib/dashboard/workspace-routes';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
@@ -165,7 +169,7 @@ export default async function SeasonDetailPage({ params }: Props) {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}`}
+            href={buildLeagueHubHref(locale, leagueId)}
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -286,13 +290,13 @@ export default async function SeasonDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Main Actions */}
+        {/* Workspace Actions */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
           <ActionCard
-            href={`/${locale}/dashboard/leagues/${leagueId}/schedule?season=${seasonId}`}
+            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'schedule')}
             icon={<Calendar className="w-6 h-6" />}
-            title="Schedule Management"
-            description="Generate and manage the game schedule"
+            title="Schedule Workspace"
+            description="Build the season schedule, manage changes, and control game operations"
             badge={
               season.schedule_generated ? (
                 <span className="text-xs text-green-400">Generated</span>
@@ -302,16 +306,16 @@ export default async function SeasonDetailPage({ params }: Props) {
             }
           />
           <ActionCard
-            href={`/${locale}/dashboard/leagues/${leagueId}/games`}
+            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'games')}
             icon={<Trophy className="w-6 h-6" />}
-            title="Completed Games"
-            description="View completed games, penalties, suspensions, and referee notes"
+            title="Games"
+            description="View this season&apos;s scheduled and completed games, notes, and results"
           />
           <ActionCard
-            href={`/${locale}/dashboard/leagues/${leagueId}/registrations`}
+            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'registrations')}
             icon={<UserPlus className="w-6 h-6" />}
             title="Registrations"
-            description="Manage player and team registrations"
+            description="Review player and team registrations for this season"
             badge={
               registrationsCount ? (
                 <span className="text-xs text-yellow-400">
@@ -321,22 +325,22 @@ export default async function SeasonDetailPage({ params }: Props) {
             }
           />
           <ActionCard
-            href={`/${locale}/dashboard/leagues/${leagueId}/teams`}
+            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'teams')}
             icon={<Users className="w-6 h-6" />}
-            title="Teams & Rosters"
-            description="Manage teams and player rosters"
+            title="Teams"
+            description="See the teams actively participating in this season and their roster depth"
           />
           <ActionCard
-            href={`/${locale}/dashboard/leagues/${leagueId}/games`}
+            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'scorekeepers')}
             icon={<ClipboardList className="w-6 h-6" />}
-            title="Game Results"
-            description="Enter scores and manage game stats"
+            title="Scorekeeper Schedule"
+            description="Assign scorekeepers for this season and track open game coverage"
           />
           <ActionCard
-            href={`/${locale}/dashboard/leagues/${leagueId}/settings`}
+            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'settings')}
             icon={<Settings className="w-6 h-6" />}
-            title="League Settings"
-            description="Configure league and season settings"
+            title="Season Settings"
+            description="Edit rules, dates, and operating settings for this specific season"
           />
         </div>
 
