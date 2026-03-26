@@ -42,6 +42,7 @@ import type {
   GameSheetGoalie,
   GamePlayerStats,
   PlayerBadge,
+  ArticleLinkContext,
 } from './types';
 import { getBalancedLeagueColors } from './theme-palette';
 import { pickOperationalSeason } from './seasons/operational';
@@ -2964,6 +2965,103 @@ export async function getNewsArticleBySlug(leagueId: string, slug: string): Prom
     .single();
   if (error || !data) return null;
   return data as unknown as NewsArticle;
+}
+
+export async function getArticleLinkContext(
+  articleId: string,
+  leagueId: string,
+  relatedGameId?: string | null,
+): Promise<ArticleLinkContext> {
+  const supabase = createServiceRoleClient();
+
+  const [playerTagsResult, teamTagsResult, gameTagsResult, relatedGame] = await Promise.all([
+    supabase
+      .from('article_player_tags')
+      .select('player_id, player:profiles!article_player_tags_player_id_fkey(id, full_name)')
+      .eq('article_id', articleId),
+    supabase
+      .from('article_team_tags')
+      .select('team_id, team:teams!article_team_tags_team_id_fkey(id, name, slug)')
+      .eq('article_id', articleId),
+    supabase
+      .from('article_game_tags')
+      .select('game_id, is_primary')
+      .eq('article_id', articleId)
+      .order('is_primary', { ascending: false }),
+    relatedGameId ? getGamePreview(relatedGameId) : Promise.resolve(null),
+  ]);
+
+  const players = (playerTagsResult.data || [])
+    .map((row: any) => {
+      const player = Array.isArray(row.player) ? row.player[0] : row.player;
+      if (!player?.id || !player.full_name) return null;
+      return {
+        id: player.id,
+        fullName: player.full_name as string,
+      };
+    })
+    .filter(Boolean) as ArticleLinkContext['players'];
+
+  const explicitTeams = (teamTagsResult.data || [])
+    .map((row: any) => {
+      const team = Array.isArray(row.team) ? row.team[0] : row.team;
+      if (!team?.id || !team.name || !team.slug) return null;
+      return {
+        id: team.id,
+        name: team.name as string,
+        slug: team.slug as string,
+      };
+    })
+    .filter(Boolean) as ArticleLinkContext['teams'];
+
+  const explicitGameIds = [...new Set((gameTagsResult.data || []).map((row: any) => row.game_id).filter(Boolean))] as string[];
+  const fallbackGameIds = relatedGameId && !explicitGameIds.includes(relatedGameId) ? [relatedGameId] : [];
+  const gameIds = [...explicitGameIds, ...fallbackGameIds];
+
+  const games = await Promise.all(gameIds.map((gameId) => getGamePreview(gameId)));
+  const linkableGames = games
+    .filter(Boolean)
+    .map((game) => ({
+      id: game!.id,
+      homeTeamName: game!.home_team?.name || 'Home',
+      awayTeamName: game!.away_team?.name || 'Away',
+    })) as ArticleLinkContext['games'];
+
+  const primaryExplicitGameId =
+    (gameTagsResult.data || []).find((row: any) => row.is_primary)?.game_id ||
+    relatedGameId ||
+    null;
+
+  const primaryGame =
+    linkableGames.find((game) => game.id === primaryExplicitGameId) ||
+    null;
+
+  const fallbackTeams =
+    explicitTeams.length === 0 && relatedGame?.home_team && relatedGame?.away_team
+      ? [
+          relatedGame.home_team.slug
+            ? {
+                id: relatedGame.home_team.id,
+                name: relatedGame.home_team.name,
+                slug: relatedGame.home_team.slug,
+              }
+            : null,
+          relatedGame.away_team.slug
+            ? {
+                id: relatedGame.away_team.id,
+                name: relatedGame.away_team.name,
+                slug: relatedGame.away_team.slug,
+              }
+            : null,
+        ].filter(Boolean) as ArticleLinkContext['teams']
+      : [];
+
+  return {
+    players,
+    teams: explicitTeams.length > 0 ? explicitTeams : fallbackTeams,
+    games: linkableGames,
+    primaryGame,
+  };
 }
 
 /**

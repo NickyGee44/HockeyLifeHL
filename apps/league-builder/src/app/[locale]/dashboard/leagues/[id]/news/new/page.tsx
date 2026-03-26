@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { createNewsArticle } from '@/lib/actions/news';
+import { getArticleEntityEditorContext, suggestArticleEntities } from '@/lib/actions/article-entities';
 import Link from 'next/link';
 import { cn } from '@hockey-life/ui';
 import { ArrowLeft, Save, Sparkles, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { LogoUploader } from '@/components/ui/logo-uploader';
 import { uploadNewsImage, deleteNewsImage } from '@/lib/actions/image-upload';
+import { ArticleEntityLinksEditor } from '@/components/news/ArticleEntityLinksEditor';
+import type { ArticleEditorSeasonOption, ArticleEntityGameOption, ArticleEntityPlayerOption, ArticleEntityTeamOption } from '@/lib/news/article-entity-types';
 
 type ArticleType = 'news' | 'game_recap' | 'weekly_wrap';
 
@@ -25,6 +28,19 @@ export default function NewNewsArticlePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [seasonId, setSeasonId] = useState<string | null>(null);
+  const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null);
+  const [seasonOptions, setSeasonOptions] = useState<ArticleEditorSeasonOption[]>([]);
+  const [playerOptions, setPlayerOptions] = useState<ArticleEntityPlayerOption[]>([]);
+  const [teamOptions, setTeamOptions] = useState<ArticleEntityTeamOption[]>([]);
+  const [gameOptions, setGameOptions] = useState<ArticleEntityGameOption[]>([]);
+  const [linkedPlayerIds, setLinkedPlayerIds] = useState<string[]>([]);
+  const [linkedTeamIds, setLinkedTeamIds] = useState<string[]>([]);
+  const [linkedGameIds, setLinkedGameIds] = useState<string[]>([]);
+  const [primaryGameId, setPrimaryGameId] = useState<string | null>(null);
+  const [loadingLinks, setLoadingLinks] = useState(true);
+  const [suggestingLinks, setSuggestingLinks] = useState(false);
+
   // AI generation state
   const [aiOpen, setAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -39,6 +55,81 @@ export default function NewNewsArticlePage() {
       .replace(/^-|-$/g, '')
       .substring(0, 100);
   }
+
+  function filterIds<T extends { id: string }>(ids: string[], options: T[]) {
+    const validIds = new Set(options.map((option) => option.id));
+    return ids.filter((id) => validIds.has(id));
+  }
+
+  async function loadEntityContext(nextSeasonId: string | null, preserveSelection: boolean) {
+    setLoadingLinks(true);
+    try {
+      const context = await getArticleEntityEditorContext({
+        leagueId,
+        seasonId: nextSeasonId,
+      });
+      const resolvedSeasonId = nextSeasonId ?? context.seasonId ?? context.resolvedSeasonId ?? null;
+      setSeasonOptions(context.seasons);
+      setActiveSeasonId(context.activeSeasonId);
+      setSeasonId(resolvedSeasonId);
+      setPlayerOptions(context.players);
+      setTeamOptions(context.teams);
+      setGameOptions(context.games);
+
+      if (preserveSelection) {
+        const nextPlayerIds = filterIds(linkedPlayerIds, context.players);
+        const nextTeamIds = filterIds(linkedTeamIds, context.teams);
+        const nextGameIds = filterIds(linkedGameIds, context.games);
+        setLinkedPlayerIds(nextPlayerIds);
+        setLinkedTeamIds(nextTeamIds);
+        setLinkedGameIds(nextGameIds);
+        setPrimaryGameId(nextGameIds.includes(primaryGameId || '') ? primaryGameId : nextGameIds[0] || null);
+      }
+    } catch {
+      setError('Failed to load article linking options.');
+    } finally {
+      setLoadingLinks(false);
+    }
+  }
+
+  async function runAutoSuggest(payload?: {
+    title?: string;
+    excerpt?: string;
+    content?: string;
+  }) {
+    const nextTitle = payload?.title ?? title;
+    const nextExcerpt = payload?.excerpt ?? excerpt;
+    const nextContent = payload?.content ?? content;
+    if (!nextTitle && !nextExcerpt && !nextContent) return;
+
+    setSuggestingLinks(true);
+    try {
+      const suggestion = await suggestArticleEntities({
+        leagueId,
+        seasonId,
+        title: nextTitle,
+        excerpt: nextExcerpt,
+        content: nextContent,
+        preferredGameId: primaryGameId,
+      });
+
+      if (!seasonId && suggestion.seasonId) {
+        setSeasonId(suggestion.seasonId);
+      }
+      setLinkedPlayerIds(suggestion.linkedPlayerIds);
+      setLinkedTeamIds(suggestion.linkedTeamIds);
+      setLinkedGameIds(suggestion.linkedGameIds);
+      setPrimaryGameId(suggestion.primaryGameId);
+    } catch {
+      setError('Failed to auto-detect linked entities.');
+    } finally {
+      setSuggestingLinks(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadEntityContext(null, false);
+  }, [leagueId]);
 
   function handleTitleChange(value: string) {
     setTitle(value);
@@ -64,6 +155,8 @@ export default function NewNewsArticlePage() {
           leagueId,
           prompt: aiPrompt.trim(),
           articleType: aiArticleType,
+          seasonId: seasonId || undefined,
+          gameId: primaryGameId || undefined,
         }),
       });
 
@@ -74,7 +167,6 @@ export default function NewNewsArticlePage() {
         return;
       }
 
-      // Populate the form fields with generated content
       if (data.title) {
         setTitle(data.title);
         setSlug(generateSlug(data.title));
@@ -86,7 +178,12 @@ export default function NewNewsArticlePage() {
         setExcerpt(data.excerpt);
       }
 
-      // Collapse the AI panel after successful generation
+      await runAutoSuggest({
+        title: data.title,
+        excerpt: data.excerpt,
+        content: data.content,
+      });
+
       setAiOpen(false);
     } catch {
       setAiError('Network error. Please check your connection and try again.');
@@ -112,6 +209,11 @@ export default function NewNewsArticlePage() {
       excerpt: excerpt.trim() || undefined,
       imageUrl: imageUrl.trim() || undefined,
       slug: slug.trim() || undefined,
+      seasonId,
+      linkedPlayerIds,
+      linkedTeamIds,
+      linkedGameIds,
+      primaryGameId,
     });
 
     if (result.success) {
@@ -125,7 +227,6 @@ export default function NewNewsArticlePage() {
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <Link
             href={`/${locale}/dashboard/leagues/${leagueId}/news`}
@@ -139,7 +240,6 @@ export default function NewNewsArticlePage() {
           <p className="text-neutral-400 mt-1">Create a new news article</p>
         </div>
 
-        {/* AI Generate Section */}
         <div className="mb-6">
           <button
             type="button"
@@ -155,11 +255,7 @@ export default function NewNewsArticlePage() {
               <Sparkles className="w-4 h-4" />
               Generate with AI
             </span>
-            {aiOpen ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
+            {aiOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
 
           {aiOpen && (
@@ -174,7 +270,6 @@ export default function NewNewsArticlePage() {
                 </div>
               )}
 
-              {/* Article Type Select */}
               <div>
                 <label htmlFor="ai-type" className="block text-sm font-medium text-neutral-300 mb-2">
                   Article Type
@@ -192,7 +287,6 @@ export default function NewNewsArticlePage() {
                 </select>
               </div>
 
-              {/* Prompt */}
               <div>
                 <label htmlFor="ai-prompt" className="block text-sm font-medium text-neutral-300 mb-2">
                   What should the article be about?
@@ -213,12 +307,9 @@ export default function NewNewsArticlePage() {
                   disabled={aiGenerating}
                   className="w-full px-4 py-3 bg-neutral-900 border border-white/10 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 resize-y"
                 />
-                <p className="text-xs text-neutral-500 mt-1">
-                  {aiPrompt.length}/2000 characters
-                </p>
+                <p className="text-xs text-neutral-500 mt-1">{aiPrompt.length}/2000 characters</p>
               </div>
 
-              {/* Generate Button */}
               <button
                 type="button"
                 onClick={handleAiGenerate}
@@ -246,7 +337,6 @@ export default function NewNewsArticlePage() {
           )}
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">
@@ -255,7 +345,6 @@ export default function NewNewsArticlePage() {
           )}
 
           <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 space-y-5">
-            {/* Title */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-neutral-300 mb-2">
                 Title *
@@ -271,7 +360,6 @@ export default function NewNewsArticlePage() {
               />
             </div>
 
-            {/* Slug */}
             <div>
               <label htmlFor="slug" className="block text-sm font-medium text-neutral-300 mb-2">
                 URL Slug
@@ -289,7 +377,6 @@ export default function NewNewsArticlePage() {
               </p>
             </div>
 
-            {/* Excerpt */}
             <div>
               <label htmlFor="excerpt" className="block text-sm font-medium text-neutral-300 mb-2">
                 Excerpt
@@ -304,7 +391,6 @@ export default function NewNewsArticlePage() {
               />
             </div>
 
-            {/* Content */}
             <div>
               <label htmlFor="content" className="block text-sm font-medium text-neutral-300 mb-2">
                 Content
@@ -319,7 +405,6 @@ export default function NewNewsArticlePage() {
               />
             </div>
 
-            {/* Featured Image */}
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Featured Image
@@ -347,7 +432,31 @@ export default function NewNewsArticlePage() {
             </div>
           </div>
 
-          {/* Actions */}
+          <ArticleEntityLinksEditor
+            seasons={seasonOptions}
+            seasonId={seasonId}
+            activeSeasonId={activeSeasonId}
+            players={playerOptions}
+            teams={teamOptions}
+            games={gameOptions}
+            linkedPlayerIds={linkedPlayerIds}
+            linkedTeamIds={linkedTeamIds}
+            linkedGameIds={linkedGameIds}
+            primaryGameId={primaryGameId}
+            onSeasonChange={(nextSeasonId) => {
+              void loadEntityContext(nextSeasonId, true);
+            }}
+            onLinkedPlayerIdsChange={setLinkedPlayerIds}
+            onLinkedTeamIdsChange={setLinkedTeamIds}
+            onLinkedGameIdsChange={setLinkedGameIds}
+            onPrimaryGameIdChange={setPrimaryGameId}
+            onAutoSuggest={() => {
+              void runAutoSuggest();
+            }}
+            suggesting={suggestingLinks || loadingLinks}
+            disabled={saving || loadingLinks}
+          />
+
           <div className="flex items-center justify-end gap-3">
             <Link
               href={`/${locale}/dashboard/leagues/${leagueId}/news`}
@@ -366,7 +475,7 @@ export default function NewNewsArticlePage() {
               )}
             >
               <Save className="w-4 h-4" />
-              {saving ? 'Creating...' : 'Create Article'}
+              {saving ? 'Saving...' : 'Save Article'}
             </button>
           </div>
         </form>
