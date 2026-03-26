@@ -284,7 +284,7 @@ export default async function LeagueDetailPage({ params }: Props) {
             highlight
           />
           <QuickActionButton
-            href={`/${locale}/dashboard/leagues/${leagueId}/payments`}
+            href={`/${locale}/dashboard/leagues/${leagueId}/finance`}
             icon={<CreditCard className="w-5 h-5" />}
             title={t('playerPayments')}
             description={t('playerPaymentsDescription')}

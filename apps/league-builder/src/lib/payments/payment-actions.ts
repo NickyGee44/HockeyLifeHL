@@ -1992,9 +1992,3 @@ export async function settleSeasonInvoice(
     return { success: false, error: 'Failed to create settlement invoice.' };
   }
 }
-
-export const __paymentCleanupTestables = {
-  canArchivePayment,
-  canPermanentlyDeletePayment,
-  getArchivedPaymentError,
-};

@@ -14,26 +14,30 @@
  */
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
-  ArrowLeft,
-  DollarSign,
-  TrendingUp,
   AlertCircle,
-  CheckCircle,
-  Users,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Download,
   Mail,
+  Wallet,
 } from 'lucide-react';
 import { PaymentStatusTable } from '@/components/payments/PaymentStatusTable';
 import { PaymentDetailSheet } from '@/components/payments/PaymentDetailSheet';
 import { PaymentCleanupDialog } from '@/components/payments/PaymentCleanupDialog';
 import { RefundModal } from '@/components/payments/RefundModal';
 import { PaymentReportExport } from '@/components/payments/PaymentReportExport';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   archivePlayerPayment,
   sendPaymentReminder,
@@ -55,15 +59,15 @@ interface PaymentDashboardProps {
   seasons: Array<{
     id: string;
     name: string;
-    status: string;
-    start_date: string;
+    status: string | null;
+    start_date: string | null;
     end_date: string | null;
   }>;
   selectedSeason: {
     id: string;
     name: string;
-    status: string;
-    start_date: string;
+    status: string | null;
+    start_date: string | null;
     end_date: string | null;
   } | null;
   payments: PlayerPaymentWithDetails[];
@@ -83,7 +87,7 @@ export function PaymentDashboard({
   locale,
   leagueId,
   leagueName,
-  seasons,
+  seasons: _seasons,
   selectedSeason,
   payments: initialPayments,
   summary,
@@ -112,26 +116,27 @@ export function PaymentDashboard({
   const [cleanupReason, setCleanupReason] = useState('');
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [cleanupPending, setCleanupPending] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   useEffect(() => {
     setSelectedPayment(focusedPayment);
     setIsDetailSheetOpen(Boolean(focusedPayment));
   }, [focusedPayment]);
 
-  const buildListParams = () => {
+  const buildListParams = ({
+    paymentId,
+    page,
+  }: {
+    paymentId?: string | null;
+    page?: number;
+  } = {}) => {
     const params = new URLSearchParams();
     if (selectedSeason) params.set('season', selectedSeason.id);
     if (statusFilter) params.set('status', statusFilter);
     if (includeArchived) params.set('archived', '1');
+    if (page && page > 1) params.set('page', String(page));
+    if (paymentId) params.set('payment', paymentId);
     return params;
-  };
-
-  const handleSeasonChange = (seasonId: string) => {
-    const params = new URLSearchParams();
-    params.set('season', seasonId);
-    if (statusFilter) params.set('status', statusFilter);
-    if (includeArchived) params.set('archived', '1');
-    router.push(`/${locale}/dashboard/leagues/${leagueId}/payments?${params.toString()}`);
   };
 
   const handleSendReminder = async (payment: PlayerPaymentWithDetails) => {
@@ -188,6 +193,12 @@ export function PaymentDashboard({
   const handleViewDetails = (payment: PlayerPaymentWithDetails) => {
     setSelectedPayment(payment);
     setIsDetailSheetOpen(true);
+    router.push(
+      `/${locale}/dashboard/leagues/${leagueId}/payments?${buildListParams({
+        paymentId: payment.id,
+        page: currentPage,
+      }).toString()}`
+    );
   };
 
   const handleRefundClick = (payment: PlayerPaymentWithDetails) => {
@@ -254,9 +265,7 @@ export function PaymentDashboard({
   };
 
   const handleArchivedToggle = () => {
-    const params = new URLSearchParams();
-    if (selectedSeason) params.set('season', selectedSeason.id);
-    if (statusFilter) params.set('status', statusFilter);
+    const params = buildListParams();
     if (!includeArchived) {
       params.set('archived', '1');
     }
@@ -265,116 +274,129 @@ export function PaymentDashboard({
 
   const totalPages = Math.ceil(total / limit);
 
-  const collectionPercent =
-    summary && summary.totalExpectedCents > 0
-      ? Math.round((summary.totalCollectedCents / summary.totalExpectedCents) * 100)
-      : 0;
-
   const handlePageChange = (page: number) => {
-    const params = buildListParams();
-    if (page > 1) params.set('page', page.toString());
-    router.push(`/${locale}/dashboard/leagues/${leagueId}/payments?${params.toString()}`);
+    router.push(
+      `/${locale}/dashboard/leagues/${leagueId}/payments?${buildListParams({ page }).toString()}`
+    );
   };
 
   if (!selectedSeason) {
     return (
-      <div className="min-h-screen bg-neutral-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('backToLeague')}
-          </Link>
-
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-12 text-center">
-            <div className="w-16 h-16 bg-rink-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-rink-500" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">{t('noSeasonsTitle')}</h2>
-            <p className="text-neutral-400 mb-6 max-w-md mx-auto">
-              {t('noSeasonsDescription')}
-            </p>
-            <Link
-              href={`/${locale}/dashboard/leagues/${leagueId}/seasons/new`}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold rounded-xl hover:shadow-lg hover:shadow-rink-500/20 transition-all"
-            >
-              {t('createSeason')}
-            </Link>
-          </div>
+      <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-12 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rink-500/10">
+          <AlertCircle className="h-8 w-8 text-rink-300" />
         </div>
+        <h2 className="mt-5 text-2xl font-bold text-white">{t('noSeasonsTitle')}</h2>
+        <p className="mx-auto mt-2 max-w-md text-neutral-400">{t('noSeasonsDescription')}</p>
+        <a
+          href={`/${locale}/dashboard/leagues/${leagueId}/seasons/new`}
+          className="mt-6 inline-flex items-center rounded-2xl bg-rink-300 px-5 py-3 text-sm font-semibold text-black transition hover:bg-rink-200"
+        >
+          {t('createSeason')}
+        </a>
       </div>
     );
   }
 
+  const topMetrics = summary
+    ? [
+        {
+          id: 'collected',
+          label: t('totalCollected'),
+          value: `$${(summary.totalCollectedCents / 100).toFixed(2)}`,
+          note: t('ofExpected', { amount: (summary.totalExpectedCents / 100).toFixed(2) }),
+          icon: Wallet,
+        },
+        {
+          id: 'outstanding',
+          label: t('pending'),
+          value: `$${(summary.totalOutstandingCents / 100).toFixed(2)}`,
+          note: t('playersPending', { count: summary.playersPending }),
+          icon: AlertCircle,
+        },
+        {
+          id: 'healthy',
+          label: t('paidInFull'),
+          value: String(summary.playersPaidFull),
+          note: t('partiallyPaid', { count: summary.playersPartial }),
+          icon: CheckCircle2,
+        },
+      ]
+    : [];
+
   return (
-    <div className="min-h-screen bg-neutral-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <Link
-            href={`/${locale}/dashboard/leagues/${leagueId}`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('backToLeague')}
-          </Link>
+    <div className="space-y-6">
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.22)] sm:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+              {selectedSeason.name}
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">{t('title')}</h2>
+            <p className="mt-2 text-sm leading-6 text-neutral-400">
+              {leagueName}
+            </p>
+          </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">{t('title')}</h1>
-              <p className="text-neutral-400 mt-1">{leagueName}</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleArchivedToggle}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm transition-colors ${
-                  includeArchived
-                    ? 'border-amber-400/30 bg-amber-400/10 text-amber-100'
-                    : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white'
-                }`}
-              >
-                {includeArchived ? t('hideArchived') : t('showArchived')}
-              </button>
-
-              {/* Send All Reminders */}
-              <button
-                onClick={handleBulkReminders}
-                disabled={sendingBulkReminders}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-700 text-neutral-300 rounded-xl hover:bg-neutral-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                <Mail className="w-4 h-4" />
-                {sendingBulkReminders ? t('sendingReminders') : t('sendAllReminders')}
-              </button>
-
-              {/* Season Selector */}
-              {seasons.length > 1 && (
-                <div>
-                  <label htmlFor="season" className="sr-only">
-                    {t('selectSeason')}
-                  </label>
-                  <select
-                    id="season"
-                    value={selectedSeason.id}
-                    onChange={(e) => handleSeasonChange(e.target.value)}
-                    className="px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-rink-500/50 focus:border-transparent"
-                  >
-                    {seasons.map((season) => (
-                      <option key={season.id} value={season.id}>
-                        {season.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleArchivedToggle}
+              className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                includeArchived
+                  ? 'border-amber-300/30 bg-amber-400/10 text-amber-100'
+                  : 'border-white/10 bg-black/20 text-neutral-300 hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              {includeArchived ? t('hideArchived') : t('showArchived')}
+            </button>
+            <button
+              onClick={handleBulkReminders}
+              disabled={sendingBulkReminders}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm font-medium text-neutral-200 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Mail className="h-4 w-4" />
+              {sendingBulkReminders ? t('sendingReminders') : t('sendAllReminders')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setExportDialogOpen(true)}
+              className="inline-flex items-center gap-2 rounded-2xl bg-rink-300 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-rink-200"
+            >
+              <Download className="h-4 w-4" />
+              {t('exportAction')}
+            </button>
           </div>
         </div>
+      </section>
 
+      {summary && (
+        <section className="grid gap-3 lg:grid-cols-3">
+          {topMetrics.map((metric) => {
+            const Icon = metric.icon;
+            return (
+              <div
+                key={metric.id}
+                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                    {metric.label}
+                  </p>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-2 text-rink-300">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                </div>
+                <p className="mt-4 text-3xl font-black tracking-tight text-white">{metric.value}</p>
+                <p className="mt-2 text-sm text-neutral-400">{metric.note}</p>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      <section className="space-y-4">
         {billingReadiness.needsOwnerAttention && (
-          <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 py-4">
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <AlertCircle className="mt-0.5 h-5 w-5 text-amber-400" />
@@ -383,19 +405,19 @@ export function PaymentDashboard({
                   <p className="text-sm text-amber-100/80">{billingReadiness.message}</p>
                 </div>
               </div>
-              <Link
+              <a
                 href={`/${locale}${billingReadiness.ctaUrl}`}
                 className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-100 transition-colors hover:bg-amber-400/20"
               >
-                <DollarSign className="h-4 w-4" />
+                <Wallet className="h-4 w-4" />
                 {billingReadiness.ctaLabel}
-              </Link>
+              </a>
             </div>
           </div>
         )}
 
         {!billingReadiness.canAcceptPayments && (
-          <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4">
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 text-red-400" />
               <div>
@@ -407,180 +429,115 @@ export function PaymentDashboard({
             </div>
           </div>
         )}
+      </section>
 
-        {/* Summary Cards */}
-        {summary && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            {/* Total Collected */}
-            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                </div>
-                <span className="text-sm text-neutral-400">{t('totalCollected')}</span>
-              </div>
-              <p className="text-2xl font-bold text-white">
-                ${(summary.totalCollectedCents / 100).toFixed(2)}
-              </p>
-              <p className="text-xs text-neutral-500 mt-1">
-                {t('ofExpected', { amount: (summary.totalExpectedCents / 100).toFixed(2) })}
-              </p>
-              {/* Collection % */}
-              <div className="mt-2">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-neutral-400">{t('collectionPercent')}</span>
-                  <span className="text-rink-400 font-medium">{collectionPercent}%</span>
-                </div>
-                <div className="h-1.5 bg-neutral-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-rink-500 to-arena-500 rounded-full transition-all"
-                    style={{ width: `${collectionPercent}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-3 sm:p-4">
+        <PaymentStatusTable
+          payments={payments}
+          teams={teams}
+          onViewDetails={handleViewDetails}
+          isLoading={false}
+        />
+      </section>
 
-            {/* Pending Payments */}
-            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-yellow-500" />
-                </div>
-                <span className="text-sm text-neutral-400">{t('pending')}</span>
-              </div>
-              <p className="text-2xl font-bold text-white">
-                ${(summary.totalOutstandingCents / 100).toFixed(2)}
-              </p>
-              <p className="text-xs text-neutral-500 mt-1">
-                {t('playersPending', { count: summary.playersPending })}
-              </p>
-            </div>
-
-            {/* Overdue Payments */}
-            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                </div>
-                <span className="text-sm text-neutral-400">{t('overdue')}</span>
-              </div>
-              <p className="text-2xl font-bold text-white">{summary.playersOverdue}</p>
-              <p className="text-xs text-neutral-500 mt-1">{t('playersOverdue')}</p>
-            </div>
-
-            {/* Paid in Full */}
-            <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-rink-500/10 rounded-full flex items-center justify-center">
-                  <Users className="w-5 h-5 text-rink-500" />
-                </div>
-                <span className="text-sm text-neutral-400">{t('paidInFull')}</span>
-              </div>
-              <p className="text-2xl font-bold text-white">{summary.playersPaidFull}</p>
-              <p className="text-xs text-neutral-500 mt-1">
-                {t('partiallyPaid', { count: summary.playersPartial })}
-              </p>
-            </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-neutral-400">
+            {t('showing', {
+              from: (currentPage - 1) * limit + 1,
+              to: Math.min(currentPage * limit, total),
+              total,
+            })}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="rounded-xl border border-white/10 p-2 text-neutral-400 transition hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="text-sm text-neutral-300">
+              {t('pageOf', { current: currentPage, total: totalPages })}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="rounded-xl border border-white/10 p-2 text-neutral-400 transition hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Export Report */}
-        <div className="mb-6">
+      {selectedPayment && (
+        <RefundModal
+          payment={selectedPayment}
+          isOpen={isRefundModalOpen}
+          onClose={() => {
+            setIsRefundModalOpen(false);
+          }}
+          onSuccess={handleRefundSuccess}
+        />
+      )}
+
+      <PaymentDetailSheet
+        open={isDetailSheetOpen}
+        onOpenChange={(open) => {
+          setIsDetailSheetOpen(open);
+          if (!open) {
+            setSelectedPayment(null);
+            router.push(
+              `/${locale}/dashboard/leagues/${leagueId}/payments?${buildListParams({
+                page: currentPage,
+              }).toString()}`
+            );
+          }
+        }}
+        payment={selectedPayment}
+        onSendReminder={handleSendReminder}
+        onMarkAsPaid={handleMarkAsPaid}
+        onRefund={handleRefundClick}
+        onArchive={(payment) => openCleanupDialog(payment, 'archive')}
+        canPermanentlyDelete={viewerRole === 'owner' && Boolean(selectedPayment?.archived_at)}
+        onRequestPermanentDelete={(payment) => openCleanupDialog(payment, 'delete')}
+      />
+
+      <PaymentCleanupDialog
+        open={Boolean(cleanupTarget)}
+        mode={cleanupMode}
+        payment={cleanupTarget}
+        reason={cleanupReason}
+        confirmationText={deleteConfirmationText}
+        pending={cleanupPending}
+        onReasonChange={setCleanupReason}
+        onConfirmationTextChange={setDeleteConfirmationText}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCleanupTarget(null);
+            setCleanupReason('');
+            setDeleteConfirmationText('');
+          }
+        }}
+        onConfirm={handleConfirmCleanup}
+      />
+
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="max-w-2xl border-white/10 bg-neutral-950 text-white">
+          <DialogHeader>
+            <DialogTitle>{t('exportDialogTitle')}</DialogTitle>
+            <DialogDescription className="text-neutral-400">
+              {t('exportDialogDescription')}
+            </DialogDescription>
+          </DialogHeader>
           <PaymentReportExport
             leagueId={leagueId}
             seasonId={selectedSeason.id}
             seasonName={selectedSeason.name}
           />
-        </div>
-
-        {/* Payment Status Table */}
-        <PaymentStatusTable
-          payments={payments}
-          teams={teams}
-          onRefund={handleRefundClick}
-          onSendReminder={handleSendReminder}
-          onViewDetails={handleViewDetails}
-          onMarkAsPaid={handleMarkAsPaid}
-          onArchive={(payment) => openCleanupDialog(payment, 'archive')}
-          isLoading={false}
-        />
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-neutral-400">
-              {t('showing', {
-                from: (currentPage - 1) * limit + 1,
-                to: Math.min(currentPage * limit, total),
-                total,
-              })}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="text-sm text-neutral-300">
-                {t('pageOf', { current: currentPage, total: totalPages })}
-              </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Refund Modal */}
-        {selectedPayment && (
-          <RefundModal
-            payment={selectedPayment}
-            isOpen={isRefundModalOpen}
-            onClose={() => {
-              setIsRefundModalOpen(false);
-              setSelectedPayment(null);
-            }}
-            onSuccess={handleRefundSuccess}
-          />
-        )}
-
-        {/* Payment Detail Sheet */}
-        <PaymentDetailSheet
-          open={isDetailSheetOpen}
-          onOpenChange={(open) => {
-            setIsDetailSheetOpen(open);
-            if (!open) setSelectedPayment(null);
-          }}
-          payment={selectedPayment}
-          canPermanentlyDelete={viewerRole === 'owner' && Boolean(selectedPayment?.archived_at)}
-          onRequestPermanentDelete={(payment) => openCleanupDialog(payment, 'delete')}
-        />
-
-        <PaymentCleanupDialog
-          open={Boolean(cleanupTarget)}
-          mode={cleanupMode}
-          payment={cleanupTarget}
-          reason={cleanupReason}
-          confirmationText={deleteConfirmationText}
-          pending={cleanupPending}
-          onReasonChange={setCleanupReason}
-          onConfirmationTextChange={setDeleteConfirmationText}
-          onOpenChange={(open) => {
-            if (!open) {
-              setCleanupTarget(null);
-              setCleanupReason('');
-              setDeleteConfirmationText('');
-            }
-          }}
-          onConfirm={handleConfirmCleanup}
-        />
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

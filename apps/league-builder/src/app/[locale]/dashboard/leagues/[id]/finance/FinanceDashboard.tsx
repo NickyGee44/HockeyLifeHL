@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  ArrowLeft,
   ArrowUpRight,
   CheckCircle2,
   ChevronLeft,
@@ -20,7 +19,6 @@ import {
   Search,
   Trash2,
   Unplug,
-  Wallet,
 } from 'lucide-react';
 import type {
   CreateLeagueFinanceCustomItemInput,
@@ -232,24 +230,6 @@ function downloadTextFile(content: string, fileName: string, mimeType: string) {
   URL.revokeObjectURL(url);
 }
 
-function StatCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-500">{label}</p>
-      <p className="mt-2 text-3xl font-black text-white">{value}</p>
-      <p className="mt-2 text-sm text-neutral-400">{detail}</p>
-    </div>
-  );
-}
-
 export function FinanceDashboard({
   locale,
   leagueId,
@@ -277,6 +257,10 @@ export function FinanceDashboard({
   const [isDisconnectingQuickBooks, startDisconnectQuickBooks] = useTransition();
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
+  const [manualItemDialogOpen, setManualItemDialogOpen] = useState(false);
+  const [quickBooksPreviewDialogOpen, setQuickBooksPreviewDialogOpen] = useState(false);
+  const [quickBooksHistoryDialogOpen, setQuickBooksHistoryDialogOpen] = useState(false);
+  const [quickBooksExportDialogOpen, setQuickBooksExportDialogOpen] = useState(false);
   const [mappingOptions, setMappingOptions] = useState<QuickBooksMappingOptions | null>(null);
   const [mappingSelectionIds, setMappingSelectionIds] = useState<Record<QuickBooksMappingField, string>>(
     buildQuickBooksMappingSelectionState(null, quickBooksStatus.mappings)
@@ -333,24 +317,6 @@ export function FinanceDashboard({
     const nextUrl = nextParams.toString() ? `${pathname}?${nextParams.toString()}` : pathname;
     router.replace(nextUrl);
   }, [pathname, quickBooksToast, router, searchParams]);
-
-  const handleSeasonChange = (seasonValue: string) => {
-    const params = new URLSearchParams();
-    params.set('season', seasonValue);
-    if (ledgerFilters.source !== 'all') {
-      params.set('source', ledgerFilters.source);
-    }
-    if (ledgerFilters.status !== 'all') {
-      params.set('status', ledgerFilters.status);
-    }
-    if (ledgerFilters.query.trim()) {
-      params.set('q', ledgerFilters.query.trim());
-    }
-    if (ledgerFilters.includeArchived) {
-      params.set('archived', '1');
-    }
-    router.push(`/${locale}/dashboard/leagues/${leagueId}/finance?${params.toString()}`);
-  };
 
   const updateLedgerFilters = (
     updates: Partial<{
@@ -423,6 +389,7 @@ export function FinanceDashboard({
 
       toast.success('Finance item saved.');
       setManualItemForm((current) => ({ ...current, title: '', amount: '', notes: '' }));
+      setManualItemDialogOpen(false);
       router.refresh();
     });
   };
@@ -545,6 +512,7 @@ export function FinanceDashboard({
       }
 
       setPreviewResult(result.data);
+      setQuickBooksPreviewDialogOpen(true);
       toast.success(`QuickBooks preview ready (${result.data.counts.total} journals).`);
       router.refresh();
     });
@@ -587,84 +555,66 @@ export function FinanceDashboard({
     });
   };
 
+  const seasonScopeLabel =
+    requestedSeason === 'all'
+      ? 'All seasons'
+      : data.selectedSeason?.name || 'Selected season';
+  const quickBooksConnected = quickBooksStatus.connection?.status === 'active';
+  const recentManualItems = data.manualItems.slice(0, 4);
+
   return (
-    <div className="min-h-screen bg-neutral-950">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Link
-          href={`/${locale}/dashboard/leagues/${leagueId}`}
-          className="inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-rink-500"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to league
-        </Link>
-
-        <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-rink-400">
-              League Finance
+    <div className="space-y-6">
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.22)] sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+              Accounting
             </p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight text-white">
-              {data.league.name}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-              Collections, payouts, manual finance items, and QuickBooks-ready journal export in
-              one owner view.
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+              Ledger and payouts
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-neutral-400">
+              {seasonScopeLabel} view. Review money movement, trace each entry back to its
+              source, and open accounting actions only when you need them.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <label htmlFor="finance-season" className="block text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
-              Season Scope
-            </label>
-            <select
-              id="finance-season"
-              value={requestedSeason}
-              onChange={(event) => handleSeasonChange(event.target.value)}
-              className="mt-3 min-w-[240px] rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                updateLedgerFilters({ includeArchived: !ledgerFilters.includeArchived })
+              }
+              className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition ${
+                ledgerFilters.includeArchived
+                  ? 'border-amber-300/30 bg-amber-400/10 text-amber-100'
+                  : 'border-white/10 bg-black/20 text-neutral-300 hover:bg-white/[0.06] hover:text-white'
+              }`}
             >
-              <option value="all">All seasons</option>
-              {data.seasons.map((season) => (
-                <option key={season.id} value={season.id}>
-                  {season.name}
-                </option>
-              ))}
-            </select>
-            <p className="mt-2 text-xs text-neutral-500">
-              {data.selectedSeason ? `${data.selectedSeason.name} finance view` : 'All season finance view'}
-            </p>
+              {ledgerFilters.includeArchived ? 'Hide archived' : 'Show archived'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickBooksExportDialogOpen(true)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm font-medium text-neutral-200 transition hover:bg-white/[0.06]"
+            >
+              <Download className="h-4 w-4" />
+              QuickBooks CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => setManualItemDialogOpen(true)}
+              disabled={!data.manualItemsAvailable}
+              className="inline-flex items-center gap-2 rounded-2xl bg-rink-300 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-rink-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Add finance item
+            </button>
           </div>
         </div>
+      </section>
 
-        <div className="mt-8 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-sm text-cyan-100">
-          Cash totals avoid double-counting team billing by adding player collections and team-side
-          invoice payments separately. Team invoice totals still show the full invoice position,
-          including player contributions allocated against a team invoice.
-        </div>
-
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Cash Collected"
-            value={formatCurrency(data.snapshot.cashCollectedCents)}
-            detail="Player collections + team-side invoice payments + manual income items."
-          />
-          <StatCard
-            label="Tracked Expenses"
-            value={formatCurrency(data.snapshot.trackedExpensesCents)}
-            detail="Stripe fees, referee payroll, and manual expense entries."
-          />
-          <StatCard
-            label="Net Tracked Position"
-            value={formatCurrency(data.snapshot.netTrackedPositionCents)}
-            detail="Operational view, not a full accounting close."
-          />
-          <StatCard
-            label="Registration Outstanding"
-            value={formatCurrency(data.registrationSummary.totalOutstandingCents)}
-            detail={`${data.registrationSummary.playersPending} pending and ${data.registrationSummary.playersOverdue} overdue player records.`}
-          />
-        </div>
-
-        <div className="mt-8 grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
               <div className="flex items-center gap-3">
@@ -672,18 +622,18 @@ export function FinanceDashboard({
                   <Link2 className="h-5 w-5 text-sky-300" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">QuickBooks Online Sync</h2>
+                  <h2 className="text-lg font-bold text-white">QuickBooks Online</h2>
                   <p className="text-sm text-neutral-400">
-                    Connect one QuickBooks Online company, map accounts once, preview journals,
-                    then push them manually into QuickBooks.
+                    Keep direct sync setup close to the ledger without turning the page into an
+                    accounting wizard.
                   </p>
                 </div>
               </div>
 
               {!quickBooksStatus.available && (
                 <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
-                  {quickBooksStatus.configurationMessage ||
-                    'QuickBooks Online is not configured in this environment.'}
+                  Direct sync is not enabled yet. QuickBooks CSV export is still available from
+                  this page.
                 </div>
               )}
 
@@ -695,7 +645,7 @@ export function FinanceDashboard({
                     </p>
                     <p className="mt-2 text-lg font-semibold text-white">
                       {quickBooksStatus.connection?.companyName ||
-                        (quickBooksStatus.connection ? 'QuickBooks company' : 'Not connected')}
+                        (quickBooksStatus.connection ? 'QuickBooks company' : 'Direct sync')}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-neutral-400">
                       <span
@@ -707,9 +657,7 @@ export function FinanceDashboard({
                       >
                         {quickBooksStatus.connection?.status === 'active'
                           ? 'Connected'
-                          : quickBooksStatus.connection
-                            ? 'Disconnected'
-                            : 'Not connected'}
+                          : 'Not connected'}
                       </span>
                       {quickBooksStatus.connection?.lastSyncedAt && (
                         <span>Last sync {formatDate(quickBooksStatus.connection.lastSyncedAt)}</span>
@@ -730,7 +678,9 @@ export function FinanceDashboard({
                         ) : (
                           <RefreshCw className="h-4 w-4" />
                         )}
-                        {quickBooksStatus.connection?.status === 'active' ? 'Reconnect' : 'Connect'}
+                        {quickBooksStatus.connection?.status === 'active'
+                          ? 'Reconnect'
+                          : 'Connect'}
                       </button>
                       <button
                         type="button"
@@ -747,7 +697,46 @@ export function FinanceDashboard({
                         ) : (
                           <CheckCircle2 className="h-4 w-4" />
                         )}
-                        Configure mappings
+                        Review mappings
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handlePreviewQuickBooksSync}
+                        disabled={
+                          !quickBooksStatus.available ||
+                          quickBooksStatus.connection?.status !== 'active' ||
+                          isPreviewingSync
+                        }
+                        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-neutral-100 transition hover:bg-neutral-800 disabled:opacity-50"
+                      >
+                        {isPreviewingSync ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                        Preview sync
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuickBooksHistoryDialogOpen(true)}
+                        disabled={quickBooksStatus.recentRuns.length === 0}
+                        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-neutral-100 transition hover:bg-neutral-800 disabled:opacity-50"
+                      >
+                        <ArrowUpRight className="h-4 w-4" />
+                        History
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSyncQuickBooksPreview}
+                        disabled={!previewResult?.canSync || isSyncingQuickBooks}
+                        className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-medium text-emerald-100 transition hover:bg-emerald-400/20 disabled:opacity-50"
+                      >
+                        {isSyncingQuickBooks ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        Sync preview
                       </button>
                       <button
                         type="button"
@@ -771,259 +760,27 @@ export function FinanceDashboard({
                   )}
                 </div>
 
-                <div className="mt-4 grid gap-3 text-sm text-neutral-300">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                    <p className="font-medium text-white">Mapping health</p>
-                    <p className="mt-1 text-neutral-400">
-                      {quickBooksStatus.missingMappings.length === 0
-                        ? 'All required account mappings are configured.'
-                        : `Missing required mappings: ${quickBooksStatus.missingMappings
-                            .map((slot) => QUICKBOOKS_MAPPING_LABELS[slot])
-                            .join(', ')}`}
-                    </p>
-                  </div>
-                  <label className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={exportOptions.includePendingPayroll}
-                      onChange={(event) =>
-                        setExportOptions((current) => ({
-                          ...current,
-                          includePendingPayroll: event.target.checked,
-                        }))
-                      }
-                    />
-                    Include pending referee payroll journals
-                  </label>
-                  <label className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={exportOptions.includePaidPayroll}
-                      onChange={(event) =>
-                        setExportOptions((current) => ({
-                          ...current,
-                          includePaidPayroll: event.target.checked,
-                        }))
-                      }
-                    />
-                    Include paid referee payroll journals
-                  </label>
-                  <label className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={exportOptions.includeManualItems}
-                      disabled={!data.manualItemsAvailable}
-                      onChange={(event) =>
-                        setExportOptions((current) => ({
-                          ...current,
-                          includeManualItems: event.target.checked,
-                        }))
-                      }
-                    />
-                    Include manual finance items
-                  </label>
-                </div>
-
-                {quickBooksStatus.canManage && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={handlePreviewQuickBooksSync}
-                      disabled={
-                        !quickBooksStatus.available ||
-                        quickBooksStatus.connection?.status !== 'active' ||
-                        isPreviewingSync
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-300 to-cyan-300 px-4 py-2.5 text-sm font-semibold text-black transition disabled:opacity-50"
-                    >
-                      {isPreviewingSync ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-4 w-4" />
-                      )}
-                      Preview sync
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSyncQuickBooksPreview}
-                      disabled={!previewResult?.canSync || isSyncingQuickBooks}
-                      className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/20 disabled:opacity-50"
-                    >
-                      {isSyncingQuickBooks ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4" />
-                      )}
-                      Sync previewed journals
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {previewResult && (
-                <div className="mt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                        Current Preview
-                      </p>
-                      <p className="mt-1 text-sm text-neutral-400">
-                        {previewResult.counts.total} journals, {previewResult.counts.pending}{' '}
-                        pending, {previewResult.counts.alreadySynced} already synced,{' '}
-                        {previewResult.counts.changed} changed, {previewResult.counts.failed} blocked.
-                      </p>
-                    </div>
-                    <span className="text-xs text-neutral-500">
-                      Built {formatDate(previewResult.createdAt)}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
-                    <table className="min-w-full divide-y divide-white/10">
-                      <thead className="bg-black/20">
-                        <tr className="text-left text-xs uppercase tracking-[0.18em] text-neutral-500">
-                          <th className="px-4 py-3 font-medium">Journal</th>
-                          <th className="px-4 py-3 font-medium">Date</th>
-                          <th className="px-4 py-3 font-medium">Description</th>
-                          <th className="px-4 py-3 font-medium">Status</th>
-                          <th className="px-4 py-3 text-right font-medium">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/10">
-                        {previewResult.entries.map((entry) => (
-                          <tr key={entry.id} className="bg-black/10 align-top text-sm text-neutral-200">
-                            <td className="px-4 py-4">
-                              <p className="font-medium text-white">{entry.journalNo}</p>
-                              <p className="mt-1 text-xs text-neutral-500">{entry.lineCount} lines</p>
-                            </td>
-                            <td className="px-4 py-4 text-neutral-300">{formatDate(entry.journalDate)}</td>
-                            <td className="px-4 py-4">
-                              <p className="text-white">{entry.description}</p>
-                              {entry.errorText && (
-                                <p className="mt-1 text-xs text-neutral-500">{entry.errorText}</p>
-                              )}
-                            </td>
-                            <td className="px-4 py-4">
-                              <span
-                                className={`inline-flex rounded-full border px-2.5 py-1 text-xs ${quickBooksSyncStatusClass(entry.status)}`}
-                              >
-                                {entry.status.replace(/_/g, ' ')}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-right font-semibold text-white">
-                              {formatCurrency(entry.amountCents)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                  Sync History
-                </p>
-                {quickBooksStatus.recentRuns.length === 0 ? (
-                  <div className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-neutral-400">
-                    No QuickBooks previews or sync runs yet.
-                  </div>
-                ) : (
-                  <div className="mt-3 space-y-3">
-                    {quickBooksStatus.recentRuns.map((run) => (
-                      <div key={run.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`inline-flex rounded-full border px-2.5 py-1 text-xs ${quickBooksRunStatusClass(run.status)}`}
-                              >
-                                {run.status}
-                              </span>
-                              <span className="text-sm text-neutral-300">
-                                {formatDate(run.createdAt)}
-                              </span>
-                            </div>
-                            <p className="mt-2 text-sm text-neutral-400">
-                              {run.previewCount} previewed, {run.syncedCount} synced,{' '}
-                              {run.failedCount} failed.
-                            </p>
-                          </div>
-                          <div className="text-xs text-neutral-500">
-                            {run.seasonId ? seasonNameById.get(run.seasonId) || 'Season run' : 'All seasons'}
-                          </div>
-                        </div>
-
-                        {run.entryFailures.length > 0 && (
-                          <div className="mt-3 space-y-2 rounded-xl border border-red-500/20 bg-red-500/5 p-3">
-                            {run.entryFailures.map((failure) => (
-                              <div key={failure.id} className="text-sm text-red-100">
-                                <p className="font-medium">{failure.journalNo}</p>
-                                <p className="mt-1 text-xs text-red-100/80">
-                                  {failure.errorText || 'QuickBooks rejected this journal.'}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-rink-500/10 p-2.5">
-                  <Wallet className="h-5 w-5 text-rink-400" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Collections Overview</h2>
-                  <p className="text-sm text-neutral-400">
-                    Individual player billing, team invoice payments, and payment processor drag.
+                <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-neutral-300">
+                  <p className="font-medium text-white">Mapping health</p>
+                  <p className="mt-1 text-neutral-400">
+                    {quickBooksStatus.missingMappings.length === 0
+                      ? 'All required account mappings are configured.'
+                      : `Missing required mappings: ${quickBooksStatus.missingMappings
+                          .map((slot) => QUICKBOOKS_MAPPING_LABELS[slot])
+                          .join(', ')}`}
                   </p>
+                  {previewResult ? (
+                    <button
+                      type="button"
+                      onClick={() => setQuickBooksPreviewDialogOpen(true)}
+                      className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-rink-300 transition hover:text-rink-200"
+                    >
+                      Review current preview
+                      <ArrowUpRight className="h-4 w-4" />
+                    </button>
+                  ) : null}
                 </div>
               </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <StatCard
-                  label="Player Billing"
-                  value={formatCurrency(data.registrationSummary.totalCollectedCents)}
-                  detail={`${formatCurrency(data.registrationSummary.totalExpectedCents)} expected with ${formatCurrency(data.registrationSummary.totalOutstandingCents)} still open.`}
-                />
-                <StatCard
-                  label="Team-Side Invoice Cash"
-                  value={formatCurrency(data.teamBillingSummary.teamSideCollectedCents)}
-                  detail="Separate captain/team payments recorded on invoices only."
-                />
-                <StatCard
-                  label="Stripe Fees"
-                  value={formatCurrency(data.stripeSummary.totalFeesPaidCents)}
-                  detail={`${data.stripeSummary.paymentCount} successful Stripe payments at ${data.stripeSummary.successRate}% success.`}
-                />
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <StatCard
-                  label="Team Invoice Position"
-                  value={formatCurrency(data.teamBillingSummary.totalInvoicedCents)}
-                  detail={`${formatCurrency(data.teamBillingSummary.invoiceOutstandingCents)} still outstanding across ${data.teamBillingSummary.teamCount} invoices.`}
-                />
-                <StatCard
-                  label="Referee Payroll"
-                  value={formatCurrency(data.refereePayroll.totalAmountCents)}
-                  detail={`${formatCurrency(data.refereePayroll.pendingAmountCents)} pending with ${data.refereePayroll.unlinkedAssignments} unlinked assignments.`}
-                />
-              </div>
-
-              {data.stripeSummary.filteredBySeasonWindow && (
-                <p className="mt-4 text-xs text-neutral-500">
-                  Stripe totals are scoped by transaction date inside the selected season window
-                  because the Stripe payments table does not carry a season foreign key yet.
-                </p>
-              )}
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
@@ -1216,123 +973,59 @@ export function FinanceDashboard({
                   <Receipt className="h-5 w-5 text-emerald-300" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Manual Finance Items</h2>
+                  <h2 className="text-lg font-bold text-white">Manual finance items</h2>
                   <p className="text-sm text-neutral-400">
-                    Track off-platform income, expenses, or neutral journal items with QuickBooks
-                    debit and credit mappings.
+                    Keep manual adjustments tucked away until you need to add one or review the
+                    latest entries.
                   </p>
                 </div>
               </div>
 
               {!data.manualItemsAvailable ? (
-                <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
-                  Manual finance items are temporarily unavailable until the latest finance
-                  database migration is applied. You can still use the dashboard totals and
-                  QuickBooks export below.
+                <div className="mt-6 rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-neutral-400">
+                  Manual adjustments are not available for this league yet.
                 </div>
               ) : (
                 <>
-                  <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Type</label>
-                      <select
-                        value={manualItemForm.impactType}
-                        onChange={(event) => setManualItemForm((current) => ({ ...current, impactType: event.target.value as ManualItemFormState['impactType'] }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                      >
-                        <option value="expense">Expense</option>
-                        <option value="income">Income</option>
-                        <option value="neutral">Neutral journal item</option>
-                      </select>
+                  <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">Income</p>
+                      <p className="mt-2 text-xl font-black text-white">
+                        {formatCurrency(data.manualSummary.incomeCents)}
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Season</label>
-                      <select
-                        value={manualItemForm.seasonId}
-                        onChange={(event) => setManualItemForm((current) => ({ ...current, seasonId: event.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                      >
-                        <option value="">League-wide</option>
-                        {data.seasons.map((season) => (
-                          <option key={season.id} value={season.id}>{season.name}</option>
-                        ))}
-                      </select>
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">Expense</p>
+                      <p className="mt-2 text-xl font-black text-white">
+                        {formatCurrency(data.manualSummary.expenseCents)}
+                      </p>
                     </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Title</label>
-                      <input
-                        value={manualItemForm.title}
-                        onChange={(event) => setManualItemForm((current) => ({ ...current, title: event.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                        placeholder="Scorekeeper contractor payout"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Date</label>
-                      <input
-                        type="date"
-                        value={manualItemForm.entryDate}
-                        onChange={(event) => setManualItemForm((current) => ({ ...current, entryDate: event.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Amount</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={manualItemForm.amount}
-                        onChange={(event) => setManualItemForm((current) => ({ ...current, amount: event.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Debit account</label>
-                      <input
-                        value={manualItemForm.debitAccountName}
-                        onChange={(event) => setManualItemForm((current) => ({ ...current, debitAccountName: event.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Credit account</label>
-                      <input
-                        value={manualItemForm.creditAccountName}
-                        onChange={(event) => setManualItemForm((current) => ({ ...current, creditAccountName: event.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Notes</label>
-                      <textarea
-                        value={manualItemForm.notes}
-                        onChange={(event) => setManualItemForm((current) => ({ ...current, notes: event.target.value }))}
-                        className="mt-2 min-h-[96px] w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                      />
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">Neutral</p>
+                      <p className="mt-2 text-xl font-black text-white">
+                        {formatCurrency(data.manualSummary.neutralCents)}
+                      </p>
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    onClick={handleCreateItem}
-                    disabled={isCreatingItem}
-                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rink-500 to-arena-500 px-4 py-3 text-sm font-semibold text-black transition disabled:opacity-60"
+                    onClick={() => setManualItemDialogOpen(true)}
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.06]"
                   >
-                    {isCreatingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    Add finance item
+                    <ArrowUpRight className="h-4 w-4" />
+                    Add or review manual items
                   </button>
                 </>
               )}
 
               <div className="mt-6 space-y-3">
-                {data.manualItems.length === 0 ? (
+                {recentManualItems.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-neutral-400">
                     No manual finance items yet.
                   </div>
                 ) : (
-                  data.manualItems.map((item) => (
+                  recentManualItems.map((item) => (
                     <div key={item.id} className="flex flex-col gap-4 rounded-xl border border-white/10 bg-black/20 p-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="font-semibold text-white">{item.title}</p>
@@ -1369,98 +1062,516 @@ export function FinanceDashboard({
                   <Landmark className="h-5 w-5 text-amber-300" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">QuickBooks Export</h2>
+                  <h2 className="text-lg font-bold text-white">QuickBooks CSV</h2>
                   <p className="text-sm text-neutral-400">
-                    Generate a journal-entry CSV with balanced debit and credit rows for QuickBooks Online import.
+                    Keep export settings nearby, then open the dialog only when you need to adjust
+                    accounts or download a file.
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-4">
-                {[
-                  ['Registration revenue', 'registrationRevenueAccount'],
-                  ['Team fee revenue', 'teamRevenueAccount'],
-                  ['Stripe clearing', 'stripeClearingAccount'],
-                  ['Manual deposit account', 'manualDepositAccount'],
-                  ['Processing fees', 'processingFeesAccount'],
-                  ['Referee payroll expense', 'refereeExpenseAccount'],
-                  ['Referee payable', 'refereePayableAccount'],
-                  ['Referee cash account', 'refereeCashAccount'],
-                  ['Default class', 'defaultClassName'],
-                  ['Default location', 'defaultLocationName'],
-                ].map(([label, key]) => (
-                  <div key={key}>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">{label}</label>
-                    <input
-                      value={exportOptions[key as keyof ExportOptionsState] as string}
-                      onChange={(event) => setExportOptions((current) => ({ ...current, [key]: event.target.value }))}
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
-                    />
-                  </div>
-                ))}
-                <label className="flex items-center gap-3 text-sm text-neutral-300">
-                  <input
-                    type="checkbox"
-                    checked={exportOptions.includePendingPayroll}
-                    onChange={(event) => setExportOptions((current) => ({ ...current, includePendingPayroll: event.target.checked }))}
-                  />
-                  Include pending referee payroll as payable journals
-                </label>
-                <label className="flex items-center gap-3 text-sm text-neutral-300">
-                  <input
-                    type="checkbox"
-                    checked={exportOptions.includePaidPayroll}
-                    onChange={(event) => setExportOptions((current) => ({ ...current, includePaidPayroll: event.target.checked }))}
-                  />
-                  Include paid referee payroll as cash journals
-                </label>
-                <label className="flex items-center gap-3 text-sm text-neutral-300">
-                  <input
-                    type="checkbox"
-                    checked={exportOptions.includeManualItems}
-                    disabled={!data.manualItemsAvailable}
-                    onChange={(event) => setExportOptions((current) => ({ ...current, includeManualItems: event.target.checked }))}
-                  />
-                  Include manual finance items
-                </label>
+              <div className="mt-6 space-y-3 text-sm text-neutral-300">
+                <div className="flex items-center justify-between">
+                  <span>Pending payroll</span>
+                  <span>{exportOptions.includePendingPayroll ? 'Included' : 'Off'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Paid payroll</span>
+                  <span>{exportOptions.includePaidPayroll ? 'Included' : 'Off'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Manual items</span>
+                  <span>
+                    {exportOptions.includeManualItems && data.manualItemsAvailable
+                      ? 'Included'
+                      : 'Off'}
+                  </span>
+                </div>
               </div>
 
               <button
                 type="button"
-                onClick={handleQuickBooksExport}
-                disabled={isExporting}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-300 to-orange-400 px-4 py-3 text-sm font-semibold text-black transition disabled:opacity-60"
+                onClick={() => setQuickBooksExportDialogOpen(true)}
+                className="mt-6 inline-flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.06]"
               >
-                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                Export QuickBooks journal CSV
+                Review export settings
+                <ArrowUpRight className="h-4 w-4" />
               </button>
 
               <p className="mt-3 text-xs text-neutral-500">
-                Uses QuickBooks Online journal-entry columns with UTF-8 BOM and Windows CSV line
-                endings for cleaner imports.
+                CSV export remains available even when direct sync is turned off.
               </p>
-            </section>
-
-            <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-              <h2 className="text-lg font-bold text-white">Manual Item Rollup</h2>
-              <div className="mt-4 space-y-3 text-sm text-neutral-300">
-                <div className="flex items-center justify-between">
-                  <span>Manual income</span>
-                  <span>{formatCurrency(data.manualSummary.incomeCents)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Manual expense</span>
-                  <span>{formatCurrency(data.manualSummary.expenseCents)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Neutral journals</span>
-                  <span>{formatCurrency(data.manualSummary.neutralCents)}</span>
-                </div>
-              </div>
             </section>
           </div>
         </div>
-      </div>
+
+      <Dialog open={manualItemDialogOpen} onOpenChange={setManualItemDialogOpen}>
+        <DialogContent className="max-w-3xl border-white/10 bg-neutral-950 text-white">
+          <DialogHeader>
+            <DialogTitle>Manual finance item</DialogTitle>
+            <DialogDescription className="text-neutral-400">
+              Create an off-platform income, expense, or neutral journal item without leaving the
+              accounting tab.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!data.manualItemsAvailable ? (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-neutral-400">
+              Manual adjustments are not available for this league yet.
+            </div>
+          ) : (
+            <>
+              <div className="grid max-h-[70vh] gap-4 overflow-y-auto pr-1 md:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                    Type
+                  </label>
+                  <select
+                    value={manualItemForm.impactType}
+                    onChange={(event) =>
+                      setManualItemForm((current) => ({
+                        ...current,
+                        impactType: event.target.value as ManualItemFormState['impactType'],
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                  >
+                    <option value="expense">Expense</option>
+                    <option value="income">Income</option>
+                    <option value="neutral">Neutral journal item</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                    Season
+                  </label>
+                  <select
+                    value={manualItemForm.seasonId}
+                    onChange={(event) =>
+                      setManualItemForm((current) => ({
+                        ...current,
+                        seasonId: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                  >
+                    <option value="">League-wide</option>
+                    {data.seasons.map((season) => (
+                      <option key={season.id} value={season.id}>
+                        {season.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                    Title
+                  </label>
+                  <input
+                    value={manualItemForm.title}
+                    onChange={(event) =>
+                      setManualItemForm((current) => ({
+                        ...current,
+                        title: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                    placeholder="Scorekeeper contractor payout"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={manualItemForm.entryDate}
+                    onChange={(event) =>
+                      setManualItemForm((current) => ({
+                        ...current,
+                        entryDate: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                    Amount
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={manualItemForm.amount}
+                    onChange={(event) =>
+                      setManualItemForm((current) => ({
+                        ...current,
+                        amount: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                    Debit account
+                  </label>
+                  <input
+                    value={manualItemForm.debitAccountName}
+                    onChange={(event) =>
+                      setManualItemForm((current) => ({
+                        ...current,
+                        debitAccountName: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                    Credit account
+                  </label>
+                  <input
+                    value={manualItemForm.creditAccountName}
+                    onChange={(event) =>
+                      setManualItemForm((current) => ({
+                        ...current,
+                        creditAccountName: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                    Notes
+                  </label>
+                  <textarea
+                    value={manualItemForm.notes}
+                    onChange={(event) =>
+                      setManualItemForm((current) => ({
+                        ...current,
+                        notes: event.target.value,
+                      }))
+                    }
+                    className="mt-2 min-h-[96px] w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <button
+                  type="button"
+                  onClick={() => setManualItemDialogOpen(false)}
+                  className="rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-neutral-200 transition hover:bg-neutral-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateItem}
+                  disabled={isCreatingItem}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-rink-300 px-4 py-3 text-sm font-semibold text-black transition hover:bg-rink-200 disabled:opacity-60"
+                >
+                  {isCreatingItem ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  Add finance item
+                </button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quickBooksExportDialogOpen} onOpenChange={setQuickBooksExportDialogOpen}>
+        <DialogContent className="max-w-3xl border-white/10 bg-neutral-950 text-white">
+          <DialogHeader>
+            <DialogTitle>QuickBooks CSV export</DialogTitle>
+            <DialogDescription className="text-neutral-400">
+              Review the account names and export scope before downloading the journal-entry CSV.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid max-h-[70vh] gap-4 overflow-y-auto pr-1 md:grid-cols-2">
+            {[
+              ['Registration revenue', 'registrationRevenueAccount'],
+              ['Team fee revenue', 'teamRevenueAccount'],
+              ['Stripe clearing', 'stripeClearingAccount'],
+              ['Manual deposit account', 'manualDepositAccount'],
+              ['Processing fees', 'processingFeesAccount'],
+              ['Referee payroll expense', 'refereeExpenseAccount'],
+              ['Referee payable', 'refereePayableAccount'],
+              ['Referee cash account', 'refereeCashAccount'],
+              ['Default class', 'defaultClassName'],
+              ['Default location', 'defaultLocationName'],
+            ].map(([label, key]) => (
+              <div key={key}>
+                <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                  {label}
+                </label>
+                <input
+                  value={exportOptions[key as keyof ExportOptionsState] as string}
+                  onChange={(event) =>
+                    setExportOptions((current) => ({
+                      ...current,
+                      [key]: event.target.value,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white outline-none"
+                />
+              </div>
+            ))}
+            <label className="flex items-center gap-3 text-sm text-neutral-300 md:col-span-2">
+              <input
+                type="checkbox"
+                checked={exportOptions.includePendingPayroll}
+                onChange={(event) =>
+                  setExportOptions((current) => ({
+                    ...current,
+                    includePendingPayroll: event.target.checked,
+                  }))
+                }
+              />
+              Include pending referee payroll as payable journals
+            </label>
+            <label className="flex items-center gap-3 text-sm text-neutral-300 md:col-span-2">
+              <input
+                type="checkbox"
+                checked={exportOptions.includePaidPayroll}
+                onChange={(event) =>
+                  setExportOptions((current) => ({
+                    ...current,
+                    includePaidPayroll: event.target.checked,
+                  }))
+                }
+              />
+              Include paid referee payroll as cash journals
+            </label>
+            <label className="flex items-center gap-3 text-sm text-neutral-300 md:col-span-2">
+              <input
+                type="checkbox"
+                checked={exportOptions.includeManualItems}
+                disabled={!data.manualItemsAvailable}
+                onChange={(event) =>
+                  setExportOptions((current) => ({
+                    ...current,
+                    includeManualItems: event.target.checked,
+                  }))
+                }
+              />
+              Include manual finance items
+            </label>
+          </div>
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setQuickBooksExportDialogOpen(false)}
+              className="rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-neutral-200 transition hover:bg-neutral-800"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={handleQuickBooksExport}
+              disabled={isExporting}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-300 to-orange-400 px-4 py-3 text-sm font-semibold text-black transition disabled:opacity-60"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export QuickBooks journal CSV
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quickBooksPreviewDialogOpen} onOpenChange={setQuickBooksPreviewDialogOpen}>
+        <DialogContent className="max-w-5xl border-white/10 bg-neutral-950 text-white">
+          <DialogHeader>
+            <DialogTitle>QuickBooks preview</DialogTitle>
+            <DialogDescription className="text-neutral-400">
+              Review the batch before pushing any journal entries into QuickBooks Online.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!previewResult ? (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-6 text-sm text-neutral-400">
+              Build a preview batch first.
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 md:grid-cols-5">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">Total</p>
+                  <p className="mt-2 text-2xl font-black text-white">
+                    {previewResult.counts.total}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">Pending</p>
+                  <p className="mt-2 text-2xl font-black text-white">
+                    {previewResult.counts.pending}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">Synced</p>
+                  <p className="mt-2 text-2xl font-black text-white">
+                    {previewResult.counts.alreadySynced}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">Changed</p>
+                  <p className="mt-2 text-2xl font-black text-white">
+                    {previewResult.counts.changed}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">Blocked</p>
+                  <p className="mt-2 text-2xl font-black text-white">
+                    {previewResult.counts.failed}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
+                <table className="min-w-full divide-y divide-white/10">
+                  <thead className="bg-black/20">
+                    <tr className="text-left text-xs uppercase tracking-[0.18em] text-neutral-500">
+                      <th className="px-4 py-3 font-medium">Journal</th>
+                      <th className="px-4 py-3 font-medium">Date</th>
+                      <th className="px-4 py-3 font-medium">Description</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 text-right font-medium">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {previewResult.entries.map((entry) => (
+                      <tr key={entry.id} className="bg-black/10 align-top text-sm text-neutral-200">
+                        <td className="px-4 py-4">
+                          <p className="font-medium text-white">{entry.journalNo}</p>
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {entry.lineCount} lines
+                          </p>
+                        </td>
+                        <td className="px-4 py-4 text-neutral-300">
+                          {formatDate(entry.journalDate)}
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="text-white">{entry.description}</p>
+                          {entry.errorText ? (
+                            <p className="mt-1 text-xs text-neutral-500">{entry.errorText}</p>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs ${quickBooksSyncStatusClass(entry.status)}`}
+                          >
+                            {entry.status.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-right font-semibold text-white">
+                          {formatCurrency(entry.amountCents)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <DialogFooter>
+                <button
+                  type="button"
+                  onClick={() => setQuickBooksPreviewDialogOpen(false)}
+                  className="rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-neutral-200 transition hover:bg-neutral-800"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSyncQuickBooksPreview}
+                  disabled={!previewResult.canSync || isSyncingQuickBooks}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/15 disabled:opacity-50"
+                >
+                  {isSyncingQuickBooks ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  Sync preview
+                </button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quickBooksHistoryDialogOpen} onOpenChange={setQuickBooksHistoryDialogOpen}>
+        <DialogContent className="max-w-4xl border-white/10 bg-neutral-950 text-white">
+          <DialogHeader>
+            <DialogTitle>QuickBooks sync history</DialogTitle>
+            <DialogDescription className="text-neutral-400">
+              Review recent preview and sync runs without leaving the ledger.
+            </DialogDescription>
+          </DialogHeader>
+
+          {quickBooksStatus.recentRuns.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-6 text-sm text-neutral-400">
+              No QuickBooks previews or sync runs yet.
+            </div>
+          ) : (
+            <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
+              {quickBooksStatus.recentRuns.map((run) => (
+                <div key={run.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs ${quickBooksRunStatusClass(run.status)}`}
+                        >
+                          {run.status}
+                        </span>
+                        <span className="text-sm text-neutral-300">
+                          {formatDate(run.createdAt)}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-neutral-400">
+                        {run.previewCount} previewed, {run.syncedCount} synced, {run.failedCount}{' '}
+                        failed.
+                      </p>
+                    </div>
+                    <div className="text-xs text-neutral-500">
+                      {run.seasonId
+                        ? seasonNameById.get(run.seasonId) || 'Season run'
+                        : 'All seasons'}
+                    </div>
+                  </div>
+
+                  {run.entryFailures.length > 0 ? (
+                    <div className="mt-3 space-y-2 rounded-2xl border border-red-500/20 bg-red-500/5 p-3">
+                      {run.entryFailures.map((failure) => (
+                        <div key={failure.id} className="text-sm text-red-100">
+                          <p className="font-medium">{failure.journalNo}</p>
+                          <p className="mt-1 text-xs text-red-100/80">
+                            {failure.errorText || 'QuickBooks rejected this journal.'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={mappingDialogOpen} onOpenChange={setMappingDialogOpen}>
         <DialogContent className="max-w-3xl border-white/10 bg-neutral-950 text-white">
