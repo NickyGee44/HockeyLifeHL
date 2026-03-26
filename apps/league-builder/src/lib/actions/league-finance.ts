@@ -574,6 +574,70 @@ function getFinanceCustomItemsUnavailableMessage() {
   return 'Manual finance items are temporarily unavailable until the latest finance database migration is applied.';
 }
 
+type QueryCompatibilityError = {
+  code?: string | null;
+  message?: string | null;
+  details?: string | null;
+  hint?: string | null;
+};
+
+type LegacyCompatibleQueryResult<T> = {
+  data: T | null;
+  error: QueryCompatibilityError | null;
+  count?: number | null;
+  legacySchema: boolean;
+};
+
+function getQueryCompatibilityErrorText(error: QueryCompatibilityError | null | undefined) {
+  return `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase();
+}
+
+function isFinancePaymentArchiveSchemaUnavailable(
+  error: QueryCompatibilityError | null | undefined
+) {
+  if (!error) return false;
+
+  const message = getQueryCompatibilityErrorText(error);
+  return (
+    ['42703', '42P01', 'PGRST205'].includes(error.code || '') &&
+    ['archived_at', 'archived_by', 'archived_reason'].some((token) =>
+      message.includes(token)
+    )
+  );
+}
+
+function isQuickBooksSchemaUnavailable(error: QueryCompatibilityError | null | undefined) {
+  if (!error) return false;
+
+  const message = getQueryCompatibilityErrorText(error);
+  return (
+    ['42703', '42P01', 'PGRST205'].includes(error.code || '') &&
+    [
+      'league_quickbooks_connections',
+      'league_quickbooks_mappings',
+      'league_quickbooks_sync_runs',
+      'league_quickbooks_sync_entries',
+    ].some((token) => message.includes(token))
+  );
+}
+
+function getQuickBooksSchemaUnavailableMessage() {
+  return 'QuickBooks Online sync is temporarily unavailable until the latest finance database migration is applied.';
+}
+
+async function runLegacyCompatibleQuery<T>(
+  primary: () => Promise<{ data: T | null; error: QueryCompatibilityError | null; count?: number | null }>,
+  legacy: () => Promise<{ data: T | null; error: QueryCompatibilityError | null; count?: number | null }>
+): Promise<LegacyCompatibleQueryResult<T>> {
+  const primaryResult = await primary();
+  if (!primaryResult.error || !isFinancePaymentArchiveSchemaUnavailable(primaryResult.error)) {
+    return { ...primaryResult, legacySchema: false };
+  }
+
+  const legacyResult = await legacy();
+  return { ...legacyResult, legacySchema: true };
+}
+
 function escapeCsv(value: string | number | null | undefined) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
 }
@@ -1096,6 +1160,9 @@ async function loadQuickBooksConnectionRow(
     .maybeSingle();
 
   if (error) {
+    if (isQuickBooksSchemaUnavailable(error)) {
+      throw new Error(getQuickBooksSchemaUnavailableMessage());
+    }
     throw new Error('Failed to load the QuickBooks connection.');
   }
 
@@ -1113,6 +1180,9 @@ async function loadQuickBooksMappingsRow(
     .maybeSingle();
 
   if (error) {
+    if (isQuickBooksSchemaUnavailable(error)) {
+      throw new Error(getQuickBooksSchemaUnavailableMessage());
+    }
     throw new Error('Failed to load the QuickBooks mappings.');
   }
 
@@ -1269,16 +1339,34 @@ export async function getLeagueFinanceDashboardData(
     );
 
     const selectedSeasonId = selectedSeason?.id || null;
+    const loadPlayerPayments = () =>
+      runLegacyCompatibleQuery<PlayerPaymentRow[]>(
+        () => {
+          let query = service
+            .from('player_payments')
+            .select('id, player_id, season_fee_id, season_id, total_amount_cents, amount_paid_cents, status')
+            .eq('league_id', leagueId)
+            .is('archived_at', null);
 
-    let playerPaymentsQuery = service
-      .from('player_payments')
-      .select('id, player_id, season_fee_id, season_id, total_amount_cents, amount_paid_cents, status')
-      .eq('league_id', leagueId)
-      .is('archived_at', null);
+          if (selectedSeasonId) {
+            query = query.eq('season_id', selectedSeasonId);
+          }
 
-    if (selectedSeasonId) {
-      playerPaymentsQuery = playerPaymentsQuery.eq('season_id', selectedSeasonId);
-    }
+          return query;
+        },
+        () => {
+          let query = service
+            .from('player_payments')
+            .select('id, player_id, season_fee_id, season_id, total_amount_cents, amount_paid_cents, status')
+            .eq('league_id', leagueId);
+
+          if (selectedSeasonId) {
+            query = query.eq('season_id', selectedSeasonId);
+          }
+
+          return query;
+        }
+      );
 
     let invoicesQuery = (service as any)
       .from('team_invoices')
@@ -1309,7 +1397,7 @@ export async function getLeagueFinanceDashboardData(
 
     const [playerPaymentsResult, invoicesResult, stripeResult, manualItemsResult, refereePayrollResult] =
       await Promise.all([
-        playerPaymentsQuery,
+        loadPlayerPayments(),
         invoicesQuery,
         stripePaymentsQuery,
         getManualFinanceItems(service, leagueId, selectedSeasonId),
@@ -1503,34 +1591,66 @@ export async function getLeagueFinanceLedger(
     const statusFilter = filters.status || 'all';
     const limit = Math.max(1, Math.min(filters.limit ?? 50, 200));
     const offset = Math.max(0, filters.offset ?? 0);
+    const loadPlayerPayments = () =>
+      runLegacyCompatibleQuery<any[]>(
+        () => {
+          let query = (service as any)
+            .from('player_payments')
+            .select(`
+              id,
+              player_id,
+              team_id,
+              season_id,
+              status,
+              amount_paid_cents,
+              total_amount_cents,
+              currency,
+              created_at,
+              paid_at,
+              archived_at,
+              archived_reason,
+              player:player_id(id, full_name, email),
+              team:team_id(id, name),
+              season_fee:season_fee_id(id, name)
+            `)
+            .eq('league_id', leagueId);
 
-    let playerPaymentsQuery = (service as any)
-      .from('player_payments')
-      .select(`
-        id,
-        player_id,
-        team_id,
-        season_id,
-        status,
-        amount_paid_cents,
-        total_amount_cents,
-        currency,
-        created_at,
-        paid_at,
-        archived_at,
-        archived_reason,
-        player:player_id(id, full_name, email),
-        team:team_id(id, name),
-        season_fee:season_fee_id(id, name)
-      `)
-      .eq('league_id', leagueId);
+          if (selectedSeasonId) {
+            query = query.eq('season_id', selectedSeasonId);
+          }
+          if (!includeArchived) {
+            query = query.is('archived_at', null);
+          }
 
-    if (selectedSeasonId) {
-      playerPaymentsQuery = playerPaymentsQuery.eq('season_id', selectedSeasonId);
-    }
-    if (!includeArchived) {
-      playerPaymentsQuery = playerPaymentsQuery.is('archived_at', null);
-    }
+          return query;
+        },
+        () => {
+          let query = (service as any)
+            .from('player_payments')
+            .select(`
+              id,
+              player_id,
+              team_id,
+              season_id,
+              status,
+              amount_paid_cents,
+              total_amount_cents,
+              currency,
+              created_at,
+              paid_at,
+              player:player_id(id, full_name, email),
+              team:team_id(id, name),
+              season_fee:season_fee_id(id, name)
+            `)
+            .eq('league_id', leagueId);
+
+          if (selectedSeasonId) {
+            query = query.eq('season_id', selectedSeasonId);
+          }
+
+          return query;
+        }
+      );
 
     let invoicesQuery = (service as any)
       .from('team_invoices')
@@ -1566,7 +1686,7 @@ export async function getLeagueFinanceLedger(
 
     const [playerPaymentsResult, invoicesResult, stripePaymentsResult, manualItemsResult, refereePayrollResult] =
       await Promise.all([
-        playerPaymentsQuery,
+        loadPlayerPayments(),
         invoicesQuery,
         stripePaymentsQuery,
         getManualFinanceItems(service, leagueId, selectedSeasonId),
@@ -1587,7 +1707,15 @@ export async function getLeagueFinanceLedger(
       return { success: false, error: 'Failed to load Stripe ledger rows.' };
     }
 
-    const playerPayments = (playerPaymentsResult.data || []) as FinancePlayerPaymentRow[];
+    const playerPayments = playerPaymentsResult.legacySchema
+      ? ((playerPaymentsResult.data || []) as Array<
+          Omit<FinancePlayerPaymentRow, 'archived_at' | 'archived_reason'>
+        >).map((payment) => ({
+          ...payment,
+          archived_at: null,
+          archived_reason: null,
+        }))
+      : ((playerPaymentsResult.data || []) as FinancePlayerPaymentRow[]);
     const playerPaymentById = new Map(playerPayments.map((payment) => [payment.id, payment]));
     const paymentIds = playerPayments.map((payment) => payment.id);
 
@@ -1976,15 +2104,39 @@ async function buildQuickBooksJournalDrafts(options: {
 
   const { service, league, selectedSeason } = await getFinanceBaseContext(leagueId, seasonId);
   const selectedSeasonId = selectedSeason?.id || null;
+  const loadPlayerPayments = () =>
+    runLegacyCompatibleQuery<
+      Array<{
+        id: string;
+        player_id: string;
+        season_fee_id: string;
+        season_id: string;
+      }>
+    >(
+      () => {
+        let query = service
+          .from('player_payments')
+          .select('id, player_id, season_fee_id, season_id')
+          .eq('league_id', leagueId)
+          .is('archived_at', null);
+        if (selectedSeasonId) {
+          query = query.eq('season_id', selectedSeasonId);
+        }
 
-  let playerPaymentsQuery = service
-    .from('player_payments')
-    .select('id, player_id, season_fee_id, season_id')
-    .eq('league_id', leagueId)
-    .is('archived_at', null);
-  if (selectedSeasonId) {
-    playerPaymentsQuery = playerPaymentsQuery.eq('season_id', selectedSeasonId);
-  }
+        return query;
+      },
+      () => {
+        let query = service
+          .from('player_payments')
+          .select('id, player_id, season_fee_id, season_id')
+          .eq('league_id', leagueId);
+        if (selectedSeasonId) {
+          query = query.eq('season_id', selectedSeasonId);
+        }
+
+        return query;
+      }
+    );
 
   let registrationsQuery = service
     .from('registration_submissions')
@@ -2010,7 +2162,7 @@ async function buildQuickBooksJournalDrafts(options: {
     manualItemsResult,
     refereePayrollResult,
   ] = await Promise.all([
-    playerPaymentsQuery,
+    loadPlayerPayments(),
     registrationsQuery,
     invoicesQuery,
     includeManualItems
@@ -2773,11 +2925,13 @@ export async function handleQuickBooksCallback(
 export async function getQuickBooksIntegrationStatus(
   leagueId: string
 ): Promise<FinanceActionResult<QuickBooksIntegrationStatus>> {
+  let quickBooksAccess: FinanceQuickBooksAccess | null = null;
   try {
     const access = await getQuickBooksLeagueAccess(leagueId);
     if (!access.success) {
       return access;
     }
+    quickBooksAccess = access.data;
 
     const configuration = getQuickBooksConfigurationStatus();
     const service = createServiceRoleClient();
@@ -2794,6 +2948,20 @@ export async function getQuickBooksIntegrationStatus(
       .limit(5);
 
     if (recentRunsError) {
+      if (isQuickBooksSchemaUnavailable(recentRunsError)) {
+        return {
+          success: true,
+          data: {
+            available: false,
+            configurationMessage: getQuickBooksSchemaUnavailableMessage(),
+            canManage: access.data.canManage,
+            connection: null,
+            mappings: null,
+            missingMappings: [],
+            recentRuns: [],
+          },
+        };
+      }
       throw new Error('Failed to load QuickBooks sync history.');
     }
 
@@ -2838,10 +3006,26 @@ export async function getQuickBooksIntegrationStatus(
       },
     };
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Failed to load QuickBooks integration status.';
+    if (message === getQuickBooksSchemaUnavailableMessage()) {
+      return {
+        success: true,
+        data: {
+          available: false,
+          configurationMessage: message,
+          canManage: quickBooksAccess?.canManage ?? false,
+          connection: null,
+          mappings: null,
+          missingMappings: [],
+          recentRuns: [],
+        },
+      };
+    }
+
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to load QuickBooks integration status.',
+      error: message,
     };
   }
 }

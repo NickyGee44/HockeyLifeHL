@@ -50,6 +50,57 @@ import type {
 } from './types';
 import type { Json } from '@hockey-life/database';
 
+type QueryCompatibilityError = {
+  code?: string | null;
+  message?: string | null;
+  details?: string | null;
+  hint?: string | null;
+};
+
+type LegacyCompatibleQueryResult<T> = {
+  data: T | null;
+  error: QueryCompatibilityError | null;
+  count?: number | null;
+  legacySchema: boolean;
+};
+
+function getQueryCompatibilityErrorText(error: QueryCompatibilityError | null | undefined) {
+  return `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase();
+}
+
+function isPaymentCleanupSchemaUnavailable(error: QueryCompatibilityError | null | undefined) {
+  if (!error) return false;
+
+  const message = getQueryCompatibilityErrorText(error);
+  return (
+    ['42703', '42P01', 'PGRST205'].includes(error.code || '') &&
+    ['archived_at', 'archived_by', 'archived_reason', 'player_payment_deletion_log'].some(
+      (token) => message.includes(token)
+    )
+  );
+}
+
+function getPaymentCleanupUnavailableMessage() {
+  return 'Payment archive and permanent delete are temporarily unavailable until the latest payments database migration is applied.';
+}
+
+function hasPaymentCleanupSchema(payment: Record<string, unknown>) {
+  return Object.prototype.hasOwnProperty.call(payment, 'archived_at');
+}
+
+async function runLegacyCompatibleQuery<T>(
+  primary: () => Promise<{ data: T | null; error: QueryCompatibilityError | null; count?: number | null }>,
+  legacy: () => Promise<{ data: T | null; error: QueryCompatibilityError | null; count?: number | null }>
+): Promise<LegacyCompatibleQueryResult<T>> {
+  const primaryResult = await primary();
+  if (!primaryResult.error || !isPaymentCleanupSchemaUnavailable(primaryResult.error)) {
+    return { ...primaryResult, legacySchema: false };
+  }
+
+  const legacyResult = await legacy();
+  return { ...legacyResult, legacySchema: true };
+}
+
 function revalidatePaymentManagementPaths(leagueId: string) {
   revalidatePath(`/dashboard/leagues/${leagueId}/payments`);
   revalidatePath(`/dashboard/leagues/${leagueId}/finance`);
@@ -262,15 +313,37 @@ export async function createPlayerPayment(
     }
 
     // Check for existing payment
-    const { data: existingPayment } = await supabase
-      .from('player_payments')
-      .select('id, status')
-      .eq('player_id', params.playerId)
-      .eq('season_fee_id', params.seasonFeeId)
-      .is('archived_at', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: existingPayment, error: existingPaymentError } = await runLegacyCompatibleQuery<
+      { id: string; status: PlayerPaymentStatus } | null
+    >(
+      () =>
+        supabase
+          .from('player_payments')
+          .select('id, status')
+          .eq('player_id', params.playerId)
+          .eq('season_fee_id', params.seasonFeeId)
+          .is('archived_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      () =>
+        supabase
+          .from('player_payments')
+          .select('id, status')
+          .eq('player_id', params.playerId)
+          .eq('season_fee_id', params.seasonFeeId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+    );
+
+    if (existingPaymentError) {
+      console.error(
+        '[Payments] Existing payment lookup error:',
+        sanitizeErrorForLogging(existingPaymentError)
+      );
+      return { success: false, error: 'Failed to validate existing payment records.' };
+    }
 
     if (existingPayment && existingPayment.status !== 'cancelled') {
       return { success: false, error: 'You already have a payment record for this fee.' };
@@ -398,26 +471,49 @@ export async function createCheckoutSession(
     const supabase = await createClient();
 
     // Get payment details
-    const { data: payment, error: paymentError } = await supabase
-      .from('player_payments')
-      .select(
-        `
-        *,
-        season_fees:season_fee_id (
-          name,
-          description,
-          league_id
-        ),
-        leagues:league_id (
-          name,
-          stripe_account_id,
-          stripe_account_status
-        )
-      `
-      )
-      .eq('id', params.playerPaymentId)
-      .is('archived_at', null)
-      .single();
+    const { data: payment, error: paymentError } = await runLegacyCompatibleQuery<any>(
+      () =>
+        supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            season_fees:season_fee_id (
+              name,
+              description,
+              league_id
+            ),
+            leagues:league_id (
+              name,
+              stripe_account_id,
+              stripe_account_status
+            )
+          `
+          )
+          .eq('id', params.playerPaymentId)
+          .is('archived_at', null)
+          .single(),
+      () =>
+        supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            season_fees:season_fee_id (
+              name,
+              description,
+              league_id
+            ),
+            leagues:league_id (
+              name,
+              stripe_account_id,
+              stripe_account_status
+            )
+          `
+          )
+          .eq('id', params.playerPaymentId)
+          .single()
+    );
 
     if (paymentError || !payment) {
       return { success: false, error: 'Payment record not found.' };
@@ -574,19 +670,35 @@ export async function getMyPayments(): Promise<ActionResult<PlayerPaymentWithDet
 
     const supabase = await createClient();
 
-    const { data: payments, error } = await supabase
-      .from('player_payments')
-      .select(
-        `
-        *,
-        player:player_id (id, full_name, email, avatar_url),
-        season_fee:season_fee_id (id, name, amount_cents),
-        team:team_id (id, name, short_name)
-      `
-      )
-      .eq('player_id', user.id)
-      .is('archived_at', null)
-      .order('created_at', { ascending: false });
+    const { data: payments, error } = await runLegacyCompatibleQuery<any[]>(
+      () =>
+        supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email, avatar_url),
+            season_fee:season_fee_id (id, name, amount_cents),
+            team:team_id (id, name, short_name)
+          `
+          )
+          .eq('player_id', user.id)
+          .is('archived_at', null)
+          .order('created_at', { ascending: false }),
+      () =>
+        supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email, avatar_url),
+            season_fee:season_fee_id (id, name, amount_cents),
+            team:team_id (id, name, short_name)
+          `
+          )
+          .eq('player_id', user.id)
+          .order('created_at', { ascending: false })
+    );
 
     if (error) {
       console.error('[Payments] Get my payments error:', sanitizeErrorForLogging(error));
@@ -623,34 +735,64 @@ export async function getLeaguePlayerPayments(
     const { limit = 50, offset = 0, includeArchived = false } = options || {};
     const supabase = await createClient();
 
-    let query = supabase
-      .from('player_payments')
-      .select(
-        `
-        *,
-        player:player_id (id, full_name, email, avatar_url),
-        season_fee:season_fee_id (id, name, amount_cents),
-        team:team_id (id, name, short_name)
-      `,
-        { count: 'exact' }
-      )
-      .eq('league_id', leagueId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const { data: payments, error, count } = await runLegacyCompatibleQuery<any[]>(
+      () => {
+        let query = supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email, avatar_url),
+            season_fee:season_fee_id (id, name, amount_cents),
+            team:team_id (id, name, short_name)
+          `,
+            { count: 'exact' }
+          )
+          .eq('league_id', leagueId)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
 
-    if (!includeArchived) {
-      query = query.is('archived_at', null);
-    }
+        if (!includeArchived) {
+          query = query.is('archived_at', null);
+        }
 
-    if (options?.seasonId) {
-      query = query.eq('season_id', options.seasonId);
-    }
+        if (options?.seasonId) {
+          query = query.eq('season_id', options.seasonId);
+        }
 
-    if (options?.status) {
-      query = query.eq('status', options.status as PlayerPaymentStatus);
-    }
+        if (options?.status) {
+          query = query.eq('status', options.status as PlayerPaymentStatus);
+        }
 
-    const { data: payments, error, count } = await query;
+        return query;
+      },
+      () => {
+        let query = supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email, avatar_url),
+            season_fee:season_fee_id (id, name, amount_cents),
+            team:team_id (id, name, short_name)
+          `,
+            { count: 'exact' }
+          )
+          .eq('league_id', leagueId)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (options?.seasonId) {
+          query = query.eq('season_id', options.seasonId);
+        }
+
+        if (options?.status) {
+          query = query.eq('status', options.status as PlayerPaymentStatus);
+        }
+
+        return query;
+      }
+    );
 
     if (error) {
       console.error('[Payments] Get league payments error:', sanitizeErrorForLogging(error));
@@ -871,12 +1013,23 @@ export async function getPaymentSummary(
 
     const supabase = await createClient();
 
-    const { data, error } = await supabase
-      .from('player_payments')
-      .select('status, total_amount_cents, amount_paid_cents')
-      .eq('league_id', leagueId)
-      .eq('season_id', seasonId)
-      .is('archived_at', null);
+    const { data, error } = await runLegacyCompatibleQuery<
+      Array<{ status: string; total_amount_cents: number | null; amount_paid_cents: number | null }>
+    >(
+      () =>
+        supabase
+          .from('player_payments')
+          .select('status, total_amount_cents, amount_paid_cents')
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+          .is('archived_at', null),
+      () =>
+        supabase
+          .from('player_payments')
+          .select('status, total_amount_cents, amount_paid_cents')
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+    );
 
     if (error) {
       console.error('[Payments] Get payment summary error:', sanitizeErrorForLogging(error));
@@ -932,20 +1085,37 @@ export async function exportPaymentReport(
 
     const supabase = await createClient();
 
-    const { data: payments, error } = await supabase
-      .from('player_payments')
-      .select(
-        `
-        *,
-        player:player_id (id, full_name, email),
-        season_fee:season_fee_id (name),
-        team:team_id (name)
-      `
-      )
-      .eq('league_id', leagueId)
-      .eq('season_id', seasonId)
-      .is('archived_at', null)
-      .order('created_at', { ascending: true });
+    const { data: payments, error } = await runLegacyCompatibleQuery<any[]>(
+      () =>
+        supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email),
+            season_fee:season_fee_id (name),
+            team:team_id (name)
+          `
+          )
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+          .is('archived_at', null)
+          .order('created_at', { ascending: true }),
+      () =>
+        supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email),
+            season_fee:season_fee_id (name),
+            team:team_id (name)
+          `
+          )
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+          .order('created_at', { ascending: true })
+    );
 
     if (error) {
       console.error('[Payments] Export report error:', sanitizeErrorForLogging(error));
@@ -1204,30 +1374,59 @@ export async function getTeamPayments(
 
     const supabase = await createClient();
 
-    let query = supabase
-      .from('player_payments')
-      .select(
-        `
-        *,
-        player:player_id (id, full_name, email, avatar_url),
-        season_fee:season_fee_id (id, name, amount_cents),
-        team:team_id (id, name, short_name)
-      `,
-        { count: 'exact' }
-      )
-      .eq('team_id', teamId)
-      .is('archived_at', null)
-      .order('created_at', { ascending: false });
+    const { data: payments, error, count } = await runLegacyCompatibleQuery<any[]>(
+      () => {
+        let query = supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email, avatar_url),
+            season_fee:season_fee_id (id, name, amount_cents),
+            team:team_id (id, name, short_name)
+          `,
+            { count: 'exact' }
+          )
+          .eq('team_id', teamId)
+          .is('archived_at', null)
+          .order('created_at', { ascending: false });
 
-    if (options?.seasonId) {
-      query = query.eq('season_id', options.seasonId);
-    }
+        if (options?.seasonId) {
+          query = query.eq('season_id', options.seasonId);
+        }
 
-    if (options?.status) {
-      query = query.eq('status', options.status as PlayerPaymentStatus);
-    }
+        if (options?.status) {
+          query = query.eq('status', options.status as PlayerPaymentStatus);
+        }
 
-    const { data: payments, error, count } = await query;
+        return query;
+      },
+      () => {
+        let query = supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email, avatar_url),
+            season_fee:season_fee_id (id, name, amount_cents),
+            team:team_id (id, name, short_name)
+          `,
+            { count: 'exact' }
+          )
+          .eq('team_id', teamId)
+          .order('created_at', { ascending: false });
+
+        if (options?.seasonId) {
+          query = query.eq('season_id', options.seasonId);
+        }
+
+        if (options?.status) {
+          query = query.eq('status', options.status as PlayerPaymentStatus);
+        }
+
+        return query;
+      }
+    );
 
     if (error) {
       console.error('[Payments] Get team payments error:', sanitizeErrorForLogging(error));
@@ -1263,17 +1462,35 @@ export async function getTeamPaymentSummary(
 
     const supabase = await createClient();
 
-    let query = supabase
-      .from('player_payments')
-      .select('status, total_amount_cents, amount_paid_cents')
-      .eq('team_id', teamId)
-      .is('archived_at', null);
+    const { data: payments, error } = await runLegacyCompatibleQuery<
+      Array<{ status: string; total_amount_cents: number | null; amount_paid_cents: number | null }>
+    >(
+      () => {
+        let query = supabase
+          .from('player_payments')
+          .select('status, total_amount_cents, amount_paid_cents')
+          .eq('team_id', teamId)
+          .is('archived_at', null);
 
-    if (seasonId) {
-      query = query.eq('season_id', seasonId);
-    }
+        if (seasonId) {
+          query = query.eq('season_id', seasonId);
+        }
 
-    const { data: payments, error } = await query;
+        return query;
+      },
+      () => {
+        let query = supabase
+          .from('player_payments')
+          .select('status, total_amount_cents, amount_paid_cents')
+          .eq('team_id', teamId);
+
+        if (seasonId) {
+          query = query.eq('season_id', seasonId);
+        }
+
+        return query;
+      }
+    );
 
     if (error) {
       console.error('[Payments] Get team payment summary error:', sanitizeErrorForLogging(error));
@@ -1459,20 +1676,37 @@ export async function sendBulkPaymentReminders(
 
     const supabase = await createClient();
 
-    const { data: payments, error: fetchError } = await supabase
-      .from('player_payments')
-      .select(
-        `
-        *,
-        player:player_id (id, full_name, email),
-        season_fee:season_fee_id (name),
-        leagues:league_id (name)
-      `
-      )
-      .eq('league_id', leagueId)
-      .eq('season_id', seasonId)
-      .is('archived_at', null)
-      .in('status', ['pending', 'partially_paid', 'overdue']);
+    const { data: payments, error: fetchError } = await runLegacyCompatibleQuery<any[]>(
+      () =>
+        supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email),
+            season_fee:season_fee_id (name),
+            leagues:league_id (name)
+          `
+          )
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+          .is('archived_at', null)
+          .in('status', ['pending', 'partially_paid', 'overdue']),
+      () =>
+        supabase
+          .from('player_payments')
+          .select(
+            `
+            *,
+            player:player_id (id, full_name, email),
+            season_fee:season_fee_id (name),
+            leagues:league_id (name)
+          `
+          )
+          .eq('league_id', leagueId)
+          .eq('season_id', seasonId)
+          .in('status', ['pending', 'partially_paid', 'overdue'])
+    );
 
     if (fetchError) {
       console.error('[Payments] Bulk reminders fetch error:', sanitizeErrorForLogging(fetchError));
@@ -1577,6 +1811,9 @@ export async function archivePlayerPayment(
     if (paymentError || !payment) {
       return { success: false, error: 'Payment not found.' };
     }
+    if (!hasPaymentCleanupSchema(payment as Record<string, unknown>)) {
+      return { success: false, error: getPaymentCleanupUnavailableMessage() };
+    }
 
     const access = await verifyLeagueAdminAccess(payment.league_id);
     if ('error' in access) {
@@ -1619,6 +1856,9 @@ export async function archivePlayerPayment(
 
     if (updateError || !updated) {
       console.error('[Payments] Archive payment update error:', sanitizeErrorForLogging(updateError));
+      if (isPaymentCleanupSchemaUnavailable(updateError)) {
+        return { success: false, error: getPaymentCleanupUnavailableMessage() };
+      }
       return { success: false, error: 'Failed to archive payment.' };
     }
 
@@ -1667,6 +1907,9 @@ export async function permanentlyDeletePlayerPayment(
 
     if (paymentError || !payment) {
       return { success: false, error: 'Payment not found.' };
+    }
+    if (!hasPaymentCleanupSchema(payment as Record<string, unknown>)) {
+      return { success: false, error: getPaymentCleanupUnavailableMessage() };
     }
 
     const access = await verifyLeagueOwnerAccess(payment.league_id);
@@ -1727,6 +1970,9 @@ export async function permanentlyDeletePlayerPayment(
 
     if (deletionLogError || !deletionLog) {
       console.error('[Payments] Permanent delete log insert error:', sanitizeErrorForLogging(deletionLogError));
+      if (isPaymentCleanupSchemaUnavailable(deletionLogError)) {
+        return { success: false, error: getPaymentCleanupUnavailableMessage() };
+      }
       return { success: false, error: 'Failed to store the deletion snapshot.' };
     }
 
@@ -1751,6 +1997,9 @@ export async function permanentlyDeletePlayerPayment(
 
     if (deletePaymentError) {
       console.error('[Payments] Permanent delete payment error:', sanitizeErrorForLogging(deletePaymentError));
+      if (isPaymentCleanupSchemaUnavailable(deletePaymentError)) {
+        return { success: false, error: getPaymentCleanupUnavailableMessage() };
+      }
       return { success: false, error: 'Failed to permanently delete payment.' };
     }
 
@@ -1822,13 +2071,33 @@ export async function settleSeasonInvoice(
     } else {
       // Sum gross registration fees collected this season
       const serviceSupabase = createServiceRoleClient();
-      const { data: payments } = await serviceSupabase
-        .from('player_payments')
-        .select('total_amount_cents')
-        .eq('league_id', leagueId)
-        .eq('season_id', seasonId)
-        .is('archived_at', null)
-        .eq('status', 'paid');
+      const { data: payments, error: paymentsError } = await runLegacyCompatibleQuery<
+        Array<{ total_amount_cents: number | null }>
+      >(
+        () =>
+          serviceSupabase
+            .from('player_payments')
+            .select('total_amount_cents')
+            .eq('league_id', leagueId)
+            .eq('season_id', seasonId)
+            .is('archived_at', null)
+            .eq('status', 'paid'),
+        () =>
+          serviceSupabase
+            .from('player_payments')
+            .select('total_amount_cents')
+            .eq('league_id', leagueId)
+            .eq('season_id', seasonId)
+            .eq('status', 'paid')
+      );
+
+      if (paymentsError) {
+        console.error(
+          '[Payments] Settlement payment lookup error:',
+          sanitizeErrorForLogging(paymentsError)
+        );
+        return { success: false, error: 'Failed to load paid registration totals for settlement.' };
+      }
 
       const grossFeesCents =
         payments?.reduce((sum, p) => sum + (p.total_amount_cents ?? 0), 0) ?? 0;
