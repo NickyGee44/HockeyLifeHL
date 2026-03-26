@@ -98,9 +98,9 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: G
                     className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[var(--color-border)]"
                   />
                   <div className="flex items-center gap-1.5">
-                    {goalie.profile_id ? (
+                    {goalie.player_id ? (
                       <Link
-                        href={`/${leagueSlug}/players/${goalie.profile_id}`}
+                        href={`/${leagueSlug}/players/${goalie.player_id}`}
                         className="flex items-center gap-2 hover:text-[var(--league-primary)] transition-colors"
                       >
                         {goalie.jersey_number && (
@@ -116,8 +116,8 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: G
                         <span className="font-medium">{goalie.player_name}</span>
                       </div>
                     )}
-                    {goalie.profile_id && badges?.[goalie.profile_id] && badges[goalie.profile_id].length > 0 && (
-                      <PlayerBadgeGroup badges={badges[goalie.profile_id]} maxVisible={3} size="sm" />
+                    {goalie.player_id && badges?.[goalie.player_id] && badges[goalie.player_id].length > 0 && (
+                      <PlayerBadgeGroup badges={badges[goalie.player_id]} maxVisible={3} size="sm" />
                     )}
                   </div>
                 </div>

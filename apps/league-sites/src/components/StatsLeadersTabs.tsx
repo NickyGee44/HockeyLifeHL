@@ -130,7 +130,7 @@ export function StatsLeadersTabs({
                   player.player_name.toLowerCase().includes(normalizedSearch) ||
                   player.team_name.toLowerCase().includes(normalizedSearch)
                 );
-                const playerProfileId = player.profile_id || null;
+                const playerProfileId = player.player_id || null;
                 const playerBadges = playerProfileId ? badges?.[playerProfileId] : undefined;
 
                 return (
