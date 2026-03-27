@@ -65,7 +65,7 @@ export default function ForgotPasswordScreen() {
 
         <Text style={styles.heading}>Reset Password</Text>
         <Text style={styles.subheading}>
-          Enter your email address and we'll send you a link to reset your password.
+          Enter your email address and we&apos;ll send you a link to reset your password.
         </Text>
 
         {isSuccess ? (
@@ -73,7 +73,7 @@ export default function ForgotPasswordScreen() {
             <Ionicons name="checkmark-circle" size={48} color={colors.accentGreen} />
             <Text style={styles.successTitle}>Check your email</Text>
             <Text style={styles.successText}>
-              We've sent a password reset link to {email.trim()}. Check your inbox and follow the
+              We&apos;ve sent a password reset link to {email.trim()}. Check your inbox and follow the
               instructions.
             </Text>
             <Pressable style={styles.backToLoginButton} onPress={() => navigation.goBack()}>

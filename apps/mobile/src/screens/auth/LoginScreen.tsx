@@ -224,7 +224,7 @@ export default function LoginScreen() {
 
           <Pressable style={styles.signUpLink} onPress={() => navigation.navigate('SignUp')}>
             <Text style={styles.signUpLinkText}>
-              Don't have an account? <Text style={styles.signUpLinkBold}>Sign Up</Text>
+              Don&apos;t have an account? <Text style={styles.signUpLinkBold}>Sign Up</Text>
             </Text>
           </Pressable>
 
