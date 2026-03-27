@@ -17,6 +17,7 @@
     "test:watch": "jest --config jest.config.cjs --watch",
     "type-check": "turbo type-check",
     "audit:tenant-queries": "tsx scripts/platform/audit-tenant-query-scoping.ts",
+    "verify:legacy-baseline-stats": "node scripts/verify-legacy-baseline-stats.ts",
     "audit:content-health": "tsx scripts/platform/check-content-health.ts",
     "audit:idempotency": "tsx scripts/platform/audit-idempotency-usage.ts",
     "audit:stripe-pricing": "tsx scripts/platform/validate-stripe-pricing.ts",
