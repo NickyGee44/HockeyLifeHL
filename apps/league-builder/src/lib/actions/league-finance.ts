@@ -594,6 +594,8 @@ type LegacyCompatibleQueryResponse<T> = {
   count?: number | null;
 };
 
+type LegacyCompatibleAwaitable<T> = PromiseLike<LegacyCompatibleQueryResponse<T>>;
+
 function getQueryCompatibilityErrorText(error: QueryCompatibilityError | null | undefined) {
   return `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase();
 }
@@ -632,8 +634,8 @@ function getQuickBooksSchemaUnavailableMessage() {
 }
 
 async function runLegacyCompatibleQuery<T>(
-  primary: () => PromiseLike<LegacyCompatibleQueryResponse<T>>,
-  legacy: () => PromiseLike<LegacyCompatibleQueryResponse<T>>
+  primary: () => LegacyCompatibleAwaitable<T>,
+  legacy: () => LegacyCompatibleAwaitable<T>
 ): Promise<LegacyCompatibleQueryResult<T>> {
   const primaryResult = await primary();
   if (!primaryResult.error || !isFinancePaymentArchiveSchemaUnavailable(primaryResult.error)) {

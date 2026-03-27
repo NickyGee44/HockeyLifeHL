@@ -8974,11 +8974,15 @@ export type Database = {
           expires_at: string
           game_id: string
           id: string
+          initiating_captain_id: string | null
+          initiating_team_id: string | null
+          initiating_team_type: string | null
           is_active: boolean | null
           last_accessed_at: string | null
           league_id: string
           league_scorekeeper_id: string | null
           scorekeeper_id: string | null
+          session_origin: string
           session_type: string
           token: string
         }
@@ -8993,11 +8997,15 @@ export type Database = {
           expires_at: string
           game_id: string
           id?: string
+          initiating_captain_id?: string | null
+          initiating_team_id?: string | null
+          initiating_team_type?: string | null
           is_active?: boolean | null
           last_accessed_at?: string | null
           league_id: string
           league_scorekeeper_id?: string | null
           scorekeeper_id?: string | null
+          session_origin?: string
           session_type?: string
           token: string
         }
@@ -9012,11 +9020,15 @@ export type Database = {
           expires_at?: string
           game_id?: string
           id?: string
+          initiating_captain_id?: string | null
+          initiating_team_id?: string | null
+          initiating_team_type?: string | null
           is_active?: boolean | null
           last_accessed_at?: string | null
           league_id?: string
           league_scorekeeper_id?: string | null
           scorekeeper_id?: string | null
+          session_origin?: string
           session_type?: string
           token?: string
         }
@@ -9047,6 +9059,20 @@ export type Database = {
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "public_leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_sessions_initiating_captain_id_fkey"
+            columns: ["initiating_captain_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorekeeper_sessions_initiating_team_id_fkey"
+            columns: ["initiating_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
           {

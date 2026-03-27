@@ -216,6 +216,7 @@ export async function assignScorekeeperToGame(params: {
         scorekeeper_id: resolvedScorekeeperId ?? null,
         league_scorekeeper_id: resolvedLeagueScorekeeperId ?? null,
         session_type: 'single',
+        session_origin: 'assigned_scorekeeper',
         is_active: true,
       })
       .select('id')

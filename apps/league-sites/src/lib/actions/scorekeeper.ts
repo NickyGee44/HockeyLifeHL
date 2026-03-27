@@ -7,6 +7,10 @@ import { randomBytes } from 'crypto';
 // Session cookie name for scorekeeper tokens
 const SCOREKEEPER_SESSION_COOKIE = 'sk_session';
 
+export type ScorekeeperSessionOrigin = 'assigned_scorekeeper' | 'captain_self_score';
+export type ScorekeeperTeamType = 'home' | 'away';
+export type CaptainVerificationMode = 'both_captains' | 'opponent_only';
+
 // =============================================================================
 // Rate limiting (in-memory, same approach as league-builder)
 // =============================================================================
@@ -122,6 +126,10 @@ export interface ScorekeeperSession {
   awayTeamName: string;
   scheduledAt: string;
   sessionType: 'single' | 'multi';
+  sessionOrigin: ScorekeeperSessionOrigin;
+  initiatingTeamId: string | null;
+  initiatingTeamType: ScorekeeperTeamType | null;
+  initiatingCaptainId: string | null;
 }
 
 export interface GameOfficial {
@@ -239,6 +247,10 @@ type SessionLookupResult = {
   awayTeamName: string;
   scheduledAt: string;
   sessionType: 'single' | 'multi';
+  sessionOrigin: ScorekeeperSessionOrigin;
+  initiatingTeamId: string | null;
+  initiatingTeamType: ScorekeeperTeamType | null;
+  initiatingCaptainId: string | null;
   accessCount: number;
 };
 
@@ -253,14 +265,7 @@ async function lookupSessionByToken(
   const { data, error } = await (supabase as any)
     .from('scorekeeper_sessions')
     .select(`
-      id,
-      created_by,
-      game_id,
-      league_id,
-      expires_at,
-      is_active,
-      access_count,
-      session_type,
+      *,
       games!inner(
         status,
         scheduled_at,
@@ -308,6 +313,10 @@ async function lookupSessionByToken(
     awayTeamName: game?.away_team?.name || 'Away',
     scheduledAt: game?.scheduled_at || new Date().toISOString(),
     sessionType: (data.session_type as 'single' | 'multi') || 'single',
+    sessionOrigin: (data.session_origin as ScorekeeperSessionOrigin | null) || 'assigned_scorekeeper',
+    initiatingTeamId: (data.initiating_team_id as string | null) ?? null,
+    initiatingTeamType: (data.initiating_team_type as ScorekeeperTeamType | null) ?? null,
+    initiatingCaptainId: (data.initiating_captain_id as string | null) ?? null,
     accessCount,
   };
 }
@@ -315,9 +324,8 @@ async function lookupSessionByToken(
 /**
  * Verify active scorekeeper session for a given game.
  * Supports both single-game and multi-game sessions.
- * Returns the scorekeeper's profile ID (created_by) for use as entered_by in game_events.
  */
-async function verifyActiveSession(gameId: string): Promise<string> {
+async function requireActiveSession(gameId: string): Promise<SessionLookupResult> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SCOREKEEPER_SESSION_COOKIE)?.value;
 
@@ -336,7 +344,7 @@ async function verifyActiveSession(gameId: string): Promise<string> {
     if (session.gameId !== gameId) {
       throw new Error('Session mismatch: This session is not for this game.');
     }
-    return session.createdBy;
+    return session;
   }
 
   // For multi-game sessions, check if gameId is in session_games
@@ -352,11 +360,209 @@ async function verifyActiveSession(gameId: string): Promise<string> {
     throw new Error('This game is not part of your scorekeeper session.');
   }
 
+  return session;
+}
+
+async function verifyActiveSession(gameId: string): Promise<string> {
+  const session = await requireActiveSession(gameId);
   return session.createdBy;
 }
 
 function normalizeGameClockValue(value: number | null | undefined): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function normalizeVerificationToken(token: string): string {
+  return token.replace(/[,.()"\\]/g, '');
+}
+
+function generateVerificationToken(length = 12): string {
+  return randomBytes(8)
+    .toString('base64')
+    .replace(/[^A-Z0-9]/gi, '')
+    .toUpperCase()
+    .substring(0, length);
+}
+
+function buildCaptainVerificationPath(leagueSlug: string, token: string): string {
+  return `/${leagueSlug}/verify/${token}`;
+}
+
+function buildCaptainVerificationUrl(leagueSlug: string, token: string): string {
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca').replace(/\/$/, '');
+  return `${baseUrl}${buildCaptainVerificationPath(leagueSlug, token)}`;
+}
+
+async function finalizeCompletedGameStats(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  gameId: string,
+): Promise<void> {
+  const { data: gameBeforeFinalize, error: gameLookupError } = await supabase
+    .from('games')
+    .select('status')
+    .eq('id', gameId)
+    .single();
+
+  if (gameLookupError || !gameBeforeFinalize) {
+    throw new Error('Game not found');
+  }
+
+  const wasCompleted = gameBeforeFinalize.status === 'completed';
+  const { error: rollupError } = await supabase.rpc('rollup_game_stats', {
+    p_game_id: gameId,
+  });
+
+  if (rollupError) {
+    console.warn('Rollup RPC not found, updating game status only');
+  }
+
+  const { error: statusUpdateError } = await supabase
+    .from('games')
+    .update({ status: 'completed' })
+    .eq('id', gameId);
+
+  if (statusUpdateError) {
+    throw new Error(statusUpdateError.message);
+  }
+
+  await recalculateGameDerivedState(supabase, gameId);
+
+  if (!wasCompleted) {
+    supabase.functions.invoke('generate-ai-article', {
+      body: { action: 'game_recap', game_id: gameId },
+    }).catch(() => {});
+  }
+}
+
+async function resolveTeamCaptainContact(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  teamId: string,
+): Promise<{ teamName: string; email: string | null; fullName: string | null }> {
+  const { data: team } = await supabase
+    .from('teams')
+    .select('id, name, captain_id')
+    .eq('id', teamId)
+    .maybeSingle();
+
+  if (!team) {
+    return { teamName: 'Team', email: null, fullName: null };
+  }
+
+  const getProfileContact = async (profileId: string | null | undefined) => {
+    if (!profileId) {
+      return null;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', profileId)
+      .maybeSingle();
+
+    if (!profile?.email) {
+      return null;
+    }
+
+    return {
+      teamName: team.name,
+      email: profile.email as string,
+      fullName: (profile.full_name as string | null) ?? null,
+    };
+  };
+
+  const directCaptain = await getProfileContact(team.captain_id as string | null | undefined);
+  if (directCaptain) {
+    return directCaptain;
+  }
+
+  for (const role of ['captain', 'alternate_captain'] as const) {
+    const { data: rosterCaptain } = await (supabase as any)
+      .from('team_rosters')
+      .select(`
+        player_id,
+        profiles!team_rosters_player_id_fkey(email, full_name)
+      `)
+      .eq('team_id', teamId)
+      .eq('status', 'active')
+      .eq('leadership_role', role)
+      .is('end_date', null)
+      .limit(1)
+      .maybeSingle();
+
+    const profile = rosterCaptain?.profiles;
+    if (profile?.email) {
+      return {
+        teamName: team.name,
+        email: profile.email as string,
+        fullName: (profile.full_name as string | null) ?? null,
+      };
+    }
+  }
+
+  return { teamName: team.name, email: null, fullName: null };
+}
+
+async function maybeEmailCaptainVerificationLink(params: {
+  supabase: ReturnType<typeof createServiceRoleClient>;
+  leagueName: string;
+  leagueSlug: string;
+  opposingTeamId: string;
+  verificationToken: string;
+  expiresAt: string;
+}): Promise<void> {
+  const { supabase, leagueName, leagueSlug, opposingTeamId, verificationToken, expiresAt } = params;
+  const captain = await resolveTeamCaptainContact(supabase, opposingTeamId);
+
+  if (!captain.email) {
+    return;
+  }
+
+  const { Resend } = await import('resend');
+  const resend = process.env.RESEND_API_KEY
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
+
+  if (!resend) {
+    return;
+  }
+
+  const verifyUrl = buildCaptainVerificationUrl(leagueSlug, verificationToken);
+  const expiryLabel = new Date(expiresAt).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+      <h2 style="margin: 0 0 16px; color: #1a1a1a;">Verify Your Game Stats</h2>
+      <p style="margin: 0 0 8px; color: #555; font-size: 14px;">
+        Hi${captain.fullName ? ` ${captain.fullName}` : ''}, the stats for <strong>${captain.teamName}</strong> in <strong>${leagueName}</strong> are ready for captain verification.
+      </p>
+      <p style="margin: 0 0 16px; color: #555; font-size: 14px;">
+        Review the score sheet and confirm the stats using the link below.
+      </p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${verifyUrl}" style="display: inline-block; background: #d4af37; color: #000; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          Review And Verify
+        </a>
+      </div>
+      <p style="margin: 16px 0 0; color: #888; font-size: 12px; text-align: center;">
+        Link expires: ${expiryLabel}
+      </p>
+    </div>
+  `;
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@beerleaguehockey.ca';
+  await resend.emails.send({
+    from: fromEmail,
+    to: captain.email,
+    subject: `Verify your game stats — ${leagueName}`,
+    html,
+  });
 }
 
 async function recalculateGameDerivedState(supabase: any, gameId: string): Promise<void> {
@@ -599,6 +805,10 @@ export async function validateScorekeeperToken(token: string): Promise<{
         awayTeamName: session.awayTeamName,
         scheduledAt: session.scheduledAt,
         sessionType: session.sessionType,
+        sessionOrigin: session.sessionOrigin,
+        initiatingTeamId: session.initiatingTeamId,
+        initiatingTeamType: session.initiatingTeamType,
+        initiatingCaptainId: session.initiatingCaptainId,
       },
     };
   } catch (error) {
@@ -643,6 +853,10 @@ export async function getScorekeeperSession(): Promise<{
         awayTeamName: session.awayTeamName,
         scheduledAt: session.scheduledAt,
         sessionType: session.sessionType,
+        sessionOrigin: session.sessionOrigin,
+        initiatingTeamId: session.initiatingTeamId,
+        initiatingTeamType: session.initiatingTeamType,
+        initiatingCaptainId: session.initiatingCaptainId,
       },
     };
   } catch (error) {
@@ -2129,20 +2343,138 @@ export async function getGameSummary(gameId: string): Promise<{
  */
 export async function submitGameForVerification(gameId: string): Promise<{
   success: boolean;
+  verificationMode?: CaptainVerificationMode;
+  autoVerifiedTeamType?: ScorekeeperTeamType;
   homeToken?: string;
   awayToken?: string;
   error?: string;
 }> {
   try {
-    await verifyActiveSession(gameId);
+    const session = await requireActiveSession(gameId);
 
     const supabase = createServiceRoleClient();
-
-    const homeToken = randomBytes(8).toString('base64').replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 12);
-    const awayToken = randomBytes(8).toString('base64').replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 12);
-
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
+    const expiresAtIso = expiresAt.toISOString();
+    const submittedAt = new Date().toISOString();
+
+    if (session.sessionOrigin === 'captain_self_score') {
+      const { data: gameDetails, error: gameLookupError } = await (supabase as any)
+        .from('games')
+        .select(`
+          id,
+          home_team_id,
+          away_team_id,
+          leagues(name, slug)
+        `)
+        .eq('id', gameId)
+        .single();
+
+      if (gameLookupError || !gameDetails) {
+        console.error('Captain self-score game lookup error:', gameLookupError);
+        return { success: false, error: 'Failed to submit for verification' };
+      }
+
+      let initiatingTeamId = session.initiatingTeamId;
+      let initiatingTeamType = session.initiatingTeamType;
+
+      if (!initiatingTeamId || !initiatingTeamType) {
+        const { data: initiatorRoster } = await (supabase as any)
+          .from('team_rosters')
+          .select('team_id')
+          .eq('player_id', session.createdBy)
+          .in('team_id', [gameDetails.home_team_id, gameDetails.away_team_id])
+          .eq('status', 'active')
+          .is('end_date', null)
+          .limit(1)
+          .maybeSingle();
+
+        initiatingTeamId = initiatorRoster?.team_id ?? null;
+
+        if (initiatingTeamId === gameDetails.home_team_id) {
+          initiatingTeamType = 'home';
+        } else if (initiatingTeamId === gameDetails.away_team_id) {
+          initiatingTeamType = 'away';
+        } else {
+          return {
+            success: false,
+            error: 'Captain self-scoring session is missing team metadata. Start a new scoring session and try again.',
+          };
+        }
+      }
+
+      const opposingTeamType: ScorekeeperTeamType =
+        initiatingTeamType === 'home' ? 'away' : 'home';
+      const opposingTeamId =
+        opposingTeamType === 'home' ? gameDetails.home_team_id : gameDetails.away_team_id;
+      const opposingToken = generateVerificationToken();
+
+      const initiatingVerifiedAtField =
+        initiatingTeamType === 'home' ? 'home_verified_at' : 'away_verified_at';
+      const initiatingVerifiedField =
+        initiatingTeamType === 'home' ? 'home_captain_verified' : 'away_captain_verified';
+      const initiatingTokenField =
+        initiatingTeamType === 'home' ? 'home_verification_token' : 'away_verification_token';
+      const initiatingTokenExpiresField =
+        initiatingTeamType === 'home'
+          ? 'home_verification_token_expires_at'
+          : 'away_verification_token_expires_at';
+      const opposingTokenField =
+        opposingTeamType === 'home' ? 'home_verification_token' : 'away_verification_token';
+      const opposingTokenExpiresField =
+        opposingTeamType === 'home'
+          ? 'home_verification_token_expires_at'
+          : 'away_verification_token_expires_at';
+
+      const { error } = await supabase
+        .from('games')
+        .update({
+          status: 'pending_verification',
+          stats_submitted_at: submittedAt,
+          [initiatingVerifiedAtField]: submittedAt,
+          [initiatingVerifiedField]: true,
+          [initiatingTokenField]: null,
+          [initiatingTokenExpiresField]: null,
+          [opposingTokenField]: opposingToken,
+          [opposingTokenExpiresField]: expiresAtIso,
+        })
+        .eq('id', gameId);
+
+      if (error) {
+        console.error('Submit for verification error:', error);
+        return { success: false, error: 'Failed to submit for verification' };
+      }
+
+      const leagueRelation = Array.isArray(gameDetails.leagues)
+        ? gameDetails.leagues[0]
+        : gameDetails.leagues;
+
+      if (leagueRelation?.name && leagueRelation?.slug && opposingTeamId) {
+        try {
+          await maybeEmailCaptainVerificationLink({
+            supabase,
+            leagueName: leagueRelation.name as string,
+            leagueSlug: leagueRelation.slug as string,
+            opposingTeamId,
+            verificationToken: opposingToken,
+            expiresAt: expiresAtIso,
+          });
+        } catch (emailError) {
+          console.warn('Captain verification email send failed:', emailError);
+        }
+      }
+
+      return {
+        success: true,
+        verificationMode: 'opponent_only',
+        autoVerifiedTeamType: initiatingTeamType,
+        homeToken: opposingTeamType === 'home' ? opposingToken : undefined,
+        awayToken: opposingTeamType === 'away' ? opposingToken : undefined,
+      };
+    }
+
+    const homeToken = generateVerificationToken();
+    const awayToken = generateVerificationToken();
 
     const { error } = await supabase
       .from('games')
@@ -2150,9 +2482,13 @@ export async function submitGameForVerification(gameId: string): Promise<{
         status: 'pending_verification',
         home_verification_token: homeToken,
         away_verification_token: awayToken,
-        home_verification_token_expires_at: expiresAt.toISOString(),
-        away_verification_token_expires_at: expiresAt.toISOString(),
-        stats_submitted_at: new Date().toISOString(),
+        home_verification_token_expires_at: expiresAtIso,
+        away_verification_token_expires_at: expiresAtIso,
+        home_verified_at: null,
+        away_verified_at: null,
+        home_captain_verified: false,
+        away_captain_verified: false,
+        stats_submitted_at: submittedAt,
       })
       .eq('id', gameId);
 
@@ -2161,10 +2497,22 @@ export async function submitGameForVerification(gameId: string): Promise<{
       return { success: false, error: 'Failed to submit for verification' };
     }
 
-    return { success: true, homeToken, awayToken };
+    return {
+      success: true,
+      verificationMode: 'both_captains',
+      homeToken,
+      awayToken,
+    };
   } catch (error) {
     console.error('Submit for verification error:', error);
-    return { success: false, error: 'Failed to submit for verification' };
+    const message =
+      error instanceof Error &&
+      (error.message.includes('scorekeeper session') ||
+        error.message.includes('Session mismatch') ||
+        error.message.includes('not part of your scorekeeper session'))
+        ? error.message
+        : 'Failed to submit for verification';
+    return { success: false, error: message };
   }
 }
 
@@ -2179,9 +2527,10 @@ export async function lookupCaptainVerificationToken(token: string): Promise<{
 }> {
   try {
     const supabase = createServiceRoleClient();
+    const normalizedToken = normalizeVerificationToken(token);
 
     const { data, error } = await supabase.rpc('validate_captain_token', {
-      p_token: token,
+      p_token: normalizedToken,
     });
 
     if (error) {
@@ -2215,22 +2564,32 @@ export async function verifyCaptainStats(token: string): Promise<{
 }> {
   try {
     const supabase = createServiceRoleClient();
+    const normalizedToken = normalizeVerificationToken(token);
 
-    const safeToken = token.replace(/[,.()"\\]/g, '');
-    const { data: game, error: findError } = await supabase
-      .from('games')
-      .select('id, home_verification_token, away_verification_token')
-      .or(`home_verification_token.eq.${safeToken},away_verification_token.eq.${safeToken}`)
-      .single();
+    const { data: validation, error: validationError } = await supabase.rpc(
+      'validate_captain_token',
+      { p_token: normalizedToken },
+    );
 
-    if (findError || !game) {
+    if (
+      validationError ||
+      !validation ||
+      validation.length === 0 ||
+      !validation[0]?.is_valid ||
+      !validation[0]?.game_id ||
+      !validation[0]?.team_type
+    ) {
+      if (validationError) {
+        console.error('Validate captain token error:', validationError);
+      }
       return { success: false, error: 'Invalid verification token' };
     }
 
-    const isHome = game.home_verification_token === token;
-    const teamType = isHome ? 'home' : 'away';
-    const verifiedAtField = isHome ? 'home_verified_at' : 'away_verified_at';
-    const captainVerifiedField = isHome ? 'home_captain_verified' : 'away_captain_verified';
+    const gameId = validation[0].game_id as string;
+    const teamType = validation[0].team_type as 'home' | 'away';
+    const verifiedAtField = teamType === 'home' ? 'home_verified_at' : 'away_verified_at';
+    const captainVerifiedField =
+      teamType === 'home' ? 'home_captain_verified' : 'away_captain_verified';
 
     const { error: updateError } = await supabase
       .from('games')
@@ -2238,14 +2597,33 @@ export async function verifyCaptainStats(token: string): Promise<{
         [verifiedAtField]: new Date().toISOString(),
         [captainVerifiedField]: true,
       })
-      .eq('id', game.id);
+      .eq('id', gameId);
 
     if (updateError) {
       console.error('Verify captain error:', updateError);
       return { success: false, error: 'Failed to verify' };
     }
 
-    return { success: true, gameId: game.id, teamType };
+    const { data: verificationState, error: verificationStateError } = await supabase
+      .from('games')
+      .select('home_verified_at, away_verified_at, stats_locked_at')
+      .eq('id', gameId)
+      .single();
+
+    if (verificationStateError) {
+      console.error('Verify captain state reload error:', verificationStateError);
+      return { success: true, gameId, teamType };
+    }
+
+    if (
+      verificationState?.home_verified_at &&
+      verificationState?.away_verified_at &&
+      verificationState?.stats_locked_at
+    ) {
+      await finalizeCompletedGameStats(supabase, gameId);
+    }
+
+    return { success: true, gameId, teamType };
   } catch (error) {
     console.error('Verify captain error:', error);
     return { success: false, error: 'Failed to verify' };
@@ -2542,24 +2920,7 @@ export async function finalizeGameStats(gameId: string): Promise<{
     await verifyActiveSession(gameId);
 
     const supabase = createServiceRoleClient();
-
-    const { error } = await supabase.rpc('rollup_game_stats', {
-      p_game_id: gameId,
-    });
-
-    if (error) {
-      console.warn('Rollup RPC not found, updating game status only');
-    }
-
-    await supabase
-      .from('games')
-      .update({ status: 'completed' })
-      .eq('id', gameId);
-
-    // Fire-and-forget: generate AI game recap
-    supabase.functions.invoke('generate-ai-article', {
-      body: { action: 'game_recap', game_id: gameId },
-    }).catch(() => {});
+    await finalizeCompletedGameStats(supabase, gameId);
 
     return { success: true };
   } catch (error) {
@@ -2615,7 +2976,7 @@ export async function getOrCreateCaptainScorekeeperSession(
     // Fetch game + league details
     const { data: game } = await supabase
       .from('games')
-      .select('id, league_id, home_team_id, away_team_id, scheduled_at, leagues(slug, settings)')
+      .select('id, league_id, home_team_id, away_team_id, scheduled_at, status, leagues(slug, settings)')
       .eq('id', gameId)
       .single();
 
@@ -2624,6 +2985,10 @@ export async function getOrCreateCaptainScorekeeperSession(
     // Verify the team is actually in this game
     if (game.home_team_id !== teamId && game.away_team_id !== teamId) {
       return { success: false, error: 'Your team is not in this game' };
+    }
+
+    if (!['scheduled', 'in_progress'].includes(game.status || 'scheduled')) {
+      return { success: false, error: 'Scoring is only available for scheduled or live games' };
     }
 
     // Verify self-scorekeeping is enabled for this league
@@ -2636,6 +3001,8 @@ export async function getOrCreateCaptainScorekeeperSession(
     }
 
     const leagueSlug: string = leagueData?.slug ?? '';
+    const initiatingTeamType: ScorekeeperTeamType =
+      game.home_team_id === teamId ? 'home' : 'away';
 
     // Look for any existing active session for this game (shared between both team captains)
     const { data: existing } = await supabase
@@ -2681,6 +3048,10 @@ export async function getOrCreateCaptainScorekeeperSession(
         created_by: user.id,
         scorekeeper_id: user.id,
         session_type: 'single',
+        session_origin: 'captain_self_score',
+        initiating_team_id: teamId,
+        initiating_team_type: initiatingTeamType,
+        initiating_captain_id: user.id,
         is_active: true,
       })
       .select('id')
@@ -2688,6 +3059,16 @@ export async function getOrCreateCaptainScorekeeperSession(
 
     if (sessionError || !session) {
       console.error('[CaptainScorekeeper] Session create error:', sessionError?.message);
+      if (
+        sessionError?.message?.includes('session_origin') ||
+        sessionError?.message?.includes('initiating_team') ||
+        sessionError?.message?.includes('initiating_captain')
+      ) {
+        return {
+          success: false,
+          error: 'Captain self-scoring requires the latest database migration. Apply migrations and try again.',
+        };
+      }
       return { success: false, error: 'Failed to create scoring session' };
     }
 
