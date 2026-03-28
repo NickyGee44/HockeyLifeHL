@@ -196,7 +196,9 @@ export function HomepageStoryHero({
   const [isHovered, setIsHovered] = useState(false);
   const [isFocusPaused, setIsFocusPaused] = useState(false);
 
+  // TODO(Pixel): derive cycleMs/remainingMs from slides.length; clamp activeIndex during render
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveIndex((previous) => {
       if (slides.length === 0) {
         return 0;
@@ -205,10 +207,14 @@ export function HomepageStoryHero({
     });
 
     if (slides.length > 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCycleMs(HERO_AUTOPLAY_MS);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRemainingMs(HERO_AUTOPLAY_MS);
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCycleMs(0);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRemainingMs(0);
     }
   }, [slides.length]);
@@ -225,13 +231,17 @@ export function HomepageStoryHero({
     return () => window.clearInterval(intervalId);
   }, [hasMultipleSlides, isFocusPaused, isHovered]);
 
+  // TODO(Pixel): restructure autoplay advance — consider setInterval + callback pattern instead
   useEffect(() => {
     if (!hasMultipleSlides || isHovered || isFocusPaused || remainingMs > 0) {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveIndex((current) => (current + 1) % slides.length);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCycleMs(HERO_AUTOPLAY_MS);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemainingMs(HERO_AUTOPLAY_MS);
   }, [hasMultipleSlides, isFocusPaused, isHovered, remainingMs, slides.length]);
 

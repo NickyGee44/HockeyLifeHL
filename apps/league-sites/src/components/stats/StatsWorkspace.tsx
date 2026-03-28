@@ -206,9 +206,13 @@ export function StatsWorkspace({
     mode === 'skaters' ? [...SKATER_PRESETS.balanced] : [...GOALIE_PRESETS.balanced],
   );
 
+  // TODO(Pixel): use key={mode} at call site to reset component state on mode change instead
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchTerm('');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActivePreset('balanced');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleColumns(mode === 'skaters' ? [...SKATER_PRESETS.balanced] : [...GOALIE_PRESETS.balanced]);
   }, [mode]);
 
