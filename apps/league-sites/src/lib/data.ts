@@ -2772,6 +2772,41 @@ export async function getGoalieLeaders(
   divisionId?: string
 ): Promise<GoalieStats[]> {
   const supabase = await createClient();
+  const hydrateGoalieProfiles = async <T extends {
+    player_id: string;
+    player_name: string;
+    avatar_url: string | null;
+  }>(rows: T[]) => {
+    const playerIds = [...new Set(rows.map((row) => row.player_id).filter(Boolean))];
+    if (playerIds.length === 0) {
+      return;
+    }
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .in('id', playerIds);
+
+    const profileMap = new Map(
+      (profiles || []).map((profile) => [
+        profile.id,
+        {
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+        },
+      ]),
+    );
+
+    for (const row of rows) {
+      const profile = profileMap.get(row.player_id);
+      if (profile?.full_name) {
+        row.player_name = profile.full_name;
+      }
+      if (profile?.avatar_url) {
+        row.avatar_url = profile.avatar_url;
+      }
+    }
+  };
 
   // If seasonId is explicitly null, fetch all-time career stats
   if (seasonId === null) {
@@ -2835,22 +2870,7 @@ export async function getGoalieLeaders(
         : 0,
     }));
 
-    // Enrich with avatar URLs
-    const playerIds = results.map(r => r.player_id);
-    if (playerIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, avatar_url')
-        .in('id', playerIds);
-
-      const avatarMap = new Map(
-        (profiles || []).map((p) => [p.id, p.avatar_url])
-      );
-
-      for (const result of results) {
-        result.avatar_url = avatarMap.get(result.player_id) || null;
-      }
-    }
+    await hydrateGoalieProfiles(results);
 
     // Sort by requested stat
     results.sort((a, b) => {
@@ -2896,27 +2916,7 @@ export async function getGoalieLeaders(
     avatar_url: row.avatar_url || null,
   }));
 
-  // Enrich with avatar URLs from profiles if not already present
-  const missingAvatarIds = results
-    .filter((r) => !r.avatar_url)
-    .map((r) => r.player_id);
-
-  if (missingAvatarIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, avatar_url')
-      .in('id', missingAvatarIds);
-
-    const avatarMap = new Map(
-      (profiles || []).map((p) => [p.id, p.avatar_url])
-    );
-
-    for (const result of results) {
-      if (!result.avatar_url) {
-        result.avatar_url = avatarMap.get(result.player_id) || null;
-      }
-    }
-  }
+  await hydrateGoalieProfiles(results);
 
   // Deduplicate goalies on multiple teams
   const dedupedResults = deduplicateGoalieStats(results as GoalieStats[]);

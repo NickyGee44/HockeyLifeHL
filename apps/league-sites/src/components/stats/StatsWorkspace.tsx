@@ -380,24 +380,18 @@ export function StatsWorkspace({
   const subtitle = isAllTime
     ? 'Career totals across every completed, verified season.'
     : `${seasonLabel || 'Current season'} officially recorded stats.`;
+  const searchPlaceholder = isAllTime
+    ? `Search ${mode === 'skaters' ? 'players' : 'goalies'}...`
+    : `Search ${mode === 'skaters' ? 'players or teams' : 'goalies or teams'}...`;
 
   return (
     <section className="league-shell-panel overflow-hidden rounded-[32px] border border-[var(--color-border)]">
       <div className="border-b border-[var(--color-border)] px-5 py-5 md:px-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-              League Stats
-            </p>
-            <div className="mt-2 flex items-center gap-3">
-              <BarChart3 className="h-6 w-6 text-[var(--league-primary)]" />
-              <h1 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
-                One table. Any stat.
-              </h1>
-            </div>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)]">
-              Switch between skaters and goalies, sort by any tracked stat, and trim the table down to the exact numbers you want to compare.
-            </p>
+            <h1 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
+              Stats
+            </h1>
           </div>
           <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-4 py-2 text-sm text-[var(--color-text-secondary)]">
             {filteredRows.length} showing
@@ -454,7 +448,7 @@ export function StatsWorkspace({
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder={`Search ${mode === 'skaters' ? 'players or teams' : 'goalies or teams'}...`}
+                placeholder={searchPlaceholder}
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] py-3 pl-10 pr-4 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--league-primary)]"
               />
             </div>
@@ -642,10 +636,12 @@ export function StatsWorkspace({
                                   <PlayerBadgeGroup badges={badges[row.player_id]} maxVisible={3} size="sm" />
                                 )}
                               </div>
-                              <p className="truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                                {row.division_name ? `${row.division_name} | ` : ''}
-                                {row.team_name}
-                              </p>
+                              {!isAllTime && (
+                                <p className="truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                                  {row.division_name ? `${row.division_name} | ` : ''}
+                                  {row.team_name}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>

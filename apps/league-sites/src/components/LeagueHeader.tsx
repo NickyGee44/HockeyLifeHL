@@ -26,6 +26,8 @@ import { AuthButton } from './auth/AuthButton';
 import { usePreviewMode } from './PreviewModeProvider';
 import { ThemeToggle } from './ThemeToggle';
 import { useDivisionFilter } from './DivisionFilterProvider';
+import { useUser } from '@/hooks/useUser';
+import { shouldShowDefaultPublicNavPage } from '@/lib/publicSiteVisibility';
 
 interface LeagueHeaderProps {
   league: League;
@@ -75,6 +77,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const { isPreviewMode, theme } = usePreviewMode();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
+  const { user, isLoading: isUserLoading } = useUser();
   const [moreMenuState, setMoreMenuState] = useState<{ open: boolean; pathname: string }>({
     open: false,
     pathname: pathname ?? '',
@@ -109,8 +112,9 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
     : navItems.filter((item) => {
         const pageKey = item.href.replace('/', '');
         if (pageKey === 'playoffs' && !isPlayoffSeason) return false;
-        return visiblePages ? visiblePages[pageKey] !== false : true;
+        return shouldShowDefaultPublicNavPage(pageKey, visiblePages);
       });
+  const showRegistrationCta = Boolean(registrationOpen && !isUserLoading && !user);
 
   const logoUrl = isPreviewMode && theme?.logoUrl !== undefined ? theme.logoUrl : league.logo_url;
   const displayName = league.short_name || league.name;
@@ -375,7 +379,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 opacity-60" style={{ color: selectedDivisionId ? 'var(--league-on-primary)' : 'var(--header-text-secondary)' }} />
               </div>
             )}
-            {registrationOpen && (
+            {showRegistrationCta && (
               <Link
                 href={`/${leagueSlug}/register`}
                 className="flex items-center gap-1.5 rounded-lg border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-3 py-1.5 text-sm font-semibold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
@@ -470,7 +474,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
                 );
               })}
             </div>
-            {registrationOpen && (
+            {showRegistrationCta && (
               <Link
                 href={`/${leagueSlug}/register`}
                 className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-4 py-2.5 text-sm font-semibold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
