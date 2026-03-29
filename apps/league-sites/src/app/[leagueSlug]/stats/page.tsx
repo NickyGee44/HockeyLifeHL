@@ -51,24 +51,25 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
   const mode: StatsMode = modeParam === 'goalies' ? 'goalies' : 'skaters';
   const isAllTime = view === 'all-time';
   const selectedSeasonId = isAllTime ? null : (seasonParam || currentSeason?.id || seasons[0]?.id || null);
+  const selectedSeason = seasons.find((season) => season.id === selectedSeasonId) || currentSeason || null;
   const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
 
   const [skaterRows, goalieRows] =
     mode === 'skaters'
       ? await Promise.all([
-          getUnifiedSkaterStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter),
+          getUnifiedSkaterStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter, leagueSlug, selectedSeason?.name),
           Promise.resolve([]),
         ])
       : await Promise.all([
           Promise.resolve([]),
-          getUnifiedGoalieStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter),
+          getUnifiedGoalieStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter, leagueSlug, selectedSeason?.name),
         ]);
 
   const activePlayerIds = [...new Set((mode === 'skaters' ? skaterRows : goalieRows).map((row) => row.player_id))];
   const badges = await getPlayerBadgesByIds(activePlayerIds);
   const seasonLabel = isAllTime
     ? 'All-Time Career Stats'
-    : seasons.find((season) => season.id === selectedSeasonId)?.name || currentSeason?.name || null;
+    : selectedSeason?.name || null;
 
   return (
     <SubscriptionWall>

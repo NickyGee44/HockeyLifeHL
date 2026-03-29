@@ -1,6 +1,7 @@
 import type { UnifiedGoalieStatsRow, UnifiedSkaterStatsRow } from './types';
 
 export const IMPORTED_ALL_TIME_TEAM_LABEL = 'Imported career totals';
+const HISTORICAL_CAREER_BASELINE_SEASON_PREFIX = 'historical career baseline';
 
 type RawBaselineRow = Record<string, unknown>;
 
@@ -127,6 +128,10 @@ function toSafeNumber(value: number | null | undefined): number {
 
 function roundStatValue(value: number, digits = 2) {
   return Number(value.toFixed(digits));
+}
+
+export function isHistoricalCareerBaselineSeasonName(name?: string | null): boolean {
+  return name?.trim().toLowerCase().startsWith(HISTORICAL_CAREER_BASELINE_SEASON_PREFIX) ?? false;
 }
 
 function normalizeSavePercentageRatio(value: number | null | undefined): number | null {
@@ -283,6 +288,40 @@ function upsertPreferredSkaterMetadata(
   } else if (!current.avatar_url && incoming.avatar_url) {
     current.avatar_url = incoming.avatar_url;
   }
+}
+
+export function buildHistoricalBaselineSkaterRows(
+  baselineRows: ImportedCareerBaselineRow[],
+): UnifiedSkaterStatsRow[] {
+  return baselineRows
+    .filter((row) => !row.is_goalie)
+    .map((row) => ({
+      player_id: row.player_id,
+      player_name: row.player_name,
+      avatar_url: row.avatar_url,
+      team_id: row.team_id,
+      team_name: row.team_name,
+      division_name: row.division_name,
+      position: row.position,
+      games_played: row.games_played,
+      goals: row.goals,
+      assists: row.assists,
+      points: row.points,
+      points_per_game: row.games_played > 0 ? roundStatValue(row.points / row.games_played) : 0,
+      goals_per_game: row.games_played > 0 ? roundStatValue(row.goals / row.games_played) : 0,
+      assists_per_game: row.games_played > 0 ? roundStatValue(row.assists / row.games_played) : 0,
+      penalty_minutes: row.penalty_minutes,
+      plus_minus: row.plus_minus,
+      power_play_goals: row.power_play_goals,
+      power_play_assists: row.power_play_assists,
+      power_play_points: row.power_play_goals + row.power_play_assists,
+      short_handed_goals: row.short_handed_goals,
+      short_handed_assists: row.short_handed_assists,
+      game_winning_goals: row.game_winning_goals,
+      empty_net_goals: row.empty_net_goals,
+      shots: row.shots,
+      shots_per_game: row.games_played > 0 ? roundStatValue(row.shots / row.games_played) : 0,
+    }));
 }
 
 export function mergeAllTimeSkaterRows(
@@ -474,6 +513,38 @@ function upsertPreferredGoalieMetadata(
   } else if (!current.avatar_url && incoming.avatar_url) {
     current.avatar_url = incoming.avatar_url;
   }
+}
+
+export function buildHistoricalBaselineGoalieRows(
+  baselineRows: ImportedCareerBaselineRow[],
+): UnifiedGoalieStatsRow[] {
+  return baselineRows
+    .filter((row) => row.is_goalie)
+    .map((row) => ({
+      player_id: row.player_id,
+      player_name: row.player_name,
+      avatar_url: row.avatar_url,
+      team_id: row.team_id,
+      team_name: row.team_name,
+      division_name: row.division_name,
+      position: row.position || 'G',
+      games_played: row.games_played,
+      wins: row.wins,
+      losses: row.losses,
+      saves: row.saves,
+      goals_against: row.goals_against,
+      save_percentage: row.shots_against > 0
+        ? roundStatValue((row.saves / row.shots_against) * 100, 1)
+        : row.save_percentage_ratio != null
+          ? roundStatValue(row.save_percentage_ratio * 100, 1)
+          : null,
+      goals_against_average: row.games_played > 0
+        ? roundStatValue(row.goals_against / row.games_played)
+        : row.goals_against_average != null
+          ? roundStatValue(row.goals_against_average)
+          : null,
+      shutouts: row.shutouts,
+    }));
 }
 
 export function mergeAllTimeGoalieRows(

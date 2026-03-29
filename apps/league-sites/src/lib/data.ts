@@ -45,7 +45,10 @@ import type {
   ArticleLinkContext,
 } from './types';
 import {
+  buildHistoricalBaselineGoalieRows,
+  buildHistoricalBaselineSkaterRows,
   IMPORTED_ALL_TIME_TEAM_LABEL,
+  isHistoricalCareerBaselineSeasonName,
   mergeAllTimeGoalieRows,
   mergeAllTimeSkaterRows,
   normalizeImportedCareerBaselineRows,
@@ -2191,10 +2194,16 @@ export async function getUnifiedSkaterStatsRows(
   seasonId?: string | null,
   divisionId?: string,
   leagueSlug?: string,
+  seasonName?: string | null,
 ): Promise<UnifiedSkaterStatsRow[]> {
   if (seasonId === null) {
     const { rows } = await buildAllTimeSkaterRows(leagueId, divisionId, leagueSlug);
     return rows;
+  }
+
+  if (isHistoricalCareerBaselineSeasonName(seasonName)) {
+    const baselineRows = await getImportedCareerBaselineRows(leagueId, leagueSlug);
+    return buildHistoricalBaselineSkaterRows(baselineRows);
   }
 
   return getNativeUnifiedSkaterStatsRows(leagueId, seasonId, divisionId);
@@ -2341,10 +2350,16 @@ export async function getUnifiedGoalieStatsRows(
   seasonId?: string | null,
   divisionId?: string,
   leagueSlug?: string,
+  seasonName?: string | null,
 ): Promise<UnifiedGoalieStatsRow[]> {
   if (seasonId === null) {
     const { rows } = await buildAllTimeGoalieRows(leagueId, divisionId, leagueSlug);
     return rows;
+  }
+
+  if (isHistoricalCareerBaselineSeasonName(seasonName)) {
+    const baselineRows = await getImportedCareerBaselineRows(leagueId, leagueSlug);
+    return buildHistoricalBaselineGoalieRows(baselineRows);
   }
 
   return getNativeUnifiedGoalieStatsRows(leagueId, seasonId, divisionId);

@@ -1,5 +1,8 @@
 import {
+  buildHistoricalBaselineGoalieRows,
+  buildHistoricalBaselineSkaterRows,
   IMPORTED_ALL_TIME_TEAM_LABEL,
+  isHistoricalCareerBaselineSeasonName,
   mergeAllTimeGoalieRows,
   mergeAllTimeSkaterRows,
   normalizeImportedCareerBaselineRows,
@@ -68,6 +71,119 @@ describe('all-time stats helpers', () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.player_id).toBe('player-a');
+  });
+
+  it('detects historical baseline seasons by name prefix rather than UUID', () => {
+    expect(isHistoricalCareerBaselineSeasonName('Historical Career Baseline (Pre-BLH)')).toBe(true);
+    expect(isHistoricalCareerBaselineSeasonName(' historical career baseline 2024 import ')).toBe(true);
+    expect(isHistoricalCareerBaselineSeasonName('Winter 2025')).toBe(false);
+    expect(isHistoricalCareerBaselineSeasonName(null)).toBe(false);
+  });
+
+  it('builds historical baseline skater rows directly from imported totals', () => {
+    const [row] = buildHistoricalBaselineSkaterRows([
+      {
+        source_table: 'legacy_players',
+        source_row_id: 'baseline-skater-1',
+        player_id: 'player-1',
+        profile_id: 'player-1',
+        player_name: 'Taylor Skater',
+        avatar_url: null,
+        team_id: '',
+        team_name: IMPORTED_ALL_TIME_TEAM_LABEL,
+        division_name: null,
+        position: 'C',
+        is_goalie: false,
+        games_played: 120,
+        goals: 48,
+        assists: 72,
+        points: 120,
+        penalty_minutes: 18,
+        plus_minus: 11,
+        power_play_goals: 6,
+        power_play_assists: 10,
+        short_handed_goals: 1,
+        short_handed_assists: 2,
+        game_winning_goals: 7,
+        empty_net_goals: 3,
+        shots: 300,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        saves: 0,
+        goals_against: 0,
+        shots_against: 0,
+        shutouts: 0,
+        save_percentage_ratio: null,
+        goals_against_average: null,
+      },
+    ]);
+
+    expect(row).toMatchObject({
+      player_id: 'player-1',
+      games_played: 120,
+      goals: 48,
+      assists: 72,
+      points: 120,
+      points_per_game: 1,
+      goals_per_game: 0.4,
+      assists_per_game: 0.6,
+      shots_per_game: 2.5,
+      team_name: IMPORTED_ALL_TIME_TEAM_LABEL,
+    });
+  });
+
+  it('builds historical baseline goalie rows directly from imported totals', () => {
+    const [row] = buildHistoricalBaselineGoalieRows([
+      {
+        source_table: 'legacy_players',
+        source_row_id: 'baseline-goalie-1',
+        player_id: 'goalie-1',
+        profile_id: 'goalie-1',
+        player_name: 'Jordan Goalie',
+        avatar_url: null,
+        team_id: '',
+        team_name: IMPORTED_ALL_TIME_TEAM_LABEL,
+        division_name: null,
+        position: 'G',
+        is_goalie: true,
+        games_played: 50,
+        goals: 0,
+        assists: 0,
+        points: 0,
+        penalty_minutes: 0,
+        plus_minus: 0,
+        power_play_goals: 0,
+        power_play_assists: 0,
+        short_handed_goals: 0,
+        short_handed_assists: 0,
+        game_winning_goals: 0,
+        empty_net_goals: 0,
+        shots: 0,
+        wins: 30,
+        losses: 15,
+        ties: 5,
+        saves: 900,
+        goals_against: 100,
+        shots_against: 1000,
+        shutouts: 5,
+        save_percentage_ratio: 0.9,
+        goals_against_average: 2,
+      },
+    ]);
+
+    expect(row).toMatchObject({
+      player_id: 'goalie-1',
+      games_played: 50,
+      wins: 30,
+      losses: 15,
+      saves: 900,
+      goals_against: 100,
+      save_percentage: 90,
+      goals_against_average: 2,
+      shutouts: 5,
+      team_name: IMPORTED_ALL_TIME_TEAM_LABEL,
+    });
   });
 
   it('merges imported and native skater totals while preferring native team metadata', () => {
