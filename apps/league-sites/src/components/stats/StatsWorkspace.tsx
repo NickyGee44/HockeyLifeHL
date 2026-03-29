@@ -175,6 +175,15 @@ function formatGoalieValue(row: UnifiedGoalieStatsRow, key: GoalieStatKey) {
   }
 }
 
+export function getMobileVisibleColumns<T extends SkaterStatKey | GoalieStatKey>(
+  visibleColumns: T[],
+  defaultColumns: T[],
+): T[] {
+  const prioritized = defaultColumns.filter((key) => visibleColumns.includes(key));
+  const overflow = visibleColumns.filter((key) => !prioritized.includes(key));
+  return [...prioritized, ...overflow].slice(0, 4);
+}
+
 function RankBadge({ rank }: { rank: number }) {
   const shared = 'inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-black';
   if (rank === 1) return <span className={`${shared} bg-amber-400/20 text-amber-300`}>1</span>;
@@ -304,6 +313,11 @@ export function StatsWorkspace({
   const columns = mode === 'skaters' ? SKATER_COLUMNS : GOALIE_COLUMNS;
   const visibleColumnSet = new Set(visibleColumns);
   const visibleColumnDefs = columns.filter((column) => visibleColumnSet.has(column.key));
+  const mobileVisibleColumnKeys = getMobileVisibleColumns(
+    visibleColumns,
+    (mode === 'skaters' ? SKATER_PRESETS.balanced : GOALIE_PRESETS.balanced) as Array<SkaterStatKey | GoalieStatKey>,
+  );
+  const mobileVisibleColumnDefs = columns.filter((column) => mobileVisibleColumnKeys.includes(column.key));
   const presetOptions =
     mode === 'skaters'
       ? [
@@ -556,135 +570,208 @@ export function StatsWorkspace({
 
         <div className="overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-background-elevated)]">
           {filteredRows.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className={`w-full min-w-[960px] border-separate border-spacing-0 text-sm ${mode === 'skaters' ? 'xl:min-w-[1120px]' : 'xl:min-w-[960px]'}`}>
-                <thead>
-                  <tr>
-                    <th className="sticky left-0 z-30 w-14 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                      #
-                    </th>
-                    <th className="sticky left-14 z-30 min-w-[280px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                      Player
-                    </th>
-                    {visibleColumnDefs.map((column) => {
-                      const active = currentSort === column.key;
-                      const alignClass =
-                        column.align === 'right'
-                          ? 'text-right'
-                          : column.align === 'center'
-                            ? 'text-center'
-                            : 'text-left';
+            <>
+              <div className="grid gap-3 p-3 md:hidden">
+                {filteredRows.map((row) => {
+                  const rank = rankMap.get(row.player_id) || 0;
 
-                      return (
-                        <th
-                          key={column.key}
-                          className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] ${alignClass}`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleSortChange(column.key)}
-                            className={`hidden w-full items-center gap-1 md:inline-flex ${
-                              column.align === 'right'
-                                ? 'justify-end'
-                                : column.align === 'center'
-                                  ? 'justify-center'
-                                  : 'justify-start'
-                            } ${active ? 'text-[var(--color-text-primary)]' : ''}`}
-                          >
-                            <span>{column.label}</span>
-                            {active ? (
-                              currentDirection === 'desc' ? (
-                                <ChevronDown className="h-3.5 w-3.5 text-[var(--league-primary)]" />
-                              ) : (
-                                <ChevronUp className="h-3.5 w-3.5 text-[var(--league-primary)]" />
-                              )
-                            ) : (
-                              <ChevronDown className="h-3.5 w-3.5 opacity-30" />
+                  return (
+                    <article
+                      key={row.player_id}
+                      className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <RankBadge rank={rank} />
+                        <img
+                          src={row.avatar_url || '/blank_player.png'}
+                          alt={row.player_name}
+                          className="h-12 w-12 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              href={`/${leagueSlug}/players/${row.player_id}`}
+                              className="truncate font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
+                            >
+                              {row.player_name}
+                            </Link>
+                            {badges[row.player_id] && badges[row.player_id].length > 0 && (
+                              <PlayerBadgeGroup badges={badges[row.player_id]} maxVisible={2} size="sm" />
                             )}
-                          </button>
-                          <span className="md:hidden">{column.label}</span>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map((row) => {
-                    const rank = rankMap.get(row.player_id) || 0;
-
-                    return (
-                      <tr key={row.player_id} className="group">
-                        <td className="sticky left-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-center transition-colors group-hover:bg-[var(--color-surface-hover)]">
-                          <RankBadge rank={rank} />
-                        </td>
-                        <td className="sticky left-14 z-20 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)]">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={row.avatar_url || '/blank_player.png'}
-                              alt={row.player_name}
-                              className="h-10 w-10 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
-                            />
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <Link
-                                  href={`/${leagueSlug}/players/${row.player_id}`}
-                                  className="truncate font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
-                                >
-                                  {row.player_name}
-                                </Link>
-                                {badges[row.player_id] && badges[row.player_id].length > 0 && (
-                                  <PlayerBadgeGroup badges={badges[row.player_id]} maxVisible={3} size="sm" />
-                                )}
-                              </div>
-                              {!isAllTime && (
-                                <p className="truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                                  {row.division_name ? `${row.division_name} | ` : ''}
-                                  {row.team_name}
-                                </p>
-                              )}
-                            </div>
                           </div>
-                        </td>
-                        {visibleColumnDefs.map((column) => {
-                          const alignClass =
-                            column.align === 'right'
-                              ? 'text-right'
-                              : column.align === 'center'
-                                ? 'text-center'
-                                : 'text-left';
-                          const sortedClass = currentSort === column.key ? 'font-semibold text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]';
+                          {!isAllTime && (
+                            <p className="mt-1 truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                              {row.division_name ? `${row.division_name} | ` : ''}
+                              {row.team_name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {mobileVisibleColumnDefs.map((column) => {
                           const value =
                             mode === 'skaters'
                               ? formatSkaterValue(row as UnifiedSkaterStatsRow, column.key as SkaterStatKey)
                               : formatGoalieValue(row as UnifiedGoalieStatsRow, column.key as GoalieStatKey);
+                          const valueClass =
+                            mode === 'skaters' && column.key === 'plus_minus'
+                              ? (row as UnifiedSkaterStatsRow).plus_minus > 0
+                                ? 'text-emerald-400'
+                                : (row as UnifiedSkaterStatsRow).plus_minus < 0
+                                  ? 'text-rose-400'
+                                  : 'text-[var(--color-text-primary)]'
+                              : currentSort === column.key
+                                ? 'text-[var(--league-primary)]'
+                                : 'text-[var(--color-text-primary)]';
 
                           return (
-                            <td
+                            <div
                               key={column.key}
-                              className={`border-b border-[var(--color-border)] px-3 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)] ${alignClass} ${sortedClass}`}
+                              className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2"
                             >
-                              <span
-                                className={
-                                  mode === 'skaters' && column.key === 'plus_minus'
-                                    ? (row as UnifiedSkaterStatsRow).plus_minus > 0
-                                      ? 'text-emerald-400'
-                                      : (row as UnifiedSkaterStatsRow).plus_minus < 0
-                                        ? 'text-rose-400'
-                                        : ''
-                                    : ''
-                                }
-                              >
-                                {value}
-                              </span>
-                            </td>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                                {column.label}
+                              </p>
+                              <p className={`mt-1 text-lg font-black ${valueClass}`}>{value}</p>
+                            </div>
                           );
                         })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className={`w-full min-w-[960px] border-separate border-spacing-0 text-sm ${mode === 'skaters' ? 'xl:min-w-[1120px]' : 'xl:min-w-[960px]'}`}>
+                  <thead>
+                    <tr>
+                      <th className="sticky left-0 z-30 w-14 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                        #
+                      </th>
+                      <th className="sticky left-14 z-30 min-w-[280px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                        Player
+                      </th>
+                      {visibleColumnDefs.map((column) => {
+                        const active = currentSort === column.key;
+                        const alignClass =
+                          column.align === 'right'
+                            ? 'text-right'
+                            : column.align === 'center'
+                              ? 'text-center'
+                              : 'text-left';
+
+                        return (
+                          <th
+                            key={column.key}
+                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] ${alignClass}`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleSortChange(column.key)}
+                              className={`inline-flex w-full items-center gap-1 ${
+                                column.align === 'right'
+                                  ? 'justify-end'
+                                  : column.align === 'center'
+                                    ? 'justify-center'
+                                    : 'justify-start'
+                              } ${active ? 'text-[var(--color-text-primary)]' : ''}`}
+                            >
+                              <span>{column.label}</span>
+                              {active ? (
+                                currentDirection === 'desc' ? (
+                                  <ChevronDown className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+                                ) : (
+                                  <ChevronUp className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+                                )
+                              ) : (
+                                <ChevronDown className="h-3.5 w-3.5 opacity-30" />
+                              )}
+                            </button>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRows.map((row) => {
+                      const rank = rankMap.get(row.player_id) || 0;
+
+                      return (
+                        <tr key={row.player_id} className="group">
+                          <td className="sticky left-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-center transition-colors group-hover:bg-[var(--color-surface-hover)]">
+                            <RankBadge rank={rank} />
+                          </td>
+                          <td className="sticky left-14 z-20 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)]">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={row.avatar_url || '/blank_player.png'}
+                                alt={row.player_name}
+                                className="h-10 w-10 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
+                              />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <Link
+                                    href={`/${leagueSlug}/players/${row.player_id}`}
+                                    className="truncate font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
+                                  >
+                                    {row.player_name}
+                                  </Link>
+                                  {badges[row.player_id] && badges[row.player_id].length > 0 && (
+                                    <PlayerBadgeGroup badges={badges[row.player_id]} maxVisible={3} size="sm" />
+                                  )}
+                                </div>
+                                {!isAllTime && (
+                                  <p className="truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                                    {row.division_name ? `${row.division_name} | ` : ''}
+                                    {row.team_name}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          {visibleColumnDefs.map((column) => {
+                            const alignClass =
+                              column.align === 'right'
+                                ? 'text-right'
+                                : column.align === 'center'
+                                  ? 'text-center'
+                                  : 'text-left';
+                            const sortedClass = currentSort === column.key ? 'font-semibold text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]';
+                            const value =
+                              mode === 'skaters'
+                                ? formatSkaterValue(row as UnifiedSkaterStatsRow, column.key as SkaterStatKey)
+                                : formatGoalieValue(row as UnifiedGoalieStatsRow, column.key as GoalieStatKey);
+
+                            return (
+                              <td
+                                key={column.key}
+                                className={`border-b border-[var(--color-border)] px-3 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)] ${alignClass} ${sortedClass}`}
+                              >
+                                <span
+                                  className={
+                                    mode === 'skaters' && column.key === 'plus_minus'
+                                      ? (row as UnifiedSkaterStatsRow).plus_minus > 0
+                                        ? 'text-emerald-400'
+                                        : (row as UnifiedSkaterStatsRow).plus_minus < 0
+                                          ? 'text-rose-400'
+                                          : ''
+                                      : ''
+                                  }
+                                >
+                                  {value}
+                                </span>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <div className="px-6 py-16 text-center">
               <BarChart3 className="mx-auto h-12 w-12 text-[var(--color-text-muted)]" />

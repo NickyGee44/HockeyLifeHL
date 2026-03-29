@@ -2919,13 +2919,85 @@ export async function getPlayerProfile(playerId: string): Promise<Player | null>
  * Fetch player career stats
  * Uses player_stats table which has per-game stats with proper columns
  */
+type PlayerCareerTotalsRow = {
+  goals: number | null;
+  assists: number | null;
+  penalty_minutes?: number | null;
+};
+
+export function summarizePlayerCareerTotals(
+  playerId: string,
+  rows: PlayerCareerTotalsRow[],
+  seasonSummary?: {
+    games_played?: number | null;
+    goals?: number | null;
+    assists?: number | null;
+    points?: number | null;
+    team_name?: string | null;
+    position?: string | null;
+  } | null,
+): PlayerStats | null {
+  if ((!rows || rows.length === 0) && !seasonSummary) {
+    return null;
+  }
+
+  const totals = (rows || []).reduce<{ goals: number; assists: number; penalty_minutes: number }>(
+    (acc, stat) => ({
+      goals: acc.goals + (stat.goals || 0),
+      assists: acc.assists + (stat.assists || 0),
+      penalty_minutes: acc.penalty_minutes + (stat.penalty_minutes || 0),
+    }),
+    { goals: 0, assists: 0, penalty_minutes: 0 },
+  );
+
+  const goals = seasonSummary?.goals ?? totals.goals;
+  const assists = seasonSummary?.assists ?? totals.assists;
+  const points = seasonSummary?.points ?? (goals + assists);
+  const gamesPlayed = seasonSummary?.games_played ?? rows.length;
+
+  return {
+    player_id: playerId,
+    player_name: '',
+    team_name: seasonSummary?.team_name || '',
+    team_id: '',
+    position: seasonSummary?.position || null,
+    games_played: gamesPlayed,
+    goals,
+    assists,
+    points,
+    penalty_minutes: totals.penalty_minutes,
+    plus_minus: 0,
+  } as PlayerStats;
+}
+
 export async function getPlayerCareerStats(
   playerId: string,
   seasonId?: string
 ): Promise<PlayerStats | null> {
   const supabase = await createClient();
 
-  // Query player_stats table for player-specific stats
+  let seasonSummary: {
+    games_played?: number | null;
+    goals?: number | null;
+    assists?: number | null;
+    points?: number | null;
+    team_name?: string | null;
+    position?: string | null;
+  } | null = null;
+
+  if (seasonId) {
+    const { data: seasonStats } = await supabase
+      .from('player_season_stats')
+      .select('games_played, goals, assists, points, team_name, position')
+      .eq('player_id', playerId)
+      .eq('season_id', seasonId)
+      .maybeSingle();
+
+    seasonSummary = seasonStats;
+  }
+
+  // Query player_stats rows for fields not exposed by player_season_stats (for example
+  // penalty minutes), but use the season summary as the source of truth for aggregate GP.
   let query = supabase
     .from('player_stats')
     .select('goals, assists, penalty_minutes')
@@ -2937,31 +3009,9 @@ export async function getPlayerCareerStats(
 
   const { data, error } = await query;
 
-  if (error || !data || data.length === 0) return null;
+  if (error) return null;
 
-  // Aggregate stats across all games
-  const totals = data.reduce(
-    (acc, stat) => ({
-      goals: acc.goals + (stat.goals || 0),
-      assists: acc.assists + (stat.assists || 0),
-      penalty_minutes: acc.penalty_minutes + (stat.penalty_minutes || 0),
-    }),
-    { goals: 0, assists: 0, penalty_minutes: 0 }
-  );
-
-  return {
-    player_id: playerId,
-    player_name: '',
-    team_name: '',
-    team_id: '',
-    position: null,
-    games_played: data.length,
-    goals: totals.goals,
-    assists: totals.assists,
-    points: totals.goals + totals.assists,
-    penalty_minutes: totals.penalty_minutes,
-    plus_minus: 0,
-  } as PlayerStats;
+  return summarizePlayerCareerTotals(playerId, data || [], seasonSummary);
 }
 
 /**
