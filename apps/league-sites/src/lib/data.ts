@@ -44,6 +44,13 @@ import type {
   PlayerBadge,
   ArticleLinkContext,
 } from './types';
+import {
+  IMPORTED_ALL_TIME_TEAM_LABEL,
+  mergeAllTimeGoalieRows,
+  mergeAllTimeSkaterRows,
+  normalizeImportedCareerBaselineRows,
+  type ImportedCareerBaselineRow,
+} from './all-time-stats';
 import { getBalancedLeagueColors } from './theme-palette';
 import { pickOperationalSeason } from './seasons/operational';
 
@@ -52,6 +59,215 @@ const DEFAULT_PRIMARY = '#D4AF37';
 const DEFAULT_SECONDARY = '#1a1a1a';
 const DEFAULT_ACCENT = '#D4AF37';
 const DEFAULT_FONT_FAMILY = '"Rajdhani", "Sora", "Inter", system-ui, -apple-system, sans-serif';
+const LEGACY_ALL_TIME_LEAGUE_SLUGS = new Set(['hockey-life', 'hockeylifehl', 'hockeylifehl-original', 'pilot']);
+const IMPORTED_CAREER_BASELINE_TABLE_CANDIDATES = [
+  'league_player_career_baselines',
+  'player_career_baselines',
+  'career_stat_baselines',
+  'league_career_stat_baselines',
+  'imported_career_baselines',
+  'imported_career_stat_baselines',
+];
+
+type LegacyPlayerRow = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  full_name: string | null;
+  is_goalie: boolean | null;
+  games_played: number | null;
+  goals: number | null;
+  assists: number | null;
+  points: number | null;
+  wins: number | null;
+  ties: number | null;
+  goals_against: number | null;
+  goals_against_average: number | null;
+  saves: number | null;
+  shutouts: number | null;
+  save_percentage: number | null;
+  matched_to_profile_id: string | null;
+  imported_from: string | null;
+};
+
+function supportsLegacyAllTimeStats(leagueSlug?: string): boolean {
+  return Boolean(leagueSlug && LEGACY_ALL_TIME_LEAGUE_SLUGS.has(leagueSlug.toLowerCase()));
+}
+
+function compareLegacySkaters(left: PlayerStats, right: PlayerStats, statType: 'points' | 'goals' | 'assists') {
+  const primary = right[statType] - left[statType];
+  if (primary !== 0) return primary;
+
+  const pointDiff = right.points - left.points;
+  if (pointDiff !== 0) return pointDiff;
+
+  const goalDiff = right.goals - left.goals;
+  if (goalDiff !== 0) return goalDiff;
+
+  const assistDiff = right.assists - left.assists;
+  if (assistDiff !== 0) return assistDiff;
+
+  const gpDiff = right.games_played - left.games_played;
+  if (gpDiff !== 0) return gpDiff;
+
+  return left.player_name.localeCompare(right.player_name);
+}
+
+function compareLegacyGoalies(
+  left: GoalieStats,
+  right: GoalieStats,
+  sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts',
+) {
+  switch (sortBy) {
+    case 'save_percentage': {
+      const svDiff = right.save_percentage - left.save_percentage;
+      if (svDiff !== 0) return svDiff;
+      break;
+    }
+    case 'goals_against_average': {
+      const gaaDiff = left.goals_against_average - right.goals_against_average;
+      if (gaaDiff !== 0) return gaaDiff;
+      break;
+    }
+    case 'shutouts': {
+      const shutoutDiff = right.shutouts - left.shutouts;
+      if (shutoutDiff !== 0) return shutoutDiff;
+      break;
+    }
+    case 'wins':
+    default: {
+      const winDiff = right.wins - left.wins;
+      if (winDiff !== 0) return winDiff;
+      break;
+    }
+  }
+
+  const winDiff = right.wins - left.wins;
+  if (winDiff !== 0) return winDiff;
+
+  const shutoutDiff = right.shutouts - left.shutouts;
+  if (shutoutDiff !== 0) return shutoutDiff;
+
+  const svDiff = right.save_percentage - left.save_percentage;
+  if (svDiff !== 0) return svDiff;
+
+  const gaaDiff = left.goals_against_average - right.goals_against_average;
+  if (gaaDiff !== 0) return gaaDiff;
+
+  const gpDiff = right.games_played - left.games_played;
+  if (gpDiff !== 0) return gpDiff;
+
+  return left.player_name.localeCompare(right.player_name);
+}
+
+async function getLegacyAllTimePlayers(): Promise<LegacyPlayerRow[]> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('legacy_players')
+    .select(
+      'id, first_name, last_name, full_name, is_goalie, games_played, goals, assists, points, wins, ties, goals_against, goals_against_average, saves, shutouts, save_percentage, matched_to_profile_id, imported_from'
+    )
+    .order('full_name', { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as LegacyPlayerRow[];
+}
+
+function isMissingRelationError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '');
+  const normalized = message.toLowerCase();
+  return normalized.includes('does not exist') || normalized.includes('could not find the table') || normalized.includes('pgrst205');
+}
+
+function isLikelyUuid(value: string | null | undefined) {
+  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value));
+}
+
+async function hydrateBaselineAvatarUrls(rows: ImportedCareerBaselineRow[]): Promise<ImportedCareerBaselineRow[]> {
+  const profileIds = [...new Set(
+    rows
+      .map((row) => row.profile_id ?? (isLikelyUuid(row.player_id) ? row.player_id : null))
+      .filter((profileId): profileId is string => Boolean(profileId)),
+  )];
+
+  if (profileIds.length === 0) {
+    return rows;
+  }
+
+  const supabase = createServiceRoleClient();
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, avatar_url')
+    .in('id', profileIds);
+
+  const avatarMap = new Map<string, string | null>(
+    (profiles || []).map((profile: { id: string; avatar_url: string | null }) => [profile.id, profile.avatar_url]),
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    avatar_url: row.avatar_url || avatarMap.get(row.profile_id || row.player_id) || null,
+  }));
+}
+
+async function fetchImportedCareerBaselineRowsFromCandidates(
+  leagueId: string,
+  leagueSlug?: string,
+): Promise<ImportedCareerBaselineRow[]> {
+  const supabase = createServiceRoleClient();
+
+  for (const tableName of IMPORTED_CAREER_BASELINE_TABLE_CANDIDATES) {
+    const { data, error } = await (supabase as any)
+      .from(tableName)
+      .select('*')
+      .limit(5000);
+
+    if (error) {
+      if (isMissingRelationError(error)) {
+        continue;
+      }
+      continue;
+    }
+
+    const normalized = normalizeImportedCareerBaselineRows((data || []) as Record<string, unknown>[], {
+      sourceTable: tableName,
+      leagueId,
+      leagueSlug,
+      defaultTeamName: IMPORTED_ALL_TIME_TEAM_LABEL,
+    });
+
+    if (normalized.length > 0) {
+      return hydrateBaselineAvatarUrls(normalized);
+    }
+  }
+
+  return [];
+}
+
+async function getImportedCareerBaselineRows(
+  leagueId: string,
+  leagueSlug?: string,
+): Promise<ImportedCareerBaselineRow[]> {
+  const baselineRows = await fetchImportedCareerBaselineRowsFromCandidates(leagueId, leagueSlug);
+  if (baselineRows.length > 0) {
+    return baselineRows;
+  }
+
+  if (!supportsLegacyAllTimeStats(leagueSlug)) {
+    return [];
+  }
+
+  const legacyRows = await getLegacyAllTimePlayers();
+  const normalized = normalizeImportedCareerBaselineRows(legacyRows as unknown as Record<string, unknown>[], {
+    sourceTable: 'legacy_players',
+    defaultTeamName: IMPORTED_ALL_TIME_TEAM_LABEL,
+  });
+
+  return hydrateBaselineAvatarUrls(normalized);
+}
 
 function getThemePreset(league: League): ThemePreset {
   const preset = (league.settings?.website as { themePreset?: string } | undefined)?.themePreset;
@@ -1464,65 +1680,34 @@ export async function getStatsLeaders(
   statType: 'points' | 'goals' | 'assists' | 'saves' = 'points',
   limit = 10,
   divisionId?: string,
-  seasonId?: string | null // null = all-time career stats
+  seasonId?: string | null, // null = all-time career stats
+  leagueSlug?: string,
 ): Promise<PlayerStats[]> {
   const supabase = await createClient();
 
   // If seasonId is explicitly null, fetch all-time career stats
   if (seasonId === null) {
-    // Query all seasons for this league and aggregate
-    const { data: stats, error } = await supabase
-      .from('player_season_stats')
-      .select('*')
-      .eq('league_id', leagueId);
+    const { rows, profileIdsByPlayerId } = await buildAllTimeSkaterRows(leagueId, divisionId, leagueSlug);
 
-    if (error || !stats) return [];
-
-    // Aggregate stats by player_id
-    const playerMap = new Map<string, {
-      player_id: string;
-      player_name: string;
-      team_name: string;
-      team_id: string;
-      position: string | null;
-      games_played: number;
-      goals: number;
-      assists: number;
-      points: number;
-    }>();
-
-    for (const s of stats) {
-      const existing = playerMap.get(s.player_id);
-      if (existing) {
-        existing.games_played += Number(s.games_played) || 0;
-        existing.goals += Number(s.goals) || 0;
-        existing.assists += Number(s.assists) || 0;
-        existing.points += Number(s.points) || 0;
-      } else {
-        playerMap.set(s.player_id, {
-          player_id: s.player_id,
-          player_name: s.full_name || 'Unknown',
-          team_name: s.team_name || 'Unknown',
-          team_id: s.team_id || '',
-          position: s.position || null,
-          games_played: Number(s.games_played) || 0,
-          goals: Number(s.goals) || 0,
-          assists: Number(s.assists) || 0,
-          points: Number(s.points) || 0,
-        });
-      }
-    }
-
-    // Sort by stat type and return top N
-    const aggregated = Array.from(playerMap.values());
-    const orderBy = statType === 'saves' ? 'games_played' : statType;
-    aggregated.sort((a, b) => b[orderBy as keyof typeof a] as number - (a[orderBy as keyof typeof a] as number));
-
-    return aggregated.slice(0, limit).map(p => ({
-      ...p,
-      penalty_minutes: 0,
-      plus_minus: 0,
-    })) as PlayerStats[];
+    return rows
+      .map((row) => ({
+        player_id: row.player_id,
+        profile_id: profileIdsByPlayerId.has(row.player_id)
+          ? profileIdsByPlayerId.get(row.player_id) ?? null
+          : row.player_id,
+        player_name: row.player_name,
+        team_name: row.team_name,
+        team_id: row.team_id,
+        position: row.position,
+        games_played: row.games_played,
+        goals: row.goals,
+        assists: row.assists,
+        points: row.points,
+        penalty_minutes: row.penalty_minutes,
+        plus_minus: row.plus_minus,
+      }))
+      .sort((left, right) => compareLegacySkaters(left, right, statType === 'saves' ? 'points' : statType))
+      .slice(0, limit) as PlayerStats[];
   }
 
   // Try to use stats RPC if available (single season)
@@ -1588,9 +1773,10 @@ export async function getStatsLeadersWithAvatars(
   statType: 'points' | 'goals' | 'assists' = 'points',
   limit = 5,
   divisionId?: string,
-  seasonId?: string | null
+  seasonId?: string | null,
+  leagueSlug?: string,
 ): Promise<PlayerStatsWithAvatar[]> {
-  const leaders = await getStatsLeaders(leagueId, statType, limit, divisionId, seasonId);
+  const leaders = await getStatsLeaders(leagueId, statType, limit, divisionId, seasonId, leagueSlug);
   if (leaders.length === 0) return [];
 
   const supabase = await createClient();
@@ -1803,7 +1989,17 @@ async function getFilteredTeamIds(leagueId: string, divisionId?: string) {
   return (teams || []).map((team) => team.id);
 }
 
-export async function getUnifiedSkaterStatsRows(
+type AllTimeSkaterRowsResult = {
+  rows: UnifiedSkaterStatsRow[];
+  profileIdsByPlayerId: Map<string, string | null>;
+};
+
+type AllTimeGoalieRowsResult = {
+  rows: UnifiedGoalieStatsRow[];
+  profileIdsByPlayerId: Map<string, string | null>;
+};
+
+async function getNativeUnifiedSkaterStatsRows(
   leagueId: string,
   seasonId?: string | null,
   divisionId?: string,
@@ -1971,7 +2167,42 @@ export async function getUnifiedSkaterStatsRows(
     });
 }
 
-export async function getUnifiedGoalieStatsRows(
+async function buildAllTimeSkaterRows(
+  leagueId: string,
+  divisionId?: string,
+  leagueSlug?: string,
+): Promise<AllTimeSkaterRowsResult> {
+  const [baselineRows, nativeRows] = await Promise.all([
+    getImportedCareerBaselineRows(leagueId, leagueSlug),
+    getNativeUnifiedSkaterStatsRows(leagueId, undefined, divisionId),
+  ]);
+
+  const profileIdsByPlayerId = new Map<string, string | null>();
+  for (const row of baselineRows) {
+    profileIdsByPlayerId.set(row.player_id, row.profile_id);
+  }
+
+  return {
+    rows: mergeAllTimeSkaterRows(baselineRows, nativeRows),
+    profileIdsByPlayerId,
+  };
+}
+
+export async function getUnifiedSkaterStatsRows(
+  leagueId: string,
+  seasonId?: string | null,
+  divisionId?: string,
+  leagueSlug?: string,
+): Promise<UnifiedSkaterStatsRow[]> {
+  if (seasonId === null) {
+    const { rows } = await buildAllTimeSkaterRows(leagueId, divisionId, leagueSlug);
+    return rows;
+  }
+
+  return getNativeUnifiedSkaterStatsRows(leagueId, seasonId, divisionId);
+}
+
+async function getNativeUnifiedGoalieStatsRows(
   leagueId: string,
   seasonId?: string | null,
   divisionId?: string,
@@ -2086,6 +2317,41 @@ export async function getUnifiedGoalieStatsRows(
     goals_against_average: entry.games_played > 0 ? roundStatValue(entry.goals_against / entry.games_played) : null,
     shutouts: entry.shutouts,
   }));
+}
+
+async function buildAllTimeGoalieRows(
+  leagueId: string,
+  divisionId?: string,
+  leagueSlug?: string,
+): Promise<AllTimeGoalieRowsResult> {
+  const [baselineRows, nativeRows] = await Promise.all([
+    getImportedCareerBaselineRows(leagueId, leagueSlug),
+    getNativeUnifiedGoalieStatsRows(leagueId, undefined, divisionId),
+  ]);
+
+  const profileIdsByPlayerId = new Map<string, string | null>();
+  for (const row of baselineRows) {
+    profileIdsByPlayerId.set(row.player_id, row.profile_id);
+  }
+
+  return {
+    rows: mergeAllTimeGoalieRows(baselineRows, nativeRows).map(({ shots_against: _shotsAgainst, ...row }) => row),
+    profileIdsByPlayerId,
+  };
+}
+
+export async function getUnifiedGoalieStatsRows(
+  leagueId: string,
+  seasonId?: string | null,
+  divisionId?: string,
+  leagueSlug?: string,
+): Promise<UnifiedGoalieStatsRow[]> {
+  if (seasonId === null) {
+    const { rows } = await buildAllTimeGoalieRows(leagueId, divisionId, leagueSlug);
+    return rows;
+  }
+
+  return getNativeUnifiedGoalieStatsRows(leagueId, seasonId, divisionId);
 }
 
 /**
@@ -2769,7 +3035,8 @@ export async function getGoalieLeaders(
   seasonId?: string | null, // null = all-time career stats
   sortBy: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts' = 'wins',
   limit = 20,
-  divisionId?: string
+  divisionId?: string,
+  leagueSlug?: string,
 ): Promise<GoalieStats[]> {
   const supabase = await createClient();
   const hydrateGoalieProfiles = async <T extends {
@@ -2810,84 +3077,32 @@ export async function getGoalieLeaders(
 
   // If seasonId is explicitly null, fetch all-time career stats
   if (seasonId === null) {
-    // Query all seasons for this league and aggregate
-    const { data: stats, error } = await supabase
-      .from('goalie_season_stats')
-      .select('*')
-      .eq('league_id', leagueId);
+    const { rows, profileIdsByPlayerId } = await buildAllTimeGoalieRows(leagueId, divisionId, leagueSlug);
 
-    if (error || !stats) return [];
-
-    // Aggregate stats by player_id
-    const goalieMap = new Map<string, {
-      player_id: string;
-      player_name: string;
-      team_name: string;
-      team_id: string;
-      games_played: number;
-      wins: number;
-      losses: number;
-      saves: number;
-      goals_against: number;
-      shutouts: number;
-      avatar_url: string | null;
-    }>();
-
-    for (const s of stats as any[]) {
-      const existing = goalieMap.get(s.player_id);
-      if (existing) {
-        existing.games_played += Number(s.games_played) || 0;
-        existing.wins += Number(s.wins) || 0;
-        existing.losses += Number(s.losses) || 0;
-        existing.saves += Number(s.saves) || 0;
-        existing.goals_against += Number(s.goals_against) || 0;
-        existing.shutouts += Number(s.shutouts) || 0;
-      } else {
-        goalieMap.set(s.player_id, {
-          player_id: s.player_id,
-          player_name: s.full_name || 'Unknown',
-          team_name: s.team_name || 'Unknown',
-          team_id: s.team_id || '',
-          games_played: Number(s.games_played) || 0,
-          wins: Number(s.wins) || 0,
-          losses: Number(s.losses) || 0,
-          saves: Number(s.saves) || 0,
-          goals_against: Number(s.goals_against) || 0,
-          shutouts: Number(s.shutouts) || 0,
-          avatar_url: null,
-        });
-      }
-    }
-
-    // Recalculate save% and GAA from aggregated totals
-    const results = Array.from(goalieMap.values()).map(g => ({
-      ...g,
-      save_percentage: g.saves + g.goals_against > 0
-        ? Math.round((g.saves / (g.saves + g.goals_against)) * 1000) / 10
-        : 0,
-      goals_against_average: g.games_played > 0
-        ? Math.round((g.goals_against / g.games_played) * 100) / 100
-        : 0,
-    }));
-
-    await hydrateGoalieProfiles(results);
-
-    // Sort by requested stat
-    results.sort((a, b) => {
-      switch (sortBy) {
-        case 'save_percentage':
-          return b.save_percentage - a.save_percentage;
-        case 'goals_against_average':
-          return a.goals_against_average - b.goals_against_average; // Lower is better
-        case 'shutouts':
-          return b.shutouts - a.shutouts;
-        case 'wins':
-        default:
-          return b.wins - a.wins;
-      }
-    });
-
-    return results.slice(0, limit) as GoalieStats[];
+    return rows
+      .map((row) => ({
+        player_id: row.player_id,
+        profile_id: profileIdsByPlayerId.has(row.player_id)
+          ? profileIdsByPlayerId.get(row.player_id) ?? null
+          : row.player_id,
+        player_name: row.player_name,
+        jersey_number: null,
+        avatar_url: row.avatar_url,
+        team_id: row.team_id,
+        team_name: row.team_name,
+        team_logo: null,
+        games_played: row.games_played,
+        wins: row.wins,
+        losses: row.losses,
+        ties: 0,
+        save_percentage: row.save_percentage ?? 0,
+        goals_against_average: row.goals_against_average ?? 0,
+        shutouts: row.shutouts,
+        saves: row.saves,
+        goals_against: row.goals_against,
+      }))
+      .sort((left, right) => compareLegacyGoalies(left, right, sortBy))
+      .slice(0, limit) as GoalieStats[];
   }
 
   // Use the actual RPC function name with correct parameters

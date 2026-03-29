@@ -118,9 +118,10 @@ export async function getLegacyCandidates(): Promise<
       seasonName: r.seasons?.name || 'Unknown Season',
     }));
 
-    // Get aggregated stats from player_stats
+    // Get aggregated season totals. player_stats is per-game and does not expose
+    // games_played/points columns directly.
     const { data: stats } = await serviceSupabase
-      .from('player_stats')
+      .from('player_season_stats')
       .select('games_played, goals, assists, points')
       .eq('player_id', legacyId) as any;
 

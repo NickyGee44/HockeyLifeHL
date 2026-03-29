@@ -75,6 +75,20 @@ Checks the league_memberships table structure and tests inserting a membership.
 node scripts/check-league-memberships-table.mjs
 ```
 
+### `import-player-career-baselines.ts`
+Imports league-scoped pre-BLH career totals from `public.legacy_players` into
+`public.player_career_baselines` without writing synthetic games or replacing
+native BLH stats.
+
+```bash
+pnpm exec tsx scripts/import-player-career-baselines.ts --league <league-id>
+```
+
+Useful flags:
+- `--matched-only` to only import rows already linked to a BLH profile
+- `--source-batch <key>` to rerun idempotently against a specific source snapshot
+- `--dry-run` to validate the mapping without writing rows
+
 ## Additional Scripts
 
 ### `confirm-email-via-db.mjs`
