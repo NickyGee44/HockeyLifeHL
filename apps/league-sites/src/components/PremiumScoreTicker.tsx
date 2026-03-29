@@ -65,7 +65,9 @@ export function PremiumScoreTicker({
   const displayGames = shouldAutoScroll ? [...orderedGames, ...orderedGames] : orderedGames;
   const showControls = isDesktop && orderedGames.length > 1;
 
+  // TODO(Pixel): refactor to derived state — reset on layout change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScrollPosition(0);
     lastTimeRef.current = 0;
   }, [shouldAutoScroll, orderedGames.length]);

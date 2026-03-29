@@ -91,8 +91,11 @@ export function GameSummaryModal({
     loadSummary();
   }, [gameId]);
 
+  // TODO(Pixel): derive homeVerifiedAt/awayVerifiedAt from props instead of syncing via effect
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHomeVerifiedAt(game.homeVerifiedAt);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAwayVerifiedAt(game.awayVerifiedAt);
   }, [game.awayVerifiedAt, game.homeVerifiedAt]);
 

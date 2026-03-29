@@ -77,3 +77,5 @@ apps/**/.claude/
 
 # Supabase temp
 supabase/.temp/
+.tmp/
+apps/remotion/build/

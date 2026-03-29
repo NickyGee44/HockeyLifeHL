@@ -151,7 +151,11 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                     <SponsorFooterStrip sponsors={sponsors} />
                   </div>
                   <div className="league-site-chrome">
-                    <LeagueFooter league={league} leagueSlug={leagueSlug} />
+                    <LeagueFooter
+                      league={league}
+                      leagueSlug={leagueSlug}
+                      visiblePages={(league as any).settings?.website?.visiblePages}
+                    />
                   </div>
                   <div className="league-site-chrome">
                     {!(league as any).settings?.website?.demoMode && <BugReportButton />}

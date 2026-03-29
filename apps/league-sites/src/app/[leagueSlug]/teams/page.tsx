@@ -4,6 +4,7 @@ import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getTeams, getDivisions, getCurrentSeason, getSeasons } from '@/lib/data';
 import { TeamsGrid } from './TeamsGrid';
 import { buildTeamsJsonLd } from '@/lib/jsonld';
+import { filterPublicTeams } from '@/lib/publicSiteVisibility';
 
 interface TeamsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -30,10 +31,11 @@ export default async function TeamsPage({ params, searchParams }: TeamsPageProps
   // Use URL param season if provided, otherwise fall back to current season
   const selectedSeasonId = seasonParam || defaultSeason?.id || null;
 
-  const [teams, divisions] = await Promise.all([
+  const [rawTeams, divisions] = await Promise.all([
     getTeams(league.id, selectedSeasonId || undefined),
     getDivisions(league.id),
   ]);
+  const teams = filterPublicTeams(rawTeams);
 
   const selectedSeason = seasons.find(s => s.id === selectedSeasonId) || defaultSeason;
 

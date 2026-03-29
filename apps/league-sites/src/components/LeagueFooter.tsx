@@ -4,18 +4,28 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { League } from '@/lib/types';
 import { SocialLinks } from './SocialLinks';
+import { shouldShowDefaultPublicNavPage } from '@/lib/publicSiteVisibility';
 
 interface LeagueFooterProps {
   league: League;
   leagueSlug: string;
+  visiblePages?: Record<string, boolean>;
 }
 
-export function LeagueFooter({ league, leagueSlug }: LeagueFooterProps) {
+export function LeagueFooter({ league, leagueSlug, visiblePages }: LeagueFooterProps) {
   // Hydration-safe: use empty string on server, set year after mount
   const [currentYear, setCurrentYear] = useState('');
   useEffect(() => {
     queueMicrotask(() => setCurrentYear(String(new Date().getFullYear())));
   }, []);
+
+  const moreLinks = [
+    { href: `/${leagueSlug}/venues`, label: 'Venues', pageKey: 'venues' },
+    { href: `/${leagueSlug}/history`, label: 'History', pageKey: 'history' },
+    { href: `/${leagueSlug}/suspensions`, label: 'Suspensions', pageKey: 'suspensions' },
+    { href: `/${leagueSlug}/about`, label: 'About', pageKey: 'about' },
+    { href: `/${leagueSlug}/contact`, label: 'Contact', pageKey: 'contact' },
+  ].filter((item) => shouldShowDefaultPublicNavPage(item.pageKey, visiblePages));
 
   return (
     <footer className="relative border-t border-[var(--color-border)] bg-[var(--color-background)] overflow-hidden">
@@ -93,11 +103,9 @@ export function LeagueFooter({ league, leagueSlug }: LeagueFooterProps) {
           <div>
             <h4 className="font-semibold mb-4 text-[var(--color-text-primary)]">More</h4>
             <nav className="flex flex-col gap-2">
-              <FooterLink href={`/${leagueSlug}/venues`}>Venues</FooterLink>
-              <FooterLink href={`/${leagueSlug}/history`}>History</FooterLink>
-              <FooterLink href={`/${leagueSlug}/suspensions`}>Suspensions</FooterLink>
-              <FooterLink href={`/${leagueSlug}/about`}>About</FooterLink>
-              <FooterLink href={`/${leagueSlug}/contact`}>Contact</FooterLink>
+              {moreLinks.map((item) => (
+                <FooterLink key={item.href} href={item.href}>{item.label}</FooterLink>
+              ))}
             </nav>
           </div>
 

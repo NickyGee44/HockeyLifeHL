@@ -7,6 +7,7 @@ import { StandingsWithSearch } from '@/components/StandingsWithSearch';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 import { SeasonSelector } from '@/components/SeasonSelector';
 import type { TeamStanding, Division } from '@/lib/types';
+import { filterPublicStandings } from '@/lib/publicSiteVisibility';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -32,10 +33,11 @@ export default async function StandingsPage({ params, searchParams }: StandingsP
 
   const selectedSeasonId = seasonParam || defaultSeason?.id || null;
 
-  const [standings, divisions] = await Promise.all([
+  const [rawStandings, divisions] = await Promise.all([
     getStandings(league.id, selectedSeasonId || undefined),
     getDivisions(league.id),
   ]);
+  const standings = filterPublicStandings(rawStandings);
 
   const selectedSeason = seasons.find(s => s.id === selectedSeasonId) || defaultSeason;
 
