@@ -2032,9 +2032,7 @@ async function getNativeUnifiedSkaterStatsRows(
       team:teams!player_stats_team_id_fkey(name, divisions(name))
     `)
     .eq('game.league_id', leagueId)
-    .eq('game.status', 'completed')
-    .eq('game.home_captain_verified', true)
-    .eq('game.away_captain_verified', true);
+    .eq('game.status', 'completed');
 
   if (seasonId) {
     query = query.eq('game.season_id', seasonId);
@@ -2229,9 +2227,7 @@ async function getNativeUnifiedGoalieStatsRows(
       team:teams!goalie_stats_team_id_fkey(name, divisions(name))
     `)
     .eq('game.league_id', leagueId)
-    .eq('game.status', 'completed')
-    .eq('game.home_captain_verified', true)
-    .eq('game.away_captain_verified', true);
+    .eq('game.status', 'completed');
 
   if (seasonId) {
     query = query.eq('game.season_id', seasonId);
