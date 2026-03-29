@@ -3,6 +3,7 @@ import {
   applyImportedAggregateGoalieOverride,
   applyImportedAggregateSkaterOverride,
   getImportedAggregateSkaterGamesPlayed,
+  isAggregateOnlySeasonView,
 } from '../imported-aggregate-season-overrides';
 
 describe('imported aggregate season overrides', () => {
@@ -10,6 +11,12 @@ describe('imported aggregate season overrides', () => {
     expect(getImportedAggregateSkaterGamesPlayed(HLHL_WINTER_2026_SEASON_ID, 'Adam Klimowicz')).toBe(11);
     expect(getImportedAggregateSkaterGamesPlayed(HLHL_WINTER_2026_SEASON_ID, 'Steve Almond')).toBe(10);
     expect(getImportedAggregateSkaterGamesPlayed('some-other-season', 'Adam Klimowicz')).toBeNull();
+  });
+
+  it('detects aggregate-only season views', () => {
+    expect(isAggregateOnlySeasonView(HLHL_WINTER_2026_SEASON_ID, '2026 Winter Thursdays')).toBe(true);
+    expect(isAggregateOnlySeasonView('some-other-season', 'Historical Career Baseline (Pre-BLH)')).toBe(true);
+    expect(isAggregateOnlySeasonView('some-other-season', 'Spring 2026')).toBe(false);
   });
 
   it('applies skater GP overrides and recomputes rate stats', () => {

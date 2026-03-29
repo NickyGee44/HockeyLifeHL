@@ -58,6 +58,7 @@ import {
   applyImportedAggregateGoalieOverride,
   applyImportedAggregateSkaterOverride,
   getImportedAggregateSkaterGamesPlayed,
+  isAggregateOnlySeasonView,
   isImportedAggregateSeasonId,
 } from './imported-aggregate-season-overrides';
 import { getBalancedLeagueColors } from './theme-palette';
@@ -3082,6 +3083,18 @@ export async function getPlayerGameLog(
   limit = 20
 ): Promise<PlayerGameLogEntry[]> {
   const supabase = await createClient();
+
+  if (seasonId) {
+    const { data: seasonRecord } = await supabase
+      .from('seasons')
+      .select('name')
+      .eq('id', seasonId)
+      .maybeSingle();
+
+    if (isAggregateOnlySeasonView(seasonId, seasonRecord?.name ?? null)) {
+      return [];
+    }
+  }
 
   // Build query for player stats with game details
   let query = supabase

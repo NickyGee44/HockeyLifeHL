@@ -1,3 +1,4 @@
+import { isHistoricalCareerBaselineSeasonName } from './all-time-stats';
 import type { UnifiedGoalieStatsRow, UnifiedSkaterStatsRow } from './types';
 
 export const HLHL_WINTER_2026_SEASON_ID = '30ee2c0b-5981-4df4-b0cc-d7cae05b9e37';
@@ -93,6 +94,10 @@ const goalieOverrides = new Map(
 
 export function isImportedAggregateSeasonId(seasonId?: string | null) {
   return seasonId === HLHL_WINTER_2026_SEASON_ID;
+}
+
+export function isAggregateOnlySeasonView(seasonId?: string | null, seasonName?: string | null) {
+  return isImportedAggregateSeasonId(seasonId) || isHistoricalCareerBaselineSeasonName(seasonName);
 }
 
 export function getImportedAggregateSkaterGamesPlayed(seasonId: string | null | undefined, playerName?: string | null) {

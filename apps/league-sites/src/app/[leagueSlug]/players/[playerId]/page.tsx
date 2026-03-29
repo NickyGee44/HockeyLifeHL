@@ -22,6 +22,7 @@ import { PlayerGameLog } from '@/components/player/PlayerGameLog';
 import { SeasonSelector } from '@/components/player/SeasonSelector';
 import { PlayerArticleCard } from '@/components/player/PlayerArticleCard';
 import { PlayerMatchups } from '@/components/player/PlayerMatchups';
+import { isAggregateOnlySeasonView } from '@/lib/imported-aggregate-season-overrides';
 
 interface PlayerPageProps {
   params: Promise<{ leagueSlug: string; playerId: string }>;
@@ -93,6 +94,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
     shootingPct: m.shootingPct,
   }));
   const currentSeasonName = seasons.find(s => s.id === seasonId)?.name;
+  const showPerGameHistory = !isAggregateOnlySeasonView(seasonId, currentSeasonName);
 
   return (
     <SubscriptionWall>
@@ -148,28 +150,32 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
         )}
 
         {/* Game Log */}
-        <div className="league-reading-panel rounded-[28px] p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
-            <h2 className="text-xl font-bold">Game Log</h2>
-          </div>
-          {gameLog.length > 0 ? (
-            <PlayerGameLog gameLog={gameLog} isGoalie={isGoalie} />
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-[var(--color-text-secondary)]">
-                No games played this season.
-              </p>
+        {showPerGameHistory && (
+          <div className="league-reading-panel rounded-[28px] p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
+              <h2 className="text-xl font-bold">Game Log</h2>
             </div>
-          )}
-        </div>
+            {gameLog.length > 0 ? (
+              <PlayerGameLog gameLog={gameLog} isGoalie={isGoalie} />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-[var(--color-text-secondary)]">
+                  No games played this season.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Matchup Stats */}
-        <PlayerMatchups
-          matchups={matchups}
-          isGoalie={isGoalie}
-          leagueSlug={leagueSlug}
-        />
+        {showPerGameHistory && (
+          <PlayerMatchups
+            matchups={matchups}
+            isGoalie={isGoalie}
+            leagueSlug={leagueSlug}
+          />
+        )}
 
         {/* In The News */}
         {playerArticles && playerArticles.length > 0 && (
