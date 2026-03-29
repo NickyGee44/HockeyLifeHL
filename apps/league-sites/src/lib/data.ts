@@ -54,6 +54,12 @@ import {
   normalizeImportedCareerBaselineRows,
   type ImportedCareerBaselineRow,
 } from './all-time-stats';
+import {
+  applyImportedAggregateGoalieOverride,
+  applyImportedAggregateSkaterOverride,
+  getImportedAggregateSkaterGamesPlayed,
+  isImportedAggregateSeasonId,
+} from './imported-aggregate-season-overrides';
 import { getBalancedLeagueColors } from './theme-palette';
 import { pickOperationalSeason } from './seasons/operational';
 
@@ -2138,33 +2144,36 @@ async function getNativeUnifiedSkaterStatsRows(
     .filter((entry) => !entry.is_goalie && !isGoaliePosition(entry.position))
     .map((entry) => {
       const points = entry.goals + entry.assists;
-      return {
-        player_id: entry.player_id,
-        player_name: entry.player_name,
-        avatar_url: entry.avatar_url,
-        team_id: entry.team_id,
-        team_name: entry.team_name,
-        division_name: entry.division_name,
-        position: entry.position,
-        games_played: entry.games_played,
-        goals: entry.goals,
-        assists: entry.assists,
-        points,
-        points_per_game: entry.games_played > 0 ? roundStatValue(points / entry.games_played) : 0,
-        goals_per_game: entry.games_played > 0 ? roundStatValue(entry.goals / entry.games_played) : 0,
-        assists_per_game: entry.games_played > 0 ? roundStatValue(entry.assists / entry.games_played) : 0,
-        penalty_minutes: entry.penalty_minutes,
-        plus_minus: entry.plus_minus,
-        power_play_goals: entry.power_play_goals,
-        power_play_assists: entry.power_play_assists,
-        power_play_points: entry.power_play_goals + entry.power_play_assists,
-        short_handed_goals: entry.short_handed_goals,
-        short_handed_assists: entry.short_handed_assists,
-        game_winning_goals: entry.game_winning_goals,
-        empty_net_goals: entry.empty_net_goals,
-        shots: entry.shots,
-        shots_per_game: entry.games_played > 0 ? roundStatValue(entry.shots / entry.games_played) : 0,
-      };
+      return applyImportedAggregateSkaterOverride(
+        {
+          player_id: entry.player_id,
+          player_name: entry.player_name,
+          avatar_url: entry.avatar_url,
+          team_id: entry.team_id,
+          team_name: entry.team_name,
+          division_name: entry.division_name,
+          position: entry.position,
+          games_played: entry.games_played,
+          goals: entry.goals,
+          assists: entry.assists,
+          points,
+          points_per_game: entry.games_played > 0 ? roundStatValue(points / entry.games_played) : 0,
+          goals_per_game: entry.games_played > 0 ? roundStatValue(entry.goals / entry.games_played) : 0,
+          assists_per_game: entry.games_played > 0 ? roundStatValue(entry.assists / entry.games_played) : 0,
+          penalty_minutes: entry.penalty_minutes,
+          plus_minus: entry.plus_minus,
+          power_play_goals: entry.power_play_goals,
+          power_play_assists: entry.power_play_assists,
+          power_play_points: entry.power_play_goals + entry.power_play_assists,
+          short_handed_goals: entry.short_handed_goals,
+          short_handed_assists: entry.short_handed_assists,
+          game_winning_goals: entry.game_winning_goals,
+          empty_net_goals: entry.empty_net_goals,
+          shots: entry.shots,
+          shots_per_game: entry.games_played > 0 ? roundStatValue(entry.shots / entry.games_played) : 0,
+        },
+        seasonId,
+      );
     });
 }
 
@@ -2305,23 +2314,28 @@ async function getNativeUnifiedGoalieStatsRows(
     }
   }
 
-  return Array.from(goalieMap.values()).map((entry) => ({
-    player_id: entry.player_id,
-    player_name: entry.player_name,
-    avatar_url: entry.avatar_url,
-    team_id: entry.team_id,
-    team_name: entry.team_name,
-    division_name: entry.division_name,
-    position: 'Goalie',
-    games_played: entry.games_played,
-    wins: entry.wins,
-    losses: entry.losses,
-    saves: entry.saves,
-    goals_against: entry.goals_against,
-    save_percentage: entry.shots_against > 0 ? roundStatValue((entry.saves / entry.shots_against) * 100, 1) : null,
-    goals_against_average: entry.games_played > 0 ? roundStatValue(entry.goals_against / entry.games_played) : null,
-    shutouts: entry.shutouts,
-  }));
+  return Array.from(goalieMap.values()).map((entry) =>
+    applyImportedAggregateGoalieOverride(
+      {
+        player_id: entry.player_id,
+        player_name: entry.player_name,
+        avatar_url: entry.avatar_url,
+        team_id: entry.team_id,
+        team_name: entry.team_name,
+        division_name: entry.division_name,
+        position: 'Goalie',
+        games_played: entry.games_played,
+        wins: entry.wins,
+        losses: entry.losses,
+        saves: entry.saves,
+        goals_against: entry.goals_against,
+        save_percentage: entry.shots_against > 0 ? roundStatValue((entry.saves / entry.shots_against) * 100, 1) : null,
+        goals_against_average: entry.games_played > 0 ? roundStatValue(entry.goals_against / entry.games_played) : null,
+        shutouts: entry.shutouts,
+      },
+      seasonId,
+    )
+  );
 }
 
 async function buildAllTimeGoalieRows(
@@ -2975,6 +2989,7 @@ export async function getPlayerCareerStats(
   seasonId?: string
 ): Promise<PlayerStats | null> {
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
 
   let seasonSummary: {
     games_played?: number | null;
@@ -2984,8 +2999,17 @@ export async function getPlayerCareerStats(
     team_name?: string | null;
     position?: string | null;
   } | null = null;
+  let seasonName: string | null = null;
 
   if (seasonId) {
+    const { data: seasonRecord } = await supabase
+      .from('seasons')
+      .select('name')
+      .eq('id', seasonId)
+      .maybeSingle();
+
+    seasonName = seasonRecord?.name ?? null;
+
     const { data: seasonStats } = await supabase
       .from('player_season_stats')
       .select('games_played, goals, assists, points, team_name, position')
@@ -2994,6 +3018,40 @@ export async function getPlayerCareerStats(
       .maybeSingle();
 
     seasonSummary = seasonStats;
+
+    if (isHistoricalCareerBaselineSeasonName(seasonName)) {
+      const { data: baselineStats } = await serviceSupabase
+        .from('player_career_baselines')
+        .select('games_played, goals, assists, points')
+        .eq('player_id', playerId)
+        .maybeSingle();
+
+      if (baselineStats) {
+        seasonSummary = {
+          ...seasonSummary,
+          games_played: baselineStats.games_played,
+          goals: baselineStats.goals,
+          assists: baselineStats.assists,
+          points: baselineStats.points,
+        };
+      }
+    }
+
+    if (isImportedAggregateSeasonId(seasonId)) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', playerId)
+        .maybeSingle();
+
+      const gamesPlayedOverride = getImportedAggregateSkaterGamesPlayed(seasonId, profile?.full_name);
+      if (gamesPlayedOverride != null) {
+        seasonSummary = {
+          ...seasonSummary,
+          games_played: gamesPlayedOverride,
+        };
+      }
+    }
   }
 
   // Query player_stats rows for fields not exposed by player_season_stats (for example
