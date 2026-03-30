@@ -184,6 +184,41 @@ function filterUpcomingEvents(events: LeagueEvent[], season: Season | null) {
   });
 }
 
+function getMostRecentlyFinishedSeason(
+  seasons: Season[],
+  now: Date,
+  registrationSeasonId?: string | null,
+): Season | null {
+  const nowMs = now.getTime();
+
+  const finished = seasons.filter((season) => {
+    if (registrationSeasonId && season.id === registrationSeasonId) {
+      return false;
+    }
+
+    if (season.status === 'completed') {
+      return true;
+    }
+
+    if (!season.end_date) {
+      return false;
+    }
+
+    const endMs = new Date(season.end_date).getTime();
+    return !Number.isNaN(endMs) && endMs < nowMs;
+  });
+
+  if (finished.length === 0) {
+    return null;
+  }
+
+  return [...finished].sort((a, b) => {
+    const aEnd = new Date(a.end_date || a.start_date || 0).getTime();
+    const bEnd = new Date(b.end_date || b.start_date || 0).getTime();
+    return bEnd - aEnd;
+  })[0] ?? null;
+}
+
 type RecognitionRole = 'Forward' | 'Defense' | 'Goalie';
 
 interface TeamLookupEntry {
@@ -477,10 +512,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   // Check if registration is open for any season
   const now = new Date();
   const registrationSeason = pickRegistrationSeason(seasons as any[], now);
-  const previousCompletedSeason =
-    seasons.find((season) => season.id !== currentSeason?.id && season.status === 'completed') ||
-    seasons.find((season) => season.id !== currentSeason?.id) ||
-    null;
+  const previousCompletedSeason = getMostRecentlyFinishedSeason(
+    seasons,
+    now,
+    registrationSeason?.id,
+  );
   const [previousScoringLeadersRaw, previousGoalieLeadersRaw, currentAwards, previousAwards] = previousCompletedSeason
     ? await Promise.all([
         getPointsLeadersWithDivision(league.id, previousCompletedSeason.id, 24, divisionFilter),

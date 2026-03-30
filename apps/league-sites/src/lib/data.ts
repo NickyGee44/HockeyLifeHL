@@ -57,6 +57,7 @@ import {
 import {
   applyImportedAggregateGoalieOverride,
   applyImportedAggregateSkaterOverride,
+  getImportedAggregateGoalieOverride,
   getImportedAggregateSkaterGamesPlayed,
   isAggregateOnlySeasonView,
   isImportedAggregateSeasonId,
@@ -1720,19 +1721,23 @@ export async function getStatsLeaders(
       .slice(0, limit) as PlayerStats[];
   }
 
-  // Try to use stats RPC if available (single season)
-  const { data: rpcData, error: rpcError } = await supabase.rpc(
-    'get_stats_leaders',
-    {
-      p_league_id: leagueId,
-      p_stat_type: statType,
-      p_limit: limit,
-      p_division_id: divisionId || null,
-    }
-  );
+  // Try to use stats RPC only when no explicit season was requested.
+  // The RPC is league-scoped, not season-scoped, so using it for a named season
+  // can return the wrong leaderboard with the right label.
+  if (seasonId === undefined) {
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      'get_stats_leaders',
+      {
+        p_league_id: leagueId,
+        p_stat_type: statType,
+        p_limit: limit,
+        p_division_id: divisionId || null,
+      }
+    );
 
-  if (!rpcError && rpcData && rpcData.length > 0) {
-    return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
+    if (!rpcError && rpcData && rpcData.length > 0) {
+      return deduplicatePlayerStats(rpcData as PlayerStats[]).slice(0, limit);
+    }
   }
 
   // Fallback: Query player_season_stats view for specific or current season
@@ -1758,19 +1763,26 @@ export async function getStatsLeaders(
     return [];
   }
 
-  const mapped = stats.map((s) => ({
-    player_id: s.player_id,
-    player_name: s.full_name || 'Unknown',
-    team_name: s.team_name || 'Unknown',
-    team_id: s.team_id || '',
-    position: s.position || null,
-    games_played: Number(s.games_played) || 0,
-    goals: Number(s.goals) || 0,
-    assists: Number(s.assists) || 0,
-    points: Number(s.points) || 0,
-    penalty_minutes: 0,
-    plus_minus: 0,
-  })) as PlayerStats[];
+  const mapped = stats.map((s) => {
+    const playerName = s.full_name || 'Unknown';
+    const overriddenGamesPlayed = isImportedAggregateSeasonId(season.id)
+      ? getImportedAggregateSkaterGamesPlayed(season.id, playerName)
+      : null;
+
+    return {
+      player_id: s.player_id,
+      player_name: playerName,
+      team_name: s.team_name || 'Unknown',
+      team_id: s.team_id || '',
+      position: s.position || null,
+      games_played: overriddenGamesPlayed ?? (Number(s.games_played) || 0),
+      goals: Number(s.goals) || 0,
+      assists: Number(s.assists) || 0,
+      points: Number(s.points) || 0,
+      penalty_minutes: 0,
+      plus_minus: 0,
+    };
+  }) as PlayerStats[];
 
   return deduplicatePlayerStats(mapped).slice(0, limit);
 }
@@ -3268,21 +3280,28 @@ export async function getGoalieLeaders(
   if (error || !data) return [];
 
   // Transform RPC response to expected format and apply client-side sorting/limiting
-  const results = (data as any[]).map((row) => ({
-    player_id: row.player_id,
-    player_name: row.full_name || 'Unknown',
-    team_id: row.team_id || '',
-    team_name: row.team_name || '',
-    games_played: row.games_played || 0,
-    wins: row.wins || 0,
-    losses: row.losses || 0,
-    save_percentage: row.save_percentage || 0,
-    goals_against_average: row.goals_against_average || 0,
-    shutouts: row.shutouts || 0,
-    saves: row.total_saves || 0,
-    goals_against: row.total_goals_against || 0,
-    avatar_url: row.avatar_url || null,
-  }));
+  const results = (data as any[]).map((row) => {
+    const playerName = row.full_name || 'Unknown';
+    const importedAggregateOverride = getImportedAggregateGoalieOverride(seasonId, playerName);
+
+    return {
+      player_id: row.player_id,
+      player_name: playerName,
+      team_id: row.team_id || '',
+      team_name: row.team_name || '',
+      games_played: importedAggregateOverride?.games_played ?? (row.games_played || 0),
+      wins: importedAggregateOverride?.wins ?? (row.wins || 0),
+      losses: importedAggregateOverride?.losses ?? (row.losses || 0),
+      save_percentage: row.save_percentage || 0,
+      goals_against_average: importedAggregateOverride && (row.total_goals_against || 0) >= 0
+        ? Number(((row.total_goals_against || 0) / Math.max(importedAggregateOverride.games_played, 1)).toFixed(2))
+        : row.goals_against_average || 0,
+      shutouts: row.shutouts || 0,
+      saves: row.total_saves || 0,
+      goals_against: row.total_goals_against || 0,
+      avatar_url: row.avatar_url || null,
+    };
+  });
 
   await hydrateGoalieProfiles(results);
 
