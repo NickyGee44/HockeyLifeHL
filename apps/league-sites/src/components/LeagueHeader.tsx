@@ -28,11 +28,14 @@ import { ThemeToggle } from './ThemeToggle';
 import { useDivisionFilter } from './DivisionFilterProvider';
 import { useUser } from '@/hooks/useUser';
 import { shouldShowDefaultPublicNavPage } from '@/lib/publicSiteVisibility';
+import { createClient } from '@/lib/supabase/client';
+import { hasActiveSeasonRegistration } from '@/lib/registration/public-registration-cta';
 
 interface LeagueHeaderProps {
   league: League;
   leagueSlug: string;
   registrationOpen?: boolean;
+  registrationSeasonId?: string | null;
   visiblePages?: Record<string, boolean>;
   isPlayoffSeason?: boolean;
 }
@@ -71,13 +74,15 @@ const navItems: DefaultNavItem[] = [
 
 const PRIMARY_DESKTOP_HREFS = new Set(['/schedule', '/standings', '/teams', '/stats']);
 
-export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePages, isPlayoffSeason }: LeagueHeaderProps) {
+export function LeagueHeader({ league, leagueSlug, registrationOpen, registrationSeasonId, visiblePages, isPlayoffSeason }: LeagueHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const { isPreviewMode, theme } = usePreviewMode();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
   const { user, isLoading: isUserLoading } = useUser();
+  const [hasSeasonRegistration, setHasSeasonRegistration] = useState(false);
+  const [isRegistrationStatusLoading, setIsRegistrationStatusLoading] = useState(false);
   const [moreMenuState, setMoreMenuState] = useState<{ open: boolean; pathname: string }>({
     open: false,
     pathname: pathname ?? '',
@@ -114,7 +119,73 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, visiblePage
         if (pageKey === 'playoffs' && !isPlayoffSeason) return false;
         return shouldShowDefaultPublicNavPage(pageKey, visiblePages);
       });
-  const showRegistrationCta = Boolean(registrationOpen && !isUserLoading && !user);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadRegistrationStatus = async () => {
+      if (!registrationOpen || !registrationSeasonId || isUserLoading) {
+        if (!cancelled) {
+          setHasSeasonRegistration(false);
+          setIsRegistrationStatusLoading(false);
+        }
+        return;
+      }
+
+      if (!user) {
+        if (!cancelled) {
+          setHasSeasonRegistration(false);
+          setIsRegistrationStatusLoading(false);
+        }
+        return;
+      }
+
+      setIsRegistrationStatusLoading(true);
+
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('registration_submissions')
+          .select('status')
+          .eq('player_id', user.id)
+          .eq('league_id', league.id)
+          .eq('season_id', registrationSeasonId)
+          .not('submitted_at', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!cancelled) {
+          setHasSeasonRegistration(hasActiveSeasonRegistration(data?.status));
+        }
+      } catch (error) {
+        console.error('Failed to load registration CTA status:', error);
+        if (!cancelled) {
+          setHasSeasonRegistration(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRegistrationStatusLoading(false);
+        }
+      }
+    };
+
+    loadRegistrationStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [registrationOpen, registrationSeasonId, isUserLoading, user, league.id]);
+
+  const showRegistrationCta = Boolean(
+    registrationOpen &&
+      !isUserLoading &&
+      (!user || (!isRegistrationStatusLoading && !hasSeasonRegistration))
+  );
 
   const logoUrl = isPreviewMode && theme?.logoUrl !== undefined ? theme.logoUrl : league.logo_url;
   const displayName = league.short_name || league.name;

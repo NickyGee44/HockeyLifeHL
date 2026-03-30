@@ -102,7 +102,8 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
   const templateClass = `league-template-${theme.templateVariant}`;
 
   // Check if any season has open registration
-  const registrationOpen = Boolean(pickRegistrationSeason(seasons as any[]));
+  const registrationSeason = pickRegistrationSeason(seasons as any[]);
+  const registrationOpen = Boolean(registrationSeason);
   const operationalSeason = pickOperationalSeason(seasons as any[]);
   const activeSeasonId = (operationalSeason as any)?.id ?? null;
   const isPlayoffSeason = (operationalSeason as any)?.status === 'playoffs';
@@ -141,6 +142,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                       league={league}
                       leagueSlug={leagueSlug}
                       registrationOpen={registrationOpen}
+                      registrationSeasonId={(registrationSeason as any)?.id ?? null}
                       visiblePages={(league as any).settings?.website?.visiblePages}
                       isPlayoffSeason={isPlayoffSeason}
                     />
