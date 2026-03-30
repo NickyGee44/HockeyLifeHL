@@ -7,6 +7,7 @@ import {
   getLeagueBySlug,
   getPlayerProfile,
   getPlayerCareerStats,
+  getImportedPlayerCareerAchievements,
   getPlayerGameLog,
   getSeasons,
   getCurrentSeason,
@@ -23,6 +24,7 @@ import { SeasonSelector } from '@/components/player/SeasonSelector';
 import { PlayerArticleCard } from '@/components/player/PlayerArticleCard';
 import { PlayerMatchups } from '@/components/player/PlayerMatchups';
 import { isAggregateOnlySeasonView } from '@/lib/imported-aggregate-season-overrides';
+import { countChampionshipBadges, summarizePlayerCareerAchievements } from '@/lib/career-achievements';
 
 interface PlayerPageProps {
   params: Promise<{ leagueSlug: string; playerId: string }>;
@@ -70,11 +72,12 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   const isGoalie = player.position === 'G' || player.position === 'Goalie';
 
   // Fetch data in parallel
-  const [seasons, stats, gameLog, badges, playerArticles, matchupData] = await Promise.all([
+  const [seasons, stats, gameLog, badges, importedCareerAchievements, playerArticles, matchupData] = await Promise.all([
     getSeasons(league.id),
     getPlayerCareerStats(profileId, seasonId),
     getPlayerGameLog(profileId, seasonId, 20),
     getPlayerBadges(profileId),
+    getImportedPlayerCareerAchievements(profileId),
     getPlayerArticles(profileId, 5),
     isGoalie
       ? getGoaliePlayerMatchups(profileId, seasonId)
@@ -82,6 +85,10 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   ]);
 
   const playerName = player.profile?.full_name || 'Unknown Player';
+  const careerAchievements = summarizePlayerCareerAchievements({
+    importedChampionships: importedCareerAchievements.championships,
+    nativeChampionships: countChampionshipBadges(badges),
+  });
 
   const matchups = matchupData.map((m: any) => ({
     id: isGoalie ? m.playerId : m.goalieId,
@@ -115,6 +122,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
           playerName={playerName}
           leagueSlug={leagueSlug}
           badges={badges}
+          careerAchievements={careerAchievements}
         />
 
         {/* Achievements Section */}

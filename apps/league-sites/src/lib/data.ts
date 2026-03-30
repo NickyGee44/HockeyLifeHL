@@ -3073,6 +3073,27 @@ export async function getPlayerCareerStats(
   return summarizePlayerCareerTotals(playerId, data || [], seasonSummary);
 }
 
+export async function getImportedPlayerCareerAchievements(
+  playerId: string,
+): Promise<{ championships: number }> {
+  const serviceSupabase = createServiceRoleClient();
+  const { data, error } = await serviceSupabase
+    .from('player_career_baselines')
+    .select('moosehead_cup_wins')
+    .eq('player_id', playerId);
+
+  if (error || !data) {
+    return { championships: 0 };
+  }
+
+  return {
+    championships: (data as Array<{ moosehead_cup_wins: number | null }>).reduce((total: number, row) => {
+      const value = typeof row.moosehead_cup_wins === 'number' ? row.moosehead_cup_wins : 0;
+      return total + Math.max(0, Math.trunc(value));
+    }, 0),
+  };
+}
+
 /**
  * Fetch player game log
  * Queries player_stats table with game details

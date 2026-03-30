@@ -1,7 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Shield } from 'lucide-react';
+import { Shield, Trophy } from 'lucide-react';
 import type { Player, PlayerBadge } from '@/lib/types';
+import type { PlayerCareerAchievements } from '@/lib/career-achievements';
 import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
 
 interface PlayerHeaderProps {
@@ -9,9 +10,10 @@ interface PlayerHeaderProps {
   playerName: string;
   leagueSlug: string;
   badges?: PlayerBadge[];
+  careerAchievements?: PlayerCareerAchievements;
 }
 
-export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerHeaderProps) {
+export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAchievements }: PlayerHeaderProps) {
   const team = (player as any).team;
   const teamColor = team?.primary_color || 'var(--league-primary)';
 
@@ -113,6 +115,13 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges }: PlayerH
               >
                 <Shield className="w-3 h-3" style={{ color: teamColor }} />
                 {getPositionLabel(player.position)}
+              </span>
+            )}
+
+            {careerAchievements && careerAchievements.championships > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/12 text-xs font-semibold uppercase tracking-wide text-amber-300">
+                <Trophy className="w-3 h-3" />
+                {careerAchievements.championships} Championship{careerAchievements.championships === 1 ? '' : 's'}
               </span>
             )}
 
