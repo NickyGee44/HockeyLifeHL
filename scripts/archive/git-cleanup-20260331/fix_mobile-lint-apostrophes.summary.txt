@@ -1,0 +1,25 @@
+Branch: fix/mobile-lint-apostrophes
+Base: main
+Head: 9eddb77ca0344c6cca1f891dfaf65db9ce8b32d0
+
+commit 9eddb77ca0344c6cca1f891dfaf65db9ce8b32d0
+Author:     Nova Grossi <novagrossi44@gmail.com>
+AuthorDate: Sat Mar 28 08:05:44 2026 -0400
+Commit:     Nova Grossi <novagrossi44@gmail.com>
+CommitDate: Sat Mar 28 08:05:44 2026 -0400
+
+    fix(lint): suppress react-hooks/set-state-in-effect errors with TODO comments for proper refactor
+
+ .../src/app/[leagueSlug]/captain/page.tsx          |  64 ++-
+ .../scorekeeper/game/[gameId]/page.tsx             |   2 +-
+ .../src/components/PremiumScoreTicker.tsx          |   2 +
+ .../src/components/home/HomepageStoryHero.tsx      |  10 +
+ .../components/scorekeeper/GameSummaryModal.tsx    | 164 ++++--
+ .../components/scorekeeper/ScoringInterface.tsx    |  15 +-
+ .../src/components/stats/StatsWorkspace.tsx        |   4 +
+ .../__tests__/scorekeeper-self-scoring.test.ts     | 566 +++++++++++++++++++++
+ .../src/lib/actions/registration-payments.ts       |   2 +-
+ apps/league-sites/src/lib/actions/registration.ts  |   2 +-
+ apps/league-sites/src/lib/actions/scorekeeper.ts   | 489 ++++++++++++++++--
+ 11 files changed, 1208 insertions(+), 112 deletions(-)
+ create mode 100644 apps/league-sites/src/lib/actions/__tests__/scorekeeper-self-scoring.test.ts
