@@ -2,6 +2,10 @@ import {
   HLHL_WINTER_2026_SEASON_ID,
   applyImportedAggregateGoalieOverride,
   applyImportedAggregateSkaterOverride,
+  getImportedAggregateGoalieSeed,
+  getImportedAggregateGoalieSeeds,
+  getImportedAggregateSkaterSeed,
+  getImportedAggregateSkaterSeeds,
   getImportedAggregateSkaterGamesPlayed,
   isAggregateOnlySeasonView,
 } from '../imported-aggregate-season-overrides';
@@ -11,6 +15,27 @@ describe('imported aggregate season overrides', () => {
     expect(getImportedAggregateSkaterGamesPlayed(HLHL_WINTER_2026_SEASON_ID, 'Adam Klimowicz')).toBe(11);
     expect(getImportedAggregateSkaterGamesPlayed(HLHL_WINTER_2026_SEASON_ID, 'Steve Almond')).toBe(10);
     expect(getImportedAggregateSkaterGamesPlayed('some-other-season', 'Adam Klimowicz')).toBeNull();
+  });
+
+  it('exposes the full imported winter skater totals', () => {
+    expect(getImportedAggregateSkaterSeed(HLHL_WINTER_2026_SEASON_ID, 'Matt Grossi')).toMatchObject({
+      teamName: 'FitzRays Flyers',
+      gamesPlayed: 10,
+      goals: 12,
+      assists: 7,
+    });
+    expect(getImportedAggregateSkaterSeeds(HLHL_WINTER_2026_SEASON_ID)).toHaveLength(62);
+  });
+
+  it('exposes the full imported winter goalie totals', () => {
+    expect(getImportedAggregateGoalieSeed(HLHL_WINTER_2026_SEASON_ID, 'Steven Wild')).toMatchObject({
+      teamName: 'First General London',
+      gamesPlayed: 10,
+      wins: 5,
+      losses: 4,
+      goalsAgainst: 33,
+    });
+    expect(getImportedAggregateGoalieSeeds(HLHL_WINTER_2026_SEASON_ID)).toHaveLength(9);
   });
 
   it('detects aggregate-only season views', () => {
